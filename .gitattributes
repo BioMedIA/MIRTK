@@ -1,0 +1,26 @@
+# The following files are text files and should always be written to the
+# repository with LF line endings, but checked out on MS Windows with CRLF.
+*.tmpl text
+*.txt  text
+*.md   text
+*.c    text
+*.cpp  text
+*.cxx  text
+*.cc   text
+*.h    text
+*.hpp  text
+*.hh   text
+*.hxx  text
+*.txx  text
+*.py   text
+*.pyx  text
+*.sh   text
+*.m    text
+
+# The following files are binary files and should never be modified by Git.
+*.ubu binary
+*.ico binary
+*.nii binary
+*.gz  binary
+*.hdr binary
+*.img binary
