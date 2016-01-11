@@ -215,7 +215,7 @@ def get_brief_description(description):
 # ------------------------------------------------------------------------------
 def get_arguments(output):
     """Get help of command arguments."""
-    start = re.compile('(^|\S.*)([aA]rguments|[oO]ptions).*:\s*$')
+    start = re.compile('(^|\S.*)([aA]rguments|[oO]ptions)(.*):\s*$')
     end   = re.compile('\S.*:\s*$')
     section_name  = ''
     section_lines = []
@@ -227,7 +227,7 @@ def get_arguments(output):
             if section_name and section_lines:
                 section_args = join_arguments(section_lines)
                 sections.append((section_name, section_args))
-            section_name  = m.group(0)[0:-1].strip()
+            section_name = (m.group(1) + m.group(2) + m.group(3)).strip()
             if (re.match(r'[oO]ptional\s+[aA]rguments', section_name) or
                 re.match(r'[oO]ptions', section_name)):
                 section_name = 'Command options'
