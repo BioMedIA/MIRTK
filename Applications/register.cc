@@ -90,7 +90,7 @@ void PrintUsage(const char* name)
   cout << "  -mask   <file>          Reference mask which defines the domain within which to evaluate the" << endl;
   cout << "                          energy function (i.e. data fidelity terms). (default: none)" << endl;
   cout << "  -dofin  <file>          Initial transformation estimate. (default: align centroids)" << endl;
-  cout << "  -par '<name>=<value>'   Specify parameter value directly as command argument." << endl;
+  cout << "  -par <name> <value>    Specify parameter value directly as command argument." << endl;
   cout << "  -parin  <file>          Read parameters from configuration file. If \"stdin\" or \"cin\"," << endl;
   cout << "                          the parameters are read from standard input instead. (default: none)" << endl;
   cout << "  -parout <file>          Write parameters to the named configuration file. (default: none)" << endl;
@@ -670,7 +670,7 @@ int main(int argc, char **argv)
     else if (OPTION("-mask"))   mask_name       = ARGUMENT;
     else if (OPTION("-nodebug-level-prefix")) debug_output_level_prefix = false;
     // Parameter
-    else if (OPTION("-par"))    params << ARGUMENT << endl;
+    else if (OPTION("-par"))    params << ARGUMENT << " = " << ARGUMENT << endl;
     else if (OPTION("-parin" )) parin_name      = ARGUMENT;
     else if (OPTION("-parout")) parout_name     = ARGUMENT;
     // Shortcuts for often used -par "<parameter> = <value>"
