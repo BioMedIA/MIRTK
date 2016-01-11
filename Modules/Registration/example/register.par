@@ -1,0 +1,135 @@
+## This file documents some of the parameters of the generic MIRTK Registration tool.
+##
+## usage: mirtk register -parin register.par -image target.nii.gz -image source.nii.gz -dofout output.dof.gz
+
+# Padding value
+# -------------
+#
+# Define the background in your images using one of the following options.
+# If the input images contain a background value due to a previous brain
+# extraction, you should use this value at least for non-linear registration.
+# Otherwise, if the images contain no explicit background, consider the use
+# of a mask image (e.g., brain mask) for the untransformed image (target).
+# A mask is only allowed for an asymmetric registration (see Energy function below).
+#
+# Same background value in all input images:
+#   Padding value = 0
+# Background value specific to the second input image:
+#   Padding value of image 2 = -1
+
+Padding value = -1
+
+
+# Multi-level transformation model
+# --------------------------------
+#
+# Specify type of multi-level transformation in case of a free-form transformation model, i.e.,
+#   - None:   T(x) = FFD(x)
+#   - Sum:    T(x) = A(x) + \sum_i FFD_i(x)
+#   - LogSum: T(x) = exp(log(A(x)) + \sum_i SVFFD_i(x)))
+#   - Fluid:  T(x) = FFD_n(x) o ... o FFD_i+1 o FFD_i(x) o A(x)
+
+Multi-level transformation = None
+
+
+# Transformation model (DoFs)
+# ---------------------------
+#
+# Specify model of transformation to be optimized, i.e.,
+#   - Rigid:      Rigid transformation with 6 DoFs (rotation, translation)
+#   - Similarity: Similarity transformation with 7 DoFs (rotation, translation, isotropic scaling)
+#   - Affine:     Affine transformation with 12 DoFs (rotation, translation, scaling, shearing)
+#   - FFD:        B-spline free-form deformation parameterized by control point displacements
+#   - SVFFD:      B-spline free-form deformation parameterized by stationary velocity field
+#
+# Multiple models can be chained using the + operator, e.g., "Rigid+Affine+FFD" (default).
+
+Transformation model = SVFFD
+
+
+# In case of linear transformation model, optionally restrict free parameters, e.g.,
+#   Allow shearing         = No
+#   Allow translation in Z = No
+#   Allow scaling          = No
+#   Allow scaling in X     = No
+#   Allow rotation in Y    = No
+# Note that combining the Affine model with restricting scaling and shearing
+# is equivalent to selecting the Rigid transformation model.
+
+# In case of free-form deformation model, optionally specify final control point spacing.
+# By default, the spacing is four times the minimum voxel size.
+
+Control point spacing = 2.5
+
+
+# Registration energy function
+# ----------------------------
+#
+# Either do not specify an energy function, which then defaults to
+#
+#   SIM[Similarity](I1, I2 o T) + BE[Bending energy](T)
+#
+# and specify similarity measure and weights to use as in
+
+Similarity measure    = NMI
+Bending energy weight = 1e-3
+
+# or define a custom energy function explicitly. Each similarity or constraint term
+# can be assigned a custom name in [] after the type specification. This is optional
+# and defaults to the acronym of the energy term, e.g., "NMI" for normalized mutual
+# information. Note that the sign of the image (dis-)similarity measure is by default
+# such that the energy term value achieves lower values in case of a better registration.
+# The registration energy function is being minimized by the chosen optimizer.
+#
+# Valid similarity measures are:
+#   - SSD:      Sum of squared differences
+#   - NMI:      Normalized mutual information
+#   - LNCC:     Local normalized cross-correlation
+#   - NGF_COS:  Cosine of normalized gradient fields
+#   - NGF_COS2: Cosine of normalized gradient fields squared
+# Valid smoothness constraints are:
+#   - BE:       Bending energy
+#
+# Depending on the registration energy function, the registration is referred to as
+# asymmetric, inverse consistent, or inverse consistent and symmetric. Examples are:
+#
+# Asymmetric source to target registration:
+#
+#   Energy function = NMI(I1, I2) + 1e-3 BE
+#
+# Inverse consistent registration:
+#
+#   Energy function = .5 NMI(I1, I2 o T) + .5 NMI(I2, I1 o T^-1) + 1e-3 BE
+#
+# Symmetric, inverse consistent registration:
+#
+#   Energy function = NMI(I1 o T^-0.5, I2 o T^0.5) + 1e-3 BE
+#
+# The inverse consistent registration methods require the SVFFD transformation model.
+
+
+# Advanced options
+# ----------------
+#
+# To speed up the registration with possible minor (or more significant?) loss of accuracy,
+# use one or both of the following options (recommended):
+#
+#   Strict step length range         = No
+#   Maximum streak of rejected steps = 2
+#
+# The following options are available for the diffeomorphic registration with the SVFFD
+# model. The here specified default values used when not specified are recommended.
+# So no need to specify these parameters here.
+#
+#   Use scaling and squaring         = Yes
+#   Fast scaling and squaring        = Yes
+#   No. of integration steps         = 64
+#   Maximum scaled velocity          = .0
+#
+# The initial transformation estimate such as a previous affine transformation can either
+# be used in conjunction with an appropriate multi-level transformation or merged directly
+# into the free-form deformation. To force the global transformation of the multi-level
+# transformation to be the identity and approximate it instead initially by the used
+# free-form deformation model, specify the following option:
+#
+#   Merge global and local transformation = Yes

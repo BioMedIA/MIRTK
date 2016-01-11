@@ -1,0 +1,15 @@
+#!/bin/bash
+
+PDFLATEX='@PDFLATEX_COMPILER@'
+[ -z "$PDFLATEX" ] || export PATH="$(dirname "$PDFLATEX"):$PATH"
+
+wd="$PWD"
+while [ $# -gt 0 ]; do
+  case $1 in
+    -C) wd="$2"; shift; ;;
+    *) echo "Invalid argument: $1" > 1&2; exit 1; ;;
+  esac
+  shift
+done
+
+cd $wd && make

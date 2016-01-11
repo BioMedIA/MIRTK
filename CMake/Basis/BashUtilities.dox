@@ -1,0 +1,6 @@
+/**
+@defgroup BasisBashUtilities Bash Utilities
+@brief    Auxiliary implementations for use in Bash scripts.
+
+@ingroup BasisUtilities
+*/

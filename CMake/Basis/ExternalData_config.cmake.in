@@ -1,0 +1,10 @@
+##############################################################################
+# @file  ExternalData_config.cmake.in
+# @brief Defines URL templates for external data.
+#
+# This file is configured and used by the ExternalData.cmake module.
+#
+# @ingroup CMakeTemplates
+##############################################################################
+
+set (ExternalData_URL_TEMPLATES "@ExternalData_URL_TEMPLATES@")

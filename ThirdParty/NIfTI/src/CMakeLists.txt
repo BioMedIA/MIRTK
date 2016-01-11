@@ -1,0 +1,59 @@
+# ============================================================================
+# Medical Image Registration ToolKit (MIRTK) LBFGS Library
+#
+# Copyright 2013-2015 Imperial College London
+# Copyright 2013-2015 Andreas Schuh
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+# THE SOFTWARE.
+# ============================================================================
+
+##############################################################################
+# @file  CMakeLists.txt
+# @brief Build configuration of MIRTK NIfTI library.
+##############################################################################
+
+set(HEADERS
+  mirtkNiftiImageInfo.h
+  mirtkNiftiImageReader.h
+  mirtkNiftiImageWriter.h
+)
+
+set(SOURCES
+  mirtkNiftiImage.h
+  mirtkNiftiImage.cc
+  mirtkNiftiImageInfo.cc
+  mirtkNiftiImageReader.cc
+  mirtkNiftiImageWriter.cc
+)
+
+if (NOT NiftiCLib_FOUND)
+  list(APPEND SOURCES nifti1.h nifti1_io.h nifti1_io.c znzlib.h znzlib.c)
+endif ()
+
+set(DEPENDS
+  LibImage
+)
+if (NiftiCLib_FOUND)
+  list(APPEND DEPENDS ${NiftiCLib_LIBRARIES})
+endif ()
+if (ZLIB_FOUND)
+  list(APPEND DEPENDS ${ZLIB_LIBRARIES})
+endif ()
+
+mirtk_add_library()
