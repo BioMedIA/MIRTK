@@ -38,6 +38,11 @@ LocalOptimizer *LocalOptimizer::New(enum OptimizationMethod type, ObjectiveFunct
 {
   typedef ObjectFactory<enum OptimizationMethod, LocalOptimizer> Factory;
   LocalOptimizer *optimizer = Factory::Instance().New(type);
+  if (!optimizer) {
+    cerr << "LocalOptimizer::New: Unknown optimizer or optimizer not available: "
+         << ToString(type) << " (code " << type << ")" << endl;
+    exit(1);
+  }
   optimizer->Function(f);
   return optimizer;
 }
