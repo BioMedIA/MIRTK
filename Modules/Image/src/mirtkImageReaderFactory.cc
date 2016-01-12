@@ -19,6 +19,8 @@
 
 #include <mirtkImageReaderFactory.h>
 
+#include <mirtkAssert.h>
+
 
 namespace mirtk {
 
@@ -43,6 +45,7 @@ ImageReaderFactory::~ImageReaderFactory()
 // -----------------------------------------------------------------------------
 bool ImageReaderFactory::Register(ImageReaderCreator creator)
 {
+  mirtkAssert(creator() != nullptr, "ImageReaderCreator produces object");
   _Creators.push_back(creator);
   return true;
 }

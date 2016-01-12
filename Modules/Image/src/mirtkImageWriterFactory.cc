@@ -19,6 +19,7 @@
 
 #include <mirtkImageWriterFactory.h>
 
+#include <mirtkAssert.h>
 #include <mirtkPath.h>
 #include <mirtkArray.h>
 
@@ -46,6 +47,7 @@ ImageWriterFactory::~ImageWriterFactory()
 // -----------------------------------------------------------------------------
 bool ImageWriterFactory::Register(const Array<string> &exts, ImageWriterCreator creator)
 {
+  mirtkAssert(creator() != nullptr, "ImageWriterCreator produces object");
   for (auto ext = exts.begin(); ext != exts.end(); ++ext) {
     _Associations[*ext] = creator;
   }
