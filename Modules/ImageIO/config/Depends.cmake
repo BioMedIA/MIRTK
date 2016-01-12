@@ -52,24 +52,21 @@
 # @ingroup BasisSettings
 ##############################################################################
 
-option(WITH_NiftiCLib "Enable NIfTI image support" ON)
+option(WITH_NiftiCLib "Require system installation of NIfTI C library" OFF)
+mark_as_advanced(WITH_NiftiCLib)
 
 if (WITH_NiftiCLib)
-  set(WITH_NiftiCLib OFF)
-  set(USE_NiftiCLib  ON)
-  basis_find_package(NiftiCLib QUIET)
-  set(WITH_NiftiCLib ON)
-  if (NOT NiftiCLib_FOUND)
-    add_subdirectory(
-      "${TOPLEVEL_PROJECT_SOURCE_DIR}/ThirdParty/NiftiCLib"
-      "${TOPLEVEL_PROJECT_BINARY_DIR}/ThirdParty/NiftiCLib"
-    )
-    set(NiftiCLib_INCLUDE_DIRS
-      "${TOPLEVEL_PROJECT_SOURCE_DIR}/ThirdParty/NiftiCLib/znzlib"
-      "${TOPLEVEL_PROJECT_SOURCE_DIR}/ThirdParty/NiftiCLib/niftilib"
-    )
-    set(NiftiCLib_LIBRARIES nifticlib)
-    set(NiftiCLib_FOUND TRUE)
-    include_directories(${NiftiCLib_INCLUDE_DIRS})
-  endif ()
+  basis_find_package(NiftiCLib REQUIRED)
+else ()
+  add_subdirectory(
+    "${TOPLEVEL_PROJECT_SOURCE_DIR}/ThirdParty/NiftiCLib"
+    "${TOPLEVEL_PROJECT_BINARY_DIR}/ThirdParty/NiftiCLib"
+  )
+  set(NiftiCLib_INCLUDE_DIRS
+    "${TOPLEVEL_PROJECT_SOURCE_DIR}/ThirdParty/NiftiCLib/znzlib"
+    "${TOPLEVEL_PROJECT_SOURCE_DIR}/ThirdParty/NiftiCLib/niftilib"
+  )
+  set(NiftiCLib_LIBRARIES nifticlib)
+  set(NiftiCLib_FOUND TRUE)
+  include_directories(${NiftiCLib_INCLUDE_DIRS})
 endif ()

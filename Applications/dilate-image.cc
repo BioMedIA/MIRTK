@@ -21,6 +21,7 @@
 #include <mirtkCommon.h>
 #include <mirtkOptions.h>
 
+#include <mirtkImageIOConfig.h>
 #include <mirtkDilation.h>
 
 using namespace mirtk;
@@ -77,6 +78,7 @@ int main(int argc, char *argv[])
     else HANDLE_STANDARD_OR_UNKNOWN_OPTION();
   }
 
+  InitializeImageIOLibrary();
   unique_ptr<BaseImage> image(BaseImage::New(input_name));
 
   if (verbose) cout << "Dilating ... ", cout.flush();

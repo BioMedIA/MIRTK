@@ -19,8 +19,10 @@
 
 #include <mirtkCommon.h>
 #include <mirtkOptions.h>
-#include <mirtkMatrix.h>
 
+#include <mirtkImageIOConfig.h>
+
+#include <mirtkMatrix.h>
 #include <mirtkGenericImage.h>
 #include <mirtkVoxelFunction.h>
 #include <mirtkInterpolateImageFunction.h>
@@ -306,6 +308,8 @@ int main(int argc, char **argv)
     Array<string>   imdof_name;
     Array<bool>     imdof_invert;
   #endif // HAVE_MIRTK_Transformation
+
+  InitializeImageIOLibrary();
 
   // ---------------------------------------------------------------------------
   // Command-line parsing

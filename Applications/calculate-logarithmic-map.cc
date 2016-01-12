@@ -20,6 +20,8 @@
 #include <mirtkCommon.h>
 #include <mirtkOptions.h>
 
+#include <mirtkImageIOConfig.h>
+
 #include <mirtkVelocityToDisplacementField.h>
 #include <mirtkVelocityToDisplacementFieldEuler.h>
 #include <mirtkVelocityToDisplacementFieldSS.h>
@@ -76,6 +78,8 @@ int main(int argc, char *argv[])
 {
   // Print help or version and exit if requested
   HANDLE_HELP_OR_VERSION();
+
+  InitializeImageIOLibrary();
 
   // Parse positional arguments
   const char *disp_fname = NULL;

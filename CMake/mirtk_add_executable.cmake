@@ -60,18 +60,6 @@ function(mirtk_add_executable target_name)
   )
   set_property(GLOBAL APPEND PROPERTY MIRTK_COMMANDS ${target_name})
   if (LANGUAGE STREQUAL CXX)
-    if (BUILD_SHARED_LIBS)
-      # FIXME: Should be set for each module independently in their mirtk<Module>Config.h
-      #        Respectively, each module should provide a mirtk::Init<Module>() function
-      #        which either does nothing or registers non-auto-registered types.
-      basis_get_target_uid(target_uid ${target_name})
-      target_compile_definitions(${target_uid} PRIVATE MIRTK_AUTO_REGISTER)
-      # TODO: How can this be set as property of the library target and -Wl,--no-as-needed -l<library> -Wl,--as-needed
-      #       be added to the executable link flags of those that depend on <library> ?
-      if (CMAKE_CXX_COMPILER_ID STREQUAL GNU)
-        basis_set_target_properties(${target_name} PROPERTIES LINK_FLAGS -Wl,--no-as-needed)
-      endif ()
-    endif ()
     # Add custom target to generate command documentation page
     if (BUILD_DOCUMENTATION AND BUILD_DOCUMENTATION_SOURCES AND NOT "^${target_name}$" STREQUAL "^help-rst$")
       if (TARGET help-rst)

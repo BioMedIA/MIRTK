@@ -19,6 +19,8 @@
 
 #include <mirtkCommon.h>
 #include <mirtkOptions.h>
+
+#include <mirtkImageIOConfig.h>
 #include <mirtkGenericImage.h>
 #include <mirtkTransformation.h>
 #include <mirtkFreeFormTransformation3D.h>
@@ -203,10 +205,12 @@ int main(int argc, char **argv)
   WorldCoordsImage i2w;
 
   if (mask_name) {
+    InitializeImageIOLibrary();
     mask.Read(mask_name);
     attr = mask.Attributes();
   }
   if (target_name) {
+    InitializeImageIOLibrary();
     target.Read(target_name);
     if (!IsInf(padding_value)) target.PutBackgroundValueAsDouble(padding_value, true);
     attr = target.Attributes();
@@ -281,7 +285,10 @@ int main(int argc, char **argv)
   if (!cumulative && ntuple > 0) output /= ntuple;
 
   // Write voxel-wise error map
-  if (output_name) output.Write(output_name);
+  if (output_name) {
+    InitializeImageIOLibrary();
+    output.Write(output_name);
+  }
 
   return 0;
 }

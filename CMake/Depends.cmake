@@ -57,13 +57,23 @@
 set(WITH_ZLIB_DEFAULT ON)
 
 # By default, use included Eigen header files
-if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/Eigen/signature_of_eigen3_matrix_library")
+if (Eigen3_INCLUDE_DIR)
+  set(Eigen3_DIR "${Eigen3_INCLUDE_DIR}")
+endif ()
+if (NOT Eigen3_DIR AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/Eigen/signature_of_eigen3_matrix_library")
   set(Eigen3_DIR "${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/Eigen")
 endif ()
 
 # By default, use included subset of required Boost header files
 # (extracted using the bcp tool of Boost 1.60.0)
-if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/Boost/boost/version.hpp")
+if (BOOST_INCLUDEDIR)
+  set(Boost_DIR "${BOOST_INCLUDEDIR}")
+elseif (BOOST_ROOT)
+  set(Boost_DIR "${BOOST_ROOT}/include")
+elseif (BOOSTROOT)
+  set(Boost_DIR "${BOOSTROOT}/include")
+endif ()
+if (NOT Boost_DIR AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/Boost/boost/version.hpp")
   set(Boost_DIR "${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/Boost")
 endif ()
 

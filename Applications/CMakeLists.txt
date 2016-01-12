@@ -40,7 +40,7 @@ endif ()
 
 # Generic file info tool
 mirtk_add_executable(info
-  DEPENDS LibImage LibImageIO
+  DEPENDS  LibImage LibImageIO
   OPTIONAL LibTransformation LibPointSet ${VTK_LIBRARIES}
 )
 

@@ -22,11 +22,12 @@
 #include <mirtkOptions.h>
 
 #include <mirtkBaseImage.h>
+#include <mirtkImageIOConfig.h>
 
 #ifdef HAVE_MIRTK_Transformation
-#  include <mirtkTransformation.h>
-#  include <mirtkHomogeneousTransformation.h>
-#  include <mirtkMultiLevelTransformation.h>
+  #include <mirtkTransformation.h>
+  #include <mirtkHomogeneousTransformation.h>
+  #include <mirtkMultiLevelTransformation.h>
 #endif
 
 using namespace mirtk;
@@ -91,6 +92,7 @@ int main(int argc, char *argv[])
   const char *input_name  = POSARG(1);
   const char *output_name = POSARG(2);
 
+  InitializeImageIOLibrary();
   unique_ptr<BaseImage> image(BaseImage::New(input_name));
 
   double origin[4];

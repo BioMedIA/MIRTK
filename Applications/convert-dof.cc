@@ -1167,9 +1167,6 @@ bool WriteF3D(const char *fname, const Transformation *dof,
 // -----------------------------------------------------------------------------
 int main(int argc, char *argv[])
 {
-  InitializeImageIOLibrary();
-  InitializeTransformationLibrary();
-
   // Parse arguments
   REQUIRES_POSARGS(2);
 
@@ -1241,10 +1238,12 @@ int main(int argc, char *argv[])
   // Read target/source attributes
   ImageAttributes target_attr, source_attr;
   if (target_name) {
+    InitializeImageIOLibrary();
     BinaryImage target(target_name);
     target_attr = target.Attributes();
   }
   if (source_name) {
+    InitializeImageIOLibrary();
     BinaryImage source(source_name);
     source_attr = source.Attributes();
   }

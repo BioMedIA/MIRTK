@@ -23,6 +23,7 @@
 
 #include <mirtkBaseImage.h>
 #include <mirtkImageReader.h>
+#include <mirtkImageIOConfig.h>
 #include <mirtkTransformation.h>
 #include <mirtkHomogeneousTransformation.h>
 #include <mirtkRigidTransformation.h>
@@ -85,6 +86,7 @@ int main(int argc, char **argv)
   const char *output_name = POSARG(2);
 
   // Read image
+  InitializeImageIOLibrary();
   unique_ptr<ImageReader> input_reader(ImageReader::New(input_name));
   int source_type = input_reader->DataType();
   unique_ptr<BaseImage> source(input_reader->Run());

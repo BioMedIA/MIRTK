@@ -21,6 +21,7 @@
 #include <mirtkCommon.h>
 #include <mirtkOptions.h>
 
+#include <mirtkImageIOConfig.h>
 #include <mirtkGenericImage.h>
 
 using namespace mirtk;
@@ -84,6 +85,7 @@ int main(int argc, char *argv[])
   }
 
   // Read image
+  InitializeImageIOLibrary();
   GenericImage<double> image(input_name);
 
   // Scale image

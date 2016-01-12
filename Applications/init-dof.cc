@@ -19,6 +19,8 @@
 
 #include <mirtkCommon.h>
 #include <mirtkOptions.h>
+
+#include <mirtkImageIOConfig.h>
 #include <mirtkPointSamples.h>
 
 #include <mirtkTransformation.h>
@@ -246,6 +248,8 @@ BSplineSVFFD(const AffineTransformation &dof, ImageAttributes attr, double sx, d
 // -----------------------------------------------------------------------------
 int main(int argc, char **argv)
 {
+  InitializeImageIOLibrary();
+ 
   EXPECTS_POSARGS(1);
 
   // Number of point samples used for approximation of rigid/affine input transformation

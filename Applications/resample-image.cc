@@ -21,6 +21,7 @@
 #include <mirtkCommon.h>
 #include <mirtkOptions.h>
 
+#include <mirtkImageIOConfig.h>
 #include <mirtkGenericImage.h>
 #include <mirtkInterpolateImageFunction.h>
 #include <mirtkResampling.h>
@@ -146,6 +147,7 @@ int main(int argc, char *argv[])
   const char *output_name = POSARG(2);
 
   // Read image
+  InitializeImageIOLibrary();
   unique_ptr<BaseImage> image(BaseImage::New(input_name));
 
   // Parse optional arguments

@@ -54,6 +54,6 @@ basis_set_config_option(WITH_LBFGS_CONFIG   "${LibLBFGS_FOUND}")
 
 configure_file(
   "${PROJECT_CONFIG_DIR}/config.h.in"
-  "${BINARY_INCLUDE_DIR}/mirtk${PROJECT_NAME}Config.h"
+  "${BINARY_INCLUDE_DIR}/mirtkNumericsConfig.h"
   @ONLY
 )

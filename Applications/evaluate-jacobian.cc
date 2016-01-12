@@ -20,6 +20,7 @@
 #include <mirtkCommon.h>
 #include <mirtkOptions.h>
 
+#include <mirtkImageIOConfig.h>
 #include <mirtkGenericImage.h>
 #include <mirtkVoxelFunction.h>
 #include <mirtkTransformations.h>
@@ -371,6 +372,8 @@ int main(int argc, char **argv)
   else {
     FatalError("Invalid number of positional arguments!");
   }
+
+  InitializeImageIOLibrary();
 
   JacobianImpl impl;
   impl._image = new GreyImage(target_name);

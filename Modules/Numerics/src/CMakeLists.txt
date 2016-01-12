@@ -94,11 +94,13 @@ set(SOURCES
 )
 
 set(DEPENDS LibCommon)
-if (LibLBFGS_FOUND)
+
+if (LBFGS_FOUND)
   list(APPEND HEADERS mirtkLimitedMemoryBFGSDescent.h)
   list(APPEND SOURCES mirtkLimitedMemoryBFGSDescent.cc)
-  list(APPEND DEPENDS ${LibLBFGS_LIBRARIES})
+  list(APPEND DEPENDS ${LBFGS_LIBRARIES})
 endif ()
+
 if (MATLAB_FOUND)
   list(APPEND DEPENDS ${MATLAB_mwmclmcrrt_LIBRARY})
 endif ()

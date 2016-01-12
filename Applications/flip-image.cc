@@ -21,6 +21,7 @@
 #include <mirtkCommon.h>
 #include <mirtkOptions.h>
 
+#include <mirtkImageIOConfig.h>
 #include <mirtkBaseImage.h>
 
 using namespace mirtk;
@@ -65,6 +66,7 @@ int main(int argc, char **argv)
   const char *input_name  = POSARG(1);
   const char *output_name = POSARG(2);
 
+  InitializeImageIOLibrary();
   unique_ptr<BaseImage> image(BaseImage::New(input_name));
 
   for (ALL_OPTIONS) {

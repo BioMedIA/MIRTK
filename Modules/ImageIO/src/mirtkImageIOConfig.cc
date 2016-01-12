@@ -27,7 +27,7 @@
   #include <mirtkPGMImageReader.h>
   #include <mirtkPGMImageWriter.h>
   #include <mirtkPNGImageWriter.h>
-  #if MIRTK_Image_WITH_NIfTI
+  #if MIRTK_ImageIO_WITH_NIfTI
     #include <mirtkNiftiImageReader.h>
     #include <mirtkNiftiImageWriter.h>
   #endif
@@ -44,7 +44,7 @@ static void RegisterImageReaders()
   #ifndef MIRTK_AUTO_REGISTER
     mirtkRegisterImageReaderMacro(GIPLImageReader);
     mirtkRegisterImageReaderMacro(PGMImageReader);
-    #if MIRTK_Image_WITH_NIfTI
+    #if MIRTK_ImageIO_WITH_NIfTI
       mirtkRegisterImageReaderMacro(NiftiImageReader);
     #endif
   #endif
@@ -56,10 +56,10 @@ static void RegisterImageWriters()
   #ifndef MIRTK_AUTO_REGISTER
     mirtkRegisterImageWriterMacro(GIPLImageWriter);
     mirtkRegisterImageWriterMacro(PGMImageWriter);
-    #if MIRTK_Image_WITH_PNG
+    #if MIRTK_ImageIO_WITH_PNG
       mirtkRegisterImageWriterMacro(PNGImageWriter);
     #endif
-    #if MIRTK_Image_WITH_NIfTI
+    #if MIRTK_ImageIO_WITH_NIfTI
       mirtkRegisterImageWriterMacro(NiftiImageWriter);
     #endif
   #endif

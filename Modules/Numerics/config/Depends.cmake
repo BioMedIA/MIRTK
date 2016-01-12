@@ -52,15 +52,13 @@
 # @ingroup BasisSettings
 ##############################################################################
 
-option(WITH_LibLBFGS "Request build of libLBFGS optimizer" ON)
+add_subdirectory(
+  "${TOPLEVEL_PROJECT_SOURCE_DIR}/ThirdParty/LBFGS"
+  "${TOPLEVEL_PROJECT_BINARY_DIR}/ThirdParty/LBFGS"
+)
 
-if (WITH_LibLBFGS)
-  add_subdirectory(
-    "${TOPLEVEL_PROJECT_SOURCE_DIR}/ThirdParty/LibLBFGS"
-    "${TOPLEVEL_PROJECT_BINARY_DIR}/ThirdParty/LibLBFGS"
-  )
-  set(LibLBFGS_INCLUDE_DIRS "${TOPLEVEL_PROJECT_SOURCE_DIR}/ThirdParty/LibLBFGS/include")
-  set(LibLBFGS_LIBRARIES LibLBFGS)
-  set(LibLBFGS_FOUND TRUE)
-  include_directories(${LibLBFGS_INCLUDE_DIRS})
-endif ()
+set(LBFGS_INCLUDE_DIRS "${TOPLEVEL_PROJECT_SOURCE_DIR}/ThirdParty/LBFGS/include")
+set(LBFGS_LIBRARIES lbfgs)
+set(LBFGS_FOUND TRUE)
+
+include_directories(${LBFGS_INCLUDE_DIRS})

@@ -199,7 +199,7 @@ int main(int argc, char *argv[])
   read_dofin(dofin, target, global, local, merge);
 
   // Attributes of output FFD
-  ImageAttributes attr = local.GetImageAttributes();
+  ImageAttributes attr = local.Attributes();
 
   if (IsNaN(t1)) t1 = local.ImageToTime(.0);
   if (IsNaN(t2)) t2 = t1 + 1.0;
@@ -257,34 +257,32 @@ int main(int argc, char *argv[])
   double avg_error   = 0;
   double max_error   = 0;
 
-  for (int k = 0; k < local.GetZ(); k++) {
-    for (int j = 0; j < local.GetY(); j++) {
-      for (int i = 0; i < local.GetX(); i++) {
-        // Get local input FFD
-        dx1 = local(i, j, k, 0);
-        dy1 = local(i, j, k, 1);
-        dz1 = local(i, j, k, 2);
-        mag = sqrt(dx1 * dx1 + dy1 * dy1 + dz1 * dz1);
-        avg_dispin += mag;
-        if (mag > max_dispin) max_dispin = mag;
-        // World coordinates of control point
-        dx2 = i;
-        dy2 = j;
-        dz2 = k;
-        local.ImageToWorld(dx2, dy2, dz2);
-        // Local displacement
-        mffd.GetLocalTransformation(0)->Displacement(dx2, dy2, dz2, t1, t2);
-        mag = sqrt(dx2 * dx2 + dy2 * dy2 + dz2 * dz2);
-        avg_dispout += mag;
-        if (mag > max_dispout) max_dispout = mag;
-        // Compute error
-        error = sqrt((dx2 - dx1) * (dx2 - dx1) +
-                     (dy2 - dy1) * (dy2 - dy1) +
-                     (dz2 - dz1) * (dz2 - dz1));
-        avg_error += error;
-        if (error > max_error) max_error = error;
-      }
-    }
+  for (int k = 0; k < local.GetZ(); ++k)
+  for (int j = 0; j < local.GetY(); ++j)
+  for (int i = 0; i < local.GetX(); ++i) {
+    // Get local input FFD
+    dx1 = local(i, j, k, 0);
+    dy1 = local(i, j, k, 1);
+    dz1 = local(i, j, k, 2);
+    mag = sqrt(dx1 * dx1 + dy1 * dy1 + dz1 * dz1);
+    avg_dispin += mag;
+    if (mag > max_dispin) max_dispin = mag;
+    // World coordinates of control point
+    dx2 = i;
+    dy2 = j;
+    dz2 = k;
+    local.ImageToWorld(dx2, dy2, dz2);
+    // Local displacement
+    mffd.GetLocalTransformation(0)->Displacement(dx2, dy2, dz2, t1, t2);
+    mag = sqrt(dx2 * dx2 + dy2 * dy2 + dz2 * dz2);
+    avg_dispout += mag;
+    if (mag > max_dispout) max_dispout = mag;
+    // Compute error
+    error = sqrt((dx2 - dx1) * (dx2 - dx1) +
+                 (dy2 - dy1) * (dy2 - dy1) +
+                 (dz2 - dz1) * (dz2 - dz1));
+    avg_error += error;
+    if (error > max_error) max_error = error;
   }
   avg_dispout /= static_cast<double>(local.GetX() * local.GetY() * local.GetZ());
   avg_dispin  /= static_cast<double>(local.GetX() * local.GetY() * local.GetZ());
@@ -314,34 +312,32 @@ int main(int argc, char *argv[])
   int maxk = local.GetZ() - 3;
 
   if (mini <= maxi || minj <= maxj || mink <= maxk) {
-    for (int k = mink; k <= maxk; k++) {
-      for (int j = minj; j <= maxj; j++) {
-        for (int i = mini; i <= maxi; i++) {
-          // Get local input FFD
-          dx1 = local(i, j, k, 0);
-          dy1 = local(i, j, k, 1);
-          dz1 = local(i, j, k, 2);
-          mag = sqrt(dx1 * dx1 + dy1 * dy1 + dz1 * dz1);
-          avg_dispin += mag;
-          if (mag > max_dispin) max_dispin = mag;
-          // World coordinates of control point
-          dx2 = i;
-          dy2 = j;
-          dz2 = k;
-          local.ImageToWorld(dx2, dy2, dz2);
-          // Local displacement
-          mffd.GetLocalTransformation(0)->Displacement(dx2, dy2, dz2, t1, t2);
-          mag = sqrt(dx2 * dx2 + dy2 * dy2 + dz2 * dz2);
-          avg_dispout += mag;
-          if (mag > max_dispout) max_dispout = mag;
-          // Compute error
-          error = sqrt((dx2 - dx1) * (dx2 - dx1) +
-                       (dy2 - dy1) * (dy2 - dy1) +
-                       (dz2 - dz1) * (dz2 - dz1));
-          avg_error += error;
-          if (error > max_error) max_error = error;
-        }
-      }
+    for (int k = mink; k <= maxk; ++k)
+    for (int j = minj; j <= maxj; ++j)
+    for (int i = mini; i <= maxi; ++i) {
+      // Get local input FFD
+      dx1 = local(i, j, k, 0);
+      dy1 = local(i, j, k, 1);
+      dz1 = local(i, j, k, 2);
+      mag = sqrt(dx1 * dx1 + dy1 * dy1 + dz1 * dz1);
+      avg_dispin += mag;
+      if (mag > max_dispin) max_dispin = mag;
+      // World coordinates of control point
+      dx2 = i;
+      dy2 = j;
+      dz2 = k;
+      local.ImageToWorld(dx2, dy2, dz2);
+      // Local displacement
+      mffd.GetLocalTransformation(0)->Displacement(dx2, dy2, dz2, t1, t2);
+      mag = sqrt(dx2 * dx2 + dy2 * dy2 + dz2 * dz2);
+      avg_dispout += mag;
+      if (mag > max_dispout) max_dispout = mag;
+      // Compute error
+      error = sqrt((dx2 - dx1) * (dx2 - dx1) +
+                   (dy2 - dy1) * (dy2 - dy1) +
+                   (dz2 - dz1) * (dz2 - dz1));
+      avg_error += error;
+      if (error > max_error) max_error = error;
     }
     avg_dispout /= static_cast<double>((maxi - mini) * (maxj - minj) * (maxk - mink));
     avg_dispin  /= static_cast<double>((maxi - mini) * (maxj - minj) * (maxk - mink));

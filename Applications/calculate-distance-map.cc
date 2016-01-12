@@ -21,6 +21,7 @@
 #include <mirtkCommon.h>
 #include <mirtkOptions.h>
 
+#include <mirtkImageIOConfig.h>
 #include <mirtkResampling.h>
 #include <mirtkLinearInterpolateImageFunction.h>
 
@@ -120,6 +121,8 @@ int main(int argc, char *argv[])
 {
   typedef EuclideanDistanceTransform<RealPixel> EuclideanDistanceTransformType;
   typedef CityBlockDistanceTransform<RealPixel> CityBlockDistanceTransformType;
+
+  InitializeImageIOLibrary();
 
   EXPECTS_POSARGS(2);
 

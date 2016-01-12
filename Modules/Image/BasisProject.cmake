@@ -57,7 +57,6 @@ basis_project (
     MIRTK{Common,Numerics}
     #<dependency>
   OPTIONAL_DEPENDS
-    PNG
     TBB
     VTK-6{vtkCommonCore,vtkCommonDataModel,vtkIOLegacy,vtkIOXML}
     #<optional-dependency>

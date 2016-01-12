@@ -58,6 +58,7 @@ basis_project (
     #<dependency>
   OPTIONAL_DEPENDS
     PNG
+    ZLIB # for NiftiCLib
     #<optional-dependency>
   TEST_DEPENDS
     #<test-dependency>

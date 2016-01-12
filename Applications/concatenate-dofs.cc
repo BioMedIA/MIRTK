@@ -20,6 +20,8 @@
 
 #include <mirtkCommon.h>
 #include <mirtkOptions.h>
+
+#include <mirtkImageIOConfig.h>
 #include <mirtkGenericImage.h>
 #include <mirtkTransformations.h>
 
@@ -185,6 +187,7 @@ int main(int argc, char **argv)
 
   for (ALL_OPTIONS) {
     if (OPTION("-target")) {
+      InitializeImageIOLibrary();
       GreyImage target(ARGUMENT);
       attr = target.Attributes();
     }

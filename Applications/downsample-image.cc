@@ -20,6 +20,7 @@
 #include <mirtkCommon.h>
 #include <mirtkOptions.h>
 
+#include <mirtkImageIOConfig.h>
 #include <mirtkGenericImage.h>
 #include <mirtkGaussianPyramidFilter.h>
 
@@ -88,6 +89,7 @@ int main(int argc, char **argv)
 
   // Read input image
   if (verbose) cout << "Reading image ... "; cout.flush();
+  InitializeImageIOLibrary();
   unique_ptr<BaseImage> input(BaseImage::New(input_name));
   if (verbose) cout << "done." << endl;
 

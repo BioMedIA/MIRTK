@@ -23,6 +23,7 @@
 
 #include <mirtkPointSet.h>
 #include <mirtkBaseImage.h>
+#include <mirtkImageIOConfig.h>
 
 using namespace mirtk;
 
@@ -142,6 +143,7 @@ int main(int argc, char **argv)
   const char *output_name = POSARG(2);
 
   // Read input image
+  InitializeImageIOLibrary();
   unique_ptr<BaseImage> in(BaseImage::New(input_name));
 
   // Parse optional arguments and adjust image region accordingly

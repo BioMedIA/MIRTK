@@ -22,6 +22,7 @@
 #include <mirtkOptions.h>
 
 #include <mirtkImageReader.h>
+#include <mirtkImageIOConfig.h>
 #include <mirtkGaussianBlurring.h>
 #include <mirtkGaussianBlurring4D.h>
 
@@ -91,6 +92,7 @@ int main(int argc, char *argv[])
   }
 
   // Determine input image data type
+  InitializeImageIOLibrary();
   unique_ptr<ImageReader> reader(ImageReader::New(input_name));
   int data_type = reader->DataType();
 
