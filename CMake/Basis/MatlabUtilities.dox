@@ -1,0 +1,12 @@
+/**
+@defgroup BasisMatlabUtilities MATLAB Utilities
+@brief    Auxiliary implementations for use in MATLAB scripts.
+
+@todo The MATLAB utilities are not implemented yet. Note, however, that
+      for certain utilities provided for other programming languages there
+      is no use in MATLAB. For example, the ExecutableTargetInfo module is
+      not required as MATLAB does not allow the execution of an executable
+      from within MATLAB scripts.
+
+@ingroup BasisUtilities
+*/
