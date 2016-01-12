@@ -1,6 +1,0 @@
-/**
-@defgroup BasisPythonUtilities Python Utilities
-@brief    Auxiliary implementations for use in Python scripts.
-
-@ingroup BasisUtilities
-*/
