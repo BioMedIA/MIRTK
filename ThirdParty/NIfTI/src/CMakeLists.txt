@@ -56,4 +56,4 @@ if (ZLIB_FOUND)
   list(APPEND DEPENDS ${ZLIB_LIBRARIES})
 endif ()
 
-mirtk_add_library()
+mirtk_add_library(AUTO_REGISTER)

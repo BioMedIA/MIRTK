@@ -91,4 +91,4 @@ if (TARGET LibPointSet AND VTK_FOUND)
   endif ()
 endif ()
 
-mirtk_add_library()
+mirtk_add_library(AUTO_REGISTER)

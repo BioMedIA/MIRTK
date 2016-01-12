@@ -21,16 +21,11 @@
 #include "mirtkPGM.h"
 
 #include <mirtkMath.h>
-#include <mirtkImageWriterFactory.h>
 
 #include <cstdio>
 
 
 namespace mirtk {
-
-
-// Register image reader with object factory during static initialization
-mirtkAutoRegisterImageWriterMacro(PGMImageWriter);
 
 
 // -----------------------------------------------------------------------------

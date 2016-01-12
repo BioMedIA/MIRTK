@@ -102,4 +102,4 @@ if (ARPACK_FOUND AND UMFPACK_FOUND)
   list(APPEND DEPENDS ${ARPACK_LIBRARY} ${UMFPACK_LIBRARIES})
 endif ()
 
-mirtk_add_library()
+mirtk_add_library(AUTO_REGISTER)

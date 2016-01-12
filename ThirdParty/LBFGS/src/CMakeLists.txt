@@ -32,4 +32,5 @@ mirtk_add_library(
   HEADERS mirtkLimitedMemoryBFGSDescent.h
   SOURCES mirtkLimitedMemoryBFGSDescent.cc lbfgs.c
   DEPENDS LibNumerics
+  AUTO_REGISTER
 )

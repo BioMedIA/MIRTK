@@ -20,14 +20,8 @@
 #include <mirtkGIPLImageWriter.h>
 #include "mirtkGIPL.h"
 
-#include <mirtkImageWriterFactory.h>
-
 
 namespace mirtk {
-
-
-// Register image reader with object factory during static initialization
-mirtkAutoRegisterImageWriterMacro(GIPLImageWriter);
 
 
 // -----------------------------------------------------------------------------

@@ -286,4 +286,3 @@ list(APPEND DEPENDS foreachvoxel)
 # ------------------------------------------------------------------------------
 # Add library target
 mirtk_add_library()
-

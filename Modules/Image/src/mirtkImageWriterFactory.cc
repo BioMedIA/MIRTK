@@ -23,6 +23,12 @@
 #include <mirtkPath.h>
 #include <mirtkArray.h>
 
+#include <mirtkGIPLImageWriter.h>
+#include <mirtkPGMImageWriter.h>
+#ifdef HAVE_PNG
+#  include <mirtkPNGImageWriter.h>
+#endif
+
 
 namespace mirtk {
 
@@ -37,6 +43,12 @@ ImageWriterFactory &ImageWriterFactory::Instance()
 // -----------------------------------------------------------------------------
 ImageWriterFactory::ImageWriterFactory()
 {
+  // Pre-register image writers included in Image library itself
+  Register(GIPLImageWriter::Extensions(), mirtk::New<ImageWriter, GIPLImageWriter>);
+  Register(PGMImageWriter ::Extensions(), mirtk::New<ImageWriter, PGMImageWriter>);
+  #ifdef HAVE_PNG
+    Register(PNGImageWriter::Extensions(), mirtk::New<ImageWriter, PNGImageWriter>);
+  #endif
 }
 
 // -----------------------------------------------------------------------------

@@ -81,13 +81,6 @@ void RegisterOptimizers()
 #if defined(HAVE_MIRTK_Image) && !defined(MIRTK_AUTO_REGISTER)
   #include <mirtkImageReaderFactory.h>
   #include <mirtkImageWriterFactory.h>
-  #include <mirtkGIPLImageReader.h>
-  #include <mirtkGIPLImageWriter.h>
-  #include <mirtkPGMImageReader.h>
-  #include <mirtkPGMImageWriter.h>
-  #ifdef HAVE_PNG
-    #include <mirtkPNGImageWriter.h>
-  #endif
   #ifdef HAVE_MIRTK_ThirdPartyNIfTI
     #include <mirtkNiftiImageReader.h>
     #include <mirtkNiftiImageWriter.h>
@@ -102,8 +95,6 @@ void RegisterImageReaders()
 {
   #ifdef HAVE_MIRTK_Image
     #ifndef MIRTK_AUTO_REGISTER
-      mirtkRegisterImageReaderMacro(GIPLImageReader);
-      mirtkRegisterImageReaderMacro(PGMImageReader);
       #ifdef HAVE_MIRTK_ThirdPartyNIfTI
         mirtkRegisterImageReaderMacro(NiftiImageReader);
       #endif
@@ -117,11 +108,6 @@ void RegisterImageWriters()
 {
   #ifdef HAVE_MIRTK_Image
     #ifndef MIRTK_AUTO_REGISTER
-      mirtkRegisterImageWriterMacro(GIPLImageWriter);
-      mirtkRegisterImageWriterMacro(PGMImageWriter);
-      #ifdef HAVE_PNG
-        mirtkRegisterImageWriterMacro(PNGImageWriter);
-      #endif
       #ifdef HAVE_MIRTK_ThirdPartyNIfTI
         mirtkRegisterImageWriterMacro(NiftiImageWriter);
       #endif

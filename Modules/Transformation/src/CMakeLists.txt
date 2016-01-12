@@ -118,4 +118,4 @@ set(DEPENDS
   LibImage
 )
 
-mirtk_add_library()
+mirtk_add_library(AUTO_REGISTER)

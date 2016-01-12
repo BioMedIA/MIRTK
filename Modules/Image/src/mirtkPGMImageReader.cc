@@ -20,16 +20,10 @@
 #include <mirtkPGMImageReader.h>
 #include "mirtkPGM.h"
 
-#include <mirtkImageReaderFactory.h>
-
 #include <cstdio>
 
 
 namespace mirtk {
-
-
-// Register image reader with object factory during static initialization
-mirtkAutoRegisterImageReaderMacro(PGMImageReader);
 
 
 // -----------------------------------------------------------------------------

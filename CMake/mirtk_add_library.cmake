@@ -25,7 +25,7 @@ function(mirtk_add_library)
   if (NOT PROJECT_NAME)
     message(FATAL_ERROR "mirtk_add_library called outside project scope!")
   endif ()
-  cmake_parse_arguments(TARGET "" "" "HEADERS;SOURCES;DEPENDS" ${ARGN})
+  cmake_parse_arguments(TARGET "AUTO_REGISTER" "" "HEADERS;SOURCES;DEPENDS" ${ARGN})
   if (TARGET_UNPARSED_ARGUMENTS)
     message(FATAL_ERROR "mirtk_add_library called with unrecognized arguments: ${TARGET_UNPARSED_ARGUMENTS}!")
   endif ()
@@ -42,14 +42,25 @@ function(mirtk_add_library)
     endif ()
     list(APPEND headers "${hdr}")
   endforeach ()
+  set(OUTPUT_NAME "${PROJECT_PACKAGE_NAME}${PROJECT_NAME}")
   basis_add_library(${target_name} ${TARGET_SOURCES} ${headers})
   basis_set_target_properties(
     ${target_name} PROPERTIES
       VERSION             "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}"
       SOVERSION           "${PROJECT_SOVERSION}"
-      ARCHIVE_OUTPUT_NAME "${PROJECT_PACKAGE_NAME}${PROJECT_NAME}"
-      LIBRARY_OUTPUT_NAME "${PROJECT_PACKAGE_NAME}${PROJECT_NAME}"
+      ARCHIVE_OUTPUT_NAME "${OUTPUT_NAME}"
+      LIBRARY_OUTPUT_NAME "${OUTPUT_NAME}"
   )
+  basis_get_target_uid(target_uid ${target_name})
+  target_include_directories(${target_uid}
+    PUBLIC $<BUILD_INTERFACE:${PROJECT_INCLUDE_DIR}>
+           $<INSTALL_INTERFACE:${INSTALL_INCLUDE_DIR}>
+    PRIVATE ${PROJECT_CODE_DIR}
+  )
+  if (TARGET_AUTO_REGISTER AND BUILD_SHARED_LIBS)
+    target_compile_definitions(${target_uid} PRIVATE MIRTK_AUTO_REGISTER)
+    target_compile_options(${target_uid} PUBLIC $<$<CXX_COMPILER_ID:GNU>:-Wl,--no-as-needed -l${OUTPUT_NAME} -Wl,--as-needed>)
+  endif ()
   foreach (dep IN LISTS TARGET_DEPENDS)
     if (TARGET ${dep})
       get_property(type TARGET ${dep} PROPERTY TYPE)

@@ -17,8 +17,6 @@
  * limitations under the License.
  */
 
-#include <mirtkInitialization.h>
-
 #include <mirtkCommon.h>
 #include <mirtkOptions.h>
 
@@ -405,9 +403,6 @@ int main(int argc, char *argv[])
   EXPECTS_POSARGS(1);
 
   bool image_info = false, dof_info = false, pointset_info = false;
-
-  // Initialize object factories
-  RegisterImageReaders();
 
   // Read input file
   const char *fname = POSARG(1);

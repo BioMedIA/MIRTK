@@ -21,6 +21,9 @@
 
 #include <mirtkAssert.h>
 
+#include <mirtkGIPLImageReader.h>
+#include <mirtkPGMImageReader.h>
+
 
 namespace mirtk {
 
@@ -35,6 +38,9 @@ ImageReaderFactory &ImageReaderFactory::Instance()
 // -----------------------------------------------------------------------------
 ImageReaderFactory::ImageReaderFactory()
 {
+  // Pre-register image readers included in Image library itself
+  Register(mirtk::New<ImageReader, GIPLImageReader>);
+  Register(mirtk::New<ImageReader, PGMImageReader>);
 }
 
 // -----------------------------------------------------------------------------
