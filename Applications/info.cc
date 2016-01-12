@@ -17,6 +17,8 @@
  * limitations under the License.
  */
 
+#include <mirtkInitialization.h>
+
 #include <mirtkCommon.h>
 #include <mirtkOptions.h>
 
@@ -404,8 +406,13 @@ int main(int argc, char *argv[])
 
   bool image_info = false, dof_info = false, pointset_info = false;
 
+  // Initialize object factories
+  RegisterImageReaders();
+
   // Read input file
   const char *fname = POSARG(1);
+  const string fext = Extension(fname, EXT_LastWithoutGz);
+
   unique_ptr<ImageReader> image_reader;
   #ifdef HAVE_MIRTK_Transformation
     unique_ptr<Transformation> dof;
@@ -422,7 +429,10 @@ int main(int argc, char *argv[])
   #ifdef HAVE_MIRTK_PointSet
   vtkSmartPointer<vtkPointSet> pointset;
   vtkSmartPointer<vtkPolyData> polydata;
-  if (!image_info && !dof_info) {
+  if (!image_info && !dof_info &&
+      // FIXME: Silence errors of VTK readers instead
+      fext != ".nii"  && fext != ".hdr" && fext != ".img" && fext != ".png" &&
+      fext != ".gipl" && fext != ".pgm") {
     pointset = ReadPointSet(POSARG(1), NULL, false);
     if (pointset) {
       polydata = ConvertToPolyData(pointset);
