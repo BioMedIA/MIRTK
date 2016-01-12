@@ -1,0 +1,111 @@
+# -*- coding: utf-8 -*-
+#
+# Default documentation build configuration file for Sphinx.
+#
+# This file is execfile()d with the current directory set to its containing dir.
+#
+# The contents of this file are pickled, so don't put values in the namespace
+# that aren't pickleable (module imports are okay, they're removed automatically).
+#
+# All configuration values have a default value; values that are commented out
+# serve to show the default value.
+
+import sys
+import os
+
+
+# General configuration
+# ---------------------
+
+if '@BASIS_SPHINX_EXTENSIONS_PATH@' != '':
+    sys.path.insert(0, '@BASIS_SPHINX_EXTENSIONS_PATH@')
+extensions = ['sphinx.ext.todo'] + [@SPHINX_EXTENSIONS@]
+
+authors = [@SPHINX_AUTHORS@]
+output_name = '@SPHINX_OUTPUT_NAME@'.replace(' ', '_') # otherwise generated Makefile's do not work
+
+today     = ''
+today_fmt = '%B %d, %Y'
+
+exclude_patterns = ['**/.svn', '**/.git', '**/CMakeFiles/**', '**/CMakeLists.txt']
+exclude_patterns.extend([@SPHINX_EXCLUDE_PATTERNS@])
+
+templates_path = [@SPHINX_TEMPLATES_PATH@]
+
+source_suffix = '.rst'
+master_doc = '@SPHINX_MASTER_DOC@'
+
+project   = '@PROJECT_NAME@'
+version   = '@PROJECT_VERSION_MAJOR@.@PROJECT_VERSION_MINOR@'
+release   = '@PROJECT_RELEASE@'
+copyright = '@SPHINX_COPYRIGHT@'
+
+
+# Options for HTML output
+# -----------------------
+
+html_static_path = [@SPHINX_HTML_STATIC_PATH@]
+
+html_theme = '@SPHINX_HTML_THEME@'
+html_theme_path = ['@SPHINX_HTML_THEME_PATH@', '@BASIS_SPHINX_HTML_THEME_PATH@']
+if html_theme_path[0] == '': html_theme_path.pop(0)
+
+html_theme_options = {@SPHINX_HTML_THEME_OPTIONS@}
+html_sidebars = {'**': [@SPHINX_HTML_SIDEBARS@]}
+
+html_style = '@SPHINX_HTML_STYLE@'
+if html_style == '': html_style = None
+
+html_logo = '@SPHINX_HTML_LOGO@'
+if html_logo == '': html_logo = None
+html_favicon = '@SPHINX_HTML_FAVICON@'
+if html_favicon == '': html_favicon = None
+
+html_title = '@SPHINX_HTML_TITLE@'
+if html_title == '': html_title = '@PROJECT_NAME@'
+
+html_short_title = '@SPHINX_HTML_SHORTTITLE@'
+if html_short_title == '': html_short_title = html_title
+
+htmlhelp_basename = '@PROJECT_NAME_L@_doc'
+
+html_use_domain_indices = bool('@SPHINX_HTML_DOMAIN_INDEX@')
+html_use_modindex       = bool('@SPHINX_HTML_USE_MODINDEX@')
+html_use_index          = bool('@SPHINX_HTML_USE_INDEX@')
+
+# Options for LaTeX output
+# ------------------------
+
+latex_documents     = [('@SPHINX_LATEX_MASTER_DOC@', output_name + '.tex', '@SPHINX_LATEX_TITLE@', ' \\and '.join(authors), '@SPHINX_LATEX_DOCUMENT_CLASS@', False)]
+latex_logo          = '@SPHINX_LATEX_LOGO@'
+if latex_logo == '': latex_logo = None
+latex_show_urls     = '@SPHINX_LATEX_SHOW_URLS@'
+latex_show_pagerefs = @SPHINX_LATEX_SHOW_PAGEREFS@
+
+PREAMBLE = """
+\setcounter{page}{1}
+\pagenumbering{arabic}
+\pagestyle{plain}
+"""
+
+latex_elements = {'printindex': '', 'preamble': PREAMBLE}
+
+
+# Options for MAN output
+# ----------------------
+
+man_pages = [(master_doc, output_name, '@PROJECT_DESCRIPTION@', authors, @SPHINX_MAN_SECTION@)]
+
+
+# Options for Texinfo output
+# --------------------------
+
+texinfo_documents = [(master_doc, output_name, '', '@*'.join(authors), '@PROJECT_NAME@', '@PROJECT_DESCRIPTION@', 'SBIA', False)]
+
+
+# Options for extensions
+# ----------------------
+
+doxylink                = {@SPHINX_DOXYLINK@}
+breathe_projects        = {@SPHINX_BREATHE_PROJECTS@}
+breathe_default_project = '@SPHINX_BREATHE_DEFAULT_PROJECT@'
