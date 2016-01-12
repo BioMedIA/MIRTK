@@ -34,7 +34,7 @@ cmake_minimum_required(VERSION 2.8.12)
 set(BASIS_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMake/Basis")
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMake" ${BASIS_MODULE_PATH})
 
-include("${BASIS_MODULE_PATH}/BasisSettings.cmake" NO_POLICY_SCOPE)
+include("${BASIS_MODULE_PATH}/BasisSettings.cmake")
 include("${BASIS_MODULE_PATH}/BasisTools.cmake")
 
 include(mirtk_add_library)
