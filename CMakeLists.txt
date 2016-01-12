@@ -38,9 +38,7 @@ include("${BASIS_MODULE_PATH}/BasisSettings.cmake" NO_POLICY_SCOPE)
 include("${BASIS_MODULE_PATH}/BasisTools.cmake")
 
 include(mirtk_add_library)
-if (BUILD_APPLICATIONS)
-  include(mirtk_add_executable)
-endif ()
+include(mirtk_add_executable)
 
 # ----------------------------------------------------------------------------
 # Override default BASIS settings and hide unused cache entries
