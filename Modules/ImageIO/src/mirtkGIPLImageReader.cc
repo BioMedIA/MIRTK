@@ -20,8 +20,14 @@
 #include <mirtkGIPLImageReader.h>
 #include "mirtkGIPL.h"
 
+#include <mirtkImageReaderFactory.h>
+
 
 namespace mirtk {
+
+
+// Register image reader with object factory during static initialization
+mirtkAutoRegisterImageReaderMacro(GIPLImageReader);
 
 
 // -----------------------------------------------------------------------------

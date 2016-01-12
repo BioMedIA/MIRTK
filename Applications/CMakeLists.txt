@@ -38,18 +38,18 @@ if (MODULE_PointSet)
   endif ()
 endif ()
 
-## NOTE: OPTIONAL dependencies on MIRTK IO modules added by mirtk_add_executable
-##       automatically when list of dependencies includes LibImage.
-
 # Generic file info tool
-mirtk_add_executable(info DEPENDS LibImage OPTIONAL LibTransformation LibPointSet ${VTK_LIBRARIES})
+mirtk_add_executable(info
+  DEPENDS LibImage LibImageIO
+  OPTIONAL LibTransformation LibPointSet ${VTK_LIBRARIES}
+)
 
 # ----------------------------------------------------------------------------
 # Image tools
 if (MODULE_Image)
 
   macro(add_image_command cmd)
-    mirtk_add_executable(${cmd} DEPENDS LibImage ${ARGN})
+    mirtk_add_executable(${cmd} DEPENDS LibImage LibImageIO ${ARGN})
   endmacro()
 
   add_image_command(average-images OPTIONAL LibTransformation)
@@ -87,7 +87,7 @@ if (MODULE_Registration)
     mirtk_add_executable(${cmd} DEPENDS LibRegistration ${ARGN})
   endmacro()
 
-  add_registration_command(register LibImage OPTIONAL LibLBFGS LibPointSet LibDeformable)
+  add_registration_command(register LibImage LibImageIO OPTIONAL LibLBFGS LibPointSet LibDeformable)
 
 endif ()
 
@@ -99,17 +99,25 @@ if (MODULE_Transformation)
     mirtk_add_executable(${cmd} DEPENDS LibTransformation ${ARGN})
   endmacro()
 
-  add_transformation_command(average-dofs LibImage)
-  add_transformation_command(concatenate-dofs LibImage)
-  add_transformation_command(convert-dof LibImage)
-  add_transformation_command(convert-dof2csv LibImage)
-  add_transformation_command(convert-dof2velo LibImage)
   add_transformation_command(edit-dof)
-  add_transformation_command(evaluate-dof LibImage)
-  add_transformation_command(evaluate-jacobian LibImage)
-  add_transformation_command(init-dof LibImage OPTIONAL LibPointSet)
   add_transformation_command(invert-dof)
 
+  if (MODULE_Image)
+
+    macro(add_image_transformation_command cmd)
+      mirtk_add_executable(${cmd} DEPENDS LibImage LibImageIO LibTransformation ${ARGN})
+    endmacro()
+
+    add_image_transformation_command(average-dofs)
+    add_image_transformation_command(concatenate-dofs)
+    add_image_transformation_command(convert-dof)
+    add_image_transformation_command(convert-dof2csv)
+    add_image_transformation_command(convert-dof2velo)
+    add_image_transformation_command(evaluate-dof)
+    add_image_transformation_command(evaluate-jacobian)
+    add_image_transformation_command(init-dof OPTIONAL LibPointSet)
+
+  endif ()
 endif ()
 
 # ----------------------------------------------------------------------------
@@ -123,7 +131,6 @@ if (MODULE_PointSet)
   add_pointset_command(calculate-surface-attributes)
   add_pointset_command(calculate-surface-spectrum)
   add_pointset_command(convert-mris) # requires Python VTK modules and FreeSurfer installation
-  add_pointset_command(convert-pointset LibImage)
   add_pointset_command(copy-pointset-attributes)
   add_pointset_command(decimate-surface)
   add_pointset_command(delete-pointset-attributes)
@@ -131,14 +138,30 @@ if (MODULE_PointSet)
   add_pointset_command(evaluate-distortion)
   add_pointset_command(evaluate-surface-overlap ${FLANN_LIBRARY})
   add_pointset_command(extract-connected-points)
-  add_pointset_command(extract-pointset-surface LibImage)
-  add_pointset_command(extract-surface LibImage)
-  add_pointset_command(match-points LibTransformation)
   add_pointset_command(offset-surface)
   add_pointset_command("project-onto-surface")
-  add_pointset_command(transform-points LibImage LibTransformation)
   add_pointset_command(remesh)
   add_pointset_command(smooth-surface)
+
+  if (MODULE_Image)
+
+    macro(add_image_pointset_command cmd)
+      add_pointset_command(${cmd} LibImage LibImageIO ${ARGN})
+    endmacro()
+
+    add_image_pointset_command(convert-pointset)
+    add_image_pointset_command(extract-pointset-surface)
+    add_image_pointset_command(extract-surface)
+
+    if (MODULE_Transformation)
+      add_image_pointset_command(transform-points LibTransformation)
+    endif ()
+
+  endif ()
+
+  if (MODULE_Transformation)
+    add_pointset_command(match-points LibTransformation)
+  endif ()
 
   if (MATLAB_FOUND)
     add_pointset_command(convert-pointset-to-mat ${MATLAB_mwmclmcrrt_LIBRARY})

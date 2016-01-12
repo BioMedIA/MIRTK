@@ -36,10 +36,24 @@
 /// Whether MIRTK Numerics module was built with UMFPACK
 #define MIRTK_Numerics_WITH_UMFPACK @WITH_UMFPACK_CONFIG@
 
+/// Whether MIRTK Numerics module was built with LBFGS optimizer
+#define MIRTK_Numerics_WITH_LBFGS @WITH_LBFGS_CONFIG@
+
 /// Whether SparseMatrix::Eigenvalues and SparseMatrix::Eigenvectors
 /// functions are functional because eigs implementation was built
 #define MIRTK_Numerics_WITH_eigs \
   MIRTK_Numerics_WITH_ARPACK && MIRTK_Numerics_WITH_UMFPACK
 
+
+namespace mirtk {
+
+
+/// Initialize MIRTK Numerics library
+///
+/// Registers all available types with their respective object factories.
+void InitializeNumericsLibrary();
+
+
+} // namespace mirtk
 
 #endif // MIRTK_NumericsConfig_H

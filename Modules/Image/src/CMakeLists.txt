@@ -222,31 +222,6 @@ if (TBB_FOUND)
 endif ()
 
 # ------------------------------------------------------------------------------
-# Image file readers/writers
-list(APPEND HEADERS
-  mirtkGIPLImageReader.h
-  mirtkGIPLImageWriter.h
-  mirtkPGMImageReader.h
-  mirtkPGMImageWriter.h
-)
-
-list(APPEND SOURCES
-  mirtkGIPL.h
-  mirtkGIPLImageReader.cc
-  mirtkGIPLImageWriter.cc
-  mirtkPGM.h
-  mirtkPGMImageReader.cc
-  mirtkPGMImageWriter.cc
-)
-
-if (PNG_FOUND)
-  add_definitions(${PNG_DEFINITIONS})
-  list(APPEND HEADERS mirtkPNGImageWriter.h)
-  list(APPEND SOURCES mirtkPNGImageWriter.cc)
-  list(APPEND DEPENDS ${PNG_LIBRARIES})
-endif ()
-
-# ------------------------------------------------------------------------------
 # ForEachVoxel*Function headers
 set(FOREACHVOXELFUNCTIONS
   ForEachUnaryVoxelFunction

@@ -25,33 +25,54 @@
 
 ##############################################################################
 # @file  CMakeLists.txt
-# @brief Build configuration of MIRTK NIfTI library.
+# @brief Build configuration of MIRTK ImageIO library.
 ##############################################################################
 
 set(HEADERS
-  mirtkNiftiImageInfo.h
-  mirtkNiftiImageReader.h
-  mirtkNiftiImageWriter.h
+  ${BINARY_INCLUDE_DIR}/mirtkImageIOConfig.h
+  mirtkGIPLImageReader.h
+  mirtkGIPLImageWriter.h
+  mirtkPGMImageReader.h
+  mirtkPGMImageWriter.h
 )
 
 set(SOURCES
-  mirtkNiftiImage.h
-  mirtkNiftiImage.cc
-  mirtkNiftiImageInfo.cc
-  mirtkNiftiImageReader.cc
-  mirtkNiftiImageWriter.cc
+  mirtkGIPL.h
+  mirtkGIPLImageReader.cc
+  mirtkGIPLImageWriter.cc
+  mirtkImageIOConfig.cc
+  mirtkPGM.h
+  mirtkPGMImageReader.cc
+  mirtkPGMImageWriter.cc
 )
-
-if (NOT NiftiCLib_FOUND)
-  list(APPEND SOURCES nifti1.h nifti1_io.h nifti1_io.c znzlib.h znzlib.c)
-endif ()
 
 set(DEPENDS
   LibImage
 )
+
 if (NiftiCLib_FOUND)
+  list(APPEND HEADERS
+    mirtkNiftiImageInfo.h
+    mirtkNiftiImageReader.h
+    mirtkNiftiImageWriter.h
+  )
+  list(APPEND SOURCES
+    mirtkNiftiImage.h
+    mirtkNiftiImage.cc
+    mirtkNiftiImageInfo.cc
+    mirtkNiftiImageReader.cc
+    mirtkNiftiImageWriter.cc
+  )
   list(APPEND DEPENDS ${NiftiCLib_LIBRARIES})
 endif ()
+
+if (PNG_FOUND)
+  add_definitions(${PNG_DEFINITIONS})
+  list(APPEND HEADERS mirtkPNGImageWriter.h)
+  list(APPEND SOURCES mirtkPNGImageWriter.cc)
+  list(APPEND DEPENDS ${PNG_LIBRARIES})
+endif ()
+
 if (ZLIB_FOUND)
   list(APPEND DEPENDS ${ZLIB_LIBRARIES})
 endif ()

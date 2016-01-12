@@ -23,6 +23,7 @@
 ##############################################################################
 
 set(HEADERS
+  ${BINARY_INCLUDE_DIR}/mirtkNumericsConfig.h
   mirtkAdaptiveLineSearch.h
   mirtkArith.h
   mirtkBrentLineSearch.h
@@ -77,6 +78,7 @@ set(SOURCES
   mirtkMatrix.cc
   mirtkMatrix3x3.cc
   mirtkMaxStepLineSearch.cc
+  mirtkNumericsConfig.cc
   mirtkPoint.cc
   mirtkPointSamples.cc
   mirtkPointSet.cc
@@ -92,6 +94,11 @@ set(SOURCES
 )
 
 set(DEPENDS LibCommon)
+if (LibLBFGS_FOUND)
+  list(APPEND HEADERS mirtkLimitedMemoryBFGSDescent.h)
+  list(APPEND SOURCES mirtkLimitedMemoryBFGSDescent.cc)
+  list(APPEND DEPENDS ${LibLBFGS_LIBRARIES})
+endif ()
 if (MATLAB_FOUND)
   list(APPEND DEPENDS ${MATLAB_mwmclmcrrt_LIBRARY})
 endif ()

@@ -1,0 +1,13 @@
+include_directories("${CMAKE_CURRENT_SOURCE_DIR}/include")
+
+basis_add_library(LibLBFGS STATIC
+  src/arithmetic_ansi.h
+  src/arithmetic_sse_double.h
+  src/arithmetic_sse_float.h
+  src/lbfgs.c
+  include/lbfgs.h
+)
+
+basis_set_target_properties(LibLBFGS PROPERTIES
+  ARCHIVE_OUTPUT_NAME MIRTKlbfgs
+)

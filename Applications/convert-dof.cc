@@ -20,14 +20,15 @@
 #include <mirtkCommon.h>
 #include <mirtkOptions.h>
 
+#include <mirtkImageIOConfig.h>
 #include <mirtkGenericImage.h>
 #include <mirtkVoxelFunction.h>
 #include <mirtkTransformations.h>
 
-#ifdef HAVE_MIRTK_NIfTI
+#if MIRTK_ImageIO_WITH_NIfTI
 #  include <mirtkNiftiImageInfo.h>
 #  include <mirtkNiftiImageReader.h>
-#endif // HAVE_MIRTK_NIfTI
+#endif // MIRTK_ImageIO_WITH_NIfTI
 
 
 using namespace mirtk;
@@ -74,14 +75,14 @@ void PrintHelp(const char *name)
   cout << "  f3d_disp_vel_field     Nifty Reg reg_f3d output image displacement field as stationary velocity field.\n";
   cout << "  f3d_spline_vel_grid    Nifty Reg reg_f3d output control point velocity field.\n";
   cout << "  =====================  =================================================================================\n";
-#ifndef HAVE_MIRTK_NIfTI
+#if MIRTK_ImageIO_WITH_NIfTI
   cout << "\n";
   cout << "  Note: Cannot convert from/to the following formats because of missing NIfTI module.\n";
   cout << "        Rebuild the MIRTK with the NIfTI module enabled to use these formats.\n";
   cout << "\n";
   cout << "  Not available: f3d*, fnirt\n";
   cout << "\n";
-#endif // HAVE_MIRTK_NIfTI
+#endif // MIRTK_ImageIO_WITH_NIfTI
   cout << "\n";
   cout << "Arguments:\n";
   cout << "  input    Input transformation file.\n";
@@ -523,7 +524,7 @@ Transformation *ReadF3D(const char *fname, const char *dofin_name = NULL,
                         int xyz_units = 0, int steps = 0,
                         F3DTransformationType type = F3D_TYPE_UNKNOWN)
 {
-  #ifdef HAVE_MIRTK_NIfTI
+  #if MIRTK_ImageIO_WITH_NIfTI
     if (NiftiImageReader::CheckHeader(fname)) {
       FatalError("Input file is not a F3D output NIfTI image file!");
     }
@@ -604,10 +605,10 @@ Transformation *ReadF3D(const char *fname, const char *dofin_name = NULL,
     }
 
     return mffd.release();
-  #else // HAVE_MIRTK_NIfTI
+  #else // MIRTK_ImageIO_WITH_NIfTI
     Warning("Cannot read F3D output file without NIfTI module");
     return NULL;
-  #endif // HAVE_MIRTK_NIfTI
+  #endif // MIRTK_ImageIO_WITH_NIfTI
 }
 
 // =============================================================================
@@ -1166,6 +1167,9 @@ bool WriteF3D(const char *fname, const Transformation *dof,
 // -----------------------------------------------------------------------------
 int main(int argc, char *argv[])
 {
+  InitializeImageIOLibrary();
+  InitializeTransformationLibrary();
+
   // Parse arguments
   REQUIRES_POSARGS(2);
 
@@ -1187,7 +1191,7 @@ int main(int argc, char *argv[])
   double      dx = .0, dy = .0, dz = .0;
   double      ts = .0;
 
-  #ifdef HAVE_MIRTK_NIfTI
+  #if MIRTK_ImageIO_WITH_NIfTI
     xyz_units = NIFTI_UNITS_MM;
   #endif 
 
@@ -1220,12 +1224,12 @@ int main(int argc, char *argv[])
     else if (OPTION("-dz")) PARSE_ARGUMENT(dz);
     else if (OPTION("-xyz_units")) {
       const char *arg = ARGUMENT;
-      #ifdef HAVE_MIRTK_NIfTI
+      #if MIRTK_ImageIO_WITH_NIfTI
         if (!FromString(arg, xyz_units)) {
           FatalError("Invalid argument for option -xyz_units: " << arg);
           exit(1);
         }
-      #endif // HAVE_MIRTK_NIfTI
+      #endif // MIRTK_ImageIO_WITH_NIfTI
     }
     else HANDLE_STANDARD_OR_UNKNOWN_OPTION();
   }

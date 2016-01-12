@@ -37,7 +37,7 @@
 ################################################################################
 
 # Default output image file name extension/format
-if (MODULE_ThirdPartyNIfTI)
+if (MODULE_NIfTI)
   if (WITH_ZLIB)
     set(DEFAULT_IMAGE_EXT_CONFIG ".nii.gz")
   else ()

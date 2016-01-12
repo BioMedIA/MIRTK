@@ -27,7 +27,7 @@
 
 #include <mirtkObjectFactory.h>
 
-#include "lbfgs.h"
+#include <lbfgs.h>
 
 
 namespace mirtk {

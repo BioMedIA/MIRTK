@@ -20,6 +20,8 @@
 #include <mirtkCommon.h>
 #include <mirtkOptions.h>
 
+#include <mirtkImageIOConfig.h>
+
 #include <mirtkBaseImage.h>
 #include <mirtkImageReader.h>
 
@@ -418,6 +420,7 @@ int main(int argc, char *argv[])
     else
   #endif // HAVE_MIRTK_Transformation
   {
+    InitializeImageIOLibrary();
     image_reader.reset(ImageReader::TryNew(fname));
     image_info = (image_reader != nullptr);
   }

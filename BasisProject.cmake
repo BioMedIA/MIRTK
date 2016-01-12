@@ -72,8 +72,6 @@ basis_project (
   MODULE_DIRS
     Packages/Deformable
     Packages/VolumetricMapping
-    ThirdParty/NIfTI
-    ThirdParty/LBFGS
 
   # --------------------------------------------------------------------------
   # list of modules enabled by default
@@ -81,10 +79,9 @@ basis_project (
     Common
     Numerics
     Image
+    ImageIO
     Transformation
     Registration
-    NIfTI
-    LBFGS
 
   # --------------------------------------------------------------------------
   # list of external modules

@@ -59,8 +59,6 @@ basis_project (
   OPTIONAL_DEPENDS
     MIRTK{PointSet}
     MIRTK{Deformable}
-    MIRTK{NIfTI}
-    MIRTK{LBFGS}
     MATLAB{mwmclmcrrt}
     "VTK-6{
       vtkCommonCore,
@@ -69,16 +67,6 @@ basis_project (
     }"
     TBB
     #<optional-dependency>
-  OPTIONAL_TOOLS_DEPENDS
-    "VTK-6{
-      vtkIOLegacy,
-      vtkIOXML,
-      vtkIOPLY,
-      vtkIOGeometry,
-      vtkFiltersCore,
-      vtkFiltersGeometry
-    }"
-    #<optional-tools-dependency>
   TEST_DEPENDS
     #<test-dependency>
   OPTIONAL_TEST_DEPENDS

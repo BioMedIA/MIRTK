@@ -75,6 +75,15 @@ endif ()
 if (MODULE_PointSet)
   if (NOT WITH_VTK)
     message("VTK required by PointSet module, setting WITH_VTK to ON for all modules")
-    set(WITH_VTK ON CACHE BOOL "Request build with VTK library" FORCE)
+    basis_update_value(WITH_VTK ON)
+  endif ()
+endif ()
+
+# Always use ImageIO module when Image module and Applications enabled
+if (BUILD_APPLICATIONS AND MODULE_Image)
+  if (NOT MODULE_ImageIO)
+    message("ImageIO module required by Applications using the enabled MODULE_Image,"
+            " setting also MODULE_ImageIO to ON")
+    basis_update_value(MODULE_ImageIO ON)
   endif ()
 endif ()

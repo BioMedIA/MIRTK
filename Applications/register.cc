@@ -17,12 +17,18 @@
  * limitations under the License.
  */
 
-#include <mirtkInitialization.h>
-
 #include <mirtkCommon.h>
 #include <mirtkOptions.h>
-#include <mirtkGenericImage.h>
 
+#include <mirtkNumericsConfig.h>
+#include <mirtkImageIOConfig.h>
+#include <mirtkTransformationConfig.h>
+#include <mirtkRegistrationConfig.h>
+#if MIRTK_Registration_WITH_Deformable
+#  include <mirtkDeformableConfig.h>
+#endif
+
+#include <mirtkGenericImage.h>
 #include <mirtkGenericRegistrationFilter.h>
 #include <mirtkGenericRegistrationLogger.h>
 #include <mirtkGenericRegistrationDebugger.h>
@@ -33,7 +39,6 @@
 #include <mirtkSimilarityTransformation.h>
 #include <mirtkAffineTransformation.h>
 
-#include <mirtkRegistrationConfig.h>
 #if MIRTK_Registration_WITH_PointSet
 #  include <mirtkPointSetUtils.h>
 #  include <vtkSmartPointer.h>
@@ -552,6 +557,15 @@ public:
 // -----------------------------------------------------------------------------
 int main(int argc, char **argv)
 {
+  // Initialize libraries / object factories
+  InitializeNumericsLibrary();
+  InitializeImageIOLibrary();
+  InitializeTransformationLibrary();
+  InitializeRegistrationLibrary();
+  #if MIRTK_Registration_WITH_Deformable
+    InitializeDeformableLibrary();
+  #endif
+
   // Default verbosity, output can be suppressed using option "-v 0"
   verbose = 1;
 
@@ -702,17 +716,6 @@ int main(int argc, char **argv)
     PrintVersion(cout, EXECNAME);
     if (verbose > 1) cout.put('\n');
   }
-
-  // ---------------------------------------------------------------------------
-  // Initialize object factories
-  RegisterImageReaders();
-  RegisterImageWriters();
-  RegisterImageSimilarities();
-#if MIRTK_Registration_WITH_PointSet
-  RegisterPointSetDistances();
-#endif // MIRTK_Registration_WITH_PointSet
-  RegisterTransformationConstraints();
-  RegisterOptimizers();
 
   MIRTK_START_TIMING();
 

@@ -913,13 +913,11 @@ static int line_search_morethuente(
         }
         if (*stp == param->max_step && *f <= ftest1 && dg <= dgtest) {
             /* The step is the maximum value. */
-            /* Modified by Andreas Schuh for IRTK */
-            return count; //LBFGSERR_MAXIMUMSTEP;
+            return LBFGSERR_MAXIMUMSTEP;
         }
         if (*stp == param->min_step && (ftest1 < *f || dgtest <= dg)) {
             /* The step is the minimum value. */
-            /* Modified by Andreas Schuh for IRTK */
-            return count; //LBFGSERR_MINIMUMSTEP;
+            return LBFGSERR_MINIMUMSTEP;
         }
         if (brackt && (stmax - stmin) <= param->xtol * stmax) {
             /* Relative width of the interval of uncertainty is at most xtol. */

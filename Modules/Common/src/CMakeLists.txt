@@ -43,7 +43,6 @@ set(HEADERS
   mirtkEventDelegate.h
   mirtkFastDelegate.h
   mirtkIndent.h
-  mirtkInitialization.h
   mirtkList.h
   mirtkMath.h
   mirtkMemory.h

@@ -61,6 +61,7 @@ set(HEADERS
   mirtkTopologyPreservationConstraint.h
   mirtkTransformation.h
   mirtkTransformationApproximationError.h
+  mirtkTransformationConfig.h
   mirtkTransformationConstraint.h
   mirtkTransformationJacobian.h
   mirtkTransformationModel.h
@@ -106,6 +107,7 @@ set(SOURCES
   mirtkTopologyPreservationConstraint.cc
   mirtkTransformation.cc
   mirtkTransformationApproximationError.cc
+  mirtkTransformationConfig.cc
   mirtkTransformationConstraint.cc
   mirtkTransformationInverse.cc
   mirtkTransformationUtils.h

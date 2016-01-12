@@ -21,6 +21,8 @@
 #ifndef MIRTK_Transformation_H
 #define MIRTK_Transformation_H
 
+#include <mirtkTransformationConfig.h> // for client code
+
 #include <mirtkObservable.h>
 
 #include <mirtkStatus.h>

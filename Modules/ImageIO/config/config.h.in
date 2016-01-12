@@ -17,26 +17,25 @@
  * limitations under the License.
  */
 
-#ifndef MIRTK_RegistrationConfig_H
-#define MIRTK_RegistrationConfig_H
+#ifndef MIRTK_ImageIOConfig_H
+#define MIRTK_ImageIOConfig_H
 
 
-/// Whether MIRTK Registration module was built with PointSet support
-#define MIRTK_Registration_WITH_PointSet @WITH_PointSet_CONFIG@
+/// Whether MIRTK ImageIO module was built with NIfTI support
+#define MIRTK_ImageIO_WITH_NIfTI @WITH_NIfTI_CONFIG@
 
-/// Whether MIRTK Registration module was built with support for Deformable internal forces
-#define MIRTK_Registration_WITH_Deformable @WITH_Deformable_CONFIG@
+/// Whether MIRTK ImageIO module was built with PNG support
+#define MIRTK_ImageIO_WITH_PNG @WITH_PNG_CONFIG@
 
 
 namespace mirtk {
 
 
-/// Initialize MIRTK Registration library
-///
-/// Registers all available types with their respective object factories.
-void InitializeRegistrationLibrary();
+/// Initialize MIRTK ImageIO library
+void InitializeImageIOLibrary();
 
 
 } // namespace mirtk
 
-#endif // MIRTK_RegistrationConfig_H
+
+#endif // MIRTK_ImageIOConfig_H

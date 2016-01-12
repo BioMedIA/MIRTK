@@ -36,20 +36,11 @@
 # @ingroup BasisSettings
 ################################################################################
 
-if (TARGET LibPointSet)
-  set(WITH_PointSet_CONFIG 1)
-else ()
-  set(WITH_PointSet_CONFIG 0)
-endif ()
-
-if (TARGET LibDeformable)
-  set(WITH_Deformable_CONFIG 1)
-else ()
-  set(WITH_Deformable_CONFIG 0)
-endif ()
+basis_set_config_option(WITH_NIfTI_CONFIG "${NiftiCLib_FOUND}")
+basis_set_config_option(WITH_PNG_CONFIG   "${PNG_FOUND}")
 
 configure_file(
   "${PROJECT_CONFIG_DIR}/config.h.in"
-  "${BINARY_INCLUDE_DIR}/mirtkRegistrationConfig.h"
+  "${BINARY_INCLUDE_DIR}/mirtk${PROJECT_NAME}Config.h"
   @ONLY
 )

@@ -23,6 +23,7 @@
 ##############################################################################
 
 set(HEADERS
+  ${BINARY_INCLUDE_DIR}/mirtkRegistrationConfig.h
   mirtkCosineOfNormalizedGradientField.h
   mirtkDataFidelity.h
   mirtkGenericRegistrationDebugger.h
@@ -57,6 +58,7 @@ set(SOURCES
   mirtkNormalizedIntensityCrossCorrelation.cc
   mirtkNormalizedMutualImageInformation.cc
   mirtkProbabilisticImageSimilarity.cc
+  mirtkRegistrationConfig.cc
   mirtkRegistrationEnergy.cc
   mirtkRegistrationEnergyParser.h
   mirtkSumOfSquaredIntensityDifferences.cc

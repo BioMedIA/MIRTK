@@ -17,26 +17,19 @@
  * limitations under the License.
  */
 
-#ifndef MIRTK_RegistrationConfig_H
-#define MIRTK_RegistrationConfig_H
-
-
-/// Whether MIRTK Registration module was built with PointSet support
-#define MIRTK_Registration_WITH_PointSet @WITH_PointSet_CONFIG@
-
-/// Whether MIRTK Registration module was built with support for Deformable internal forces
-#define MIRTK_Registration_WITH_Deformable @WITH_Deformable_CONFIG@
+#ifndef MIRTK_TransformationConfig_H
+#define MIRTK_TransformationConfig_H
 
 
 namespace mirtk {
 
 
-/// Initialize MIRTK Registration library
+/// Initialize MIRTK Transformation library
 ///
 /// Registers all available types with their respective object factories.
-void InitializeRegistrationLibrary();
+void InitializeTransformationLibrary();
 
 
 } // namespace mirtk
 
-#endif // MIRTK_RegistrationConfig_H
+#endif // MIRTK_TransformationConfig_H
