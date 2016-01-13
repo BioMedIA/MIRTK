@@ -212,8 +212,10 @@ int main(int argc, char **argv)
   Array<unique_ptr<Op> > ops;
 
   for (ARGUMENTS_AFTER(1)) {
-    if      (OPTION("-scalars")) scalars_name = ARGUMENT;
-    else if (OPTION("-append")) append_name = ARGUMENT;
+    if (OPTION("-append")) append_name = ARGUMENT;
+#if MIRTK_Image_WITH_VTK
+    else if (OPTION("-scalars")) scalars_name = ARGUMENT;
+#endif // MIRTK_Image_WITH_VTK
     else if (OPTION("-prefix")) {
       do {
         prefix.push_back(ARGUMENT);
