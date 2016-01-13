@@ -29,6 +29,10 @@
 # Minimum required CMake version
 cmake_minimum_required(VERSION 2.8.12)
 
+if (POLICY CMP0042)
+  cmake_policy(SET CMP0042 NEW)
+endif ()
+
 # ----------------------------------------------------------------------------
 # Include BASIS policies, settings, macros, and functions
 set(BASIS_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMake/Basis")

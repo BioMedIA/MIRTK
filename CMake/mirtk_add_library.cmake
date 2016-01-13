@@ -44,7 +44,7 @@ function(mirtk_add_library)
   endforeach ()
   set(OUTPUT_NAME "${PROJECT_PACKAGE_NAME}${PROJECT_NAME}")
   basis_add_library(${target_name} ${TARGET_SOURCES} ${headers})
-  basis_set_target_properties(
+  set_target_properties(
     ${target_name} PROPERTIES
       VERSION             "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}"
       SOVERSION           "${PROJECT_SOVERSION}"
@@ -64,12 +64,12 @@ function(mirtk_add_library)
     if (TARGET ${dep})
       get_property(type TARGET ${dep} PROPERTY TYPE)
       if (type MATCHES LIBRARY)
-        basis_target_link_libraries(${target_name} ${dep})
+        target_link_libraries(${target_name} ${dep})
       else ()
-        basis_add_dependencies(${target_name} ${dep})
+        add_dependencies(${target_name} ${dep})
       endif ()
     else ()
-      basis_target_link_libraries(${target_name} ${dep})
+      target_link_libraries(${target_name} ${dep})
     endif ()
   endforeach ()
 endfunction()
