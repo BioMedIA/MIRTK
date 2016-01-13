@@ -44,6 +44,8 @@ include("${BASIS_MODULE_PATH}/BasisTools.cmake")
 include(mirtk_add_library)
 include(mirtk_add_executable)
 
+set(BASIS_NAMESPACE_DELIMITER_CMAKE ::)
+
 # ----------------------------------------------------------------------------
 # Override default BASIS settings and hide unused cache entries
 set(BUILD_MODULES_BY_DEFAULT    OFF       CACHE INTERNAL "" FORCE)
