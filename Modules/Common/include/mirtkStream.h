@@ -43,6 +43,7 @@ using std::istringstream;
 using std::ostream;
 using std::ofstream;
 using std::ostringstream;
+using std::cin;
 using std::cout;
 using std::cerr;
 
