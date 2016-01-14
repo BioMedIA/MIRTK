@@ -7,13 +7,13 @@ of libraries and command-line tools to assist in processing and analyzing imagin
 The main application of the MIRTK is in adult and neonatal brain MR image registration
 as well as the reconstruction of cortical surface meshes.
 
-See the [online documentation](https://mirtk.github.io/documentation) for more information.
+See the [online documentation](https://mirtk.github.io/) for more information.
 
 
 Installation
 ------------
 
-See the [installation instructions](https://mirtk.github.io/documentation/install.html)
+See the [installation instructions](https://mirtk.github.io/install.html)
 for a step-by-step guide on how to install the MIRTK.
 
 
@@ -27,11 +27,11 @@ licensing applied to the combined work.
 
 This directory includes source files and references to Git submodule repositories whose source
 files are covered by their own respective license terms which are compatible with the MIRTK license.
-See the [download page](https://mirtk.github.io/documentation/download.html#software-license) for details.
+See the [download page](https://mirtk.github.io/download.html#software-license) for details.
 
 
 Citation and acknowledgements
 -----------------------------
 
 In the event you found the MIRTK useful, please consider giving appropriate credit to the software.
-See the [publications list](https://mirtk.github.io/documentation/publications.html).
+See the [publications list](https://mirtk.github.io/publications.html).
