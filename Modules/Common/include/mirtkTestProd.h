@@ -21,7 +21,7 @@
 #define MIRTK_TestProd_H
 
 
-#ifdef HAVE_GTEST
+#if defined(HAVE_GTest) || defined(HAVE_GTEST)
 #  include <gtest/gtest_prod.h>
 #elif !defined(FRIEND_TEST)
 #  define FRIEND_TEST(test_case_name, test_name) \
