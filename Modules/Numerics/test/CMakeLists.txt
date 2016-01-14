@@ -17,4 +17,8 @@
 # limitations under the License.
 # ============================================================================
 
-basis_add_test(testMatrix.cc)
+set(BASIS_TEST_LIBRARY      "${GTEST_LIBRARY}")
+set(BASIS_TEST_MAIN_LIBRARY "${GTEST_MAIN_LIBRARY}")
+
+basis_add_test(testMatrix.cc     UNITTEST)
+basis_add_test(testPolynomial.cc UNITTEST)

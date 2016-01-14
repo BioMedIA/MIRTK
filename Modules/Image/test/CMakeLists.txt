@@ -17,15 +17,18 @@
 # limitations under the License.
 # ============================================================================
 
+set(BASIS_TEST_LIBRARY      "${GTEST_LIBRARY}")
+set(BASIS_TEST_MAIN_LIBRARY "${GTEST_MAIN_LIBRARY}")
+
 # Parallel voxel functions
-basis_add_test(testConvolutionFunction.cc)
-basis_add_test(testUnaryVoxelFunction.cc)
+basis_add_test(testConvolutionFunction.cc UNITTEST)
+basis_add_test(testUnaryVoxelFunction.cc  UNITTEST)
 
 # Image interpolation/extrapolation
-basis_add_test(testInterpolateExtrapolateImageFunction.cc)
+basis_add_test(testInterpolateExtrapolateImageFunction.cc UNITTEST)
 
 # Core image filters
-basis_add_test(testDownsampling.cc)
+basis_add_test(testDownsampling.cc UNITTEST)
 
 # Exponential/Logartihmic map of vector field
-#basis_add_test(testDisplacementToVelocityField.cc)
+#basis_add_test(testDisplacementToVelocityField.cc UNITTEST)
