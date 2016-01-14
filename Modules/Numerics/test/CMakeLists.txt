@@ -23,3 +23,4 @@ endmacro ()
 
 
 add_numerics_test(Matrix)
+add_numerics_test(Polynomial)

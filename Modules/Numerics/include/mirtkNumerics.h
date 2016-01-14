@@ -38,5 +38,8 @@
 #include <mirtkPointSet.h>
 #include <mirtkPointSamples.h>
 
+// Regression models
+#include <mirtkPolynomial.h>
+
 
 #endif // MIRTK_Numerics_H

@@ -47,6 +47,7 @@ set(HEADERS
   mirtkPoint.h
   mirtkPointSamples.h
   mirtkPointSet.h
+  mirtkPolynomial.h
   mirtkRadialErrorFunction.h
   mirtkScalarFunction.h
   mirtkScalarGaussian.h
@@ -82,6 +83,7 @@ set(SOURCES
   mirtkPoint.cc
   mirtkPointSamples.cc
   mirtkPointSet.cc
+  mirtkPolynomial.cc
   mirtkRadialErrorFunction.cc
   mirtkScalarGaussian.cc
   mirtkSinc.cc
