@@ -75,11 +75,13 @@ public:
 
   /// Construct complete polynomial order
   ///
-  /// Use Coefficients(const Vector &) to set the coefficients of the model terms.
-  ///
   /// \param[in] p     Dimension of independent variable space.
   /// \param[in] order Order of the polynomial, i.e., highest model term exponent.
-  Polynomial(int p, int order);
+  /// \param[in] coeff Coefficients of each model term. If not specified, the
+  ///                  coefficients are initialized to zero.
+  ///                  Use Coefficients(const Vector &) in this case to set the
+  ///                  coefficients of the model terms after model construction.
+  Polynomial(int p, int order, const Vector &coeff = Vector());
 
   /// Copy constructor
   Polynomial(const Polynomial &);
@@ -125,6 +127,9 @@ public:
   ///
   /// \returns Coefficient of i-th term.
   double Coefficient(int i) const;
+
+  /// Set all model coefficients to zero
+  void SetCoefficientsToZero();
 
 protected:
 
@@ -276,6 +281,12 @@ double Polynomial::Coefficient(int i) const
 {
   mirtkAssert(i < NumberOfTerms(), "model term index is within bounds");
   return _Coefficients(i);
+}
+
+// -----------------------------------------------------------------------------
+void Polynomial::SetCoefficientsToZero()
+{
+  _Coefficients = .0;
 }
 
 // =============================================================================

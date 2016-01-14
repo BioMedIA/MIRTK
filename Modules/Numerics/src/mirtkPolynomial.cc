@@ -77,12 +77,13 @@ Polynomial::Polynomial(int order)
 }
 
 // -----------------------------------------------------------------------------
-Polynomial::Polynomial(int p, int order)
+Polynomial::Polynomial(int p, int order, const Vector &coeff)
 :
   _Order(0),
   _Dimension(0)
 {
   Initialize(p, order);
+  if (coeff.Rows() > 0) Coefficients(coeff);
 }
 
 // -----------------------------------------------------------------------------

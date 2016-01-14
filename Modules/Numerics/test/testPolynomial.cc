@@ -133,6 +133,7 @@ TEST(Polynomial, Fit)
   // p(x) = a1 x^2 + a2 x + a3
   {
     Polynomial polynomial(1, 2);
+    // Use Polynomial::Fit(const Matrix &, const Vector &)
     Matrix x(3, 1);
     Vector y(3);
     x(0, 0) = 0.0, y(0) = -4.0;
@@ -147,6 +148,14 @@ TEST(Polynomial, Fit)
       EXPECT_DOUBLE_EQ(polynomial.Evaluate(x(i, 0)), y(i));
     }
     EXPECT_DOUBLE_EQ(polynomial.Coefficient(2), y(0));
+    // Use Polynomial::Fit(const Vector &, const Vector &) instead
+    Vector v(3);
+    for (int i = 0; i < v.Rows(); ++i) v(i) = x(i, 0);
+    Polynomial polynomial2(polynomial.Order());
+    EXPECT_DOUBLE_EQ(polynomial2.Fit(v, y), rms);
+    for (int i = 0; i < polynomial.NumberOfTerms(); ++i) {
+      EXPECT_DOUBLE_EQ(polynomial2.Coefficient(i), polynomial.Coefficient(i));
+    }
   }
 }
 
