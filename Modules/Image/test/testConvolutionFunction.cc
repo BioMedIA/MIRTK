@@ -24,10 +24,6 @@
 #include <mirtkScalarGaussian.h>
 #include <mirtkScalarFunctionToImage.h>
 
-#include <cstdlib>
-#include <iostream>
-
-using namespace std;
 using namespace mirtk;
 using namespace mirtk::ConvolutionFunction;
 
@@ -46,12 +42,12 @@ GenericImage<RealPixel> Gaussian(double sigma, double dx)
   ScalarGaussian                   gaussian(sigma, 1, 1, 0, 0, 0);
   GenericImage<RealPixel>          kernel(2 * int(round(4.0 * sigma)) + 1, 1, 1);
   ScalarFunctionToImage<RealPixel> generator;
-  generator.SetInput (&gaussian);
-  generator.SetOutput(&kernel);
+  generator.Input (&gaussian);
+  generator.Output(&kernel);
   generator.Run();
   RealPixel sum = .0;
-  for (int i = 0; i < kernel.GetX(); ++i) sum += kernel(i, 0, 0, 0);
-  for (int i = 0; i < kernel.GetX(); ++i) kernel(i, 0, 0, 0) /= sum;
+  for (int i = 0; i < kernel.X(); ++i) sum += kernel(i, 0, 0, 0);
+  for (int i = 0; i < kernel.X(); ++i) kernel(i, 0, 0, 0) /= sum;
   return kernel;
 }
 
