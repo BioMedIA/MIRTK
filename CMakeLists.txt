@@ -43,6 +43,7 @@ include("${BASIS_MODULE_PATH}/BasisTools.cmake")
 
 include(mirtk_add_library)
 include(mirtk_add_executable)
+include(mirtk_add_test)
 
 set(BASIS_NAMESPACE_DELIMITER_CMAKE ::)
 
