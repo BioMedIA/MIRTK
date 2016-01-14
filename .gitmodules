@@ -1,6 +1,6 @@
 [submodule "Documentation"]
 	path = Documentation
-	url = https://github.com/MIRTK/documentation.git
+	url = https://github.com/MIRTK/Documentation.git
 [submodule "ThirdParty/Boost"]
 	path = ThirdParty/Boost
 	url = https://github.com/MIRTK/Boost.git
