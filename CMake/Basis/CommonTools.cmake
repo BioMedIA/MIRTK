@@ -161,7 +161,7 @@ macro (basis_find_package PACKAGE)
   # parse arguments
   CMAKE_PARSE_ARGUMENTS (
     ARGN
-    "EXACT;QUIET;REQUIRED"
+    "EXACT;QUIET;REQUIRED;NO_NOTFOUND_ERROR"
     ""
     "COMPONENTS"
     ${ARGN}
@@ -499,7 +499,7 @@ macro (basis_find_package PACKAGE)
             endif ()
             message (STATUS "${_STATUS}")
           endif ()
-          if (NOT ${PKG}_FOUND AND (ARGN_REQUIRED OR WITH_${PKG}))
+          if (NOT ${PKG}_FOUND AND NOT ARGN_NO_NOTFOUND_ERROR AND (ARGN_REQUIRED OR WITH_${PKG}))
             set (msg)
             if (PROJECT_IS_MODULE)
               set (msg "Module")
