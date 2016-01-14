@@ -17,8 +17,9 @@
 # limitations under the License.
 # ============================================================================
 
-set(BASIS_TEST_LIBRARY      "${GTEST_LIBRARY}")
-set(BASIS_TEST_MAIN_LIBRARY "${GTEST_MAIN_LIBRARY}")
+macro(add_numerics_test class_name)
+  mirtk_add_test(${class_name} SOURCES mirtkNumericsTest.h DEPENDS LibNumerics)
+endmacro ()
 
-basis_add_test(testMatrix.cc     UNITTEST)
-basis_add_test(testPolynomial.cc UNITTEST)
+
+add_numerics_test(Matrix)

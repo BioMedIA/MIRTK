@@ -17,18 +17,20 @@
 # limitations under the License.
 # ============================================================================
 
-set(BASIS_TEST_LIBRARY      "${GTEST_LIBRARY}")
-set(BASIS_TEST_MAIN_LIBRARY "${GTEST_MAIN_LIBRARY}")
+macro (add_image_test class_name)
+  mirtk_add_test(${class_name} DEPENDS LibImage)
+endmacro ()
+
 
 # Parallel voxel functions
-basis_add_test(testConvolutionFunction.cc UNITTEST)
-basis_add_test(testUnaryVoxelFunction.cc  UNITTEST)
+add_image_test(ConvolutionFunction) # TODO: Requires arguments
+add_image_test(UnaryVoxelFunction)
 
 # Image interpolation/extrapolation
-basis_add_test(testInterpolateExtrapolateImageFunction.cc UNITTEST)
+add_image_test(InterpolateExtrapolateImageFunction)
 
 # Core image filters
-basis_add_test(testDownsampling.cc UNITTEST)
+add_image_test(Downsampling) # TODO: Requires arguments
 
 # Exponential/Logartihmic map of vector field
-#basis_add_test(testDisplacementToVelocityField.cc UNITTEST)
+#add_image_test(DisplacementToVelocityField)

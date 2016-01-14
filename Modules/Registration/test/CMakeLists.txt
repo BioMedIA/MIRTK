@@ -17,7 +17,9 @@
 # limitations under the License.
 # ============================================================================
 
-set(BASIS_TEST_LIBRARY      "${GTEST_LIBRARY}")
-set(BASIS_TEST_MAIN_LIBRARY "${GTEST_MAIN_LIBRARY}")
+macro(add_registration_test class_name)
+  mirtk_add_test(${class_name} DEPENDS LibRegistration)
+endmacro ()
 
-basis_add_test(testRegisteredImage.cc UNITTEST)
+
+add_registration_test(RegisteredImage)
