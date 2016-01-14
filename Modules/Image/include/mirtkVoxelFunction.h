@@ -41,7 +41,7 @@ namespace mirtk {
  * Base class for voxel functions
  *
  * The basic voxel functions which are part of this library and included by the
- * VoxelFunction.h module demonstrate the implementation and use of the
+ * mirtkVoxelFunction.h module demonstrate the implementation and use of the
  * ForEachVoxel function templates. These templates can be well optimized by the
  * compiler and provide the fastest way of iterating over all voxels in a given
  * image region (or the entire image) of one or more images. When processing
@@ -222,9 +222,9 @@ struct ForEachVoxelIfBody : public ForEachVoxelBody<VoxelFunc>
   // Construction
 
   /// Constructor
-  ForEachVoxelIfBody(const VoxelFunc &vf, const OutsideFunc &of)
+  ForEachVoxelIfBody(const VoxelFunc &vf, const OutsideFunc &of, const ImageAttributes &attr)
   :
-    ForEachVoxelBody<VoxelFunc>(vf), _OutsideFunc(of)
+    ForEachVoxelBody<VoxelFunc>(vf, attr), _OutsideFunc(of)
   {}
 
   /// Copy constructor
