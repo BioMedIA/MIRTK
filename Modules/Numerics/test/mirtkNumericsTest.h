@@ -20,6 +20,7 @@
 #ifndef MIRTK_NumericsTest_H
 #define MIRTK_NumericsTest_H
 
+#include <cmath>
 #include <gtest/gtest.h>
 
 
@@ -36,7 +37,7 @@ AssertionResult CmpHelperFloatingPointEQ(const char* expected_expression,
                                          const char* actual_expression,
                                          RawType expected,
                                          RawType actual) {
-  if (fabs(actual - expected) < static_cast<RawType>(1e-3)) {
+  if (::std::abs(actual - expected) < static_cast<RawType>(1e-3)) {
     return AssertionSuccess();
   }
 
