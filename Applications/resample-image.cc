@@ -62,33 +62,37 @@ void PrintHelp(const char *name)
   cout << "  -interp <mode>           Interpolation mode (case insensitive):" << endl;
   line_length = max_line_length;
   for (int i = 0; i < Interpolation_Last; ++i) {
+    if (i > 0) {
+      cout << ", ";
+      line_length += 2;
+    }
     mode = ToString(static_cast<InterpolationMode>(i));
     line_length += static_cast<int>(mode.length());
     if (line_length >= max_line_length) {
       cout << endl << option_desc_indent;
       line_length = option_desc_indent.Spaces() + static_cast<int>(mode.length());
-    } else {
-      cout << ", ";
-      line_length += 2;
     }
     cout << mode;
     if (i == Interpolation_Linear) cout << " (default)";
   }
+  cout << endl;
   cout << "  -extrap <mode>           Extrapolation mode (case insensitive):" << endl;
   line_length = max_line_length;
   for (int i = 0; i < Extrapolation_Last; ++i) {
+    if (i > 0) {
+      cout << ", ";
+      line_length += 2;
+    }
     mode = ToString(static_cast<ExtrapolationMode>(i));
     line_length += static_cast<int>(mode.length());
     if (line_length >= max_line_length) {
       cout << endl << option_desc_indent;
       line_length = option_desc_indent.Spaces() + static_cast<int>(mode.length());
-    } else {
-      cout << ", ";
-      line_length += 2;
     }
     cout << mode;
     if (i == Extrapolation_Const) cout << " (default)";
   }
+  cout << endl;
   cout << "  -outside <value>         Constant outside value extrapolation. (default: 0)" << endl;
   cout << "  -sigma <value>           Sigma value of Gaussian interpolator. (default: 1)" << endl;
   cout << "  -padding <value>         Background padding. (default: none)" << endl;

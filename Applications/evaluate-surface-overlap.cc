@@ -79,11 +79,18 @@ void PrintHelp(const char *name)
   cout << "  source   File name of source surface." << endl;
   cout << endl;
   cout << "Options:" << endl;
-  cout << "  -corr <file>          Name of text file listing the point-wise correspondences separated by spaces. (default: NN)" << endl;
-  cout << "  -array       <name>   Name of array storing labels. (default: labels)" << endl;
-  cout << "  -targetarray <name>   Name of target array storing labels. (default: labels)" << endl;
-  cout << "  -sourcearray <name>   Name of source array storing labels. (default: labels)" << endl;
-  cout << "  -sep <str>            Separating string between printed numbers. (default: ,)" << endl;
+  cout << "  -corrin <file>             Name of text file listing the point-wise correspondences separated by spaces. (default: NN)" << endl;
+  cout << "  -pointdata <name>          Name of point data array storing labels. (default: labels)" << endl;
+  cout << "  -target-pointdata <name>   Name of target point data array storing labels. (default: labels)" << endl;
+  cout << "  -source-pointdata <name>   Name of source point data array storing labels. (default: labels)" << endl;
+  cout << "  -celldata <name>           Name of cell data array storing labels. (default: labels)" << endl;
+  cout << "  -target-celldata <name>    Name of target cell data array storing labels. (default: labels)" << endl;
+  cout << "  -source-celldata <name>    Name of source cell data array storing labels. (default: labels)" << endl;
+  cout << "  -sep <str>                 Separating string between printed numbers. (default: ,)" << endl;
+  cout << "  -f, -feature <name> [<weight> [<#components>]]" << endl;
+  cout << "      Name of data array used as point/cell feature points to establish correspondences." << endl;
+  cout << "      Multiple features can be added to the feature vector with optionally different weight." << endl;
+  cout << "      The #components specifies to only use the first n components of the data array." << endl;
   PrintStandardOptions(cout);
   cout << endl;
 }

@@ -117,7 +117,7 @@ void PrintHelp(const char *name)
   cout << endl;
   cout << "  -align-top        Align top-most slices of :option:`-target` and :option:`-source` image. (default: center)" << endl;
   cout << endl;
-  cout << "  -displacements | -disp <pset1> <pset2> [<cor12>]" << endl;
+  cout << "  -displacements, -disp <pset1> <pset2> [<cor12>]" << endl;
   cout << "      Create transformation which minimizes the mean squared distance between pairs" << endl;
   cout << "      of fiducial point sets <pset1> and <pset2>. When a single <pset> is given," << endl;
   cout << "      it creates a transformation which approximates the displacement vectors stored" << endl;

@@ -95,11 +95,11 @@ void PrintUsage(const char* name)
   cout << "  -mask   <file>          Reference mask which defines the domain within which to evaluate the" << endl;
   cout << "                          energy function (i.e. data fidelity terms). (default: none)" << endl;
   cout << "  -dofin  <file>          Initial transformation estimate. (default: align centroids)" << endl;
-  cout << "  -par <name> <value>    Specify parameter value directly as command argument." << endl;
+  cout << "  -par <name> <value>     Specify parameter value directly as command argument." << endl;
   cout << "  -parin  <file>          Read parameters from configuration file. If \"stdin\" or \"cin\"," << endl;
   cout << "                          the parameters are read from standard input instead. (default: none)" << endl;
   cout << "  -parout <file>          Write parameters to the named configuration file. (default: none)" << endl;
-  cout << "  -v -verbose [n]         Increase/Set verbosity of output messages. (default: " << verbose << ")" << endl;
+  cout << "  -v, -verbose [n]        Increase/Set verbosity of output messages. (default: " << verbose << ")" << endl;
   cout << "  -h -[-]help             Print complete help and exit." << endl;
   cout << endl;
 }
@@ -139,7 +139,7 @@ void PrintHelp(const char* name)
   cout << endl;
   cout << "Optional arguments:" << endl;
   cout << "  -model <m1>[+<m2>...]        Transformation model(s). (default: Rigid+Affine+FFD)" << endl;
-  cout << "                               Alternatively, use \"-par 'Transformation model=<name>'\" (see :option:`-par`)." << endl;
+  cout << "                               Alternatively, use \"-par 'Transformation model' <name>\" (see :option:`-par`)." << endl;
   cout << "  -image <file>...             Input image to be registered. The order in which the images are" << endl;
   cout << "                               given on the command-line corresponds to the image indices used" << endl;
   cout << "                               in the registration energy formulation. The first input image has" << endl;
@@ -184,7 +184,7 @@ void PrintHelp(const char* name)
   cout << "                               by the source image and the name of the transformation file." << endl;
   cout << "                               Note that the target and source image names must be listed" << endl;
   cout << "                               in the :option:`-images` list file. (default: none)" << endl;
-  cout << "  -dofin  <file>               Read initial transformation from file if :option:`-dofins` not specified." << endl;
+  cout << "  -dofin <file>                Read initial transformation from file if :option:`-dofins` not specified." << endl;
   cout << "                               Otherwise, writes the initial transformation obtained by approximating" << endl;
   cout << "                               the pairwise transformations to the named file." << endl;
   cout << "                               If the given transformation cannot be used directly as starting" << endl;
@@ -192,8 +192,8 @@ void PrintHelp(const char* name)
   cout << "                               of the chosen transformation model at the initial resolution level." << endl;
   cout << "                               The input transformation may thus be of different type than the" << endl;
   cout << "                               output transformation of the registration. (default: none)" << endl;
-  cout << "  -par '<name>=<value>'        Specify parameter value directly as command argument." << endl;
-  cout << "  -parin  <file>               Read parameters from configuration file. If \"stdin\" or \"cin\"," << endl;
+  cout << "  -par <name> <value>          Specify parameter value directly as command argument." << endl;
+  cout << "  -parin <file>                Read parameters from configuration file. If \"stdin\" or \"cin\"," << endl;
   cout << "                               the parameters are read from standard input instead. (default: none)" << endl;
   cout << "  -parout <file>               Write parameters to the named configuration file. Note that after" << endl;
   cout << "                               initializaton of the registration, an interim configuration file is" << endl;

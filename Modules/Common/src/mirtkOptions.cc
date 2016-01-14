@@ -92,11 +92,11 @@ void PrintStandardOptions(ostream &out)
 {
   out << endl;
   out << "Standard options:" << endl;
-  out << "  -v -verbose [n]              Increase/Set verbosity of output messages. (default: " << verbose << ")" << endl;
+  out << "  -v, -verbose [n]             Increase/Set verbosity of output messages. (default: " << verbose << ")" << endl;
   out << "  -debug [level]               Increase/Set debug level for output of intermediate results. (default: " << debug << ")" << endl;
   out << "  -[-]version [major.minor]    Print version and exit or set version to emulate." << endl;
   out << "  -revision                    Print revision (or version) number only and exit." << endl;
-  out << "  -h -[-]help                  Print help and exit." << endl;
+  out << "  -h, -[-]help                 Print help and exit." << endl;
 }
 
 // -----------------------------------------------------------------------------

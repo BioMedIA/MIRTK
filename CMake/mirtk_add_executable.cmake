@@ -72,7 +72,7 @@ function(mirtk_add_executable target_name)
           COMMENT "Extracting command description from ${target_name} -help"
         )
         add_custom_target(${target_name}-help
-          COMMAND "${mirtk_path}" help-rst "${target_name}" -generated
+          COMMAND "${mirtk_path}" help-rst "${target_name}" -generated -orphan
                   "-include-description" "_descriptions/${target_name}.rst"
                   -output "${TOPLEVEL_PROJECT_DOC_DIR}/commands/${target_name}.rst"
           DEPENDS mirtk help-rst ${target_name} ${target_name}-description
