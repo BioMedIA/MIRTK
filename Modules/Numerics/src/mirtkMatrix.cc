@@ -111,6 +111,37 @@ Matrix::Matrix(const Vector &v)
 }
 
 // -----------------------------------------------------------------------------
+Matrix::Matrix(const PointSet &pset, bool twoD)
+:
+  _rows(pset.Size()),
+  _cols(twoD ? 2 : 3),
+  _matrix(NULL),
+  _owner(true)
+{
+  if (_rows > 0) {
+    Allocate(_matrix, _rows, _cols);
+    double *x = _matrix[0];
+    double *y = _matrix[1];
+    if (twoD) {
+      for (int i = 0; i < pset.Size(); ++i, ++x, ++y) {
+        *x = pset(i)._x;
+        *y = pset(i)._y;
+      }
+    } else {
+      double *z = _matrix[2];
+      for (int i = 0; i < pset.Size(); ++i, ++x, ++y, ++z) {
+        *x = pset(i)._x;
+        *y = pset(i)._y;
+        *z = pset(i)._z;
+      }
+    }
+  } else {
+    _owner = false;
+    _cols  = 0;
+  }
+}
+
+// -----------------------------------------------------------------------------
 Matrix::Matrix(const Matrix& m)
 :
   Object(m),
@@ -352,6 +383,68 @@ Matrix Matrix::operator *(const Matrix& m) const
 // =============================================================================
 // Matrix functions
 // =============================================================================
+
+// -----------------------------------------------------------------------------
+double Matrix::RowSum(int r) const
+{
+  double sum = .0;
+  for (int c = 0; c < _cols; ++c) {
+    sum += _matrix[c][r];
+  }
+  return sum;
+}
+
+// -----------------------------------------------------------------------------
+double Matrix::RowVar(int r) const
+{
+  if (_cols == 0) return numeric_limits<double>::quiet_NaN();
+  if (_cols <  2) return .0;
+  double mean = .0, var = .0, delta;
+  for (int c = 0; c < _cols; ++c) {
+    delta = _matrix[c][r] - mean;
+    mean += delta / (c + 1);
+    var  += delta * (_matrix[c][r] - mean);
+  }
+  var /= (_cols - 1);
+  return var;
+}
+
+// -----------------------------------------------------------------------------
+double Matrix::RowStd(int r) const
+{
+  return sqrt(RowVar(r));
+}
+
+// -----------------------------------------------------------------------------
+double Matrix::ColSum(int c) const
+{
+  double sum = .0, *d = _matrix[c];
+  for (int r = 0; r < _rows; ++r, ++d) {
+    sum += *d;
+  }
+  return sum;
+}
+
+// -----------------------------------------------------------------------------
+double Matrix::ColVar(int c) const
+{
+  if (_rows == 0) return numeric_limits<double>::quiet_NaN();
+  if (_rows <  2) return .0;
+  double mean = .0, var = .0, delta, *d = _matrix[c];
+  for (int r = 0; r < _rows; ++r, ++d) {
+    delta = *d - mean;
+    mean += delta / (r + 1);
+    var  += delta * (*d - mean);
+  }
+  var /= (_rows - 1);
+  return var;
+}
+
+// -----------------------------------------------------------------------------
+double Matrix::ColStd(int c) const
+{
+  return sqrt(ColVar(c));
+}
 
 // -----------------------------------------------------------------------------
 Matrix Matrix::Exp() const
