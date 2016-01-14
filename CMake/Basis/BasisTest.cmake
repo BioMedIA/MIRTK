@@ -534,9 +534,26 @@ function (basis_add_test TEST_NAME)
       endif ()
       if (LANGUAGE MATCHES "CXX")
         if (NOT ARGN_NO_DEFAULT_MAIN)
-          list (APPEND ARGN_LINK_DEPENDS "${BASIS_TEST_MAIN_LIBRARY}")
+          if (BASIS_TEST_MAIN_LIBRARY)
+            list (APPEND ARGN_LINK_DEPENDS "${BASIS_TEST_MAIN_LIBRARY}")
+          else ()
+            message (FATAL_ERROR "Test ${TEST_NAME} added as UNITTEST without NO_DEFAULT_MAIN option,"
+                                 " but BASIS_TEST_MAIN_LIBRARY not set. This library is part of the"
+                                 " CMake BASIS installation. When you are using the CMake BASIS Modules"
+                                 " without CMake BASIS installation, add GTest to TEST_DEPENDS and"
+                                 " set BASIS_TEST_MAIN_LIBRARY to the value of GTEST_MAIN_LIBRARY"
+                                 " before using the basis_add_test command.")
+          endif ()
         endif ()
-        list (APPEND ARGN_LINK_DEPENDS "${BASIS_TEST_LIBRARY}")
+        if (BASIS_TEST_LIBRARY)
+          list (APPEND ARGN_LINK_DEPENDS "${BASIS_TEST_LIBRARY}")
+        else ()
+         message (FATAL_ERROR "Test ${TEST_NAME} added as UNITTEST, but BASIS_TEST_LIBRARY not set."
+                              " This library is part of the CMake BASIS installation. When you are"
+                              " using the CMake BASIS Modules without CMake BASIS installation,"
+                              " add GTest to TEST_DEPENDS and set BASIS_TEST_LIBRARY to the value"
+                              " of GTEST_LIBRARY before using the basis_add_test command.")
+        endif ()
       endif ()
     endif ()
 
