@@ -96,7 +96,6 @@ basis_project (
   OPTIONAL_DEPENDS
     #<optional-dependency>
   TEST_DEPENDS
-    GTest
     #<test-dependency>
   OPTIONAL_TEST_DEPENDS
     #<optional-test-dependency>
