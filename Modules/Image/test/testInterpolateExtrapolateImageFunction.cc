@@ -17,9 +17,13 @@
  * limitations under the License.
  */
 
-#include <mirtkImageFunction.h>
-
 // TODO: Rewrite test using GTest library. -as12312
+
+#include <mirtkGenericImage.h>
+#include <mirtkInterpolateImageFunction.h>
+#include <mirtkExtrapolateImageFunction.h>
+
+using namespace mirtk;
 
 // ===========================================================================
 // Macros

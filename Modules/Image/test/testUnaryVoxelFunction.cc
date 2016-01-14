@@ -23,7 +23,7 @@
 #include <mirtkVoxelFunction.h>
 
 using namespace mirtk;
-using namespace mirtk::ImageDomain;
+using namespace mirtk::ForEachVoxelDomain;
 
 // ===========================================================================
 // Tests
