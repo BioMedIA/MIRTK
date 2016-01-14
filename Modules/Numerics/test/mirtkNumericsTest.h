@@ -23,7 +23,7 @@
 #include <gtest/gtest.h>
 
 
-namespace testing { namespace custom {
+namespace testing { namespace mirtk {
 
 
 // Helper template function for comparing floating-points.
@@ -56,17 +56,17 @@ AssertionResult CmpHelperFloatingPointEQ(const char* expected_expression,
 }
 
 
-} } // namespace testing::custom
+} } // namespace testing::mirtk
 
 
 #undef EXPECT_FLOAT_EQ
 #define EXPECT_FLOAT_EQ(expected, actual) \
-  EXPECT_PRED_FORMAT2(::testing::custom::CmpHelperFloatingPointEQ<double>, \
+  EXPECT_PRED_FORMAT2(::testing::mirtk::CmpHelperFloatingPointEQ<double>, \
                       expected, actual)
 
 #undef EXPECT_DOUBLE_EQ
 #define EXPECT_DOUBLE_EQ(expected, actual) \
-  EXPECT_PRED_FORMAT2(::testing::custom::CmpHelperFloatingPointEQ<double>, \
+  EXPECT_PRED_FORMAT2(::testing::mirtk::CmpHelperFloatingPointEQ<double>, \
                       expected, actual)
 
 #define EXPECT_MATRIX_EQ(expected, actual) \
