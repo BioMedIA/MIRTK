@@ -28,4 +28,4 @@ basis_add_test(testInterpolateExtrapolateImageFunction.cc)
 basis_add_test(testDownsampling.cc)
 
 # Exponential/Logartihmic map of vector field
-basis_add_test(testDisplacementToVelocityField.cc)
+#basis_add_test(testDisplacementToVelocityField.cc)
