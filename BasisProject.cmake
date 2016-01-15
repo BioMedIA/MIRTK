@@ -52,7 +52,7 @@ basis_project (
   # --------------------------------------------------------------------------
   # meta-data
   NAME         "MIRTK"
-  VERSION      "0.0.0" # Version of core (+ external) modules
+  VERSION      "1.0.0" # Version of core (+ external) modules
   SOVERSION    "0"     # API yet unstable
   AUTHORS      "Andreas Schuh"
   DESCRIPTION  "Medical Image Registration ToolKit"
