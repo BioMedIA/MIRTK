@@ -1,3 +1,5 @@
+.. This file is formatted using reStructuredText (reST) and included by Documentation/people.rst !
+
 Software Development
 --------------------
 
