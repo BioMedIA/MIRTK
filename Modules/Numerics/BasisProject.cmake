@@ -65,6 +65,7 @@ basis_project (
     VTK-6{vtkCommonCore,vtkCommonDataModel,vtkIOGeometry,vtkIOLegacy,vtkIOPLY,vtkIOXML}
     #<optional-dependency>
   TEST_DEPENDS
+    GTest
     #<test-dependency>
   OPTIONAL_TEST_DEPENDS
     #<optional-test-dependency>

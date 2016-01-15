@@ -80,8 +80,13 @@ public:
   /// Constructor for given number of rows and columns
   Matrix(int, int = -1, double * = NULL);
 
-  /// Convert vector into matrix
+  /// Convert column vector to matrix
   Matrix(const Vector &);
+
+  /// Convert point set to (n x 3) or (n x 2) matrix
+  ///
+  /// \param[in] twoD Discard z coordinate.
+  Matrix(const PointSet &, bool twoD = false);
 
   /// Copy constructor
   Matrix(const Matrix &);
@@ -292,6 +297,15 @@ public:
   /// Minimum and maximum value in specified row
   void RowRange(int, double &, double &) const;
 
+  /// Sum of column values in specified row
+  double RowSum(int) const;
+
+  /// Variance of column values in specified row
+  double RowVar(int) const;
+
+  /// Standard deviation of column values in specified row
+  double RowStd(int) const;
+
   /// Minimum value in specified column
   double ColMin(int) const;
 
@@ -300,6 +314,15 @@ public:
 
   /// Minimum and maximum value in specified column
   void ColRange(int, double &, double &) const;
+
+  /// Sum of row values in specified column
+  double ColSum(int) const;
+
+  /// Variance of row values in specified column
+  double ColVar(int) const;
+
+  /// Standard deviation of row values in specified column
+  double ColStd(int) const;
 
   /// Matrix exponential via Pade approximation
   /// (cf. Golub and Van Loan, Matrix Computations, Algorithm 11.3-1)

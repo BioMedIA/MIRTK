@@ -17,67 +17,10 @@
  * limitations under the License.
  */
 
-#include <gtest/gtest.h>
+#include "mirtkNumericsTest.h"
 
 #include <mirtkMatrix.h>
 using namespace mirtk;
-
-// =============================================================================
-// gtest customization
-// =============================================================================
-
-namespace testing { namespace custom {
-
-
-// Helper template function for comparing floating-points.
-//
-// Template parameter:
-//
-//   RawType: the raw floating-point type (either float or double)
-template <typename RawType>
-AssertionResult CmpHelperFloatingPointEQ(const char* expected_expression,
-                                         const char* actual_expression,
-                                         RawType expected,
-                                         RawType actual) {
-  if (fabs(actual - expected) < static_cast<RawType>(1e-3)) {
-    return AssertionSuccess();
-  }
-
-  ::std::stringstream expected_ss;
-  expected_ss << std::setprecision(std::numeric_limits<RawType>::digits10 + 2)
-  << expected;
-
-  ::std::stringstream actual_ss;
-  actual_ss << std::setprecision(std::numeric_limits<RawType>::digits10 + 2)
-  << actual;
-
-  return testing::internal::EqFailure(expected_expression,
-                   actual_expression,
-                   testing::internal::StringStreamToString(&expected_ss),
-                   testing::internal::StringStreamToString(&actual_ss),
-                   false);
-}
-
-
-} } // namespace testing::custom
-
-
-#undef EXPECT_FLOAT_EQ
-#define EXPECT_FLOAT_EQ(expected, actual) \
-  EXPECT_PRED_FORMAT2(::testing::custom::CmpHelperFloatingPointEQ<double>, \
-                      expected, actual)
-
-#undef EXPECT_DOUBLE_EQ
-#define EXPECT_DOUBLE_EQ(expected, actual) \
-  EXPECT_PRED_FORMAT2(::testing::custom::CmpHelperFloatingPointEQ<double>, \
-                      expected, actual)
-
-#define EXPECT_MATRIX_EQ(expected, actual) \
-  EXPECT_EQ(expected.Rows(), actual.Rows()); \
-  EXPECT_EQ(expected.Cols(), actual.Cols()); \
-  for (int _c = 0; _c < expected.Cols(); ++_c) \
-  for (int _r = 0; _r < expected.Rows(); ++_r) \
-    EXPECT_DOUBLE_EQ(expected(_r, _c), actual(_r, _c))
 
 // =============================================================================
 // Test matrices

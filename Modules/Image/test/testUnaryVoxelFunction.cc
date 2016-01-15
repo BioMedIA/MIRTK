@@ -20,10 +20,10 @@
 #include <gtest/gtest.h>
 
 #include <mirtkGenericImage.h>
-#include <mirtkVoxelFunction.h>
+#include <mirtkUnaryVoxelFunction.h>
 
 using namespace mirtk;
-using namespace mirtk::ImageDomain;
+using namespace mirtk::ForEachVoxelDomain;
 
 // ===========================================================================
 // Tests

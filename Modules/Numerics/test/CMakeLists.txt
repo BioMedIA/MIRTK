@@ -17,4 +17,10 @@
 # limitations under the License.
 # ============================================================================
 
-basis_add_test(testMatrix.cc)
+macro(add_numerics_test class_name)
+  mirtk_add_test(${class_name} SOURCES mirtkNumericsTest.h DEPENDS LibNumerics)
+endmacro ()
+
+
+add_numerics_test(Matrix)
+add_numerics_test(Polynomial)

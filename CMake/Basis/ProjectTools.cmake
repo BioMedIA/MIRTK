@@ -1986,18 +1986,28 @@ macro (basis_find_packages)
   if (BUILD_APPLICATIONS)
     # required application dependencies
     foreach (P IN LISTS PROJECT_TOOLS_DEPENDS)
-      basis_find_package ("${P}") # do not use REQUIRED here to be able to show
-      basis_use_package ("${P}")  # error message below
-      basis_tokenize_dependency ("${P}" P VER CMPS)
-      string (TOUPPER "${P}" U)
-      if (NOT ${P}_FOUND AND NOT ${U}_FOUND)
-        message (FATAL_ERROR "Could not find package ${P}! It is required by "
-                             "the applications of ${PROJECT_NAME}. Either specify "
-                             "package location manually and try again or "
-                             "disable testing by setting BUILD_APPLICATIONS to OFF.")
-        
+      basis_find_package ("${P}" REQUIRED NO_NOTFOUND_ERROR)
+      basis_tokenize_dependency ("${P}" PKG VER CMPS)
+      string (TOUPPER "${PKG}" PKG_U)
+      if (NOT ${PKG}_FOUND AND NOT ${PKG_U}_FOUND)
+        set (msg "Could not find package ${PKG}! It is required by the applications"
+                 " of ${PROJECT_NAME}. Please ensure that the package is installed"
+                 " in a standard system location or set DEPENDS_${PKG}_DIR to the"
+                 " installation prefix (i.e., top-level directory of the installation).")
+        if (DEFINED ${PKG}_DIR OR DEFINED ${PKG_U}_DIR)
+          string (TOLOWER "${PKG}" PKG_L)
+          set (msg "${msg}\nThe DEPENDS_${PKG}_DIR variable can alternatively be set"
+                   " to the directory containing a ${PKG}Config.cmake or ${PKG_L}-config.cmake"
+                   " file. If no such file exists, contact either the developer of"
+                   " this project or CMake BASIS to provide a Find${PKG}.cmake file.")
+        endif ()
+        set (msg "${msg}\nTo disable the build of the applications, set BUILD_APPLICATIONS to OFF.")
+        basis_list_to_string(msg ${msg})
+        message (FATAL_ERROR "\n${msg}\n")
       endif ()
-      unset (U)
+      basis_use_package ("${P}" REQUIRED)
+      unset (PKG_U)
+      unset (PKG)
       unset (VER)
       unset (CMPS)
     endforeach ()
@@ -2013,18 +2023,28 @@ macro (basis_find_packages)
   if (BUILD_TESTING)
     # required test dependencies
     foreach (P IN LISTS PROJECT_TEST_DEPENDS)
-      basis_find_package ("${P}") # do not use REQUIRED here to be able to show
-      basis_use_package ("${P}")  # error message below
-      basis_tokenize_dependency ("${P}" P VER CMPS)
-      string (TOUPPER "${P}" U)
-      if (NOT ${P}_FOUND AND NOT ${U}_FOUND)
-        message (FATAL_ERROR "Could not find package ${P}! It is required by "
-                             "the tests of ${PROJECT_NAME}. Either specify "
-                             "package location manually and try again or "
-                             "disable testing by setting BUILD_TESTING to OFF.")
-        
+      basis_find_package ("${P}" REQUIRED NO_NOTFOUND_ERROR)
+      basis_tokenize_dependency ("${P}" PKG VER CMPS)
+      string (TOUPPER "${PKG}" PKG_U)
+      if (NOT ${PKG}_FOUND AND NOT ${PKG_U}_FOUND)
+        set (msg "Could not find package ${PKG}! It is required by the tests"
+                 " of ${PROJECT_NAME}. Please ensure that the package is installed"
+                 " in a standard system location or set DEPENDS_${PKG}_DIR to the"
+                 " installation prefix (i.e., top-level directory of the installation).")
+        if (DEFINED ${PKG}_DIR OR DEFINED ${PKG_U}_DIR)
+          string (TOLOWER "${PKG}" PKG_L)
+          set (msg "${msg}\nThe DEPENDS_${PKG}_DIR variable can alternatively be set"
+                   " to the directory containing a ${PKG}Config.cmake or ${PKG_L}-config.cmake"
+                   " file. If no such file exists, contact either the developer of"
+                   " this project or CMake BASIS to provide a Find${PKG}.cmake file.")
+        endif ()
+        set (msg "${msg}\nTo disable the build of the tests, set BUILD_TESTING to OFF.")
+        basis_list_to_string(msg ${msg})
+        message (FATAL_ERROR "\n${msg}\n")
       endif ()
-      unset (U)
+      basis_use_package ("${P}" REQUIRED)
+      unset (PKG_U)
+      unset (PKG)
       unset (VER)
       unset (CMPS)
     endforeach ()
@@ -2339,7 +2359,9 @@ macro (basis_project_begin)
         list (APPEND _TOOLS_DIRS "${_TOOLS_DIR}")
       endif ()
     endforeach ()
-    list (INSERT PROJECT_SUBDIRS 0 "${_TOOLS_DIRS}")
+    if (_TOOLS_DIRS)
+      list (INSERT PROJECT_SUBDIRS 0 "${_TOOLS_DIRS}")
+    endif ()
     unset (_TOOLS_DIR)
     unset (_TOOLS_DIRS)
   endif ()

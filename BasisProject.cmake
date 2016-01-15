@@ -52,8 +52,8 @@ basis_project (
   # --------------------------------------------------------------------------
   # meta-data
   NAME         "MIRTK"
-  VERSION      "1.0.0rc2" # Version of core (+ external) modules
-  SOVERSION    "0"        # API yet unstable
+  VERSION      "0.0.0" # Version of core (+ external) modules
+  SOVERSION    "0"     # API yet unstable
   AUTHORS      "Andreas Schuh"
   DESCRIPTION  "Medical Image Registration ToolKit"
   COPYRIGHT    "2013-2015 Imperial College London, Andreas Schuh"

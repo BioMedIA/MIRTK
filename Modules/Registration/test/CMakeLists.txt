@@ -17,4 +17,9 @@
 # limitations under the License.
 # ============================================================================
 
-basis_add_test(testRegisteredImage.cc)
+macro(add_registration_test class_name)
+  mirtk_add_test(${class_name} DEPENDS LibRegistration)
+endmacro ()
+
+
+add_registration_test(RegisteredImage)

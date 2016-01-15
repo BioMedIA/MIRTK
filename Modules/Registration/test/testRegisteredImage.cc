@@ -18,6 +18,7 @@
  */
 
 // TODO: Compare transformed image to expected result
+#include <gtest/gtest.h>
 
 #include <mirtkRegisteredImage.h>
 
@@ -27,7 +28,7 @@
 #include <mirtkBSplineFreeFormTransformation3D.h>
 #include <mirtkMultiLevelFreeFormTransformation.h>
 
-#include <gtest/gtest.h>
+using namespace mirtk;
 
 
 // ===========================================================================
