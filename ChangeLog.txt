@@ -1,6 +1,5 @@
 .. This file is formatted using reStructuredText (reST) and included by Documentation/changelog.rst !
 
-
 2016
 ----
 
@@ -10,8 +9,8 @@
 Release 1.0.0 (Jan 15)
 ~~~~~~~~~~~~~~~~~~~~~~
 
-- First stable release of the refactored IRTK support libraries and new Registration framework.
-- Includes external packages for volumetric mapping and a deformable surface framework.
+- First stable release of the refactored IRTK support libraries and new `Registration framework </modules/registration>`.
+- Includes external packages for `volumetric mapping </modules/volumetricmapping>` and a `deformable surface framework </modules/deformable>`.
 
 
 .. _v1.0rc2:
@@ -21,8 +20,8 @@ Release 1.0rc2 (Jan 13)
 
 - Refactored initialization of object factories, GNU g++ on Ubuntu excludes unused shared libraries.
 - Use ``::`` as CMake target namespace separator.
-- Moved image I/O classes to new :doc:`Image I/O </modules/core/imageio>` module.
-- Build libLBFGS source files as part of Numerics module.
+- Moved image I/O classes to new :doc:`Image I/O </modules/imageio>` module.
+- Build libLBFGS source files as part of :doc:`Numerics </modules/numerics>` module.
 - Build NIfTI C Library as part of Image I/O module.
 
 
