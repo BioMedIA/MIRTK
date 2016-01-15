@@ -25,9 +25,11 @@ See the accompanying [license file](LICENSE.txt) for details. The license enable
 MIRTK in both commercial and non-commercial applications, without restrictions on the
 licensing applied to the combined work.
 
-This directory includes source files and references to Git submodule repositories whose source
-files are covered by their own respective license terms which are compatible with the MIRTK license.
-See the [download page](https://mirtk.github.io/download.html#software-license) for details.
+This directory includes source files and references to Git submodule repositories grouped and
+distributed under the [GitHub MIRTK Organization](https://github.com/MIRTK/), whose source
+files are covered by their own respective license terms. These licenses are compatible with
+the MIRTK license. See the [download page](https://mirtk.github.io/download.html#software-license)
+for details.
 
 
 Citation and acknowledgements
