@@ -106,15 +106,14 @@ vtkSmartPointer<vtkPolyData> Isosurface(const DistanceImage &dmap, double offset
 
   for (int k = 0; k < nz; ++k)
   for (int j = 0; j < ny; ++j)
-  for (int i = 0; i < nx; ++i) {
+  for (int i = 0; i < nx; ++i, ++o) {
     if (i1 <= i && i <= i2 &&
         j1 <= j && j <= j2 &&
         k1 <= k && k <= k2) {
-	    *o = *(++d);
+	    *o = *d, ++d;
     } else {
       *o = boundary_value;
     }
-    ++o;
   }
 
   // Extract isosurface
