@@ -51,6 +51,7 @@
 #include <mirtkFastDelegate.h>
 #include <mirtkStatus.h>
 #include <mirtkAlgorithm.h>
+#include <mirtkRandom.h>
 
 // Base classes
 #include <mirtkObject.h>
