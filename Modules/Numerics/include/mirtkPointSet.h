@@ -102,7 +102,9 @@ public:
   void ShrinkToFit();
 
   /// Clearing of PointSet
-  void Clear();
+  ///
+  /// \param[in] deallocate Whether to deallocate memory.
+  void Clear(bool deallocate = true);
 
   // ---------------------------------------------------------------------------
   // Operators for access
@@ -193,6 +195,9 @@ public:
 
   /// Deleting of a Point from Pointset
   void Del(double *);
+
+  /// Delete all points without freeing already allocated memory
+  void Del();
 
   // ---------------------------------------------------------------------------
   // I/O
@@ -427,6 +432,12 @@ inline void PointSet::Add(double *p)
 inline void PointSet::Del(double *p)
 {
   this->Del(Point(p[0], p[1], p[2]));
+}
+
+// -----------------------------------------------------------------------------
+inline void PointSet::Del()
+{
+  this->Clear(false);
 }
 
 

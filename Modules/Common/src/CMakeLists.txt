@@ -58,6 +58,7 @@ set(HEADERS
   mirtkPath.h
   mirtkProfiling.h
   mirtkQueue.h
+  mirtkRandom.h
   mirtkStack.h
   mirtkStatus.h
   mirtkStream.h

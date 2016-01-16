@@ -451,6 +451,28 @@ double Matrix3x3::Determinant() const
 }
 
 //----------------------------------------------------------------------------
+Matrix3x3 Matrix3x3::Adjoint() const
+{
+  Matrix3x3 adj;
+  adj[0][0] = m_aafEntry[1][1] * m_aafEntry[2][2] - m_aafEntry[1][2] * m_aafEntry[2][1];
+  adj[0][1] = m_aafEntry[1][2] * m_aafEntry[2][0] - m_aafEntry[1][0] * m_aafEntry[2][2];
+  adj[0][2] = m_aafEntry[1][0] * m_aafEntry[2][1] - m_aafEntry[1][1] * m_aafEntry[2][0];
+  adj[1][0] = m_aafEntry[0][2] * m_aafEntry[2][1] - m_aafEntry[0][1] * m_aafEntry[2][2];
+  adj[1][1] = m_aafEntry[0][0] * m_aafEntry[2][2] - m_aafEntry[0][2] * m_aafEntry[2][0];
+  adj[1][2] = m_aafEntry[0][1] * m_aafEntry[2][0] - m_aafEntry[0][0] * m_aafEntry[2][1];
+  adj[2][0] = m_aafEntry[0][1] * m_aafEntry[1][2] - m_aafEntry[0][2] * m_aafEntry[1][1];
+  adj[2][1] = m_aafEntry[1][0] * m_aafEntry[0][2] - m_aafEntry[0][0] * m_aafEntry[1][2];
+  adj[2][2] = m_aafEntry[0][0] * m_aafEntry[1][1] - m_aafEntry[0][1] * m_aafEntry[1][0];
+  return adj;
+}
+
+//----------------------------------------------------------------------------
+double Matrix3x3::Trace() const
+{
+  return m_aafEntry[0][0] + m_aafEntry[1][1] + m_aafEntry[2][2];
+}
+
+//----------------------------------------------------------------------------
 void Matrix3x3::Bidiagonalize(Matrix3x3& kA, Matrix3x3& kL, Matrix3x3& kR)
 {
   double afV[3], afW[3];

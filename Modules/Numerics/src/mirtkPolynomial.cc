@@ -201,6 +201,41 @@ double Polynomial::Fit(const Matrix &x, const Vector &y, int order)
 }
 
 // -----------------------------------------------------------------------------
+double Polynomial::FitSurface(const PointSet &x, int order)
+{
+  Vector y(x.Size());
+  return Fit(Matrix(x), y, order);
+}
+
+// -----------------------------------------------------------------------------
+double Polynomial::FitSurface(const PointSet &x, const Array<int> &subset, int order)
+{
+  const int n = static_cast<int>(subset.size());
+  Matrix m(n, 3);
+  Vector y(n);
+  int i = 0;
+  for (Array<int>::const_iterator it = subset.begin(); it != subset.end(); ++it, ++i) {
+    const Point &p = x(*it);
+    m(i, 0) = p._x, m(i, 1) = p._y, m(i, 2) = p._z;
+  }
+  return Fit(m, y, order);
+}
+
+// -----------------------------------------------------------------------------
+double Polynomial::FitSurface(const PointSet &x, const OrderedSet<int> &subset, int order)
+{
+  const int n = static_cast<int>(subset.size());
+  Matrix m(n, 3);
+  Vector y(n);
+  int i = 0;
+  for (OrderedSet<int>::const_iterator it = subset.begin(); it != subset.end(); ++it, ++i) {
+    const Point &p = x(*it);
+    m(i, 0) = p._x, m(i, 1) = p._y, m(i, 2) = p._z;
+  }
+  return Fit(m, y, order);
+}
+
+// -----------------------------------------------------------------------------
 double Polynomial::Fit(const PointSet &x, const Vector &y, int order, bool twoD)
 {
   return Fit(Matrix(x, twoD), y, order);
@@ -233,6 +268,137 @@ Vector Polynomial::Evaluate(const Matrix &x) const
     }
   }
   return y;
+}
+
+// -----------------------------------------------------------------------------
+Vector Polynomial::Evaluate1stOrderDerivative(int j1, const Matrix &x) const
+{
+  mirtkAssert(_Dimension == x.Cols(), "independent variable dimensions must match");
+  double t;
+  Vector y(x.Rows());
+  for (int k = 0; k < x.Rows(); ++k) {
+    y(k) = .0;
+    for (int i = 0; i < _ModelTerms.Rows(); ++i) {
+      t = 1.0;
+      for (int j = 0; j < _Dimension; ++j) {
+        if (_ModelTerms(i, j) != .0) {
+          if (j == j1) {
+            t *= _ModelTerms(i, j) * pow(x(k, j), _ModelTerms(i, j) - 1);
+          } else {
+            t *= pow(x(k, j), _ModelTerms(i, j));
+          }
+        }
+      }
+      y(k) += t * _Coefficients(i);
+    }
+  }
+  return y;
+}
+
+// -----------------------------------------------------------------------------
+Vector3 Polynomial::EvaluateGradient(const Point &p) const
+{
+  mirtkAssert(_Dimension == 3, "independent variable dimensions must match");
+  Vector3 g(.0), t;
+  for (int i = 0; i < _ModelTerms.Rows(); ++i) {
+    t[0] = pow(p._x, _ModelTerms(i, 0) - 1) * _ModelTerms(i, 0)
+         * pow(p._y, _ModelTerms(i, 1))
+         * pow(p._z, _ModelTerms(i, 2));
+    t[1] = pow(p._x, _ModelTerms(i, 0))
+         * pow(p._y, _ModelTerms(i, 1) - 1) * _ModelTerms(i, 1)
+         * pow(p._z, _ModelTerms(i, 2));
+    t[2] = pow(p._x, _ModelTerms(i, 0))
+         * pow(p._y, _ModelTerms(i, 1))
+         * pow(p._z, _ModelTerms(i, 2) - 1) * _ModelTerms(i, 2);
+    g += (t *= _Coefficients(i));
+  }
+  return g;
+}
+
+// -----------------------------------------------------------------------------
+Vector Polynomial::Evaluate2ndOrderDerivative(int j1, int j2, const Matrix &x) const
+{
+  mirtkAssert(_Dimension == x.Cols(), "independent variable dimensions must match");
+  double t;
+  Vector y(x.Rows());
+  for (int k = 0; k < x.Rows(); ++k) {
+    y(k) = .0;
+    for (int i = 0; i < _ModelTerms.Rows(); ++i) {
+      t = 1.0;
+      for (int j = 0; j < _Dimension; ++j) {
+        if (_ModelTerms(i, j) != .0) {
+          if (j == j1 || j == j2) {
+            if (j1 == j2) {
+              t *= (_ModelTerms(i, j) - 1) * _ModelTerms(i, j) * pow(x(k, j), _ModelTerms(i, j) - 2);
+            } else {
+              t *= _ModelTerms(i, j) * pow(x(k, j), _ModelTerms(i, j) - 1);
+            }
+          } else {
+            t *= pow(x(k, j), _ModelTerms(i, j));
+          }
+        }
+      }
+      y(k) += t * _Coefficients(i);
+    }
+  }
+  return y;
+}
+
+// -----------------------------------------------------------------------------
+Matrix3x3 Polynomial::EvaluateHessian(const Point &p) const
+{
+  mirtkAssert(_Dimension == 3, "independent variable dimensions must match");
+  Matrix3x3 h;
+  for (int i = 0; i < _ModelTerms.Rows(); ++i) {
+    h[0][0] += _Coefficients(i)
+             * pow(p._x, _ModelTerms(i, 0) - 2) * _ModelTerms(i, 0) * (_ModelTerms(i, 0) - 1)
+             * pow(p._y, _ModelTerms(i, 1))
+             * pow(p._z, _ModelTerms(i, 2));
+    h[0][1] += _Coefficients(i)
+             * pow(p._x, _ModelTerms(i, 0) - 1) * _ModelTerms(i, 0)
+             * pow(p._y, _ModelTerms(i, 1) - 1) * _ModelTerms(i, 1)
+             * pow(p._z, _ModelTerms(i, 2));
+    h[0][2] += _Coefficients(i)
+             * pow(p._x, _ModelTerms(i, 0) - 1) * _ModelTerms(i, 0)
+             * pow(p._y, _ModelTerms(i, 1))
+             * pow(p._z, _ModelTerms(i, 2) - 1) * _ModelTerms(i, 2);
+    h[1][1] += _Coefficients(i)
+             * pow(p._x, _ModelTerms(i, 0))
+             * pow(p._y, _ModelTerms(i, 1) - 2) * _ModelTerms(i, 1) * (_ModelTerms(i, 1) - 1)
+             * pow(p._z, _ModelTerms(i, 2));
+    h[1][2] += _Coefficients(i)
+             * pow(p._x, _ModelTerms(i, 0))
+             * pow(p._y, _ModelTerms(i, 1) - 1) * _ModelTerms(i, 1)
+             * pow(p._z, _ModelTerms(i, 2) - 1) * _ModelTerms(i, 2);
+    h[2][2] += _Coefficients(i)
+             * pow(p._x, _ModelTerms(i, 0))
+             * pow(p._y, _ModelTerms(i, 1))
+             * pow(p._z, _ModelTerms(i, 2) - 2) * _ModelTerms(i, 2) * (_ModelTerms(i, 2) - 1);
+  }
+  h[1][0] = h[0][1];
+  h[2][0] = h[0][2];
+  h[2][1] = h[1][2];
+  return h;
+}
+
+// -----------------------------------------------------------------------------
+double Polynomial::EvaluateGaussianCurvature(const Point &p) const
+{
+  mirtkAssert(_Dimension == 3, "independent variable dimensions must match");
+  Vector3   g = EvaluateGradient(p);
+  Matrix3x3 h = EvaluateHessian(p).Adjoint();
+  const double l2 = g.SquaredLength();
+  return g.Dot(h * g) / (l2 * l2);
+}
+
+// -----------------------------------------------------------------------------
+double Polynomial::EvaluateMeanCurvature(const Point &p) const
+{
+  mirtkAssert(_Dimension == 3, "independent variable dimensions must match");
+  Vector3   g = EvaluateGradient(p);
+  Matrix3x3 h = EvaluateHessian(p);
+  const double l2 = g.SquaredLength();
+  return (g.Dot(h * g) - l2 * h.Trace()) / (2.0 * sqrt(l2) * l2);
 }
 
 // =============================================================================

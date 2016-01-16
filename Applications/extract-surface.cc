@@ -66,7 +66,7 @@ void PrintHelp(const char *name)
 // -----------------------------------------------------------------------------
 int main(int argc, char **argv)
 {
-  EXPECTS_POSARGS(3);
+  EXPECTS_POSARGS(2);
 
   const char *input_name  = POSARG(1);
   const char *output_name = POSARG(2);
@@ -81,64 +81,30 @@ int main(int argc, char **argv)
   double blurring  = .0;
 
   for (ALL_OPTIONS) {
-    if (OPTION("-isovalue")) {
-      const char *arg = ARGUMENT;
-      if (!FromString(arg, isovalue)) {
-        FatalError("Invalid -isovalue argument: " << arg);
-      }
-    }
+    if (OPTION("-isovalue")) PARSE_ARGUMENT(isovalue);
     else if (OPTION("-close")) {
-      if (HAS_ARGUMENT) {
-        const char *arg = ARGUMENT;
-        if (!FromString(arg, close)) {
-          FatalError("Invalid -close argument: " << arg);
-        }
-      } else {
-        close = true;
-      }
+      if (HAS_ARGUMENT) PARSE_ARGUMENT(close);
+      else close = true;
     }
     else if (OPTION("-isotropic")) {
-      if (HAS_ARGUMENT) {
-        const char *arg = ARGUMENT;
-        if (!FromString(arg, isotropic)) {
-          FatalError("Invalid -isotropic argument: " << arg);
-        }
-      } else {
-        isotropic = true;
-      }
+      if (HAS_ARGUMENT) PARSE_ARGUMENT(isotropic);
+      else isotropic = true;
     }
     else if (OPTION("-gradients")) {
-      if (HAS_ARGUMENT) {
-        const char *arg = ARGUMENT;
-        if (!FromString(arg, gradients)) {
-          FatalError("Invalid -gradients argument: " << arg);
-        }
-      } else {
-        gradients = true;
-      }
+      if (HAS_ARGUMENT) PARSE_ARGUMENT(gradients);
+      else gradients = true;
     }
     else if (OPTION("-nogradients")) {
       gradients = false;
     }
     else if (OPTION("-normals")) {
-      if (HAS_ARGUMENT) {
-        const char *arg = ARGUMENT;
-        if (!FromString(arg, normals)) {
-          FatalError("Invalid -normals argument: " << arg);
-        }
-      } else {
-        normals = true;
-      }
+      if (HAS_ARGUMENT) PARSE_ARGUMENT(normals);
+      else normals = true;
     }
     else if (OPTION("-nonormals")) {
       normals = false;
     }
-    else if (OPTION("-blur")) {
-      const char *arg = ARGUMENT;
-      if (!FromString(arg, blurring)) {
-        FatalError("Invalid -blur argument: " << arg);
-      }
-    }
+    else if (OPTION("-blur")) PARSE_ARGUMENT(blurring);
     else if (OPTION("-compress"))   compress = true;
     else if (OPTION("-nocompress")) compress = false;
     else if (OPTION("-ascii"))      ascii    = true;
