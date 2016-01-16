@@ -204,7 +204,8 @@ int main(int argc, char *argv[])
     // Euclidean distance transform
     case DT_Euclidean: {
       EuclideanDistanceTransformType edt(euclidean_mode);
-      RealImage inputA, inputB, &outputA = dmap, outputB;
+      RealImage &inputA  = image, inputB(image.Attributes());
+      RealImage &outputA = dmap,  outputB;
 
       for (int idx = 0; idx < image.NumberOfVoxels(); ++idx) {
         if (image(idx) > .5) {
@@ -231,7 +232,7 @@ int main(int argc, char *argv[])
       if (verbose) cout << " done" << endl;
 
       for (int idx = 0; idx < image.NumberOfVoxels(); ++idx) {
-        dmap(idx) = sqrt(outputA(idx)) - sqrt(outputA(idx));
+        dmap(idx) = sqrt(outputA(idx)) - sqrt(outputB(idx));
       }
 
       if (radial > 0) {
@@ -242,7 +243,7 @@ int main(int argc, char *argv[])
           case 2: edt.TRadial(); break;
         }
       }
-    }
+    } break;
  
     default:
       FatalError("Unknown distance transform type: " << type);
