@@ -157,6 +157,7 @@ int main(int argc, char *argv[])
       if (HAS_ARGUMENT) PARSE_ARGUMENT(isotropic);
       else isotropic = 1.0;
     }
+    else HANDLE_STANDARD_OR_UNKNOWN_OPTION();
   }
 
   // No linear isotropic resampling for city block distance
@@ -178,13 +179,13 @@ int main(int argc, char *argv[])
       CityBlockDistanceTransformType cbdt;
       RealImage &outputA = dmap, outputB;
 
-      if (verbose) cout << "  Computing distance transform of interior..." << endl;
+      if (verbose) cout << "  Computing distance transform of interior...", cout.flush();
 
       cbdt.Input(&image);
       cbdt.Output(&outputA);
       cbdt.Run();
 
-      if (verbose) cout << " done\n  Computing distance transform of exterior..." << endl;
+      if (verbose) cout << " done\n  Computing distance transform of exterior...", cout.flush();
 
       for (int idx = 0; idx < image.NumberOfVoxels(); ++idx) {
         image(idx) = (image(idx) > .0f ? 0 : 1);
@@ -217,13 +218,13 @@ int main(int argc, char *argv[])
         }
       }
 
-      if (verbose) cout << "  Computing distance transform of interior..." << endl;
+      if (verbose) cout << "  Computing distance transform of interior...", cout.flush();
 
       edt.Input (& inputA);
       edt.Output(&outputA);
       edt.Run();
 
-      if (verbose) cout << " done\n  Computing distance transform of exterior..." << endl;
+      if (verbose) cout << " done\n  Computing distance transform of exterior...", cout.flush();
 
       edt.Input (& inputB);
       edt.Output(&outputB);
