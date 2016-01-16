@@ -17,9 +17,9 @@ Technical support may also be requested by speaking with the team directly via
 ## Code contributions
 
 The MIRTK maintainers welcome code contributions from MIRTK users, preferrably via
-[pull requests](https://github.com/BioMedIA/MIRTK/pulls). Please provide as much information
-as possible to help with the code review, such as why this change is needed, what it does
-and how to check whether the code works as intended.
+[pull requests](https://github.com/BioMedIA/MIRTK/pulls) against the develop branch.
+Please provide as much information as possible to help with the code review, such as why
+this change is needed, what it does and how to check whether the code works as intended.
 
 If you have developed your own MIRTK Package and would like it to be added to the MIRTK
 distribution, please send a message to the mailing list or chat with the MIRTK team
