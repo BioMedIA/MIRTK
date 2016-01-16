@@ -136,7 +136,7 @@ template <class VoxelType>
 void ImageToImage<VoxelType>::Finalize()
 {
   if (_Buffer) {
-    _Buffer->CopyFrom(_Output->Data());
+    *_Buffer = *_Output;
     swap(_Buffer, _Output);
     Delete(_Buffer);
   }
