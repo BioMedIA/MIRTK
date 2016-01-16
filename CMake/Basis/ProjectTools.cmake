@@ -869,9 +869,13 @@ macro (basis_project_modules)
     if (EXISTS "${_PATH}/BasisProject.cmake")
       list (APPEND MODULE_INFO_FILES "${_PATH}/BasisProject.cmake")
     else ()
-      message (FATAL_ERROR "Check your top-level ${CMAKE_CURRENT_SOURCE_DIR}/BasisProject.cmake"
-                           " file because the module ${_PATH}/BasisProject.cmake"
-                           " file does not appear to exist.")
+      get_filename_component(MODULE "${_PATH}" NAME)
+      list(FIND PROJECT_EXTERNAL_MODULES "${MODULE}" IDX)
+      if (IDX EQUAL -1)
+        message (FATAL_ERROR "Check your top-level ${CMAKE_CURRENT_SOURCE_DIR}/BasisProject.cmake"
+                             " file because the module ${_PATH}/BasisProject.cmake"
+                             " file does not appear to exist.")
+      endif ()
     endif ()
   endforeach ()
   unset (_PATH)
