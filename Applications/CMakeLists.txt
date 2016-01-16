@@ -40,7 +40,7 @@ endif ()
 
 # Generic file info tool
 mirtk_add_executable(info
-  DEPENDS  LibImage LibImageIO
+  DEPENDS  LibCommon LibNumerics LibImage LibImageIO
   OPTIONAL LibTransformation LibPointSet ${VTK_LIBRARIES}
 )
 
@@ -49,7 +49,7 @@ mirtk_add_executable(info
 if (MODULE_Image)
 
   macro(add_image_command cmd)
-    mirtk_add_executable(${cmd} DEPENDS LibImage LibImageIO ${ARGN})
+    mirtk_add_executable(${cmd} DEPENDS LibCommon LibNumerics LibImage LibImageIO ${ARGN})
   endmacro()
 
   add_image_command(average-images OPTIONAL LibTransformation)
@@ -84,10 +84,10 @@ endif ()
 if (MODULE_Registration)
 
   macro(add_registration_command cmd)
-    mirtk_add_executable(${cmd} DEPENDS LibRegistration ${ARGN})
+    mirtk_add_executable(${cmd} DEPENDS LibCommon LibNumerics LibImage LibTransformation LibRegistration ${ARGN})
   endmacro()
 
-  add_registration_command(register LibImage LibImageIO OPTIONAL LibLBFGS LibPointSet LibDeformable)
+  add_registration_command(register LibImageIO OPTIONAL LibLBFGS LibPointSet LibDeformable)
 
 endif ()
 
@@ -96,7 +96,7 @@ endif ()
 if (MODULE_Transformation)
 
   macro(add_transformation_command cmd)
-    mirtk_add_executable(${cmd} DEPENDS LibTransformation ${ARGN})
+    mirtk_add_executable(${cmd} DEPENDS LibCommon LibNumerics LibImage LibTransformation ${ARGN})
   endmacro()
 
   add_transformation_command(edit-dof)
@@ -105,7 +105,7 @@ if (MODULE_Transformation)
   if (MODULE_Image)
 
     macro(add_image_transformation_command cmd)
-      mirtk_add_executable(${cmd} DEPENDS LibImage LibImageIO LibTransformation ${ARGN})
+      add_transformation_command(${cmd} LibImageIO ${ARGN})
     endmacro()
 
     add_image_transformation_command(average-dofs)
@@ -125,7 +125,7 @@ endif ()
 if (MODULE_PointSet)
 
   macro(add_pointset_command cmd)
-    mirtk_add_executable(${cmd} DEPENDS LibPointSet ${VTK_LIBRARIES} ${ARGN})
+    mirtk_add_executable(${cmd} DEPENDS LibCommon LibNumerics LibImage LibPointSet ${VTK_LIBRARIES} ${ARGN})
   endmacro()
 
   add_pointset_command(calculate-surface-attributes)
@@ -139,14 +139,14 @@ if (MODULE_PointSet)
   add_pointset_command(evaluate-surface-overlap ${FLANN_LIBRARY})
   add_pointset_command(extract-connected-points)
   add_pointset_command(offset-surface)
-  add_pointset_command("project-onto-surface")
+  add_pointset_command(project-onto-surface)
   add_pointset_command(remesh)
   add_pointset_command(smooth-surface)
 
   if (MODULE_Image)
 
     macro(add_image_pointset_command cmd)
-      add_pointset_command(${cmd} LibImage LibImageIO ${ARGN})
+      add_pointset_command(${cmd} LibImageIO ${ARGN})
     endmacro()
 
     add_image_pointset_command(convert-pointset)
