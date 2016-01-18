@@ -98,6 +98,9 @@ void PrintHelp(const char *name)
   #ifdef HAVE_MIRTK_PointSet
   cout << "\n";
   cout << "Point set options:\n";
+  cout << "  -point <id>...           Print info of points with the given zero-based indices.\n";
+  cout << "  -cell-types              Report cell types and how many of each. (default: off)\n";
+  cout << "  -bounds                  Report point set bounds and center point. (default: off)\n";
   cout << "  -edgelength              Report edge length statistics. (default: off)\n";
   cout << "  -self-intersections      Check for self-intersections. (default: off)\n";
   cout << "  -output-surface <file>   Write surface mesh to specified file. (default: none)\n";
@@ -527,18 +530,49 @@ int main(int argc, char *argv[])
 
     using namespace mirtk::data::statistic;
 
-    bool check_intersections = false;
-    bool report_cell_volumes = false;
-    bool report_edge_lengths = false;
-    bool report_surface_area = false;
+    bool check_intersections   = false;
+    bool report_bounds         = false;
+    bool report_cell_types     = false;
+    bool report_cell_volumes   = false;
+    bool report_edge_lengths   = false;
+    bool report_surface_area   = false;
+    bool print_summary         = false;
+    bool print_surface_summary = false;
+    bool list_pointdata_arrays = false;
+    bool list_celldata_arrays  = false;
 
     const char *output_pointset_name = NULL;
     const char *output_surface_name  = NULL;
 
+    Array<int> point_indices;
+    int        max_point_index = -1;
+
     for (ALL_OPTIONS) {
-      if (OPTION("-self-intersections")) check_intersections = true;
+      if      (OPTION("-self-intersections")) check_intersections = true;
       else if (OPTION("-edgelength")) report_edge_lengths = true;
-      else if (OPTION("-area")) report_surface_area = true;
+      else if (OPTION("-bounds")) report_bounds = true;
+      else if (OPTION("-cell-types")) report_cell_types = true;
+      else if (OPTION("-pointdata")) list_pointdata_arrays = true;
+      else if (OPTION("-celldata")) list_celldata_arrays = true;
+      else if (OPTION("-data") || OPTION("-arrays") || OPTION("-data-arrays")) {
+        list_pointdata_arrays = list_celldata_arrays = true;
+      }
+      else if (OPTION("-summary")) print_summary = true;
+      else if (OPTION("-surface-graph") || OPTION("-surface-mesh") || OPTION("-surface-summary") || OPTION("-surface")) {
+        print_surface_summary = true;
+      }
+      else if (OPTION("-area") || OPTION("-surface-area")) {
+        report_surface_area = true;
+      }
+      else if (OPTION("-point")) {
+        int i;
+        do {
+          PARSE_ARGUMENT(i);
+          if (i < 0) FatalError("Invalid -point ID, must be non-negative: " << i);
+          point_indices.push_back(i);
+          if (i > max_point_index) max_point_index = i;
+        } while (HAS_ARGUMENT);
+      }
       else if (OPTION("-vol") || OPTION("-volume") || OPTION("-volumes")) {
         report_cell_volumes = true;
       }
@@ -551,24 +585,43 @@ int main(int argc, char *argv[])
       else HANDLE_STANDARD_OR_UNKNOWN_OPTION();
     }
 
-    check_intersections = (check_intersections || verbose > 1);
-    report_cell_volumes = (report_cell_volumes || verbose > 0);
-    report_edge_lengths = (report_edge_lengths || verbose > 0);
-    report_surface_area = (report_surface_area || verbose > 0);
+    // What info to print by default
+    if (!check_intersections &&
+        !report_bounds &&
+        !report_cell_types &&
+        !report_cell_volumes &&
+        !report_edge_lengths &&
+        !report_surface_area &&
+        !print_summary &&
+        !print_surface_summary &&
+        !list_pointdata_arrays &&
+        !list_celldata_arrays &&
+        point_indices.empty()) {
+      print_summary         = true;
+      print_surface_summary = true;
+      list_pointdata_arrays = true;
+      list_celldata_arrays  = true;
+    }
 
     // Read input dataset
     vtkSmartPointer<vtkPointSet> pointset = ReadPointSet(POSARG(1));
     vtkSmartPointer<vtkPolyData> polydata = ConvertToPolyData(pointset);
     polydata->BuildLinks();
 
-    // Cell types
-    cout << DataObjectTypeString(pointset->GetDataObjectType()) << ":" << endl;
-    cout << "  No. of points:             " << pointset->GetNumberOfPoints() << endl;
-    if (verbose) {
-      cout << "  No. of edges:              " << NumberOfEdges(pointset) << endl;
+    if (max_point_index >= pointset->GetNumberOfPoints()) {
+      FatalError("Invalid -point ID, point set has only " << pointset->GetNumberOfPoints() << " points!");
     }
-    cout << "  No. of cells:              " << pointset->GetNumberOfCells() << endl;
-    if (pointset->GetNumberOfCells() > 0) {
+
+    // Point set type and size
+    if (print_summary) {
+      cout << DataObjectTypeString(pointset->GetDataObjectType()) << ":" << endl;
+      cout << "  No. of points:             " << pointset->GetNumberOfPoints() << endl;
+      cout << "  No. of edges:              " << NumberOfEdges(pointset) << endl;
+      cout << "  No. of cells:              " << pointset->GetNumberOfCells() << endl;
+    }
+
+    // Cell types
+    if (report_cell_types && pointset->GetNumberOfCells() > 0) {
       OrderedMap<int, int> cellTypeHist;
       OrderedMap<int, int>::iterator it;
       for (vtkIdType cellId = 0; cellId < pointset->GetNumberOfCells(); ++cellId) {
@@ -585,30 +638,15 @@ int main(int argc, char *argv[])
     }
 
     // Bounding box
-    double bounds[6];
-    pointset->GetBounds(bounds);
-
-    cout << "  Bounding box:              [" << bounds[0] << ", " << bounds[1]
-                                  << "] x [" << bounds[2] << ", " << bounds[3]
-                                  << "] x [" << bounds[4] << ", " << bounds[5] << "]" << endl;
-    cout << "  Center point:              (" << .5 * (bounds[1] + bounds[0]) << ", "
-                                             << .5 * (bounds[3] + bounds[2]) << ", "
-                                             << .5 * (bounds[5] + bounds[4]) << ")" << endl;
-
-    // Attributes
-    if (pointset->GetPointData()->GetNumberOfArrays() > 0) {
-    	cout << "\nPoint data arrays:" << endl;
-      for (int i = 0; i < pointset->GetPointData()->GetNumberOfArrays(); ++i) {
-        vtkDataArray *scalars = pointset->GetPointData()->GetArray(i);
-        printf(" %2d %-24s (dim: %2d)\n", i, scalars->GetName(), scalars->GetNumberOfComponents());
-      }
-    }
-    if (pointset->GetCellData()->GetNumberOfArrays() > 0) {
-      cout << "\nCell data arrays:" << endl;
-      for (int i = 0; i < pointset->GetCellData()->GetNumberOfArrays(); ++i) {
-        vtkDataArray *scalars = pointset->GetCellData()->GetArray(i);
-        printf(" %2d %-24s (dim: %2d)\n", i, scalars->GetName(), scalars->GetNumberOfComponents());
-      }
+    if (report_bounds) {
+      double bounds[6];
+      pointset->GetBounds(bounds);
+      cout << "  Bounding box:              [" << bounds[0] << ", " << bounds[1]
+                                    << "] x [" << bounds[2] << ", " << bounds[3]
+                                    << "] x [" << bounds[4] << ", " << bounds[5] << "]" << endl;
+      cout << "  Center point:              (" << .5 * (bounds[1] + bounds[0]) << ", "
+                                               << .5 * (bounds[3] + bounds[2]) << ", "
+                                               << .5 * (bounds[5] + bounds[4]) << ")" << endl;
     }
 
     if (pointset->GetNumberOfCells() > 0) {
@@ -638,24 +676,26 @@ int main(int argc, char *argv[])
       EdgeTable edgeTable(polydata);
 
       // Euler characteristic / Genus
-      const int    noOfVerts = polydata->GetNumberOfPoints();
-      const int    noOfFaces = polydata->GetNumberOfCells();
-      const int    noOfComps = NumberOfComponents(polydata);
-      const int    noOfEdges = edgeTable.NumberOfEdges();
-      const int    euler     = noOfVerts - noOfEdges + noOfFaces;
-      const double genus     = 0.5 * (2 * noOfComps - euler);
+      if (print_surface_summary) {
+        const int    noOfVerts = polydata->GetNumberOfPoints();
+        const int    noOfFaces = polydata->GetNumberOfCells();
+        const int    noOfComps = NumberOfComponents(polydata);
+        const int    noOfEdges = edgeTable.NumberOfEdges();
+        const int    euler     = noOfVerts - noOfEdges + noOfFaces;
+        const double genus     = 0.5 * (2 * noOfComps - euler);
 
-      cout << "\n";
-      cout << "Surface mesh:\n";
-      cout << "  V " << noOfVerts << "\n";
-      cout << "  E " << noOfEdges << "\n";
-      cout << "  F " << noOfFaces << "\n";
-      cout << "  C " << noOfComps << "\n";
-      cout << "\n";
-      cout << "  Euler characteristic / Genus (V - E + F = 2C - 2g)\n";
-      cout << "    Euler: " << euler << "\n";
-      cout << "    Genus: " << genus << "\n";
-      cout.flush();
+        cout << "\n";
+        cout << "Surface mesh:\n";
+        cout << "  V " << noOfVerts << "\n";
+        cout << "  E " << noOfEdges << "\n";
+        cout << "  F " << noOfFaces << "\n";
+        cout << "  C " << noOfComps << "\n";
+        cout << "\n";
+        cout << "  Euler characteristic / Genus (V - E + F = 2C - 2g)\n";
+        cout << "    Euler: " << euler << "\n";
+        cout << "    Genus: " << genus << "\n";
+        cout.flush();
+      }
 
       if (report_edge_lengths) {
         double min_length, max_length, avg_length, std_length;
@@ -711,6 +751,42 @@ int main(int argc, char *argv[])
     //    cout << NumberOfVerticesInsidePolyhedron(polydata) << endl;
       }
     }
+
+    // Points
+    if (!point_indices.empty()) {
+      double p[3];
+      const int w = static_cast<int>(ToString(max_point_index).length());
+      for (size_t i = 0; i < point_indices.size(); ++i) {
+        if (point_indices[i] < 0 || point_indices[i] >= pointset->GetNumberOfPoints()) {
+          cout << "Invalid point index: " << point_indices[i] << "\n";
+        } else {
+          pointset->GetPoint(point_indices[i], p);
+          cout << "Point " << ToString(point_indices[i], w)
+               << ": [" << p[0] << ", " << p[1] << ", " << p[2] << "]\n";
+        }
+      }
+    }
+
+    // Attributes
+    if (list_pointdata_arrays) {
+      if (pointset->GetPointData()->GetNumberOfArrays() > 0) {
+        cout << "\nPoint data arrays:\n";
+        for (int i = 0; i < pointset->GetPointData()->GetNumberOfArrays(); ++i) {
+          vtkDataArray *scalars = pointset->GetPointData()->GetArray(i);
+          printf(" %2d %-24s (dim: %2d)\n", i, scalars->GetName(), scalars->GetNumberOfComponents());
+        }
+      }
+    }
+    if (list_celldata_arrays) {
+      if (pointset->GetCellData()->GetNumberOfArrays() > 0) {
+        cout << "\nCell data arrays:\n";
+        for (int i = 0; i < pointset->GetCellData()->GetNumberOfArrays(); ++i) {
+          vtkDataArray *scalars = pointset->GetCellData()->GetArray(i);
+          printf(" %2d %-24s (dim: %2d)\n", i, scalars->GetName(), scalars->GetNumberOfComponents());
+        }
+      }
+    }
+    cout.flush();
 
     // Write output point set (possibly with additional attributes)
     if (output_pointset_name) WritePointSet(output_pointset_name, pointset);
