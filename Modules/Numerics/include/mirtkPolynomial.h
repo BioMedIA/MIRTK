@@ -378,16 +378,38 @@ public:
   Matrix3x3 EvaluateHessian(const Point &x) const;
 
   // ---------------------------------------------------------------------------
-  // Implicit surface curvature
+  // Implicit surface
 
-  /// Evaluate Gaussian curvature of polynomial implicit surface
+  /// Compute Taubin distance of a point to the implicit polynomial surface
+  ///
+  /// The Taubin distance is the agebraic distance, i.e., the value of the
+  /// implicit polynomial function at \p x, divided the norm of its gradient.
+  /// It is a first-order approximation to the Euclidean distance of the point
+  /// to the closest point on the surface.
+  ///
+  /// \param[in] x Data point. The dimension of the model must be 3.
+  ///
+  /// \returns Taubin distance of the point to the surface.
+  double EvaluateTaubinDistance(const Point &x) const;
+
+  /// Evaluate Gaussian curvature of implicit polynomial surface
+  ///
+  /// Ron Goldman, Curvature formulas for implicit curves and surfaces,
+  /// Computer Aided Geometric Design 22 (2005) 632–658.
+  ///
+  /// \sa http://www.cgeo.ulg.ac.be/CAO/Goldman_Curvature_formulas_implicit.pdf
   ///
   /// \param[in] x Data point. The dimension of the model must be 3.
   ///
   /// \returns Gaussian curvature of implicit surface at \p x.
   double EvaluateGaussianCurvature(const Point &x) const;
 
-  /// Evaluate mean curvature of polynomial implicit surface
+  /// Evaluate mean curvature of implicit polynomial surface
+  ///
+  /// Ron Goldman, Curvature formulas for implicit curves and surfaces,
+  /// Computer Aided Geometric Design 22 (2005) 632–658.
+  ///
+  /// \sa http://www.cgeo.ulg.ac.be/CAO/Goldman_Curvature_formulas_implicit.pdf
   ///
   /// \param[in] x Data point. The dimension of the model must be 3.
   ///

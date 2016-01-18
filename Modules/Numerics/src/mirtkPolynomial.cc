@@ -381,6 +381,17 @@ Matrix3x3 Polynomial::EvaluateHessian(const Point &p) const
   return h;
 }
 
+// =============================================================================
+// Implicit surface
+// =============================================================================
+
+// -----------------------------------------------------------------------------
+double Polynomial::EvaluateTaubinDistance(const Point &p) const
+{
+  mirtkAssert(_Dimension == 3, "independent variable dimensions must match");
+  return Evaluate(p) / EvaluateGradient(p).Length();
+}
+
 // -----------------------------------------------------------------------------
 double Polynomial::EvaluateGaussianCurvature(const Point &p) const
 {
@@ -425,7 +436,7 @@ ostream &Polynomial::Print(ostream &os, Indent indent) const
           line << " +";
         }
       }
-      line << " a" << ToString(i);
+      line << " " << _Coefficients(i);
       for (int j = 0; j < _Dimension; ++j) {
         if (_ModelTerms(i, j) == .0) continue;
         line << " ";
