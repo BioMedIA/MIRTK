@@ -61,11 +61,12 @@ void PrintHelp(const char *name)
   cout << "  point set file formats based on the file name extension." << endl;
   cout << "  Besides the common formats supported by VTK, it can also read/write" << endl;
   cout << "  BrainSuite .dfs files and write a Piecewise Linear Complex (PLC)" << endl;
-  cout << "  B-Rep description in the TetGen formats .poly and .smesh." << endl;
+  cout << "  B-Rep description in the TetGen formats .poly and .smesh. It also supports" << endl;
+  cout << "  the Object File Format (.off) used by the CGAL library." << endl;
   cout << endl;
   cout << "Arguments:" << endl;
-  cout << "  input    Input  point set file (.vtk, .vtp, .vtu, .stl, .ply, .dfs, .obj)." << endl;
-  cout << "  output   Output point set file (.vtk, .vtp, .vtu, .stl, .ply, .dfs, .node, .poly, .smesh)." << endl;
+  cout << "  input    Input  point set file (.vtk, .vtp, .vtu, .stl, .ply, .off, .dfs, .obj)." << endl;
+  cout << "  output   Output point set file (.vtk, .vtp, .vtu, .stl, .ply, .off, .dfs, .node, .poly, .smesh)." << endl;
   cout << endl;
   cout << "Optional arguments:" << endl;
   cout << "  -merge         Merge points of non-polygonal input point sets. (default: off)" << endl;
