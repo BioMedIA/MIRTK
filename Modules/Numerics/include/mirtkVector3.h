@@ -66,7 +66,8 @@ public:
   double Length () const;
   double SquaredLength () const;
   double Dot (const Vector3& rkVector) const;
-  double Unitize (double fTolerance = 1e-06);
+  double Normalize (double fTolerance = 1e-06);
+  double Unitize (double fTolerance = 1e-06); ///< \deprecated Use Normalize instead
   Vector3 Cross (const Vector3& rkVector) const;
   Vector3 UnitCross (const Vector3& rkVector) const;
 

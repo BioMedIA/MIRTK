@@ -239,7 +239,7 @@ double Vector3::Length () const
 }
 
 //----------------------------------------------------------------------------
-double Vector3::Unitize (double fTolerance)
+double Vector3::Normalize(double fTolerance)
 {
   double fLength = Length();
 
@@ -253,6 +253,12 @@ double Vector3::Unitize (double fTolerance)
   }
 
   return fLength;
+}
+
+//----------------------------------------------------------------------------
+double Vector3::Unitize(double fTolerance)
+{
+  return Normalize(fTolerance);
 }
 
 //----------------------------------------------------------------------------
