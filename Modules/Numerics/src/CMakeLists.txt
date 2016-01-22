@@ -44,6 +44,7 @@ set(HEADERS
   mirtkObjectiveFunction.h
   mirtkOptimizationMethod.h
   mirtkPeronaMalikErrorFunction.h
+  mirtkPlane.h
   mirtkPoint.h
   mirtkPointSamples.h
   mirtkPointSet.h
@@ -80,6 +81,7 @@ set(SOURCES
   mirtkMatrix3x3.cc
   mirtkMaxStepLineSearch.cc
   mirtkNumericsConfig.cc
+  mirtkPlane.cc
   mirtkPoint.cc
   mirtkPointSamples.cc
   mirtkPointSet.cc
