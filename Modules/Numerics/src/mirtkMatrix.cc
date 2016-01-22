@@ -395,6 +395,12 @@ double Matrix::RowSum(int r) const
 }
 
 // -----------------------------------------------------------------------------
+double Matrix::RowMean(int r) const
+{
+  return RowSum(r) / _cols;
+}
+
+// -----------------------------------------------------------------------------
 double Matrix::RowVar(int r) const
 {
   if (_cols == 0) return numeric_limits<double>::quiet_NaN();
@@ -423,6 +429,12 @@ double Matrix::ColSum(int c) const
     sum += *d;
   }
   return sum;
+}
+
+// -----------------------------------------------------------------------------
+double Matrix::ColMean(int c) const
+{
+  return ColSum(c) / _rows;
 }
 
 // -----------------------------------------------------------------------------

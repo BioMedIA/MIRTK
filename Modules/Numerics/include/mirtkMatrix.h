@@ -192,6 +192,12 @@ public:
   // ---------------------------------------------------------------------------
   // Scalar matrix operations
 
+  /// Add scalar to values in specified row
+  Matrix &AddToRow(int, double);
+
+  /// Add scalar to values in specified column
+  Matrix &AddToCol(int, double);
+
   /// Scale row by a scalar
   Matrix &ScaleRow(int, double);
 
@@ -300,6 +306,9 @@ public:
   /// Sum of column values in specified row
   double RowSum(int) const;
 
+  /// Mean of column values in specified row
+  double RowMean(int) const;
+
   /// Variance of column values in specified row
   double RowVar(int) const;
 
@@ -317,6 +326,9 @@ public:
 
   /// Sum of row values in specified column
   double ColSum(int) const;
+
+  /// Mean of row values in specified column
+  double ColMean(int) const;
 
   /// Variance of row values in specified column
   double ColVar(int) const;
@@ -611,6 +623,20 @@ inline double Matrix::Get(int r, int c) const
 // =============================================================================
 // Scalar matrix operations
 // =============================================================================
+
+// -----------------------------------------------------------------------------
+inline Matrix &Matrix::AddToRow(int r, double s)
+{
+  for (int c = 0; c < _cols; ++c) _matrix[c][r] += s;
+  return *this;
+}
+
+// -----------------------------------------------------------------------------
+inline Matrix &Matrix::AddToCol(int c, double s)
+{
+  for (int r = 0; r < _rows; ++r) _matrix[c][r] += s;
+  return *this;
+}
 
 // -----------------------------------------------------------------------------
 inline Matrix &Matrix::ScaleRow(int r, double s)
