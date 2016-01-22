@@ -26,6 +26,8 @@
 #include <mirtkMemory.h>
 #include <mirtkCfstream.h>
 #include <mirtkPoint.h>
+#include <mirtkArray.h>
+#include <mirtkOrderedSet.h>
 
 
 // Forward declaration of VTK type
@@ -68,6 +70,12 @@ public:
 
   /// Copy constructor
   PointSet(const PointSet &);
+
+  /// Copy subset constructor
+  PointSet(const PointSet &, const Array<int> &);
+
+  /// Copy subset constructor
+  PointSet(const PointSet &, const OrderedSet<int> &);
 
   /// Destructor
   virtual ~PointSet();
@@ -268,6 +276,32 @@ inline PointSet::PointSet(const PointSet &pset)
   _m(0), _n(0), _data(NULL)
 {
   (*this) = pset;
+}
+
+// -----------------------------------------------------------------------------
+inline PointSet::PointSet(const PointSet &pset, const Array<int> &subset)
+:
+  Object(pset),
+  _m(0), _n(0), _data(NULL)
+{
+  int i = 0;
+  Size(static_cast<int>(subset.size()));
+  for (Array<int>::const_iterator it = subset.begin(); it != subset.end(); ++it, ++i) {
+    _data[i] = pset(*it);
+  }
+}
+
+// -----------------------------------------------------------------------------
+inline PointSet::PointSet(const PointSet &pset, const OrderedSet<int> &subset)
+:
+  Object(pset),
+  _m(0), _n(0), _data(NULL)
+{
+  int i = 0;
+  Size(static_cast<int>(subset.size()));
+  for (OrderedSet<int>::const_iterator it = subset.begin(); it != subset.end(); ++it, ++i) {
+    _data[i] = pset(*it);
+  }
 }
 
 // -----------------------------------------------------------------------------
