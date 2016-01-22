@@ -75,6 +75,22 @@ public:
   virtual ~Point();
 
   //
+  // Operators for indexed element access
+  //
+
+  /// Get reference to i-th point coordinate
+  double &operator [](int i);
+
+  /// Get const reference to i-th point coordinate
+  const double &operator [](int i) const;
+
+  /// Get reference to i-th point coordinate
+  double &operator ()(int i);
+
+  /// Get const reference to i-th point coordinate
+  const double &operator ()(int i) const;
+
+  //
   // Operators for Point
   //
 
@@ -289,6 +305,44 @@ inline Point::Point(const Vector& v)
 // -----------------------------------------------------------------------------
 inline Point::~Point()
 {
+}
+
+// -----------------------------------------------------------------------------
+inline double &Point::operator [](int i)
+{
+  switch (i) {
+    case 0: return _x;
+    case 1: return _y;
+    case 2: return _z;
+    default:
+      cerr << "Point::operator []: Invalid coorindate index: " << i << endl;
+      exit(1);
+  }
+}
+
+// -----------------------------------------------------------------------------
+inline const double &Point::operator [](int i) const
+{
+  switch (i) {
+    case 0: return _x;
+    case 1: return _y;
+    case 2: return _z;
+    default:
+      cerr << "Point::operator []: Invalid coorindate index: " << i << endl;
+      exit(1);
+  }
+}
+
+// -----------------------------------------------------------------------------
+inline double &Point::operator ()(int i)
+{
+  return operator [](i);
+}
+
+// -----------------------------------------------------------------------------
+inline const double &Point::operator ()(int i) const
+{
+  return operator [](i);
 }
 
 // -----------------------------------------------------------------------------
