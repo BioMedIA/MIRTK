@@ -79,6 +79,7 @@ basis_project (
     TBB
     #<optional-dependency>
   TEST_DEPENDS
+    GTest
     #<test-dependency>
   OPTIONAL_TEST_DEPENDS
     #<optional-test-dependency>

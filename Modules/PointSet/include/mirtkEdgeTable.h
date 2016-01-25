@@ -206,7 +206,7 @@ public:
       for (_PointId2 = 0; _PointId2 < _Table.NumberOfPoints(); ++_PointId2) {
         _Table.GetAdjacentPoints(_PointId2, _PointId1, _ListEnd);
         while (_PointId1 != _ListEnd) {
-          if (*_PointId1 >= _PointId2) {
+          if (*_PointId1 > _PointId2) {
             _PointId1 = _ListEnd;
             break;
           }
@@ -245,7 +245,7 @@ public:
       if (++_PointId1 == _ListEnd || (*_PointId1) > _PointId2) {
         do {
           _Table.GetAdjacentPoints(++_PointId2, _PointId1, _ListEnd);
-        } while (_PointId1 == _ListEnd);
+        } while (_PointId1 == _ListEnd || (*_PointId1) > _PointId2);
       }
     }
     return edgeId;
