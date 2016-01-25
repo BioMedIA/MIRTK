@@ -98,8 +98,12 @@ void EdgeTable::Initialize(vtkDataSet *mesh)
             if (new_edge) {
               // Symmetric entries such that AdjacentPoints is efficient
               ++_NumberOfEdges; // edgeId + 1 such that entries are non-zero
-              entries[ptId1].push_back(MakePair(ptId2, _NumberOfEdges));
-              entries[ptId2].push_back(MakePair(ptId1, _NumberOfEdges));
+              if (ptId1 == ptId2) {
+                entries[ptId1].push_back(MakePair(ptId2, _NumberOfEdges));
+              } else {
+                entries[ptId1].push_back(MakePair(ptId2, _NumberOfEdges));
+                entries[ptId2].push_back(MakePair(ptId1, _NumberOfEdges));
+              }
             }
           }
         }
