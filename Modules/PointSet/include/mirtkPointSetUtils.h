@@ -103,6 +103,16 @@ int WriteTetGenPoly(const char *fname, vtkPolyData *polydata, const PointSet *ho
 int WriteTetGenSMesh(const char *fname, vtkPolyData *polydata, const PointSet *holes = NULL);
 
 // =============================================================================
+// VTK / MIRTK type conversion
+// =============================================================================
+
+/// Add points of vtkPointSet to mirtk::PointSet
+///
+/// \param[out] oset Point set to which the vtkPointSet points are added.
+/// \param[in]  iset VTK point set.
+void AddPoints(PointSet &oset, vtkPointSet *iset);
+
+// =============================================================================
 // Point set domain
 // =============================================================================
 

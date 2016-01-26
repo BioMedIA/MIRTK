@@ -705,6 +705,21 @@ bool WritePolyData(const char *fname, vtkPolyData *polydata, bool compress, bool
 }
 
 // =============================================================================
+// VTK / MIRTK type conversion
+// =============================================================================
+
+// -----------------------------------------------------------------------------
+void AddPoints(PointSet &oset, vtkPointSet *iset)
+{
+  double p[3];
+  oset.Reserve(oset.Size() + static_cast<int>(iset->GetNumberOfPoints()));
+  for (vtkIdType ptId = 0; ptId < iset->GetNumberOfPoints(); ++ptId) {
+    iset->GetPoint(ptId, p);
+    oset.Add(Point(p));
+  }
+}
+
+// =============================================================================
 // Point set domain
 // =============================================================================
 
