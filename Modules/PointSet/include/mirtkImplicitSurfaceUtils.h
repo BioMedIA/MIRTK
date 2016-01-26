@@ -240,7 +240,6 @@ inline int Intersections(Array<double> &distances, const double p[3], const doub
       d0 = Evaluate(distance, x, offset);
     }
   }
-  bool inside = (d0 < .0);
   while (maxh > minh) {
     d += (h = IntersectWithLine(x, e1, d0, minh, maxh, distance, offset, tol));
     if (h == maxh) break;
@@ -261,7 +260,6 @@ inline int Intersections(Array<double> &distances, const double p[3], const doub
       if (maxh <= minh) break;
       d0 = Evaluate(distance, x, offset);
     }
-    inside = !inside;
   }
   return static_cast<int>(distances.size());
 }
