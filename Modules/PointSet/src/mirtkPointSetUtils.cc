@@ -259,10 +259,11 @@ vtkSmartPointer<vtkPolyData> ReadOFF(const char *fname)
   }
   if (ifs.fail()) return polydata;
 
-  vtkSmartPointer<vtkCellArray> cells;
+  vtkSmartPointer<vtkCellArray> verts, lines, polys;
   vtkSmartPointer<vtkIdList> cell = vtkSmartPointer<vtkIdList>::New();
-  cells = vtkSmartPointer<vtkCellArray>::New();
-  cells->Allocate(3 * numFaces);
+  verts = vtkSmartPointer<vtkCellArray>::New();
+  lines = vtkSmartPointer<vtkCellArray>::New();
+  polys = vtkSmartPointer<vtkCellArray>::New();
   for (int i = 0, ptId, n; i < numFaces; ++i) {
     ifs >> n;
     if (ifs.fail()) break;
@@ -272,15 +273,23 @@ vtkSmartPointer<vtkPolyData> ReadOFF(const char *fname)
         ifs >> ptId;
         cell->InsertNextId(ptId);
       }
-      cells->InsertNextCell(cell);
+      if      (n == 1) verts->InsertNextCell(cell);
+      else if (n == 2) lines->InsertNextCell(cell);
+      else             polys->InsertNextCell(cell);
       if (!ifs.good()) break;
     }
   }
   if (ifs.fail()) return polydata;
 
-  cells->Squeeze();
+  verts->Squeeze();
+  lines->Squeeze();
+  polys->Squeeze();
+
   polydata->SetPoints(points);
-  polydata->SetPolys(cells);
+  if (verts->GetNumberOfCells() > 0) polydata->SetVerts(verts);
+  if (lines->GetNumberOfCells() > 0) polydata->SetLines(lines);
+  if (polys->GetNumberOfCells() > 0) polydata->SetPolys(polys);
+
   return polydata;
 }
 
