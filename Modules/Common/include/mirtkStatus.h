@@ -28,7 +28,7 @@ namespace mirtk {
 enum Status
 {
   Active,
-  Passive,
+  Passive
 };
 
 
