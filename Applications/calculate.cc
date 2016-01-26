@@ -83,7 +83,8 @@ void PrintHelp(const char *name)
   cout << "  -rescale <min> <max>              Linearly rescale values to the interval [min, max]." << endl;
   cout << "  -inside <float>                   Set new value for all currently unmasked data values." << endl;
   cout << "  -outside <float>                  Set new value for all currently masked data values." << endl;
-  cout << "  -out <file>                       Write current data sequence to file in the format of the input file." << endl;
+  cout << "  -out <file> [<type>]              Write current data sequence to file in the format of the input file." << endl;
+  cout << "                                    Output data type can be: uchar, short, ushort, int, uint, float, double." << endl;
   cout << "  -add <float|file>                 Add constant value or data sequence read from specified file." << endl;
   cout << "  -sub <float|file>                 Subtract constant value or data sequence read from specified file." << endl;
   cout << "  -mul <float|file>                 Multiply by constant value or data sequence read from specified file." << endl;
