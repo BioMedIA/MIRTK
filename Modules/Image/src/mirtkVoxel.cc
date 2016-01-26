@@ -58,7 +58,7 @@ template <> string ToString(const ImageDataType &value, int w, char c, bool left
     case MIRTK_VOXEL_DOUBLE4x4:      str = "double4x4"; break;
     default:                         str = "unknown"; break;
   }
-  return ToString(str, c, w, left);
+  return ToString(str, w, c, left);
 }
 
 // -----------------------------------------------------------------------------
