@@ -26,6 +26,7 @@
 #include <mirtkLinearInterpolateImageFunction.h>
 
 #include <vtkPolyData.h>
+#include <vtkPointData.h>
 #include <vtkMarchingCubes.h>
 #include <vtkStructuredPoints.h>
 
@@ -133,6 +134,8 @@ vtkSmartPointer<vtkPolyData> Isosurface(const DistanceImage &dmap, double offset
     distance_image->ImageToWorld(p[0], p[1], p[2]);
     points->SetPoint(ptId, p);
   }
+
+  mcubes->GetOutput()->GetPointData()->SetScalars(nullptr);
 
   return mcubes->GetOutput();
 }
