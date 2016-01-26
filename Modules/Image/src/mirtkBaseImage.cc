@@ -408,6 +408,20 @@ void BaseImage::ImageToWorld(double *i2w, bool _3D) const
   }
 }
 
+// -----------------------------------------------------------------------------
+void BaseImage::ImageToWorld(PointSet &points) const
+{
+  Point p;
+  points.Reserve(points.Size() + NumberOfSpatialVoxels());
+  for (int k = 0; k < Z(); ++k)
+  for (int j = 0; j < Y(); ++j)
+  for (int i = 0; i < X(); ++i) {
+    p._x = i, p._y = j, p._z = k;
+    ImageToWorld(p);
+    points.Add(p);
+  }
+}
+
 // =============================================================================
 // Common image statistics
 // =============================================================================

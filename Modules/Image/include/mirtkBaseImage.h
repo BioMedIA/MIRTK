@@ -24,6 +24,7 @@
 #include <mirtkObject.h>
 #include <mirtkVoxel.h>
 #include <mirtkPoint.h>
+#include <mirtkPointSet.h>
 #include <mirtkVector.h>
 #include <mirtkMatrix.h>
 #include <mirtkImageAttributes.h>
@@ -349,6 +350,9 @@ public:
   ///                 stored if the image is two dimensional. Otherwise,
   ///                 all three x, y, and z components are stored.
   void ImageToWorld(double *i2w, bool _3D = true) const;
+
+  /// Adds world coordinates of each voxel to given point set
+  void ImageToWorld(PointSet &) const;
 
   /// World to image coordinate conversion with two doubles
   void WorldToImage(double &, double &) const;
