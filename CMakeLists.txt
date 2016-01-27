@@ -79,12 +79,7 @@ basis_project_begin()
 # subcommand. Do not use mirtk_add_executable which is only used for
 # commands that are executed by this wrapper script.
 if (BUILD_APPLICATIONS)
-  if (WIN32)
-    # TODO: Either implement it in Python or as Windows Batch command (.cmd)
-    message(WARNING "MIRTK wrapper script not implemented for Windows")
-  else ()
-    basis_add_executable("${PROJECT_TOOLS_DIR}/mirtk.sh")
-  endif ()
+  basis_add_executable("${PROJECT_TOOLS_DIR}/mirtk.py")
 endif ()
 
 # Add auxiliary command used to (re-)format help output
