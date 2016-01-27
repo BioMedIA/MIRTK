@@ -71,7 +71,7 @@ void PrintHelp(const char *name)
   cout << "Description:\n";
   cout << "  Prints some useful information about the given input file, which\n";
   cout << "  can be an image, transformation (requires MIRTK Transformation module),\n";
-  cout << "  or point set (requires MIRTK Point Set module).";
+  cout << "  or point set (requires MIRTK Point Set module).\n";
   cout << "\n";
   cout << "Arguments:\n";
   cout << "  input   Input image";

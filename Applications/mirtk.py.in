@@ -1,0 +1,146 @@
+
+
+## ^^^ Leave two lines blank at top which will be filled by CMake BASIS
+
+##############################################################################
+# Medical Image Registration ToolKit (MIRTK)
+#
+# Copyright 2013-2015 Imperial College London
+# Copyright 2013-2015 Andreas Schuh
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+##############################################################################
+
+import os
+import sys
+import socket
+import subprocess
+
+# ============================================================================
+# environment
+# ============================================================================
+
+_libexec_dir = os.path.realpath(os.path.join(__dir__, '@LIBEXEC_DIR@'))
+_ldpaths     = []
+
+_tbb_library_dir='@TBB_LIBRARY_DIR_CONFIG@'
+if _tbb_library_dir != '':
+    _ldpaths.append(_tbb_library_dir)
+
+_vtk_library_dirs=['@VTK_LIBRARY_DIRS_CONFIG@']
+for _vtk_library_dir in _vtk_library_dirs:
+    if _vtk_library_dir != '':
+        _ldpaths.append(_vtk_library_dirs)
+
+if sys.platform.startswith('linux'):
+    _ldpaths.extend(os.environ.get('LD_LIBRARY_PATH', '').split(':'))
+    os.environ['LD_LIBRARY_PATH'] = ':'.join(_ldpaths)
+elif sys.platform.startswith('darwin'):
+    _ldpaths.extend(os.environ.get('DYLD_LIBRARY_PATH', '').split(':'))
+    os.environ['DYLD_LIBRARY_PATH'] = ':'.join(_ldpaths)
+elif sys.platform.startswith('win'):
+    _ldpaths.extend(os.environ.get('PATH', '').split(';'))
+    os.environ['PATH'] = ';'.join(_ldpaths)
+
+# ============================================================================
+# help
+# ============================================================================
+
+# ----------------------------------------------------------------------------
+def print_help():
+    """Print help screen of this executable."""
+    print("""
+Usage:
+  {0} [options] [--] <command> [options of command]
+  {0} help <command>...
+  {0} [options]
+
+Description:
+  This executable is a wrapper for the MIRTK commands. The name of the
+  command to execute must be given as first argument.
+
+Arguments:
+  command   MIRTK command to execute.
+
+Optional arguments:
+  --help, -h      Print help and exit
+  --verbose, -v   Print command-line of MIRTK command.
+""".format(os.path.basename(__file__)))
+
+# ============================================================================
+# execute command
+# ============================================================================
+
+# ----------------------------------------------------------------------------
+def call(argv):
+    """Execute MIRTK command."""
+    fname = 'mirtk-' + argv[0]
+    for cfg in ['MinSizeRel', 'Release', 'RelWithDebInfo', 'Debug']:
+        fpath = os.path.join(_libexec_dir, cfg, fname)
+        if os.path.isfile(fpath) and os.access(fpath, os.X_OK):
+            fname = os.path.join(cfg, fname)
+            break
+    argv[0] = os.path.join(_libexec_dir, fname)
+    if not os.path.isfile(argv[0]) or not os.access(argv[0], os.X_OK):
+        sys.stderr.write('Error: Command execuable ' + argv[0] + ' does not exist!')
+        return 1
+    if verbose > 0:
+        args = []
+        for arg in argv:
+            if ' ' in arg: arg = '"' + arg + '"'
+            args.append(arg)
+        print(' '.join(args))
+    return subprocess.call(argv)
+
+# ============================================================================
+# main
+# ============================================================================
+
+if __name__ == '__main__':
+    verbose = 0
+    argv    = []
+    cmdarg  = False
+    if len(sys.argv) < 2:
+        print_help()
+        sys.exit(1)
+    for arg in sys.argv[1:]:
+        if cmdarg:
+            argv.append(arg)
+        elif arg == '--':
+            cmdarg = True
+        elif arg == '-h' or arg == '-help' or arg == '--help':
+            print_help()
+            sys.exit(0)
+        elif arg == '-v' or arg == '-verbose' or arg == '--verbose':
+            verbose += 1
+        elif not arg.startswith('-'):
+            argv.append(arg)
+            cmdarg = True
+        else:
+            sys.stderr.write('Error: Invalid option: ' + arg)
+            sys.exit(1)
+    if len(argv) == 0:
+        print_help()
+        sys.exit(1)
+    if argv[0] == 'help':
+        if len(argv) == 1:
+            print_help()
+        else:
+            for cmd in argv[1:]:
+                if call([cmd, '-h']) != 0:
+                    sys.exit(1)
+        sys.exit(0)
+    else:
+        if verbose > 1:
+            print('\nHost: ' + socket.gethostname() + '\n')
+        sys.exit(call(argv))
