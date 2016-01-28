@@ -80,6 +80,7 @@ set(SOURCES
   mirtkCifstream.cc
   mirtkCofstream.cc
   mirtkConfigurable.cc
+  mirtkMath.cc
   mirtkMemory.cc
   mirtkObserver.cc
   mirtkOptions.cc

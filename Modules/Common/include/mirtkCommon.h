@@ -43,6 +43,7 @@
 
 // Standard functions/types
 #include <mirtkAssert.h>
+#include <mirtkMath.h>
 #include <mirtkMemory.h>
 #include <mirtkString.h>
 #include <mirtkPath.h>

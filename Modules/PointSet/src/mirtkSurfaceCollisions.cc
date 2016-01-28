@@ -379,7 +379,7 @@ public:
     body._Intersections        = intersections;
     body._Collisions           = collisions;
     body._MaxRadius            = radius->GetRange(0)[1];
-    body._MinAngleCos          = cos(filter->MaxAngle() * M_PI / 180.0);
+    body._MinAngleCos          = cos(filter->MaxAngle() * rad_per_deg);
     body._MinFrontfaceDistance = filter->MinFrontfaceDistance();
     body._MinBackfaceDistance  = filter->MinBackfaceDistance();
     if (!filter->BackfaceCollisionTest())  body._MinFrontfaceDistance = .0;
