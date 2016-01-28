@@ -32,10 +32,10 @@ namespace mirtk {
 // -----------------------------------------------------------------------------
 void ScalarGaussian::ComputeNorm()
 {
-  _Norm[0] = (_Variance._x > .0 ? (1.0      / sqrt(2.0 * M_PI * _Variance._x)) : 1.0);
-  _Norm[1] = (_Variance._y > .0 ? (_Norm[0] / sqrt(2.0 * M_PI * _Variance._y)) : 1.0);
-  _Norm[2] = (_Variance._z > .0 ? (_Norm[1] / sqrt(2.0 * M_PI * _Variance._z)) : 1.0);
-  _Norm[3] = (_Variance._t > .0 ? (_Norm[2] / sqrt(2.0 * M_PI * _Variance._t)) : 1.0);
+  _Norm[0] = (_Variance._x > .0 ? (1.0      / sqrt(two_pi * _Variance._x)) : 1.0);
+  _Norm[1] = (_Variance._y > .0 ? (_Norm[0] / sqrt(two_pi * _Variance._y)) : 1.0);
+  _Norm[2] = (_Variance._z > .0 ? (_Norm[1] / sqrt(two_pi * _Variance._z)) : 1.0);
+  _Norm[3] = (_Variance._t > .0 ? (_Norm[2] / sqrt(two_pi * _Variance._t)) : 1.0);
   if (_Variance._x <= .0) _Variance._x = 1.0;
   if (_Variance._y <= .0) _Variance._y = 1.0;
   if (_Variance._z <= .0) _Variance._z = 1.0;

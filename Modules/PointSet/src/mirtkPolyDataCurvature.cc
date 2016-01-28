@@ -574,7 +574,7 @@ void PolyDataCurvature::Initialize()
   // Compute volume and approximate radius of convex hull
   if (_Normalize && (_CurvatureType & (Mean | Gauss))) {
     _Volume = GetVolume(ConvexHull(_Input));
-    _Radius = pow( 3 * _Volume / (4.0 * M_PI), 1.0/3.0);
+    _Radius = pow( 3 * _Volume / (4.0 * pi), 1.0/3.0);
   }
 
   // Remove requested outputs from input to force recomputation

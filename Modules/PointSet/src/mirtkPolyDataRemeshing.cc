@@ -834,8 +834,8 @@ void PolyDataRemeshing::Initialize()
   // Compute point normals if needed
   _MinFeatureAngle    = max(.0, min(_MinFeatureAngle, 180.0));
   _MaxFeatureAngle    = max(.0, min(_MaxFeatureAngle, 180.0));
-  _MinFeatureAngleCos = 1.0 - cos(_MinFeatureAngle * M_PI / 180.0);
-  _MaxFeatureAngleCos = 1.0 - cos(_MaxFeatureAngle * M_PI / 180.0);
+  _MinFeatureAngleCos = 1.0 - cos(_MinFeatureAngle * rad_per_deg);
+  _MaxFeatureAngleCos = 1.0 - cos(_MaxFeatureAngle * rad_per_deg);
 
   if (_MinFeatureAngle < 180.0 || _MaxFeatureAngle < 180.0) {
     vtkNew<vtkPolyDataNormals> calc_normals;

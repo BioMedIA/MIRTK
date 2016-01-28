@@ -768,14 +768,14 @@ inline void EvaluateTangential(DistanceMeasurement &d,
       dirs(3) = (Point(e1) - Point(e2)) / sqrt2;
     } break;
     default:
-      double alpha = .0, delta = M_PI / ndirs;
+      double alpha = .0, delta = pi / ndirs;
       for (int i = 0; i < ndirs; ++i, alpha += delta) {
         dirs(i) = Point(e1) * cos(alpha) + Point(e2) * sin(alpha);
       }
       break;
   }
   if (nbetas > 1) {
-    beta = M_PI * beta / 180.0;
+    beta *= rad_per_deg;
     Point sin_beta_n(n);
     sin_beta_n *= sin(beta);
     const double cos_beta = cos(beta);

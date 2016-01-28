@@ -297,14 +297,14 @@ void PointSamples::SampleRegularHalfSphere(double cx, double cy, double cz,
     // On the equator, we only need half of the directions
     else if (theta >= (M_PI_2 - epsilon)) {
       dPhi  [i] = min(M_PI_2, dTheta / sinf( theta ) );
-      maxPhi[i] = max(1, static_cast<int>(M_PI / dPhi[i]) - 1);
-      dPhi  [i] = M_PI / (maxPhi[i] + 1);
+      maxPhi[i] = max(1, static_cast<int>(pi / dPhi[i]) - 1);
+      dPhi  [i] = pi / (maxPhi[i] + 1);
     }
     // Otherwise, let's sample the entire circle parallel to the equator
     else {
       dPhi  [i] = min(M_PI_2, dTheta / sin(theta));
-      maxPhi[i] = max(3, 2 * static_cast<int>(M_PI / dPhi[i]) - 1);
-      dPhi  [i] = 2.0 * M_PI / (maxPhi[i] + 1);
+      maxPhi[i] = max(3, 2 * static_cast<int>(pi / dPhi[i]) - 1);
+      dPhi  [i] = two_pi / (maxPhi[i] + 1);
     }
     n += maxPhi[i] + 1;
   }
