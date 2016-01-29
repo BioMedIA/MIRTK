@@ -86,8 +86,11 @@ int main(int argc, char *argv[])
     case MIRTK_VOXEL_BINARY:  Erode<BinaryPixel>(image.get(), iterations, connectivity); break;
     case MIRTK_VOXEL_GREY:    Erode<GreyPixel  >(image.get(), iterations, connectivity); break;
     case MIRTK_VOXEL_REAL:    Erode<RealPixel  >(image.get(), iterations, connectivity); break;
-    default:
-      FatalError("Unsupported voxel type: " << ToString(image->GetDataType()));
+    default: {
+      RealImage other(*image);
+      Erode<RealPixel>(&other, iterations, connectivity);
+      *image = other;
+    } break;
   }
   if (verbose) cout << "done" << endl;
 

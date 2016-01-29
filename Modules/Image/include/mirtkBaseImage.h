@@ -542,6 +542,15 @@ public:
   /// Whether any voxel is within background
   bool HasBackground() const;
 
+  /// Get 2D bounding box of image foreground
+  void BoundingBox(int &, int &, int &, int &) const;
+
+  /// Get 3D bounding box of image foreground
+  void BoundingBox(int &, int &, int &, int &, int &, int &) const;
+
+  /// Get 3D+t bounding box of image foreground
+  void BoundingBox(int &, int &, int &, int &, int &, int &, int &, int &) const;
+
   /// Determine center of mass of image foreground
   ///
   /// \param[out] center Centroid of image foreground.

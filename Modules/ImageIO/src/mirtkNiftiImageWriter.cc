@@ -115,6 +115,11 @@ void NiftiImageWriter::Initialize()
   // Init header
   const void *data = _Input->GetDataPointer();
   switch (_Input->GetDataType()) {
+    case MIRTK_VOXEL_CHAR: {
+      _Nifti->Initialize(nx, ny, nz, nt, xsize, ysize, zsize, tsize,
+                         NIFTI_TYPE_INT8, qmat, smat, torigin, data);
+      break;
+    }
     case MIRTK_VOXEL_UNSIGNED_CHAR: {
       _Nifti->Initialize(nx, ny, nz, nt, xsize, ysize, zsize, tsize,
                          NIFTI_TYPE_UINT8, qmat, smat, torigin, data);
@@ -187,7 +192,7 @@ void NiftiImageWriter::Initialize()
       break;
     }
     default:
-      cerr << this->NameOfClass() << "::Initialize(): Unsupported voxel type" << endl;
+      cerr << this->NameOfClass() << "::Initialize(): Unsupported voxel type: " << _Input->GetDataType() << endl;
       exit(1);
   }
 

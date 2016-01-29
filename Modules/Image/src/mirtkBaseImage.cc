@@ -558,6 +558,116 @@ void BaseImage::ClearMask(bool force)
 }
 
 // -----------------------------------------------------------------------------
+void BaseImage::BoundingBox(int &i1, int &j1,
+                            int &i2, int &j2) const
+{
+  // Determine lower bound along x axis: i1
+  i1 = _attr._x;
+  for (int l = 0; l < _attr._t; ++l)
+  for (int k = 0; k < _attr._z; ++k)
+  for (int j = 0; j < _attr._y; ++j)
+  for (int i = 0; i < _attr._x; ++i) {
+    if (this->IsForeground(i, j, k, l)) {
+      if (i < i1) i1 = i;
+      break;
+    }
+  }
+  // Determine upper bound along x axis: i2
+  i2 = -1;
+  for (int l = 0; l < _attr._t; ++l)
+  for (int k = 0; k < _attr._z; ++k)
+  for (int j = 0; j < _attr._y; ++j)
+  for (int i = _attr._x - 1; i >= i1; --i) {
+    if (this->IsForeground(i, j, k, l)) {
+      if (i > i2) i2 = i;
+      break;
+    }
+  }
+  // Determine lower bound along y axis: j1
+  j1 = _attr._y;
+  for (int l = 0; l < _attr._t; ++l)
+  for (int k = 0; k < _attr._z; ++k)
+  for (int i = i1; i <= i2; ++i)
+  for (int j = 0; j < _attr._y; ++j) {
+    if (this->IsForeground(i, j, k, l)) {
+      if (j < j1) j1 = j;
+      break;
+    }
+  }
+  // Determine upper bound along y axis: j2
+  j2 = -1;
+  for (int l = 0; l < _attr._t; ++l)
+  for (int k = 0; k < _attr._z; ++k)
+  for (int i = i1; i <= i2; ++i)
+  for (int j = _attr._y - 1; j >= j1; --j) {
+    if (this->IsForeground(i, j, k, l)) {
+      if (j > j2) j2 = j;
+      break;
+    }
+  }
+}
+
+// -----------------------------------------------------------------------------
+void BaseImage::BoundingBox(int &i1, int &j1, int &k1,
+                            int &i2, int &j2, int &k2) const
+{
+  // Get 2D bounding box
+  this->BoundingBox(i1, j1, i2, j2);
+  // Determine lower bound along z axis: k1
+  k1 = _attr._z;
+  for (int l = 0; l < _attr._t; ++l)
+  for (int j = j1; j <= j2; ++j)
+  for (int i = i1; i <= i2; ++i)
+  for (int k = 0; k < _attr._z; ++k) {
+    if (this->IsForeground(i, j, k, l)) {
+      if (k < k1) k1 = k;
+      break;
+    }
+  }
+  // Determine upper bound along z axis: k2
+  k2 = -1;
+  for (int l = 0; l < _attr._t; ++l)
+  for (int j = j1; j <= j2; ++j)
+  for (int i = i1; i <= i2; ++i)
+  for (int k = _attr._z - 1; k >= k1; --k) {
+    if (this->IsForeground(i, j, k, l)) {
+      if (k > k2) k2 = k;
+      break;
+    }
+  }
+}
+
+// -----------------------------------------------------------------------------
+void BaseImage::BoundingBox(int &i1, int &j1, int &k1, int &l1,
+                            int &i2, int &j2, int &k2, int &l2) const
+{
+  // Get spatial bounding box
+  this->BoundingBox(i1, j1, k1, i2, j2, k2);
+  // Determine lower bound along t axis: l1
+  l1 = _attr._t;
+  for (int k = k1; k <= k2; ++k)
+  for (int j = j1; j <= j2; ++j)
+  for (int i = i1; i <= i2; ++i)
+  for (int l = 0; l < _attr._t; ++l) {
+    if (this->IsForeground(i, j, k, l)) {
+      if (l < l1) l1 = l;
+      break;
+    }
+  }
+  // Determine upper bound along t axis: l2
+  l2 = -1;
+  for (int k = k1; k <= k2; ++k)
+  for (int j = j1; j <= j2; ++j)
+  for (int i = i1; i <= i2; ++i)
+  for (int l = _attr._t - 1; l >= l1; --l) {
+    if (this->IsForeground(i, j, k, l)) {
+      if (l > l2) l2 = l;
+      break;
+    }
+  }
+}
+
+// -----------------------------------------------------------------------------
 int BaseImage::CenterOfForeground(Point &center) const
 {
   int n = 0;
