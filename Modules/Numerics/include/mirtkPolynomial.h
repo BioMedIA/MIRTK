@@ -262,8 +262,6 @@ public:
   ///
   /// \param[in] x      Points on surface.
   /// \param[in] subset Indices of points to use for fitting.
-  /// \param[in] order  Order of polynomial model, i.e., highest model term exponent.
-  ///                   When non-positive, the current order of the model is used.
   ///
   /// \returns RMS error of the regression.
   double FitSurface(const PointSet &x, const OrderedSet<int> &subset);
@@ -350,6 +348,7 @@ public:
   ///
   /// \param[in] x First  point coordinate.
   /// \param[in] y Second point coordinate.
+  /// \param[in] z Third  point coordinate.
   ///
   /// \returns Regressed value.
   double Evaluate(double x, double y, double z) const;
