@@ -31,6 +31,7 @@ import subprocess
 # ============================================================================
 
 _libexec_dir = os.path.realpath(os.path.join(__dir__, '@LIBEXEC_DIR@'))
+_paths       = [__dir__, _libexec_dir]
 _ldpaths     = []
 
 _tbb_library_dir='@TBB_LIBRARY_DIR_CONFIG@'
@@ -43,14 +44,19 @@ for _vtk_library_dir in _vtk_library_dirs:
         _ldpaths.append(_vtk_library_dirs)
 
 if sys.platform.startswith('linux'):
+    _paths.extend(os.environ.get('PATH', '').split(':'))
+    os.environ['PATH'] = ':'.join(_paths)
     _ldpaths.extend(os.environ.get('LD_LIBRARY_PATH', '').split(':'))
     os.environ['LD_LIBRARY_PATH'] = ':'.join(_ldpaths)
 elif sys.platform.startswith('darwin'):
+    _paths.extend(os.environ.get('PATH', '').split(':'))
+    os.environ['PATH'] = ':'.join(_paths)
     _ldpaths.extend(os.environ.get('DYLD_LIBRARY_PATH', '').split(':'))
     os.environ['DYLD_LIBRARY_PATH'] = ':'.join(_ldpaths)
 elif sys.platform.startswith('win'):
-    _ldpaths.extend(os.environ.get('PATH', '').split(';'))
-    os.environ['PATH'] = ';'.join(_ldpaths)
+    _paths.extend(_ldpaths)
+    _paths.extend(os.environ.get('PATH', '').split(';'))
+    os.environ['PATH'] = ';'.join(_paths)
 
 # ============================================================================
 # help
