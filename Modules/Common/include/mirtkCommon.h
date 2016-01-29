@@ -38,6 +38,7 @@
 #include <mirtkOrderedMap.h>
 #include <mirtkUnorderedSet.h>
 #include <mirtkUnorderedMap.h>
+#include <mirtkPriorityQueue.h>
 #include <mirtkQueue.h>
 #include <mirtkStack.h>
 

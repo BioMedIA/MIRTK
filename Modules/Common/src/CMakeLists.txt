@@ -57,6 +57,7 @@ set(HEADERS
   mirtkParallel.h
   mirtkPath.h
   mirtkProfiling.h
+  mirtkPriorityQueue.h
   mirtkQueue.h
   mirtkRandom.h
   mirtkStack.h
