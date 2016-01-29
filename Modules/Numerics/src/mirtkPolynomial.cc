@@ -93,6 +93,7 @@ void Polynomial::CopyAttributes(const Polynomial &other)
   _Dimension    = other._Dimension;
   _ModelTerms   = other._ModelTerms;
   _Coefficients = other._Coefficients;
+  _Status       = other._Status;
 }
 
 // -----------------------------------------------------------------------------
@@ -136,8 +137,24 @@ int Polynomial::Initialize(int p, int order)
   }
   // Set coefficients to zero
   _Coefficients.Initialize(NumberOfTerms());
+  // Set status of coefficients to active
+  _Status.resize(NumberOfTerms());
+  for (int i = 0; i < NumberOfTerms(); ++i) {
+    _Status[i] = Active;
+  }
   // Return number of terms
   return NumberOfTerms();
+}
+
+// -----------------------------------------------------------------------------
+void Polynomial::SetConstantCoefficient(double value, enum Status status)
+{
+  for (int i = 0; i < NumberOfTerms(); ++i) {
+    if (IsConstant(i)) {
+      Coefficient(i, value);
+      Status(i, status);
+    }
+  }
 }
 
 // =============================================================================
@@ -145,12 +162,16 @@ int Polynomial::Initialize(int p, int order)
 // =============================================================================
 
 // -----------------------------------------------------------------------------
-double Polynomial::Fit(const Matrix &x, const Vector &y, int order)
+double Polynomial::Fit(const Matrix &x, const Vector &y)
 {
   const int n  = x.Rows();
   const int p  = x.Cols();
-  const int nt = Initialize(p, order);
+  const int nt = NumberOfTerms();
 
+  if (n <= 0) {
+    cerr << this->NameOfType() << "::Fit: No input points given!" << endl;
+    exit(1);
+  }
   if (y.Rows() != n) {
     cerr << this->NameOfType() << "::Fit: x and y have differing number of rows!" << endl;
     exit(1);
@@ -166,32 +187,51 @@ double Polynomial::Fit(const Matrix &x, const Vector &y, int order)
   }
 
   // Build design matrix
-  Eigen::MatrixXd A(n, nt);
-  Vector scale(nt);
+  Eigen::MatrixXd A(n, NumberOfActiveTerms());
+  Eigen::VectorXd b = VectorToEigen(y);
+  Vector scale(A.cols());
+  double t;
 
   A.setOnes(), scale = 1.0;
-  for (int i = 0; i < nt; ++i)
-  for (int j = 0; j < p;  ++j) {
-    if (_ModelTerms(i, j) != 0) {
-      for (int k = 0; k < n; ++k) {
-        A(k, i) *= pow(xs(k, j), _ModelTerms(i, j));
+  for (int i = 0, c = 0; i < nt; ++i) {
+    if (Status(i) == Active) {
+      for (int j = 0; j < p;  ++j) {
+        if (_ModelTerms(i, j) != 0) {
+          for (int k = 0; k < n; ++k) {
+            A(k, c) *= pow(xs(k, j), _ModelTerms(i, j));
+          }
+          scale(c) /= pow(sigma(j), _ModelTerms(i, j));
+        }
       }
-      scale(i) /= pow(sigma(j), _ModelTerms(i, j));
+      ++c;
+    } else {
+      for (int k = 0; k < n; ++k) {
+        t = 1.0;
+        for (int j = 0; j < p;  ++j) {
+          t *= pow(x(k, j), _ModelTerms(i, j));
+        }
+        b(k) -= t * _Coefficients(i);
+      }
     }
   }
 
   // Estimate model using (column) pivoted QR for stability
   Eigen::ColPivHouseholderQR<Eigen::MatrixXd> qr(A);
-  const Eigen::VectorXd coeff = qr.solve(VectorToEigen(y));
-  const Eigen::VectorXd ypred = A * coeff;
+  const Eigen::VectorXd coeff = qr.solve(b);
 
   // Recover the scaling
-  _Coefficients = EigenToVector(coeff);
-  for (int i = 0; i < nt; ++i) {
-    _Coefficients(i) *= scale(i);
+  for (int i = 0, c = 0; i < NumberOfTerms(); ++i) {
+    if (Status(i) == Active) {
+      _Coefficients(i) = scale(c) * coeff[c];
+      ++c;
+    }
   }
 
   // Return RMS error
+  Eigen::VectorXd ypred = A * coeff;
+  if (NumberOfPassiveTerms() > 0) {
+    ypred += VectorToEigen(y) - b;
+  }
   double sum2 = .0, delta;
   for (int i = 0; i < n; ++i) {
     delta = y(i) - ypred(i);
@@ -201,50 +241,165 @@ double Polynomial::Fit(const Matrix &x, const Vector &y, int order)
 }
 
 // -----------------------------------------------------------------------------
-double Polynomial::FitSurface(const PointSet &x, int order)
+double Polynomial::Fit(const Matrix &x, const Vector &y, const Array<int> &subset)
 {
-  Vector y(x.Size());
-  return Fit(Matrix(x), y, order);
-}
-
-// -----------------------------------------------------------------------------
-double Polynomial::FitSurface(const PointSet &x, const Array<int> &subset, int order)
-{
-  const int n = static_cast<int>(subset.size());
-  Matrix m(n, 3);
-  Vector y(n);
-  int i = 0;
-  for (Array<int>::const_iterator it = subset.begin(); it != subset.end(); ++it, ++i) {
-    const Point &p = x(*it);
-    m(i, 0) = p._x, m(i, 1) = p._y, m(i, 2) = p._z;
+  Matrix _x(static_cast<int>(subset.size()), x.Cols());
+  Vector _y(_x.Rows());
+  for (int i = 0; i < _x.Rows(); ++i) {
+    for (int j = 0; j < _x.Cols(); ++j) {
+      _x(i, j) = x(subset[i], j);
+    }
+    _y(i) = y(subset[i]);
   }
-  return Fit(m, y, order);
+  return Fit(_x, _y);
 }
 
 // -----------------------------------------------------------------------------
-double Polynomial::FitSurface(const PointSet &x, const OrderedSet<int> &subset, int order)
+double Polynomial::Fit(const Matrix &x, const Vector &y, const OrderedSet<int> &subset)
 {
-  const int n = static_cast<int>(subset.size());
-  Matrix m(n, 3);
-  Vector y(n);
-  int i = 0;
-  for (OrderedSet<int>::const_iterator it = subset.begin(); it != subset.end(); ++it, ++i) {
-    const Point &p = x(*it);
-    m(i, 0) = p._x, m(i, 1) = p._y, m(i, 2) = p._z;
+  Matrix _x(static_cast<int>(subset.size()), x.Cols());
+  Vector _y(_x.Rows());
+  OrderedSet<int>::const_iterator it = subset.begin();
+  for (int i = 0; i < _x.Rows(); ++i, ++it) {
+    for (int j = 0; j < _x.Cols(); ++j) {
+      _x(i, j) = x(*it, j);
+    }
+    _y(i) = y(*it);
   }
-  return Fit(m, y, order);
+  return Fit(_x, _y);
 }
 
 // -----------------------------------------------------------------------------
-double Polynomial::Fit(const PointSet &x, const Vector &y, int order, bool twoD)
+double Polynomial::FitSurface(const PointSet &x, const PointSet &n, double c)
 {
-  return Fit(Matrix(x, twoD), y, order);
+  mirtkAssert(x.Size() == n.Size(), "one normal for each point");
+  Matrix m(3 * x.Size(), 3);
+  Vector d(m.Rows());
+  for (int i = 0, j = 0; j < x.Size(); ++j) {
+    const Point &point  = x(j);
+    const Point &normal = n(j);
+    // point inside
+    m(i, 0) = point._x - c * normal._x;
+    m(i, 1) = point._y - c * normal._y;
+    m(i, 2) = point._z - c * normal._z;
+    d(i) = -c;
+    ++i;
+    // point on surface
+    m(i, 0) = point._x;
+    m(i, 1) = point._y;
+    m(i, 2) = point._z;
+    d(i) = .0;
+    ++i;
+    // point outside
+    m(i, 0) = point._x + c * normal._x;
+    m(i, 1) = point._y + c * normal._y;
+    m(i, 2) = point._z + c * normal._z;
+    d(i) = c;
+    ++i;
+  }
+  return Fit(m, d);
 }
 
 // -----------------------------------------------------------------------------
-double Polynomial::Fit(const Vector &x, const Vector &y, int order)
+double Polynomial::FitSurface(const PointSet &x, const PointSet &n,
+                              const Array<int> &subset, double c)
 {
-  return Fit(Matrix(x), y, order);
+  mirtkAssert(x.Size() == n.Size(), "one normal for each point");
+  Matrix m(3 * static_cast<int>(subset.size()), 3);
+  Vector d(m.Rows());
+  int i = 0;
+  for (Array<int>::const_iterator it = subset.begin(); it != subset.end(); ++it) {
+    const Point &point  = x(*it);
+    const Point &normal = n(*it);
+    // point inside
+    m(i, 0) = point._x - c * normal._x;
+    m(i, 1) = point._y - c * normal._y;
+    m(i, 2) = point._z - c * normal._z;
+    d(i) = -c;
+    ++i;
+    // point on surface
+    m(i, 0) = point._x;
+    m(i, 1) = point._y;
+    m(i, 2) = point._z;
+    d(i) = .0;
+    ++i;
+    // point outside
+    m(i, 0) = point._x + c * normal._x;
+    m(i, 1) = point._y + c * normal._y;
+    m(i, 2) = point._z + c * normal._z;
+    d(i) = c;
+    ++i;
+  }
+  return Fit(m, d);
+}
+
+// -----------------------------------------------------------------------------
+double Polynomial::FitSurface(const PointSet &x, const PointSet &n,
+                              const OrderedSet<int> &subset, double c)
+{
+  mirtkAssert(x.Size() == n.Size(), "one normal for each point");
+  Matrix m(3 * static_cast<int>(subset.size()), 3);
+  Vector d(m.Rows());
+  int i = 0;
+  for (OrderedSet<int>::const_iterator it = subset.begin(); it != subset.end(); ++it) {
+    const Point &point  = x(*it);
+    const Point &normal = n(*it);
+    // point inside
+    m(i, 0) = point._x - c * normal._x;
+    m(i, 1) = point._y - c * normal._y;
+    m(i, 2) = point._z - c * normal._z;
+    d(i) = -c;
+    ++i;
+    // point on surface
+    m(i, 0) = point._x;
+    m(i, 1) = point._y;
+    m(i, 2) = point._z;
+    d(i) = .0;
+    ++i;
+    // point outside
+    m(i, 0) = point._x + c * normal._x;
+    m(i, 1) = point._y + c * normal._y;
+    m(i, 2) = point._z + c * normal._z;
+    d(i) = c;
+    ++i;
+  }
+  return Fit(m, d);
+}
+
+// -----------------------------------------------------------------------------
+double Polynomial::FitSurface(const PointSet &x, const Array<int> &subset)
+{
+  Matrix m(static_cast<int>(subset.size()), 3);
+  Vector d(m.Rows());
+  int i = 0;
+  for (Array<int>::const_iterator it = subset.begin(); it != subset.end(); ++it) {
+    const Point &point = x(*it);
+    m(i, 0) = point._x;
+    m(i, 1) = point._y;
+    m(i, 2) = point._z;
+    d(i)    = .0;
+    ++i;
+  }
+  SetConstantCoefficient(1.0);
+  return Fit(m, d);
+}
+
+// -----------------------------------------------------------------------------
+double Polynomial::FitSurface(const PointSet &x, const OrderedSet<int> &subset)
+{
+  Matrix m(static_cast<int>(subset.size()), 3);
+  Vector d(m.Rows());
+  int i = 0;
+  for (OrderedSet<int>::const_iterator it = subset.begin(); it != subset.end(); ++it) {
+    const Point &point = x(*it);
+    m(i, 0) = point._x;
+    m(i, 1) = point._y;
+    m(i, 2) = point._z;
+    d(i)    = .0;
+    ++i;
+  }
+  SetConstantCoefficient(1.0);
+  return Fit(m, d);
 }
 
 // =============================================================================
