@@ -37,7 +37,7 @@ template <> string ToString(const ImageDataType &value, int w, char c, bool left
     case MIRTK_VOXEL_UNSIGNED_INT:   str = "uint"; break;
     case MIRTK_VOXEL_FLOAT:          str = "float"; break;
     case MIRTK_VOXEL_DOUBLE:         str = "double"; break;
-    case MIRTK_VOXEL_RGB:            str = "RGB"; break;
+    case MIRTK_VOXEL_RGB:            str = "rgb"; break;
     case MIRTK_VOXEL_FLOAT1:         str = "float1"; break;
     case MIRTK_VOXEL_FLOAT2:         str = "float2"; break;
     case MIRTK_VOXEL_FLOAT3:         str = "float3"; break;
@@ -64,11 +64,29 @@ template <> string ToString(const ImageDataType &value, int w, char c, bool left
 // -----------------------------------------------------------------------------
 template <> bool FromString(const char *str, ImageDataType &value)
 {
-  value = static_cast<ImageDataType>(MIRKT_VOXEL_LAST - 1);
-  while (value != MIRTK_VOXEL_UNKNOWN) {
-    if (ToString(value) == str) break;
-    value = static_cast<ImageDataType>(value - 1);
+  const string lstr = ToLower(str);
+  value = MIRTK_VOXEL_UNKNOWN;
+
+  if      (lstr == "binary")  value = MIRTK_VOXEL_BINARY;
+  else if (lstr == "grey")    value = MIRTK_VOXEL_GREY;
+  else if (lstr == "real")    value = MIRTK_VOXEL_REAL;
+  else if (lstr == "real1")   value = MIRTK_VOXEL_REAL1;
+  else if (lstr == "real2")   value = MIRTK_VOXEL_REAL2;
+  else if (lstr == "real3")   value = MIRTK_VOXEL_REAL3;
+  else if (lstr == "real4")   value = MIRTK_VOXEL_REAL4;
+  else if (lstr == "real2x2") value = MIRTK_VOXEL_REAL2x2;
+  else if (lstr == "real3x3") value = MIRTK_VOXEL_REAL3x3;
+  else if (lstr == "real3x4") value = MIRTK_VOXEL_REAL3x4;
+  else if (lstr == "real4x4") value = MIRTK_VOXEL_REAL4x4;
+
+  if (value == MIRTK_VOXEL_UNKNOWN) {
+    value = static_cast<ImageDataType>(MIRKT_VOXEL_LAST - 1);
+    while (value != MIRTK_VOXEL_UNKNOWN) {
+      if (ToString(value) == lstr) break;
+      value = static_cast<ImageDataType>(value - 1);
+    }
   }
+
   return value != MIRTK_VOXEL_UNKNOWN;
 }
 
