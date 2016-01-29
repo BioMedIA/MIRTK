@@ -172,11 +172,11 @@ macro (basis_find_package PACKAGE)
   list (APPEND ARGN_COMPONENTS ${CMPS})
   unset (CMPS)
   if (ARGN_UNPARSED_ARGUMENTS MATCHES "^[0-9]+(\\.[0-9]+)*$")
-    set (VER "${CMAKE_MATCH_0}")
     if (VER)
       message (FATAL_ERROR "Cannot use both version specification as part of "
                            "package name and explicit version argument.")
     endif ()
+    set (VER "${CMAKE_MATCH_0}")
   endif ()
   # ------------------------------------------------------------------------
   # some debugging output
