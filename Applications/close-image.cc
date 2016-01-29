@@ -99,8 +99,11 @@ int main(int argc, char *argv[])
     case MIRTK_VOXEL_BINARY:  Close<BinaryPixel>(image.get(), iterations, connectivity); break;
     case MIRTK_VOXEL_GREY:    Close<GreyPixel  >(image.get(), iterations, connectivity); break;
     case MIRTK_VOXEL_REAL:    Close<RealPixel  >(image.get(), iterations, connectivity); break;
-    default:
-      FatalError("Unsupported voxel type: " << ToString(image->GetDataType()));
+    default: {
+      RealImage other(*image);
+      Close<RealPixel>(&other, iterations, connectivity);
+      *image = other;
+    } break;
   }
   if (verbose) cout << "done" << endl;
 
