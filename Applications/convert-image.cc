@@ -65,13 +65,17 @@ int main(int argc, char *argv[])
   double max_value  = numeric_limits<double>::quiet_NaN();
 
   for (ALL_OPTIONS) {
-    if      (OPTION("-char")   == 0) voxel_type = MIRTK_VOXEL_CHAR;
-    else if (OPTION("-uchar")  == 0) voxel_type = MIRTK_VOXEL_UNSIGNED_CHAR;
-    else if (OPTION("-short")  == 0) voxel_type = MIRTK_VOXEL_SHORT;
-    else if (OPTION("-ushort") == 0) voxel_type = MIRTK_VOXEL_UNSIGNED_SHORT;
-    else if (OPTION("-float")  == 0) voxel_type = MIRTK_VOXEL_FLOAT;
-    else if (OPTION("-double") == 0) voxel_type = MIRTK_VOXEL_DOUBLE;
-    else if (OPTION("-rescale") == 0) {
+    if      (OPTION("-char"))   voxel_type = MIRTK_VOXEL_CHAR;
+    else if (OPTION("-uchar"))  voxel_type = MIRTK_VOXEL_UNSIGNED_CHAR;
+    else if (OPTION("-short"))  voxel_type = MIRTK_VOXEL_SHORT;
+    else if (OPTION("-ushort")) voxel_type = MIRTK_VOXEL_UNSIGNED_SHORT;
+    else if (OPTION("-float"))  voxel_type = MIRTK_VOXEL_FLOAT;
+    else if (OPTION("-double")) voxel_type = MIRTK_VOXEL_DOUBLE;
+    else if (OPTION("-binary")) voxel_type = MIRTK_VOXEL_BINARY;
+    else if (OPTION("-byte"))   voxel_type = MIRTK_VOXEL_BYTE;
+    else if (OPTION("-grey"))   voxel_type = MIRTK_VOXEL_GREY;
+    else if (OPTION("-real"))   voxel_type = MIRTK_VOXEL_REAL;
+    else if (OPTION("-rescale")) {
       PARSE_ARGUMENT(min_value);
       PARSE_ARGUMENT(max_value);
     }
