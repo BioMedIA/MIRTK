@@ -88,7 +88,7 @@ void PrintHelp(const char *name)
   cout << "      Enable/disable inversion of triangles when it increases the minimum height. (default: "
        << ToLower(ToString(remesher.InvertTrianglesToIncreaseMinHeight())) << ")" << endl;
   cout << "  -noinversion" << endl;
-  cout << "      Disable :option:`-invert-long-edges` and :options:`-invert-min-height`." << endl;
+  cout << "      Disable :option:`-invert-long-edges` and :option:`-invert-min-height`." << endl;
   cout << endl;
   cout << "Output options:" << endl;
   cout << "  -write-all" << endl;
