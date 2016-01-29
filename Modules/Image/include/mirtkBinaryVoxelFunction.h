@@ -203,7 +203,7 @@ public:
   Erode(const NeighborhoodOffsets &offsets) : _Offsets(offsets) {}
 
   template <class T>
-  void operator ()(int i, int j, int k, int l, const T *in, T *out)
+  void operator ()(int i, int j, int k, int, const T *in, T *out)
   {
     const T *ptr2offset;
     T &value = *out;
@@ -231,7 +231,7 @@ public:
   Dilate(const NeighborhoodOffsets &offsets) : _Offsets(offsets) {}
 
   template <class T>
-  void operator ()(int i, int j, int k, int l, const T *in, T *out)
+  void operator ()(int i, int j, int k, int, const T *in, T *out)
   {
     const T *ptr2offset;
     T &value = *out;
