@@ -68,18 +68,22 @@ public:
   int NumberOfPoints() const;
 
   /// Determine whether two nodes are connected by an edge
-  bool IsEdge(int, int) const;
+  template <class IdType1, class IdType2>
+  bool IsEdge(IdType1, IdType2) const;
 
   /// Get ID of undirected edge connecting two nodes
   ///
   /// \return Zero-based edge ID or -1 if edge does not exist.
-  int EdgeId(int, int) const;
+  template <class IdType1, class IdType2>
+  int EdgeId(IdType1, IdType2) const;
 
   /// Get IDs of edge nodes (ptId1 < ptId2)
-  bool GetEdge(int, int &ptId1, int &ptId2) const;
+  template <class EdgeIdType, class IdType1, class IdType2>
+  bool GetEdge(EdgeIdType, IdType1 &ptId1, IdType2 &ptId2) const;
 
   /// Get number of adjacent points
-  int NumberOfAdjacentPoints(int) const;
+  template <class IdType>
+  int NumberOfAdjacentPoints(IdType) const;
 
   /// Access list of adjacent nodes (thread-safe)
   void GetAdjacentPoints(int, int &, const int *&) const;
@@ -99,40 +103,48 @@ inline int EdgeTable::NumberOfPoints() const
 }
 
 // -----------------------------------------------------------------------------
-inline bool EdgeTable::IsEdge(int ptId1, int ptId2) const
+template <class IdType1, class IdType2>
+inline bool EdgeTable::IsEdge(IdType1 ptId1, IdType2 ptId2) const
 {
-  return static_cast<bool>(Get(ptId1, ptId2));
+  return static_cast<bool>(Get(static_cast<int>(ptId1), static_cast<int>(ptId2)));
 }
 
 // -----------------------------------------------------------------------------
-inline int EdgeTable::EdgeId(int ptId1, int ptId2) const
+template <class IdType1, class IdType2>
+inline int EdgeTable::EdgeId(IdType1 ptId1, IdType2 ptId2) const
 {
-  return Get(ptId1, ptId2) - 1;
+  return Get(static_cast<int>(ptId1), static_cast<int>(ptId2)) - 1;
 }
 
 // -----------------------------------------------------------------------------
-inline bool EdgeTable::GetEdge(int edgeId, int &ptId1, int &ptId2) const
+template <class EdgeIdType, class IdType1, class IdType2>
+inline bool EdgeTable::GetEdge(EdgeIdType edgeId, IdType1 &ptId1, IdType2 &ptId2) const
 {
+  const int eid = static_cast<int>(edgeId) + 1;
+  if (eid <= 0) return false;
+
   int i, j;
   const int *row = _Row;
   const int *col = _Col;
   if (_Layout == CRS) swap(row, col);
 
-  edgeId += 1;
-  for (ptId2 = 0; ptId2 < NumberOfPoints(); ++ptId2) {
+  const IdType2 npoints = static_cast<IdType2>(NumberOfPoints());
+  for (ptId2 = 0; ptId2 < npoints; ++ptId2) {
     for (i = col[ptId2], j = col[ptId2 + 1]; i < j; ++i) {
-      ptId1 = row[i];
+      ptId1 = static_cast<IdType1>(row[i]);
+      if (_Data[i] == eid) return true;
       if (ptId1 > ptId2) break;
-      if (_Data[i] == edgeId) return true;
     }
   }
 
-  ptId1 = ptId2 = -1;
+  ptId1 = static_cast<IdType1>(-1);
+  ptId2 = static_cast<IdType2>(-1);
   return false;
 }
 
 // -----------------------------------------------------------------------------
-inline int EdgeTable::NumberOfAdjacentPoints(int ptId) const
+template <class IdType>
+inline int EdgeTable::NumberOfAdjacentPoints(IdType ptId) const
 {
   if (_Layout == CCS) {
     return _Col[ptId+1] - _Col[ptId];
