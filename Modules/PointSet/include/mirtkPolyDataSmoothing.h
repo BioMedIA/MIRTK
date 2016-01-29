@@ -141,6 +141,14 @@ protected:
   /// Whether to smooth the node positions, i.e., input geometry
   mirtkPublicAttributeMacro(bool, SmoothPoints);
 
+  /// Smooth magnitude of (vector-valued) data arrays
+  mirtkPublicAttributeMacro(bool, SmoothMagnitude);
+
+  /// Smooth (vector-valued) data arrays by only considering those adjacent
+  /// vectors which have a positive dot product with the data vector at the
+  /// current node position
+  mirtkPublicAttributeMacro(bool, SignedSmoothing);
+
   /// Names of input point data arrays to be smoothed
   mirtkPublicAttributeMacro(ArrayNames, SmoothArrays);
 
