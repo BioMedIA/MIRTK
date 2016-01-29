@@ -23,12 +23,13 @@
 #include <mirtkObject.h>
 
 #include <mirtkAssert.h>
+#include <mirtkArray.h>
+#include <mirtkStatus.h>
 #include <mirtkVector.h>
 #include <mirtkVector3.h>
 #include <mirtkMatrix.h>
 #include <mirtkMatrix3x3.h>
 #include <mirtkPointSet.h>
-#include <mirtkArray.h>
 #include <mirtkOrderedSet.h>
 
 
@@ -65,6 +66,9 @@ class Polynomial : public Object
   /// Coefficients of each model term
   mirtkReadOnlyAttributeMacro(Vector, Coefficients);
 
+  /// Status of coefficients, only active coefficients are free
+  mirtkAttributeMacro(Array<enum Status>, Status);
+
   /// Copy attributes of this class from another instance
   void CopyAttributes(const Polynomial &);
 
@@ -77,7 +81,7 @@ public:
   /// \param[in] order Order of the polynomial, i.e., highest model term exponent.
   Polynomial(int order = 2);
 
-  /// Construct complete polynomial order
+  /// Construct complete polynomial
   ///
   /// \param[in] p     Dimension of independent variable space.
   /// \param[in] order Order of the polynomial, i.e., highest model term exponent.
@@ -96,8 +100,23 @@ public:
   /// Destructor
   virtual ~Polynomial();
 
+  /// Build complete polynomial regression model of given order
+  ///
+  /// \param[in] p     Dimension of independent variable space.
+  /// \param[in] order Order of polynomial model, i.e., highest model term exponent.
+  ///                  When non-positive, the current order of the model is used.
+  ///
+  /// \returns Number of model terms.
+  int Initialize(int p, int order = 0);
+
   /// Number of model terms/coefficients
   int NumberOfTerms() const;
+
+  /// Number of passive model terms/coefficients
+  int NumberOfPassiveTerms() const;
+
+  /// Number of active model terms/coefficients
+  int NumberOfActiveTerms() const;
 
   /// Get exponent of independent variable in specified model term
   ///
@@ -132,19 +151,28 @@ public:
   /// \returns Coefficient of i-th term.
   double Coefficient(int i) const;
 
+  /// Set status of i-th coefficient
+  ///
+  /// \param[in] i Index of coefficient.
+  /// \param[in] s Status of coefficient.
+  void Status(int i, enum Status s);
+
+  /// Get status of i-th coefficient
+  ///
+  /// \param[in] i Index of coefficient.
+  ///
+  /// \returns Status of i-th coefficient.
+  enum Status Status(int i) const;
+
   /// Set all model coefficients to zero
   void SetCoefficientsToZero();
 
-protected:
-
-  /// Build complete polynomial regression model of given order
+  /// Sets coefficient(s) of constant model terms
   ///
-  /// \param[in] p     Dimension of independent variable space.
-  /// \param[in] order Order of polynomial model, i.e., highest model term exponent.
-  ///                  When non-positive, the current order of the model is used.
-  ///
-  /// \returns Number of model terms.
-  int Initialize(int p, int order = 0);
+  /// \param[in] value  Coefficient value.
+  /// \param[in] status Status of constant model terms. Set to Passive by
+  ///                   default, i.e., constant terms are fixed for model fitting.
+  void SetConstantCoefficient(double value, enum Status status = Passive);
 
   // ---------------------------------------------------------------------------
   // Regression
@@ -152,75 +180,136 @@ public:
 
   /// Fits polynomial regression model to one or more independent variables
   ///
-  /// \param[in] x     Values of independent variables, a matrix of size (n x p), where
-  ///                  n is the number of data points and
-  ///                  p is the dimension of the independent variable space.
-  /// \param[in] y     Values of dependent variable.
-  /// \param[in] order Order of polynomial model, i.e., highest model term exponent.
-  ///                  When non-positive, the current order of the model is used.
+  /// \param[in] x Values of independent variables, a matrix of size (n x p), where
+  ///              n is the number of data points and
+  ///              p is the dimension of the independent variable space.
+  /// \param[in] y Values of dependent variable.
   ///
   /// \returns RMS error of the regression.
-  double Fit(const Matrix &x, const Vector &y, int order = 0);
+  double Fit(const Matrix &x, const Vector &y);
 
   /// Fits polynomial regression model to one or more independent variables
   ///
-  /// \param[in] x     Values of independent variables.
-  ///                  The dimension of the independent variable space is 2 or 3.
-  /// \param[in] y     Values of dependent variable.
-  /// \param[in] order Order of polynomial model, i.e., highest model term exponent.
-  ///                  When non-positive, the current order of the model is used.
-  /// \param[in] twoD  Whether to ignore z coordinate.
-  ///
-  /// \returns RMS error of the regression.
-  double Fit(const PointSet &x, const Vector &y, int order = 0, bool twoD = false);
-
-  /// Fits polynomial surface model to 3D point cloud
-  ///
-  /// The dependent variable of the surface model is the distance of a point from
-  /// the surface.
-  ///
-  /// \param[in] x     Points on surface.
-  /// \param[in] order Order of polynomial model, i.e., highest model term exponent.
-  ///                  When non-positive, the current order of the model is used.
-  ///
-  /// \returns RMS error of the regression.
-  double FitSurface(const PointSet &x, int order = 0);
-
-  /// Fits polynomial surface model to subset of 3D point cloud
-  ///
-  /// The dependent variable of the surface model is the distance of a point from
-  /// the surface.
-  ///
-  /// \param[in] x      Points on surface.
+  /// \param[in] x      Values of independent variables, a matrix of size (n x p), where
+  ///                   n is the number of data points and
+  ///                   p is the dimension of the independent variable space.
   /// \param[in] subset Indices of points to use for fitting.
-  /// \param[in] order  Order of polynomial model, i.e., highest model term exponent.
-  ///                   When non-positive, the current order of the model is used.
+  /// \param[in] y      Values of dependent variable.
   ///
   /// \returns RMS error of the regression.
-  double FitSurface(const PointSet &x, const Array<int> &subset, int order = 0);
+  double Fit(const Matrix &x, const Vector &y, const Array<int> &subset);
 
-  /// Fits polynomial surface model to subset of 3D point cloud
+  /// Fits polynomial regression model to one or more independent variables
   ///
-  /// The dependent variable of the surface model is the distance of a point from
-  /// the surface.
-  ///
-  /// \param[in] x      Points on surface.
+  /// \param[in] x      Values of independent variables, a matrix of size (n x p), where
+  ///                   n is the number of data points and
+  ///                   p is the dimension of the independent variable space.
   /// \param[in] subset Indices of points to use for fitting.
-  /// \param[in] order  Order of polynomial model, i.e., highest model term exponent.
-  ///                   When non-positive, the current order of the model is used.
+  /// \param[in] y      Values of dependent variable.
   ///
   /// \returns RMS error of the regression.
-  double FitSurface(const PointSet &x, const OrderedSet<int> &subset, int order = 0);
+  double Fit(const Matrix &x, const Vector &y, const OrderedSet<int> &subset);
+
+  /// Fits polynomial regression model to one or more independent variables
+  ///
+  /// \param[in] x    Values of independent variables.
+  ///                 The dimension of the independent variable space is 2 or 3.
+  /// \param[in] y    Values of dependent variable.
+  /// \param[in] twoD Whether to ignore z coordinate.
+  ///
+  /// \returns RMS error of the regression.
+  double Fit(const PointSet &x, const Vector &y, bool twoD = false);
 
   /// Fits polynomial regression model to one independent variable
   ///
-  /// \param[in] x     Values of independent variable.
-  /// \param[in] y     Values of dependent variable.
-  /// \param[in] order Order of polynomial model, i.e., highest model term exponent.
-  ///                  When non-positive, the current order of the model is used.
+  /// \param[in] x Values of independent variable.
+  /// \param[in] y Values of dependent variable.
   ///
   /// \returns RMS error of the regression.
-  double Fit(const Vector &x, const Vector &y, int order = 0);
+  double Fit(const Vector &x, const Vector &y);
+
+  /// Fits polynomial surface model to 3D point cloud
+  ///
+  /// The dependent variable of the surface model is the algebraic distance of a
+  /// point from the surface. This function sets the coefficients of constant model
+  /// term(s) to 1 and excludes them from the fit to avoid the trivial solution
+  /// of the homogeneous linear system of equations.
+  ///
+  /// \param[in] x Points on surface.
+  ///
+  /// \returns RMS error of the regression.
+  double FitSurface(const PointSet &x);
+
+  /// Fits polynomial surface model to subset of 3D point cloud
+  ///
+  /// The dependent variable of the surface model is the algebraic distance of a
+  /// point from the surface. This function sets the coefficients of constant model
+  /// term(s) to 1 and excludes them from the fit to avoid the trivial solution
+  /// of the homogeneous linear system of equations.
+  ///
+  /// \param[in] x      Points on surface.
+  /// \param[in] subset Indices of points to use for fitting.
+  ///
+  /// \returns RMS error of the regression.
+  double FitSurface(const PointSet &x, const Array<int> &subset);
+
+  /// Fits polynomial surface model to subset of 3D point cloud
+  ///
+  /// The dependent variable of the surface model is the algebraic distance of a
+  /// point from the surface. This function sets the coefficients of constant model
+  /// term(s) to 1 and excludes them from the fit to avoid the trivial solution
+  /// of the homogeneous linear system of equations.
+  ///
+  /// \param[in] x      Points on surface.
+  /// \param[in] subset Indices of points to use for fitting.
+  /// \param[in] order  Order of polynomial model, i.e., highest model term exponent.
+  ///                   When non-positive, the current order of the model is used.
+  ///
+  /// \returns RMS error of the regression.
+  double FitSurface(const PointSet &x, const OrderedSet<int> &subset);
+
+  /// Fits polynomial surface model to 3D point cloud
+  ///
+  /// The dependent variable of the surface model is the algebraic distance of a
+  /// point from the surface.
+  ///
+  /// \param[in] x Points on surface.
+  /// \param[in] n Surface normals at input points.
+  /// \param[in] c Offset along normal direction for points inside and outside
+  ///              the surface to be modelled.
+  ///
+  /// \returns RMS error of the regression.
+  double FitSurface(const PointSet &x, const PointSet &n, double c = 1.0);
+
+  /// Fits polynomial surface model to subset of 3D point cloud
+  ///
+  /// The dependent variable of the surface model is the distance of a point from
+  /// the surface.
+  ///
+  /// \param[in] x      Points on surface.
+  /// \param[in] n      Surface normals at input points.
+  /// \param[in] subset Indices of points to use for fitting.
+  /// \param[in] c      Offset along normal direction for points inside and outside
+  ///                   the surface to be modelled.
+  ///
+  /// \returns RMS error of the regression.
+  double FitSurface(const PointSet &x, const PointSet &n,
+                    const Array<int> &subset, double c = 1.0);
+
+  /// Fits polynomial surface model to subset of 3D point cloud
+  ///
+  /// The dependent variable of the surface model is the distance of a point from
+  /// the surface.
+  ///
+  /// \param[in] x      Points on surface.
+  /// \param[in] n      Surface normals at input points.
+  /// \param[in] subset Indices of points to use for fitting.
+  /// \param[in] c      Offset along normal direction for points inside and outside
+  ///                   the surface to be modelled.
+  ///
+  /// \returns RMS error of the regression.
+  double FitSurface(const PointSet &x, const PointSet &n,
+                    const OrderedSet<int> &subset, double c = 1.0);
 
   // ---------------------------------------------------------------------------
   // Evaluation
@@ -256,6 +345,22 @@ public:
   ///
   /// \returns Regressed value.
   double Evaluate(const Point &x, bool twoD = false) const;
+
+  /// Evaluates polynomial for one 3D point
+  ///
+  /// \param[in] x First  point coordinate.
+  /// \param[in] y Second point coordinate.
+  ///
+  /// \returns Regressed value.
+  double Evaluate(double x, double y, double z) const;
+
+  /// Evaluates polynomial for one 2D point
+  ///
+  /// \param[in] x First  point coordinate.
+  /// \param[in] y Second point coordinate.
+  ///
+  /// \returns Regressed value.
+  double Evaluate(double x, double y) const;
 
   /// Evaluates polynomial for one independent variable value
   ///
@@ -442,6 +547,22 @@ inline int Polynomial::NumberOfTerms() const
 }
 
 // -----------------------------------------------------------------------------
+inline int Polynomial::NumberOfPassiveTerms() const
+{
+  int n = 0;
+  for (int i = 0; i < NumberOfTerms(); ++i) {
+    if (Status(i) == Passive) ++n;
+  }
+  return n;
+}
+
+// -----------------------------------------------------------------------------
+inline int Polynomial::NumberOfActiveTerms() const
+{
+  return NumberOfTerms() - NumberOfPassiveTerms();
+}
+
+// -----------------------------------------------------------------------------
 inline int Polynomial::Exponent(int i, int j) const
 {
   mirtkAssert(i < NumberOfTerms(), "model term index is within bounds");
@@ -478,9 +599,39 @@ inline double Polynomial::Coefficient(int i) const
 }
 
 // -----------------------------------------------------------------------------
+inline void Polynomial::Status(int i, enum Status s)
+{
+  mirtkAssert(i < NumberOfTerms(), "coefficient index is within bounds");
+  _Status[i] = s;
+}
+
+// -----------------------------------------------------------------------------
+inline enum Status Polynomial::Status(int i) const
+{
+  mirtkAssert(i < NumberOfTerms(), "coefficient index is within bounds");
+  return _Status[i];
+}
+
+// -----------------------------------------------------------------------------
 inline void Polynomial::SetCoefficientsToZero()
 {
   _Coefficients = .0;
+}
+
+// =============================================================================
+// Regression
+// =============================================================================
+
+// -----------------------------------------------------------------------------
+inline double Polynomial::Fit(const PointSet &x, const Vector &y, bool twoD)
+{
+  return Fit(Matrix(x, twoD), y);
+}
+
+// -----------------------------------------------------------------------------
+inline double Polynomial::Fit(const Vector &x, const Vector &y)
+{
+  return Fit(Matrix(x), y);
 }
 
 // =============================================================================
@@ -512,6 +663,27 @@ inline double Polynomial::Evaluate(const Point &p, bool twoD) const
   x(0, 1) = p._y;
   if (!twoD) x(0, 2) = p._z;
   return Evaluate(x)(0);
+}
+
+// -----------------------------------------------------------------------------
+inline double Polynomial::Evaluate(double x, double y, double z) const
+{
+  mirtkAssert(_Dimension == 3, "dimension of independent variable space must be 3");
+  Matrix m(1, 3);
+  m(0, 0) = x;
+  m(0, 1) = y;
+  m(0, 2) = z;
+  return Evaluate(m)(0);
+}
+
+// -----------------------------------------------------------------------------
+inline double Polynomial::Evaluate(double x, double y) const
+{
+  mirtkAssert(_Dimension == 2, "dimension of independent variable space must be 2");
+  Matrix m(1, 2);
+  m(0, 0) = x;
+  m(0, 1) = y;
+  return Evaluate(m)(0);
 }
 
 // -----------------------------------------------------------------------------
