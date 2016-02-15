@@ -495,6 +495,29 @@ public:
 };
 
 // -----------------------------------------------------------------------------
+/// Element-wise division
+class DivWithZero : public ElementWiseBinaryOp
+{
+public:
+
+  /// Constructor
+  DivWithZero(const char *fname) : ElementWiseBinaryOp(fname) {}
+
+  /// Transform data value and/or mask data value by setting *mask = false
+  virtual double Op(double value, double constant, bool &) const
+  {
+    return (constant != .0 ? value / constant : .0);
+  }
+
+  /// Process given data (not thread-safe!)
+  virtual void Process(int n, double *data, bool *mask = NULL)
+  {
+    ElementWiseBinaryOp::Process(n, data, mask);
+    parallel_for(blocked_range<int>(0, n), *this);
+  }
+};
+
+// -----------------------------------------------------------------------------
 /// Mask values
 class Mask : public ElementWiseBinaryOp
 {
