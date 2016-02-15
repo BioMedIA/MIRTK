@@ -159,6 +159,7 @@ int main(int argc, char *argv[])
     case MIRTK_VOXEL_FLOAT:
     case MIRTK_VOXEL_DOUBLE: {
       input.Write(output_name);
+      break;
     }
     default:
       GreyImage output(input);
