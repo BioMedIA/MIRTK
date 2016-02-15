@@ -532,7 +532,7 @@ public:
   /// Transform data value and/or mask data value by setting *mask = false
   virtual double Op(double value, double constant, bool &mask) const
   {
-    if (( _FileName.empty() && fequal(value, constant)) ||
+    if (( _FileName.empty() && (fequal(value, constant) || (IsNaN(value) && IsNaN(constant)))) ||
         (!_FileName.empty() && constant == .0)) {
       mask = false;
     }
