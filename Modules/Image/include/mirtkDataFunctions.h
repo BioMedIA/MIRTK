@@ -483,7 +483,7 @@ public:
   /// Transform data value and/or mask data value by setting *mask = false
   virtual double Op(double value, double constant, bool &) const
   {
-    return value / constant;
+    return (constant != .0 ? value / constant : numeric_limits<double>::quiet_NaN());
   }
 
   /// Process given data (not thread-safe!)
