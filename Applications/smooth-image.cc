@@ -115,28 +115,32 @@ int main(int argc, char *argv[])
   // Parse blurring options
   bool default_blurring = true;
   for (ALL_OPTIONS) {
-    default_blurring = false;
     if (OPTION("-3D")) {
+      default_blurring = false;
       GaussianBlurring<RealPixel> blur(sigma);
       blur.Input (&input);
       blur.Output(&input);
       blur.Run();
     } else if (OPTION("-4D")) {
+      default_blurring = false;
       GaussianBlurring4D<RealPixel> blur(sigma);
       blur.Input (&input);
       blur.Output(&input);
       blur.Run();
     } else if (OPTION("-x") || OPTION("-X")) {
+      default_blurring = false;
       GaussianBlurring<RealPixel> blur(sigma);
       blur.Input (&input);
       blur.Output(&input);
       blur.RunX();
     } else if (OPTION("-y") || OPTION("-Y")) {
+      default_blurring = false;
       GaussianBlurring<RealPixel> blur(sigma);
       blur.Input (&input);
       blur.Output(&input);
       blur.RunY();
     } else if (OPTION("-z") || OPTION("-Z")) {
+      default_blurring = false;
       GaussianBlurring<RealPixel> blur(sigma);
       blur.Input (&input);
       blur.Output(&input);
@@ -159,8 +163,7 @@ int main(int argc, char *argv[])
     case MIRTK_VOXEL_FLOAT:
     case MIRTK_VOXEL_DOUBLE: {
       input.Write(output_name);
-      break;
-    }
+    } break;
     default:
       GreyImage output(input);
       output.Write(output_name);
