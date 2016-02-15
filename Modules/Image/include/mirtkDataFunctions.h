@@ -483,6 +483,8 @@ public:
   /// Transform data value and/or mask data value by setting *mask = false
   virtual double Op(double value, double constant, bool &) const
   {
+    //return value / constant;
+    if(constant==0) return 0;
     return value / constant;
   }
 
