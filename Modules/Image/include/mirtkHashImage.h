@@ -144,9 +144,6 @@ public:
   void CopyFrom(const GenericImage<TVoxel2> &);
 
   /// Copy image data from other image of same size
-  void CopyFrom(const HashImage<VoxelType> &);
-
-  /// Copy image data from other image of same size
   template <class TVoxel2>
   void CopyFrom(const HashImage<TVoxel2> &);
 
@@ -190,7 +187,7 @@ public:
   DataIterator Begin() const;
   DataIterator End() const;
 
-  int GetDataSize() const;
+  int NumberOfNonDefaultVoxels() const;
 
   /// Function for pixel get access
   VoxelType Get(int) const;
@@ -423,7 +420,7 @@ public:
   GenericImage<VoxelType> ToGenericImage() const;
 
   template <class TVoxel2>
-  void ToGenericImage(GenericImage<TVoxel2>* image) const;
+  void ToGenericImage(GenericImage<TVoxel2>& image) const;
 
   // ---------------------------------------------------------------------------
   // Deprecated
@@ -535,7 +532,7 @@ inline typename HashImage<VoxelType>::DataIterator HashImage<VoxelType>::End() c
 // -----------------------------------------------------------------------------
 
 template <class VoxelType>
-int HashImage<VoxelType>::GetDataSize() const
+int HashImage<VoxelType>::NumberOfNonDefaultVoxels() const
 {
   return _Data.size();
 }
@@ -546,7 +543,7 @@ template <class VoxelType>
 inline VoxelType HashImage<VoxelType>::Get(int index) const
 {
   auto pos=_Data.find (index);
-  if ( pos == _Data.end() ) return _DefaultValue;
+  if ( pos == End() ) return _DefaultValue;
   return voxel_cast<VoxelType>(pos->second);
 }
 

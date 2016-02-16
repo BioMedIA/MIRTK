@@ -54,11 +54,11 @@ namespace mirtk {
 template <class VoxelType>
 void HashImage<VoxelType>::AllocateImage()
 {
-  // Delete existing mask (if any)
-  if (_maskOwner) Delete(_mask);
-  // Free previously allocated memory
-  _Data.clear();
-  _DefaultValue = VoxelType();
+    // Delete existing mask (if any)
+    if (_maskOwner) Delete(_mask);
+    // Free previously allocated memory
+    _Data.clear();
+    _DefaultValue = VoxelType();
 }
 
 // -----------------------------------------------------------------------------
@@ -76,106 +76,106 @@ HashImage<VoxelType>::HashImage(const char *fname)
 template <class VoxelType>
 HashImage<VoxelType>::HashImage(int x, int y, int z, int t)
 {
-  ImageAttributes attr;
-  attr._x = x;
-  attr._y = y;
-  attr._z = z;
-  attr._t = t;
-  PutAttributes(attr);
-  AllocateImage();
+    ImageAttributes attr;
+    attr._x = x;
+    attr._y = y;
+    attr._z = z;
+    attr._t = t;
+    PutAttributes(attr);
+    AllocateImage();
 }
 
 // -----------------------------------------------------------------------------
 template <class VoxelType>
 HashImage<VoxelType>::HashImage(int x, int y, int z, int t, int n)
 {
-  if (t > 1 && n > 1) {
-    cerr << "HashImage::HashImage: 5D images not supported! Use 4D image with vector voxel type instead." << endl;
-    exit(1);
-  }
-  ImageAttributes attr;
-  if (n > 1) t = n, attr._dt = .0; // i.e., vector image with n components
-  attr._x = x;
-  attr._y = y;
-  attr._z = z;
-  attr._t = t;
-  PutAttributes(attr);
-  AllocateImage();
+    if (t > 1 && n > 1) {
+        cerr << "HashImage::HashImage: 5D images not supported! Use 4D image with vector voxel type instead." << endl;
+        exit(1);
+    }
+    ImageAttributes attr;
+    if (n > 1) t = n, attr._dt = .0; // i.e., vector image with n components
+    attr._x = x;
+    attr._y = y;
+    attr._z = z;
+    attr._t = t;
+    PutAttributes(attr);
+    AllocateImage();
 }
 
 // -----------------------------------------------------------------------------
 template <class VoxelType>
 HashImage<VoxelType>::HashImage(const ImageAttributes &attr)
-:
-  BaseImage(attr)
+    :
+      BaseImage(attr)
 {
-  AllocateImage();
+    AllocateImage();
 }
 
 // -----------------------------------------------------------------------------
 template <class VoxelType>
 HashImage<VoxelType>::HashImage(const ImageAttributes &attr, int n)
-:
-  BaseImage(attr, n)
+    :
+      BaseImage(attr, n)
 {
-  AllocateImage();
+    AllocateImage();
 }
 
 // -----------------------------------------------------------------------------
 template <class VoxelType>
 HashImage<VoxelType>::HashImage(const BaseImage &image)
-:
-  BaseImage(image)
+    :
+      BaseImage(image)
 {
-  // Initialize image
-  AllocateImage();
-  // Copy/cast data
-  CopyFrom(image);
+    // Initialize image
+    AllocateImage();
+    // Copy/cast data
+    CopyFrom(image);
 }
 
 
 // -----------------------------------------------------------------------------
 template <class VoxelType>
 HashImage<VoxelType>::HashImage(const HashImage<VoxelType> &image)
-:
-  BaseImage(image)
+    :
+      BaseImage(image)
 {
-  AllocateImage();
-  CopyFrom(image);
+    AllocateImage();
+    CopyFrom(image);
 }
 
 // -----------------------------------------------------------------------------
 template <class VoxelType> template <class VoxelType2>
 HashImage<VoxelType>::HashImage(const HashImage<VoxelType2> &image)
-: BaseImage(image)
+    : BaseImage(image)
 {
-  AllocateImage();
-  CopyFrom(image);
+    AllocateImage();
+    CopyFrom(image);
 }
 
 // -----------------------------------------------------------------------------
 template <class VoxelType> template <class VoxelType2>
 HashImage<VoxelType>::HashImage(const GenericImage<VoxelType2> &image)
-: BaseImage(image)
+    : BaseImage(image)
 {
-  AllocateImage();
-  CopyFrom(image);
+    AllocateImage();
+    CopyFrom(image);
 }
 
 // -----------------------------------------------------------------------------
 template <class VoxelType>
 HashImage<VoxelType>::~HashImage()
 {
-  Clear();
+    Clear();
 }
 
 
 // -----------------------------------------------------------------------------
 template <class VoxelType> void HashImage<VoxelType>::Clear()
 {
-  _Data.clear();
-  if (_maskOwner) Delete(_mask);
-  _attr = ImageAttributes();
+    _Data.clear();
+    if (_maskOwner) Delete(_mask);
+    _attr = ImageAttributes();
 }
 
 // =============================================================================
@@ -186,7 +186,7 @@ template <class VoxelType> void HashImage<VoxelType>::Clear()
 template <class VoxelType>
 BaseImage *HashImage<VoxelType>::Copy() const
 {
-  return new HashImage<VoxelType>(*this);
+    return new HashImage<VoxelType>(*this);
 }
 
 // -----------------------------------------------------------------------------
@@ -199,30 +199,30 @@ template <class VoxelType> void HashImage<VoxelType>::Initialize()
 template <class VoxelType>
 void HashImage<VoxelType>::Initialize(const ImageAttributes &a, int n)
 {
-  // Initialize attributes
-  ImageAttributes attr(a);
-  if (n >= 1) attr._t = n, attr._dt = .0; // i.e., vector image with n components
-  // Initialize memory
-  if (_attr._x != attr._x || _attr._y != attr._y || _attr._z != attr._z || _attr._t != attr._t) {
-    PutAttributes(attr);
-    AllocateImage();
-  } else {
-    PutAttributes(attr);
-    _DefaultValue = VoxelType();
-     *this = VoxelType();
-  }
+    // Initialize attributes
+    ImageAttributes attr(a);
+    if (n >= 1) attr._t = n, attr._dt = .0; // i.e., vector image with n components
+    // Initialize memory
+    if (_attr._x != attr._x || _attr._y != attr._y || _attr._z != attr._z || _attr._t != attr._t) {
+        PutAttributes(attr);
+        AllocateImage();
+    } else {
+        PutAttributes(attr);
+        _DefaultValue = VoxelType();
+        *this = VoxelType();
+    }
 }
 
 // -----------------------------------------------------------------------------
 template <class VoxelType>
 void HashImage<VoxelType>::Initialize(int x, int y, int z, int t, int n)
 {
-  ImageAttributes attr(_attr);
-  attr._x = x;
-  attr._y = y;
-  attr._z = z;
-  attr._t = t;
-  this->Initialize(attr, n);
+    ImageAttributes attr(_attr);
+    attr._x = x;
+    attr._y = y;
+    attr._z = z;
+    attr._t = t;
+    this->Initialize(attr, n);
 }
 
 // -----------------------------------------------------------------------------
@@ -238,24 +238,23 @@ void HashImage<VoxelType>::CopyFrom(const BaseImage &image)
 {
     if (this != &image) {
         VoxelType value;
-       _Data.clear();
-       _DefaultValue  = VoxelType();
+        _Data.clear();
+        _DefaultValue  = VoxelType();
 
-       for (int idx = 0; idx < _NumberOfVoxels; ++idx) {
-           value=voxel_cast<VoxelType>(image.GetAsVector(idx) );
-           if(value!=_DefaultValue) Put(idx, value);
-       }
-      if (_maskOwner) delete _mask;
-      if (image.OwnsMask()) {
-        _mask      = new BinaryImage(*image.GetMask());
-        _maskOwner = true;
-      } else {
-        _mask      = const_cast<BinaryImage *>(image.GetMask());
-        _maskOwner = false;
-      }
-      if (image.HasBackgroundValue()) {
-        this->PutBackgroundValueAsDouble(image.GetBackgroundValueAsDouble());
-      }
+        for (int idx = 0; idx < _NumberOfVoxels; ++idx) {
+            Put(idx, voxel_cast<VoxelType>(image.GetAsVector(idx) ));
+        }
+        if (_maskOwner) delete _mask;
+        if (image.OwnsMask()) {
+            _mask      = new BinaryImage(*image.GetMask());
+            _maskOwner = true;
+        } else {
+            _mask      = const_cast<BinaryImage *>(image.GetMask());
+            _maskOwner = false;
+        }
+        if (image.HasBackgroundValue()) {
+            this->PutBackgroundValueAsDouble(image.GetBackgroundValueAsDouble());
+        }
     }
 }
 
@@ -263,106 +262,59 @@ void HashImage<VoxelType>::CopyFrom(const BaseImage &image)
 template <class VoxelType> template <class VoxelType2>
 void HashImage<VoxelType>::CopyFrom(const GenericImage<VoxelType2> &image)
 {
-   VoxelType value;
-  _Data.clear();
-  _DefaultValue  = VoxelType();
-  bool need_casting=(GetDataType() != image.GetDataType());
-  
-  if(need_casting){
-	  for (int idx = 0; idx < _NumberOfVoxels; ++idx) {
-	      value= voxel_cast<VoxelType>(image.Get(idx));
-          if(value!=_DefaultValue) Put(idx, value);
-	  }
-  }else{
-      for (int idx = 0; idx < _NumberOfVoxels; ++idx) {
-          value= image.Get(idx);
-          if(value!=_DefaultValue) Put(idx, value);
-      }
-  }
+    _Data.clear();
+    _DefaultValue  = VoxelType();
 
-  if (_maskOwner) delete _mask;
-  if (image.OwnsMask()) {
-    _mask      = new BinaryImage(*image.GetMask());
-    _maskOwner = true;
-  } else {
-    _mask      = const_cast<BinaryImage *>(image.GetMask());
-    _maskOwner = false;
-  }
-  if (image.HasBackgroundValue()) {
-    this->PutBackgroundValueAsDouble(image.GetBackgroundValueAsDouble());
-  }
-}
+    for (int idx = 0; idx < _NumberOfVoxels; ++idx) {
+        Put(idx, voxel_cast<VoxelType>(image.Get(idx)));
+    }
 
-// -----------------------------------------------------------------------------
-template <class VoxelType>
-void HashImage<VoxelType>::CopyFrom(const HashImage<VoxelType> &image)
-{
-   // if (this != &image){
-        _Data.clear();
-        _DefaultValue = voxel_cast<VoxelType>(image.DefaultValue());
-
-        for ( auto it = image.Begin(); it != image.End(); ++it ){
-            if(it->second!=_DefaultValue) Put(it->first, it->second);
-        }
-
-      if (_maskOwner) delete _mask;
-      if (image.OwnsMask()) {
+    if (_maskOwner) delete _mask;
+    if (image.OwnsMask()) {
         _mask      = new BinaryImage(*image.GetMask());
         _maskOwner = true;
-      } else {
+    } else {
         _mask      = const_cast<BinaryImage *>(image.GetMask());
         _maskOwner = false;
-      }
-      if (image.HasBackgroundValue()) {
+    }
+    if (image.HasBackgroundValue()) {
         this->PutBackgroundValueAsDouble(image.GetBackgroundValueAsDouble());
-      }
-   //}
+    }
 }
 
 // -----------------------------------------------------------------------------
 template <class VoxelType> template <class VoxelType2>
 void HashImage<VoxelType>::CopyFrom(const HashImage<VoxelType2> &image)
 {
-   // if (this != &image){
-        _Data.clear();
-        _DefaultValue = voxel_cast<VoxelType>(image.DefaultValue());
+    _Data.clear();
+    _DefaultValue = voxel_cast<VoxelType>(image.DefaultValue());
 
-        VoxelType value;
-        for ( auto it = image.Begin(); it != image.End(); ++it ){
-            value = voxel_cast<VoxelType>(it->second);
-            if(value!=_DefaultValue) Put(it->first, value);
-        }
+    VoxelType value;
+    for ( auto it = image.Begin(); it != image.End(); ++it ){
+        Put(it->first, voxel_cast<VoxelType>(it->second));
+    }
 
-      if (_maskOwner) delete _mask;
-      if (image.OwnsMask()) {
+    if (_maskOwner) delete _mask;
+    if (image.OwnsMask()) {
         _mask      = new BinaryImage(*image.GetMask());
         _maskOwner = true;
-      } else {
+    } else {
         _mask      = const_cast<BinaryImage *>(image.GetMask());
         _maskOwner = false;
-      }
-      if (image.HasBackgroundValue()) {
+    }
+    if (image.HasBackgroundValue()) {
         this->PutBackgroundValueAsDouble(image.GetBackgroundValueAsDouble());
-      }
-   //}
+    }
 }
 
 
 // -----------------------------------------------------------------------------
 template <class VoxelType> template <class VoxelType2>
 void HashImage<VoxelType>::CopyTo(GenericImage<VoxelType2> &image) const{
-    image = GenericImage<VoxelType2>(_attr);
+    image.Initialize(_attr);
     image = voxel_cast<VoxelType2>(_DefaultValue);
-
-    bool need_casting=(GetDataType() != image.GetDataType());
-    if(!need_casting){
-        for ( auto it = _Data.begin(); it != _Data.end(); ++it ){
-            if(it->second!=_DefaultValue) image.Put(it->first, it->second);
-        }
-    }else{
-        for ( auto it = _Data.begin(); it != _Data.end(); ++it ){
-            if(it->second!=_DefaultValue) image.Put(it->first, voxel_cast<VoxelType2>(it->second));
-        }
+    for ( auto it = Begin(); it != End(); ++it ){
+        image.Put(it->first, voxel_cast<VoxelType2>(it->second));
     }
 }
 
@@ -372,46 +324,46 @@ HashImage<VoxelType>& HashImage<VoxelType>::operator=(VoxelType scalar)
 {
     _Data.clear();
     _DefaultValue=scalar;
-  return *this;
+    return *this;
 }
 
 // -----------------------------------------------------------------------------
 template <class VoxelType>
 HashImage<VoxelType>& HashImage<VoxelType>::operator=(const BaseImage &image)
 {
-  if (this != &image) {
-    this->Initialize(image.Attributes());
-    this->CopyFrom(image);
-  }
-  return *this;
+    if (this != &image) {
+        this->Initialize(image.Attributes());
+        this->CopyFrom(image);
+    }
+    return *this;
 }
 // -----------------------------------------------------------------------------
 template <class VoxelType> template <class VoxelType2>
 HashImage<VoxelType>& HashImage<VoxelType>::operator=(const GenericImage<VoxelType2> &image)
 {
-  this->Initialize(image.Attributes());
-  this->CopyFrom(image);
-  
-  return *this;
+    this->Initialize(image.Attributes());
+    this->CopyFrom(image);
+
+    return *this;
 }
 
 // -----------------------------------------------------------------------------
 template <class VoxelType>
 HashImage<VoxelType>& HashImage<VoxelType>::operator=(const HashImage &image)
 {
-  if (this != &image) {
-    this->Initialize(image.Attributes());
-    this->CopyFrom(image);
-  }
-  return *this;
+    if (this != &image) {
+        this->Initialize(image.Attributes());
+        this->CopyFrom(image);
+    }
+    return *this;
 }
 
 // -----------------------------------------------------------------------------
 template <class VoxelType> template <class VoxelType2>
 HashImage<VoxelType>& HashImage<VoxelType>::operator=(const HashImage<VoxelType2> &image)
 {
-  this->Initialize(image.GetImageAttributes());
-  CopyFrom(image);
+    this->Initialize(image.GetImageAttributes());
+    CopyFrom(image);
 }
 
 
@@ -420,30 +372,19 @@ HashImage<VoxelType>& HashImage<VoxelType>::operator=(const HashImage<VoxelType2
 template <class VoxelType> template <class VoxelType2>
 bool HashImage<VoxelType>::operator==(const HashImage<VoxelType2> &image) const
 {
-  if (this->GetImageAttributes() != image.GetImageAttributes()) return false;
-  if (_DefaultValue != image.DefaultValue()) return false;
-  if (_Data.size() != image.GetDataSize()) return false;
+    if (this->GetImageAttributes() != image.GetImageAttributes()) return false;
+    if (_DefaultValue != image.DefaultValue()) return false;
+    if (_Data.size() != image.NumberOfNonDefaultVoxels()) return false;
 
-  bool need_casting=(GetDataType() != image.GetDataType());
-  int idx;
-  if(need_casting){
-      for ( auto it = _Data.begin(); it != _Data.end(); ++it ){
-	      idx=it->first;
-	      if (IsForeground(idx) && image.IsForeground(idx)){
-		  if(it->second != voxel_cast<VoxelType>(image.Get(idx)))
-		    return false;
-	      }
-	  }
-  }else{
-      for ( auto it = _Data.begin(); it != _Data.end(); ++it ){
-	      idx=it->first;
-	      if (IsForeground(idx) && image.IsForeground(idx)){
-		  if(it->second != image.Get(idx))
-		    return false;
-	      }
-	  }
-  }
-  return true;
+    int idx;
+    for (int idx = 0; idx < _NumberOfVoxels; ++idx) {
+        if (IsForeground(idx) && image.IsForeground(idx)){
+            if(Get(idx)!= voxel_cast<VoxelType>(image.Get(idx)))
+                return false;
+        }
+    }
+
+    return true;
 }
 
 
@@ -457,49 +398,49 @@ template <class VoxelType>
 void HashImage<VoxelType>
 ::GetRegion(HashImage<VoxelType> &image, int k, int m) const
 {
-  int i, j;
-  double x1, y1, z1, t1, x2, y2, z2, t2;
+    int i, j;
+    double x1, y1, z1, t1, x2, y2, z2, t2;
 
-  if ((k < 0) || (k >= _attr._z) || (m < 0) || (m >= _attr._t)) {
-    cerr << "HashImage<VoxelType>::GetRegion: Parameter out of range" << endl;
-    exit(1);
-  }
-
-  // Initialize
-  ImageAttributes attr = this->Attributes();
-  attr._z = 1;
-  attr._t = 1;
-  attr._xorigin = 0;
-  attr._yorigin = 0;
-  attr._zorigin = 0;
-  image.Initialize(attr);
-
-  // Calculate position of first voxel in roi in original image
-  x1 = 0;
-  y1 = 0;
-  z1 = k;
-  this->ImageToWorld(x1, y1, z1);
-  t1 = this->ImageToTime(m);
-
-  // Calculate position of first voxel in roi in new image
-  x2 = 0;
-  y2 = 0;
-  z2 = 0;
-  t2 = 0;
-  image.ImageToWorld(x2, y2, z2);
-  t2 = image.ImageToTime(0);
-
-  // Shift origin of new image accordingly
-  image.PutOrigin(x1 - x2, y1 - y2, z1 - z2, t1 - t2);
-
-  // Copy region
-  VoxelType value, empty=image.DefaultValue();
-  for (j = 0; j < _attr._y; j++) {
-    for (i = 0; i < _attr._x; i++) {
-        value=Get(i,j,k,m);
-        if(value!=empty) image.Put(i,j,0,0, value );
+    if ((k < 0) || (k >= _attr._z) || (m < 0) || (m >= _attr._t)) {
+        cerr << "HashImage<VoxelType>::GetRegion: Parameter out of range" << endl;
+        exit(1);
     }
-  }
+
+    // Initialize
+    ImageAttributes attr = this->Attributes();
+    attr._z = 1;
+    attr._t = 1;
+    attr._xorigin = 0;
+    attr._yorigin = 0;
+    attr._zorigin = 0;
+    image.Initialize(attr);
+
+    // Calculate position of first voxel in roi in original image
+    x1 = 0;
+    y1 = 0;
+    z1 = k;
+    this->ImageToWorld(x1, y1, z1);
+    t1 = this->ImageToTime(m);
+
+    // Calculate position of first voxel in roi in new image
+    x2 = 0;
+    y2 = 0;
+    z2 = 0;
+    t2 = 0;
+    image.ImageToWorld(x2, y2, z2);
+    t2 = image.ImageToTime(0);
+
+    // Shift origin of new image accordingly
+    image.PutOrigin(x1 - x2, y1 - y2, z1 - z2, t1 - t2);
+
+    // Copy region
+    VoxelType value, empty=image.DefaultValue();
+    for (j = 0; j < _attr._y; j++) {
+        for (i = 0; i < _attr._x; i++) {
+            value=Get(i,j,k,m);
+            if(value!=empty) image.Put(i,j,0,0, value );
+        }
+    }
 }
 
 // -----------------------------------------------------------------------------
@@ -507,9 +448,9 @@ template <class VoxelType>
 HashImage<VoxelType> HashImage<VoxelType>
 ::GetRegion(int k, int m) const
 {
-  HashImage<VoxelType> image;
-  this->GetRegion(image, k, m);
-  return image;
+    HashImage<VoxelType> image;
+    this->GetRegion(image, k, m);
+    return image;
 }
 
 // -----------------------------------------------------------------------------
@@ -517,69 +458,69 @@ template <class VoxelType>
 void HashImage<VoxelType>
 ::GetRegion(BaseImage *&base, int k, int m) const
 {
-  HashImage<VoxelType> *image = dynamic_cast<HashImage<VoxelType> *>(base);
-  if (image == NULL) {
-    delete base;
-    image = new HashImage<VoxelType>();
-    base  = image;
-  }
-  this->GetRegion(*image, k, m);
+    HashImage<VoxelType> *image = dynamic_cast<HashImage<VoxelType> *>(base);
+    if (image == NULL) {
+        delete base;
+        image = new HashImage<VoxelType>();
+        base  = image;
+    }
+    this->GetRegion(*image, k, m);
 }
 
 // -----------------------------------------------------------------------------
 template <class VoxelType>
 void HashImage<VoxelType>
 ::GetRegion(HashImage<VoxelType> &image, int i1, int j1, int k1,
-                                            int i2, int j2, int k2) const
+            int i2, int j2, int k2) const
 {
-  int i, j, k, l;
-  double x1, y1, z1, x2, y2, z2;
+    int i, j, k, l;
+    double x1, y1, z1, x2, y2, z2;
 
-  if ((i1 < 0) || (i1 >= i2) ||
-      (j1 < 0) || (j1 >= j2) ||
-      (k1 < 0) || (k1 >= k2) ||
-      (i2 > _attr._x) || (j2 > _attr._y) || (k2 > _attr._z)) {
-    cerr << "HashImage<VoxelType>::GetRegion: Parameter out of range\n";
-    exit(1);
-  }
-
-  // Initialize
-  ImageAttributes attr = this->Attributes();
-  attr._x = i2 - i1;
-  attr._y = j2 - j1;
-  attr._z = k2 - k1;
-  attr._xorigin = 0;
-  attr._yorigin = 0;
-  attr._zorigin = 0;
-  image.Initialize(attr);
-
-  // Calculate position of first voxel in roi in original image
-  x1 = i1;
-  y1 = j1;
-  z1 = k1;
-  this->ImageToWorld(x1, y1, z1);
-
-  // Calculate position of first voxel in roi in new image
-  x2 = 0;
-  y2 = 0;
-  z2 = 0;
-  image.ImageToWorld(x2, y2, z2);
-
-  // Shift origin of new image accordingly
-  image.PutOrigin(x1 - x2, y1 - y2, z1 - z2);
-
-  // Copy region
-  VoxelType value, empty=image.DefaultValue();
-  for (l = 0; l < _attr._t; l++) {
-    for (k = k1; k < k2; k++) {
-      for (j = j1; j < j2; j++) {
-        for (i = i1; i < i2; i++) {
-            value= Get(i,j,k,l);
-            if(value!=empty) image.Put(i-i1,j-j1,k-k1,l,  value );
-        }
-      }
+    if ((i1 < 0) || (i1 >= i2) ||
+            (j1 < 0) || (j1 >= j2) ||
+            (k1 < 0) || (k1 >= k2) ||
+            (i2 > _attr._x) || (j2 > _attr._y) || (k2 > _attr._z)) {
+        cerr << "HashImage<VoxelType>::GetRegion: Parameter out of range\n";
+        exit(1);
     }
-  }
+
+    // Initialize
+    ImageAttributes attr = this->Attributes();
+    attr._x = i2 - i1;
+    attr._y = j2 - j1;
+    attr._z = k2 - k1;
+    attr._xorigin = 0;
+    attr._yorigin = 0;
+    attr._zorigin = 0;
+    image.Initialize(attr);
+
+    // Calculate position of first voxel in roi in original image
+    x1 = i1;
+    y1 = j1;
+    z1 = k1;
+    this->ImageToWorld(x1, y1, z1);
+
+    // Calculate position of first voxel in roi in new image
+    x2 = 0;
+    y2 = 0;
+    z2 = 0;
+    image.ImageToWorld(x2, y2, z2);
+
+    // Shift origin of new image accordingly
+    image.PutOrigin(x1 - x2, y1 - y2, z1 - z2);
+
+    // Copy region
+    VoxelType value, empty=image.DefaultValue();
+    for (l = 0; l < _attr._t; l++) {
+        for (k = k1; k < k2; k++) {
+            for (j = j1; j < j2; j++) {
+                for (i = i1; i < i2; i++) {
+                    value= Get(i,j,k,l);
+                    if(value!=empty) image.Put(i-i1,j-j1,k-k1,l,  value );
+                }
+            }
+        }
+    }
 }
 
 // -----------------------------------------------------------------------------
@@ -587,9 +528,9 @@ template <class VoxelType>
 HashImage<VoxelType> HashImage<VoxelType>
 ::GetRegion(int i1, int j1, int k1, int i2, int j2, int k2) const
 {
-  HashImage<VoxelType> image;
-  this->GetRegion(image, i1, j1, k1, i2, j2, k2);
-  return image;
+    HashImage<VoxelType> image;
+    this->GetRegion(image, i1, j1, k1, i2, j2, k2);
+    return image;
 }
 
 // -----------------------------------------------------------------------------
@@ -597,71 +538,71 @@ template <class VoxelType>
 void HashImage<VoxelType>
 ::GetRegion(BaseImage *&base, int i1, int j1, int k1, int i2, int j2, int k2) const
 {
-  HashImage<VoxelType> *image = dynamic_cast<HashImage<VoxelType> *>(base);
-  if (image == NULL) {
-    delete base;
-    image = new HashImage<VoxelType>();
-    base  = image;
-  }
-  this->GetRegion(*image, i1, j1, k1, i2, j2, k2);
+    HashImage<VoxelType> *image = dynamic_cast<HashImage<VoxelType> *>(base);
+    if (image == NULL) {
+        delete base;
+        image = new HashImage<VoxelType>();
+        base  = image;
+    }
+    this->GetRegion(*image, i1, j1, k1, i2, j2, k2);
 }
 
 // -----------------------------------------------------------------------------
 template <class VoxelType>
 void HashImage<VoxelType>
 ::GetRegion(HashImage<VoxelType> &image, int i1, int j1, int k1, int l1,
-                                            int i2, int j2, int k2, int l2) const
+            int i2, int j2, int k2, int l2) const
 {
-  int i, j, k, l;
-  double x1, y1, z1, x2, y2, z2;
+    int i, j, k, l;
+    double x1, y1, z1, x2, y2, z2;
 
-  if ((i1 < 0) || (i1 >= i2) ||
-      (j1 < 0) || (j1 >= j2) ||
-      (k1 < 0) || (k1 >= k2) ||
-      (l1 < 0) || (l1 >= l2) ||
-      (i2 > _attr._x) || (j2 > _attr._y) || (k2 > _attr._z) || (l2 > _attr._t)) {
-    cerr << "HashImage<VoxelType>::GetRegion: Parameter out of range\n";
-    exit(1);
-  }
-
-  // Initialize
-  ImageAttributes attr = this->Attributes();
-  attr._x = i2 - i1;
-  attr._y = j2 - j1;
-  attr._z = k2 - k1;
-  attr._t = l2 - l1;
-  attr._xorigin = 0;
-  attr._yorigin = 0;
-  attr._zorigin = 0;
-  image.Initialize(attr);
-
-  // Calculate position of first voxel in roi in original image
-  x1 = i1;
-  y1 = j1;
-  z1 = k1;
-  this->ImageToWorld(x1, y1, z1);
-
-  // Calculate position of first voxel in roi in new image
-  x2 = 0;
-  y2 = 0;
-  z2 = 0;
-  image.ImageToWorld(x2, y2, z2);
-
-  // Shift origin of new image accordingly
-  image.PutOrigin(x1 - x2, y1 - y2, z1 - z2);
-
-  // Copy region
-  VoxelType value, empty=image.DefaultValue();
-  for (l = l1; l < l2; l++) {
-    for (k = k1; k < k2; k++) {
-      for (j = j1; j < j2; j++) {
-        for (i = i1; i < i2; i++) {
-            value= Get(i,j,k,l);
-          if(value!=empty) image.Put(i-i1,j-j1,k-k1,l-l1,  value );
-        }
-      }
+    if ((i1 < 0) || (i1 >= i2) ||
+            (j1 < 0) || (j1 >= j2) ||
+            (k1 < 0) || (k1 >= k2) ||
+            (l1 < 0) || (l1 >= l2) ||
+            (i2 > _attr._x) || (j2 > _attr._y) || (k2 > _attr._z) || (l2 > _attr._t)) {
+        cerr << "HashImage<VoxelType>::GetRegion: Parameter out of range\n";
+        exit(1);
     }
-  }
+
+    // Initialize
+    ImageAttributes attr = this->Attributes();
+    attr._x = i2 - i1;
+    attr._y = j2 - j1;
+    attr._z = k2 - k1;
+    attr._t = l2 - l1;
+    attr._xorigin = 0;
+    attr._yorigin = 0;
+    attr._zorigin = 0;
+    image.Initialize(attr);
+
+    // Calculate position of first voxel in roi in original image
+    x1 = i1;
+    y1 = j1;
+    z1 = k1;
+    this->ImageToWorld(x1, y1, z1);
+
+    // Calculate position of first voxel in roi in new image
+    x2 = 0;
+    y2 = 0;
+    z2 = 0;
+    image.ImageToWorld(x2, y2, z2);
+
+    // Shift origin of new image accordingly
+    image.PutOrigin(x1 - x2, y1 - y2, z1 - z2);
+
+    // Copy region
+    VoxelType value, empty=image.DefaultValue();
+    for (l = l1; l < l2; l++) {
+        for (k = k1; k < k2; k++) {
+            for (j = j1; j < j2; j++) {
+                for (i = i1; i < i2; i++) {
+                    value= Get(i,j,k,l);
+                    if(value!=empty) image.Put(i-i1,j-j1,k-k1,l-l1,  value );
+                }
+            }
+        }
+    }
 }
 
 // -----------------------------------------------------------------------------
@@ -669,9 +610,9 @@ template <class VoxelType>
 HashImage<VoxelType> HashImage<VoxelType>
 ::GetRegion(int i1, int j1, int k1, int l1, int i2, int j2, int k2, int l2) const
 {
-  HashImage<VoxelType> image;
-  this->GetRegion(image, i1, j1, k1, l1, i2, j2, k2, l2);
-  return image;
+    HashImage<VoxelType> image;
+    this->GetRegion(image, i1, j1, k1, l1, i2, j2, k2, l2);
+    return image;
 }
 
 // -----------------------------------------------------------------------------
@@ -679,69 +620,69 @@ template <class VoxelType>
 void HashImage<VoxelType>
 ::GetRegion(BaseImage *&base, int i1, int j1, int k1, int l1, int i2, int j2, int k2, int l2) const
 {
-  HashImage<VoxelType> *image = dynamic_cast<HashImage<VoxelType> *>(base);
-  if (image == NULL) {
-    delete base;
-    image = new HashImage<VoxelType>();
-    base  = image;
-  }
-  this->GetRegion(*image, i1, j1, k1, l1, i2, j2, k2, l2);
+    HashImage<VoxelType> *image = dynamic_cast<HashImage<VoxelType> *>(base);
+    if (image == NULL) {
+        delete base;
+        image = new HashImage<VoxelType>();
+        base  = image;
+    }
+    this->GetRegion(*image, i1, j1, k1, l1, i2, j2, k2, l2);
 }
 
 // -----------------------------------------------------------------------------
 template <class VoxelType>
 void HashImage<VoxelType>::GetFrame(HashImage<VoxelType> &image, int l1, int l2) const
 {
-  if (l2 < 0) l2 = l1;
+    if (l2 < 0) l2 = l1;
 
-  if ((l2 < 0) || (l1 >= _attr._t)) {
-    cerr << "HashImage<VoxelType>::GetFrame: Parameter out of range\n";
-    exit(1);
-  }
-
-  if (l1 < 0) l1 = 0;
-  if (l2 >= _attr._t) l2 = _attr._t - 1;
-
-  // Initialize
-  ImageAttributes attr = this->Attributes();
-  attr._t       = l2 - l1 + 1;
-  attr._torigin = this->ImageToTime(l1);
-  image.Initialize(attr);
-
-  // Copy region
-  VoxelType value, empty=image.DefaultValue();
-  for (int l = l1; l <= l2; l++) {
-    for (int k = 0; k < _attr._z; k++) {
-      for (int j = 0; j < _attr._y; j++) {
-        for (int i = 0; i < _attr._x; i++) {
-            value=  Get(i,j,k,l);
-            if(value!=empty) image.Put(i,j,k,l-l1, value );
-        }
-      }
+    if ((l2 < 0) || (l1 >= _attr._t)) {
+        cerr << "HashImage<VoxelType>::GetFrame: Parameter out of range\n";
+        exit(1);
     }
-  }
+
+    if (l1 < 0) l1 = 0;
+    if (l2 >= _attr._t) l2 = _attr._t - 1;
+
+    // Initialize
+    ImageAttributes attr = this->Attributes();
+    attr._t       = l2 - l1 + 1;
+    attr._torigin = this->ImageToTime(l1);
+    image.Initialize(attr);
+
+    // Copy region
+    VoxelType value, empty=image.DefaultValue();
+    for (int l = l1; l <= l2; l++) {
+        for (int k = 0; k < _attr._z; k++) {
+            for (int j = 0; j < _attr._y; j++) {
+                for (int i = 0; i < _attr._x; i++) {
+                    value=  Get(i,j,k,l);
+                    if(value!=empty) image.Put(i,j,k,l-l1, value );
+                }
+            }
+        }
+    }
 }
 
 // -----------------------------------------------------------------------------
 template <class VoxelType>
 HashImage<VoxelType> HashImage<VoxelType>::GetFrame(int l1, int l2) const
 {
-  HashImage<VoxelType> image;
-  this->GetFrame(image, l1, l2);
-  return image;
+    HashImage<VoxelType> image;
+    this->GetFrame(image, l1, l2);
+    return image;
 }
 
 // -----------------------------------------------------------------------------
 template <class VoxelType>
 void HashImage<VoxelType>::GetFrame(BaseImage *&base, int l1, int l2) const
 {
-  HashImage<VoxelType> *image = dynamic_cast<HashImage<VoxelType> *>(base);
-  if (image == NULL) {
-    delete base;
-    image = new HashImage<VoxelType>();
-    base  = image;
-  }
-  this->GetFrame(*image, l1, l2);
+    HashImage<VoxelType> *image = dynamic_cast<HashImage<VoxelType> *>(base);
+    if (image == NULL) {
+        delete base;
+        image = new HashImage<VoxelType>();
+        base  = image;
+    }
+    this->GetFrame(*image, l1, l2);
 }
 
 // =============================================================================
@@ -752,90 +693,90 @@ void HashImage<VoxelType>::GetFrame(BaseImage *&base, int l1, int l2) const
 template <class VoxelType>
 HashImage<VoxelType>& HashImage<VoxelType>::operator+=(const HashImage &image)
 {
-  if (image.Attributes() != this->Attributes()) {
-    cerr << "HashImage<VoxelType>::operator+=: Size mismatch in images" << endl;
-    this->Attributes().Print();
-    image.Attributes().Print();
-    exit(1);
-  }
+    if (image.Attributes() != this->Attributes()) {
+        cerr << "HashImage<VoxelType>::operator+=: Size mismatch in images" << endl;
+        this->Attributes().Print();
+        image.Attributes().Print();
+        exit(1);
+    }
 
-  for (int i = 0; i < _NumberOfVoxels; i++) {
-    if (IsForeground(i) && image.IsForeground(i))
-        Put(i, Get(i)+image.Get(i));
-  }
-  return *this;
+    for (int i = 0; i < _NumberOfVoxels; i++) {
+        if (IsForeground(i) && image.IsForeground(i))
+            Put(i, Get(i)+image.Get(i));
+    }
+    return *this;
 }
 
 // -----------------------------------------------------------------------------
 template <class VoxelType>
 HashImage<VoxelType>& HashImage<VoxelType>::operator-=(const HashImage &image)
 {
-  if (image.Attributes() != this->Attributes()) {
-    cerr << "HashImage<VoxelType>::operator-=: Size mismatch in images" << endl;
-    this->Attributes().Print();
-    image.Attributes().Print();
-    exit(1);
-  }
+    if (image.Attributes() != this->Attributes()) {
+        cerr << "HashImage<VoxelType>::operator-=: Size mismatch in images" << endl;
+        this->Attributes().Print();
+        image.Attributes().Print();
+        exit(1);
+    }
 
-  for (int i = 0; i < _NumberOfVoxels; i++) {
-    if (IsForeground(i) && image.IsForeground(i))
-        Put(i, Get(i)-image.Get(i));
-  }
-  return *this;
+    for (int i = 0; i < _NumberOfVoxels; i++) {
+        if (IsForeground(i) && image.IsForeground(i))
+            Put(i, Get(i)-image.Get(i));
+    }
+    return *this;
 }
 
 // -----------------------------------------------------------------------------
 template <class VoxelType>
 HashImage<VoxelType>& HashImage<VoxelType>::operator*=(const HashImage &image)
 {
-  if (image.Attributes() != this->Attributes()) {
-    cerr << "HashImage<VoxelType>::operator*=: Size mismatch in images" << endl;
-    this->Attributes().Print();
-    image.Attributes().Print();
-    exit(1);
-  }
+    if (image.Attributes() != this->Attributes()) {
+        cerr << "HashImage<VoxelType>::operator*=: Size mismatch in images" << endl;
+        this->Attributes().Print();
+        image.Attributes().Print();
+        exit(1);
+    }
 
-  for (int i = 0; i < _NumberOfVoxels; i++) {
-    if (IsForeground(i) && image.IsForeground(i))
-        Put(i, Get(i)*image.Get(i));
-  }
-  return *this;
+    for (int i = 0; i < _NumberOfVoxels; i++) {
+        if (IsForeground(i) && image.IsForeground(i))
+            Put(i, Get(i)*image.Get(i));
+    }
+    return *this;
 }
 
 // -----------------------------------------------------------------------------
 template <class VoxelType>
 HashImage<VoxelType>& HashImage<VoxelType>::operator/=(const HashImage &image)
 {
-  if (image.Attributes() != this->Attributes()) {
-    cerr << "HashImage<VoxelType>::operator/=: Size mismatch in images" << endl;
-    this->Attributes().Print();
-    image.Attributes().Print();
-    exit(1);
-  }
-
-  VoxelType value;
-  for (int i = 0; i < _NumberOfVoxels; i++) {
-    if (IsForeground(i) && image.IsForeground(i)){
-        value=image.Get(i);
-        if(value != VoxelType()){
-                value=Get(i)/value;
-        }
-        Put(i, value);
+    if (image.Attributes() != this->Attributes()) {
+        cerr << "HashImage<VoxelType>::operator/=: Size mismatch in images" << endl;
+        this->Attributes().Print();
+        image.Attributes().Print();
+        exit(1);
     }
-  }
-  return *this;
+
+    VoxelType value;
+    for (int i = 0; i < _NumberOfVoxels; i++) {
+        if (IsForeground(i) && image.IsForeground(i)){
+            value=image.Get(i);
+            if(value != VoxelType()){
+                value=Get(i)/value;
+            }
+            Put(i, value);
+        }
+    }
+    return *this;
 }
 
 template <> HashImage<float3x3 > &HashImage<float3x3 >::operator/=(const HashImage &)
 {
-  cerr << "HashImage<float3x3>::operator /=: Not implemented" << endl;
-  exit(1);
+    cerr << "HashImage<float3x3>::operator /=: Not implemented" << endl;
+    exit(1);
 }
 
 template <> HashImage<double3x3> &HashImage<double3x3>::operator/=(const HashImage &)
 {
-  cerr << "HashImage<double3x3>::operator /=: Not implemented" << endl;
-  exit(1);
+    cerr << "HashImage<double3x3>::operator /=: Not implemented" << endl;
+    exit(1);
 }
 
 // -----------------------------------------------------------------------------
@@ -843,12 +784,12 @@ template <class VoxelType>
 HashImage<VoxelType>& HashImage<VoxelType>::operator+=(ScalarType scalar)
 {
     _DefaultValue += scalar;
-    for ( auto it = _Data.begin(); it != _Data.end(); ++it ){
+    for ( auto it = Begin(); it != End(); ++it ){
         if (IsForeground(it->first)){
             _Data[it->first] +=scalar;
         }
     }
-  return *this;
+    return *this;
 }
 
 // -----------------------------------------------------------------------------
@@ -856,12 +797,12 @@ template <class VoxelType>
 HashImage<VoxelType>& HashImage<VoxelType>::operator-=(ScalarType scalar)
 {
     _DefaultValue -= scalar;
-    for ( auto it = _Data.begin(); it != _Data.end(); ++it ){
+    for ( auto it = Begin(); it != End(); ++it ){
         if (IsForeground(it->first)){
             _Data[it->first] -=scalar;
         }
     }
-  return *this;
+    return *this;
 }
 
 // -----------------------------------------------------------------------------
@@ -872,7 +813,7 @@ HashImage<VoxelType>& HashImage<VoxelType>::operator*=(ScalarType scalar)
     if(scalar==0){
         _Data.clear();
     }else{
-        for ( auto it = _Data.begin(); it != _Data.end(); ++it ){
+        for ( auto it = Begin(); it != End(); ++it ){
             if (IsForeground(it->first)){
                 _Data[it->first] *=scalar;
             }
@@ -885,17 +826,17 @@ HashImage<VoxelType>& HashImage<VoxelType>::operator*=(ScalarType scalar)
 template <class VoxelType>
 HashImage<VoxelType>& HashImage<VoxelType>::operator/=(ScalarType scalar)
 {
-  if (scalar) {
-      _DefaultValue /= scalar;
-      for ( auto it = _Data.begin(); it != _Data.end(); ++it ){
-          if (IsForeground(it->first)){
-              _Data[it->first] /=scalar;
-          }
-      }
-  } else {
-    cerr << "HashImage<VoxelType>::operator/=: Division by zero" << endl;
-  }
-  return *this;
+    if (scalar) {
+        _DefaultValue /= scalar;
+        for ( auto it = Begin(); it != End(); ++it ){
+            if (IsForeground(it->first)){
+                _Data[it->first] /=scalar;
+            }
+        }
+    } else {
+        cerr << "HashImage<VoxelType>::operator/=: Division by zero" << endl;
+    }
+    return *this;
 }
 
 // -----------------------------------------------------------------------------
@@ -903,71 +844,71 @@ HashImage<VoxelType>& HashImage<VoxelType>::operator/=(ScalarType scalar)
 template <class VoxelType>
 HashImage<VoxelType> HashImage<VoxelType>::operator+(const HashImage &image) const
 {
-  HashImage<VoxelType> tmp(*this);
-  tmp += image;
-  return tmp;
+    HashImage<VoxelType> tmp(*this);
+    tmp += image;
+    return tmp;
 }
 
 // -----------------------------------------------------------------------------
 template <class VoxelType>
 HashImage<VoxelType> HashImage<VoxelType>::operator-(const HashImage &image) const
 {
-  HashImage<VoxelType> tmp(*this);
-  tmp -= image;
-  return tmp;
+    HashImage<VoxelType> tmp(*this);
+    tmp -= image;
+    return tmp;
 }
 
 // -----------------------------------------------------------------------------
 template <class VoxelType>
 HashImage<VoxelType> HashImage<VoxelType>::operator*(const HashImage &image) const
 {
-  HashImage<VoxelType> tmp(*this);
-  tmp *= image;
-  return tmp;
+    HashImage<VoxelType> tmp(*this);
+    tmp *= image;
+    return tmp;
 }
 
 // -----------------------------------------------------------------------------
 template <class VoxelType>
 HashImage<VoxelType> HashImage<VoxelType>::operator/(const HashImage &image) const
 {
-  HashImage<VoxelType> tmp(*this);
-  tmp /= image;
-  return tmp;
+    HashImage<VoxelType> tmp(*this);
+    tmp /= image;
+    return tmp;
 }
 // -----------------------------------------------------------------------------
 template <class VoxelType>
 HashImage<VoxelType> HashImage<VoxelType>::operator+(ScalarType scalar) const
 {
-  HashImage<VoxelType> tmp(*this);
-  tmp += scalar;
-  return tmp;
+    HashImage<VoxelType> tmp(*this);
+    tmp += scalar;
+    return tmp;
 }
 
 // -----------------------------------------------------------------------------
 template <class VoxelType>
 HashImage<VoxelType> HashImage<VoxelType>::operator-(ScalarType scalar) const
 {
-  HashImage<VoxelType> tmp(*this);
-  tmp -= scalar;
-  return tmp;
+    HashImage<VoxelType> tmp(*this);
+    tmp -= scalar;
+    return tmp;
 }
 
 // -----------------------------------------------------------------------------
 template <class VoxelType>
 HashImage<VoxelType> HashImage<VoxelType>::operator*(ScalarType scalar) const
 {
-  HashImage<VoxelType> tmp(*this);
-  tmp *= scalar;
-  return tmp;
+    HashImage<VoxelType> tmp(*this);
+    tmp *= scalar;
+    return tmp;
 }
 
 // -----------------------------------------------------------------------------
 template <class VoxelType>
 HashImage<VoxelType> HashImage<VoxelType>::operator/(ScalarType scalar) const
 {
-  HashImage<VoxelType> tmp(*this);
-  tmp /= scalar;
-  return tmp;
+    HashImage<VoxelType> tmp(*this);
+    tmp /= scalar;
+    return tmp;
 }
 
 // =============================================================================
@@ -978,42 +919,42 @@ HashImage<VoxelType> HashImage<VoxelType>::operator/(ScalarType scalar) const
 template <class VoxelType>
 void HashImage<VoxelType>::PutBackgroundValueAsDouble(double value, bool threshold)
 {
-  _bg    = value;
-  _bgSet = true;
-  if (threshold) {
-    const VoxelType bg = voxel_cast<VoxelType>(this->_bg);
+    _bg    = value;
+    _bgSet = true;
+    if (threshold) {
+        const VoxelType bg = voxel_cast<VoxelType>(this->_bg);
 
-    bool changedValue=false;
-    if( _DefaultValue < bg){
-        changedValue=true;
-        _DefaultValue=bg;
-    }
-
-    bool modify=false;
-    for ( auto it = _Data.begin(); it != _Data.end();){
-        modify=(it->second < bg);
-        if(modify && changedValue){  
-	     // this erase also increases the iterator to the next element...
-             it = _Data.erase( it );
-        }else { 
-	     if(modify){
-             _Data[it->first]=bg;
-	     }
-	     it++;
+        bool changedValue=false;
+        if( _DefaultValue < bg){
+            changedValue=true;
+            _DefaultValue=bg;
         }
-    }
 
-  }
+        bool modify=false;
+        for ( auto it = Begin(); it != End();){
+            modify=(it->second < bg);
+            if(modify && changedValue){
+                // this erase also increases the iterator to the next element...
+                it = _Data.erase( it );
+            }else {
+                if(modify){
+                    _Data[it->first]=bg;
+                }
+                it++;
+            }
+        }
+
+    }
 }
 
 template <> void HashImage<float3x3>::PutBackgroundValueAsDouble(double value, bool threshold)
 {
-  BaseImage::PutBackgroundValueAsDouble(value, threshold);
+    BaseImage::PutBackgroundValueAsDouble(value, threshold);
 }
 
 template <> void HashImage<double3x3>::PutBackgroundValueAsDouble(double value, bool threshold)
 {
-  BaseImage::PutBackgroundValueAsDouble(value, threshold);
+    BaseImage::PutBackgroundValueAsDouble(value, threshold);
 }
 // =============================================================================
 // Common image statistics
@@ -1023,28 +964,28 @@ template <> void HashImage<double3x3>::PutBackgroundValueAsDouble(double value, 
 template <class VoxelType>
 void HashImage<VoxelType>::GetMinMax(VoxelType &min, VoxelType &max) const
 {
-  min = max = _DefaultValue;
+    min = max = _DefaultValue;
 
-  VoxelType value;
-  for ( auto it = _Data.begin(); it != _Data.end(); ++it ){
-      if (IsForeground(it->first)) {
-          value=it->second;
-          if (value < min) min = value;
-          if (value > max) max = value;
-      }
-  }
+    VoxelType value;
+    for ( auto it = Begin(); it != End(); ++it ){
+        if (IsForeground(it->first)) {
+            value=it->second;
+            if (value < min) min = value;
+            if (value > max) max = value;
+        }
+    }
 }
 
 template <> void HashImage<float3x3 >::GetMinMax(VoxelType &, VoxelType &) const
 {
-  cerr << "HashImage<float3x3>::GetMinMax: Not implemented" << endl;
-  exit(1);
+    cerr << "HashImage<float3x3>::GetMinMax: Not implemented" << endl;
+    exit(1);
 }
 
 template <> void HashImage<double3x3>::GetMinMax(VoxelType &, VoxelType &) const
 {
-  cerr << "HashImage<double3x3>::GetMinMax: Not implemented" << endl;
-  exit(1);
+    cerr << "HashImage<double3x3>::GetMinMax: Not implemented" << endl;
+    exit(1);
 }
 
 // -----------------------------------------------------------------------------
@@ -1053,7 +994,7 @@ void HashImage<VoxelType>::GetMinMax(VoxelType &min, VoxelType &max, VoxelType p
 {
     min = max = _DefaultValue;
     VoxelType value;
-    for ( auto it = _Data.begin(); it != _Data.end(); ++it ){
+    for ( auto it = Begin(); it != End(); ++it ){
         value=it->second;
         if (value != pad) {
             if (value < min) min = value;
@@ -1064,43 +1005,43 @@ void HashImage<VoxelType>::GetMinMax(VoxelType &min, VoxelType &max, VoxelType p
 
 template <> void HashImage<float3x3 >::GetMinMax(VoxelType &, VoxelType &, VoxelType) const
 {
-  cerr << "HashImage<float3x3>::GetMinMax: Not implemented" << endl;
-  exit(1);
+    cerr << "HashImage<float3x3>::GetMinMax: Not implemented" << endl;
+    exit(1);
 }
 
 template <> void HashImage<double3x3>::GetMinMax(VoxelType &, VoxelType &, VoxelType) const
 {
-  cerr << "HashImage<double3x3>::GetMinMax: Not implemented" << endl;
-  exit(1);
+    cerr << "HashImage<double3x3>::GetMinMax: Not implemented" << endl;
+    exit(1);
 }
 
 // -----------------------------------------------------------------------------
 template <class VoxelType>
 void HashImage<VoxelType>::PutMinMax(VoxelType min, VoxelType max)
 {
-  VoxelType min_val, max_val;
-  this->GetMinMax(min_val, max_val);
-  RealType slope = voxel_cast<RealType>(max  - min)  / voxel_cast<RealType>(max_val - min_val);
-  RealType inter = voxel_cast<RealType>(min) - slope * voxel_cast<RealType>(min_val);
+    VoxelType min_val, max_val;
+    this->GetMinMax(min_val, max_val);
+    RealType slope = voxel_cast<RealType>(max  - min)  / voxel_cast<RealType>(max_val - min_val);
+    RealType inter = voxel_cast<RealType>(min) - slope * voxel_cast<RealType>(min_val);
 
-  _DefaultValue = inter + slope * _DefaultValue;
-  for ( auto it = _Data.begin(); it != _Data.end(); ++it ){
-      if (IsForeground(it->first)) {
-          _Data[it->first]=static_cast<VoxelType>(inter + slope *it->second);
-      }
-  }
+    _DefaultValue = inter + slope * _DefaultValue;
+    for ( auto it = Begin(); it != End(); ++it ){
+        if (IsForeground(it->first)) {
+            _Data[it->first]=static_cast<VoxelType>(inter + slope *it->second);
+        }
+    }
 }
 
 template <> void HashImage<float3x3 >::PutMinMax(VoxelType, VoxelType)
 {
-  cerr << "HashImage<float3x3>::PutMinMax: Not implemented" << endl;
-  exit(1);
+    cerr << "HashImage<float3x3>::PutMinMax: Not implemented" << endl;
+    exit(1);
 }
 
 template <> void HashImage<double3x3>::PutMinMax(VoxelType, VoxelType)
 {
-  cerr << "HashImage<double3x3>::PutMinMax: Not implemented" << endl;
-  exit(1);
+    cerr << "HashImage<double3x3>::PutMinMax: Not implemented" << endl;
+    exit(1);
 }
 
 
@@ -1112,45 +1053,45 @@ template <> void HashImage<double3x3>::PutMinMax(VoxelType, VoxelType)
 template <class VoxelType>
 void HashImage<VoxelType>::ReflectX()
 {
-  VoxelType value;
-  for (int t = 0; t < _attr._t; ++t)
-  for (int z = 0; z < _attr._z; ++z)
-  for (int y = 0; y < _attr._y; ++y)
-  for (int x = 0; x < _attr._x / 2; ++x) {
-      value=Get(x,y,z,t);
-      Put(x,y,z,t,  Get(_attr._x-(x+1),y,z,t));
-      Put(_attr._x-(x+1),y,z,t,  value);
-  }
+    VoxelType value;
+    for (int t = 0; t < _attr._t; ++t)
+        for (int z = 0; z < _attr._z; ++z)
+            for (int y = 0; y < _attr._y; ++y)
+                for (int x = 0; x < _attr._x / 2; ++x) {
+                    value=Get(x,y,z,t);
+                    Put(x,y,z,t,  Get(_attr._x-(x+1),y,z,t));
+                    Put(_attr._x-(x+1),y,z,t,  value);
+                }
 }
 
 // -----------------------------------------------------------------------------
 template <class VoxelType>
 void HashImage<VoxelType>::ReflectY()
 {
-  VoxelType value;
-  for (int t = 0; t < _attr._t; ++t)
-  for (int z = 0; z < _attr._z; ++z)
-  for (int y = 0; y < _attr._y / 2; ++y)
-  for (int x = 0; x < _attr._x; ++x) {
-      value=Get(x,y,z,t);
-      Put(x,y,z,t,  Get(x,_attr._y-(y+1),z,t));
-      Put(x,_attr._y-(y+1),z,t,  value);
-  }
+    VoxelType value;
+    for (int t = 0; t < _attr._t; ++t)
+        for (int z = 0; z < _attr._z; ++z)
+            for (int y = 0; y < _attr._y / 2; ++y)
+                for (int x = 0; x < _attr._x; ++x) {
+                    value=Get(x,y,z,t);
+                    Put(x,y,z,t,  Get(x,_attr._y-(y+1),z,t));
+                    Put(x,_attr._y-(y+1),z,t,  value);
+                }
 }
 
 // -----------------------------------------------------------------------------
 template <class VoxelType>
 void HashImage<VoxelType>::ReflectZ()
 {
-  VoxelType value;
-  for (int t = 0; t < _attr._t; ++t)
-  for (int z = 0; z < _attr._z / 2; ++z)
-  for (int y = 0; y < _attr._y; ++y)
-  for (int x = 0; x < _attr._x; ++x) {
-      value=Get(x,y,z,t);
-      Put(x,y,z,t,  Get(x,y,_attr._z-(z+1),t));
-      Put(x,y,_attr._z-(z+1),t,  value);
-  }
+    VoxelType value;
+    for (int t = 0; t < _attr._t; ++t)
+        for (int z = 0; z < _attr._z / 2; ++z)
+            for (int y = 0; y < _attr._y; ++y)
+                for (int x = 0; x < _attr._x; ++x) {
+                    value=Get(x,y,z,t);
+                    Put(x,y,z,t,  Get(x,y,_attr._z-(z+1),t));
+                    Put(x,y,_attr._z-(z+1),t,  value);
+                }
 }
 
 
@@ -1158,9 +1099,9 @@ void HashImage<VoxelType>::ReflectZ()
 template <class VoxelType>
 void HashImage<VoxelType>::FlipXY(bool modifyOrigin)
 {
-  // TODO: Implement BaseImage::FlipXY which flips the foreground mask (if any),
-  //       adjusts the attributes, and updates the coordinate transformation matrices.
-  //       The subclass then only needs to reshape the image _matrix data itself.
+    // TODO: Implement BaseImage::FlipXY which flips the foreground mask (if any),
+    //       adjusts the attributes, and updates the coordinate transformation matrices.
+    //       The subclass then only needs to reshape the image _matrix data itself.
 
     cerr << "HashImage<VoxelType>::FlipXY: Not implemented" << endl;
     exit(1);
@@ -1170,9 +1111,9 @@ void HashImage<VoxelType>::FlipXY(bool modifyOrigin)
 template <class VoxelType>
 void HashImage<VoxelType>::FlipXZ(bool modifyOrigin)
 {
-  // TODO: Implement BaseImage::FlipXZ which flips the foreground mask (if any),
-  //       adjusts the attributes, and updates the coordinate transformation matrices.
-  //       The subclass then only needs to reshape the image _matrix data itself.
+    // TODO: Implement BaseImage::FlipXZ which flips the foreground mask (if any),
+    //       adjusts the attributes, and updates the coordinate transformation matrices.
+    //       The subclass then only needs to reshape the image _matrix data itself.
 
     cerr << "HashImage<VoxelType>::FlipXZ: Not implemented" << endl;
     exit(1);
@@ -1182,9 +1123,9 @@ void HashImage<VoxelType>::FlipXZ(bool modifyOrigin)
 template <class VoxelType>
 void HashImage<VoxelType>::FlipYZ(bool modifyOrigin)
 {
-  // TODO: Implement BaseImage::FlipYZ which flips the foreground mask (if any),
-  //       adjusts the attributes, and updates the coordinate transformation matrices.
-  //       The subclass then only needs to reshape the image _matrix data itself.
+    // TODO: Implement BaseImage::FlipYZ which flips the foreground mask (if any),
+    //       adjusts the attributes, and updates the coordinate transformation matrices.
+    //       The subclass then only needs to reshape the image _matrix data itself.
 
     cerr << "HashImage<VoxelType>::FlipYZ: Not implemented" << endl;
     exit(1);
@@ -1194,9 +1135,9 @@ void HashImage<VoxelType>::FlipYZ(bool modifyOrigin)
 template <class VoxelType>
 void HashImage<VoxelType>::FlipXT(bool modifyOrigin)
 {
-  // TODO: Implement BaseImage::FlipXT which flips the foreground mask (if any),
-  //       adjusts the attributes, and updates the coordinate transformation matrices.
-  //       The subclass then only needs to reshape the image _matrix data itself.
+    // TODO: Implement BaseImage::FlipXT which flips the foreground mask (if any),
+    //       adjusts the attributes, and updates the coordinate transformation matrices.
+    //       The subclass then only needs to reshape the image _matrix data itself.
 
     cerr << "HashImage<VoxelType>::FlipXT: Not implemented" << endl;
     exit(1);
@@ -1206,9 +1147,9 @@ void HashImage<VoxelType>::FlipXT(bool modifyOrigin)
 template <class VoxelType>
 void HashImage<VoxelType>::FlipYT(bool modifyOrigin)
 {
-  // TODO: Implement BaseImage::FlipYT which flips the foreground mask (if any),
-  //       adjusts the attributes, and updates the coordinate transformation matrices.
-  //       The subclass then only needs to reshape the image _matrix data itself.
+    // TODO: Implement BaseImage::FlipYT which flips the foreground mask (if any),
+    //       adjusts the attributes, and updates the coordinate transformation matrices.
+    //       The subclass then only needs to reshape the image _matrix data itself.
 
     cerr << "HashImage<VoxelType>::FlipYT: Not implemented" << endl;
     exit(1);
@@ -1218,9 +1159,9 @@ void HashImage<VoxelType>::FlipYT(bool modifyOrigin)
 template <class VoxelType>
 void HashImage<VoxelType>::FlipZT(bool modifyOrigin)
 {
-  // TODO: Implement BaseImage::FlipZT which flips the foreground mask (if any),
-  //       adjusts the attributes, and updates the coordinate transformation matrices.
-  //       The subclass then only needs to reshape the image _matrix data itself.
+    // TODO: Implement BaseImage::FlipZT which flips the foreground mask (if any),
+    //       adjusts the attributes, and updates the coordinate transformation matrices.
+    //       The subclass then only needs to reshape the image _matrix data itself.
 
     cerr << "HashImage<VoxelType>::FlipZT: Not implemented" << endl;
     exit(1);
@@ -1243,40 +1184,40 @@ bool HashImage<VoxelType>::CropPad(int margin)
 template <class VoxelType>
 void HashImage<VoxelType>::ImageToVTK(vtkStructuredPoints *vtk) const
 {
-  if (this->ImageToVTKScalarType() == VTK_VOID) {
-    cerr << "HashImage::ImageToVTK: Cannot convert image to VTK structured points" << endl;
-    exit(1);
-  }
-  double x = 0, y = 0, z = 0;
-  this->ImageToWorld(x, y, z);
-  vtk->SetOrigin    (x, y, z);
-  vtk->SetDimensions(_attr._x,  _attr._y,  _attr._z);
-  vtk->SetSpacing   (_attr._dx, _attr._dy, _attr._dz);
+    if (this->ImageToVTKScalarType() == VTK_VOID) {
+        cerr << "HashImage::ImageToVTK: Cannot convert image to VTK structured points" << endl;
+        exit(1);
+    }
+    double x = 0, y = 0, z = 0;
+    this->ImageToWorld(x, y, z);
+    vtk->SetOrigin    (x, y, z);
+    vtk->SetDimensions(_attr._x,  _attr._y,  _attr._z);
+    vtk->SetSpacing   (_attr._dx, _attr._dy, _attr._dz);
 #if VTK_MAJOR_VERSION >= 6
-  vtk->AllocateScalars(this->ImageToVTKScalarType(), 1);
+    vtk->AllocateScalars(this->ImageToVTKScalarType(), 1);
 #else
-  vtk->SetScalarType(this->ImageToVTKScalarType());
-  vtk->AllocateScalars();
+    vtk->SetScalarType(this->ImageToVTKScalarType());
+    vtk->AllocateScalars();
 #endif
-  const int        nvox = _attr._x * _attr._y * _attr._z;
-  VoxelType       *ptr2 = reinterpret_cast<VoxelType *>(vtk->GetScalarPointer());
-  for (int i = 0; i < nvox; ++i) {
-    for (int l = 0; l < _attr._t; ++l, ++ptr2) *ptr2 = Get(l * nvox);
-  }
+    const int        nvox = _attr._x * _attr._y * _attr._z;
+    VoxelType       *ptr2 = reinterpret_cast<VoxelType *>(vtk->GetScalarPointer());
+    for (int i = 0; i < nvox; ++i) {
+        for (int l = 0; l < _attr._t; ++l, ++ptr2) *ptr2 = Get(l * nvox);
+    }
 }
 template <>
 void HashImage<Matrix3x3>::ImageToVTK(vtkStructuredPoints *) const
 {
-  cerr << "HashImage<Matrix3x3>::VTKToImage: Not implemented" << endl;
-  exit(1);
+    cerr << "HashImage<Matrix3x3>::VTKToImage: Not implemented" << endl;
+    exit(1);
 }
 
 // -----------------------------------------------------------------------------
 template <class Type>
 void HashImage<Type>::VTKToImage(vtkStructuredPoints *)
 {
-  cerr << this->NameOfClass() << "::VTKToImage: Not implemented" << endl;
-  exit(1);
+    cerr << this->NameOfClass() << "::VTKToImage: Not implemented" << endl;
+    exit(1);
 }
 
 #endif // MIRTK_Image_WITH_VTK
@@ -1289,46 +1230,46 @@ void HashImage<Type>::VTKToImage(vtkStructuredPoints *)
 template <class VoxelType>
 void HashImage<VoxelType>::Read(const char *fname)
 {
-  // Read image
-  GenericImage<VoxelType> img(fname);
-  Initialize(img.Attributes());
-  CopyFrom(img);
+    // Read image
+    GenericImage<VoxelType> img(fname);
+    Initialize(img.Attributes());
+    CopyFrom(img);
 }
 
 template <> void HashImage<float3x3>::Read(const char *)
 {
-  cerr << "HashImage<float3x3>::Read: Not implemented" << endl;
-  exit(1);
+    cerr << "HashImage<float3x3>::Read: Not implemented" << endl;
+    exit(1);
 }
 
 template <> void HashImage<double3x3>::Read(const char *)
 {
-  cerr << "HashImage<double3x3>::Read: Not implemented" << endl;
-  exit(1);
+    cerr << "HashImage<double3x3>::Read: Not implemented" << endl;
+    exit(1);
 }
 
 // -----------------------------------------------------------------------------
 template <class VoxelType>
 void HashImage<VoxelType>::Write(const char *fname) const
 {
-  string name(fname);
-  if (Extension(fname).empty()) name += MIRTK_Image_DEFAULT_EXT;
-  unique_ptr<ImageWriter> writer(ImageWriter::New(name.c_str()));
-  GenericImage<VoxelType> img=this->ToGenericImage();
-  writer->Input(&img);
-  writer->Run();
+    string name(fname);
+    if (Extension(fname).empty()) name += MIRTK_Image_DEFAULT_EXT;
+    unique_ptr<ImageWriter> writer(ImageWriter::New(name.c_str()));
+    GenericImage<VoxelType> img=this->ToGenericImage();
+    writer->Input(&img);
+    writer->Run();
 }
 
 template <> void HashImage<float3x3>::Write(const char *) const
 {
-  cerr << "HashImage<float3x3>::Write: Not implemented" << endl;
-  exit(1);
+    cerr << "HashImage<float3x3>::Write: Not implemented" << endl;
+    exit(1);
 }
 
 template <> void HashImage<double3x3>::Write(const char *) const
 {
-  cerr << "HashImage<double3x3>::Read: Not implemented" << endl;
-  exit(1);
+    cerr << "HashImage<double3x3>::Read: Not implemented" << endl;
+    exit(1);
 }
 
 
@@ -1342,9 +1283,9 @@ GenericImage<VoxelType> HashImage<VoxelType>::ToGenericImage() const
 
 
 template <class VoxelType> template <class VoxelType2>
-void HashImage<VoxelType>::ToGenericImage(GenericImage<VoxelType2>* image) const
+void HashImage<VoxelType>::ToGenericImage(GenericImage<VoxelType2>& image) const
 {
-    this->CopyTo(*image);
+    this->CopyTo(image);
 }
 
 
@@ -1485,6 +1426,7 @@ template HashImage<double3  >::HashImage(const HashImage<float3  > &);
 template HashImage<double4  >::HashImage(const HashImage<float4  > &);
 template HashImage<double3x3  >::HashImage(const HashImage<float3x3  > &);
 
+template void HashImage<char>::CopyFrom(const HashImage<char> &image);
 template void HashImage<char>::CopyFrom(const HashImage<unsigned char> &image);
 template void HashImage<char>::CopyFrom(const HashImage<short> &image);
 template void HashImage<char>::CopyFrom(const HashImage<unsigned short> &image);
@@ -1493,6 +1435,7 @@ template void HashImage<char>::CopyFrom(const HashImage<float> &image);
 template void HashImage<char>::CopyFrom(const HashImage<double> &image);
 
 template void HashImage<unsigned char>::CopyFrom(const HashImage<char> &image);
+template void HashImage<unsigned char>::CopyFrom(const HashImage<unsigned char> &image);
 template void HashImage<unsigned char>::CopyFrom(const HashImage<short> &image);
 template void HashImage<unsigned char>::CopyFrom(const HashImage<unsigned short> &image);
 template void HashImage<unsigned char>::CopyFrom(const HashImage<int> &image);
@@ -1501,6 +1444,7 @@ template void HashImage<unsigned char>::CopyFrom(const HashImage<double> &image)
 
 template void HashImage<short>::CopyFrom(const HashImage<char> &image);
 template void HashImage<short>::CopyFrom(const HashImage<unsigned char> &image);
+template void HashImage<short>::CopyFrom(const HashImage<short> &image);
 template void HashImage<short>::CopyFrom(const HashImage<unsigned short> &image);
 template void HashImage<short>::CopyFrom(const HashImage<int> &image);
 template void HashImage<short>::CopyFrom(const HashImage<float> &image);
@@ -1509,6 +1453,7 @@ template void HashImage<short>::CopyFrom(const HashImage<double> &image);
 template void HashImage<unsigned short>::CopyFrom(const HashImage<char> &image);
 template void HashImage<unsigned short>::CopyFrom(const HashImage<unsigned char> &image);
 template void HashImage<unsigned short>::CopyFrom(const HashImage<short> &image);
+template void HashImage<unsigned short>::CopyFrom(const HashImage<unsigned short> &image);
 template void HashImage<unsigned short>::CopyFrom(const HashImage<int> &image);
 template void HashImage<unsigned short>::CopyFrom(const HashImage<float> &image);
 template void HashImage<unsigned short>::CopyFrom(const HashImage<double> &image);
@@ -1517,6 +1462,7 @@ template void HashImage<int>::CopyFrom(const HashImage<char> &image);
 template void HashImage<int>::CopyFrom(const HashImage<unsigned char> &image);
 template void HashImage<int>::CopyFrom(const HashImage<short> &image);
 template void HashImage<int>::CopyFrom(const HashImage<unsigned short> &image);
+template void HashImage<int>::CopyFrom(const HashImage<int> &image);
 template void HashImage<int>::CopyFrom(const HashImage<float> &image);
 template void HashImage<int>::CopyFrom(const HashImage<double> &image);
 
@@ -1525,6 +1471,7 @@ template void HashImage<float>::CopyFrom(const HashImage<unsigned char> &image);
 template void HashImage<float>::CopyFrom(const HashImage<short> &image);
 template void HashImage<float>::CopyFrom(const HashImage<unsigned short> &image);
 template void HashImage<float>::CopyFrom(const HashImage<int> &image);
+template void HashImage<float>::CopyFrom(const HashImage<float> &image);
 template void HashImage<float>::CopyFrom(const HashImage<double> &image);
 
 template void HashImage<double>::CopyFrom(const HashImage<char> &image);
@@ -1533,6 +1480,7 @@ template void HashImage<double>::CopyFrom(const HashImage<short> &image);
 template void HashImage<double>::CopyFrom(const HashImage<unsigned short> &image);
 template void HashImage<double>::CopyFrom(const HashImage<int> &image);
 template void HashImage<double>::CopyFrom(const HashImage<float> &image);
+template void HashImage<double>::CopyFrom(const HashImage<double> &image);
 
 template void HashImage<float2>::CopyFrom(const HashImage<double2  > &);
 template void HashImage<float3>::CopyFrom(const HashImage<double3  > &);
@@ -1656,64 +1604,61 @@ template void HashImage<double>::CopyTo(GenericImage<int> &image) const;
 template void HashImage<double>::CopyTo(GenericImage<float> &image) const;
 template void HashImage<double>::CopyTo(GenericImage<double> &image) const;
 
+template void HashImage<char>::ToGenericImage(GenericImage<char>& image) const;
+template void HashImage<char>::ToGenericImage(GenericImage<unsigned char>& image) const;
+template void HashImage<char>::ToGenericImage(GenericImage<short>& image) const;
+template void HashImage<char>::ToGenericImage(GenericImage<unsigned short>& image) const;
+template void HashImage<char>::ToGenericImage(GenericImage<int>& image) const;
+template void HashImage<char>::ToGenericImage(GenericImage<float>& image) const;
+template void HashImage<char>::ToGenericImage(GenericImage<double>& image) const;
 
-template void HashImage<char>::ToGenericImage(GenericImage<char>* image) const;
-template void HashImage<char>::ToGenericImage(GenericImage<unsigned char>* image) const;
-template void HashImage<char>::ToGenericImage(GenericImage<short>* image) const;
-template void HashImage<char>::ToGenericImage(GenericImage<unsigned short>* image) const;
-template void HashImage<char>::ToGenericImage(GenericImage<int>* image) const;
-template void HashImage<char>::ToGenericImage(GenericImage<float>* image) const;
-template void HashImage<char>::ToGenericImage(GenericImage<double>* image) const;
+template void HashImage<unsigned char>::ToGenericImage(GenericImage<char>& image) const;
+template void HashImage<unsigned char>::ToGenericImage(GenericImage<unsigned char>& image) const;
+template void HashImage<unsigned char>::ToGenericImage(GenericImage<short>& image) const;
+template void HashImage<unsigned char>::ToGenericImage(GenericImage<unsigned short>& image) const;
+template void HashImage<unsigned char>::ToGenericImage(GenericImage<int>& image) const;
+template void HashImage<unsigned char>::ToGenericImage(GenericImage<float>& image) const;
+template void HashImage<unsigned char>::ToGenericImage(GenericImage<double>& image) const;
 
-template void HashImage<unsigned char>::ToGenericImage(GenericImage<char>* image) const;
-template void HashImage<unsigned char>::ToGenericImage(GenericImage<unsigned char>* image) const;
-template void HashImage<unsigned char>::ToGenericImage(GenericImage<short>* image) const;
-template void HashImage<unsigned char>::ToGenericImage(GenericImage<unsigned short>* image) const;
-template void HashImage<unsigned char>::ToGenericImage(GenericImage<int>* image) const;
-template void HashImage<unsigned char>::ToGenericImage(GenericImage<float>* image) const;
-template void HashImage<unsigned char>::ToGenericImage(GenericImage<double>* image) const;
+template void HashImage<short>::ToGenericImage(GenericImage<char>& image) const;
+template void HashImage<short>::ToGenericImage(GenericImage<unsigned char>& image) const;
+template void HashImage<short>::ToGenericImage(GenericImage<short>& image) const;
+template void HashImage<short>::ToGenericImage(GenericImage<unsigned short>& image) const;
+template void HashImage<short>::ToGenericImage(GenericImage<int>& image) const;
+template void HashImage<short>::ToGenericImage(GenericImage<float>& image) const;
+template void HashImage<short>::ToGenericImage(GenericImage<double>& image) const;
 
-template void HashImage<short>::ToGenericImage(GenericImage<char>* image) const;
-template void HashImage<short>::ToGenericImage(GenericImage<unsigned char>* image) const;
-template void HashImage<short>::ToGenericImage(GenericImage<short>* image) const;
-template void HashImage<short>::ToGenericImage(GenericImage<unsigned short>* image) const;
-template void HashImage<short>::ToGenericImage(GenericImage<int>* image) const;
-template void HashImage<short>::ToGenericImage(GenericImage<float>* image) const;
-template void HashImage<short>::ToGenericImage(GenericImage<double>* image) const;
+template void HashImage<unsigned short>::ToGenericImage(GenericImage<char>& image) const;
+template void HashImage<unsigned short>::ToGenericImage(GenericImage<unsigned char>& image) const;
+template void HashImage<unsigned short>::ToGenericImage(GenericImage<short>& image) const;
+template void HashImage<unsigned short>::ToGenericImage(GenericImage<unsigned short>& image) const;
+template void HashImage<unsigned short>::ToGenericImage(GenericImage<int>& image) const;
+template void HashImage<unsigned short>::ToGenericImage(GenericImage<float>& image) const;
+template void HashImage<unsigned short>::ToGenericImage(GenericImage<double>& image) const;
 
-template void HashImage<unsigned short>::ToGenericImage(GenericImage<char>* image) const;
-template void HashImage<unsigned short>::ToGenericImage(GenericImage<unsigned char>* image) const;
-template void HashImage<unsigned short>::ToGenericImage(GenericImage<short>* image) const;
-template void HashImage<unsigned short>::ToGenericImage(GenericImage<unsigned short>* image) const;
-template void HashImage<unsigned short>::ToGenericImage(GenericImage<int>* image) const;
-template void HashImage<unsigned short>::ToGenericImage(GenericImage<float>* image) const;
-template void HashImage<unsigned short>::ToGenericImage(GenericImage<double>* image) const;
+template void HashImage<int>::ToGenericImage(GenericImage<char>& image) const;
+template void HashImage<int>::ToGenericImage(GenericImage<unsigned char>& image) const;
+template void HashImage<int>::ToGenericImage(GenericImage<short>& image) const;
+template void HashImage<int>::ToGenericImage(GenericImage<unsigned short>& image) const;
+template void HashImage<int>::ToGenericImage(GenericImage<int>& image) const;
+template void HashImage<int>::ToGenericImage(GenericImage<float>& image) const;
+template void HashImage<int>::ToGenericImage(GenericImage<double>& image) const;
 
-template void HashImage<int>::ToGenericImage(GenericImage<char>* image) const;
-template void HashImage<int>::ToGenericImage(GenericImage<unsigned char>* image) const;
-template void HashImage<int>::ToGenericImage(GenericImage<short>* image) const;
-template void HashImage<int>::ToGenericImage(GenericImage<unsigned short>* image) const;
-template void HashImage<int>::ToGenericImage(GenericImage<int>* image) const;
-template void HashImage<int>::ToGenericImage(GenericImage<float>* image) const;
-template void HashImage<int>::ToGenericImage(GenericImage<double>* image) const;
+template void HashImage<float>::ToGenericImage(GenericImage<char>& image) const;
+template void HashImage<float>::ToGenericImage(GenericImage<unsigned char>& image) const;
+template void HashImage<float>::ToGenericImage(GenericImage<short>& image) const;
+template void HashImage<float>::ToGenericImage(GenericImage<unsigned short>& image) const;
+template void HashImage<float>::ToGenericImage(GenericImage<int>& image) const;
+template void HashImage<float>::ToGenericImage(GenericImage<float>& image) const;
+template void HashImage<float>::ToGenericImage(GenericImage<double>& image) const;
 
-template void HashImage<float>::ToGenericImage(GenericImage<char>* image) const;
-template void HashImage<float>::ToGenericImage(GenericImage<unsigned char>* image) const;
-template void HashImage<float>::ToGenericImage(GenericImage<short>* image) const;
-template void HashImage<float>::ToGenericImage(GenericImage<unsigned short>* image) const;
-template void HashImage<float>::ToGenericImage(GenericImage<int>* image) const;
-template void HashImage<float>::ToGenericImage(GenericImage<float>* image) const;
-template void HashImage<float>::ToGenericImage(GenericImage<double>* image) const;
-
-template void HashImage<double>::ToGenericImage(GenericImage<char>* image) const;
-template void HashImage<double>::ToGenericImage(GenericImage<unsigned char>* image) const;
-template void HashImage<double>::ToGenericImage(GenericImage<short>* image) const;
-template void HashImage<double>::ToGenericImage(GenericImage<unsigned short>* image) const;
-template void HashImage<double>::ToGenericImage(GenericImage<int>* image) const;
-template void HashImage<double>::ToGenericImage(GenericImage<float>* image) const;
-template void HashImage<double>::ToGenericImage(GenericImage<double>* image) const;
-
-
+template void HashImage<double>::ToGenericImage(GenericImage<char>& image) const;
+template void HashImage<double>::ToGenericImage(GenericImage<unsigned char>& image) const;
+template void HashImage<double>::ToGenericImage(GenericImage<short>& image) const;
+template void HashImage<double>::ToGenericImage(GenericImage<unsigned short>& image) const;
+template void HashImage<double>::ToGenericImage(GenericImage<int>& image) const;
+template void HashImage<double>::ToGenericImage(GenericImage<float>& image) const;
+template void HashImage<double>::ToGenericImage(GenericImage<double>& image) const;
 
 
 
