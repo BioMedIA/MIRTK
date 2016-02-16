@@ -1,9 +1,7 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2008-2015 Imperial College London
- * Copyright 2008-2013 Daniel Rueckert, Julia Schnabel
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2013-2015 Antonios Makropoulos
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,26 +16,20 @@
  * limitations under the License.
  */
 
-#include <mirtkBaseImage.h> // MUST be before include guard because of
-                            // cyclic dependency between BaseImage and
-                            // HashImage
-
 #ifndef MIRTK_HashImage_H
 #define MIRTK_HashImage_H
 
+#include <mirtkBaseImage.h> 
 #include <mirtkVoxelCast.h>
-#include <unordered_map>
-#include <mirtkCofstream.h>
-
-using namespace std;
+#include <mirtkUnorderedMap.h>
 
 namespace mirtk {
 
 
 /**
- * Hash class for 2D or 3D images
+ * Hash class for N-D images
  *
- * This class implements generic 2D and 3D images. It provides functions
+ * This class implements N-D images based on hashmaps. It provides functions
  * for accessing, reading, writing and manipulating images. This class can
  * be used for images with arbitrary voxel types using templates.
  */
@@ -59,7 +51,11 @@ public:
   /// \note The VoxelType as well as the RealType may be a matrix/vector type!
   typedef typename voxel_info<VoxelType>::RealType RealType;
 
-  typedef typename unordered_map<int,VoxelType>::const_iterator data_iterator;
+  /// Data map (hashmap)
+  typedef UnorderedMap<int, VoxelType> DataMap;
+
+  /// Data map iterator
+  typedef typename DataMap::const_iterator DataIterator;
 
   /// Scalar type corresponding to voxel type
   typedef typename voxel_info<VoxelType>::ScalarType ScalarType;
@@ -72,17 +68,15 @@ protected:
   /// Pointer array for access to image data
   ///
   /// \note The image data is stored in a hash map
-  unordered_map<int, VoxelType> *_hash_data;
-  VoxelType *_empty_value;
-
-  /// Whether image data memory itself is owned by this instance
-  bool _dataOwner;
+  mirtkAttributeMacro(DataMap, Data);
+  /// \note Voxels that their value==DefaultValue are not stored
+  mirtkPublicAttributeMacro(VoxelType, DefaultValue);
 
   // ---------------------------------------------------------------------------
   // Construction/Destruction
 
   /// Allocate image memory
-  void AllocateImage(unordered_map<int, VoxelType> *data = NULL, VoxelType *empty = NULL);
+  void AllocateImage();
 
   /// Function for not const pixel get access
   VoxelType Access(int);
@@ -96,16 +90,16 @@ public:
   HashImage(const char *);
 
   /// Constructor for given image size
-  explicit HashImage(int, int, int = 1, int = 1, unordered_map<int, VoxelType> *data = NULL, VoxelType *empty = NULL);
+  explicit HashImage(int, int, int = 1, int = 1);
 
   /// Constructor for given image size
-  explicit HashImage(int, int, int, int, int, unordered_map<int, VoxelType> *data = NULL, VoxelType *empty = NULL);
+  explicit HashImage(int, int, int, int, int);
 
   /// Constructor for given image attributes
-  explicit HashImage(const ImageAttributes &, unordered_map<int, VoxelType> *data = NULL, VoxelType *empty = NULL);
+  explicit HashImage(const ImageAttributes &);
 
   /// Constructor for given image attributes
-  explicit HashImage(const ImageAttributes &, int, unordered_map<int, VoxelType> *data = NULL, VoxelType *empty = NULL);
+  explicit HashImage(const ImageAttributes &, int);
 
   /// Copy constructor for image
   explicit HashImage(const BaseImage &);
@@ -142,13 +136,6 @@ public:
   /// Initialize an image
   void Initialize(int, int, int = 1, int = 1);
 
-  /// Copy image data from 1D array
-  void CopyFrom(const unordered_map<int,VoxelType>* data, VoxelType *empty = NULL);
-
-  /// Copy image data from 1D array
-  template <class TVoxel2>
-  void CopyFrom(const unordered_map<int,TVoxel2>* data, TVoxel2 *empty = NULL);
-
   /// Copy image data from other image of same size
   void CopyFrom(const BaseImage &);
 
@@ -157,8 +144,15 @@ public:
   void CopyFrom(const GenericImage<TVoxel2> &);
 
   /// Copy image data from other image of same size
+  void CopyFrom(const HashImage<VoxelType> &);
+
+  /// Copy image data from other image of same size
   template <class TVoxel2>
   void CopyFrom(const HashImage<TVoxel2> &);
+
+  /// Copy image data to GenericImage
+  template <class TVoxel2>
+  void CopyTo(GenericImage<TVoxel2> &) const;
 
   /// Assign constant value to each voxel
   HashImage& operator= (VoxelType);
@@ -169,9 +163,6 @@ public:
   /// Assignment operator with implicit cast to double and then VoxelType
   template <class TVoxel2>
   HashImage<VoxelType>& operator= (const GenericImage<TVoxel2> &);
-
-  /// Assignment operator with implicit cast to double and then VoxelType
-  //HashImage<VoxelType>& operator= (const GenericImage<VoxelType> &);
 
   /// Assignment operator
   HashImage<VoxelType>& operator= (const HashImage &);
@@ -196,9 +187,9 @@ public:
   // ---------------------------------------------------------------------------
   // Image data access
 
-  VoxelType* GetEmpty() const;
-  VoxelType GetEmptyValue() const;
-  unordered_map<int,VoxelType>* GetData() const;
+  DataIterator Begin() const;
+  DataIterator End() const;
+
   int GetDataSize() const;
 
   /// Function for pixel get access
@@ -218,19 +209,6 @@ public:
 
   /// Function for pixel put access
   void Put(int, int, int, int, VoxelType);
-
-  /// Function for pixel access from via operators
-  //VoxelType& operator()(int);
-
-  /// Function for pixel access from via operators
-  //const VoxelType& operator()(int) const;
-
-  /// Function for pixel access from via operators
-  //VoxelType& operator()(int, int, int = 0, int = 0);
-
-  /// Function for pixel access from via operators
-  //const VoxelType& operator()(int, int, int = 0, int = 0) const;
-
   // ---------------------------------------------------------------------------
   // Type independent access to scalar image data
 
@@ -385,16 +363,6 @@ public:
 
   /// Put background value
   virtual void PutBackgroundValueAsDouble(double, bool);
-/*TODO
-  HashImage& operator>=(VoxelType);       ///< Clamp image given upper threshold
-  HashImage& operator<=(VoxelType);       ///< Clamp image given lower threshold
-
-  HashImage  operator> (VoxelType) const; ///< Clamp image given upper threshold
-  HashImage  operator< (VoxelType) const; ///< Clamp image given lower threshold
-
-  /// Get binary mask for voxels which are not equal the scalar
-  BinaryImage operator!=(VoxelType) const;
-  */
 
   // ---------------------------------------------------------------------------
   // Common image statistics
@@ -407,19 +375,7 @@ public:
 
   /// Linearly rescale intensities
   void PutMinMax(VoxelType, VoxelType);
-/*
-  /// Average pixel values get accessor
-  RealType GetAverage(int = 1) const;
 
-  /// Standard Deviation of the pixels
-  RealType GetSD(int = 1) const;
-
-  /// Get Max Intensity position around the point
-  void GetMaxPosition(Point &, int = 1, int = 0) const;
-  
-  /// Get Gravity center position of a given window
-  void GravityCenter(Point &, int = 1, int = 0) const;
-*/
   // ---------------------------------------------------------------------------
   // Common image manipulations
 
@@ -464,7 +420,10 @@ public:
 
   // ---------------------------------------------------------------------------
   // Convertors
-  GenericImage<VoxelType>* toGenericImage() const;
+  GenericImage<VoxelType> ToGenericImage() const;
+
+  template <class TVoxel2>
+  void ToGenericImage(GenericImage<TVoxel2>* image) const;
 
   // ---------------------------------------------------------------------------
   // Deprecated
@@ -520,10 +479,10 @@ template <class VoxelType>
 inline void HashImage<VoxelType>::Put(int index, VoxelType val)
 {
     if(index>=0){
-        if(val==*_empty_value){
-            _hash_data->erase(index);
+        if(val==_DefaultValue){
+            _Data.erase(index);
          }else{
-            (*_hash_data)[index]=val;
+            _Data[index]=val;
         }
     }
 }
@@ -560,26 +519,17 @@ inline VoxelType HashImage<VoxelType>::Access(int index)
 // -----------------------------------------------------------------------------
 
 template <class VoxelType>
-inline VoxelType* HashImage<VoxelType>::GetEmpty() const
+inline typename HashImage<VoxelType>::DataIterator HashImage<VoxelType>::Begin() const
 {
-  return _empty_value;
+  return _Data.begin();
 }
 
 // -----------------------------------------------------------------------------
 
 template <class VoxelType>
-inline VoxelType HashImage<VoxelType>::GetEmptyValue() const
+inline typename HashImage<VoxelType>::DataIterator HashImage<VoxelType>::End() const
 {
-  return *_empty_value;
-}
-
-
-// -----------------------------------------------------------------------------
-
-template <class VoxelType>
-inline unordered_map<int,VoxelType>* HashImage<VoxelType>::GetData() const
-{
-  return _hash_data;
+  return _Data.end();
 }
 
 // -----------------------------------------------------------------------------
@@ -587,7 +537,7 @@ inline unordered_map<int,VoxelType>* HashImage<VoxelType>::GetData() const
 template <class VoxelType>
 int HashImage<VoxelType>::GetDataSize() const
 {
-  return _hash_data->size();
+  return _Data.size();
 }
 
 // -----------------------------------------------------------------------------
@@ -595,8 +545,8 @@ int HashImage<VoxelType>::GetDataSize() const
 template <class VoxelType>
 inline VoxelType HashImage<VoxelType>::Get(int index) const
 {
-  data_iterator pos=_hash_data->find (index);
-  if ( pos == _hash_data->end() ) return *_empty_value;
+  auto pos=_Data.find (index);
+  if ( pos == _Data.end() ) return _DefaultValue;
   return voxel_cast<VoxelType>(pos->second);
 }
 
@@ -606,44 +556,6 @@ inline VoxelType HashImage<VoxelType>::Get(int x, int y, int z, int t) const
 {
   return Get(VoxelToIndex(x, y, z, t));
 }
-
-// -----------------------------------------------------------------------------
-/*template <class VoxelType>
-inline VoxelType &HashImage<VoxelType>::operator ()(int index)
-{
-    cerr << "HashImage<VoxelType>::operator (): Not implemented" << endl;
-    exit(1);
-}
-
-// -----------------------------------------------------------------------------
-template <class VoxelType>
-inline const VoxelType &HashImage<VoxelType>::operator ()(int index) const
-{
-    cerr << "HashImage<VoxelType>::operator (): Not implemented" << endl;
-    exit(1);
-}
-
-// -----------------------------------------------------------------------------
-template <class VoxelType>
-inline VoxelType& HashImage<VoxelType>::operator()(int x, int y, int z, int t)
-{
-    cerr << "HashImage<VoxelType>::operator (): Not implemented" << endl;
-    exit(1);
-}
-
-// -----------------------------------------------------------------------------
-template <class VoxelType>
-inline const VoxelType& HashImage<VoxelType>::operator()(int x, int y, int z, int t) const
-{
-    cerr << "HashImage<VoxelType>::operator (): Not implemented" << endl;
-    exit(1);
-}
-*/
-// =============================================================================
-// Image arithmetics
-// =============================================================================
-
-
 
 // =============================================================================
 // Type independent access to scalar image data
@@ -838,21 +750,6 @@ inline void HashImage<VoxelType>::GetMinMaxPad(VoxelType *min, VoxelType *max, V
 {
   this->GetMinMax(*min, *max, pad);
 }
-/*
-// -----------------------------------------------------------------------------
-template <class VoxelType>
-inline VoxelType *HashImage<VoxelType>::GetPointerToVoxels(int x, int y, int z, int t)
-{
-  return &_matrix[t][z][y][x];
-}
-
-// -----------------------------------------------------------------------------
-template <class VoxelType>
-inline const VoxelType *HashImage<VoxelType>::GetPointerToVoxels(int x, int y, int z, int t) const
-{
-  return &_matrix[t][z][y][x];
-}
-*/
 ////////////////////////////////////////////////////////////////////////////////
 // Common specializations
 ////////////////////////////////////////////////////////////////////////////////
