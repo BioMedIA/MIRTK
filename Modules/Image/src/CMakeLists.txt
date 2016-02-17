@@ -103,6 +103,7 @@ set(HEADERS
   mirtkGenericImageIterator.h
   mirtkGradientImageFilter.h
   mirtkHashImage.h
+  mirtkHashImage.hxx
   mirtkHessianImageFilter.h
   mirtkHistogram1D.h
   mirtkHistogram2D.h
@@ -193,7 +194,6 @@ set(SOURCES
   mirtkGaussianPyramidFilter.cc
   mirtkGenericImage.cc
   mirtkGradientImageFilter.cc
-  mirtkHashImage.cc
   mirtkHessianImageFilter.cc
   mirtkHistogram1D.cc
   mirtkHistogram2D.cc

@@ -7,7 +7,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -292,27 +292,27 @@ public:
 
   /// Get image consisting of specified 3D subregion
   HashImage GetRegion(int, int, int,
-                         int, int, int) const;
+             int, int, int) const;
 
   /// Get image consisting of specified 3D subregion
   void GetRegion(HashImage &, int, int, int,
-                                 int, int, int) const;
+                 int, int, int) const;
 
   /// Get image consisting of specified 3D subregion
   virtual void GetRegion(BaseImage *&, int, int, int,
-                                       int, int, int) const;
+                     int, int, int) const;
 
   /// Get image consisting of specified 4D subregion
   HashImage GetRegion(int, int, int, int,
-                         int, int, int, int) const;
+             int, int, int, int) const;
 
   /// Get image consisting of specified 4D subregion
   void GetRegion(HashImage &, int, int, int, int,
-                                 int, int, int, int) const;
+                 int, int, int, int) const;
 
   /// Get image consisting of specified 4D subregion
   virtual void GetRegion(BaseImage *&, int, int, int, int,
-                                       int, int, int, int) const;
+                     int, int, int, int) const;
 
   /// Get time instance (i.e., frame) or channel of image
   HashImage GetFrame(int, int = -1) const;
@@ -332,7 +332,7 @@ public:
 
   /// Equality operator
   /// \note Use explicit negation for inequality comparison.
-  ///       The overloaded != operator is used for binarization of the image.
+  ///     The overloaded != operator is used for binarization of the image.
   template <class TVoxel2>
   bool operator== (const HashImage<TVoxel2> &) const;
 
@@ -475,42 +475,42 @@ inline int HashImage<VoxelType>::VoxelToIndex(int x, int y, int z, int t) const
 template <class VoxelType>
 inline void HashImage<VoxelType>::Put(int index, VoxelType val)
 {
-    if(index>=0){
-        if(val==_DefaultValue){
-            _Data.erase(index);
-         }else{
-            _Data[index]=val;
-        }
+  if(index>=0){
+    if(val==_DefaultValue){
+      _Data.erase(index);
+     }else{
+      _Data[index]=val;
     }
+  }
 }
 
 // -----------------------------------------------------------------------------
 template <class VoxelType>
 inline void HashImage<VoxelType>::Put(int x, int y, VoxelType val)
 {
-    Put(x,y,0,0,val);
+  Put(x,y,0,0,val);
 }
 
 // -----------------------------------------------------------------------------
 template <class VoxelType>
 inline void HashImage<VoxelType>::Put(int x, int y, int z, VoxelType val)
 {
-    Put(x,y,z,0,val);
+  Put(x,y,z,0,val);
 }
 
 // -----------------------------------------------------------------------------
 template <class VoxelType>
 inline void HashImage<VoxelType>::Put(int x, int y, int z, int t, VoxelType val)
 {
-    Put(VoxelToIndex(x, y, z, t) ,val);
+  Put(VoxelToIndex(x, y, z, t) ,val);
 }
 
 // -----------------------------------------------------------------------------
 template <class VoxelType>
 inline VoxelType HashImage<VoxelType>::Access(int index)
 {
-    cerr << "HashImage::Access: Not implemented" << endl;
-    exit(1);
+  cerr << "HashImage::Access: Not implemented" << endl;
+  exit(1);
 }
 
 // -----------------------------------------------------------------------------
@@ -562,28 +562,28 @@ inline VoxelType HashImage<VoxelType>::Get(int x, int y, int z, int t) const
 template <class VoxelType>
 inline void HashImage<VoxelType>::PutAsDouble(int index, double val)
 {
-   Put(index, voxel_cast<VoxelType>(val));
+  Put(index, voxel_cast<VoxelType>(val));
 }
 
 // -----------------------------------------------------------------------------
 template <class VoxelType>
 inline void HashImage<VoxelType>::PutAsDouble(int x, int y, double val)
 {
-    Put(VoxelToIndex(x, y, 0, 0), voxel_cast<VoxelType>(val));
+  Put(VoxelToIndex(x, y, 0, 0), voxel_cast<VoxelType>(val));
 }
 
 // -----------------------------------------------------------------------------
 template <class VoxelType>
 inline void HashImage<VoxelType>::PutAsDouble(int x, int y, int z, double val)
 {
-    Put(VoxelToIndex(x, y, z, 0), voxel_cast<VoxelType>(val));
+  Put(VoxelToIndex(x, y, z, 0), voxel_cast<VoxelType>(val));
 }
 
 // -----------------------------------------------------------------------------
 template <class VoxelType>
 inline void HashImage<VoxelType>::PutAsDouble(int x, int y, int z, int t, double val)
 {
-    Put(VoxelToIndex(x, y, z, t), voxel_cast<VoxelType>(val));
+  Put(VoxelToIndex(x, y, z, t), voxel_cast<VoxelType>(val));
 }
 
 // -----------------------------------------------------------------------------
@@ -604,28 +604,28 @@ inline double HashImage<VoxelType>::GetAsDouble(int x, int y, int z, int t) cons
 template <class VoxelType>
 inline void HashImage<VoxelType>::PutAsVector(int index, const Vector &value)
 {
-   Put(index, voxel_cast<VoxelType>(value));
+  Put(index, voxel_cast<VoxelType>(value));
 }
 
 // -----------------------------------------------------------------------------
 template <class VoxelType>
 inline void HashImage<VoxelType>::PutAsVector(int x, int y, const Vector &value)
 {
-    Put(VoxelToIndex(x, y, 0, 0), voxel_cast<VoxelType>(value));
+  Put(VoxelToIndex(x, y, 0, 0), voxel_cast<VoxelType>(value));
 }
 
 // -----------------------------------------------------------------------------
 template <class VoxelType>
 inline void HashImage<VoxelType>::PutAsVector(int x, int y, int z, const Vector &value)
 {
-    Put(VoxelToIndex(x, y, z, 0), voxel_cast<VoxelType>(value));
+  Put(VoxelToIndex(x, y, z, 0), voxel_cast<VoxelType>(value));
 }
 
 // -----------------------------------------------------------------------------
 template <class VoxelType>
 inline void HashImage<VoxelType>::PutAsVector(int x, int y, int z, int t, const Vector &value)
 {
-    Put(VoxelToIndex(x, y, z, t), voxel_cast<VoxelType>(value));
+  Put(VoxelToIndex(x, y, z, t), voxel_cast<VoxelType>(value));
 }
 
 // -----------------------------------------------------------------------------
@@ -666,33 +666,32 @@ inline Vector HashImage<VoxelType>::GetAsVector(int x, int y, int z, int t) cons
 template <class VoxelType>
 inline void *HashImage<VoxelType>::GetDataPointer(int i)
 {
-    cerr << "HashImage<VoxelType>::GetDataPointer: Not implemented" << endl;
-    exit(1);
+  cerr << "HashImage<VoxelType>::GetDataPointer: Not implemented" << endl;
+  exit(1);
 }
 
 // -----------------------------------------------------------------------------
 template <class VoxelType>
 inline const void *HashImage<VoxelType>::GetDataPointer(int i) const
 {
-    cerr << "HashImage<VoxelType>::GetDataPointer: Not implemented" << endl;
-    exit(1);
+  cerr << "HashImage<VoxelType>::GetDataPointer: Not implemented" << endl;
+  exit(1);
 }
 
 // -----------------------------------------------------------------------------
 template <class VoxelType>
 inline void *HashImage<VoxelType>::GetDataPointer(int x, int y, int z, int t)
 {
-    cerr << "HashImage<VoxelType>::GetDataPointer: Not implemented" << endl;
-    exit(1);
+  cerr << "HashImage<VoxelType>::GetDataPointer: Not implemented" << endl;
+  exit(1);
 }
 
 // -----------------------------------------------------------------------------
 template <class VoxelType>
 inline const void *HashImage<VoxelType>::GetDataPointer(int x, int y, int z, int t) const
 {
-
-    cerr << "HashImage<VoxelType>::GetDataPointer: Not implemented" << endl;
-    exit(1);
+  cerr << "HashImage<VoxelType>::GetDataPointer: Not implemented" << endl;
+  exit(1);
 }
 
 // -----------------------------------------------------------------------------
@@ -755,7 +754,8 @@ typedef HashImage<BytePixel> HashByteImage;
 typedef HashImage<GreyPixel> HashGreyImage;
 typedef HashImage<RealPixel> HashRealImage;
 
-
 } // namespace mirtk
+
+#include <mirtkHashImage.hxx>
 
 #endif // MIRTK_HashImage_H
