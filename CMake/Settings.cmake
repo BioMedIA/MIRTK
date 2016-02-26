@@ -46,12 +46,12 @@ option(BUILD_DOCUMENTATION_SOURCES "Regenerate help of commands in reStructuredT
 mark_as_advanced(BUILD_ALL_MODULES)
 
 # Choose build configuration from CMake list of common configuration types
-if(NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE RelWithDebInfo CACHE STRING "" FORCE)
-  set(CMAKE_BUILD_TYPE RelWithDebInfo CACHE STRING "Choose the type of build, options are: Release, MinSizeRel, Debug, RelWithDebInfo." FORCE)
-endif()
-if (CMAKE_CONFIGURATION_TYPES)
-  set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS ${CMAKE_CONFIGURATION_TYPES})
+basis_is_cached(CACHED_CONFIGURATION_TYPES CMAKE_CONFIGURATION_TYPES)
+if (CACHED_CONFIGURATION_TYPES)
+  basis_is_cached(CACHED_BUILD_TYPE CMAKE_BUILD_TYPE)
+  if (CACHED_BUILD_TYPE AND CMAKE_CONFIGURATION_TYPES)
+    set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS ${CMAKE_CONFIGURATION_TYPES})
+  endif ()
   set_property(CACHE CMAKE_CONFIGURATION_TYPES PROPERTY TYPE INTERNAL)
 endif ()
 
