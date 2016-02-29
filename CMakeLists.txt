@@ -60,7 +60,7 @@ endif ()
 # Note: Added as first application because mirtk_add_executable adds a
 #       dependency on this target for each command to generate the documentation
 #       when BUILD_DOCUMENTATION is ON.
-if (BUILD_APPLICATIONS)
+if (BUILD_APPLICATIONS AND TARGET mirtk)
   basis_add_executable(help-rst "${PROJECT_TOOLS_DIR}/help-rst.py" LIBEXEC)
   basis_set_target_properties(help-rst PROPERTIES
     OUTPUT_DIRECTORY "${BINARY_LIBEXEC_DIR}/mirtk"
