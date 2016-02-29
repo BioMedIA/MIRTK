@@ -934,6 +934,8 @@ macro (basis_project_modules)
 
   set (PROJECT_MODULES)
   foreach (F IN LISTS MODULE_INFO_FILES)
+    # clean path without // to fix issue with UNC paths on Windows
+    get_filename_component (F "${F}" ABSOLUTE)
     basis_module_info (${F})
     list (APPEND PROJECT_MODULES ${MODULE})
     get_filename_component (${MODULE}_BASE ${F} PATH)
