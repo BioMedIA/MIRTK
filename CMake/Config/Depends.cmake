@@ -54,7 +54,9 @@
 
 # By default, require these optional dependencies such that the library
 # features which depend on these external libraries are available
-set(WITH_ZLIB_DEFAULT ON)
+if (UNIX)
+  set(WITH_ZLIB_DEFAULT ON)
+endif ()
 
 # By default, use included Eigen header files
 if (Eigen3_INCLUDE_DIR)
