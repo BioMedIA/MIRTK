@@ -55,7 +55,7 @@ of the downloaded MIRTK repository:
 
 .. note::
 
-   To download the entire MIRTK distribution including documentation source files,
+   To download the entire MIRTK distribution including
    third-party library modules, and external packages, run the command::
 
        git submodule update --init
@@ -86,14 +86,6 @@ update the desired Git submodules before (re-)configuring the build files, e.g.:
 
     git submodule update --init -- Packages/Deformable
     git submodule update --init -- Packages/VolumetricMapping
-
-To build the online documentation from the reStructuredText (.rst) files in
-the Documentation subdirectory, clone also the
-`MIRTK/Documentation <https://github.com/MIRTK/Documentation>`__ repository:
-
-.. code-block:: bash
-
-    git submodule update --init -- Documentation
 
 
 .. _Git:   https://git-scm.com
