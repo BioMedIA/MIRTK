@@ -102,7 +102,7 @@ void ShapeBasedInterpolateImageFunction::Refine()
         RealImage inputA, inputB, outputA, outputB;
 
         // Default mode
-        DistanceTransformType *edt = new DistanceTransformType(DistanceTransformType::DT_3D);
+        DistanceTransformType edt(DistanceTransformType::DT_3D);
 
         // Threshold image
         inputA = _tinput;
@@ -123,12 +123,13 @@ void ShapeBasedInterpolateImageFunction::Refine()
           }
         }
 
-        edt->Input (& inputA);
-        edt->Output(&outputA);
-        edt->Run();		  
-        edt->Input (& inputB);
-        edt->Output(&outputB);
-        edt->Run();
+        edt.Input (& inputA);
+        edt.Output(&outputA);
+        edt.Run();		  
+        edt.Input (& inputB);
+        edt.Output(&outputB);
+        edt.Run();
+
         for (t = 0 ; t < _tinput.GetT(); t++) {
           for (z = 0; z < _tinput.GetZ(); z++) {
             for (y = 0; y < _tinput.GetY(); y++) {
@@ -336,7 +337,7 @@ void ShapeBasedInterpolateImageFunction::Initialize(bool coeff)
         RealImage inputA, inputB, outputA, outputB;
 
         // Default mode
-        DistanceTransformType *edt = new DistanceTransformType(DistanceTransformType::DT_3D);
+        DistanceTransformType edt(DistanceTransformType::DT_3D);
 
         // Threshold image
         inputA = _tinput;
@@ -358,12 +359,13 @@ void ShapeBasedInterpolateImageFunction::Initialize(bool coeff)
         }
 
         // Calculate EDT
-        edt->Input (& inputA);
-        edt->Output(&outputA);
-        edt->Run();		  
-        edt->Input (& inputB);
-        edt->Output(&outputB);
-        edt->Run();
+        edt.Input (& inputA);
+        edt.Output(&outputA);
+        edt.Run();		  
+        edt.Input (& inputB);
+        edt.Output(&outputB);
+        edt.Run();
+
         for (t = 0 ; t < _tinput.GetT(); t++) {
           for (z = 0; z < _tinput.GetZ(); z++) {
             for (y = 0; y < _tinput.GetY(); y++) {
