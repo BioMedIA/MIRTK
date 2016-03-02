@@ -305,14 +305,16 @@ class ResampleImages
   Array<ResampledImageList>      &_Image;
   const Array<Vector3D<double> > *_Resolution;
   const Array<double>            *_Padding;
+  const bool                     _Relative;
 
 public:
 
   ResampleImages(Array<ResampledImageList>      &image,
                  const Array<Vector3D<double> >  res[],
-                 const Array<double>            *padding = NULL)
+                 const Array<double>            *padding = NULL,
+				 const bool                     relative = false)
   :
-    _Image(image), _Resolution(res), _Padding(padding)
+    _Image(image), _Resolution(res), _Padding(padding), _Relative(relative)
   {}
 
   void operator()(const blocked_range2d<int> &re) const
@@ -328,13 +330,13 @@ public:
             !fequal(res._y, dy, TOL) ||
             !fequal(res._z, dz, TOL)) {
           if (_Padding) {
-            ResamplingWithPadding<VoxelType> resample(res._x, res._y, res._z, (*_Padding)[n]);
+            ResamplingWithPadding<VoxelType> resample(res._x * (_Relative ? dx : 1.0), res._y * (_Relative ? dy : 1.0), res._z * (_Relative ? dz : 1.0), (*_Padding)[n]);
             resample.Interpolator(&f);
             resample.Input (&_Image[l][n]);
             resample.Output(&_Image[l][n]);
             resample.Run();
           } else {
-            Resampling<VoxelType> resample(res._x, res._y, res._z);
+            Resampling<VoxelType> resample(res._x * (_Relative ? dx : 1.0), res._y * (_Relative ? dy : 1.0), res._z * (_Relative ? dz : 1.0));
             resample.Interpolator(&f);
             resample.Input (&_Image[l][n]);
             resample.Output(&_Image[l][n]);
@@ -697,6 +699,7 @@ void GenericRegistrationFilter::Reset()
   _CropPadFFD                          = -1;
   _NormalizeWeights                    = true;
   _AdaptiveRemeshing                   = false;
+  _RelativeResolutionSizes             = false;
   _TargetOffset = _SourceOffset = Point();
   _EnergyFormula.clear();
   _ImageSimilarityInfo.clear();
@@ -1245,6 +1248,11 @@ bool GenericRegistrationFilter::Set(const char *name, const char *value, int lev
     _Resolution[level][n]._y = dy;
     _Resolution[level][n]._z = dz;
     return true;
+
+    // Whether to compute the resolution pyramid sizes relative to actual voxel size (i.e. factors are specified)
+  } else if (strcmp(name, "Relative Resolution") == 0 ||
+		     strcmp(name, "Relative Resolutions") == 0) {
+      return FromString(value, _RelativeResolutionSizes);
 
   // Image blurring
   } else if (strncmp(name, "Blurring", 8) == 0) {
@@ -2389,7 +2397,7 @@ void GenericRegistrationFilter::InitializePyramid()
     } else {
       Broadcast(LogEvent, "Resample images .........");
       if (debug_time) Broadcast(LogEvent, "\n");
-      ResampleImages resample(_Image, _Resolution, padding);
+      ResampleImages resample(_Image, _Resolution, padding, _RelativeResolutionSizes);
       parallel_for(pyramid, resample);
       if (debug_time) Broadcast(LogEvent, "Resample images .........");
       Broadcast(LogEvent, " done\n");

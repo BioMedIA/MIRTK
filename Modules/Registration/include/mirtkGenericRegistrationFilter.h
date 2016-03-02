@@ -277,6 +277,9 @@ public:
   /// Whether to adaptively remesh surfaces before each gradient step
   mirtkPublicAttributeMacro(bool, AdaptiveRemeshing);
 
+  /// Whether to compute the resolution pyramid sizes relative to actual voxel size (i.e. factors are specified)
+  mirtkPublicAttributeMacro(bool, RelativeResolutionSizes);
+
 protected:
 
   /// Common attributes of (untransformed) input target data sets
