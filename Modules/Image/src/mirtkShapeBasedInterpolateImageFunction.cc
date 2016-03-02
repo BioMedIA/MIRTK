@@ -27,6 +27,8 @@
 
 namespace mirtk {
 
+extern int verbose; // cf. mirtkOptions.cc
+
 
 // =============================================================================
 // Construction/Destruction
@@ -47,8 +49,8 @@ void ShapeBasedInterpolateImageFunction::Refine()
 {
   typedef EuclideanDistanceTransform<RealPixel> DistanceTransformType;
 
-  int    x, y, z, t;
-  double min, max, current, sum, sumcount, dcurrent;
+  int    i, j, k, l;
+  double min, max, current, icurrent, dcurrent, rcurrent, sum, sumcount;
 
   // Initialization
   sum = 0;
@@ -57,36 +59,31 @@ void ShapeBasedInterpolateImageFunction::Refine()
   Input()->GetMinMaxAsDouble(&min, &max);
 
   // Initialize _rcdmap
-  for (t = 0 ; t < _rcdmap.GetT(); t++) {
-    for (z = 0; z < _rcdmap.GetZ(); z++) {
-      for (y = 0; y < _rcdmap.GetY(); y++) {
-        for (x = 0; x < _rcdmap.GetX(); x++) {
-          _rcdmap.PutAsDouble(x,y,z,t,30);
-        }
-      }
-    }
+  for (l = 0; l < _rcdmap.GetT(); ++l)
+  for (k = 0; k < _rcdmap.GetZ(); ++k)
+  for (j = 0; j < _rcdmap.GetY(); ++j)
+  for (i = 0; i < _rcdmap.GetX(); ++i) {
+    _rcdmap.PutAsDouble(i, j, k, l, 30);
   }
 
   for (current = min; current <= max; current++) {
     // Threshold
     sumcount = 0;
-    for (t = 0; t < _tinput.GetT(); t++) {
-      for (z = 0; z < _tinput.GetZ(); z++) {
-        for (y = 0; y < _tinput.GetY(); y++) {
-          for (x = 0; x < _tinput.GetX(); x++) {
-            if ((Input()->GetAsDouble(x, y, z, t) < current) || (Input()->GetAsDouble(x, y, z, t) >= (current + 1))) {
-              _tinput(x, y, z, t) = 0;
-            } else {
-              _tinput(x, y, z, t) = 1;
-              sumcount ++;
-            }
-          }
-        }
+    for (l = 0; l < _tinput.GetT(); ++l)
+    for (k = 0; k < _tinput.GetZ(); ++k)
+    for (j = 0; j < _tinput.GetY(); ++j)
+    for (i = 0; i < _tinput.GetX(); ++i) {
+      icurrent = Input()->GetAsDouble(i, j, k, l);
+      if (icurrent < current || icurrent >= (current + 1)) {
+        _tinput(i, j, k, l) = 0;
+      } else {
+        _tinput(i, j, k, l) = 1;
+        ++sumcount;
       }
     }
 
     // Calculate EDT
-    if (iround(current) % 20 == 0) {
+    if (verbose && iround(current) % 20 == 0) {
       if (max < current + 19) {
         cout << "Doing outside DT for value == : "<< current << " to " << max << endl;
         cout << "Doing inside DT for value == : "<< current << " to " << max << endl;
@@ -107,19 +104,16 @@ void ShapeBasedInterpolateImageFunction::Refine()
         // Threshold image
         inputA = _tinput;
         inputB = _tinput;
-        for (t = 0; t < _tinput.GetT(); t++) {
-          for (z = 0; z < _tinput.GetZ(); z++) {
-            for (y = 0; y < _tinput.GetY(); y++) {
-              for (x = 0; x < _tinput.GetX(); x++) {
-                if (_tinput(x, y, z, t) > 0.5) {
-                  inputA(x, y, z, t) = 1;
-                  inputB(x, y, z, t) = 0;
-                } else {
-                  inputA(x, y, z, t) = 0;
-                  inputB(x, y, z, t) = 1;
-                }
-              }
-            }
+        for (l = 0; l < _tinput.T(); ++l)
+        for (k = 0; k < _tinput.Z(); ++k)
+        for (j = 0; j < _tinput.Y(); ++j)
+        for (i = 0; i < _tinput.X(); ++i) {
+          if (_tinput(i, j, k, l) > 0.5) {
+            inputA(i, j, k, l) = 1;
+            inputB(i, j, k, l) = 0;
+          } else {
+            inputA(i, j, k, l) = 0;
+            inputB(i, j, k, l) = 1;
           }
         }
 
@@ -130,87 +124,77 @@ void ShapeBasedInterpolateImageFunction::Refine()
         edt.Output(&outputB);
         edt.Run();
 
-        for (t = 0 ; t < _tinput.GetT(); t++) {
-          for (z = 0; z < _tinput.GetZ(); z++) {
-            for (y = 0; y < _tinput.GetY(); y++) {
-              for (x = 0; x < _tinput.GetX(); x++) {
-                _dmap(x, y, z, t) = sqrt(outputA(x, y, z, t)) - sqrt(outputB(x, y, z, t));
-              }
-            }
-          }
+        for (l = 0; l < _tinput.T(); ++l)
+        for (k = 0; k < _tinput.Z(); ++k)
+        for (j = 0; j < _tinput.Y(); ++j)
+        for (i = 0; i < _tinput.X(); ++i) {
+          _dmap(i, j, k, l) = sqrt(outputA(i, j, k, l)) - sqrt(outputB(i, j, k, l));
         }
       }
 
       // Linear Interpolate Dmap _dmap to _rdmap
       {
-        double i,j,k,l;
+        double x, y, z, t;
         LinearInterpolateImageFunction interpolator;
         interpolator.Input(&_dmap);
         interpolator.Initialize();
 
-        for (t = 0 ; t < _rdmap.GetT(); t++) {
-          for (z = 0; z < _rdmap.GetZ(); z++) {
-            for (y = 0; y < _rdmap.GetY(); y++) {
-              for (x = 0; x < _rdmap.GetX(); x++) {
-                i = x; j = y; k = z; l = t;
-                _rdmap.ImageToWorld(i,j,k);
-                _dmap.WorldToImage(i,j,k);
-                _rdmap.PutAsDouble(x,y,z,t,interpolator.Evaluate(i,j,k,l));
-              }
-            }
-          }
+        for (l = 0; l < _rdmap.T(); ++l)
+        for (k = 0; k < _rdmap.Z(); ++k)
+        for (j = 0; j < _rdmap.Y(); ++j)
+        for (i = 0; i < _rdmap.X(); ++i) {
+          x = i, y = j, z = k, t = l;
+          _rdmap.ImageToWorld(x, y, z);
+          _dmap .WorldToImage(x, y, z);
+          _rdmap.PutAsDouble(i, j, k, l, interpolator.Evaluate(x, y, z, t));
         }
       }
 
       // Put value back to Resampled Image _rinput < 0 if _rinput == 0 let the neighbor vote.
       {
-        for (t = 0 ; t < _rdmap.GetT(); t++) {
-          for (z = 0; z < _rdmap.GetZ(); z++) {
-            for (y = 0; y < _rdmap.GetY(); y++) {
-              for (x = 0; x < _rdmap.GetX(); x++) {
-                dcurrent = _rdmap.GetAsDouble(x,y,z,t);
-                if (dcurrent < 0 && current >= _rinput.GetAsDouble(x,y,z,t) && dcurrent < _rcdmap.GetAsDouble(x,y,z,t)) {
-                  _rcdmap.PutAsDouble(x,y,z,t,dcurrent);
-                } else if (dcurrent <= 0 && current >= _rinput.GetAsDouble(x,y,z,t) && dcurrent < _rcdmap.GetAsDouble(x,y,z,t)) {
-                  sum = 0, sumcount = 0;
-                  if (x > 0) {
-                    sum += _rdmap.GetAsDouble(x-1,y,z,t); 
-                    sumcount ++;
-                  }
-                  if (x < _rinput.GetX() - 1) {
-                    sum += _rdmap.GetAsDouble(x+1,y,z,t); 
-                    sumcount ++;
-                  }
-                  if (y > 0) {
-                    sum += _rdmap.GetAsDouble(x,y-1,z,t); 
-                    sumcount ++;
-                  } 
-                  if (y < _rinput.GetY() - 1) {
-                    sum += _rdmap.GetAsDouble(x,y+1,z,t); 
-                    sumcount++;
-                  }
-                  if (z > 0) {
-                    sum += _rdmap.GetAsDouble(x,y,z-1,t); 
-                    sumcount++;
-                  }
-                  if (z < _rinput.GetZ() - 1) {
-                    sum += _rdmap.GetAsDouble(x,y,z+1,t); 
-                    sumcount++;
-                  }
-                  sum = sum/sumcount;
-                  if (sum <= 0) {
-                    _rcdmap.PutAsDouble(x,y,z,t,dcurrent);
-                  }
-                } else if (dcurrent > 0 && _rinput.GetAsDouble(x,y,z,t) <= current && dcurrent < _rcdmap.GetAsDouble(x,y,z,t)) {
-                  _rinput.PutAsDouble(x,y,z,t,current);
-                  _rcdmap.PutAsDouble(x,y,z,t,dcurrent);
-                } else if (dcurrent >= 0 && _rinput.GetAsDouble(x,y,z,t) <= current && dcurrent < _rcdmap.GetAsDouble(x,y,z,t)) {
-                  if (sum > 0) {
-                    _rinput.PutAsDouble(x,y,z,t,current);
-                    _rcdmap.PutAsDouble(x,y,z,t,dcurrent);
-                  }
-                }
-              }
+        for (l = 0; l < _rdmap.T(); ++l)
+        for (k = 0; k < _rdmap.Z(); ++k)
+        for (j = 0; j < _rdmap.Y(); ++j)
+        for (i = 0; i < _rdmap.X(); ++i) {
+          icurrent = _rinput.GetAsDouble(i, j, k, l);
+          dcurrent = _rdmap .GetAsDouble(i, j, k, l);
+          rcurrent = _rcdmap.GetAsDouble(i, j, k, l);
+          if (dcurrent < 0 && current >= icurrent && dcurrent < rcurrent) {
+            _rcdmap.PutAsDouble(i, j, k, l, dcurrent);
+          } else if (dcurrent <= 0 && current >= icurrent && dcurrent < rcurrent) {
+            sum = 0, sumcount = 0;
+            if (i > 0) {
+              sum += _rdmap.GetAsDouble(i-1, j, k, l);
+              ++sumcount;
+            } else if (i < _rinput.X() - 1) {
+              sum += _rdmap.GetAsDouble(i+1, j, k, l);
+              ++sumcount;
+            }
+            if (j > 0) {
+              sum += _rdmap.GetAsDouble(i, j-1, k, l);
+              ++sumcount;
+            } else if (j < _rinput.Y() - 1) {
+              sum += _rdmap.GetAsDouble(i, j+1, k, l);
+              ++sumcount;
+            }
+            if (k > 0) {
+              sum += _rdmap.GetAsDouble(i, j, k-1, l);
+              ++sumcount;
+            } else if (k < _rinput.Z() - 1) {
+              sum += _rdmap.GetAsDouble(i, j, k+1, l);
+              ++sumcount;
+            }
+            sum = sum/sumcount;
+            if (sum <= 0) {
+              _rcdmap.PutAsDouble(i, j, k, l, dcurrent);
+            }
+          } else if (dcurrent > 0 && icurrent <= current && dcurrent < rcurrent) {
+            _rinput.PutAsDouble(i, j, k, l, current);
+            _rcdmap.PutAsDouble(i, j, k, l, dcurrent);
+          } else if (dcurrent >= 0 && icurrent <= current && dcurrent < rcurrent) {
+            if (sum > 0) {
+              _rinput.PutAsDouble(i, j, k, l, current);
+              _rcdmap.PutAsDouble(i, j, k, l, dcurrent);
             }
           }
         }
@@ -228,7 +212,7 @@ void ShapeBasedInterpolateImageFunction::Initialize(bool coeff)
   InterpolateImageFunction::Initialize(coeff);
 
   double xsize, ysize, zsize, size;
-  int    new_x, new_y, new_z, x, y, z, t,labelcount;
+  int    new_x, new_y, new_z, i, j, k, l, labelcount;
   double xaxis[3], yaxis[3], zaxis[3];
   double new_xsize, new_ysize, new_zsize;
   double old_xsize, old_ysize, old_zsize;
@@ -250,9 +234,9 @@ void ShapeBasedInterpolateImageFunction::Initialize(bool coeff)
   Input()->GetPixelSize(&old_xsize, &old_ysize, &old_zsize);
 
   // Determine the new dimensions of the image
-  new_x = int(Input()->GetX() * old_xsize / size);
-  new_y = int(Input()->GetY() * old_ysize / size);
-  new_z = int(Input()->GetZ() * old_zsize / size);
+  new_x = int(Input()->X() * old_xsize / size);
+  new_y = int(Input()->Y() * old_ysize / size);
+  new_z = int(Input()->Z() * old_zsize / size);
 
   // Determine the new voxel dimensions
   if (new_x < 1) {
@@ -302,25 +286,22 @@ void ShapeBasedInterpolateImageFunction::Initialize(bool coeff)
   for (current = min; current <= max; current++) {
     // Threshold
     sumcount = 0;
-    for (t = 0; t < _tinput.GetT(); t++){
-      for (z = 0; z < _tinput.GetZ(); z++) {
-	      for (y = 0; y < _tinput.GetY(); y++) {
-	        for (x = 0; x < _tinput.GetX(); x++) {
-	          if (Input()->GetAsDouble(x, y, z, t) < current /* || Input()->GetAsDouble(x, y, z, t) > current */) {
-	            _tinput(x, y, z, t) = 0;
-            } else {
-              _tinput(x, y, z, t) = 1;
-            }
-            if (Input()->GetAsDouble(x, y, z, t) >= current &&
-                Input()->GetAsDouble(x, y, z, t) <  current + 1) {
-              sumcount ++;
-            }
-          }
-        }
+    for (l = 0; l < _tinput.T(); ++l)
+    for (k = 0; k < _tinput.Z(); ++k)
+    for (j = 0; j < _tinput.Y(); ++j)
+    for (i = 0; i < _tinput.X(); ++i) {
+      if (Input()->GetAsDouble(i, j, k, l) < current /* || Input()->GetAsDouble(i, j, k, l) > current */) {
+        _tinput(i, j, k, l) = 0;
+      } else {
+        _tinput(i, j, k, l) = 1;
+      }
+      if (Input()->GetAsDouble(i, j, k, l) >= current &&
+          Input()->GetAsDouble(i, j, k, l) <  current + 1) {
+        ++sumcount;
       }
     }
 
-    if (iround(current) % 20 == 0) {
+    if (verbose && iround(current) % 20 == 0) {
       if (max < current + 19) {
         cout << "Doing outside DT for value >= : "<< current << " to " << max << endl;
         cout << "Doing inside DT for value >= : "<< current << " to " << max << endl;
@@ -331,7 +312,7 @@ void ShapeBasedInterpolateImageFunction::Initialize(bool coeff)
     }
 
     if (sumcount > 0) {
-      labelcount ++;
+      ++labelcount;
       // Dmap _tinput to _dmap
       {
         RealImage inputA, inputB, outputA, outputB;
@@ -342,19 +323,16 @@ void ShapeBasedInterpolateImageFunction::Initialize(bool coeff)
         // Threshold image
         inputA = _tinput;
         inputB = _tinput;
-        for (t = 0; t < _tinput.GetT(); t++) {
-          for (z = 0; z < _tinput.GetZ(); z++) {
-            for (y = 0; y < _tinput.GetY(); y++) {
-              for (x = 0; x < _tinput.GetX(); x++) {
-                if (_tinput(x, y, z, t) > 0.5) {
-                  inputA(x, y, z, t) = 1;
-                  inputB(x, y, z, t) = 0;
-                } else {
-                  inputA(x, y, z, t) = 0;
-                  inputB(x, y, z, t) = 1;
-                }
-              }
-            }
+        for (l = 0; l < _tinput.T(); ++l)
+        for (k = 0; k < _tinput.Z(); ++k)
+        for (j = 0; j < _tinput.Y(); ++j)
+        for (i = 0; i < _tinput.X(); ++i) {
+          if (_tinput(i, j, k, l) > 0.5) {
+            inputA(i, j, k, l) = 1;
+            inputB(i, j, k, l) = 0;
+          } else {
+            inputA(i, j, k, l) = 0;
+            inputB(i, j, k, l) = 1;
           }
         }
 
@@ -366,78 +344,66 @@ void ShapeBasedInterpolateImageFunction::Initialize(bool coeff)
         edt.Output(&outputB);
         edt.Run();
 
-        for (t = 0 ; t < _tinput.GetT(); t++) {
-          for (z = 0; z < _tinput.GetZ(); z++) {
-            for (y = 0; y < _tinput.GetY(); y++) {
-              for (x = 0; x < _tinput.GetX(); x++) {
-                _dmap(x, y, z, t)  = sqrt(outputA(x, y, z, t)) - sqrt(outputB(x, y, z, t));
-              }
-            }
-          }
+        for (l = 0; l < _tinput.T(); ++l)
+        for (k = 0; k < _tinput.Z(); ++k)
+        for (j = 0; j < _tinput.Y(); ++j)
+        for (i = 0; i < _tinput.X(); ++i) {
+          _dmap(i, j, k, l)  = sqrt(outputA(i, j, k, l)) - sqrt(outputB(i, j, k, l));
         }
       }
 
       // Linear Interpolate Dmap _dmap to _rdmap
       {
-        double i,j,k,l;
+        double x, y, z, t;
         LinearInterpolateImageFunction interpolator;
         interpolator.Input(&_dmap);
         interpolator.Initialize();
 
-        for (t = 0 ; t < _rdmap.T(); t++) {
-          for (z = 0; z < _rdmap.Z(); z++) {
-            for (y = 0; y < _rdmap.Y(); y++) {
-              for (x = 0; x < _rdmap.X(); x++) {
-                i = x; j = y; k = z; l = t;
-                _rdmap.ImageToWorld(i,j,k);
-                _dmap.WorldToImage(i,j,k);
-                _rdmap.PutAsDouble(x,y,z,t,interpolator.Evaluate(i,j,k,l));
-              }
-            }
-          }
+        for (l = 0; l < _rdmap.T(); ++l)
+        for (k = 0; k < _rdmap.Z(); ++k)
+        for (j = 0; j < _rdmap.Y(); ++j)
+        for (i = 0; i < _rdmap.X(); ++i) {
+          x = i, y = j, z = k, t = l;
+          _rdmap.ImageToWorld(x, y, z);
+          _dmap .WorldToImage(x, y, z);
+          _rdmap.PutAsDouble(i, j, k, l, interpolator.Evaluate(x, y, z, t));
         }
       }
 
       // Put value back to Resampled Image _rinput < 0 if _rinput == 0 let the neighbor vote.
       {
-        for (t = 0 ; t < _rdmap.T(); t++) {
-          for (z = 0; z < _rdmap.Z(); z++) {
-            for (y = 0; y < _rdmap.Y(); y++) {
-              for (x = 0; x < _rdmap.X(); x++) {
-                if (_rdmap.GetAsDouble(x, y, z, t) < 0) {
-                  _rinput.PutAsDouble(x, y, z, t, current);
-                } else if (_rdmap.GetAsDouble(x, y, z, t) <= 0) {
-                  sum = 0; sumcount = 0;
-                  if (x > 0) {
-                    sum += _rdmap.GetAsDouble(x-1,y,z,t); 
-                    sumcount ++;
-                  }
-                  if (x < _rinput.GetX() - 1) {
-                    sum += _rdmap.GetAsDouble(x+1,y,z,t); 
-                    sumcount ++;
-                  }
-                  if (y > 0) {
-                    sum += _rdmap.GetAsDouble(x,y-1,z,t); 
-                    sumcount ++;
-                  } 
-                  if (y < _rinput.GetY() - 1) {
-                    sum += _rdmap.GetAsDouble(x,y+1,z,t); 
-                    sumcount++;
-                  }
-                  if (z > 0) {
-                    sum += _rdmap.GetAsDouble(x,y,z-1,t); 
-                    sumcount++;
-                  }
-                  if (z < _rinput.GetZ() - 1) {
-                    sum += _rdmap.GetAsDouble(x,y,z+1,t); 
-                    sumcount++;
-                  }
-                  sum = sum/sumcount;
-                  if (sum <= 0) {
-                    _rinput.PutAsDouble(x,y,z,t,current);
-                  }
-                }
-              }
+        for (l = 0; l < _rdmap.T(); ++l)
+        for (k = 0; k < _rdmap.Z(); ++k)
+        for (j = 0; j < _rdmap.Y(); ++j)
+        for (i = 0; i < _rdmap.X(); ++i) {
+          if (_rdmap.GetAsDouble(i, j, k, l) < 0) {
+            _rinput.PutAsDouble(i, j, k, l, current);
+          } else if (_rdmap.GetAsDouble(i, j, k, l) <= 0) {
+            sum = 0; sumcount = 0;
+            if (i > 0) {
+              sum += _rdmap.GetAsDouble(i-1, j, k, l);
+              ++sumcount;
+            } else if (i < _rinput.X() - 1) {
+              sum += _rdmap.GetAsDouble(i+1, j, k, l);
+              ++sumcount;
+            }
+            if (j > 0) {
+              sum += _rdmap.GetAsDouble(i, j-1, k, l);
+              ++sumcount;
+            } else if (j < _rinput.Y() - 1) {
+              sum += _rdmap.GetAsDouble(i, j+1, k, l);
+              ++sumcount;
+            }
+            if (k > 0) {
+              sum += _rdmap.GetAsDouble(i, j, k-1, l);
+              ++sumcount;
+            } else if (k < _rinput.Z() - 1) {
+              sum += _rdmap.GetAsDouble(i, j, k+1, l);
+              ++sumcount;
+            }
+            sum = sum/sumcount;
+            if (sum <= 0) {
+              _rinput.PutAsDouble(i, j, k, l, current);
             }
           }
         }
