@@ -36,42 +36,18 @@ endif ()
 # ----------------------------------------------------------------------------
 # Include BASIS policies, settings, macros, and functions
 set(BASIS_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMake/Basis")
-set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMake" ${BASIS_MODULE_PATH})
+set(MIRTK_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMake/Modules")
+set(CMAKE_MODULE_PATH "${MIRTK_MODULE_PATH}" "${BASIS_MODULE_PATH}")
 
 include("${BASIS_MODULE_PATH}/BasisSettings.cmake")
 include("${BASIS_MODULE_PATH}/BasisTools.cmake")
-
-include(mirtk_add_library)
-include(mirtk_add_executable)
-include(mirtk_add_test)
-
-set(BASIS_NAMESPACE_DELIMITER_CMAKE ::)
-
-# ----------------------------------------------------------------------------
-# Override default BASIS settings and hide unused cache entries
-set(BUILD_MODULES_BY_DEFAULT    OFF       CACHE INTERNAL "" FORCE)
-set(BASIS_BUILD_ONLY            OFF       CACHE INTERNAL "" FORCE)
-set(BASIS_ALL_DOC               OFF       CACHE INTERNAL "" FORCE)
-set(BASIS_COMPILE_MATLAB        ON        CACHE INTERNAL "" FORCE)
-set(BASIS_COMPILE_SCRIPTS       OFF       CACHE INTERNAL "" FORCE)
-set(BASIS_CREATE_EXPORTS_FILE   ON        CACHE INTERNAL "" FORCE)
-set(BASIS_INSTALL_RPATH         ON        CACHE INTERNAL "" FORCE)
-set(BASIS_INSTALL_SCHEME        "default" CACHE INTERNAL "" FORCE)
-set(BASIS_INSTALL_SITE_PACKAGES OFF       CACHE INTERNAL "" FORCE)
-set(BASIS_REGISTER              ON        CACHE INTERNAL "" FORCE)
-set(BASIS_REVISION_INFO         ON        CACHE INTERNAL "" FORCE)
-set(BASIS_SUPERBUILD_MODULES    OFF       CACHE INTERNAL "" FORCE)
-
-foreach (lang IN ITEMS BASH CXX PYTHON PERL)
-  set(BUILD_BASIS_UTILITIES_FOR_${lang} OFF CACHE INTERNAL "" FORCE)
-endforeach ()
-unset(lang)
+include("${MIRTK_MODULE_PATH}/MIRTKTools.cmake")
 
 # ----------------------------------------------------------------------------
 # Configure build system
 
 # Initialize project
-basis_project_begin()
+mirtk_project_begin()
 
 # Main "mirtk" script
 #
@@ -95,25 +71,21 @@ if (BUILD_APPLICATIONS)
 endif ()
 
 # Process modules
-if (NOT PROJECT_IS_MODULE)
-  foreach (MODULE IN LISTS PROJECT_MODULES_ENABLED)
-    basis_add_module(${MODULE})
-    basis_use_module(${MODULE})
-  endforeach ()
-endif ()
+foreach (MODULE IN LISTS PROJECT_MODULES_ENABLED)
+  basis_add_module(${MODULE})
+  basis_use_module(${MODULE})
+endforeach ()
 
 # Process subdirectories
 foreach (SUBDIR IN LISTS PROJECT_SUBDIRS)
   basis_add_subdirectory(${SUBDIR})
 endforeach ()
 
-# Finalize project
-basis_project_end()
+# Install CMake modules
+basis_add_subdirectory(CMake)
 
-# Hide unused BASIS installation directory settings
-foreach (lang IN ITEMS BASH JYTHON PYTHON MATLAB PERL PYTHON)
-  set_property(CACHE INSTALL_${lang}_SITE_DIR PROPERTY TYPE INTERNAL)
-endforeach ()
+# Finalize project
+mirtk_project_end()
 
 # ------------------------------------------------------------------------------
 # Generate Bash completions file

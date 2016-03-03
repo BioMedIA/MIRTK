@@ -17,6 +17,10 @@
 # limitations under the License.
 # ==============================================================================
 
+if (COMMAND mirtk_add_test)
+  return()
+endif ()
+
 include(CMakeParseArguments)
 
 # ------------------------------------------------------------------------------

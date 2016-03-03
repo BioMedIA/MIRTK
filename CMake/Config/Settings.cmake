@@ -91,3 +91,10 @@ if (BUILD_APPLICATIONS AND MODULE_Image)
     basis_update_value(MODULE_ImageIO ON)
   endif ()
 endif ()
+
+# Installation directories
+if (WIN32)
+  set(INSTALL_CMAKE_MODULES_DIR "${INSTALL_SHARE_DIR}/CMake")
+else ()
+  set(INSTALL_CMAKE_MODULES_DIR "${INSTALL_SHARE_DIR}/cmake")
+endif ()
