@@ -1,12 +1,3 @@
-# ============================================================================
-# Copyright (c) 2011-2012 University of Pennsylvania
-# Copyright (c) 2013-2014 Andreas Schuh
-# All rights reserved.
-#
-# See COPYING file for license information or visit
-# http://opensource.andreasschuh.com/cmake-basis/download.html#license
-# ============================================================================
-
 ##############################################################################
 # @file  @CONFIG_FILE@
 # @brief CMake package configuration file of BASIS.
@@ -163,7 +154,7 @@ endif ()
 
 foreach (${NS}MODULE IN LISTS ${NS}MODULES_REQUESTED)
   # check if requested module is available
-  list (FIND ${NS}MODULES_ENABLED ${NS}MODULE IDX)
+  list (FIND ${NS}MODULES_ENABLED "${${NS}MODULE}" IDX)
   if (IDX EQUAL -1)
     # set <Pkg>_<Module>_FOUND = FALSE
     set(${NS}${${NS}MODULE}_FOUND FALSE)
