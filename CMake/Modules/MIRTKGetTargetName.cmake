@@ -17,10 +17,20 @@
 # limitations under the License.
 # ==============================================================================
 
-include("${CMAKE_CURRENT_LIST_DIR}/MIRTKAddExecutable.cmake")
-include("${CMAKE_CURRENT_LIST_DIR}/MIRTKAddLibrary.cmake")
-include("${CMAKE_CURRENT_LIST_DIR}/MIRTKAddTest.cmake")
-include("${CMAKE_CURRENT_LIST_DIR}/MIRTKGetTargetName.cmake")
-include("${CMAKE_CURRENT_LIST_DIR}/MIRTKProjectBegin.cmake")
-include("${CMAKE_CURRENT_LIST_DIR}/MIRTKProjectEnd.cmake")
-include("${CMAKE_CURRENT_LIST_DIR}/MIRTKConfigureModule.cmake")
+if (COMMAND mirtk_get_target_name)
+  return()
+endif ()
+
+# ------------------------------------------------------------------------------
+## Either prefix target name with "mirtk::" namespace identifier or remove it
+function (mirtk_get_target_name target_name dep)
+  if (TARGET ${dep})
+    set(${target_name} ${dep} PARENT_SCOPE)
+  elseif (TARGET mirtk::${dep})
+    set(${target_name} mirtk::${dep} PARENT_SCOPE)
+  elseif (dep MATCHES "^mirtk::(.*)$" AND TARGET "${CMAKE_MATCH_1}")
+    set(${target_name} ${CMAKE_MATCH_1} PARENT_SCOPE)
+  else ()
+    set(${target_name} ${dep} PARENT_SCOPE)
+  endif ()
+endfunction ()
