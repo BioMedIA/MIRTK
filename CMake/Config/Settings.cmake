@@ -45,16 +45,6 @@ option(BUILD_DOCUMENTATION_SOURCES "Regenerate help of commands in reStructuredT
 # By default, most modules are enabled already...
 mark_as_advanced(BUILD_ALL_MODULES)
 
-# Choose build configuration from CMake list of common configuration types
-basis_is_cached(CACHED_CONFIGURATION_TYPES CMAKE_CONFIGURATION_TYPES)
-if (CACHED_CONFIGURATION_TYPES)
-  basis_is_cached(CACHED_BUILD_TYPE CMAKE_BUILD_TYPE)
-  if (CACHED_BUILD_TYPE AND CMAKE_CONFIGURATION_TYPES)
-    set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS ${CMAKE_CONFIGURATION_TYPES})
-  endif ()
-  set_property(CACHE CMAKE_CONFIGURATION_TYPES PROPERTY TYPE INTERNAL)
-endif ()
-
 # Choose between shared or static linkage (shared is recommended)
 option(BUILD_SHARED_LIBS "Request build of shared libraries" ON)
 mark_as_advanced(BUILD_SHARED_LIBS)
@@ -67,13 +57,6 @@ endif ()
 
 # Testing is yet very limited, hence mark this option as advanced for now
 mark_as_advanced(BUILD_TESTING)
-
-# CodeBlocks generators add this cache entry, hide it when set
-if (CMAKE_CODEBLOCKS_EXECUTABLE)
-  mark_as_advanced(FORCE CMAKE_CODEBLOCKS_EXECUTABLE)
-else ()
-  mark_as_advanced(CLEAR CMAKE_CODEBLOCKS_EXECUTABLE)
-endif ()
 
 # Always use/find VTK when anyway required by one of the enabled modules
 if (MODULE_PointSet)
