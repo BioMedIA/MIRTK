@@ -47,6 +47,8 @@ set (
     "DirectoriesSettings.cmake"     # project directory structure
     "DocTools.cmake"                # documentation generation
     "ExportTools.cmake"             # exporting targets
+    "ExternalData.cmake"            # storing data externally
+    "ExternalData_config.cmake.in"  # config of ExternalData.cmake module
     "InterpTools.cmake"             # script interpreter tools
     "InstallationTools.cmake"       # software installation
     "MatlabTools.cmake"             # MATLAB support
@@ -139,3 +141,12 @@ foreach (fname IN LISTS CMAKE_MODULES CMAKE_FIND_MODULES)
   list(APPEND files "Modules/${fname}")
 endforeach ()
 basis_install(FILES ${files} DESTINATION "${INSTALL_CMAKE_MODULES_DIR}")
+
+# Attention: DO NOT add the uninstall subdirectory here! Instead, the
+#            CMakeLists.txt file is installed in a separate directory.
+#            This directory is added to the build configuration of each
+#            BASIS project (including BASIS) in basis_project_end().
+basis_install (
+  FILES       "Basis/uninstall/CMakeLists.txt"
+  DESTINATION "${INSTALL_CMAKE_MODULES_DIR}/uninstall"
+)
