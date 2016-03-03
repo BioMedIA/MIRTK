@@ -42,6 +42,7 @@ basis_project (
   # ----------------------------------------------------------------------------
   # meta-data
   NAME        #<project>
+  VERSION     "0.0.0"
   PACKAGE     "MIRTK"
   AUTHORS     #<author>
   DESCRIPTION #<description>
