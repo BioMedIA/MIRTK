@@ -114,12 +114,13 @@ set (
 # MIRTK CMake modules
 set (
   CMAKE_MODULES
-    "MIRTKTools.cmake"         # includes MIRTK command definitions
-    "MIRTKAddLibrary.cmake"    # defines mirtk_add_library
-    "MIRTKAddExecutable.cmake" # defines mirtk_add_executable
-    "MIRTKAddTest.cmake"       # defines mirtk_add_test
-    "MIRTKProjectBegin.cmake"  # defines mirtk_project_begin
-    "MIRTKProjectEnd.cmake"    # defines mirtk_project_end
+    "MIRTKTools.cmake"           # includes MIRTK command definitions
+    "MIRTKAddLibrary.cmake"      # defines mirtk_add_library
+    "MIRTKAddExecutable.cmake"   # defines mirtk_add_executable
+    "MIRTKAddTest.cmake"         # defines mirtk_add_test
+    "MIRTKProjectBegin.cmake"    # defines mirtk_project_begin
+    "MIRTKProjectEnd.cmake"      # defines mirtk_project_end
+    "MIRTKConfigureModule.cmake" # defines mirtk_configure_module
 )
 
 # ----------------------------------------------------------------------------
