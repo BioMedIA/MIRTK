@@ -602,13 +602,19 @@ void NormalizedIntensityCrossCorrelation::SetKernelToGaussian(double sx, double 
 // -----------------------------------------------------------------------------
 bool NormalizedIntensityCrossCorrelation::SetWithPrefix(const char *name, const char *value)
 {
-  if (strncmp(name, "Local window radius", 19) == 0) {
+  const char *WINDOW_RADIUS_PREFIX = "Local window radius";
+  const char *WINDOW_SIZE_PREFIX   = "Local window size";
 
-    if (strstr(name + 19, "[gauss]")    != NULL ||
-        strstr(name + 19, "[gaussian]") != NULL ||
-        strstr(name + 19, "[sigma]")    != NULL ||
-        strstr(name + 19, "[stddev]")   != NULL ||
-        strstr(name + 19, "[StdDev]")   != NULL) {
+  const int WINDOW_RADIUS_STRLEN = strlen(WINDOW_RADIUS_PREFIX);
+  const int WINDOW_SIZE_STRLEN   = strlen(WINDOW_SIZE_PREFIX);
+
+  if (strncmp(name, WINDOW_RADIUS_PREFIX, WINDOW_RADIUS_STRLEN) == 0) {
+    name += WINDOW_RADIUS_STRLEN;
+    if (strstr(name, "[gauss]")    != NULL ||
+        strstr(name, "[gaussian]") != NULL ||
+        strstr(name, "[sigma]")    != NULL ||
+        strstr(name, "[stddev]")   != NULL ||
+        strstr(name, "[StdDev]")   != NULL) {
       double sx = 0, sy = 0, sz = 0;
       int n = sscanf(value, "%lf %lf %lf", &sx, &sy, &sz);
       if (n == 0) return false;
@@ -623,12 +629,12 @@ bool NormalizedIntensityCrossCorrelation::SetWithPrefix(const char *name, const 
       _NeighborhoodSize._y = 4.29193 * sy;
       _NeighborhoodSize._z = 4.29193 * sz;
       return true;
-    } else if (strstr(name + 19, "[FWHM]") != NULL ||
-               strstr(name + 19, "[fwhm]") != NULL ||
-               strstr(name + 19, "[FWTM]") != NULL ||
-               strstr(name + 19, "[fwtm]") != NULL) {
+    } else if (strstr(name, "[FWHM]") != NULL ||
+               strstr(name, "[fwhm]") != NULL ||
+               strstr(name, "[FWTM]") != NULL ||
+               strstr(name, "[fwtm]") != NULL) {
       return false; // makes only sense for "Local window size"
-    } else if (strstr(name + 19, "[voxels]") != NULL) {
+    } else if (strstr(name, "[voxels]") != NULL) {
       int rx = 0, ry = 0, rz = 0;
       int n = sscanf(value, "%d %d %d", &rx, &ry, &rz);
       if (n == 0) return false;
@@ -640,7 +646,7 @@ bool NormalizedIntensityCrossCorrelation::SetWithPrefix(const char *name, const 
       _NeighborhoodSize._y = -(2.0 * ry + 1.0);
       _NeighborhoodSize._z = -(2.0 * rz + 1.0);
       return true;
-    } else if (strstr(name + 19, "[mm]") != NULL) {
+    } else if (strstr(name, "[mm]") != NULL) {
       double rx = .0, ry = .0, rz = .0;
       int n = sscanf(value, "%lf %lf %lf", &rx, &ry, &rz);
       if (n == 0) return false;
@@ -652,7 +658,7 @@ bool NormalizedIntensityCrossCorrelation::SetWithPrefix(const char *name, const 
       _NeighborhoodSize._y = 2.0 * ry;
       _NeighborhoodSize._z = 2.0 * rz;
       return true;
-    } else if (name[19] == '\0' || strstr(name + 19, "[box]") != NULL) {
+    } else if (name[0] == '\0' || strstr(name, "[box]") != NULL) {
       double rx = .0, ry = .0, rz = .0;
       int n = sscanf(value, "%lf %lf %lf", &rx, &ry, &rz);
       if (n == 0) return false;
@@ -670,13 +676,13 @@ bool NormalizedIntensityCrossCorrelation::SetWithPrefix(const char *name, const 
     }
     return false;
 
-  } else if (strncmp(name, "Local window size", 17) == 0) {
-
-    if (strstr(name + 19, "[gauss]")    != NULL ||
-        strstr(name + 19, "[gaussian]") != NULL ||
-        strstr(name + 17, "[sigma]")    != NULL ||
-        strstr(name + 17, "[stddev]")   != NULL ||
-        strstr(name + 17, "[StdDev]")   != NULL) {
+  } else if (strncmp(name, WINDOW_SIZE_PREFIX, WINDOW_SIZE_STRLEN) == 0) {
+    name += WINDOW_SIZE_STRLEN;
+    if (strstr(name, "[gauss]")    != NULL ||
+        strstr(name, "[gaussian]") != NULL ||
+        strstr(name, "[sigma]")    != NULL ||
+        strstr(name, "[stddev]")   != NULL ||
+        strstr(name, "[StdDev]")   != NULL) {
       double sx = 0, sy = 0, sz = 0;
       int n = sscanf(value, "%lf %lf %lf", &sx, &sy, &sz);
       if (n == 0) return false;
@@ -691,8 +697,8 @@ bool NormalizedIntensityCrossCorrelation::SetWithPrefix(const char *name, const 
       _NeighborhoodSize._y = 4.29193 * sy;
       _NeighborhoodSize._z = 4.29193 * sz;
       return true;
-    } else if (strstr(name + 17, "[FWHM]") != NULL ||
-               strstr(name + 17, "[fwhm]") != NULL) {
+    } else if (strstr(name, "[FWHM]") != NULL ||
+               strstr(name, "[fwhm]") != NULL) {
       double sx = 0, sy = 0, sz = 0;
       int n = sscanf(value, "%lf %lf %lf", &sx, &sy, &sz);
       if (n == 0) return false;
@@ -707,8 +713,8 @@ bool NormalizedIntensityCrossCorrelation::SetWithPrefix(const char *name, const 
       _NeighborhoodSize._y = 1.82262 * sy;
       _NeighborhoodSize._z = 1.82262 * sz;
       return true;
-    } else if (strstr(name + 17, "[FWTM]") != NULL ||
-               strstr(name + 17, "[fwtm]") != NULL) {
+    } else if (strstr(name, "[FWTM]") != NULL ||
+               strstr(name, "[fwtm]") != NULL) {
       double sx = 0, sy = 0, sz = 0;
       int n = sscanf(value, "%lf %lf %lf", &sx, &sy, &sz);
       if (n == 0) return false;
@@ -723,7 +729,7 @@ bool NormalizedIntensityCrossCorrelation::SetWithPrefix(const char *name, const 
       _NeighborhoodSize._y = sy;
       _NeighborhoodSize._z = sz;
       return true;
-    } else if (strstr(name + 17, "[voxels]") != NULL) {
+    } else if (strstr(name, "[voxels]") != NULL) {
       int sx = 0, sy = 0, sz = 0;
       int n = sscanf(value, "%d %d %d", &sx, &sy, &sz);
       if (n == 0) return false;
@@ -735,7 +741,7 @@ bool NormalizedIntensityCrossCorrelation::SetWithPrefix(const char *name, const 
       _NeighborhoodSize._y = -sy;
       _NeighborhoodSize._z = -sz;
       return true;
-    } else if (strstr(name + 17, "[mm]") != NULL) {
+    } else if (strstr(name, "[mm]") != NULL) {
       double sx = .0, sy = .0, sz = .0;
       int n = sscanf(value, "%lf %lf %lf", &sx, &sy, &sz);
       if (n == 0) return false;
@@ -747,7 +753,7 @@ bool NormalizedIntensityCrossCorrelation::SetWithPrefix(const char *name, const 
       _NeighborhoodSize._y = sy;
       _NeighborhoodSize._z = sz;
       return true;
-    } else if (name[17] == '\0' || strstr(name + 17, "[box]") != NULL) {
+    } else if (name[0] == '\0' || strstr(name, "[box]") != NULL) {
       double sx = .0, sy = .0, sz = .0;
       int n = sscanf(value, "%lf %lf %lf", &sx, &sy, &sz);
       if (n == 0) return false;
