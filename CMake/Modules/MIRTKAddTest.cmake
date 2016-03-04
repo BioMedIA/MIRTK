@@ -22,6 +22,7 @@ if (COMMAND mirtk_add_test)
 endif ()
 
 include(CMakeParseArguments)
+include("${CMAKE_CURRENT_LIST_DIR}/MIRTKGetTargetName.cmake")
 
 # ------------------------------------------------------------------------------
 ## Add build target for executable MIRTK command
@@ -36,8 +37,9 @@ function(mirtk_add_test target_name)
   endif ()
   # Add optional dependencies if targets exist
   foreach (dep IN LISTS TARGET_OPTIONAL)
-    if (TARGET ${dep})
-      list(APPEND TARGET_DEPENDS ${dep})
+    mirtk_get_target_name(dep_name ${dep})
+    if (TARGET ${dep_name})
+      list(APPEND TARGET_DEPENDS ${dep_name})
     endif ()
   endforeach ()
   # Add test executable build target and CTest target
