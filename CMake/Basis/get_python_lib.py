@@ -14,6 +14,8 @@
 # @brief Auxiliary Python script to get installation directory for site packages.
 ##############################################################################
 
+from __future__ import absolute_import, print_function, unicode_literals
+
 try:
     # this uses the same as packages which use easy_install for the installation
     # and returns also the proper site-packages directory on Ubuntu
@@ -38,8 +40,8 @@ try:
     except distutils.errors.DistutilsError:
         pass
 
-    print e.install_dir.rstrip('/\\')
+    print(e.install_dir.rstrip('/\\'))
 except:
     # however, if the setuptools are not installed, fall back to the distutils
     import distutils.sysconfig
-    print distutils.sysconfig.get_python_lib().rstrip('/\\')
+    print(distutils.sysconfig.get_python_lib().rstrip('/\\'))
