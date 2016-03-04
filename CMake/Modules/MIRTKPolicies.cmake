@@ -1,8 +1,8 @@
-# ============================================================================
+# ==============================================================================
 # Medical Image Registration ToolKit (MIRTK)
 #
-# Copyright 2013-2016 Imperial College London
-# Copyright 2013-2016 Andreas Schuh
+# Copyright 2016 Imperial College London
+# Copyright 2016 Andreas Schuh
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,6 +15,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-# ============================================================================
+# ==============================================================================
 
-mirtk_configure_module()
+if (_MIRTK_Policies_INCLUDED)
+  return()
+else ()
+  set(_MIRTK_Policies_INCLUDED TRUE)
+endif ()
+
+if (POLICY CMP0042)
+  cmake_policy(SET CMP0042 NEW)
+endif ()

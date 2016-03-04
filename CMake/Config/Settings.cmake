@@ -37,7 +37,7 @@
 ################################################################################
 
 # By default, build applications
-option(BUILD_APPLICATIONS "Request build and installation of command-line tools" ON)
+set(BUILD_APPLICATIONS_DEFAULT ON)
 
 # By default, do not regenerate .rst files of command help pages
 option(BUILD_DOCUMENTATION_SOURCES "Regenerate help of commands in reStructuredText format when missing" OFF)
@@ -45,35 +45,17 @@ option(BUILD_DOCUMENTATION_SOURCES "Regenerate help of commands in reStructuredT
 # By default, most modules are enabled already...
 mark_as_advanced(BUILD_ALL_MODULES)
 
-# Choose build configuration from CMake list of common configuration types
-basis_is_cached(CACHED_CONFIGURATION_TYPES CMAKE_CONFIGURATION_TYPES)
-if (CACHED_CONFIGURATION_TYPES)
-  basis_is_cached(CACHED_BUILD_TYPE CMAKE_BUILD_TYPE)
-  if (CACHED_BUILD_TYPE AND CMAKE_CONFIGURATION_TYPES)
-    set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS ${CMAKE_CONFIGURATION_TYPES})
-  endif ()
-  set_property(CACHE CMAKE_CONFIGURATION_TYPES PROPERTY TYPE INTERNAL)
-endif ()
-
 # Choose between shared or static linkage (shared is recommended)
-option(BUILD_SHARED_LIBS "Request build of shared libraries" ON)
-mark_as_advanced(BUILD_SHARED_LIBS)
+# Note: BUILD_SHARED_LIBS option added by mirtk_project_begin
+set(MIRTK_BUILD_SHARED_LIBS_DEFAULT ON)
 
 # Enable profiling of program execution (cf. Common/include/mirtkProfiling.h)
-option(WITH_PROFILING "Enable profiling of program execution" ON)
-if (WITH_PROFILING)
-  add_definitions(-DMIRTK_WITH_PROFILING)
-endif ()
+# Note: WITH_PROFILING option and MIRTK_WITH_PROFILING compile definition added
+#       by mirtk_project_begin when WITH_PROFILING is ON
+set(MIRTK_WITH_PROFILING_DEFAULT ON)
 
 # Testing is yet very limited, hence mark this option as advanced for now
 mark_as_advanced(BUILD_TESTING)
-
-# CodeBlocks generators add this cache entry, hide it when set
-if (CMAKE_CODEBLOCKS_EXECUTABLE)
-  mark_as_advanced(FORCE CMAKE_CODEBLOCKS_EXECUTABLE)
-else ()
-  mark_as_advanced(CLEAR CMAKE_CODEBLOCKS_EXECUTABLE)
-endif ()
 
 # Always use/find VTK when anyway required by one of the enabled modules
 if (MODULE_PointSet)
@@ -90,4 +72,11 @@ if (BUILD_APPLICATIONS AND MODULE_Image)
             " setting also MODULE_ImageIO to ON")
     basis_update_value(MODULE_ImageIO ON)
   endif ()
+endif ()
+
+# Installation directories
+if (WIN32)
+  set(INSTALL_CMAKE_MODULES_DIR "${INSTALL_SHARE_DIR}/CMake")
+else ()
+  set(INSTALL_CMAKE_MODULES_DIR "${INSTALL_SHARE_DIR}/cmake")
 endif ()

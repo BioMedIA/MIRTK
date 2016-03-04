@@ -64,7 +64,7 @@ basis_project (
  
   # --------------------------------------------------------------------------
   # directories
-  CONFIG_DIR  CMake
+  CONFIG_DIR  CMake/Config
   DOC_DIR     Documentation
   MODULES_DIR Modules
   TOOLS_DIR   Applications

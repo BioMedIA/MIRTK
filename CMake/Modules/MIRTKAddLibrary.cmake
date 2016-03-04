@@ -17,7 +17,12 @@
 # limitations under the License.
 # ==============================================================================
 
+if (COMMAND mirtk_add_library)
+  return()
+endif ()
+
 include(CMakeParseArguments)
+include("${CMAKE_CURRENT_LIST_DIR}/MIRTKGetTargetName.cmake")
 
 # ------------------------------------------------------------------------------
 ## Add MIRTK module library
@@ -65,15 +70,16 @@ function(mirtk_add_library)
     if (dep MATCHES "^(debug|optimized|general)$")
       set(keyword ${dep})
     else ()
-      if (TARGET ${dep})
-        get_property(type TARGET ${dep} PROPERTY TYPE)
+      mirtk_get_target_name(dep_name ${dep})
+      if (TARGET ${dep_name})
+        get_property(type TARGET ${dep_name} PROPERTY TYPE)
         if (type MATCHES LIBRARY)
-          target_link_libraries(${target_name} ${keyword} ${dep})
+          target_link_libraries(${target_name} ${keyword} ${dep_name})
         else ()
-          add_dependencies(${target_name} ${dep})
+          add_dependencies(${target_name} ${dep_name})
         endif ()
       else ()
-        target_link_libraries(${target_name} ${keyword} ${dep})
+        target_link_libraries(${target_name} ${keyword} ${dep_name})
       endif ()
       set(keyword)
     endif ()
