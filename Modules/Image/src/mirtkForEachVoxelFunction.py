@@ -1,5 +1,7 @@
 #! /usr/bin/env python
 
+from __future__ import absolute_import, print_function, unicode_literals
+
 import sys
 
 # ------------------------------------------------------------------------------
@@ -44,7 +46,7 @@ def get_source_name(arity):
 # ------------------------------------------------------------------------------
 # parse command-line arguments
 if len(sys.argv) != 3:
-  print "usage: " + sys.argv[0] + ' <arity> <file>'
+  print("usage: " + sys.argv[0] + ' <arity> <file>')
   sys.exit(1)
 try:
   arity = int(sys.argv[1])
