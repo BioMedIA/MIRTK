@@ -282,7 +282,7 @@ inline int Intersections(Array<double> &d, const double p[3], const double e[3],
 // -----------------------------------------------------------------------------
 /// Determine surface distance at a point in a specified direction
 ///
-/// \returns Surface distance in specified direction, clamped to \p maxw.
+/// \returns Surface distance in specified direction, clamped to \p maxd.
 inline double ForwardDistance(const double p[3], const double e1[3],
                               double mind, double minh, double maxd,
                               const DistanceFunction &distance, double offset = .0,
@@ -294,7 +294,7 @@ inline double ForwardDistance(const double p[3], const double e1[3],
 // -----------------------------------------------------------------------------
 /// Determine surface distance at a point in a specified direction
 ///
-/// \returns Surface distance in specified direction, clamped to \p maxw.
+/// \returns Surface distance in specified direction, clamped to \p maxd.
 inline double ForwardDistance(const double p[3], const double e1[3],
                               double minh, double maxd,
                               const DistanceFunction &distance, double offset = .0,
@@ -307,7 +307,7 @@ inline double ForwardDistance(const double p[3], const double e1[3],
 // -----------------------------------------------------------------------------
 /// Determine surface distance at a point in a specified direction
 ///
-/// \returns Surface distance in specified direction, clamped to \p maxw.
+/// \returns Surface distance in specified direction, clamped to \p maxd.
 inline double BackwardDistance(const double p[3], const double e1[3],
                                double mind, double minh, double maxd,
                                const DistanceFunction &distance, double offset = .0,
@@ -320,7 +320,7 @@ inline double BackwardDistance(const double p[3], const double e1[3],
 // -----------------------------------------------------------------------------
 /// Determine surface distance at a point in a specified direction
 ///
-/// \returns Surface distance in specified direction, clamped to \p maxw.
+/// \returns Surface distance in specified direction, clamped to \p maxd.
 inline double BackwardDistance(const double p[3], const double e1[3],
                                double minh, double maxd,
                                const DistanceFunction &distance, double offset = .0,
@@ -333,7 +333,7 @@ inline double BackwardDistance(const double p[3], const double e1[3],
 // -----------------------------------------------------------------------------
 /// Determine surface distance at a point in a specified direction
 ///
-/// \returns Surface distance in specified direction, clamped to \p maxw.
+/// \returns Surface distance in specified direction, clamped to \p maxd.
 inline double Distance(const double p[3], const double e1[3],
                        double mind, double minh, double maxd,
                        const DistanceFunction &distance, double offset = .0,
@@ -347,7 +347,7 @@ inline double Distance(const double p[3], const double e1[3],
 // -----------------------------------------------------------------------------
 /// Determine surface distance at a point in a specified direction
 ///
-/// \returns Surface distance in specified direction, clamped to \p maxw.
+/// \returns Surface distance in specified direction, clamped to \p maxd.
 inline double Distance(const double p[3], const double e1[3],
                        double minh, double maxd,
                        const DistanceFunction &distance, double offset = .0,
@@ -355,6 +355,32 @@ inline double Distance(const double p[3], const double e1[3],
 {
   const double mind = Evaluate(distance, p, offset);
   return Distance(p, e1, mind, minh, maxd, distance, offset, tol);
+}
+
+// -----------------------------------------------------------------------------
+/// Determine signed surface distance at a point in normal direction
+///
+/// \returns Signed surface distance in normal direction, clamped to \p maxd.
+inline double SignedDistance(const double p[3], const double n[3],
+                             double mind, double minh, double maxd,
+                             const DistanceFunction &distance, double offset = .0,
+                             double tol = 1e-3)
+{
+  if (mind < .0) return -ForwardDistance(p, n, mind, minh, maxd, distance, offset, tol);
+  else           return BackwardDistance(p, n, mind, minh, maxd, distance, offset, tol);
+}
+
+// -----------------------------------------------------------------------------
+/// Determine signed surface distance at a point in normal direction
+///
+/// \returns Signed surface distance in normal direction, clamped to \p maxw.
+inline double SignedDistance(const double p[3], const double n[3],
+                             double minh, double maxd,
+                             const DistanceFunction &distance, double offset = .0,
+                             double tol = 1e-3)
+{
+  const double mind = Evaluate(distance, p, offset);
+  return SignedDistance(p, n, mind, minh, maxd, distance, offset, tol);
 }
 
 // -----------------------------------------------------------------------------

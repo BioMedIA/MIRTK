@@ -263,6 +263,7 @@ inline vtkIdType PolyDataRemeshing
 
   // Get other cell adjacent to this edge
   const vtkIdType neighborCellId = GetCellEdgeNeighbor(cellId, ptId1, ptId2);
+  if (neighborCellId == -1) return -1;
 
   // Get points which are adjacent to both edge points
   vtkSmartPointer<vtkIdList> ptIds1 = vtkSmartPointer<vtkIdList>::New();
