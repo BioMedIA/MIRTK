@@ -215,6 +215,18 @@ public:
   int GetT() const;
 
   /// Returns the size of a voxel in the x-direction
+  double XSize() const;
+
+  /// Returns the size of a voxel in the y-direction
+  double YSize() const;
+
+  /// Returns the size of a voxel in the z-direction
+  double ZSize() const;
+
+  /// Returns the size of a voxel in the t-direction
+  double TSize() const;
+
+  /// Returns the size of a voxel in the x-direction
   double GetXSize() const;
 
   /// Returns the size of a voxel in the y-direction
@@ -883,6 +895,30 @@ inline int BaseImage::GetZ() const
 inline int BaseImage::GetT() const
 {
   return _attr._t;
+}
+
+// -----------------------------------------------------------------------------
+inline double BaseImage::XSize() const
+{
+  return _attr._dx;
+}
+
+// -----------------------------------------------------------------------------
+inline double BaseImage::YSize() const
+{
+  return _attr._dy;
+}
+
+// -----------------------------------------------------------------------------
+inline double BaseImage::ZSize() const
+{
+  return _attr._dz;
+}
+
+// -----------------------------------------------------------------------------
+inline double BaseImage::TSize() const
+{
+  return _attr._dt;
 }
 
 // -----------------------------------------------------------------------------
