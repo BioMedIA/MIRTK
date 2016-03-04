@@ -663,6 +663,7 @@ struct SmoothSignedDataMagnitude
     }
 
     for (i = 0; i < _InputArrays->size(); ++i) delete[] dir[i];
+    delete[] dir;
     delete[] data;
     delete[] wsum;
   }
@@ -825,6 +826,7 @@ struct SmoothSignedData
       delete[] dir [i];
       delete[] data[i];
     }
+    delete[] dir;
     delete[] data;
     delete[] wsum;
   }
