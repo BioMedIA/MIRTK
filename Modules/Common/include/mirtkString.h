@@ -221,6 +221,14 @@ string ToLower(const string &);
 /// Convert string to uppercase letters
 string ToUpper(const string &);
 
+/// Trim leading and trailing (whitespace) characters from string
+///
+/// \param[in] str  Input string.
+/// \param[in] what Set of characters to remove from start and end of string.
+///
+/// \returns String with leading and trailing (whitespace) characters removed.
+string Trim(const string &str, const string &what = " \t\r\n");
+
 /// Split string into parts separated by specified delimiting sequence of characters
 ///
 /// @param s String to be split.
@@ -228,10 +236,45 @@ string ToUpper(const string &);
 /// @param n Maximum number of parts. If zero, all parts are returned,
 ///          if negative, the last n parts are returned, and if positive,
 ///          the first n parts are returned.
+/// @param e Discard empty strings.
 ///
 /// @returns Parts of the string.
-Array<string> Split(string s, const char *d, int n = 0);
+Array<string> Split(string s, const char *d, int n = 0, bool e = false);
 
+/// Convert units specification to standard lowercase string
+///
+/// For example, this function returns "vox" for any units specification allowed
+/// for voxel units including "voxel" and "VOxELS". Same for other units for
+/// which alternative units specifications are allowed. Removes enclosing
+/// brackets from units string if present, e.g., returns "mm" when the input
+/// string is "[mm]".
+///
+/// \param[in] str Units specification string.
+///
+/// \returns Standard units specification in all lowercase.
+string StandardUnits(const string &str);
+
+/// Splits a parameter name string such as "Resolution [mm]" into prefix and units
+///
+/// \param[in]  str  Parameter name string with optional units specification.
+/// \param[out] name Name of parameter without units specification.
+/// \param[in]  dflt Default units if none specified.
+///
+/// \returns Standard units string or \p dflt string if units specification missing.
+string ParameterUnits(const string &str, string *name = nullptr, const char *dflt = "");
+
+/// Splits a parameter value string such as "1 mm", "1 [mm]", "1 2 3 mm", "foo [rel]"
+///
+/// \note When the parameter value is not numeric, the units specification must
+///       be enclosed in square brackets ([]) and separated by at least one white
+///       space character from the parameter value(s).
+///
+/// \param[in]  str   Numeric parameter value string with optional units specification.
+/// \param[out] value Value(s) of parameter without units specification.
+/// \param[in]  dflt  Default units if none specified.
+///
+/// \returns Standard units string or \p dflt string if units specification missing.
+string ValueUnits(const string &str, string *value = nullptr, const char *dflt = "");
 
 
 } // namespace mirtk

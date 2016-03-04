@@ -62,6 +62,7 @@ basis_project (
     ZLIB
     #<optional-dependency>
   TEST_DEPENDS
+    GTest
     #<test-dependency>
   OPTIONAL_TEST_DEPENDS
     #<optional-test-dependency>
