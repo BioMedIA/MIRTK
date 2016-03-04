@@ -258,9 +258,10 @@ string StandardUnits(const string &str);
 ///
 /// \param[in]  str  Parameter name string with optional units specification.
 /// \param[out] name Name of parameter without units specification.
+/// \param[in]  dflt Default units if none specified.
 ///
-/// \returns Standard units string or empty string if units specification missing.
-string ParameterUnits(const string &str, string *name = nullptr);
+/// \returns Standard units string or \p dflt string if units specification missing.
+string ParameterUnits(const string &str, string *name = nullptr, const char *dflt = "");
 
 /// Splits a parameter value string such as "1 mm", "1 [mm]", "1 2 3 mm", "foo [rel]"
 ///
@@ -270,9 +271,10 @@ string ParameterUnits(const string &str, string *name = nullptr);
 ///
 /// \param[in]  str   Numeric parameter value string with optional units specification.
 /// \param[out] value Value(s) of parameter without units specification.
+/// \param[in]  dflt  Default units if none specified.
 ///
-/// \returns Standard units string or empty string if units specification missing.
-string ValueUnits(const string &str, string *value = nullptr);
+/// \returns Standard units string or \p dflt string if units specification missing.
+string ValueUnits(const string &str, string *value = nullptr, const char *dflt = "");
 
 
 } // namespace mirtk

@@ -195,7 +195,7 @@ string StandardUnits(const string &str)
 }
 
 // ------------------------------------------------------------------------
-string ParameterUnits(const string &str, string *name)
+string ParameterUnits(const string &str, string *name, const char *dflt)
 {
   const string trimmed = Trim(str);
   string units;
@@ -211,11 +211,12 @@ string ParameterUnits(const string &str, string *name)
   if (name) {
     *name = Trim(trimmed.substr(0u, trimmed.size() - units.size() - 2u));
   }
+  if (units.empty()) return dflt;
   return StandardUnits(units);
 }
 
 // ------------------------------------------------------------------------
-string ValueUnits(const string &str, string *value)
+string ValueUnits(const string &str, string *value, const char *dflt)
 {
   const string trimmed = Trim(str);
   string units;
@@ -244,6 +245,7 @@ string ValueUnits(const string &str, string *value)
   if (value) {
     *value = Trim(trimmed.substr(0u, trimmed.size() - units.size()));
   }
+  if (units.empty()) return dflt;
   return StandardUnits(units);
 }
 
