@@ -105,7 +105,7 @@ GenericRegistrationFilter::Units ParseUnits(const char *value)
   const char *p = value + len;
   // Skip trailing whitespaces
   while (p != value && (*(p-1) == ' ' || *(p-1) == '\t')) --p;
-  // Skip lowercase letters and
+  // Skip lowercase letters
   while (p != value && *(p-1) >= 'a' && *(p-1) <= 'z') --p;
   // Skip % sign
   if (p != value && *(p-1) == '%') --p;
@@ -349,29 +349,25 @@ public:
     for (int l = re.rows().begin(); l != re.rows().end(); ++l)
     for (int n = re.cols().begin(); n != re.cols().end(); ++n) {
       const Vector3D<double> &res = _Resolution[l][n];
-      bool absolute = (res._x > 0 && res._y > 0 && res._z > 0);
-	  double dx, dy, dz;
-	  _Image[l][n].GetPixelSize(&dx, &dy, &dz);
-	  if (!fequal(absolute ? res._x : fabs(res._x) * dx, dx, TOL) ||
-		  !fequal(absolute ? res._y : fabs(res._y) * dy, dy, TOL) ||
-		  !fequal(absolute ? res._z : fabs(res._z) * dz, dz, TOL)) {
-	    if (_Padding) {
-		  ResamplingWithPadding<VoxelType> resample(absolute ? res._x : fabs(res._x) * dx,
-				                                    absolute ? res._y : fabs(res._y) * dy,
-				                                    absolute ? res._z : fabs(res._z) * dz,
-				                                    (*_Padding)[n]);
-		  resample.Interpolator(&f);
-		  resample.Input (&_Image[l][n]);
-		  resample.Output(&_Image[l][n]);
-		  resample.Run();
-	    } else {
-		  Resampling<VoxelType> resample(absolute ? res._x : fabs(res._x) * dx,
-				                         absolute ? res._y : fabs(res._y) * dy,
-				                         absolute ? res._z : fabs(res._z) * dz);
-		  resample.Interpolator(&f);
-		  resample.Input (&_Image[l][n]);
-		  resample.Output(&_Image[l][n]);
-		  resample.Run();
+      if (res._x > 0 && res._y > 0 && res._z > 0) {
+	    double dx, dy, dz;
+	    _Image[l][n].GetPixelSize(&dx, &dy, &dz);
+	    if (!fequal(res._x, dx, TOL) ||
+		    !fequal(res._y, dy, TOL) ||
+		    !fequal(res._z, dz, TOL)) {
+	      if (_Padding) {
+		    ResamplingWithPadding<VoxelType> resample(res._x, res._y, res._z, (*_Padding)[n]);
+		    resample.Interpolator(&f);
+		    resample.Input (&_Image[l][n]);
+		    resample.Output(&_Image[l][n]);
+		    resample.Run();
+	      } else {
+		    Resampling<VoxelType> resample(res._x, res._y, res._z);
+		    resample.Interpolator(&f);
+		    resample.Input (&_Image[l][n]);
+		    resample.Output(&_Image[l][n]);
+		    resample.Run();
+	      }
 	    }
       }
     }
@@ -1971,6 +1967,15 @@ void GenericRegistrationFilter::GuessParameter()
       _Blurring[level].resize(nimages, -1.0);
     }
   }
+
+  // Convert relative resolution values into absolute ones if needed
+  for (int level = 0; level <= _NumberOfLevels; ++level)
+  for (int n = 0; n < nimages; ++n) {
+    if (_Resolution[level][n]._x < 0) _Resolution[level][n]._x = abs(_Resolution[level][n]._x) * _Input[n]->GetXSize();
+    if (_Resolution[level][n]._y < 0) _Resolution[level][n]._y = abs(_Resolution[level][n]._y) * _Input[n]->GetYSize();
+    if (_Resolution[level][n]._z < 0) _Resolution[level][n]._z = abs(_Resolution[level][n]._z) * _Input[n]->GetZSize();
+  }
+
   if (_UseGaussianResolutionPyramid == -1) {
     _UseGaussianResolutionPyramid = true;
     for (int level = 1; level <= _NumberOfLevels; ++level)
