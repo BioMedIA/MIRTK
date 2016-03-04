@@ -188,8 +188,8 @@ string StandardUnits(const string &str)
     units = "rel";
   } else if (units == "percentage") {
     units = "%";
-  } else if (units == "gauss" || units == "gaussian" || units == "sigma" || units == "stddev" || units == "stdev") {
-    units = "sd";
+  } else if (units == "gauss" || units == "gaussian" || units == "sd" || units == "stddev" || units == "stdev") {
+    units = "sigma";
   }
   return units;
 }
