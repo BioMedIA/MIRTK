@@ -241,6 +241,368 @@ struct ConvolveInT : public VoxelFunction
 };
 
 // =============================================================================
+// Convolve at boundary truncated image foreground with 1D kernel
+// =============================================================================
+
+// -----------------------------------------------------------------------------
+/// Perform convolution of image foreground along x with truncation of kernel at boundary
+template <class TKernel = double>
+struct ConvolveForegroundInX : public VoxelFunction
+{
+  const BaseImage *_Image;     ///< Image defining foreground region
+  const TKernel   *_Kernel;    ///< Convolution kernel
+  int              _Radius;    ///< Radius of kernel
+  bool             _Normalize; ///< Wether to divide by sum of kernel weights
+  int              _Offset;    ///< Vector component offset
+  int              _X;         ///< Number of voxels in x
+
+  ConvolveForegroundInX(const BaseImage *image, const TKernel *kernel, int size, bool norm = true, int l = 0)
+  :
+    _Image(image), _Kernel(kernel), _Radius((size - 1) / 2), _Normalize(norm),
+    _Offset(l * image->NumberOfSpatialVoxels()), _X(image->X())
+  {}
+
+  template <class T1, class T2>
+  void operator ()(int i, int j, int k, int l, const T1 *in, T2 *out) const
+  {
+    // Convolve l-th vector component
+    in += _Offset, out += _Offset;
+    // Go to start of input and end of kernel
+    i    -= _Radius;
+    in   -= _Radius;
+    int n = _Radius + _Radius/* + 1 - 1*/;
+    // Outside left boundary
+    if (i < 0) n += i, in -= i, i = 0;
+    // Inside image domain
+    double acc = .0, sum = .0;
+    while (i < _X && n >= 0) {
+      if (_Image->IsForeground(i, j, k, l)) {
+        acc += static_cast<double>(_Kernel[n]) * static_cast<double>(*in);
+        sum += static_cast<double>(_Kernel[n]);
+      }
+      ++i, ++in, --n;
+    }
+    // Output result of convolution
+    if (_Normalize && sum != .0) acc /= sum;
+    *out = static_cast<T2>(acc);
+  }
+};
+
+// -----------------------------------------------------------------------------
+/// Perform convolution of image foreground along y with truncation of kernel at boundary
+template <class TKernel = double>
+struct ConvolveForegroundInY : public VoxelFunction
+{
+  const BaseImage *_Image;     ///< Image defining foreground region
+  const TKernel   *_Kernel;    ///< Convolution kernel
+  int              _Radius;    ///< Radius of kernel
+  bool             _Normalize; ///< Wether to divide by sum of kernel weights
+  int              _Offset;    ///< Vector component offset
+  int              _X;         ///< Number of voxels in x
+  int              _Y;         ///< Number of voxels in y
+
+  ConvolveForegroundInY(const BaseImage *image, const TKernel *kernel, int size, bool norm = true, int l = 0)
+  :
+    _Image(image), _Kernel(kernel), _Radius((size - 1) / 2), _Normalize(norm),
+    _Offset(l * image->NumberOfSpatialVoxels()), _X(image->X()), _Y(image->Y())
+  {}
+
+  template <class T1, class T2>
+  void operator ()(int i, int j, int k, int l, const T1 *in, T2 *out) const
+  {
+    // Convolve l-th vector component
+    in += _Offset, out += _Offset;
+    // Go to start of input and end of kernel
+    j    -= _Radius;
+    in   -= _Radius * _X;
+    int n = _Radius + _Radius/* + 1 - 1*/;
+    // Outside left boundary
+    if (j < 0) n += j, in -= j * _X, j = 0;
+    // Inside image domain
+    double acc = .0, sum = .0;
+    while (j < _Y && n >= 0) {
+      if (_Image->IsForeground(i, j, k, l)) {
+        acc += static_cast<double>(_Kernel[n]) * static_cast<double>(*in);
+        sum += static_cast<double>(_Kernel[n]);
+      }
+      ++j, in += _X, --n;
+    }
+    // Output result of convolution
+    if (_Normalize && sum != .0) acc /= sum;
+    *out = static_cast<T2>(acc);
+  }
+};
+
+// -----------------------------------------------------------------------------
+/// Perform convolution of image foreground along z with truncation of kernel at boundary
+template <class TKernel = double>
+struct ConvolveForegroundInZ : public VoxelFunction
+{
+  const BaseImage *_Image;     ///< Image defining foreground region
+  const TKernel   *_Kernel;    ///< Convolution kernel
+  int              _Radius;    ///< Radius of kernel
+  bool             _Normalize; ///< Wether to divide by sum of kernel weights
+  int              _Offset;    ///< Vector component offset
+  int              _XY;        ///< Number of voxels in slice (nx * ny)
+  int              _Z;         ///< Number of voxels in z
+
+  ConvolveForegroundInZ(const BaseImage *image, const TKernel *kernel, int size, bool norm = true, int l = 0)
+  :
+    _Image(image), _Kernel(kernel), _Radius((size - 1) / 2), _Normalize(norm),
+    _Offset(l * image->NumberOfSpatialVoxels()), _XY(image->X() * image->Y()), _Z(image->Z())
+  {}
+
+  template <class T1, class T2>
+  void operator ()(int i, int j, int k, int l, const T1 *in, T2 *out) const
+  {
+    // Convolve l-th vector component
+    in += _Offset, out += _Offset;
+    // Go to start of input and end of kernel
+    k    -= _Radius;
+    in   -= _Radius * _XY;
+    int n = _Radius + _Radius/* + 1 - 1*/;
+    // Outside left boundary
+    if (k < 0) n += k, in -= k * _XY, k = 0;
+    // Inside image domain
+    double acc = .0, sum = .0;
+    while (k < _Z && n >= 0) {
+      if (_Image->IsForeground(i, j, k, l)) {
+        acc += static_cast<double>(_Kernel[n]) * static_cast<double>(*in);
+        sum += static_cast<double>(_Kernel[n]);
+      }
+      ++k, in += _XY, --n;
+    }
+    // Output result of convolution
+    if (_Normalize && sum != .0) acc /= sum;
+    *out = static_cast<T2>(acc);
+  }
+};
+
+// -----------------------------------------------------------------------------
+/// Perform convolution of image foreground along t with truncation of kernel at boundary
+template <class TKernel = double>
+struct ConvolveForegroundInT : public VoxelFunction
+{
+  const BaseImage *_Image;     ///< Image defining foreground region
+  const TKernel   *_Kernel;    ///< Convolution kernel
+  int              _Radius;    ///< Radius of kernel
+  bool             _Normalize; ///< Wether to divide by sum of kernel weights
+  int              _XYZ;       ///< Number of voxels in volume (nx * ny * nz)
+  int              _T;         ///< Number of voxels in t
+
+  ConvolveForegroundInT(const BaseImage *image, const TKernel *kernel, int size, bool norm = true)
+  :
+    _Image(image), _Kernel(kernel), _Radius((size - 1) / 2), _Normalize(norm),
+    _XYZ(image->X() * image->Y() * image->Z()), _T(image->T())
+  {}
+
+  template <class T1, class T2>
+  void operator ()(int i, int j, int k, int l, const T1 *in, T2 *out) const
+  {
+    double acc = .0, sum = .0;
+    // Go to start of input and end of kernel
+    l    -= _Radius;
+    in   -= _Radius * _XYZ;
+    int n = _Radius + _Radius/* + 1 - 1*/;
+    // Outside left boundary
+    if (l < 0) n += l, in -= l * _XYZ, l = 0;
+    // Inside image domain
+    while (l < _T && n >= 0) {
+      if (_Image->IsForeground(i, j, k, l)) {
+        acc += static_cast<double>(_Kernel[n]) * static_cast<double>(*in);
+        sum += static_cast<double>(_Kernel[n]);
+      }
+      ++l, in += _XYZ, --n;
+    }
+    // Output result of convolution
+    if (_Normalize && sum != .0) acc /= sum;
+    *out = static_cast<T2>(acc);
+  }
+};
+
+// =============================================================================
+// Convolve at boundary truncated voxel-wise weighted image with 1D kernel
+// =============================================================================
+
+// -----------------------------------------------------------------------------
+/// Perform convolution of weighted image along x with truncation of kernel at boundary
+template <class TKernel = double>
+struct ConvolveWeightedImageInX : public VoxelFunction
+{
+  const TKernel *_Kernel;  ///< Convolution kernel
+  int            _Radius;  ///< Radius of kernel
+  int            _Offset1; ///< Image  component offset
+  int            _Offset2; ///< Weight component offset
+  int            _X;       ///< Number of voxels in x
+
+  ConvolveWeightedImageInX(const BaseImage *image, const TKernel *kernel,
+                           int size, int l1 = 0, int l2 = 0)
+  :
+    _Kernel(kernel), _Radius((size - 1) / 2),
+    _Offset1(l1 * image->NumberOfSpatialVoxels()),
+    _Offset2(l2 * image->NumberOfSpatialVoxels()),
+    _X(image->X())
+  {}
+
+  template <class T1, class T2, class T3>
+  void operator ()(int i, int, int, int, const T1 *in, const T2 *win, T3 *out) const
+  {
+    // Convolve l1-th vector component using l2-th weight
+    in += _Offset1, win += _Offset2, out += _Offset1;
+    // Go to start of input and end of kernel
+    i    -= _Radius;
+    in   -= _Radius;
+    win  -= _Radius;
+    int n = _Radius + _Radius/* + 1 - 1*/;
+    // Outside left boundary
+    if (i < 0) n += i, in -= i, win -= i, i = 0;
+    // Inside image domain
+    double w, acc = .0, sum = .0;
+    while (i < _X && n >= 0) {
+      w = static_cast<double>(*win) * static_cast<double>(_Kernel[n]);
+      acc += w * static_cast<double>(*in);
+      sum += w;
+      ++i, ++in, ++win, --n;
+    }
+    // Output result of convolution
+    acc = (sum > .0 ? acc / sum : .0);
+    *out = static_cast<T3>(acc);
+  }
+};
+
+// -----------------------------------------------------------------------------
+/// Perform convolution of weighted image along y with truncation of kernel at boundary
+template <class TKernel = double>
+struct ConvolveWeightedImageInY : public VoxelFunction
+{
+  const TKernel *_Kernel;  ///< Convolution kernel
+  int            _Radius;  ///< Radius of kernel
+  int            _Offset1; ///< Image  component offset
+  int            _Offset2; ///< Weight component offset
+  int            _X;       ///< Number of voxels in x
+  int            _Y;       ///< Number of voxels in y
+
+  ConvolveWeightedImageInY(const BaseImage *image, const TKernel *kernel, int size, int l1 = 0, int l2 = 0)
+  :
+    _Kernel(kernel), _Radius((size - 1) / 2),
+    _Offset1(l1 * image->NumberOfSpatialVoxels()),
+    _Offset2(l2 * image->NumberOfSpatialVoxels()),
+    _X(image->X()), _Y(image->Y())
+  {}
+
+  template <class T1, class T2, class T3>
+  void operator ()(int, int j, int, int, const T1 *in, const T2 *win, T3 *out) const
+  {
+    // Convolve l1-th vector component using l2-th weight
+    in += _Offset1, win += _Offset2, out += _Offset1;
+    // Go to start of input and end of kernel
+    j    -= _Radius;
+    in   -= _Radius * _X;
+    win  -= _Radius * _X;
+    int n = _Radius + _Radius/* + 1 - 1*/;
+    // Outside left boundary
+    if (j < 0) n += j, in -= j * _X, win -= j * _X, j = 0;
+    // Inside image domain
+    double w, acc = .0, sum = .0;
+    while (j < _Y && n >= 0) {
+      w = static_cast<double>(_Kernel[n]) * static_cast<double>(*win);
+      acc += w * static_cast<double>(*in);
+      sum += w;
+      ++j, in += _X, win += _X, --n;
+    }
+    // Output result of convolution
+    acc = (sum > .0 ? acc / sum : .0);
+    *out = static_cast<T3>(acc);
+  }
+};
+
+// -----------------------------------------------------------------------------
+/// Perform convolution of weighted image along z with truncation of kernel at boundary
+template <class TKernel = double>
+struct ConvolveWeightedImageInZ : public VoxelFunction
+{
+  const TKernel *_Kernel;  ///< Convolution kernel
+  int            _Radius;  ///< Radius of kernel
+  int            _Offset1; ///< Image  component offset
+  int            _Offset2; ///< Weight component offset
+  int            _XY;      ///< Number of voxels in slice (nx * ny)
+  int            _Z;       ///< Number of voxels in z
+
+  ConvolveWeightedImageInZ(const BaseImage *image, const TKernel *kernel, int size, int l1 = 0, int l2 = 0)
+  :
+    _Kernel(kernel), _Radius((size - 1) / 2),
+    _Offset1(l1 * image->NumberOfSpatialVoxels()),
+    _Offset2(l2 * image->NumberOfSpatialVoxels()),
+    _XY(image->X() * image->Y()), _Z(image->Z())
+  {}
+
+  template <class T1, class T2, class T3>
+  void operator ()(int, int, int k, int, const T1 *in, const T2 *win, T3 *out) const
+  {
+    // Convolve l1-th vector component using l2-th weight
+    in += _Offset1, win += _Offset2, out += _Offset1;
+    // Go to start of input and end of kernel
+    k    -= _Radius;
+    in   -= _Radius * _XY;
+    win  -= _Radius * _XY;
+    int n = _Radius + _Radius/* + 1 - 1*/;
+    // Outside left boundary
+    if (k < 0) n += k, in -= k * _XY, win -= k * _XY, k = 0;
+    // Inside image domain
+    double w, acc = .0, sum = .0;
+    while (k < _Z && n >= 0) {
+      w = static_cast<double>(_Kernel[n]) * static_cast<double>(*win);
+      acc += w * static_cast<double>(*in);
+      sum += w;
+      ++k, in += _XY, win += _XY, --n;
+    }
+    // Output result of convolution
+    acc = (sum > .0 ? acc / sum : .0);
+    *out = static_cast<T3>(acc);
+  }
+};
+
+// -----------------------------------------------------------------------------
+/// Perform convolution of weighted image along t with truncation of kernel at boundary
+template <class TKernel = double>
+struct ConvolveWeightedImageInT : public VoxelFunction
+{
+  const TKernel *_Kernel; ///< Convolution kernel
+  int            _Radius; ///< Radius of kernel
+  int            _XYZ;    ///< Number of voxels in volume (nx * ny * nz)
+  int            _T;      ///< Number of voxels in t
+
+  ConvolveWeightedImageInT(const BaseImage *image, const TKernel *kernel, int size)
+  :
+    _Kernel(kernel), _Radius((size - 1) / 2),
+    _XYZ(image->X() * image->Y() * image->Z()), _T(image->T())
+  {}
+
+  template <class T1, class T2, class T3>
+  void operator ()(int, int, int, int l, const T1 *in, const T2 *win, T3 *out) const
+  {
+    // Go to start of input and end of kernel
+    l    -= _Radius;
+    in   -= _Radius * _XYZ;
+    win  -= _Radius * _XYZ;
+    int n = _Radius + _Radius/* + 1 - 1*/;
+    // Outside left boundary
+    if (l < 0) n += l, in -= l * _XYZ, win -= l * _XYZ, l = 0;
+    // Inside image domain
+    double w, acc = .0, sum = .0;
+    while (l < _T && n >= 0) {
+      w = static_cast<double>(_Kernel[n]) * static_cast<double>(*win);
+      acc += w * static_cast<double>(*in);
+      sum += w;
+      ++l, in += _XYZ, win += _XYZ, --n;
+    }
+    // Output result of convolution
+    acc = (sum > .0 ? acc / sum : .0);
+    *out = static_cast<T3>(acc);
+  }
+};
+
+// =============================================================================
 // Convolve at truncated image foreground with 1D kernel
 // =============================================================================
 
