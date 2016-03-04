@@ -92,11 +92,11 @@ public:
   void SetData(const void *, int = MIRTK_VOXEL_UNKNOWN);
 
   /// Whether the image is a 3D+t image sequence
-  /// (i.e., number of voxels in t dimension > 1 and dt > 0)
+  /// (i.e., number of voxels in t dimension is greater 1 and dt is not 0)
   bool IsImageSequence() const;
 
   /// Whether the image is a scalar image
-  /// (i.e., number of voxels in t dimension is 1)
+  /// (i.e., number of voxels in t dimension is 1 or dt equal 0)
   bool IsScalarImage() const;
 
   /// Number of voxels in the entire image
@@ -539,15 +539,12 @@ inline ConstImageIterator::~ConstImageIterator()
 // ---------------------------------------------------------------------------
 inline void ConstImageIterator::CalculateStride()
 {
-  if (_ColumnStride == 0) {
-    cerr << "ConstImageIterator::CalculateStride: Scalar data type not specified or unknown" << endl;
-    exit(1);
-  }
   // Pointer increments at end of line/slice/frame in number of voxels
   _LineStride  =   _DataSize._x - _Size._x + 1;
   _SliceStride =  (_DataSize._y - _Size._y + 1) * _DataSize._x - _Size._x + 1;
   _FrameStride = ((_DataSize._z - _Size._z + 1) * _DataSize._y - _Size._y + 1) * _DataSize._x - _Size._x + 1;
   // Multiply by number of bytes per voxel
+  if (_ColumnStride == 0) _ColumnStride = 1;
   _LineStride  *= _ColumnStride;
   _SliceStride *= _ColumnStride;
   _FrameStride *= _ColumnStride;
@@ -614,7 +611,7 @@ inline bool ConstImageIterator::IsImageSequence() const
 // ---------------------------------------------------------------------------
 inline bool ConstImageIterator::IsScalarImage() const
 {
-  return _DataSize._t == 1;
+  return _DataSize._t == 1 || _IsImageSequence;
 }
 
 // ---------------------------------------------------------------------------
@@ -1054,6 +1051,7 @@ inline void ConstImageIterator::Initialize()
   if (_LineStride == 0) CalculateStride();
   _Inc = VoxelToIndex(_Index) * _ColumnStride;
   if (_Data) _Next = reinterpret_cast<const char *>(_Data) + _Inc;
+  else       _Next = nullptr;
 }
 
 // ---------------------------------------------------------------------------
@@ -1147,7 +1145,7 @@ inline void ConstImageIterator::operator --()
     --_Index._x;
     _Inc = -_ColumnStride;
   }
-  _Next += _Inc;
+  if (_Next) _Next += _Inc;
 }
 
 // ---------------------------------------------------------------------------
@@ -1174,7 +1172,7 @@ inline void ConstImageIterator::operator ++()
     ++_Index._t;
     _Inc = _FrameStride;
   }
-  _Next += _Inc;
+  if (_Next) _Next += _Inc;
 }
 
 // ---------------------------------------------------------------------------
@@ -1239,14 +1237,14 @@ inline double ConstImageIterator::ValueAsDouble(int t) const
 template <class VoxelType>
 inline void ConstImageIterator::Move(const VoxelType *&p) const
 {
-  p = reinterpret_cast<const VoxelType *>(reinterpret_cast<const char *>(p) + _Inc);
+  p += _Inc / _ColumnStride;
 }
 
 // ---------------------------------------------------------------------------
 template <class VoxelType>
 inline void ConstImageIterator::Move(VoxelType *&p) const
 {
-  p = reinterpret_cast<VoxelType *>(reinterpret_cast<char *>(p) + _Inc);
+  p += _Inc / _ColumnStride;
 }
 
 
