@@ -39,6 +39,8 @@ set(BASIS_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMake/Basis")
 set(MIRTK_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMake/Modules")
 set(CMAKE_MODULE_PATH "${MIRTK_MODULE_PATH}" "${BASIS_MODULE_PATH}")
 
+include("${MIRTK_MODULE_PATH}/MIRTKPolicies.cmake" NO_POLICY_SCOPE)
+
 include("${BASIS_MODULE_PATH}/BasisSettings.cmake")
 include("${BASIS_MODULE_PATH}/BasisTools.cmake")
 include("${MIRTK_MODULE_PATH}/MIRTKTools.cmake")

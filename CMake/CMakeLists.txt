@@ -117,6 +117,7 @@ set (
 set (
   CMAKE_MODULES
     "MIRTKTools.cmake"           # includes MIRTK command definitions
+    "MIRTKPolicies.cmake"        # common CMake policies
     "MIRTKAddLibrary.cmake"      # defines mirtk_add_library
     "MIRTKAddExecutable.cmake"   # defines mirtk_add_executable
     "MIRTKAddTest.cmake"         # defines mirtk_add_test
