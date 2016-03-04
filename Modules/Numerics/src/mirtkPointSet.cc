@@ -23,6 +23,7 @@
 #include <mirtkMath.h>
 #include <mirtkPath.h>
 
+#include <mirtkNumericsConfig.h>
 #if MIRTK_Numerics_WITH_VTK
 #  include <mirtkVtk.h>
 #  include <vtkSmartPointer.h>
