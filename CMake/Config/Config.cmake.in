@@ -95,6 +95,40 @@ endif ()
 unset(_INCLUDE_BASIS_MODULES)
 unset(_INCLUDE_CMake_MODULES)
 
+# ============================================================================
+# Common settings
+# ============================================================================
+
+## @brief Whether to build shared libraries by default
+if (NOT DEFINED BUILD_SHARED_LIBS_DEFAULT)
+  set(BUILD_SHARED_LIBS_DEFAULT @BUILD_SHARED_LIBS@)
+endif ()
+
+## @brief Whether to enable profiling of code execution by default
+if (NOT DEFINED WITH_PROFILING_DEFAULT)
+  set(WITH_PROFILING_DEFAULT @WITH_PROFILING@)
+endif ()
+
+## @brief Whether to build applications by default
+if (NOT DEFINED BUILD_APPLICATIONS_DEFAULT)
+  set(BUILD_APPLICATIONS_DEFAULT @BUILD_APPLICATIONS@)
+endif ()
+
+## @brief Default for WITH_TBB
+if (NOT DEFINED WITH_TBB_DEFAULT)
+  set(WITH_TBB_DEFAULT @WITH_TBB@)
+endif ()
+
+## @brief Default for WITH_VTK
+if (NOT DEFINED WITH_VTK_DEFAULT)
+  set(WITH_VTK_DEFAULT @WITH_VTK@)
+endif ()
+
+## @brief Default for WITH_ZLIB
+if (NOT DEFINED WITH_ZLIB_DEFAULT)
+  set(WITH_ZLIB_DEFAULT @WITH_ZLIB@)
+endif ()
+
 
 ## @}
 # end of Doxygen group - keep at end of file

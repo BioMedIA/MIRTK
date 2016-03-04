@@ -37,7 +37,7 @@
 ################################################################################
 
 # By default, build applications
-option(BUILD_APPLICATIONS "Request build and installation of command-line tools" ON)
+set(BUILD_APPLICATIONS_DEFAULT ON)
 
 # By default, do not regenerate .rst files of command help pages
 option(BUILD_DOCUMENTATION_SOURCES "Regenerate help of commands in reStructuredText format when missing" OFF)
@@ -46,14 +46,13 @@ option(BUILD_DOCUMENTATION_SOURCES "Regenerate help of commands in reStructuredT
 mark_as_advanced(BUILD_ALL_MODULES)
 
 # Choose between shared or static linkage (shared is recommended)
-option(BUILD_SHARED_LIBS "Request build of shared libraries" ON)
-mark_as_advanced(BUILD_SHARED_LIBS)
+# Note: BUILD_SHARED_LIBS option added by mirtk_project_begin
+set(MIRTK_BUILD_SHARED_LIBS_DEFAULT ON)
 
 # Enable profiling of program execution (cf. Common/include/mirtkProfiling.h)
-option(WITH_PROFILING "Enable profiling of program execution" ON)
-if (WITH_PROFILING)
-  add_definitions(-DMIRTK_WITH_PROFILING)
-endif ()
+# Note: WITH_PROFILING option and MIRTK_WITH_PROFILING compile definition added
+#       by mirtk_project_begin when WITH_PROFILING is ON
+set(MIRTK_WITH_PROFILING_DEFAULT ON)
 
 # Testing is yet very limited, hence mark this option as advanced for now
 mark_as_advanced(BUILD_TESTING)
