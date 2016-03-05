@@ -193,7 +193,7 @@ if (BASIS_INSTALL_SCHEME MATCHES "default")
   string (TOUPPER "{_BUNDLE_NAME_RE}" _BUNDLE_NAME_RE_U)
   if (WIN32)
     set (BASIS_INSTALL_SCHEME win)
-  elseif (NOT _BUNDLE AND _CMAKE_INSTALL_PREFIX_L MATCHES "/(.*[_-])?(${PROJECT_NAME_RE}|${PROJECT_NAME_RE_L}|${PROJECT_NAME_RE_U})[_-]?") # e.g. /opt/<package>[-<version>]
+  elseif (NOT _BUNDLE AND _CMAKE_INSTALL_PREFIX_L MATCHES "/(.*[_-])?(${PROJECT_PACKAGE_NAME_RE}|${PROJECT_PACKAGE_NAME_RE_L}|${PROJECT_PACKAGE_NAME_RE_U})[_-]?") # e.g. /opt/<package>[-<version>]
     set (BASIS_INSTALL_SCHEME opt)
   elseif (_BUNDLE AND _CMAKE_INSTALL_PREFIX_L MATCHES "/(.*[_-])?(${_BUNDLE_NAME_RE}|${_BUNDLE_NAME_RE_L}|${_BUNDLE_NAME_RE_U})[_-]?") # e.g. /opt/<bundle>[-<version>]
     set (BASIS_INSTALL_SCHEME opt)
