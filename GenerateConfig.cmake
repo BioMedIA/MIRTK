@@ -1,6 +1,6 @@
 # ============================================================================
 # Copyright (c) 2011-2012 University of Pennsylvania
-# Copyright (c) 2013-2014 Andreas Schuh
+# Copyright (c) 2013-2016 Andreas Schuh
 # All rights reserved.
 #
 # See COPYING file for license information or visit
@@ -75,8 +75,10 @@ endif ()
 
 # code used at top of package configuration and use files to set package
 # namespace prefix used for configuration variables
-if (PROJECT_IS_MODULE)
+if (PROJECT_IS_MODULE OR PROJECT_IS_SUBPROJECT)
   set (BASIS_NS "${PROJECT_NAME}")
+elseif (PROJECT_IS_SUBMODULE)
+  set (BASIS_NS "${PROJECT_PACKAGE_NAME}_${PROJECT_NAME}")
 else ()
   set (BASIS_NS "${PROJECT_PACKAGE_NAME}")
 endif ()
@@ -100,7 +102,7 @@ endif ()"
 
 if (EXISTS "${PROJECT_CONFIG_DIR}/Config.cmake.in")
   set (TEMPLATE "${PROJECT_CONFIG_DIR}/Config.cmake.in")
-elseif (PROJECT_IS_MODULE)
+elseif (PROJECT_IS_MODULE OR PROJECT_IS_SUBMODULE OR PROJECT_IS_SUBPROJECT)
   set (TEMPLATE "${CMAKE_CURRENT_LIST_DIR}/ModuleConfig.cmake.in")
 else ()
   set (TEMPLATE "${CMAKE_CURRENT_LIST_DIR}/Config.cmake.in")
@@ -110,7 +112,7 @@ endif ()
 # provide code of BASIS config file as variable
 
 if (NOT TEMPLATE MATCHES "^${CMAKE_CURRENT_LIST_DIR_RE}/")
-  if (PROJECT_IS_MODULE)
+  if (PROJECT_IS_MODULE OR PROJECT_IS_SUBMODULE OR PROJECT_IS_SUBPROJECT)
     file (READ "${CMAKE_CURRENT_LIST_DIR}/ModuleConfig.cmake.in" BASIS_TEMPLATE)
   else ()
     file (READ "${CMAKE_CURRENT_LIST_DIR}/Config.cmake.in"       BASIS_TEMPLATE)
@@ -200,7 +202,7 @@ if (EXISTS "${PROJECT_CONFIG_DIR}/ConfigUse.cmake.in")
 elseif (EXISTS "${PROJECT_CONFIG_DIR}/Use.cmake.in")
   # backwards compatibility to version <= 0.1.8 of BASIS
   set (TEMPLATE "${PROJECT_CONFIG_DIR}/Use.cmake.in")
-elseif (PROJECT_IS_MODULE)
+elseif (PROJECT_IS_MODULE OR PROJECT_IS_SUBMODULE OR PROJECT_IS_SUBPROJECT)
   set (TEMPLATE "${CMAKE_CURRENT_LIST_DIR}/ModuleConfigUse.cmake.in")
 else ()
   set (TEMPLATE "${CMAKE_CURRENT_LIST_DIR}/ConfigUse.cmake.in")
@@ -209,7 +211,7 @@ endif ()
 # ----------------------------------------------------------------------------
 # provide code of BASIS use file as variable
 if (NOT TEMPLATE MATCHES "^${CMAKE_CURRENT_LIST_DIR_RE}/")
-  if (PROJECT_IS_MODULE)
+  if (PROJECT_IS_MODULE OR PROJECT_IS_SUBMODULE OR PROJECT_IS_SUBPROJECT)
     file (READ "${CMAKE_CURRENT_LIST_DIR}/ModuleConfigUse.cmake.in" BASIS_USE)
   else ()
     file (READ "${CMAKE_CURRENT_LIST_DIR}/ConfigUse.cmake.in"       BASIS_USE)

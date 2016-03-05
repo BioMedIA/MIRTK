@@ -47,7 +47,10 @@ endif ()
 
 ## @brief Request build/installation of applications.
 if (PROJECT_HAS_APPLICATIONS)
-  option(BUILD_APPLICATIONS "Request build and/or installation of applications." OFF)
+  if (NOT BUILD_APPLICATIONS_DEFAULT)
+    set (BUILD_APPLICATIONS_DEFAULT OFF)
+  endif ()
+  option(BUILD_APPLICATIONS "Request build and/or installation of applications." ${BUILD_APPLICATIONS_DEFAULT})
 endif ()
 
 # ============================================================================
