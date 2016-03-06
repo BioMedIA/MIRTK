@@ -41,7 +41,7 @@ if _tbb_library_dir != '':
 _vtk_library_dirs=['@VTK_LIBRARY_DIRS_CONFIG@']
 for _vtk_library_dir in _vtk_library_dirs:
     if _vtk_library_dir != '':
-        _ldpaths.append(_vtk_library_dirs)
+        _ldpaths.append(_vtk_library_dir)
 
 if sys.platform.startswith('linux'):
     _paths.extend(os.environ.get('PATH', '').split(':'))
