@@ -48,7 +48,24 @@
 
 get_filename_component(TBB_LIBRARY_DIR_CONFIG "${TBB_LIBRARY}" PATH)
 
-basis_list_to_delimited_string (VTK_LIBRARY_DIRS_CONFIG "' '" NOAUTOQUOTE ${VTK_LIBRARY_DIRS})
+# Directory of VTK libraries themselves is missing from VTK_LIBRARY_DIRS
+# due to the use of import targets instead. However, in the top-level
+# MIRTK project, VTK is not a dependency and we thus don't have access
+# to the imported VTK targets. Therefore, derive the directory containing
+# the VTK libraries from the VTK_MODULES_DIR
+if (VTK_MODULES_DIR MATCHES "^(.*/[Ll]ib)/.*")
+  set(VTK_LIBRARY_DIR "${CMAKE_MATCH_1}")
+  list(APPEND VTK_LIBRARY_DIRS "${VTK_LIBRARY_DIR}")
+  # Build tree libraries may be in <CONFIG> subdirectories
+  foreach(_config IN ITEMS MinSizeRel Release RelWithDebInfo Debug)
+    if (IS_DIRECTORY "${VTK_LIBRARY_DIR}/${_config}")
+      list(APPEND VTK_LIBRARY_DIRS "${VTK_LIBRARY_DIR}/${_config}")
+    endif ()
+  endforeach ()
+  unset(_config)
+endif ()
+
+basis_list_to_delimited_string (VTK_LIBRARY_DIRS_CONFIG "', '" NOAUTOQUOTE ${VTK_LIBRARY_DIRS})
 
 
 ## @}
