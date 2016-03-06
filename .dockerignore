@@ -1,0 +1,12 @@
+build*
+Build*
+xcode*
+Xcode*
+Debug*
+Release*
+nbproject/private
+nbproject/configurations.xml
+CMakeLists.txt.user*
+**/.DS_Store
+.project
+.cproject
