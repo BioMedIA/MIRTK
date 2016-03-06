@@ -16,9 +16,9 @@ please follow the :doc:`download` and :doc:`install` instructions which
 list the third-party libraries required by each module and describe how to
 build the MIRTK from its publicly available source code.
 
-Instead of manually building and installing the MIRTK, you can instead download the
-pre-made `biomedia/mirtk <MIRTK Docker image>`_ Docker image
-to run the :doc:`commands` inside a `Docker container`_. For a guide to install and use
+Instead of manually building and installing the MIRTK, you can use the
+pre-made `biomedia/mirtk <MIRTK Docker image>`_ Docker image to run the
+:doc:`commands` inside a `Docker container`_. For a guide to install and use
 Docker_, see the `official docs <https://docs.docker.com>`__.
 
 
@@ -49,17 +49,21 @@ arguments of the command executable is printed before execution.
 
 With Docker_, use the following command instead of ``mirtk``::
 
-    docker run --volume=<path>:/data biomedia/mirtk [-v] [-v] <command> [<options>]
+    docker run --rm --volume=<path>:/data biomedia/mirtk [-v] [-v] <command> [<options>]
 
 This will automatically download the `MIRTK Docker image`_ upon first execution and re-use
 this image for consecutive commands. The ``--volume`` option of ``docker run`` mounts the
 specified directory path on the host system to the ``/data`` directory inside the MIRTK
 Docker container. This local data directory is the working directory of the MIRTK command.
+The ``--rm`` option automatically deletes the MIRTK Docker container again after the
+command finished. Note that each ``docker run`` will create a new Docker container.
+As these containers are meant to be used only once for each command execution, they
+should be removed again after the command has finished.
 
 For example, to print information about the NIfTI image file ``/path/to/my/images/image1.nii.gz``
 using the :doc:`commands/info` command, execute the Docker command::
 
-    docker run --volume=/path/to/my/images:/data biomedia/mirtk info image1.nii.gz
+    docker run --rm --volume=/path/to/my/images:/data biomedia/mirtk info image1.nii.gz
 
 See the :doc:`commands` page for a description of each command and the available options.
 
