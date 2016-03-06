@@ -9,6 +9,7 @@ Table Of Contents
     :includehidden:
     :maxdepth: 4
 
+    getstarted
     modules
     commands
     apidoc

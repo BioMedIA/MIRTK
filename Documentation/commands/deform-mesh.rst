@@ -61,6 +61,11 @@ Input options
 
    Padding/Background value of input :option:`-image`. (default: none)
 
+.. option:: -inflate-brain
+
+   Set default parameters of cortical surface inflation process equivalent
+   to FreeSurfer's mris_inflate command.
+
 
 Optimization options
 --------------------
@@ -95,9 +100,10 @@ Optimization options
 
    Node mass used by Euler methods with momentum. (default: 1)
 
-.. option:: -levels <min> [<max>]
+.. option:: -levels <max> | <min> <max>
 
    Perform optimization on starting at level <max> until level <min> (> 0).
+   When only the <max> level argument is given, the <min> level is set to 1.
    On each level, the node forces are averaged :math:`2^{level-1}` times which
    is similar to computing the forces on a coarser mesh. (default: 0 0)
 
@@ -123,6 +129,11 @@ Optimization options
 .. option:: -remesh <n>
 
    Remesh surface mesh every n-th iteration. (default: 0)
+
+.. option:: -remesh-adaptively
+
+   Remesh surface mesh using an adaptive edge length interval based on local curvature
+   of the deformed surface mesh or input implicit surface (:option:`-dmap`).
 
 .. option:: -minedgelength <value>
 
@@ -154,6 +165,10 @@ Optimization options
 .. option:: -lowpass-iterations <n>
 
    Number of :option:`-lowpass` filter iterations. (default: 100)
+
+.. option:: -lowpass-band <band>
+
+   Low-pass filtering band argument, usually in the range [0, 2]. (default: 0.75)
 
 .. option:: -nointersection
 
@@ -296,6 +311,48 @@ Output options
    Record sum of node displacements along normal direction. The integrated
    displacements are stored in the point data array named "NormalDisplacement"
    by default or with the specified <name>. (default: off)
+
+.. option:: -track-zero-mean [<name>]
+
+   Same as :option:`-track`, but subtract mean from tracked values.
+   This option is implicit when :option:`-inflate-brain` is given to inflate a cortical
+   brain surface. The default output array name is "SulcalDepth". Otherwise, the default
+   point data array name is "NormalDisplacementZeroMean". (default: off)
+
+.. option:: -track-zero-median [<name>]
+
+   Same as :option:`-track`, but subtract median from tracked values.
+   The default point data array name is "NormalDisplacementZeroMedian". (default: off)
+
+.. option:: -track-unit-variance [<name>]
+
+   Same as :option:`-track`, but divide tracked values by their standard deviation.
+   The default point data array name is "NormalDisplacementUnitVariance". (default: off)
+
+.. option:: -track-zvalues [<name>]
+
+   Same as :option:`-track`, but subtract mean from tracked values and divide by standard deviation.
+   The resulting values are the Z-score normalized standard scores of the tracked displacements.
+   The default point data array name is "NormalDisplacementZValues". (default: off)
+
+.. option:: -track-zero-median-zvalues [<name>]
+
+   Same as :option:`-track`, but subtract median from tracked values and divide by standard deviation.
+   It can be used with :option:`-inflate-brain` to obtain a normalized curvature measure.
+   The default point data array name is "NormalDisplacementZeroMedianZValues". (default: off)
+
+.. option:: -track-without-momentum
+
+   When tracking the total displacement of a node in normal direction using the EulerMethodWithMomentum
+   :option:`-optimizer` as used in particular by :option:`-inflate-brain`, exclude the momentum from the.
+   tracked displacement. This is idential to FreeSurfer's mrisTrackTotalDisplacement used for the curvature
+   output of mris_inflate. The correct curvature value is, however, obtained by including the momentum
+   component as it integrates the actual amount by which each node is displaced during the Euler steps.
+   Not using this option corresponds to the mrisTrackTotalDisplacementNew function. (default: off)
+
+.. option:: -notrack
+
+   Do not track node displacements along normal direction.
 
 .. option:: -center-output
 

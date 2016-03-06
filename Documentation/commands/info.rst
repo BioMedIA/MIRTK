@@ -58,6 +58,18 @@ Transformation options
 Point set options
 -----------------
 
+.. option:: -point <id>...
+
+   Print info of points with the given zero-based indices.
+
+.. option:: -cell-types
+
+   Report cell types and how many of each. (default: off)
+
+.. option:: -bounds
+
+   Report point set bounds and center point. (default: off)
+
 .. option:: -edgelength
 
    Report edge length statistics. (default: off)

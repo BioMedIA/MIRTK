@@ -2,4 +2,6 @@
 
 .. |evaluate-distance-brief-description| replace::
 
-   Evaluate distance between two given point sets.
+   Evaluate distance between two given point sets. With increased verbosity (see :option:`evaluate-distance -v`),
+   the mean and standard deviation of the measured distances  (verbosity level >=1) and the
+   individual distance for each target point is reported (verbosity level >=2).

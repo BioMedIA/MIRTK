@@ -46,6 +46,10 @@ Command options
 
    Extract (at most) n components. (default: 1)
 
+.. option:: -all
+
+   Extract all components.
+
 .. option:: -connectivity <num>
 
    Type of voxel connectivity (4, 6, 18, or 26). (default: 26)
