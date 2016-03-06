@@ -395,13 +395,13 @@ bool HashImage<VoxelType>::operator==(const HashImage<VoxelType2> &image) const
 // -----------------------------------------------------------------------------
 template <class VoxelType>
 void HashImage<VoxelType>
-::GetRegion(HashImage<VoxelType> &image, int k, int m) const
+::GetRegion(HashImage &image, int k, int m) const
 {
   int i, j;
   double x1, y1, z1, t1, x2, y2, z2, t2;
 
   if ((k < 0) || (k >= _attr._z) || (m < 0) || (m >= _attr._t)) {
-    cerr << "HashImage<VoxelType>::GetRegion: Parameter out of range" << endl;
+    cerr << "HashImage::GetRegion: Parameter out of range" << endl;
     exit(1);
   }
 
@@ -468,7 +468,7 @@ void HashImage<VoxelType>
 // -----------------------------------------------------------------------------
 template <class VoxelType>
 void HashImage<VoxelType>
-::GetRegion(HashImage<VoxelType> &image, int i1, int j1, int k1,
+::GetRegion(HashImage &image, int i1, int j1, int k1,
       int i2, int j2, int k2) const
 {
   int i, j, k, l;
@@ -478,7 +478,7 @@ void HashImage<VoxelType>
       (j1 < 0) || (j1 >= j2) ||
       (k1 < 0) || (k1 >= k2) ||
       (i2 > _attr._x) || (j2 > _attr._y) || (k2 > _attr._z)) {
-    cerr << "HashImage<VoxelType>::GetRegion: Parameter out of range\n";
+    cerr << "HashImage::GetRegion: Parameter out of range\n";
     exit(1);
   }
 
@@ -545,7 +545,7 @@ void HashImage<VoxelType>
 // -----------------------------------------------------------------------------
 template <class VoxelType>
 void HashImage<VoxelType>
-::GetRegion(HashImage<VoxelType> &image, int i1, int j1, int k1, int l1,
+::GetRegion(HashImage &image, int i1, int j1, int k1, int l1,
       int i2, int j2, int k2, int l2) const
 {
   int i, j, k, l;
@@ -556,7 +556,7 @@ void HashImage<VoxelType>
       (k1 < 0) || (k1 >= k2) ||
       (l1 < 0) || (l1 >= l2) ||
       (i2 > _attr._x) || (j2 > _attr._y) || (k2 > _attr._z) || (l2 > _attr._t)) {
-    cerr << "HashImage<VoxelType>::GetRegion: Parameter out of range\n";
+    cerr << "HashImage::GetRegion: Parameter out of range\n";
     exit(1);
   }
 
@@ -623,12 +623,12 @@ void HashImage<VoxelType>
 
 // -----------------------------------------------------------------------------
 template <class VoxelType>
-void HashImage<VoxelType>::GetFrame(HashImage<VoxelType> &image, int l1, int l2) const
+void HashImage<VoxelType>::GetFrame(HashImage &image, int l1, int l2) const
 {
   if (l2 < 0) l2 = l1;
 
   if ((l2 < 0) || (l1 >= _attr._t)) {
-    cerr << "HashImage<VoxelType>::GetFrame: Parameter out of range\n";
+    cerr << "HashImage::GetFrame: Parameter out of range\n";
     exit(1);
   }
 
@@ -683,7 +683,7 @@ template <class VoxelType>
 HashImage<VoxelType>& HashImage<VoxelType>::operator+=(const HashImage &image)
 {
   if (image.Attributes() != this->Attributes()) {
-    cerr << "HashImage<VoxelType>::operator+=: Size mismatch in images" << endl;
+    cerr << "HashImage::operator+=: Size mismatch in images" << endl;
     this->Attributes().Print();
     image.Attributes().Print();
     exit(1);
@@ -701,7 +701,7 @@ template <class VoxelType>
 HashImage<VoxelType>& HashImage<VoxelType>::operator-=(const HashImage &image)
 {
   if (image.Attributes() != this->Attributes()) {
-    cerr << "HashImage<VoxelType>::operator-=: Size mismatch in images" << endl;
+    cerr << "HashImage::operator-=: Size mismatch in images" << endl;
     this->Attributes().Print();
     image.Attributes().Print();
     exit(1);
@@ -719,7 +719,7 @@ template <class VoxelType>
 HashImage<VoxelType>& HashImage<VoxelType>::operator*=(const HashImage &image)
 {
   if (image.Attributes() != this->Attributes()) {
-    cerr << "HashImage<VoxelType>::operator*=: Size mismatch in images" << endl;
+    cerr << "HashImage::operator*=: Size mismatch in images" << endl;
     this->Attributes().Print();
     image.Attributes().Print();
     exit(1);
@@ -737,7 +737,7 @@ template <class VoxelType>
 HashImage<VoxelType>& HashImage<VoxelType>::operator/=(const HashImage &image)
 {
   if (image.Attributes() != this->Attributes()) {
-    cerr << "HashImage<VoxelType>::operator/=: Size mismatch in images" << endl;
+    cerr << "HashImage::operator/=: Size mismatch in images" << endl;
     this->Attributes().Print();
     image.Attributes().Print();
     exit(1);
@@ -823,7 +823,7 @@ HashImage<VoxelType>& HashImage<VoxelType>::operator/=(ScalarType scalar)
       }
     }
   } else {
-    cerr << "HashImage<VoxelType>::operator/=: Division by zero" << endl;
+    cerr << "HashImage::operator/=: Division by zero" << endl;
   }
   return *this;
 }
@@ -1092,7 +1092,7 @@ void HashImage<VoxelType>::FlipXY(bool modifyOrigin)
   //     adjusts the attributes, and updates the coordinate transformation matrices.
   //     The subclass then only needs to reshape the image _matrix data itself.
 
-  cerr << "HashImage<VoxelType>::FlipXY: Not implemented" << endl;
+  cerr << "HashImage::FlipXY: Not implemented" << endl;
   exit(1);
 }
 
@@ -1104,7 +1104,7 @@ void HashImage<VoxelType>::FlipXZ(bool modifyOrigin)
   //     adjusts the attributes, and updates the coordinate transformation matrices.
   //     The subclass then only needs to reshape the image _matrix data itself.
 
-  cerr << "HashImage<VoxelType>::FlipXZ: Not implemented" << endl;
+  cerr << "HashImage::FlipXZ: Not implemented" << endl;
   exit(1);
 }
 
@@ -1116,7 +1116,7 @@ void HashImage<VoxelType>::FlipYZ(bool modifyOrigin)
   //     adjusts the attributes, and updates the coordinate transformation matrices.
   //     The subclass then only needs to reshape the image _matrix data itself.
 
-  cerr << "HashImage<VoxelType>::FlipYZ: Not implemented" << endl;
+  cerr << "HashImage::FlipYZ: Not implemented" << endl;
   exit(1);
 }
 
@@ -1128,7 +1128,7 @@ void HashImage<VoxelType>::FlipXT(bool modifyOrigin)
   //     adjusts the attributes, and updates the coordinate transformation matrices.
   //     The subclass then only needs to reshape the image _matrix data itself.
 
-  cerr << "HashImage<VoxelType>::FlipXT: Not implemented" << endl;
+  cerr << "HashImage::FlipXT: Not implemented" << endl;
   exit(1);
 }
 
@@ -1140,7 +1140,7 @@ void HashImage<VoxelType>::FlipYT(bool modifyOrigin)
   //     adjusts the attributes, and updates the coordinate transformation matrices.
   //     The subclass then only needs to reshape the image _matrix data itself.
 
-  cerr << "HashImage<VoxelType>::FlipYT: Not implemented" << endl;
+  cerr << "HashImage::FlipYT: Not implemented" << endl;
   exit(1);
 }
 
@@ -1152,7 +1152,7 @@ void HashImage<VoxelType>::FlipZT(bool modifyOrigin)
   //     adjusts the attributes, and updates the coordinate transformation matrices.
   //     The subclass then only needs to reshape the image _matrix data itself.
 
-  cerr << "HashImage<VoxelType>::FlipZT: Not implemented" << endl;
+  cerr << "HashImage::FlipZT: Not implemented" << endl;
   exit(1);
 }
 
