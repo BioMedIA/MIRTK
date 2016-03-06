@@ -44,7 +44,7 @@ Command options
 
 .. option:: -Rx2 <int>
 
-   Rightmost input voxel index along x axis plus 1.
+   Rightmost input voxel index along x axis.
 
 .. option:: -Ry1 <int>
 
@@ -52,7 +52,7 @@ Command options
 
 .. option:: -Ry2 <int>
 
-   Rightmost input voxel index along y axis plus 1.
+   Rightmost input voxel index along y axis.
 
 .. option:: -Rz1 <int>
 
@@ -60,7 +60,7 @@ Command options
 
 .. option:: -Rz2 <int>
 
-   Rightmost input voxel index along z axis plus 1.
+   Rightmost input voxel index along z axis.
 
 .. option:: -Rt1 <int>
 
@@ -68,7 +68,15 @@ Command options
 
 .. option:: -Rt2 <int>
 
-   Rightmost input voxel index along t axis plus 1.
+   Rightmost input voxel index along t axis.
+
+.. option:: -patch <i> <j> <k> <nx> [<ny> [<nz>]]
+
+   Extract image patch of given size centered at the specified voxel.
+
+.. option:: -closest-patch <x> <y> <z> <nx> [<ny> [<nz>]]
+
+   Extract image patch of given size centered at nearest voxel to specified point [mm].
 
 .. option:: -landmarks <file>...
 

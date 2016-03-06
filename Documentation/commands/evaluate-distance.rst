@@ -23,12 +23,52 @@ Description
 
 
 
+Arguments
+---------
+
+.. option:: target
+
+   Target point set/surface.
+
+.. option:: source
+
+   Source point set/surface.
+
+.. option:: output
+
+   Output point set/surface with point data array of measured distances. (default: none)
+
+
 Command options
 ---------------
 
-.. option:: -name
+.. option:: -name <name>
 
-   Name of output point distance array. (default: Distance)
+   Name of output point data array or column header. (default: Distance)
+
+.. option:: -separator <sep>
+
+   Column separator used for table of measured point distances. (default: \t)
+
+.. option:: -point
+
+   Evaluate minimum distance to closest point. (default for point clouds)
+
+.. option:: -cell
+
+   Evaluate minimum distance to closest surface point. (default for surface meshes)
+
+.. option:: -normal
+
+   Evaluate minimum distance along surface normal.
+
+.. option:: -index
+
+   Evaluate distance between points with identical index, e.g., pairs of fiducial markers.
+
+.. option:: -hausdorff
+
+   Report Hausdorff distance. (default: off)
 
 
 Standard options

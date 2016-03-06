@@ -28,11 +28,11 @@ Arguments
 
 .. option:: input
 
-   Input  point set file (.vtk, .vtp, .vtu, .stl, .ply, .dfs, .obj).
+   Input  point set file (.vtk, .vtp, .vtu, .stl, .ply, .off, .dfs, .obj).
 
 .. option:: output
 
-   Output point set file (.vtk, .vtp, .vtu, .stl, .ply, .dfs, .node, .poly, .smesh).
+   Output point set file (.vtk, .vtp, .vtu, .stl, .ply, .off, .dfs, .node, .poly, .smesh).
 
 
 Command options

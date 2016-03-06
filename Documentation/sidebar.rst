@@ -4,6 +4,7 @@
     :maxdepth: 3
 
     Overview <index>
+    getstarted
     modules
     commands
     Reference <apidoc>

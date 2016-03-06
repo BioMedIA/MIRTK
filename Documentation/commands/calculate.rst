@@ -84,13 +84,14 @@ Data manipulation options
 
    Set new value for all currently unmasked data values.
 
-.. option:: -outside <float>
+.. option:: -outside, -pad <float>
 
    Set new value for all currently masked data values.
 
-.. option:: -out <file>
+.. option:: -out <file> [<type>]
 
    Write current data sequence to file in the format of the input file.
+   Output data type can be: uchar, short, ushort, int, uint, float, double.
 
 .. option:: -add <float|file>
 
@@ -107,6 +108,14 @@ Data manipulation options
 .. option:: -div <float|file>
 
    Divide by constant value or data sequence read from specified file.
+   When dividing by zero values in the input file, the result is NaN.
+   Use :option:`-mask` with argument NaN and :option:`-outside` to replace
+   these undefined values by a constant such as zero.
+
+.. option:: -div-with-zero <file>
+
+   Same as :option:`-div` but set result to zero instead of NaN in case of
+   a division by zero due to a zero value in the specified file.
 
 .. option:: -abs
 

@@ -23,55 +23,87 @@ Description
 
 
 
+Arguments
+---------
+
+.. option:: input
+
+   Input surface mesh.
+
+.. option:: output
+
+   Output surface mesh.
+
+
 Command options
 ---------------
 
-.. option:: -write-all
-
-   Write also intermediate meshes when more than one
-   desired average edge length was specified. Output file
-   names contain the level number as suffix. (default: off)
-
 .. option:: -target <file>
 
-   Find closest cell points on target surface
-   and use these as new point locations.
+   Find closest cell points on target surface and use these as new point locations.
+   (default: use points of input mesh)
 
-.. option:: -edgelength
+.. option:: -edgelength <float>...
 
-   <float>...          Average edge length.
+   Average edge length. (default: [0, inf)
 
-.. option:: -minedgelength <float>...
+.. option:: -min-edgelength <float>...
 
    Minimum edge length. (default: 0)
 
-.. option:: -maxedgelength <float>...
+.. option:: -max-edgelength <float>...
 
    Maximum edge length. (default: inf)
 
-.. option:: -adaptiveedgelength <name>
+.. option:: -adaptive-edgelength <name>
 
    Name of point data array to use for adapting the edge length range. (default: none)
 
-.. option:: -meltorder <index|area|shortest>
+.. option:: -melting-order <none|area|shortest>
 
    Order in which to process cells in melting pass. (default: area)
 
-.. option:: -meltnodes, -nomeltnodes
+.. option:: -melt-nodes, -nomelt-nodes
 
-   Whether to allow removal of nodes with connectivity 3. (default: off)
+   Whether to allow removal of adjacent nodes with connectivity three
+   during melting pass. (default: yes)
 
-.. option:: -melttriangles, -nomelttriangles
+.. option:: -melt-triangles, -nomelt-triangles
 
-   Whether to melt triangles when all three edges are too short. (default: off)
+   Whether to melt triangles when all three edges are too short. (default: no)
 
-.. option:: -ascii/-binary
+.. option:: -invert-long-edges, -noinvert-long-edges
 
-   Write legacy VTK in ASCII or binary format. (default: binary)
+   Enable/disable inversion of triangles sharing one too long edge. (default: no)
+
+.. option:: -invert-min-height, -noinvert-min-height
+
+   Enable/disable inversion of triangles when it increases the minimum height. (default: yes)
+
+.. option:: -noinversion
+
+   Disable :option:`-invert-long-edges` and :option:`-invert-min-height`.
+
+
+Output options
+--------------
+
+.. option:: -write-all
+
+   Write also intermediate meshes when more than one edge length range
+   was specified. Output file names contain the level number as suffix. (default: off)
+
+.. option:: -ascii, -noascii
+
+   Write legacy VTK in ASCII or binary format. (default: input type)
+
+.. option:: -binary, -nobinary
+
+   Write legacy VTK in ASCII or binary format. (default: input type)
 
 .. option:: -compress, -nocompress
 
-   Write XML VTK file with or without compression. (default: compress)
+   Write XML VTK file with or without compression. (default: on)
 
 
 Standard options

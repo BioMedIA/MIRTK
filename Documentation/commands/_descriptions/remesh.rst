@@ -2,4 +2,5 @@
 
 
 Remeshes a surface mesh such that the resulting mesh has an average
-edge length within the specified limits.
+edge length within the specified limits. The input surface mesh is
+triangulated when necessary before the local remeshing passes.
