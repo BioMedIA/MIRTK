@@ -1,3 +1,4 @@
+Dockerfile*
 build*
 Build*
 xcode*
@@ -7,6 +8,7 @@ Release*
 nbproject/private
 nbproject/configurations.xml
 CMakeLists.txt.user*
-**/.DS_Store
 .project
 .cproject
+**/.DS_Store
+.*.swp
