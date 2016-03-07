@@ -20,8 +20,9 @@
 #ifndef MIRTK_Triangle_H
 #define MIRTK_Triangle_H
 
-#include <mirtkMath.h>
 #include <mirtkMemory.h>
+#include <mirtkMath.h>
+#include <mirtkVtkMath.h> // vtkMath.h otherwise included by vtkTriangle.h
 
 #include <vtkLine.h>
 #include <vtkPlane.h>
