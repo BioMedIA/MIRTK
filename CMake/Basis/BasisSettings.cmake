@@ -559,7 +559,7 @@ mark_as_advanced (BUILD_BASIS_UTILITIES_FOR_CXX
 # This global variable specifies the default for the export of build targets if the
 # @c EXPORT or @c NO_EXPORT options of the basis_add_executable and basis_add_library
 # commands are not given.
-set (BASIS_EXPORT TRUE)
+set (BASIS_EXPORT_DEFAULT TRUE)
 
 ## @brief Whether to create "<Package>Exports.cmake" file so other projects can import the exported targets.
 #
