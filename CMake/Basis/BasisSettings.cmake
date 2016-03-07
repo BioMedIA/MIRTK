@@ -645,7 +645,7 @@ set (BASIS_SVN_USERS_FILE "${BASIS_MODULE_PATH}/SubversionUsers.txt")
 # project-specific BASIS C++ utilities.
 #
 # @sa basis_install_public_headers()
-basis_set_if_empty (BASIS_INSTALL_PUBLIC_HEADERS_OF_CXX_UTILITIES FALSE)
+basis_set_if_not_set (BASIS_INSTALL_PUBLIC_HEADERS_OF_CXX_UTILITIES FALSE)
 
 ## @brief Whether BASIS should configure any public header file with the .in file name suffix.
 #
