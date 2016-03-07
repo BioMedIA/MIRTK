@@ -561,7 +561,9 @@ mark_as_advanced (BUILD_BASIS_UTILITIES_FOR_CXX
 # commands are not given.
 set (BASIS_EXPORT_DEFAULT TRUE)
 
-## @brief Whether to create "<Package>Exports.cmake" file so other projects can import the exported targets.
+## @brief Suffix used for target exports file "<Package><ExportSuffix>.cmake"
+set (BASIS_EXPORT_SUFFIX "Exports")
+
 ## @brief Whether to create "<Package><ExportSuffix>.cmake" file so other projects can import the exported targets.
 #
 # @sa GenerateConfig.cmake, ExportTools.cmake, http://www.cmake.org/cmake/help/v2.8.12/cmake.html#command:export

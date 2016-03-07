@@ -50,9 +50,9 @@ set (VERSION_FILE "${CONFIG_PREFIX}ConfigVersion.cmake")
 ## @brief Name of the CMake package use file.
 set (USE_FILE "${CONFIG_PREFIX}Use.cmake")
 ## @brief Name of the CMake target exports file.
-set (EXPORTS_FILE "${CONFIG_PREFIX}Exports.cmake")
+set (EXPORTS_FILE "${CONFIG_PREFIX}${BASIS_EXPORT_SUFFIX}.cmake")
 ## @brief Name of the CMake target exports file for custom targets.
-set (CUSTOM_EXPORTS_FILE "${CONFIG_PREFIX}CustomExports.cmake")
+set (CUSTOM_EXPORTS_FILE "${CONFIG_PREFIX}Custom${BASIS_EXPORT_SUFFIX}.cmake")
 
 
 ## @}
