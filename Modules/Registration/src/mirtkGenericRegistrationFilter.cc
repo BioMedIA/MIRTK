@@ -1319,8 +1319,7 @@ bool GenericRegistrationFilter::Set(const char *name, const char *value, int lev
 		} else {
 		  _Resolution[level].resize(1);
 		}
-		dx = -dx, dy = -dy, dz = -dz;
-		dx /= 100.0; dy /= 100.0; dz /= 100.0;
+		dx = -100.0 / dx, dy = -100.0 / dy, dz = -100.0 / dz;
 		_Resolution[level][n]._x = dx;
 		_Resolution[level][n]._y = dy;
 		_Resolution[level][n]._z = dz;
@@ -1346,7 +1345,7 @@ bool GenericRegistrationFilter::Set(const char *name, const char *value, int lev
             dx = -dx, dy = -dy, dz = -dz;
 		  }
 		  if (units == UNITS_Percentage) {
-            dx /= 100.0; dy /= 100.0; dz /= 100.0;
+            dx = 100.0 / dx; dy = 100.0 / dy; dz = 100.0 / dz;
 		  }
 		}
 		_Resolution[level][n]._x = dx;
