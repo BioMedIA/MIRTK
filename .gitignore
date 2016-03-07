@@ -1,4 +1,5 @@
 [bB]uild*
+[xX]code
 Debug*
 Release*
 nbproject/private
@@ -7,4 +8,4 @@ CMakeLists.txt.user.*
 .DS_Store
 .project
 .cproject
-[xX]code
+.*.swp
