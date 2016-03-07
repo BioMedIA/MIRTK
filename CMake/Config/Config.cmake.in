@@ -82,13 +82,14 @@ set(MIRTK_MODULE_PATH "@MIRTK_MODULE_PATH_CONFIG@")
 
 # include requested CMake modules
 if (_INCLUDE_BASIS_MODULES OR _INCLUDE_CMake_MODULES)
+  list(APPEND CMAKE_MODULE_PATH "${MIRTK_MODULE_PATH}" "${BASIS_MODULE_PATH}")
   if (_INCLUDE_CMake_MODULES)
-    include("${MIRTK_MODULE_PATH}/MIRTKPolicies.cmake" NO_POLICY_SCOPE)
+    include(mirtkPolicies NO_POLICY_SCOPE)
   endif ()
-  include("${BASIS_MODULE_PATH}/BasisSettings.cmake")
-  include("${BASIS_MODULE_PATH}/BasisTools.cmake")
+  include(BasisSettings)
+  include(BasisTools)
   if (_INCLUDE_CMake_MODULES)
-    include("${MIRTK_MODULE_PATH}/MIRTKTools.cmake")
+    include(mirtkTools)
   endif ()
 endif ()
 
