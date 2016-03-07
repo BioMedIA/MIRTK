@@ -1136,9 +1136,9 @@ void NormalizedIntensityCrossCorrelation::Print(Indent indent) const
 
   const char *kernel_type;
   switch (_KernelType) {
-    case BoxWindow:      kernel_type = "Box window";
-    case GaussianKernel: kernel_type = "Gaussian";
-    default:             kernel_type = "Custom";
+    case BoxWindow:      kernel_type = "Box window"; break;
+    case GaussianKernel: kernel_type = "Gaussian";   break;
+    default:             kernel_type = "Custom";     break;
   }
   cout << indent << "Neighborhood kernel:  " << kernel_type << endl;
   cout << indent << "Neighborhood size:    " << abs(_NeighborhoodSize._x)
