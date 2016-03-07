@@ -2,8 +2,8 @@
 ## container with all modules and applications available in the image
 ##
 ## How to build the image:
-## - Change to Docker/ directory of MIRTK source tree
-## - Run "docker build -t <user>/mirtk:latest .."
+## - Change to top-level directory of MIRTK source tree
+## - Run "docker build -t <user>/mirtk:latest ."
 ##
 ## Upload image to Docker Hub:
 ## - Log in with "docker login" if necessary
