@@ -29,7 +29,8 @@ ARG BUILD_TESTING=OFF
 
 # Build and install MIRTK
 COPY . /usr/src/MIRTK
-RUN mkdir /usr/src/MIRTK/Build \
+RUN ls /usr/src/MIRTK \
+    && mkdir /usr/src/MIRTK/Build \
     && cd /usr/src/MIRTK/Build \
     && cmake \
       -D CMAKE_INSTALL_PREFIX=/usr/local \
