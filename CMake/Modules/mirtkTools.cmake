@@ -17,10 +17,10 @@
 # limitations under the License.
 # ==============================================================================
 
-include("${CMAKE_CURRENT_LIST_DIR}/MIRTKAddExecutable.cmake")
-include("${CMAKE_CURRENT_LIST_DIR}/MIRTKAddLibrary.cmake")
-include("${CMAKE_CURRENT_LIST_DIR}/MIRTKAddTest.cmake")
-include("${CMAKE_CURRENT_LIST_DIR}/MIRTKGetTargetName.cmake")
-include("${CMAKE_CURRENT_LIST_DIR}/MIRTKProjectBegin.cmake")
-include("${CMAKE_CURRENT_LIST_DIR}/MIRTKProjectEnd.cmake")
-include("${CMAKE_CURRENT_LIST_DIR}/MIRTKConfigureModule.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/mirtkAddExecutable.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/mirtkAddLibrary.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/mirtkAddTest.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/mirtkGetTargetName.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/mirtkProjectBegin.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/mirtkProjectEnd.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/mirtkConfigureModule.cmake")
