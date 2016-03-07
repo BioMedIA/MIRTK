@@ -1,5 +1,21 @@
 ## Build Docker image for execution of MIRTK commands within a Docker
 ## container with all modules and applications available in the image
+##
+## How to build the image:
+## - Change to Docker/ directory of MIRTK source tree
+## - Run "docker build -t <user>/mirtk:latest .."
+##
+## Upload image to Docker Hub:
+## - Log in with "docker login" if necessary
+## - Push image using "docker push <user>/mirtk:latest"
+##
+## Note: The "biomedia/mirtk" repository on Docker Hub is automatically
+##       updated with a new Docker image build when a change is committed
+##       to the (develop/master) branch of the MIRTK GitHub repository.
+##       Pushing manually build images to biomedia/mirtk is not possible
+##       (unless the automatic build has been replaced by a manual build).
+##
+## https://hub.docker.com/r/biomedia/mirtk/
 
 # Pre-made Ubuntu system with all MIRTK dependencies installed
 FROM biomedia/ubuntu:mirtk

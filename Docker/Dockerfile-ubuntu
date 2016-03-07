@@ -3,11 +3,15 @@
 ## The build of this image is time consuming. Moreover, this base image
 ## rarely changes and can thus be built and pushed to Docker Hub manually.
 ##
-## How to build the image and upload it to Docker Hub:
-## - Copy Dockerfile-ubuntu to an empty directory and rename to "Dockerfile"
-## - Run "docker build -t biomedia/ubuntu:mirtk ."
-## - Log in to Docker Hub if not done before with "docker login" command
-## - Push image to Docker Hub using "docker push biomedia/ubuntu:mirtk"
+## How to build the image:
+## - Change to the Docker/ directory of the MIRTK source tree
+## - Run "docker build -f Dockerfile-ubuntu -t biomedia/ubuntu:mirtk ."
+##
+## Upload image to Docker Hub:
+## - Log in with "docker login" command if necessary
+## - Push image using "docker push biomedia/ubuntu:mirtk"
+##
+## https://hub.docker.com/r/biomedia/ubuntu/
 
 FROM ubuntu:14.04
 
