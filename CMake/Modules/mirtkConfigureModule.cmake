@@ -21,8 +21,8 @@ if (COMMAND mirtk_configure_module)
   return()
 endif ()
 
-include("${CMAKE_CURRENT_LIST_DIR}/MIRTKProjectBegin.cmake")
-include("${CMAKE_CURRENT_LIST_DIR}/MIRTKProjectEnd.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/mirtkProjectBegin.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/mirtkProjectEnd.cmake")
 
 # ------------------------------------------------------------------------------
 ## Configure MIRTK module, to be called in top-level CMakeLists.txt of module

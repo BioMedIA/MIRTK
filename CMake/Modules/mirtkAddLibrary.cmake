@@ -22,7 +22,7 @@ if (COMMAND mirtk_add_library)
 endif ()
 
 include(CMakeParseArguments)
-include("${CMAKE_CURRENT_LIST_DIR}/MIRTKGetTargetName.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/mirtkGetTargetName.cmake")
 
 # ------------------------------------------------------------------------------
 ## Add MIRTK module library

@@ -22,7 +22,7 @@ if (COMMAND mirtk_add_executable)
 endif ()
 
 include(CMakeParseArguments)
-include("${CMAKE_CURRENT_LIST_DIR}/MIRTKGetTargetName.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/mirtkGetTargetName.cmake")
 
 # ------------------------------------------------------------------------------
 ## Add build target for executable MIRTK command

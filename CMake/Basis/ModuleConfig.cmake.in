@@ -37,6 +37,13 @@ macro (basis_remove_duplicates_config NAME)
   endif ()
 endmacro ()
 
+# ----------------------------------------------------------------------------
+macro (basis_remove_item_config NAME ITEM)
+  if (${NS}${NAME})
+    list (REMOVE_ITEM ${NS}${NAME} "${ITEM}")
+  endif ()
+endmacro ()
+
 # ============================================================================
 # general
 # ============================================================================
