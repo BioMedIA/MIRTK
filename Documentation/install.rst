@@ -38,6 +38,9 @@ the NiftiCLib_ and libLBFGS_ libraries are included in the basic download packag
 not be installed. The WITH_NiftiCLib build option can be used, however, to force the use
 of an existing NiftiCLib installation. See :ref:`build configuration steps below <ConfigurationSteps>`.
 
+To execute the :doc:`commands`, a Python_ installation is further required. Note that
+Python has to be installed before building the MIRTK from its source code.
+
 The intra-module dependencies are as follows. When a module is enabled,
 all modules required by this module are automatically enabled as well.
 
@@ -115,6 +118,7 @@ Step-by-step
    BUILD_TESTING                 Build the regression tests. (advanced, unused)
    CMAKE_BUILD_TYPE              Build configuration (e.g. "Release" for optimized code).
    CMAKE_INSTALL_PREFIX          Installation directory (default on Linux and OS X is `/opt/mirtk-<version>`).
+   PYTHON_EXECUTABLE             Python_ executable used for execution of Python scripts.
    WITH_ARPACK                   Enable eigendecomposition of sparse matrices. Required for spectral surface matching.
    WITH_MATLAB                   Enable output of matrices to .mat files and use of MATLAB functions.
    WITH_NiftiCLib                Force use of existing system installation of NiftiCLib_.
@@ -238,6 +242,7 @@ for ``mirtk``, add the following lines to your ``$HOME/.bashrc``::
    Only the executable files are always copied to ``$CMAKE_INSTALL_PREFIX/bin``.
 
 
+.. _Python:    https://www.python.org
 .. _Boost:     http://www.boost.org
 .. _Eigen:     http://eigen.tuxfamily.org
 .. _ARPACK:    http://www.caam.rice.edu/software/ARPACK/
