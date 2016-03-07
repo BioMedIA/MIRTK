@@ -22,9 +22,7 @@
 
 #include <mirtkMath.h>
 #include <mirtkVtk.h>
-
-#include <vtkMath.h>
-#include <vtkSmartPointer.h>
+#include <mirtkVtkMath.h>
 
 class vtkDataSet;
 class vtkDataSetAttributes;

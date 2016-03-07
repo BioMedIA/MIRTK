@@ -25,8 +25,8 @@
 #include <mirtkPointCorrespondence.h>
 #include <mirtkFuzzyCorrespondence.h>
 #include <mirtkSpectralDecomposition.h>
+#include <mirtkVtkMath.h>
 
-#include <vtkMath.h>
 #include <vtkSmartPointer.h>
 #include <vtkPolyData.h>
 #include <vtkPointData.h>

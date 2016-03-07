@@ -22,6 +22,7 @@
 
 #include <mirtkPointSetUtils.h>
 #include <mirtkPolyDataSmoothing.h>
+#include <mirtkVtkMath.h>
 
 #include <vtkSmartPointer.h>
 #include <vtkPolyData.h>
@@ -34,7 +35,6 @@
 #include <vtkContourFilter.h>
 #include <vtkPolyDataConnectivityFilter.h>
 #include <vtkCellLocator.h>
-#include <vtkMath.h>
 #include <vtkQuadricDecimation.h>
 
 using namespace mirtk;

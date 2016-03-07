@@ -94,7 +94,7 @@ set(SOURCES
 )
 
 if (VTK_FOUND)
-  list(APPEND HEADERS mirtkVtk.h)
+  list(APPEND HEADERS mirtkVtk.h mirtkVtkMath.h)
   list(APPEND SOURCES mirtkVtk.cc)
   list(APPEND DEPENDS ${VTK_LIBRARIES})
 endif ()

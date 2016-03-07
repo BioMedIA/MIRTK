@@ -27,8 +27,8 @@
 #include <mirtkPointSetUtils.h>
 #include <mirtkDataStatistics.h>
 #include <mirtkTransformation.h>
+#include <mirtkVtkMath.h>
 
-#include <vtkMath.h>
 #include <vtkIdList.h>
 #include <vtkCell.h>
 #include <vtkCellArray.h>

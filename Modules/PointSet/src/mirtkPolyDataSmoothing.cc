@@ -19,14 +19,15 @@
 
 #include <mirtkPolyDataSmoothing.h>
 
-#include <mirtkVtk.h>
 #include <mirtkMath.h>
 #include <mirtkEdgeTable.h>
 #include <mirtkMatrix3x3.h>
 #include <mirtkVector3.h>
 #include <mirtkPointSetUtils.h>
 
-#include <vtkMath.h>
+#include <mirtkVtk.h>
+#include <mirtkVtkMath.h>
+
 #include <vtkPoints.h>
 #include <vtkIdList.h>
 #include <vtkCellArray.h>
