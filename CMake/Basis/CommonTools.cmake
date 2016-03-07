@@ -300,7 +300,11 @@ macro (basis_find_package PACKAGE)
       if (NOT DEFINED WITH_${PKG}_DEFAULT)
         set (WITH_${PKG}_DEFAULT OFF)
       endif ()
-      option (WITH_${PKG} "Build with optional ${PKG} dependency" ${WITH_${PKG}_DEFAULT})
+      if (DEFINED USE_${PKG} AND NOT DEFINED WITH_${PKG})
+        set (WITH_${PKG} ${WITH_${PKG}_DEFAULT})
+      else ()
+        option (WITH_${PKG} "Build with optional ${PKG} dependency" ${WITH_${PKG}_DEFAULT})
+      endif ()
     endif ()
     # look for external package only if required, built with optional dependency
     # enabled by user (cf. WITH_<PKG> option above) or deprecated -DUSE_<PKG>=ON
