@@ -21,8 +21,8 @@
 #include <mirtkOptions.h>
 
 #include <mirtkPointSetUtils.h>
+#include <mirtkVtkMath.h>
 
-#include <vtkMath.h>
 #include <vtkPointSet.h>
 #include <vtkPolyData.h>
 #include <vtkPointData.h>

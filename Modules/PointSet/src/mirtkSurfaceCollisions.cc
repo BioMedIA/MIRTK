@@ -26,8 +26,8 @@
 #include <mirtkPointLocator.h>
 #include <mirtkParallel.h>
 #include <mirtkProfiling.h>
+#include <mirtkVtkMath.h>
 
-#include <vtkMath.h>
 #include <vtkPlane.h>
 #include <vtkTriangle.h>
 

@@ -29,6 +29,7 @@
 #include <mirtkPointSetUtils.h>
 #include <mirtkPolyDataSmoothing.h>
 #include <mirtkPolyDataCurvature.h>
+#include <mirtkVtkMath.h>
 
 #include <vtkSmartPointer.h>
 #include <vtkFloatArray.h>
@@ -38,7 +39,6 @@
 #include <vtkIdList.h>
 #include <vtkPolyDataNormals.h>
 #include <vtkCurvatures.h>
-#include <vtkMath.h>
 #include <vtkDataSetAttributes.h>
 #include <vtkWindowedSincPolyDataFilter.h>
 

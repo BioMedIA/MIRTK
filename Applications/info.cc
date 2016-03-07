@@ -36,6 +36,7 @@
 #  include <mirtkPolyhedron.h>
 #  include <mirtkPointSetUtils.h>
 #  include <mirtkDataStatistics.h>
+#  include <mirtkVtkMath.h>
 
 #  include <vtkSmartPointer.h>
 #  include <vtkPolyData.h>
@@ -45,7 +46,6 @@
 #  include <vtkCellData.h>
 #  include <vtkGenericCell.h>
 #  include <vtkOctreePointLocator.h>
-#  include <vtkMath.h>
 #  include <vtkUnsignedCharArray.h>
 #  include <vtkFloatArray.h>
 #  include <vtkDataSetSurfaceFilter.h>

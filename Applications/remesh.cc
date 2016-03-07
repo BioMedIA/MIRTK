@@ -23,6 +23,7 @@
 #include <mirtkEdgeTable.h>
 #include <mirtkPointSetUtils.h>
 #include <mirtkPolyDataRemeshing.h>
+#include <mirtkVtkMath.h>
 
 #include <vtkSmartPointer.h>
 #include <vtkDataReader.h> // VTK_BINARY, VTK_ASCII defines
@@ -30,7 +31,6 @@
 #include <vtkPointData.h>
 #include <vtkCellArray.h>
 #include <vtkCellLocator.h>
-#include <vtkMath.h>
 
 using namespace mirtk;
 

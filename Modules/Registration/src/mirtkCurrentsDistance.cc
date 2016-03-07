@@ -25,6 +25,7 @@
 #include <mirtkParallel.h>
 #include <mirtkProfiling.h>
 #include <mirtkObjectFactory.h>
+#include <mirtkVtkMath.h>
 
 #include <vtkSmartPointer.h>
 #include <vtkPoints.h>
@@ -32,7 +33,6 @@
 #include <vtkFloatArray.h>
 #include <vtkPolyData.h>
 #include <vtkPointData.h>
-#include <vtkMath.h>
 // Due to a bug in vtkKdTreePointLocator, calling BuildLocator
 // is not sufficient to make FindClosestPoint thread-safe as it does
 // not call vtkBSPIntersections::BuildRegionsList

@@ -28,6 +28,7 @@
 #include <mirtkParallel.h>
 #include <mirtkProfiling.h>
 #include <mirtkPointSetUtils.h>
+#include <mirtkVtkMath.h>
 
 #include <vtkPointData.h>
 #include <vtkCellData.h>
@@ -36,7 +37,6 @@
 #include <vtkPolyDataNormals.h>
 #include <vtkCurvatures.h>
 #include <vtkIdList.h>
-#include <vtkMath.h>
 
 #include <Eigen/Dense>
 #include <Eigen/Eigenvalues>
