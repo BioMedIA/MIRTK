@@ -51,6 +51,7 @@ function(mirtk_add_test target_name)
       LINK_DEPENDS
         ${GTEST_LIBRARY}
         ${GTEST_MAIN_LIBRARY}
+        ${CMAKE_THREAD_LIBS_INIT}
         ${TARGET_DEPENDS}
     )
   else ()
