@@ -1,4 +1,5 @@
-Dockerfile*
+Docker/Dockerfile*
+Dockerfile
 build*
 Build*
 xcode*
