@@ -499,7 +499,7 @@ basis_list_to_regex (BASIS_PROPERTIES_ON_TARGETS_RE ${BASIS_PROPERTIES_ON_TARGET
 # of the build system because every target name must be mapped to its
 # target UID and possibly vice versa. Moreover, the use of target UIDs
 # is less intuitive for those new to BASIS but experienced with CMake.
-basis_set_if_empty (BASIS_USE_TARGET_UIDS OFF)
+basis_set_if_not_set (BASIS_USE_TARGET_UIDS OFF)
 
 ## @brief Whether BASIS shall use fully-qualified target UIDs.
 #
@@ -510,7 +510,7 @@ basis_set_if_empty (BASIS_USE_TARGET_UIDS OFF)
 # "@PROJECT_NAME_L@.target", the CMake target name will simply
 # be "target". Only when the target is referenced from another project,
 # the fully-qualified target UID is usually required.
-basis_set_if_empty (BASIS_USE_FULLY_QUALIFIED_UIDS OFF)
+basis_set_if_not_set (BASIS_USE_FULLY_QUALIFIED_UIDS OFF)
 
 ## @brief Default component used for library targets when no component is specified.
 #
