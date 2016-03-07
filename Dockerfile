@@ -21,6 +21,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       libpng-dev \
       libsuitesparse-dev \
       libtbb-dev \
+      libvtk6-dev \
       zlib1g-dev \
     && rm -rf /var/lib/apt/lists/*
 
@@ -32,27 +33,27 @@ RUN mkdir /usr/src/gtest/build \
     && cd /usr/src \
     && rm -rf /usr/src/gtest/build
 
-RUN cd /usr/src \
-    && wget http://www.vtk.org/files/release/6.3/VTK-6.3.0.tar.gz \
-    && tar -xzf VTK-6.3.0.tar.gz \
-    && rm -f VTK-6.3.0.tar.gz \
-    && mkdir VTK-6.3.0/Build \
-    && cd VTK-6.3.0/Build \
-    && cmake \
-      -D CMAKE_INSTALL_PREFIX=/usr/local \
-      -D CMAKE_BUILD_TYPE=Release \
-      -D CMAKE_CXX_FLAGS=-std=c++11 \
-      -D VTK_USE_SYSTEM_PNG=ON \
-      -D VTK_USE_SYSTEM_ZLIB=ON \
-      -D BUILD_SHARED_LIBS=ON \
-      -D BUILD_EXAMPLES=OFF \
-      -D BUILD_TESTING=OFF \
-      -D BUILD_DOCUMENTATION=OFF \
-      .. \
-    && make install \
-    && cd /usr/src \
-    && rm -rf /usr/src/VTK-6.3.0 \
-    && ldconfig
+#RUN cd /usr/src \
+#    && wget http://www.vtk.org/files/release/6.3/VTK-6.3.0.tar.gz \
+#    && tar -xzf VTK-6.3.0.tar.gz \
+#    && rm -f VTK-6.3.0.tar.gz \
+#    && mkdir VTK-6.3.0/Build \
+#    && cd VTK-6.3.0/Build \
+#    && cmake \
+#      -D CMAKE_INSTALL_PREFIX=/usr/local \
+#      -D CMAKE_BUILD_TYPE=Release \
+#      -D CMAKE_CXX_FLAGS=-std=c++11 \
+#      -D VTK_USE_SYSTEM_PNG=ON \
+#      -D VTK_USE_SYSTEM_ZLIB=ON \
+#      -D BUILD_SHARED_LIBS=ON \
+#      -D BUILD_EXAMPLES=OFF \
+#      -D BUILD_TESTING=OFF \
+#      -D BUILD_DOCUMENTATION=OFF \
+#      .. \
+#    && make install \
+#    && cd /usr/src \
+#    && rm -rf /usr/src/VTK-6.3.0 \
+#    && ldconfig
 
 COPY . /usr/src/MIRTK
 RUN mkdir /usr/src/MIRTK/Build \
@@ -81,7 +82,7 @@ RUN mkdir /usr/src/MIRTK/Build \
     && cd /usr/src \
     && rm -rf /usr/src/MIRTK
 
-ENTRYPOINT ["/usr/bin/python", "/usr/local/bin/mirtk"]
+ENTRYPOINT ["python", "/usr/local/bin/mirtk"]
 CMD ["help"]
 
 WORKDIR /data
