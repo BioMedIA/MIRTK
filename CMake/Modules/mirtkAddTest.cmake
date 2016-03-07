@@ -44,7 +44,7 @@ function(mirtk_add_test target_name)
   endforeach ()
   # Add test executable build target and CTest target
   if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/test${target_name}.cc")
-    set(GTEST_LIBRARIES ${GTEST_LIBRARY} ${GTEST_MAIN_LIBRARY})
+    set(GTEST_LIBRARIES ${GTEST_MAIN_LIBRARY} ${GTEST_LIBRARY})
     if (UNIX AND NOT GTest_NO_PTHREADS AND CMAKE_USE_PTHREADS_INIT)
       list(APPEND GTEST_LIBRARIES ${CMAKE_THREAD_LIBS_INIT})
     endif ()
