@@ -215,29 +215,32 @@ Using Ninja, run::
 
 
 To enable the convenient use of the :doc:`commands`, it is recommended
-to permanently add the ``$MIRTK_DIR/bin`` directory to the
+to permanently add the ``$MIRTK_ROOT/bin`` directory to the
 `PATH environment variable`_ in the shell configuration file
-(e.g., ``$HOME/.bashrc`` or ``$HOME/.profile``), where MIRTK_DIR is the directory
+(e.g., ``$HOME/.bashrc`` or ``$HOME/.profile``), where MIRTK_ROOT is the directory
 chosen as CMAKE_INSTALL_PREFIX above.
 
 The MIRTK installation further includes a `Bash <https://www.gnu.org/software/bash/>`__
 completions script which when sourced in your Bash configuration file,
-enables auto-completion of available MIRTK commands. To enable Bash completions
-for ``mirtk``, add the following lines to your ``$HOME/.bashrc``::
+enables auto-completion of available MIRTK commands for the ``mirtk`` command
+and ``docker run [options] <user>/mirtk``. To enable the MIRTK Bash completions,
+add the following lines to ``$HOME/.bashrc`` (Linux) or ``$HOME/.bash_profile`` (OS X)::
 
-    [ ! -f "$MIRTK_DIR/share/mirtk_bash_completions.sh" ] ||
-    source "$MIRTK_DIR/share/mirtk_bash_completions.sh"
+    [ ! -f "$MIRTK_ROOT/share/completion/bash/mirtk" ] ||
+    source "$MIRTK_ROOT/share/completion/bash/mirtk"
 
-    [ ! -f "$MIRTK_DIR/share/mirtk/mirtk_bash_completions.sh" ] ||
-    source "$MIRTK_DIR/share/mirtk/mirtk_bash_completions.sh"
+    [ ! -f "$MIRTK_ROOT/share/mirtk/completion/bash/mirtk" ] ||
+    source "$MIRTK_ROOT/share/mirtk/completion/bash/mirtk"
+ 
+The Bash completions are then available when a new Terminal window is opened.
 
 .. note::
    
    When the CMAKE_INSTALL_PREFIX contains a directory named "mirtk" (or "mirtk-\<version\>")
    as in case of the default installation prefix "/opt/mirtk-\<version\>", the library
-   files are installed into ``$CMAKE_INSTALL_PREFIX/lib``. But when the installation
-   path does not include the project name, as in case of "/usr/local", for example,
-   the library files are copied into the directory ``$CMAKE_INSTALL_PREFIX/lib/mirtk``.
+   files and MIRTK commands are installed into ``$CMAKE_INSTALL_PREFIX/lib``. But when the
+   installation path does not include the project name, as in case of "/usr/local", for example,
+   these files are copied into the directory ``$CMAKE_INSTALL_PREFIX/lib/mirtk``.
    The same applies to other installation subdirectories such as "share" and "doc".
    Only the executable files are always copied to ``$CMAKE_INSTALL_PREFIX/bin``.
 
