@@ -16,4 +16,4 @@
 # limitations under the License.
 # ============================================================================
 
-#basis_add_test(testPackageFilter.cc)
+mirtk_add_test(ClassName DEPENDS LibCommon)

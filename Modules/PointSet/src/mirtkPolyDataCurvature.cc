@@ -28,6 +28,7 @@
 #include <mirtkParallel.h>
 #include <mirtkProfiling.h>
 #include <mirtkPointSetUtils.h>
+#include <mirtkVtkMath.h>
 
 #include <vtkPointData.h>
 #include <vtkCellData.h>
@@ -36,7 +37,6 @@
 #include <vtkPolyDataNormals.h>
 #include <vtkCurvatures.h>
 #include <vtkIdList.h>
-#include <vtkMath.h>
 
 #include <Eigen/Dense>
 #include <Eigen/Eigenvalues>
@@ -87,8 +87,8 @@ class ComputeEdgeTensors
   vtkPolyData     *_Surface;
   vtkDataArray    *_Normals;
   const EdgeTable *_EdgeTable;
-  double               _DistNorm;
-  vtkDataArray        *_Tensors;
+  double           _DistNorm;
+  vtkDataArray    *_Tensors;
 
 public:
 
@@ -223,45 +223,45 @@ struct DecomposeTensors
   static void ComposeTensor(double T[6], EigenValues lambda, EigenVectors e, int i, int j, int k)
   {
     T[PolyDataCurvature::XX] = lambda(i) * e(i, i) * e(i, i)
-                                 + lambda(j) * e(i, j) * e(i, j)
-                                 + lambda(k) * e(i, k) * e(i, k);
+                             + lambda(j) * e(i, j) * e(i, j)
+                             + lambda(k) * e(i, k) * e(i, k);
     T[PolyDataCurvature::YY] = lambda(i) * e(j, i) * e(j, i)
-                                 + lambda(j) * e(j, j) * e(j, j)
-                                 + lambda(k) * e(j, k) * e(j, k);
+                             + lambda(j) * e(j, j) * e(j, j)
+                             + lambda(k) * e(j, k) * e(j, k);
     T[PolyDataCurvature::ZZ] = lambda(i) * e(k, i) * e(k, i)
-                                 + lambda(j) * e(k, j) * e(k, j)
-                                 + lambda(k) * e(k, k) * e(k, k);
+                             + lambda(j) * e(k, j) * e(k, j)
+                             + lambda(k) * e(k, k) * e(k, k);
     T[PolyDataCurvature::XY] = lambda(i) * e(i, i) * e(j, i)
-                                 + lambda(j) * e(i, j) * e(j, j)
-                                 + lambda(k) * e(i, k) * e(j, k);
+                             + lambda(j) * e(i, j) * e(j, j)
+                             + lambda(k) * e(i, k) * e(j, k);
     T[PolyDataCurvature::YZ] = lambda(i) * e(j, i) * e(k, i)
-                                 + lambda(j) * e(j, j) * e(k, j)
-                                 + lambda(k) * e(j, k) * e(k, k);
+                             + lambda(j) * e(j, j) * e(k, j)
+                             + lambda(k) * e(j, k) * e(k, k);
     T[PolyDataCurvature::XZ] = lambda(i) * e(i, i) * e(k, i)
-                                 + lambda(j) * e(i, j) * e(k, j)
-                                 + lambda(k) * e(i, k) * e(k, k);
+                             + lambda(j) * e(i, j) * e(k, j)
+                             + lambda(k) * e(i, k) * e(k, k);
   }
 
   static void ComposeTensor(double T[6], EigenValues lambda, double a[3], double b[3], double c[3], int i, int j, int k)
   {
     T[PolyDataCurvature::XX] = lambda(i) * a[0] * a[0]
-                                 + lambda(j) * b[0] * b[0]
-                                 + lambda(k) * c[0] * c[0];
+                             + lambda(j) * b[0] * b[0]
+                             + lambda(k) * c[0] * c[0];
     T[PolyDataCurvature::YY] = lambda(i) * a[1] * a[1]
-                                 + lambda(j) * b[1] * b[1]
-                                 + lambda(k) * c[1] * c[1];
+                             + lambda(j) * b[1] * b[1]
+                             + lambda(k) * c[1] * c[1];
     T[PolyDataCurvature::ZZ] = lambda(i) * a[2] * a[2]
-                                 + lambda(j) * b[2] * b[2]
-                                 + lambda(k) * c[2] * c[2];
+                             + lambda(j) * b[2] * b[2]
+                             + lambda(k) * c[2] * c[2];
     T[PolyDataCurvature::XY] = lambda(i) * a[0] * a[1]
-                                 + lambda(j) * b[0] * b[1]
-                                 + lambda(k) * c[0] * c[1];
+                             + lambda(j) * b[0] * b[1]
+                             + lambda(k) * c[0] * c[1];
     T[PolyDataCurvature::YZ] = lambda(i) * a[1] * a[2]
-                                 + lambda(j) * b[1] * b[2]
-                                 + lambda(k) * c[1] * c[2];
+                             + lambda(j) * b[1] * b[2]
+                             + lambda(k) * c[1] * c[2];
     T[PolyDataCurvature::XZ] = lambda(i) * a[0] * a[2]
-                                 + lambda(j) * b[0] * b[2]
-                                 + lambda(k) * c[0] * c[2];
+                             + lambda(j) * b[0] * b[2]
+                             + lambda(k) * c[0] * c[2];
   }
 
   void operator ()(const blocked_range<vtkIdType> &re) const
@@ -574,7 +574,7 @@ void PolyDataCurvature::Initialize()
   // Compute volume and approximate radius of convex hull
   if (_Normalize && (_CurvatureType & (Mean | Gauss))) {
     _Volume = GetVolume(ConvexHull(_Input));
-    _Radius = pow( 3 * _Volume / (4.0 * M_PI), 1.0/3.0);
+    _Radius = pow( 3 * _Volume / (4.0 * pi), 1.0/3.0);
   }
 
   // Remove requested outputs from input to force recomputation

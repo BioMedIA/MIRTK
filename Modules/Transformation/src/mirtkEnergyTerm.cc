@@ -268,10 +268,10 @@ void EnergyTerm::Print(Indent indent) const
 string EnergyTerm::Prefix(const char *prefix) const
 {
   if (_Name.empty()) return string(prefix);
-  string name(_Name);
-  transform(name.begin(), name.end(), name.begin(), tolower);
-  replace  (name.begin(), name.end(), ' ',  '_');
-  replace  (name.begin(), name.end(), '\t', '_');
+  string name = ToLower(_Name);
+  replace(name.begin(), name.end(), '.',  '_');
+  replace(name.begin(), name.end(), ' ',  '_');
+  replace(name.begin(), name.end(), '\t', '_');
   if (prefix) name.insert(0, prefix);
   name += "_";
   return name;

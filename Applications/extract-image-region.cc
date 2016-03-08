@@ -51,19 +51,23 @@ void PrintHelp(const char *name)
   cout << endl;
   cout << "Optional arguments:" << endl;
   cout << "  -Rx1 <int>             Leftmost  input voxel index along x axis." << endl;
-  cout << "  -Rx2 <int>             Rightmost input voxel index along x axis plus 1." << endl;
+  cout << "  -Rx2 <int>             Rightmost input voxel index along x axis." << endl;
   cout << "  -Ry1 <int>             Leftmost  input voxel index along y axis." << endl;
-  cout << "  -Ry2 <int>             Rightmost input voxel index along y axis plus 1." << endl;
+  cout << "  -Ry2 <int>             Rightmost input voxel index along y axis." << endl;
   cout << "  -Rz1 <int>             Leftmost  input voxel index along z axis." << endl;
-  cout << "  -Rz2 <int>             Rightmost input voxel index along z axis plus 1." << endl;
+  cout << "  -Rz2 <int>             Rightmost input voxel index along z axis." << endl;
   cout << "  -Rt1 <int>             Leftmost  input voxel index along t axis." << endl;
-  cout << "  -Rt2 <int>             Rightmost input voxel index along t axis plus 1." << endl;
+  cout << "  -Rt2 <int>             Rightmost input voxel index along t axis." << endl;
   cout << endl;
-  cout << "  -landmarks <file>...   Extract minimum bounding box containing the landmark points." << endl;
-  cout << "  -ref <image>           Extract region specified by discrete reference image domain." << endl;
-  cout << "  -margin <int>          Add fixed-width margin to union of image regions. (default: 0)" << endl;
-  cout << "  -scale <float>         Scale resulting region by specified factor. (default: 1)" << endl;
-  cout << "  -pad [<value>]         Pad output image by the specified value. (default: 0)" << endl;
+  cout << "  -patch <i> <j> <k> <nx> [<ny> [<nz>]]" << endl;
+  cout << "      Extract image patch of given size centered at the specified voxel." << endl;
+  cout << "  -closest-patch <x> <y> <z> <nx> [<ny> [<nz>]]" << endl;
+  cout << "      Extract image patch of given size centered at nearest voxel to specified point [mm]." << endl;
+  cout << "  -landmarks <file>...     Extract minimum bounding box containing the landmark points." << endl;
+  cout << "  -ref <image>             Extract region specified by discrete reference image domain." << endl;
+  cout << "  -margin <int>            Add fixed-width margin to union of image regions. (default: 0)" << endl;
+  cout << "  -scale <float>           Scale resulting region by specified factor. (default: 1)" << endl;
+  cout << "  -pad [<value>]           Pad output image by the specified value. (default: 0)" << endl;
   PrintStandardOptions(cout);
   cout << endl;
 }
@@ -166,6 +170,47 @@ int main(int argc, char **argv)
     else if (OPTION("-Rz2")) z2 = MaxIndex(z2, ToVoxelIndex(ARGUMENT));
     else if (OPTION("-Rt1")) t1 = MinIndex(t1, ToVoxelIndex(ARGUMENT));
     else if (OPTION("-Rt2")) t2 = MaxIndex(t2, ToVoxelIndex(ARGUMENT));
+    else if (OPTION("-patch")) {
+      int i, j, k, nx, ny, nz;
+      PARSE_ARGUMENT(i);
+      PARSE_ARGUMENT(j);
+      PARSE_ARGUMENT(k);
+      PARSE_ARGUMENT(nx);
+      if (HAS_ARGUMENT) {
+        PARSE_ARGUMENT(ny);
+        if (HAS_ARGUMENT) PARSE_ARGUMENT(nz);
+        else              nz = 1;
+      } else ny = nz = nx;
+      int rx = (nx - 1) / 2;
+      int ry = (ny - 1) / 2;
+      int rz = (nz - 1) / 2;
+      x1 = i - rx, x2 = i + rx;
+      y1 = j - ry, y2 = j + ry;
+      z1 = k - rz, z2 = k + rz;
+    }
+    else if (OPTION("-closest-patch")) {
+      double x, y, z;
+      PARSE_ARGUMENT(x);
+      PARSE_ARGUMENT(y);
+      PARSE_ARGUMENT(z);
+      int nx, ny, nz;
+      PARSE_ARGUMENT(nx);
+      if (HAS_ARGUMENT) {
+        PARSE_ARGUMENT(ny);
+        if (HAS_ARGUMENT) PARSE_ARGUMENT(nz);
+        else              nz = 1;
+      } else ny = nz = nx;
+      in->WorldToImage(x, y, z);
+      int i  = iround(x);
+      int j  = iround(y);
+      int k  = iround(z);
+      int rx = (nx - 1) / 2;
+      int ry = (ny - 1) / 2;
+      int rz = (nz - 1) / 2;
+      x1 = i - rx, x2 = i + rx;
+      y1 = j - ry, y2 = j + ry;
+      z1 = k - rz, z2 = k + rz;
+    }
     else if (OPTION("-landmarks") || OPTION("-points") || OPTION("-poly")) {
       PointSet landmarks;
       do {
@@ -228,20 +273,15 @@ int main(int argc, char **argv)
     else HANDLE_COMMON_OR_UNKNOWN_OPTION();
   }
 
-  if (x2 == x1) x2 += 1;
-  if (y2 == y1) y2 += 1;
-  if (z2 == z1) z2 += 1;
-  if (t2 == t1) t2 += 1;
-
   // Full input image region by default
   if (x1 <= MIN_INDEX) x1 = 0;
-  if (x2 >= MAX_INDEX) x2 = in->X();
+  if (x2 >= MAX_INDEX) x2 = in->X() - 1;
   if (y1 <= MIN_INDEX) y1 = 0;
-  if (y2 >= MAX_INDEX) y2 = in->Y();
+  if (y2 >= MAX_INDEX) y2 = in->Y() - 1;
   if (z1 <= MIN_INDEX) z1 = 0;
-  if (z2 >= MAX_INDEX) z2 = in->Z();
+  if (z2 >= MAX_INDEX) z2 = in->Z() - 1;
   if (t1 <= MIN_INDEX) t1 = 0;
-  if (t2 >= MAX_INDEX) t2 = in->T();
+  if (t2 >= MAX_INDEX) t2 = in->T() - 1;
 
   // Add fixed-width margin
   x1 -= xmargin, x2 += xmargin;
@@ -267,10 +307,10 @@ int main(int argc, char **argv)
     y1 = max(y1, 0);
     z1 = max(z1, 0);
     t1 = max(t1, 0);
-    x2 = min(x2, in->X());
-    y2 = min(y2, in->Y());
-    z2 = min(z2, in->Z());
-    t2 = min(t2, in->T());
+    x2 = min(x2, in->X() - 1);
+    y2 = min(y2, in->Y() - 1);
+    z2 = min(z2, in->Z() - 1);
+    t2 = min(t2, in->T() - 1);
   }
 
   // Verbose reporting/logging of resulting region
@@ -282,10 +322,10 @@ int main(int argc, char **argv)
 
   // Allocate output image
   ImageAttributes attr = in->Attributes();
-  attr._x = abs(x2 - x1);
-  attr._y = abs(y2 - y1);
-  attr._z = abs(z2 - z1);
-  attr._t = abs(t2 - t1);
+  attr._x = abs(x2 - x1 + 1);
+  attr._y = abs(y2 - y1 + 1);
+  attr._z = abs(z2 - z1 + 1);
+  attr._t = abs(t2 - t1 + 1);
   attr._xorigin = .0;
   attr._yorigin = .0;
   attr._zorigin = .0;
@@ -302,10 +342,10 @@ int main(int argc, char **argv)
 
   // Copy image region
   int idx = 0;
-  for (int l = t1; l < t2; ++l)
-  for (int k = z1; k < z2; ++k)
-  for (int j = y1; j < y2; ++j)
-  for (int i = x1; i < x2; ++i, ++idx) {
+  for (int l = t1; l <= t2; ++l)
+  for (int k = z1; k <= z2; ++k)
+  for (int j = y1; j <= y2; ++j)
+  for (int i = x1; i <= x2; ++i, ++idx) {
     if (in->IsInside(i, j, k, l)) {
       out->PutAsDouble(idx, in->Get(i, j, k, l));
     } else {

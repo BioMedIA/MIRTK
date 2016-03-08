@@ -125,7 +125,16 @@ string ToUpper(const string &s)
 }
 
 // ------------------------------------------------------------------------
-Array<string> Split(string s, const char *d, int n)
+string Trim(const string &str, const string &what)
+{
+  const auto pos = str.find_first_not_of(what);
+  if (pos == string::npos) return "";
+  const auto end = str.find_last_not_of(what);
+  return str.substr(pos, end - pos + 1u);
+}
+
+// ------------------------------------------------------------------------
+Array<string> Split(string s, const char *d, int n, bool discard_empty)
 {
   const size_t delimiter_length = strlen(d);
   Array<string> parts;
@@ -152,7 +161,92 @@ Array<string> Split(string s, const char *d, int n)
       start = end + delimiter_length;
     }
   }
+  if (discard_empty) {
+    for (Array<string>::iterator part = parts.begin(); part != parts.end(); ++part) {
+      if (part->empty()) parts.erase(part--);
+    }
+  }
   return parts;
+}
+
+// ------------------------------------------------------------------------
+string StandardUnits(const string &str)
+{
+  if (str.empty()) return str;
+  string units = Trim(ToLower(str));
+  if (units.size() > 2u && units.front() == '[' && units.back() == ']') {
+    units = units.substr(1, units.size() - 2u);
+    if (units.empty()) return units;
+  }
+  if (units == "voxel" || units == "voxels") {
+    units = "vox";
+  } else if (units == "millimeters" || units == "millimeter") {
+    units = "mm";
+  } else if (units == "absolute") {
+    units = "abs";
+  } else if (units == "relative") {
+    units = "rel";
+  } else if (units == "percentage") {
+    units = "%";
+  } else if (units == "gauss" || units == "gaussian" || units == "sd" || units == "stddev" || units == "stdev") {
+    units = "sigma";
+  }
+  return units;
+}
+
+// ------------------------------------------------------------------------
+string ParameterUnits(const string &str, string *name, const char *dflt)
+{
+  const string trimmed = Trim(str);
+  string units;
+  Array<string> parts = Split(trimmed, " ", -1);
+  if (parts.size() == 1u) {
+    string last = parts.back();
+    const auto pos = last.rfind('[');
+    if (pos != string::npos) last = last.substr(pos);
+    if (last.size() > 2u && last.front() == '[' && last.back() == ']') {
+      units = last.substr(1u, last.size() - 2u);
+    }
+  }
+  if (name) {
+    *name = Trim(trimmed.substr(0u, trimmed.size() - units.size() - 2u));
+  }
+  if (units.empty()) return dflt;
+  return StandardUnits(units);
+}
+
+// ------------------------------------------------------------------------
+string ValueUnits(const string &str, string *value, const char *dflt)
+{
+  const string trimmed = Trim(str);
+  string units;
+  Array<string> parts = Split(trimmed, " ", 0, true);
+  if (!parts.empty()) {
+    const string last = parts.back();
+    const auto pos = last.find_first_of("0123456789");
+    if (pos != string::npos) {
+      parts.back() = last.substr(0u, pos + 1u);
+      parts.push_back(last.substr(pos + 1u));
+    }
+    if (parts.size() > 1u) {
+      // When any of the parameter values is not numeric, the units specification
+      // must be enclosed in brackets to distinguish it from the parameter value
+      double v;
+      for (size_t i = 0u; i < parts.size() - 1u; ++i) {
+        if (!FromString(parts[i], v)) {
+          return ParameterUnits(str, value);
+        }
+      }
+      if (!FromString(parts.back(), v)) {
+        units = parts.back();
+      }
+    }
+  }
+  if (value) {
+    *value = Trim(trimmed.substr(0u, trimmed.size() - units.size()));
+  }
+  if (units.empty()) return dflt;
+  return StandardUnits(units);
 }
 
 

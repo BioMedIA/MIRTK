@@ -33,6 +33,15 @@
 #
 # @ingroup CMakeHelpers
 
+from __future__ import absolute_import, print_function, unicode_literals
+
+# monkey-patch input to behave like raw_input in Python 2.
+# See: http://python3porting.com/differences.html#input-and-raw-input
+try:
+    input = raw_input
+except NameError:
+    pass
+
 # modules
 import os
 import sys
@@ -51,35 +60,35 @@ tokenKeepTemplate = "REMOVE_THIS_STRING_IF_YOU_WANT_TO_KEEP_YOUR_CHANGES"
 # ****************************************************************************
 def version (progName):
     """Print version information."""
-    print progName + "1.0.0"
+    print(progName + "1.0.0")
 
 # ****************************************************************************
 def usage (progName):
-    print "Usage:"
-    print "  " + progName + " [options]"
-    print
-    print "Required options:"
-    print "  [-i --in]       : Filename of original file"
-    print "  [-t --template] : Filename of template file"
-    print
-    print "Options:"
-    print "  [-o --out]     Filename of output file. If this option is not given,"
-    print "                 changes are not applied and the exit code can be used"
-    print "                 to check whether changes would have been applied."
-    print "  [-f --force]   Force overwrite of output file. Otherwise ask user."
-    print
-    print "Return value:"
-    print "  0   Merged output differs from input file and output file was"
-    print "      written successfully if option -o or --out was given"
-    print "  1   Failed to read or write file"
-    print "  2   Nothing changed, input file not overwritten"
-    print "  3   Merged output differs from input file but user chose not"
-    print "      to overwrite input file"
-    print "Example:"
-    print "  " + progName + " -i CMakeLists.txt -t CMakeLists.txt.template -o CMakeLists.txt"
-    print
-    print "Contact:"
-    print "  SBIA Group <sbia-software at uphs.upenn.edu>"
+    print("Usage:")
+    print("  " + progName + " [options]")
+    print()
+    print("Required options:")
+    print("  [-i --in]       : Filename of original file")
+    print("  [-t --template] : Filename of template file")
+    print()
+    print("Options:")
+    print("  [-o --out]     Filename of output file. If this option is not given,")
+    print("                 changes are not applied and the exit code can be used")
+    print("                 to check whether changes would have been applied.")
+    print("  [-f --force]   Force overwrite of output file. Otherwise ask user.")
+    print()
+    print("Return value:")
+    print("  0   Merged output differs from input file and output file was")
+    print("      written successfully if option -o or --out was given")
+    print("  1   Failed to read or write file")
+    print("  2   Nothing changed, input file not overwritten")
+    print("  3   Merged output differs from input file but user chose not")
+    print("      to overwrite input file")
+    print("Example:")
+    print("  " + progName + " -i CMakeLists.txt -t CMakeLists.txt.template -o CMakeLists.txt")
+    print()
+    print("Contact:")
+    print("  SBIA Group <sbia-software at uphs.upenn.edu>")
 
 # ****************************************************************************
 def help (progName):
@@ -97,8 +106,8 @@ def extractCustomizedSections (input):
         next = input.find (tokenCustomStart, start)
         end  = input.find (tokenCustomEnd,   start)
         if end == -1 or (next != -1 and end > next):
-            print "WARNING: Found begin of customized section without end token '" + tokenCustomEnd + "'"
-            print "WARNING: Will keep template section instead"
+            print("WARNING: Found begin of customized section without end token '" + tokenCustomEnd + "'")
+            print("WARNING: Will keep template section instead")
             custom.append (tokenKeepTemplate)
         else:
             custom.append (input [start:end])
@@ -143,8 +152,8 @@ def extractLicenseSections (input):
         next = input.find (tokenLicenseStart, start)
         end  = input.find (tokenLicenseEnd,   start)
         if end == -1 or (next != -1 and end > next):
-            print "WARNING: Found begin of license section without end token '" + tokenLicenseEnd + "'"
-            print "WARNING: Will keep template section instead"
+            print("WARNING: Found begin of license section without end token '" + tokenLicenseEnd + "'")
+            print("WARNING: Will keep template section instead")
             license.append (tokenKeepTemplate)
         else:
             license.append (input [start:end])
@@ -205,7 +214,7 @@ def run (inputFile, templateFile, outputFile, force):
                 sys.stdout.write ("Template of file '" + inputFile + "' has been modified.\n")
                 sys.stdout.write ("Do you want to apply the changes (basis-custom sections remain unchanged)? ")
                 sys.stdout.flush ()
-                apply = raw_input ()
+                apply = input ()
 	        if apply != "y" and apply != "yes":
                     return 3
             except EOFError:
@@ -236,16 +245,16 @@ if __name__ == "__main__":
     # get options
     try:
         opts, files = getopt.gnu_getopt (sys.argv [1:], "uhvVfi:t:o:",
-          ["usage","help","version","verbose","force","in=","template=","out="])
-    except getopt.GetoptError, err:
+          ["usage", "help", "version", "verbose", "force", "in=", "template=", "out="])
+    except getopt.GetoptError as err:
         usage (progName)
-        print str(err)
+        print(str(err))
         sys.exit(1)
     # parse command line options
     for o, a in opts:
         if o in ["-V", "--verbose"]:
             verbosity += 1
-        elif o in ["-h", "--help","-u","--usage"]:
+        elif o in ["-h", "--help", "-u", "--usage"]:
             help (progName)
             sys.exit(0)
         elif o in ["-v", "--version", "--Version"]:

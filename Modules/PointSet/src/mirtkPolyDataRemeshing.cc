@@ -23,13 +23,12 @@
 #include <mirtkAssert.h>
 #include <mirtkMath.h>
 #include <mirtkProfiling.h>
-#include <mirtkEdgeTable.h>
 #include <mirtkPolyDataSmoothing.h>
 #include <mirtkPointSetUtils.h>
 #include <mirtkDataStatistics.h>
 #include <mirtkTransformation.h>
+#include <mirtkVtkMath.h>
 
-#include <vtkMath.h>
 #include <vtkIdList.h>
 #include <vtkCell.h>
 #include <vtkCellArray.h>
@@ -75,33 +74,38 @@ void PolyDataRemeshing::CopyAttributes(const PolyDataRemeshing &other)
   _NumberOfTrisections     = other._NumberOfTrisections;
   _NumberOfQuadsections    = other._NumberOfQuadsections;
 
+  _InvertTrianglesSharingOneLongEdge  = other._InvertTrianglesSharingOneLongEdge;
+  _InvertTrianglesToIncreaseMinHeight = other._InvertTrianglesToIncreaseMinHeight;
+
   // Get output point labels from _Output (copied by PolyDataFilter::Copy)
   if (_Output) {
     _OutputPointLabels  = GetArrayByCaseInsensitiveName(_Output->GetPointData(), "labels");
     _MinEdgeLengthArray = _Output->GetPointData()->GetArray("MinEdgeLength");
     _MaxEdgeLengthArray = _Output->GetPointData()->GetArray("MaxEdgeLength");
   } else {
-    _OutputPointLabels  = NULL;
-    _MinEdgeLengthArray = NULL;
-    _MaxEdgeLengthArray = NULL;
+    _OutputPointLabels  = nullptr;
+    _MinEdgeLengthArray = nullptr;
+    _MaxEdgeLengthArray = nullptr;
   }
 }
 
 // -----------------------------------------------------------------------------
 PolyDataRemeshing::PolyDataRemeshing()
 :
-  _Transformation(NULL),
+  _Transformation(nullptr),
   _MinFeatureAngle(180.0),
-  _MinFeatureAngleCos(2.0),
+  _MinFeatureAngleCos(cos(_MinFeatureAngle * rad_per_deg)),
   _MaxFeatureAngle(180.0),
-  _MaxFeatureAngleCos(2.0),
+  _MaxFeatureAngleCos(cos(_MaxFeatureAngle * rad_per_deg)),
   _MinEdgeLength(.0),
   _MinEdgeLengthSquared(.0),
   _MaxEdgeLength(numeric_limits<double>::infinity()),
   _MaxEdgeLengthSquared(numeric_limits<double>::infinity()),
   _MeltingOrder(AREA),
-  _MeltNodes(false),
+  _MeltNodes(true),
   _MeltTriangles(false),
+  _InvertTrianglesSharingOneLongEdge(false),
+  _InvertTrianglesToIncreaseMinHeight(true),
   _NumberOfMeltedNodes(0),
   _NumberOfMeltedEdges(0),
   _NumberOfMeltedCells(0),
@@ -149,7 +153,7 @@ inline void PolyDataRemeshing::GetPoint(vtkIdType ptId, double p[3]) const
 // -----------------------------------------------------------------------------
 inline void PolyDataRemeshing::GetNormal(vtkIdType ptId, double n[3]) const
 {
-  // TODO: Need to compute normal of transformed surface if _Transformation != NULL.
+  // TODO: Need to compute normal of transformed surface if _Transformation != nullptr.
   //       Can be computed from normals of adjacent triangles which in turn
   //       must be computed from the transformed triangle corners (cf. GetPoint)
   _Output->GetPointData()->GetNormals()->GetTuple(ptId, n);
@@ -160,6 +164,7 @@ inline double PolyDataRemeshing::ComputeArea(vtkIdType cellId) const
 {
   vtkIdType npts, *pts;
   _Output->GetCellPoints(cellId, npts, pts);
+  if (npts != 3) return numeric_limits<double>::infinity();
   double p1[3], p2[3], p3[3];
   GetPoint(pts[0], p1);
   GetPoint(pts[1], p2);
@@ -210,16 +215,10 @@ inline void PolyDataRemeshing::DeleteCells(vtkIdList *cellIds)
 // -----------------------------------------------------------------------------
 inline void PolyDataRemeshing::ReplaceCellPoint(vtkIdType cellId, vtkIdType oldPtId, vtkIdType newPtId)
 {
-  vtkIdType npts, *pts;
-  _Output->GetCellPoints(cellId, npts, pts);
-  for (vtkIdType j = 0; j < npts; ++j) {
-    if (pts[j] == oldPtId) pts[j] = newPtId;
-  }
   _Output->RemoveReferenceToCell(oldPtId, cellId); // NOT THREAD SAFE!
+  _Output->ReplaceCellPoint(cellId, oldPtId, newPtId);
   _Output->ResizeCellList(newPtId, 1);
   _Output->AddReferenceToCell(newPtId, cellId);
-  // Note: Not necessary as we manipulated the pts array directly!
-  //_Output->ReplaceCell(cellId, npts, pts);
 }
 
 // -----------------------------------------------------------------------------
@@ -260,7 +259,11 @@ inline vtkIdType PolyDataRemeshing
 ::GetCellEdgeNeighborPoint(vtkIdType cellId, vtkIdType ptId1, vtkIdType ptId2, bool mergeTriples)
 {
   unsigned short ncells;
-  vtkIdType npts, *pts, *cells;
+  vtkIdType ptId3, npts, *pts, *cells;
+
+  // Get other cell adjacent to this edge
+  const vtkIdType neighborCellId = GetCellEdgeNeighbor(cellId, ptId1, ptId2);
+  if (neighborCellId == -1) return -1;
 
   // Get points which are adjacent to both edge points
   vtkSmartPointer<vtkIdList> ptIds1 = vtkSmartPointer<vtkIdList>::New();
@@ -271,124 +274,113 @@ inline vtkIdType PolyDataRemeshing
 
   ptIds1->IntersectWith(ptIds2);
 
-  // Intersection should only contain the other point of this cell
+  // Intersection contains all points connected to both edge points.
+  // This is the third point of cell with ID cellId, and all points on
+  // the opposite side of the edge, i.e., the third point defining the
+  // neighboring cell. Other points included belong to nodes that are
+  // connected to triangles that are fully contained within the triangle
+  // defined by the edge points and one of the adjacent points (furthest
+  // away from the edge when surface has no self-intersections). These can
+  // be removed starting at the third point defining the neighboring cell
+  // which in this case has node connectivity three. The next third point
+  // defining the new (merged) neighboring cell then has node connectivity
+  // three and it's adjacent triangles can be merged as well. This is
+  // continued until no more point with node connectivity three remains and
+  // the ptIds1 list has only two points left.
+  if (ptIds1->GetNumberOfIds() < 2) {
+    return -1; // Boundary point, cannot happen in case of closed surface mesh
+  }
+
+  if (mergeTriples) {
+    while (ptIds1->GetNumberOfIds() > 2) {
+      int idx = -1; // index of cell that becomes union of node adjacent cells
+      for (vtkIdType i = 0; i < ptIds1->GetNumberOfIds(); ++i) {
+        ptId3 = ptIds1->GetId(i);
+        _Output->GetPointCells(ptId3, ncells, cells);
+        if (ncells != 3) continue; // node connectivity must be three
+        for (unsigned short j = 0; j < ncells; ++j) {
+          _Output->GetCellPoints(cells[j], npts, pts);
+          for (vtkIdType k = 0; k < npts; ++k) {
+            if (pts[k] != ptId1 && pts[k] != ptId2 && pts[k] != ptId3) {
+              for (unsigned short l = 0; l < ncells; ++l) {
+                if (cells[l] == cellId || cells[l] == neighborCellId) {
+                  ReplaceCellPoint(cells[l], ptId3, pts[k]);
+                  idx = l;
+                  break;
+                }
+              }
+              if (idx != -1) {
+                for (unsigned short l = 0; l < ncells; ++l) {
+                  if (l != idx) DeleteCell(cells[l]);
+                }
+                ptIds1->DeleteId(ptId3);
+                ptIds1->InsertUniqueId(pts[k]); // should be in list already
+                if (_MeltingQueue) {
+                  for (unsigned short l = 0; l < ncells; ++l) {
+                    _MeltingQueue->DeleteId(cells[l]);
+                    if (l == idx && cells[l] != cellId) {
+                      double priority = MeltingPriority(cells[idx]);
+                      if (!IsInf(priority)) {
+                        _MeltingQueue->Insert(priority, cells[idx]);
+                      }
+                    }
+                  }
+                }
+                ++_NumberOfMeltedNodes;
+              }
+              break;
+            }
+          }
+          break;
+        }
+        break;
+      }
+      if (idx == -1) break;
+    };
+  }
+
+  // Intersection should now contain the other point of this cell
   // and the third point belonging to the cell edge neighbor
   if (ptIds1->GetNumberOfIds() != 2) return -1;
 
-  // Get third point defining this cell
-  _Output->GetCellPoints(cellId, npts, pts);
-  vtkIdType ptId3 = -1;
-  for (vtkIdType i = 0; i < npts; ++i) {
-    if (pts[i] != ptId1 && pts[i] != ptId2) {
-      ptId3 = pts[i];
-      break;
+  // Get other cell edge neighbor point
+  _Output->GetCellPoints(neighborCellId, npts, pts);
+  if (npts == 3) {
+    for (vtkIdType i = 0; i < npts; ++i) {
+      if (pts[i] != ptId1 && pts[i] != ptId2) {
+        return pts[i];
+      }
     }
   }
+  return -1;
+}
 
-  // Get other cell edge neighbor point
-  vtkIdType adjPtId = ptIds1->GetId(vtkIdType(ptIds1->GetId(0) == ptId3));
-
-  // Check/adjust connectivity of adjacent point
-  switch (NodeConnectivity(adjPtId)) {
-    case 1: case 2:
-      return -1; // should never happen
-    case 3: {
-      if (!mergeTriples) return -1;
-      // Merge three adjacent triangles into one
-      //
-      // TODO: Only when the lengths of the edges of the resulting triangle
-      //       are within the valid range [_MinEdgeLength, _MaxEdgeLength]
-      //       and if the normals of the three triangles make up an angle
-      //       less than the _MinFeatureAngle.
-      vtkIdType newPtId = -1;
-      _Output->GetPointCells(adjPtId, ncells, cells);
-      for (unsigned short i = 0; i < ncells; ++i) {
-        _Output->GetCellPoints(cells[i], npts, pts);
-        for (vtkIdType j = 0; j < npts; ++j) {
-          if (pts[j] != ptId1 && pts[j] != ptId2) {
-            newPtId = pts[j];
-            break;
-          }
-        }
+// -----------------------------------------------------------------------------
+inline double PolyDataRemeshing::MeltingPriority(vtkIdType cellId) const
+{
+  double priority = numeric_limits<double>::infinity();
+  switch (_MeltingOrder) {
+    case INDEX: {
+      priority = double(cellId);
+    } break;
+    case AREA: {
+      priority = ComputeArea(cellId);
+    } break;
+    case SHORTEST_EDGE: {
+      vtkIdType npts, *pts;
+      _Output->GetCellPoints(cellId, npts, pts);
+      if (npts == 3) {
+        double p1[3], p2[3], p3[3];
+        GetPoint(pts[0], p1);
+        GetPoint(pts[1], p2);
+        GetPoint(pts[2], p3);
+        priority = min(min(vtkMath::Distance2BetweenPoints(p1, p2),
+                           vtkMath::Distance2BetweenPoints(p1, p3)),
+                           vtkMath::Distance2BetweenPoints(p2, p3));
       }
-      if (newPtId != -1) {
-        ReplaceCellPoint(cells[0], adjPtId, newPtId);
-        DeleteCell(cells[1]);
-        DeleteCell(cells[2]);
-        ++_NumberOfMeltedNodes;
-      }
-      adjPtId = newPtId;
     } break;
   }
-
-  return adjPtId;
-}
-
-// -----------------------------------------------------------------------------
-PolyDataRemeshing::CellQueue PolyDataRemeshing::QueueCellsByArea() const
-{
-  CellQueue queue;
-  queue.reserve(_Output->GetNumberOfCells());
-
-  CellInfo cur;
-  for (cur.cellId = 0; cur.cellId < _Output->GetNumberOfCells(); ++cur.cellId) {
-    if (_Output->GetCellType(cur.cellId) == VTK_TRIANGLE) {
-      cur.priority = ComputeArea(cur.cellId);
-      queue.push_back(cur);
-    }
-  }
-
-  sort(queue.begin(), queue.end());
-  return queue;
-}
-
-// -----------------------------------------------------------------------------
-PolyDataRemeshing::CellQueue PolyDataRemeshing::QueueCellsByShortestEdge() const
-{
-  CellInfo  cur;
-  vtkIdType npts, *pts;
-  double    p1[3], p2[3], p3[3];
-
-  CellQueue queue;
-  queue.reserve(_Output->GetNumberOfCells());
-
-  for (cur.cellId = 0; cur.cellId < _Output->GetNumberOfCells(); ++cur.cellId) {
-    _Output->GetCellPoints(cur.cellId, npts, pts);
-    if (npts == 0) continue;
-    GetPoint(pts[0], p1);
-    GetPoint(pts[1], p2);
-    GetPoint(pts[2], p3);
-    cur.priority = min(min(vtkMath::Distance2BetweenPoints(p1, p2),
-                           vtkMath::Distance2BetweenPoints(p2, p3)),
-                           vtkMath::Distance2BetweenPoints(p1, p3));
-    queue.push_back(cur);
-  }
-
-  sort(queue.begin(), queue.end());
-  return queue;
-}
-
-// -----------------------------------------------------------------------------
-PolyDataRemeshing::EdgeQueue PolyDataRemeshing::QueueEdgesByLength() const
-{
-  EdgeInfo cur;
-  double   p1[3], p2[3];
-
-  const class EdgeTable edgeTable(_Output);
-
-  EdgeQueue queue;
-  queue.reserve(edgeTable.NumberOfEdges());
-
-  mirtk::EdgeIterator it(edgeTable);
-  for (it.InitTraversal(); it.GetNextEdge(cur.ptId1, cur.ptId2) != -1;) {
-    GetPoint(cur.ptId1, p1);
-    GetPoint(cur.ptId2, p2);
-    cur.priority = vtkMath::Distance2BetweenPoints(p1, p2);
-    queue.push_back(cur);
-  }
-
-  sort(queue.begin(), queue.end());
-  return queue;
+  return priority;
 }
 
 // -----------------------------------------------------------------------------
@@ -396,7 +388,7 @@ inline void PolyDataRemeshing
 ::InterpolatePointData(vtkIdType newId, vtkIdType ptId1, vtkIdType ptId2)
 {
   vtkPointData *pd = _Output->GetPointData();
-  if (pd == NULL) return;
+  if (pd == nullptr) return;
   if (_OutputPointLabels) {
     double label = _OutputPointLabels->GetComponent(ptId1, 0);
     pd->InterpolateEdge(pd, newId, ptId1, ptId2, .5);
@@ -411,7 +403,7 @@ inline void PolyDataRemeshing
 ::InterpolatePointData(vtkIdType newId, vtkIdList *ptIds, double *weights)
 {
   vtkPointData *pd = _Output->GetPointData();
-  if (pd == NULL) return;
+  if (pd == nullptr) return;
   if (_OutputPointLabels) {
     double label = _OutputPointLabels->GetComponent(ptIds->GetId(0), 0);
     pd->InterpolatePoint(pd, newId, ptIds, weights);
@@ -450,75 +442,16 @@ inline double PolyDataRemeshing
 // =============================================================================
 
 // -----------------------------------------------------------------------------
-void PolyDataRemeshing::MeltTriplets()
-{
-  MIRTK_START_TIMING();
-
-  bool replace;
-  vtkIdType npts, *pts;
-  double    p1[3], p2[3], p3[3];
-  vtkSmartPointer<vtkIdList> cellIds = vtkSmartPointer<vtkIdList>::New();
-  vtkSmartPointer<vtkIdList> ptIds   = vtkSmartPointer<vtkIdList>::New();
-
-  for (vtkIdType ptId = 0; ptId < _Output->GetNumberOfPoints(); ++ptId) {
-    _Output->GetPointCells(ptId, cellIds);
-    if (cellIds->GetNumberOfIds() == 3) {
-      replace = false;
-      ptIds->Reset();
-      for (vtkIdType i = 0; i < cellIds->GetNumberOfIds(); ++i) {
-        _Output->GetCellPoints(cellIds->GetId(i), npts, pts);
-        GetPoint(pts[0], p1);
-        GetPoint(pts[1], p2);
-        GetPoint(pts[2], p3);
-        if (vtkMath::Distance2BetweenPoints(p1, p2) < SquaredMinEdgeLength(pts[0], pts[1]) ||
-            vtkMath::Distance2BetweenPoints(p2, p3) < SquaredMinEdgeLength(pts[1], pts[2]) ||
-            vtkMath::Distance2BetweenPoints(p3, p1) < SquaredMinEdgeLength(pts[2], pts[0])) {
-          replace = true;
-        }
-        for (vtkIdType j = 0; j < npts; ++j) {
-          if (pts[j] != ptId) ptIds->InsertUniqueId(pts[j]);
-        }
-      }
-      replace = (replace && ptIds->GetNumberOfIds() == 3);
-      if (replace) {
-        replace = NodeConnectivity(ptIds->GetId(0)) > 3 &&
-                  NodeConnectivity(ptIds->GetId(1)) > 3 &&
-                  NodeConnectivity(ptIds->GetId(2)) > 3;
-      }
-      if (replace) {
-        _Output->GetCellPoints(cellIds->GetId(0), npts, pts);
-        vtkIdType newPtId = -1;
-        for (vtkIdType i = 0; newPtId == -1 && i < ptIds->GetNumberOfIds(); ++i) {
-          newPtId = ptIds->GetId(i);
-          for (vtkIdType j = 0; j < npts; ++j) {
-            if (newPtId == pts[j]) {
-              newPtId = -1;
-              break;
-            }
-          }
-        }
-        ReplaceCellPoint(cellIds->GetId(0), ptId, newPtId);
-        DeleteCell(cellIds->GetId(1));
-        DeleteCell(cellIds->GetId(2));
-        ++_NumberOfMeltedNodes;
-      }
-    }
-  }
-
-  MIRTK_DEBUG_TIMING(2, "melting nodes with connectivity 3");
-}
-
-// -----------------------------------------------------------------------------
-void PolyDataRemeshing
+bool PolyDataRemeshing
 ::MeltEdge(vtkIdType cellId, vtkIdType ptId1, vtkIdType ptId2, vtkIdList *cellIds)
 {
   // Check/resolve node connectivity of adjacent points
-  vtkIdType neighborPtId = GetCellEdgeNeighborPoint(cellId, ptId1, ptId2, true);
-  if (neighborPtId == -1) return;
+  vtkIdType neighborPtId = GetCellEdgeNeighborPoint(cellId, ptId1, ptId2, _MeltNodes);
+  if (neighborPtId == -1) return false;
 
   // Get edge neighbor cell
   vtkIdType neighborCellId = GetCellEdgeNeighbor(cellId, ptId1, ptId2);
-  if (neighborCellId == -1) return;
+  if (neighborCellId == -1) return false;
 
   // Interpolate point data
   InterpolatePointData(ptId1, ptId1, ptId2);
@@ -526,6 +459,7 @@ void PolyDataRemeshing
   // Move first point to edge middlepoint
   Point m = MiddlePoint(ptId1, ptId2);
   _Output->GetPoints()->SetPoint(ptId1, m._x, m._y, m._z);
+  _Output->GetPoints()->Modified();
 
   // Replace second point in (remaining) adjacent cells by first point
   _Output->GetPointCells(ptId2, cellIds);
@@ -537,31 +471,41 @@ void PolyDataRemeshing
   DeleteCell(cellId);
   DeleteCell(neighborCellId);
 
+  // Update priority queue
+  _Output->GetPointCells(ptId1, cellIds);
+  for (vtkIdType i = 0; i < cellIds->GetNumberOfIds(); ++i) {
+    _MeltingQueue->DeleteId(cellIds->GetId(i));
+    double priority = MeltingPriority(cellIds->GetId(i));
+    if (!IsInf(priority)) _MeltingQueue->Insert(priority, cellIds->GetId(i));
+  }
+  _MeltingQueue->DeleteId(neighborCellId);
+
   ++_NumberOfMeltedEdges;
+  return true;
 }
 
 // -----------------------------------------------------------------------------
-void PolyDataRemeshing::MeltTriangle(vtkIdType cellId, vtkIdList *cellIds)
+bool PolyDataRemeshing::MeltTriangle(vtkIdType cellId, vtkIdList *cellIds)
 {
   // Get triangle corners
   vtkSmartPointer<vtkIdList> ptIds = vtkSmartPointer<vtkIdList>::New();
   _Output->GetCellPoints(cellId, ptIds);
 
   // Get points opposite to cell edges and resolve connectivity of 3 if possible
-  vtkIdType ptId1 = GetCellEdgeNeighborPoint(cellId, ptIds->GetId(0), ptIds->GetId(1), true);
-  if (ptId1 == -1) return;
-  vtkIdType ptId2 = GetCellEdgeNeighborPoint(cellId, ptIds->GetId(1), ptIds->GetId(2), true);
-  if (ptId2 == -1) return;
-  vtkIdType ptId3 = GetCellEdgeNeighborPoint(cellId, ptIds->GetId(2), ptIds->GetId(0), true);
-  if (ptId3 == -1) return;
+  vtkIdType ptId1 = GetCellEdgeNeighborPoint(cellId, ptIds->GetId(0), ptIds->GetId(1), _MeltNodes);
+  if (ptId1 == -1) return false;
+  vtkIdType ptId2 = GetCellEdgeNeighborPoint(cellId, ptIds->GetId(1), ptIds->GetId(2), _MeltNodes);
+  if (ptId2 == -1) return false;
+  vtkIdType ptId3 = GetCellEdgeNeighborPoint(cellId, ptIds->GetId(2), ptIds->GetId(0), _MeltNodes);
+  if (ptId3 == -1) return false;
 
   // Get adjacent triangles
   vtkIdType neighborCellId1 = GetCellEdgeNeighbor(cellId, ptIds->GetId(0), ptIds->GetId(1));
-  if (neighborCellId1 == -1) return;
+  if (neighborCellId1 == -1) return false;
   vtkIdType neighborCellId2 = GetCellEdgeNeighbor(cellId, ptIds->GetId(1), ptIds->GetId(2));
-  if (neighborCellId2 == -1) return;
+  if (neighborCellId2 == -1) return false;
   vtkIdType neighborCellId3 = GetCellEdgeNeighbor(cellId, ptIds->GetId(2), ptIds->GetId(0));
-  if (neighborCellId3 == -1) return;
+  if (neighborCellId3 == -1) return false;
 
   // Get triangle center point and interpolation weights
   double pcoords[3], c[3], weights[3];
@@ -593,112 +537,183 @@ void PolyDataRemeshing::MeltTriangle(vtkIdType cellId, vtkIdList *cellIds)
   DeleteCell(neighborCellId2);
   DeleteCell(neighborCellId3);
 
+  // Update priority queue
+  _Output->GetPointCells(ptIds->GetId(0), cellIds);
+  for (vtkIdType i = 0, cellId; i < cellIds->GetNumberOfIds(); ++i) {
+    cellId = cellIds->GetId(i);
+    _MeltingQueue->DeleteId(cellId);
+    double priority = MeltingPriority(cellId);
+    if (!IsInf(priority)) _MeltingQueue->Insert(priority, cellId);
+  }
+  _MeltingQueue->DeleteId(neighborCellId1);
+  _MeltingQueue->DeleteId(neighborCellId2);
+  _MeltingQueue->DeleteId(neighborCellId3);
+
   ++_NumberOfMeltedCells;
+  return true;
 }
 
 // -----------------------------------------------------------------------------
-void PolyDataRemeshing::Melting(vtkIdType cellId, vtkIdList *cellIds)
+void PolyDataRemeshing::MeltingOfCells()
 {
+  MIRTK_START_TIMING();
+
   int       melt[3], i, j;
   double    p1[3], p2[3], p3[3], length2[3], n1[3], n2[3], n3[3];
-  vtkIdType npts, *pts;
+  vtkIdType cellId, npts, *pts;
 
-  _Output->GetCellPoints(cellId, npts, pts);
-  if (npts == 0) return; // cell marked as deleted (i.e., VTK_EMPTY_CELL)
-  mirtkAssert(npts == 3, "surface is triangulated");
+  // Cell ID list shared by melting operation functions to save reallocation
+  vtkSmartPointer<vtkIdList> cellIds = vtkSmartPointer<vtkIdList>::New();
+  cellIds->Allocate(20);
 
-  // Get (transformed) point coordinates
-  GetPoint(pts[0], p1);
-  GetPoint(pts[1], p2);
-  GetPoint(pts[2], p3);
+  // Initialize priority queue of cells to process
+  _MeltingQueue = vtkSmartPointer<vtkPriorityQueue>::New();
+  for (cellId = 0; cellId < _Output->GetNumberOfCells(); ++cellId) {
+    double priority = MeltingPriority(cellId);
+    if (!IsInf(priority)) _MeltingQueue->Insert(priority, cellId);
+  }
 
-  length2[0] = vtkMath::Distance2BetweenPoints(p1, p2);
-  length2[1] = vtkMath::Distance2BetweenPoints(p2, p3);
-  length2[2] = vtkMath::Distance2BetweenPoints(p3, p1);
+  int num_triangle_melting_attempts = 0;
 
-  // If triangle-melting is allowed
-  if (_MeltTriangles) {
+  // Process cells in order determined by priority (e.g., smallest triangle first)
+  while (_MeltingQueue->GetNumberOfItems() > 0) {
+    cellId = _MeltingQueue->Pop();
 
-    // Determine which edges are too short
-    melt[0] = int(length2[0] < SquaredMinEdgeLength(pts[0], pts[1]));
-    melt[1] = int(length2[1] < SquaredMinEdgeLength(pts[1], pts[2]));
-    melt[2] = int(length2[2] < SquaredMinEdgeLength(pts[2], pts[0]));
+    _Output->GetCellPoints(cellId, npts, pts);
+    if (npts == 0) continue; // cell marked as deleted (i.e., VTK_EMPTY_CELL)
+    mirtkAssert(npts == 3, "surface is triangulated");
 
-    // Do not melt feature edges (otherwise remeshing may smooth surface too much)
-    if ((melt[0] || melt[1] || melt[2]) && _MinFeatureAngle < 180.0) {
-      GetNormal(pts[0], n1);
-      GetNormal(pts[1], n2);
-      GetNormal(pts[2], n3);
-      if (melt[0]) melt[0] = int(1.0 - vtkMath::Dot(n1, n2) < _MinFeatureAngleCos);
-      if (melt[1]) melt[1] = int(1.0 - vtkMath::Dot(n2, n3) < _MinFeatureAngleCos);
-      if (melt[2]) melt[2] = int(1.0 - vtkMath::Dot(n3, n1) < _MinFeatureAngleCos);
-    }
+    // Get (transformed) point coordinates
+    GetPoint(pts[0], p1);
+    GetPoint(pts[1], p2);
+    GetPoint(pts[2], p3);
 
-    // Perform either edge-melting, triangle-melting, or no operation
-    switch (melt[0] + melt[1] + melt[2]) {
-      case 1: {
-        if      (melt[0]) MeltEdge(cellId, pts[0], pts[1], cellIds);
-        else if (melt[1]) MeltEdge(cellId, pts[1], pts[2], cellIds);
-        else              MeltEdge(cellId, pts[2], pts[0], cellIds);
-      } break;
-      case 3: {
-        MeltTriangle(cellId, cellIds);
-      } break;
-    }
+    length2[0] = vtkMath::Distance2BetweenPoints(p1, p2);
+    length2[1] = vtkMath::Distance2BetweenPoints(p2, p3);
+    length2[2] = vtkMath::Distance2BetweenPoints(p3, p1);
 
-  // If only individual edges are allowed to be melted
-  } else {
+    // If triangle-melting is allowed
+    if (_MeltTriangles) {
 
-    // Determine shortest edge
-    for (i = 0, j = 1; j < 3; ++j) {
-      if (length2[j] < length2[i]) i = j;
-    }
-    j = (i + 1) % 3;
+      // Determine which edges are too short
+      melt[0] = int(length2[0] < SquaredMinEdgeLength(pts[0], pts[1]));
+      melt[1] = int(length2[1] < SquaredMinEdgeLength(pts[1], pts[2]));
+      melt[2] = int(length2[2] < SquaredMinEdgeLength(pts[2], pts[0]));
 
-    // Melt edge if it is too short and not a feature edge
-    if (length2[i] < SquaredMinEdgeLength(pts[i], pts[j])) {
-      if (_MinFeatureAngle < 180.0) {
-        GetNormal(pts[i], n1);
-        GetNormal(pts[j], n2);
-        if (1.0 - vtkMath::Dot(n1, n2) < _MinFeatureAngleCos) {
+      // Do not melt feature edges (otherwise remeshing may smooth surface too much)
+      if ((melt[0] || melt[1] || melt[2]) && _MinFeatureAngle < 180.0) {
+        GetNormal(pts[0], n1);
+        GetNormal(pts[1], n2);
+        GetNormal(pts[2], n3);
+        if (melt[0]) melt[0] = int(1.0 - vtkMath::Dot(n1, n2) < _MinFeatureAngleCos);
+        if (melt[1]) melt[1] = int(1.0 - vtkMath::Dot(n2, n3) < _MinFeatureAngleCos);
+        if (melt[2]) melt[2] = int(1.0 - vtkMath::Dot(n3, n1) < _MinFeatureAngleCos);
+      }
+
+      // Perform either edge-melting, triangle-melting, or no operation
+      switch (melt[0] + melt[1] + melt[2]) {
+        case 1: {
+          if      (melt[0]) MeltEdge(cellId, pts[0], pts[1], cellIds);
+          else if (melt[1]) MeltEdge(cellId, pts[1], pts[2], cellIds);
+          else              MeltEdge(cellId, pts[2], pts[0], cellIds);
+        } break;
+        case 3: {
+          ++num_triangle_melting_attempts;
+          if (!MeltTriangle(cellId, cellIds)) {
+            i = 0;
+            if (length2[1] < length2[0]) i = 1;
+            if (length2[2] < length2[i]) i = 2;
+            j = (i + 1) % 3;
+            MeltEdge(cellId, pts[i], pts[j], cellIds);
+          }
+        } break;
+      }
+
+    // If only individual edges are allowed to be melted
+    } else {
+
+      // Determine shortest edge
+      i = 0;
+      if (length2[1] < length2[0]) i = 1;
+      if (length2[2] < length2[i]) i = 2;
+      j = (i + 1) % 3;
+
+      // Melt edge if it is too short and not a feature edge
+      if (length2[i] < SquaredMinEdgeLength(pts[i], pts[j])) {
+        if (_MinFeatureAngle < 180.0) {
+          GetNormal(pts[i], n1);
+          GetNormal(pts[j], n2);
+          if (1.0 - vtkMath::Dot(n1, n2) < _MinFeatureAngleCos) {
+            MeltEdge(cellId, pts[i], pts[j], cellIds);
+          }
+        } else {
           MeltEdge(cellId, pts[i], pts[j], cellIds);
         }
-      } else {
-        MeltEdge(cellId, pts[i], pts[j], cellIds);
       }
-    }
 
+    }
   }
+
+  _MeltingQueue = nullptr;
+  MIRTK_DEBUG_TIMING(3, "melting edges and triangles");
 }
 
 // -----------------------------------------------------------------------------
-void PolyDataRemeshing
-::Melting(vtkIdType ptId1, vtkIdList *cellIds1, vtkIdType ptId2, vtkIdList *cellIds2)
+void PolyDataRemeshing::MeltingOfNodes()
 {
-  _Output->GetPointCells(ptId1, cellIds1);
-  _Output->GetPointCells(ptId2, cellIds2);
-  cellIds1->IntersectWith(cellIds2);
+  MIRTK_START_TIMING();
 
-  if (cellIds1->GetNumberOfIds() != 2) {
-    // Either unexpected topology or either one of the points is marked as deleted
-    return;
-  }
+  unsigned short             ncells;
+  vtkIdType                  ptIdx, npts, *pts, *cells;
+  vtkSmartPointer<vtkIdList> ptIds1, ptIds2;
+  ptIds1 = vtkSmartPointer<vtkIdList>::New();
+  ptIds2 = vtkSmartPointer<vtkIdList>::New();
 
-  double p1[3], p2[3], n1[3], n2[3];
-  GetPoint(ptId1, p1);
-  GetPoint(ptId2, p2);
-
-  if (vtkMath::Distance2BetweenPoints(p1, p2) < SquaredMinEdgeLength(ptId1, ptId2)) {
-    if (_MinFeatureAngle < 180.0) {
-      GetNormal(ptId1, n1);
-      GetNormal(ptId2, n2);
-      if (1.0 - vtkMath::Dot(n1, n2) < _MinFeatureAngleCos) {
-        MeltEdge(cellIds1->GetId(0), ptId1, ptId2, cellIds2);
+  bool changed = true;
+  for (int iter = 0; iter < 10 && changed; ++iter) {
+    changed = false;
+    for (vtkIdType ptId = 0; ptId < _Output->GetNumberOfPoints(); ++ptId) {
+      _Output->GetPointCells(ptId, ncells, cells);
+      switch (ncells) {
+        case 1: case 2: {
+          for (unsigned short i = 0; i < ncells; ++i) {
+            DeleteCell(cells[i]);
+          }
+          ++_NumberOfMeltedNodes;
+          changed = true;
+        } break;
+        case 3: {
+          ptIds1->Reset();
+          ptIds2->Reset();
+          for (unsigned short i = 0; i < ncells; ++i) {
+            _Output->GetCellPoints(cells[i], npts, pts);
+            if (i == 0) {
+              ptIds1->Allocate(npts);
+              for (vtkIdType j = 0; j < npts; ++j) {
+                ptIds1->InsertNextId(pts[j]);
+              }
+            }
+            for (vtkIdType j = 0; j < npts; ++j) {
+              ptIds2->InsertUniqueId(pts[j]);
+            }
+          }
+          ptIds2->DeleteId(ptId);
+          if (ptIds2->GetNumberOfIds() != 3) continue;
+          for (ptIdx = 0; ptIdx < ptIds2->GetNumberOfIds(); ++ptIdx) {
+            if (ptIds1->IsId(ptIds2->GetId(ptIdx)) == -1) break;
+          }
+          if (ptIdx == ptIds2->GetNumberOfIds()) continue;
+          ReplaceCellPoint(cells[0], ptId, ptIds2->GetId(ptIdx));
+          DeleteCell(cells[1]);
+          DeleteCell(cells[2]);
+          ++_NumberOfMeltedNodes;
+          changed = true;
+        } break;
       }
-    } else {
-      MeltEdge(cellIds1->GetId(0), ptId1, ptId2, cellIds2);
     }
   }
+
+  MIRTK_DEBUG_TIMING(3, "melting nodes with connectivity less equal 3");
 }
 
 // -----------------------------------------------------------------------------
@@ -834,8 +849,8 @@ void PolyDataRemeshing::Initialize()
   // Compute point normals if needed
   _MinFeatureAngle    = max(.0, min(_MinFeatureAngle, 180.0));
   _MaxFeatureAngle    = max(.0, min(_MaxFeatureAngle, 180.0));
-  _MinFeatureAngleCos = 1.0 - cos(_MinFeatureAngle * M_PI / 180.0);
-  _MaxFeatureAngleCos = 1.0 - cos(_MaxFeatureAngle * M_PI / 180.0);
+  _MinFeatureAngleCos = 1.0 - cos(_MinFeatureAngle * rad_per_deg);
+  _MaxFeatureAngleCos = 1.0 - cos(_MaxFeatureAngle * rad_per_deg);
 
   if (_MinFeatureAngle < 180.0 || _MaxFeatureAngle < 180.0) {
     vtkNew<vtkPolyDataNormals> calc_normals;
@@ -875,6 +890,7 @@ void PolyDataRemeshing::Initialize()
   _Output->BuildLinks();
 
   // Reset counters
+  _NumberOfMeltedNodes  = 0;
   _NumberOfMeltedEdges  = 0;
   _NumberOfMeltedCells  = 0;
   _NumberOfInversions   = 0;
@@ -990,61 +1006,35 @@ void PolyDataRemeshing::Melting()
 {
   MIRTK_START_TIMING();
 
-  // Cell ID list shared by melting operation functions to save reallocation
-  vtkSmartPointer<vtkIdList> cellIds = vtkSmartPointer<vtkIdList>::New();
+  // Melt triplets of triangles adjacent to nodes with connectivity 3
+  // and remove any triangles connected to possibly resulting nodes with
+  // connectivity less than 3
+  if (_MeltNodes) MeltingOfNodes();
 
-  // Pre-melt triplet of small triangles adjacent sharing one point
-  if (_MeltNodes) MeltTriplets();
+  // Process triangles in chosen melting order
+  MeltingOfCells();
 
-  // Either iterate edges and only melt individual edges...
-  if (!_MeltTriangles && _MeltingOrder == SHORTEST_EDGE) {
+  // Melt triplets of triangles adjacent to nodes with connectivity 3
+  // and remove any triangles connected to possibly resulting nodes with
+  // connectivity less than 3
+  if (_MeltNodes) MeltingOfNodes();
 
-    // Determine order in which to process edges
-    EdgeQueue queue = QueueEdgesByLength();
-
-    // Process edges in determined order
-    vtkSmartPointer<vtkIdList> cellIds2 = vtkSmartPointer<vtkIdList>::New();
-    for (EdgeIterator cur = queue.begin(); cur != queue.end(); ++cur) {
-      Melting(cur->ptId1, cellIds, cur->ptId2, cellIds2);
-    }
-
-  // ...or iterate faces and possibly allow also triangles to be melted
-  } else {
-
-    // Determine order in which to process cells
-    CellQueue queue;
-    switch (_MeltingOrder) {
-      case INDEX: break;
-      case AREA:          queue = QueueCellsByArea();         break;
-      case SHORTEST_EDGE: queue = QueueCellsByShortestEdge(); break;
-    }
-
-    // Process triangles in determined order
-    if (queue.empty()) {
-      const vtkIdType ncells = _Output->GetNumberOfCells();
-      for (vtkIdType cellId = 0; cellId < ncells; ++cellId) {
-        Melting(cellId, cellIds);
-      }
-    } else {
-      for (CellIterator cur = queue.begin(); cur != queue.end(); ++cur) {
-        Melting(cur->cellId, cellIds);
-      }
-    }
+  // Remove cells which are marked as deleted
+  if (NumberOfMeltings() > 0) {
+    _Output->RemoveDeletedCells();
+    _Output->BuildLinks();
   }
-
-  // Post-melt triplet of small triangles adjacent sharing one point
-  if (_MeltNodes) MeltTriplets();
 
   MIRTK_DEBUG_TIMING(2, "melting pass");
 }
 
 // -----------------------------------------------------------------------------
-void PolyDataRemeshing::Inversion()
+void PolyDataRemeshing::InversionOfTrianglesSharingOneLongEdge()
 {
   MIRTK_START_TIMING();
 
   int       i, j, k;
-  double    p1[3], p2[3], p3[3], length2[3], min2[3], max2[3];
+  double    p[4][3], length2[3], min2[3], max2[3];
   vtkIdType adjCellId, adjPtId, npts, *pts;
 
   for (vtkIdType cellId = 0; cellId < _Output->GetNumberOfCells(); ++cellId) {
@@ -1054,14 +1044,14 @@ void PolyDataRemeshing::Inversion()
     mirtkAssert(npts == 3, "surface is triangulated");
 
     // Get (transformed) point coordinates
-    GetPoint(pts[0], p1);
-    GetPoint(pts[1], p2);
-    GetPoint(pts[2], p3);
+    GetPoint(pts[0], p[0]);
+    GetPoint(pts[1], p[1]);
+    GetPoint(pts[2], p[2]);
 
     // Calculate lengths of triangle edges
-    length2[0] = vtkMath::Distance2BetweenPoints(p1, p2);
-    length2[1] = vtkMath::Distance2BetweenPoints(p2, p3);
-    length2[2] = vtkMath::Distance2BetweenPoints(p3, p1);
+    length2[0] = vtkMath::Distance2BetweenPoints(p[0], p[1]);
+    length2[1] = vtkMath::Distance2BetweenPoints(p[1], p[2]);
+    length2[2] = vtkMath::Distance2BetweenPoints(p[2], p[0]);
 
     min2[0] = SquaredMinEdgeLength(pts[0], pts[1]);
     min2[1] = SquaredMinEdgeLength(pts[1], pts[2]);
@@ -1088,15 +1078,13 @@ void PolyDataRemeshing::Inversion()
       if (NodeConnectivity(pts[i]) > 3 && NodeConnectivity(pts[j]) > 3) {
         // Get other vertex of triangle sharing long edge
         adjPtId = GetCellEdgeNeighborPoint(cellId, pts[i], pts[j]);
-        if (adjPtId == -1) continue;
+        if (adjPtId == -1 || _Output->IsEdge(pts[k], adjPtId)) continue;
         // Check if length of other edges are in range
-        GetPoint(pts[i],  p1);
-        GetPoint(adjPtId, p3);
-        length2[0] = vtkMath::Distance2BetweenPoints(p1, p3);
+        GetPoint(adjPtId, p[3]);
+        length2[0] = vtkMath::Distance2BetweenPoints(p[i], p[3]);
         if (length2[0] < SquaredMinEdgeLength(pts[i], adjPtId) ||
             length2[0] > SquaredMaxEdgeLength(pts[i], adjPtId)) continue;
-        GetPoint(pts[j], p2);
-        length2[1] = vtkMath::Distance2BetweenPoints(p2, p3);
+        length2[1] = vtkMath::Distance2BetweenPoints(p[j], p[3]);
         if (length2[1] < SquaredMinEdgeLength(pts[j], adjPtId) ||
             length2[1] > SquaredMaxEdgeLength(pts[j], adjPtId)) continue;
         // Perform inversion operation
@@ -1109,7 +1097,97 @@ void PolyDataRemeshing::Inversion()
     }
   }
 
-  MIRTK_DEBUG_TIMING(2, "inversion pass");
+  MIRTK_DEBUG_TIMING(3, "inversion of triangles shared one long edge");
+}
+
+// -----------------------------------------------------------------------------
+void PolyDataRemeshing::InversionOfTrianglesToIncreaseMinHeight()
+{
+  MIRTK_START_TIMING();
+
+  int       i, j, k;
+  double    p[4][3], length2[3], l1, l2, a1, a2, a3, a4;
+  vtkIdType adjCellId, adjPtId, npts, *pts;
+
+  for (vtkIdType cellId = 0; cellId < _Output->GetNumberOfCells(); ++cellId) {
+
+    _Output->GetCellPoints(cellId, npts, pts);
+    if (npts == 0) continue; // cell marked as deleted (i.e., VTK_EMPTY_CELL)
+    mirtkAssert(npts == 3, "surface is triangulated");
+
+    // Get (transformed) point coordinates
+    GetPoint(pts[0], p[0]);
+    GetPoint(pts[1], p[1]);
+    GetPoint(pts[2], p[2]);
+
+    // Calculate lengths of triangle edges
+    length2[0] = vtkMath::Distance2BetweenPoints(p[0], p[1]);
+    length2[1] = vtkMath::Distance2BetweenPoints(p[1], p[2]);
+    length2[2] = vtkMath::Distance2BetweenPoints(p[2], p[0]);
+
+    // Get longest edge in triangle
+    i = 0;
+    if (length2[1] > length2[0]) i = 1;
+    if (length2[2] > length2[i]) i = 2; // 1st long edge point index
+    j = (i == 2 ? 0 : i + 1);           // 2nd long edge point index
+    k = (j == 2 ? 0 : j + 1);           // 3rd point of this triangle
+
+    a1 = vtkTriangle::TriangleArea(p[0], p[1], p[2]);
+    if (a1 > .25 * length2[i]) continue; // ratio of height over l1
+
+    // Check connectivity of long edge end points
+    if (NodeConnectivity(pts[i]) > 3 && NodeConnectivity(pts[j]) > 3) {
+
+      // Get other vertex of triangle sharing long edge
+      adjCellId = GetCellEdgeNeighbor(cellId, pts[i], pts[j]);
+      if (adjCellId == -1) continue;
+
+      adjPtId = GetCellEdgeNeighborPoint(cellId, pts[i], pts[j]);
+      if (adjPtId == -1 || _Output->IsEdge(pts[k], adjPtId)) continue;
+      GetPoint(adjPtId, p[3]);
+
+      // Do not invert when other edge of neighboring triangle is longer
+      if (vtkMath::Distance2BetweenPoints(p[i], p[3]) > length2[i] ||
+          vtkMath::Distance2BetweenPoints(p[j], p[3]) > length2[i]) continue;
+
+      // Length of edge before and after inversion
+      l1 = sqrt(length2[i]);
+      l2 = sqrt(vtkMath::Distance2BetweenPoints(p[k], p[3]));
+
+      // Areas of adjacent triangles after inversion
+      a2 = vtkTriangle::TriangleArea(p[i], p[j], p[3]);
+      a3 = vtkTriangle::TriangleArea(p[i], p[k], p[3]);
+      a4 = vtkTriangle::TriangleArea(p[j], p[k], p[3]);
+
+      // Perform inversion operation when minimum height over edge before
+      // and after inversion is greater after the operation
+      if ((a1 + a2) * l2 < (a3 + a4) * l1) {
+        const vtkIdType ptId[4] = {pts[i], pts[j], pts[k], adjPtId};
+        ReplaceCellPoint(adjCellId, ptId[0], ptId[2]);
+        ReplaceCellPoint(cellId,    ptId[1], ptId[3]);
+        ++_NumberOfInversions;
+      }
+    }
+  }
+
+  MIRTK_DEBUG_TIMING(3, "inversion of triangles to increase height");
+}
+
+// -----------------------------------------------------------------------------
+void PolyDataRemeshing::Inversion()
+{
+  MIRTK_START_TIMING();
+
+  if (_InvertTrianglesSharingOneLongEdge) {
+    InversionOfTrianglesSharingOneLongEdge();
+  }
+  if (_InvertTrianglesToIncreaseMinHeight) {
+    InversionOfTrianglesToIncreaseMinHeight();
+  }
+
+  if (_InvertTrianglesSharingOneLongEdge || _InvertTrianglesToIncreaseMinHeight) {
+    MIRTK_DEBUG_TIMING(2, "inversion pass");
+  }
 }
 
 // -----------------------------------------------------------------------------
@@ -1195,6 +1273,7 @@ void PolyDataRemeshing::Subdivision()
   newPolys->Squeeze();
   _Output->DeleteCells();
   _Output->SetPolys(newPolys);
+  _Output->BuildLinks();
 
   MIRTK_DEBUG_TIMING(2, "subdivison pass");
 }
@@ -1207,9 +1286,7 @@ void PolyDataRemeshing::Finalize()
 
   // If input surface mesh unchanged, set output equal to input
   // Users can check if this->Output() == this->Input() to see if something changed
-  if (_NumberOfMeltedNodes + _NumberOfMeltedEdges + _NumberOfMeltedCells +
-      _NumberOfInversions  +
-      _NumberOfBisections  + _NumberOfTrisections +_NumberOfQuadsections == 0) {
+  if (NumberOfChanges() == 0) {
     _Output = _Input;
     return;
   }
@@ -1223,7 +1300,7 @@ void PolyDataRemeshing::Finalize()
   //        This is avoided when running the vtkPolyDataNormals filter before.
   //        An inconsistent cell vertex ordering may in particular be caused
   //        by the Quadsect function (maybe also other Subdivision routines).
-  vtkSmartPointer<vtkPolyDataNormals> prenormals = vtkSmartPointer<vtkPolyDataNormals>::New();
+  vtkNew<vtkPolyDataNormals> prenormals;
   SetVTKInput(prenormals, _Output);
   prenormals->SplittingOff();
   prenormals->AutoOrientNormalsOn();
@@ -1234,7 +1311,7 @@ void PolyDataRemeshing::Finalize()
   prenormals->Update();
   _Output = prenormals->GetOutput();
 
-  vtkSmartPointer<vtkCleanPolyData> cleaner = vtkSmartPointer<vtkCleanPolyData>::New();
+  vtkNew<vtkCleanPolyData> cleaner;
   SetVTKInput(cleaner, _Output);
   cleaner->PointMergingOn();
   cleaner->SetAbsoluteTolerance(.0);
@@ -1243,11 +1320,11 @@ void PolyDataRemeshing::Finalize()
   cleaner->ConvertStripsToPolysOn();
   cleaner->Update();
   _Output = cleaner->GetOutput();
-  _Output->SetVerts(NULL);
-  _Output->SetLines(NULL);
+  _Output->SetVerts(nullptr);
+  _Output->SetLines(nullptr);
 
   // Recompute normals and ensure consistent order of vertices
-  vtkSmartPointer<vtkPolyDataNormals> normals = vtkSmartPointer<vtkPolyDataNormals>::New();
+  vtkNew<vtkPolyDataNormals> normals;
   SetVTKInput(normals, _Output);
   normals->SplittingOff();
   normals->AutoOrientNormalsOn();

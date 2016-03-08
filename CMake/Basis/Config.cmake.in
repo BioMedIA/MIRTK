@@ -1,12 +1,3 @@
-# ============================================================================
-# Copyright (c) 2011-2012 University of Pennsylvania
-# Copyright (c) 2013-2014 Andreas Schuh
-# All rights reserved.
-#
-# See COPYING file for license information or visit
-# http://opensource.andreasschuh.com/cmake-basis/download.html#license
-# ============================================================================
-
 ##############################################################################
 # @file  @CONFIG_FILE@
 # @brief CMake package configuration file of BASIS.
@@ -40,6 +31,11 @@ macro (basis_append_config NAME)
 endmacro ()
 
 # ----------------------------------------------------------------------------
+macro (basis_find_config NAME IDX)
+  list (FIND ${NS}${NAME} "${ARGN}" ${IDX})
+endmacro ()
+
+# ----------------------------------------------------------------------------
 macro (basis_remove_duplicates_config NAME)
   if (${NS}${NAME})
     list (REMOVE_DUPLICATES ${NS}${NAME})
@@ -47,28 +43,39 @@ macro (basis_remove_duplicates_config NAME)
 endmacro ()
 
 # ----------------------------------------------------------------------------
-macro (basis_is_cached VAR ENTRY)
-  if (DEFINED ${ENTRY})
-    get_property (${VAR} CACHE ${ENTRY} PROPERTY TYPE SET)
-  else ()
-    set (${VAR} FALSE)
+macro (basis_remove_item_config NAME ITEM)
+  if (${NS}${NAME})
+    list (REMOVE_ITEM ${NS}${NAME} "${ITEM}")
   endif ()
 endmacro ()
 
 # ----------------------------------------------------------------------------
-macro (basis_set_or_update_value VAR)
-  basis_is_cached (_CACHED ${VAR})
-  if (_CACHED)
-    if (ARGC GREATER 1)
-      set_property (CACHE ${VAR} PROPERTY VALUE ${ARGN})
+if (NOT COMMAND basis_is_cached)
+  macro (basis_is_cached VAR ENTRY)
+    if (DEFINED ${ENTRY})
+      get_property (${VAR} CACHE ${ENTRY} PROPERTY TYPE SET)
     else ()
-      set (${VAR} "" CACHE INTERNAL "" FORCE)
+      set (${VAR} FALSE)
     endif ()
-  else ()
-    set (${VAR} ${ARGN})
-  endif ()
-  unset (_CACHED)
-endmacro ()
+  endmacro ()
+endif ()
+
+# ----------------------------------------------------------------------------
+if (NOT COMMAND basis_set_or_update_value)
+  macro (basis_set_or_update_value VAR)
+    basis_is_cached (_CACHED ${VAR})
+    if (_CACHED)
+      if (${ARGC} GREATER 1)
+        set_property (CACHE ${VAR} PROPERTY VALUE ${ARGN})
+      else ()
+        set (${VAR} "" CACHE INTERNAL "" FORCE)
+      endif ()
+    else ()
+      set (${VAR} ${ARGN})
+    endif ()
+    unset (_CACHED)
+  endmacro ()
+endif ()
 
 # ============================================================================
 # general
@@ -141,49 +148,84 @@ basis_set_config (MODULES "@PROJECT_MODULES@")
 ## @brief List of built project modules.
 basis_set_config (MODULES_ENABLED "@PROJECT_MODULES_ENABLED@")
 
+# Add project modules which were installed separately
+file (GLOB _CONFIG_FILES "${CMAKE_CURRENT_LIST_DIR}/@TOPLEVEL_PROJECT_PACKAGE_CONFIG_PREFIX@*Config.cmake")
+foreach (_CONFIG_FILE IN LISTS _CONFIG_FILES)
+  if (_CONFIG_FILE MATCHES "^@TOPLEVEL_PROJECT_PACKAGE_CONFIG_PREFIX@([^ ][^ ]*)Config.cmake")
+    set (_MODULE_NAME ${CMAKE_MATCH_1})
+    basis_append_config (MODULES         ${_MODULE_NAME})
+    basis_append_config (MODULES_ENABLED ${_MODULE_NAME})
+  endif ()
+endforeach ()
+
+basis_remove_duplicates_config (MODULES)
+basis_remove_duplicates_config (MODULES_ENABLED)
+
+unset (_CONFIG_FILES)
+unset (_CONFIG_FILE)
+
 ## @brief List of modules requested by external package using the
 #         @c COMPONENTS argument of
 #         <a href="http://www.cmake.org/cmake/help/cmake-2-8-docs.html#command:find_package">
 #         find_package()</a>.
-if (${NS}FIND_COMPONENTS)
-  basis_set_config (MODULES_REQUESTED "${${NS}FIND_COMPONENTS}")
-endif()
-if(NOT ${NS}MODULES_REQUESTED)
-  basis_set_config (MODULES_REQUESTED "${${NS}MODULES_ENABLED}")
-endif()
+if (NOT DEFINED ${NS}MODULES_REQUESTED)
+  if (${NS}FIND_COMPONENTS)
+    basis_set_config (MODULES_REQUESTED "${${NS}FIND_COMPONENTS}")
+  endif ()
+  if (NOT ${NS}MODULES_REQUESTED)
+    basis_set_config (MODULES_REQUESTED "${${NS}MODULES_ENABLED}")
+  endif ()
+endif ()
 
-foreach (${NS}MODULE IN LISTS ${NS}MODULES_REQUESTED)
+foreach (_MODULE_NAME IN LISTS ${NS}MODULES_REQUESTED)
   # check if requested module is available
-  list (FIND ${NS}MODULES_ENABLED ${NS}MODULE IDX)
-  if (IDX EQUAL -1)
-    message (FATAL_ERROR "Requested module ${${NS}MODULE} of package @PROJECT_NAME@"
-                         " was not enabled when building @PROJECT_NAME@. Rebuild"
-                         " the @PROJECT_NAME@ package with MODULE_${${NS}MODULE}"
-                         " set to ON and try again.")
-  endif ()
-  # include configuration files of modules
-  set (${${NS}MODULE}_CONFIG_PREFIX "${NS}${MODULE}_")
-  include ("@MODULES_DIR_CONFIG@/@TOPLEVEL_PROJECT_PACKAGE_CONFIG_PREFIX@${${NS}MODULE}Config.cmake")
-  unset (${${NS}MODULE}_CONFIG_PREFIX)
-  # append include directories
-  if (${NS}${${NS}MODULE}_INCLUDE_DIRS)
-    basis_append_config (INCLUDE_DIRS ${${NS}${${NS}MODULE}_INCLUDE_DIRS})
-  elseif (${NS}${M}_INCLUDE_DIR)
-    basis_append_config (INCLUDE_DIRS ${${NS}${${NS}MODULE}_INCLUDE_DIR})
-  endif ()
-  # append library directories
-  if (${NS}${${NS}MODULE}_LIBRARY_DIRS)
-    basis_append_config (LIBRARY_DIRS ${${NS}${${NS}MODULE}_LIBRARY_DIRS})
-  elseif (${NS}${${NS}MODULE}_LIBARY_DIR)
-    basis_append_config (LIBRARY_DIRS ${${NS}${${NS}MODULE}_LIBRARY_DIR})
+  basis_find_config (MODULES_ENABLED ${_MODULE_NAME} _MODULE_IDX)
+  if (_MODULE_IDX EQUAL -1)
+    # set <Pkg>_<Module>_FOUND = FALSE
+    basis_set_config (${_MODULE_NAME}_FOUND FALSE)
+    # raise FATAL_ERROR when module is required
+    if (${NS}FIND_REQUIRED_${_MODULE_NAME})
+      message (FATAL_ERROR "Required module ${_MODULE_NAME} of package @PROJECT_NAME@"
+                           " was not enabled when building @PROJECT_NAME@. Rebuild"
+                           " the @PROJECT_NAME@ package with MODULE_${_MODULE_NAME}"
+                           " set to ON and try again.")
+    endif ()
+  else ()
+    # include configuration file of module
+    set (${_MODULE_NAME}_CONFIG_PREFIX "${NS}${_MODULE_NAME}_")
+    include ("@MODULES_DIR_CONFIG@/@TOPLEVEL_PROJECT_PACKAGE_CONFIG_PREFIX@${_MODULE_NAME}Config.cmake")
+    unset (${_MODULE_NAME}_CONFIG_PREFIX)
+    # append include directories
+    if (${NS}${_MODULE_NAME}_INCLUDE_DIRS)
+      basis_append_config (INCLUDE_DIRS ${${NS}${_MODULE_NAME}_INCLUDE_DIRS})
+    elseif (${NS}${_MODULE_NAME}_INCLUDE_DIR)
+      basis_append_config (INCLUDE_DIRS ${${NS}${_MODULE_NAME}_INCLUDE_DIR})
+    endif ()
+    # append library directories
+    if (${NS}${_MODULE_NAME}_LIBRARY_DIRS)
+      basis_append_config (LIBRARY_DIRS ${${NS}${_MODULE_NAME}_LIBRARY_DIRS})
+    elseif (${NS}${_MODULE_NAME}_LIBARY_DIR)
+      basis_append_config (LIBRARY_DIRS ${${NS}${_MODULE_NAME}_LIBRARY_DIR})
+    endif ()
+    # set <Pkg>_<Module>_FOUND = TRUE
+    basis_set_config (${_MODULE_NAME}_FOUND TRUE)
   endif ()
 endforeach ()
-unset (${NS}MODULE)
+
+unset (_MODULE_NAME)
+unset (_MODULE_IDX)
+
+# ============================================================================
+# clean INCLUDE_DIRS and LIBRARY_DIRS
+# ============================================================================
 
 basis_remove_duplicates_config (INCLUDE_DIR)
 basis_remove_duplicates_config (INCLUDE_DIRS)
 basis_remove_duplicates_config (LIBRARY_DIR)
 basis_remove_duplicates_config (LIBRARY_DIRS)
+
+basis_remove_item_config (INCLUDE_DIRS "")
+basis_remove_item_config (LIBRARY_DIRS "")
 
 # ============================================================================
 # dependencies

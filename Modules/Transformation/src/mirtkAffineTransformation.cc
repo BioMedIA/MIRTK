@@ -33,10 +33,9 @@ namespace mirtk {
 // -----------------------------------------------------------------------------
 void AffineTransformation::UpdateShearingTangent()
 {
-  const double deg2rad = M_PI / 180.0;
-  _tansxy = tan(_Param[SXY] * deg2rad);
-  _tansxz = tan(_Param[SXZ] * deg2rad);
-  _tansyz = tan(_Param[SYZ] * deg2rad);
+  _tansxy = tan(_Param[SXY] * rad_per_deg);
+  _tansxz = tan(_Param[SXZ] * rad_per_deg);
+  _tansyz = tan(_Param[SYZ] * rad_per_deg);
 }
 
 // -----------------------------------------------------------------------------
@@ -299,17 +298,16 @@ ParameterList AffineTransformation::Parameter() const
 Matrix AffineTransformation::DOFs2Matrix(const double *param)
 {
   Matrix matrix(4, 4);
-  const double deg2rad = M_PI / 180.0;
   AffineParametersToMatrix(param[TX], param[TY], param[TZ],
-                           param[RX]  * deg2rad,
-                           param[RY]  * deg2rad,
-                           param[RZ]  * deg2rad,
+                           param[RX]  * rad_per_deg,
+                           param[RY]  * rad_per_deg,
+                           param[RZ]  * rad_per_deg,
                            param[SX]  / 100.0,
                            param[SY]  / 100.0,
                            param[SZ]  / 100.0,
-                           param[SXY] * deg2rad,
-                           param[SXZ] * deg2rad,
-                           param[SYZ] * deg2rad,
+                           param[SXY] * rad_per_deg,
+                           param[SXZ] * rad_per_deg,
+                           param[SYZ] * rad_per_deg,
                            matrix);
   return matrix;
 }
@@ -324,13 +322,12 @@ void AffineTransformation::Matrix2DOFs(const Matrix &matrix, double *param)
                                    param[SXY], param[SXZ], param[SYZ]);
   
   // Convert angles to degrees
-  const double rad2deg = 180.0 / M_PI;
-  param[RX]  *= rad2deg;
-  param[RY]  *= rad2deg;
-  param[RZ]  *= rad2deg;
-  param[SXY] *= rad2deg;
-  param[SXZ] *= rad2deg;
-  param[SYZ] *= rad2deg;
+  param[RX]  *= deg_per_rad;
+  param[RY]  *= deg_per_rad;
+  param[RZ]  *= deg_per_rad;
+  param[SXY] *= deg_per_rad;
+  param[SXZ] *= deg_per_rad;
+  param[SYZ] *= deg_per_rad;
 
   // Convert scales to percentages
   param[SX] *= 100;
@@ -342,13 +339,12 @@ void AffineTransformation::Matrix2DOFs(const Matrix &matrix, double *param)
 void AffineTransformation::UpdateMatrix()
 {
   // Convert angles to radians
-  const double deg2rad = M_PI / 180.0;
-  const double rx  = _Param[RX]  * deg2rad;
-  const double ry  = _Param[RY]  * deg2rad;
-  const double rz  = _Param[RZ]  * deg2rad;
-  const double sxy = _Param[SXY] * deg2rad;
-  const double sxz = _Param[SXZ] * deg2rad;
-  const double syz = _Param[SYZ] * deg2rad;
+  const double rx  = _Param[RX]  * rad_per_deg;
+  const double ry  = _Param[RY]  * rad_per_deg;
+  const double rz  = _Param[RZ]  * rad_per_deg;
+  const double sxy = _Param[SXY] * rad_per_deg;
+  const double sxz = _Param[SXZ] * rad_per_deg;
+  const double syz = _Param[SYZ] * rad_per_deg;
 
   // Update sines, cosines, and tans
   _cosrx  = cos(rx);
@@ -403,13 +399,12 @@ void AffineTransformation::UpdateDOFs()
   _tansyz = tan(_Param[SYZ]);
 
   // Convert angles to degrees
-  const double rad2deg = 180.0 / M_PI;
-  _Param[RX]  *= rad2deg;
-  _Param[RY]  *= rad2deg;
-  _Param[RZ]  *= rad2deg;
-  _Param[SXY] *= rad2deg;
-  _Param[SXZ] *= rad2deg;
-  _Param[SYZ] *= rad2deg;
+  _Param[RX]  *= deg_per_rad;
+  _Param[RY]  *= deg_per_rad;
+  _Param[RZ]  *= deg_per_rad;
+  _Param[SXY] *= deg_per_rad;
+  _Param[SXZ] *= deg_per_rad;
+  _Param[SYZ] *= deg_per_rad;
 
   // Convert scales to percentages
   _Param[SX] *= 100.0;
@@ -507,22 +502,19 @@ void AffineTransformation::JacobianDOFs(double jac[3], int dof, double x, double
       jac[2] = (r[2][0] * _tansxz + r[2][1] * _tansyz + r[2][2]) * z / 100.0;
     } break;
     case SXY: {
-      const double deg2rad = M_PI / 180.0;
-      const double dsxy    = (deg2rad / pow(cos(_Param[SXY] * deg2rad), 2.0)) * y * _Param[SY] / 100.0;
+      const double dsxy = (rad_per_deg / pow(cos(_Param[SXY] * rad_per_deg), 2.0)) * y * _Param[SY] / 100.0;
       jac[0] = r[0][0] * dsxy;
       jac[1] = r[1][0] * dsxy;
       jac[2] = r[2][0] * dsxy;
     } break;
     case SYZ: {
-      const double deg2rad = M_PI / 180.0;
-      const double dsyz    = (deg2rad / pow(cos(_Param[SYZ] * deg2rad), 2.0)) * z * _Param[SZ] / 100.0;
+      const double dsyz = (rad_per_deg / pow(cos(_Param[SYZ] * rad_per_deg), 2.0)) * z * _Param[SZ] / 100.0;
       jac[0] = r[0][1] * dsyz;
       jac[1] = r[1][1] * dsyz;
       jac[2] = r[2][1] * dsyz;
     } break;
     case SXZ: {
-      const double deg2rad = M_PI / 180.0;
-      const double dsxz    = (deg2rad / pow(cos(_Param[SXZ] * deg2rad), 2.0)) * z * _Param[SZ] / 100.0;
+      const double dsxz = (rad_per_deg / pow(cos(_Param[SXZ] * rad_per_deg), 2.0)) * z * _Param[SZ] / 100.0;
       jac[0] = r[0][0] * dsxz;
       jac[1] = r[1][0] * dsxz;
       jac[2] = r[2][0] * dsxz;
@@ -588,22 +580,19 @@ void AffineTransformation::DeriveJacobianWrtDOF(Matrix &dJdp, int dof, double x,
       dJdp(2, 2) = (r[2][0] * _tansxz + r[2][1] * _tansyz + r[2][2]) / 100.0;
     } break;
     case SXY: {
-      const double deg2rad = M_PI / 180.0;
-      const double dsxy    = (deg2rad / pow(cos(_Param[SXY] * deg2rad), 2.0)) * _Param[SY] / 100.0;
+      const double dsxy = (rad_per_deg / pow(cos(_Param[SXY] * rad_per_deg), 2.0)) * _Param[SY] / 100.0;
       dJdp(0, 1) = r[0][0] * dsxy;
       dJdp(1, 1) = r[1][0] * dsxy;
       dJdp(2, 1) = r[2][0] * dsxy;
     } break;
     case SYZ: {
-      const double deg2rad = M_PI / 180.0;
-      const double dsyz    = (deg2rad / pow(cos(_Param[SYZ] * deg2rad), 2.0)) * _Param[SZ] / 100.0;
+      const double dsyz = (rad_per_deg / pow(cos(_Param[SYZ] * rad_per_deg), 2.0)) * _Param[SZ] / 100.0;
       dJdp(0, 2) = r[0][1] * dsyz;
       dJdp(1, 2) = r[1][1] * dsyz;
       dJdp(2, 2) = r[2][1] * dsyz;
     } break;
     case SXZ: {
-      const double deg2rad = M_PI / 180.0;
-      const double dsxz    = (deg2rad / pow(cos(_Param[SXZ] * deg2rad), 2.0)) * _Param[SZ] / 100.0;
+      const double dsxz = (rad_per_deg / pow(cos(_Param[SXZ] * rad_per_deg), 2.0)) * _Param[SZ] / 100.0;
       dJdp(0, 2) = r[0][0] * dsxz;
       dJdp(1, 2) = r[1][0] * dsxz;
       dJdp(2, 2) = r[2][0] * dsxz;

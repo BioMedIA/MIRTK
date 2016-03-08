@@ -22,34 +22,38 @@
 ##############################################################################
 
 # install CMake-based uninstall script
-install (
-  FILES       "${PROJECT_BINARY_DIR}/cmake_uninstall.cmake"
-  DESTINATION "${INSTALL_CONFIG_DIR}"
-  RENAME      "${PROJECT_PACKAGE_CONFIG_PREFIX}Uninstall.cmake"
-)
-
-# write executable uninstaller
-set (UNINSTALLER_NAME "uninstall-${PROJECT_PACKAGE_NAME_L}")
-if (WIN32)
-  set (UNINSTALLER_NAME "${UNINSTALLER_NAME}.cmd")
+if (NOT PROJECT_IS_SUBMODULE)
+  install (
+    FILES       "${PROJECT_BINARY_DIR}/cmake_uninstall.cmake"
+    DESTINATION "${INSTALL_CONFIG_DIR}"
+    RENAME      "${PROJECT_PACKAGE_CONFIG_PREFIX}Uninstall.cmake"
+  )
 endif ()
 
-install (
-  CODE
-    "
-    set (UNINSTALLER \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${INSTALL_RUNTIME_DIR}/${UNINSTALLER_NAME}\")
-    message (\"-- Installing: \${UNINSTALLER}\")
-    file (WRITE \"\${UNINSTALLER}\" \"\")
-    if (UNIX)
-      file (APPEND \"\${UNINSTALLER}\" \"#! /bin/sh\n\")
-    endif ()
-    file (APPEND \"\${UNINSTALLER}\" \"\\\"${CMAKE_COMMAND}\\\" -P \\\"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${INSTALL_CONFIG_DIR}/${PROJECT_PACKAGE_CONFIG_PREFIX}Uninstall.cmake\\\"\")
-    if (UNIX)
-      execute_process (COMMAND /bin/chmod +x \"\${UNINSTALLER}\")
-    endif ()
-    list (APPEND CMAKE_INSTALL_MANIFEST_FILES \"\${UNINSTALLER}\")
-    "
-)
+# write executable uninstaller
+if (NOT PROJECT_IS_SUBMODULE)
+  set (UNINSTALLER_NAME "uninstall-${PROJECT_PACKAGE_NAME_L}")
+  if (WIN32)
+    set (UNINSTALLER_NAME "${UNINSTALLER_NAME}.cmd")
+  endif ()
+  
+  install (
+    CODE
+      "
+      set (UNINSTALLER \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${INSTALL_RUNTIME_DIR}/${UNINSTALLER_NAME}\")
+      message (\"-- Installing: \${UNINSTALLER}\")
+      file (WRITE \"\${UNINSTALLER}\" \"\")
+      if (UNIX)
+        file (APPEND \"\${UNINSTALLER}\" \"#! /bin/sh\n\")
+      endif ()
+      file (APPEND \"\${UNINSTALLER}\" \"\\\"${CMAKE_COMMAND}\\\" -P \\\"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${INSTALL_CONFIG_DIR}/${PROJECT_PACKAGE_CONFIG_PREFIX}Uninstall.cmake\\\"\")
+      if (UNIX)
+        execute_process (COMMAND /bin/chmod +x \"\${UNINSTALLER}\")
+      endif ()
+      list (APPEND CMAKE_INSTALL_MANIFEST_FILES \"\${UNINSTALLER}\")
+      "
+  )
+endif ()
 
 # write install manifest at the very end of the installation
 install (

@@ -28,9 +28,10 @@ endif ()
 # ----------------------------------------------------------------------------
 ## @brief Add target to export set.
 #
-# Targets of a subproject are added to the export set named after the subproject
-# itself. All other targets, including in particular those of other modules,
-# are added to the export set named after the top-level project.
+# Targets are added to the export set named after the top-level project.
+# This is necessary because CMake does not allow us to split the exports
+# into different sets when there are inter-dependencies between library
+# targets of the modules.
 #
 # @param[out] EXPORT_OPTION Export option for install() command including
 #                           the EXPORT option name. Set to an empty string
@@ -39,11 +40,7 @@ endif ()
 # @param[in]  IS_TEST       Whether given target is a test executable or library.
 # @param[in]  ARGN          Optional installation destinations.
 function (basis_add_export_target EXPORT_OPTION TARGET_UID IS_TEST)
-  if (PROJECT_IS_SUBPROJECT)
-    set (EXPORT_SET "${PROJECT_NAME}")
-  else ()
-    set (EXPORT_SET "${TOPLEVEL_PROJECT_NAME}")
-  endif ()
+  set (EXPORT_SET "${TOPLEVEL_PROJECT_NAME}")
   if (IS_TEST)
     basis_set_project_property (PROJECT "${EXPORT_SET}" APPEND PROPERTY TEST_EXPORT_TARGETS "${TARGET_UID}")
   else ()
@@ -51,25 +48,22 @@ function (basis_add_export_target EXPORT_OPTION TARGET_UID IS_TEST)
     if (ARGN)
       basis_set_project_property (PROJECT "${EXPORT_SET}" APPEND PROPERTY INSTALL_EXPORT_TARGETS "${TARGET_UID}")
     endif ()
-    set (EXPORT_OPT "EXPORT;${EXPORT_SET}" PARENT_SCOPE)
+    set (${EXPORT_OPTION} "EXPORT;${EXPORT_SET}" PARENT_SCOPE)
   endif ()
 endfunction ()
 
 # ----------------------------------------------------------------------------
 ## @brief Add target to custom export set.
 #
-# Targets of a subproject are added to the export set named after the subproject
-# itself. All other targets, including in particular those of other modules,
-# are added to the export set named after the top-level project.
+# Targets are added to the export set named after the top-level project.
+# This is necessary because CMake does not allow us to split the exports
+# into different sets when there are inter-dependencies between library
+# targets of the modules.
 #
 # @param[in]  TARGET_UID UID of target to add to the export set.
 # @param[in]  IS_TEST    Whether given target is a test executable or library.
 function (basis_add_custom_export_target TARGET_UID IS_TEST)
-  if (PROJECT_IS_SUBPROJECT)
-    set (EXPORT_SET "${PROJECT_NAME}")
-  else ()
-    set (EXPORT_SET "${TOPLEVEL_PROJECT_NAME}")
-  endif ()
+  set (EXPORT_SET "${TOPLEVEL_PROJECT_NAME}")
   if (IS_TEST)
     basis_set_project_property (PROJECT "${EXPORT_SET}" APPEND PROPERTY TEST_EXPORT_TARGETS "${TARGET_UID}")
   else ()
@@ -284,11 +278,11 @@ function (basis_export_targets)
     endif ()
     export (
       TARGETS   ${EXPORT_TARGETS}
-      FILE      "${PROJECT_BINARY_DIR}/${ARGN_FILE}"
+      FILE      "${CMAKE_BINARY_DIR}/${ARGN_FILE}"
       ${NAMESPACE_OPT}
     )
     basis_get_project_property (INSTALL_EXPORT_TARGETS)
-    if (INSTALL_EXPORT_TARGETS)
+    if (INSTALL_EXPORT_TARGETS AND NOT BASIS_BUILD_ONLY)
       foreach (COMPONENT "${BASIS_RUNTIME_COMPONENT}" "${BASIS_LIBRARY_COMPONENT}")
         install (
           EXPORT      "${PROJECT_NAME}"
@@ -314,11 +308,11 @@ function (basis_export_targets)
     basis_export_build_properties (CONTENT ${CUSTOM_EXPORT_TARGETS}  ${TEST_EXPORT_TARGETS})
     basis_export_footer (CONTENT)
 
-    file (WRITE "${PROJECT_BINARY_DIR}/${ARGN_CUSTOM_FILE}" "${CONTENT}")
+    file (WRITE "${CMAKE_BINARY_DIR}/${ARGN_CUSTOM_FILE}" "${CONTENT}")
     unset (CONTENT)
 
     # write exports for installation - excluding test targets
-    if (CUSTOM_EXPORT_TARGETS)
+    if (CUSTOM_EXPORT_TARGETS AND NOT BASIS_BUILD_ONLY)
       set (INSTALL_EXPORT_FILE "${PROJECT_BINARY_DIR}/CMakeFiles/Export/${INSTALL_CONFIG_DIR}/${ARGN_CUSTOM_FILE}")
 
       basis_export_header (CONTENT)

@@ -144,6 +144,9 @@ struct ImageAttributes
   Point IndexToWorld(int) const;
 
   /// Convert lattice to world coordinate
+  void LatticeToWorld(Point &) const;
+
+  /// Convert lattice to world coordinate
   void LatticeToWorld(double &, double &, double &) const;
 
   /// Compute spatial world coordinates of lattice points (_x * _y * _z)
@@ -154,6 +157,9 @@ struct ImageAttributes
 
   /// Convert world to lattice coordinate
   void WorldToLattice(double &, double &, double &) const;
+
+  /// Convert lattice to world coordinate
+  void WorldToLattice(Point &) const;
 
   /// Convert lattice to time coordinate
   double LatticeToTime(double) const;
@@ -358,6 +364,12 @@ inline void ImageAttributes::LatticeToWorld(double &x, double &y, double &z) con
 }
 
 // -----------------------------------------------------------------------------
+inline void ImageAttributes::LatticeToWorld(Point &p) const
+{
+  LatticeToWorld(p._x, p._y, p._z);
+}
+
+// -----------------------------------------------------------------------------
 inline double ImageAttributes::LatticeToTime(double t) const
 {
   return _torigin + t * _dt;
@@ -367,6 +379,12 @@ inline double ImageAttributes::LatticeToTime(double t) const
 inline void ImageAttributes::WorldToLattice(double &x, double &y, double &z) const
 {
   Transform(_w2i ? *_w2i : GetWorldToImageMatrix(), x, y, z);
+}
+
+// -----------------------------------------------------------------------------
+inline void ImageAttributes::WorldToLattice(Point &p) const
+{
+  WorldToLattice(p._x, p._y, p._z);
 }
 
 // -----------------------------------------------------------------------------

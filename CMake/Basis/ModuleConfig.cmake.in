@@ -1,12 +1,3 @@
-# ============================================================================
-# Copyright (c) 2011-2012 University of Pennsylvania
-# Copyright (c) 2013-2014 Andreas Schuh
-# All rights reserved.
-#
-# See COPYING file for license information or visit
-# http://opensource.andreasschuh.com/cmake-basis/download.html#license
-# ============================================================================
-
 ##############################################################################
 # @file  @CONFIG_FILE@
 # @brief CMake package configuration file of @PROJECT_NAME@ of @PROJECT_PACKAGE_NAME@.
@@ -43,6 +34,13 @@ endmacro ()
 macro (basis_remove_duplicates_config NAME)
   if (${NS}${NAME})
     list (REMOVE_DUPLICATES ${NS}${NAME})
+  endif ()
+endmacro ()
+
+# ----------------------------------------------------------------------------
+macro (basis_remove_item_config NAME ITEM)
+  if (${NS}${NAME})
+    list (REMOVE_ITEM ${NS}${NAME} "${ITEM}")
   endif ()
 endmacro ()
 

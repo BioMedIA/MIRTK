@@ -337,16 +337,16 @@ void NiftiImageReader::ReadHeader()
       _DataType = MIRTK_VOXEL_UNSIGNED_SHORT;
       _Bytes    = 2;
       break;
-    case NIFTI_TYPE_FLOAT32:
-      _DataType = MIRTK_VOXEL_FLOAT;
-      _Bytes    = 4;
-      break;
     case NIFTI_TYPE_INT32:
       _DataType = MIRTK_VOXEL_INT;
       _Bytes    = 4;
       break;
     case NIFTI_TYPE_UINT32:
       _DataType = MIRTK_VOXEL_UNSIGNED_INT;
+      _Bytes    = 4;
+      break;
+    case NIFTI_TYPE_FLOAT32:
+      _DataType = MIRTK_VOXEL_FLOAT;
       _Bytes    = 4;
       break;
     case NIFTI_TYPE_FLOAT64:

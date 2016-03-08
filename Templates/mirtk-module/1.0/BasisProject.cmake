@@ -42,6 +42,8 @@ basis_project (
   # ----------------------------------------------------------------------------
   # meta-data
   NAME        #<project>
+  VERSION     "0.0.0" # version of this module, 0.0.0: no version assigned
+  SOVERSION   "0"     # ABI version, 0: API unstable
   PACKAGE     "MIRTK"
   AUTHORS     #<author>
   DESCRIPTION #<description>

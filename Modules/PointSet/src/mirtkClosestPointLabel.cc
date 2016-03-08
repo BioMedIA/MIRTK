@@ -28,8 +28,8 @@
 #include <mirtkParallel.h>
 #include <mirtkProfiling.h>
 #include <mirtkPointSetUtils.h>
+#include <mirtkVtkMath.h>
 
-#include <vtkMath.h>
 #include <vtkSmartPointer.h>
 #include <vtkPointData.h>
 #include <vtkCellData.h>

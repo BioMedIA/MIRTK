@@ -39,6 +39,12 @@ Vector3::Vector3 ()
 }
 
 //----------------------------------------------------------------------------
+Vector3::Vector3 (double fScalar)
+{
+  x = y = z = fScalar;
+}
+
+//----------------------------------------------------------------------------
 Vector3::Vector3 (double fX, double fY, double fZ)
 {
   x = fX;
@@ -82,6 +88,13 @@ Vector3& Vector3::operator= (const Vector3& rkVector)
   x = rkVector.x;
   y = rkVector.y;
   z = rkVector.z;
+  return *this;
+}
+
+//----------------------------------------------------------------------------
+Vector3& Vector3::operator= (double fScalar)
+{
+  x = y = z = fScalar;
   return *this;
 }
 
@@ -226,7 +239,7 @@ double Vector3::Length () const
 }
 
 //----------------------------------------------------------------------------
-double Vector3::Unitize (double fTolerance)
+double Vector3::Normalize(double fTolerance)
 {
   double fLength = Length();
 
@@ -240,6 +253,12 @@ double Vector3::Unitize (double fTolerance)
   }
 
   return fLength;
+}
+
+//----------------------------------------------------------------------------
+double Vector3::Unitize(double fTolerance)
+{
+  return Normalize(fTolerance);
 }
 
 //----------------------------------------------------------------------------

@@ -54,7 +54,7 @@ foreach (PKG IN LISTS PKGS)
     "    message (WARNING DEPENDS_${PKG}_DIR \${_depwarn})"
     "  endif ()"
     "else ()"
-    "  basis_set_or_update_value (DEPENDS_${PKG}_DIR \"${DEPENDS_${PKG}_DIR}\" PATH)"
+    "  basis_set_or_update_value (DEPENDS_${PKG}_DIR \"${DEPENDS_${PKG}_DIR}\")"
     "endif ()"
   )
 endforeach ()
@@ -81,7 +81,7 @@ if (BUILD_CONFIG_SETTINGS)
   set (PERL5LIB_CONFIG    "${BINARY_PERL_LIBRARY_DIR}")
   set (MATLABPATH_CONFIG  "${BINARY_MATLAB_LIBRARY_DIR}")
   set (BASHPATH_CONFIG    "${BINARY_BASH_LIBRARY_DIR}")
-  set (MODULES_DIR_CONFIG "${PROJECT_BINARY_DIR}/modules")
+  set (MODULES_DIR_CONFIG "${CMAKE_BINARY_DIR}")
   return ()
 endif ()
 
@@ -114,4 +114,4 @@ set (MATLABPATH_CONFIG "\${\${NS}INSTALL_PREFIX}/${INSTALL_MATLAB_LIBRARY_DIR}")
 ## @brief Directory of Bash modules.
 set (BASHPATH_CONFIG "\${\${NS}INSTALL_PREFIX}/${INSTALL_BASH_LIBRARY_DIR}")
 ## @brief Directory of CMake package configuration files of project modules.
-set (MODULES_DIR_CONFIG "${INSTALL_CONFIG_DIR}")
+set (MODULES_DIR_CONFIG "\${\${NS}INSTALL_PREFIX}/${INSTALL_CONFIG_DIR}")

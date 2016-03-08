@@ -102,6 +102,8 @@ public:
   bool Inverse (Matrix3x3& rkInverse, double fTolerance = 1e-06) const;
   Matrix3x3 Inverse (double fTolerance = 1e-06) const;
   double Determinant () const;
+  Matrix3x3 Adjoint() const;
+  double Trace() const;
 
   // singular value decomposition
   void SingularValueDecomposition (Matrix3x3& rkL, Vector3& rkS,

@@ -24,6 +24,7 @@
 #include <mirtkObject.h>
 #include <mirtkVoxel.h>
 #include <mirtkPoint.h>
+#include <mirtkPointSet.h>
 #include <mirtkVector.h>
 #include <mirtkMatrix.h>
 #include <mirtkImageAttributes.h>
@@ -214,6 +215,18 @@ public:
   int GetT() const;
 
   /// Returns the size of a voxel in the x-direction
+  double XSize() const;
+
+  /// Returns the size of a voxel in the y-direction
+  double YSize() const;
+
+  /// Returns the size of a voxel in the z-direction
+  double ZSize() const;
+
+  /// Returns the size of a voxel in the t-direction
+  double TSize() const;
+
+  /// Returns the size of a voxel in the x-direction
   double GetXSize() const;
 
   /// Returns the size of a voxel in the y-direction
@@ -349,6 +362,9 @@ public:
   ///                 stored if the image is two dimensional. Otherwise,
   ///                 all three x, y, and z components are stored.
   void ImageToWorld(double *i2w, bool _3D = true) const;
+
+  /// Adds world coordinates of each voxel to given point set
+  void ImageToWorld(PointSet &) const;
 
   /// World to image coordinate conversion with two doubles
   void WorldToImage(double &, double &) const;
@@ -537,6 +553,15 @@ public:
 
   /// Whether any voxel is within background
   bool HasBackground() const;
+
+  /// Get 2D bounding box of image foreground
+  void BoundingBox(int &, int &, int &, int &) const;
+
+  /// Get 3D bounding box of image foreground
+  void BoundingBox(int &, int &, int &, int &, int &, int &) const;
+
+  /// Get 3D+t bounding box of image foreground
+  void BoundingBox(int &, int &, int &, int &, int &, int &, int &, int &) const;
 
   /// Determine center of mass of image foreground
   ///
@@ -870,6 +895,30 @@ inline int BaseImage::GetZ() const
 inline int BaseImage::GetT() const
 {
   return _attr._t;
+}
+
+// -----------------------------------------------------------------------------
+inline double BaseImage::XSize() const
+{
+  return _attr._dx;
+}
+
+// -----------------------------------------------------------------------------
+inline double BaseImage::YSize() const
+{
+  return _attr._dy;
+}
+
+// -----------------------------------------------------------------------------
+inline double BaseImage::ZSize() const
+{
+  return _attr._dz;
+}
+
+// -----------------------------------------------------------------------------
+inline double BaseImage::TSize() const
+{
+  return _attr._dt;
 }
 
 // -----------------------------------------------------------------------------

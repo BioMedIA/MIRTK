@@ -35,13 +35,12 @@ namespace mirtk {
 // -----------------------------------------------------------------------------
 void RigidTransformation::UpdateRotationSineCosine()
 {
-  const double radians = M_PI / 180.0;
-  _sinrx = sin(_Param[RX] * radians);
-  _sinry = sin(_Param[RY] * radians);
-  _sinrz = sin(_Param[RZ] * radians);
-  _cosrx = cos(_Param[RX] * radians);
-  _cosry = cos(_Param[RY] * radians);
-  _cosrz = cos(_Param[RZ] * radians);
+  _sinrx = sin(_Param[RX] * rad_per_deg);
+  _sinry = sin(_Param[RY] * rad_per_deg);
+  _sinrz = sin(_Param[RZ] * rad_per_deg);
+  _cosrx = cos(_Param[RX] * rad_per_deg);
+  _cosry = cos(_Param[RY] * rad_per_deg);
+  _cosrz = cos(_Param[RZ] * rad_per_deg);
 }
 
 // -----------------------------------------------------------------------------
@@ -205,11 +204,10 @@ void RigidTransformation
 Matrix RigidTransformation::DOFs2Matrix(const double *param)
 {
   Matrix matrix(4, 4);
-  const double radians = M_PI / 180.0;
   RigidParametersToMatrix(param[TX], param[TY], param[TZ],
-                          param[RX] * radians,
-                          param[RY] * radians,
-                          param[RZ] * radians,
+                          param[RX] * rad_per_deg,
+                          param[RY] * rad_per_deg,
+                          param[RZ] * rad_per_deg,
                           matrix);
   return matrix;
 }
@@ -222,10 +220,9 @@ void RigidTransformation::Matrix2DOFs(const Matrix &matrix, double *param)
                                   param[RX], param[RY], param[RZ]);
 
   // Convert angles to degrees
-  const double degrees = 180.0 / M_PI;
-  param[RX] *= degrees;
-  param[RY] *= degrees;
-  param[RZ] *= degrees;
+  param[RX] *= deg_per_rad;
+  param[RY] *= deg_per_rad;
+  param[RZ] *= deg_per_rad;
 }
 
 // -----------------------------------------------------------------------------
@@ -257,10 +254,9 @@ void RigidTransformation::UpdateDOFs()
   _sinrz = sin(_Param[RZ]);
 
   // Convert angles to degrees
-  const double degrees = 180.0 / M_PI;
-  _Param[RX] *= degrees;
-  _Param[RY] *= degrees;
-  _Param[RZ] *= degrees;
+  _Param[RX] *= deg_per_rad;
+  _Param[RY] *= deg_per_rad;
+  _Param[RZ] *= deg_per_rad;
 }
 
 // =============================================================================
@@ -287,36 +283,32 @@ void RigidTransformation::JacobianDOFs(double jac[3], int dof, double x, double 
       jac[2] = 1.0;
     } break;
     case RX: {
-      const double deg2rad = M_PI / 180.0;
-
       jac[0] = .0;
       jac[1] = (+ (_cosrx * _sinry * _cosrz + _sinrx * _sinrz) * x
                 + (_cosrx * _sinry * _sinrz - _sinrx * _cosrz) * y
-                + (_cosrx * _cosry                           ) * z) * deg2rad;
+                + (_cosrx * _cosry                           ) * z) * rad_per_deg;
       jac[2] = (+ (_cosrx * _sinrz - _sinrx * _sinry * _cosrz) * x
                 - (_cosrx * _cosrz + _sinrx * _sinry * _sinrz) * y
-                - (_sinrx * _cosry                           ) * z) * deg2rad;
+                - (_sinrx * _cosry                           ) * z) * rad_per_deg;
     } break;
     case RY: {
-      const double deg2rad = M_PI / 180.0;
       jac[0] = (- (_sinry * _cosrz         ) * x
                 - (_sinry * _sinrz         ) * y
-                - (_cosry                  ) * z) * deg2rad;
+                - (_cosry                  ) * z) * rad_per_deg;
       jac[1] = (+ (_sinrx * _cosry * _cosrz) * x
                 + (_sinrx * _cosry * _sinrz) * y
-                - (_sinry * _sinrx         ) * z) * deg2rad;
+                - (_sinry * _sinrx         ) * z) * rad_per_deg;
       jac[2] = (+ (_cosrx * _cosry * _cosrz) * x
                 + (_cosrx * _cosry * _sinrz) * y
-                - (_cosrx * _sinry         ) * z) * deg2rad;
+                - (_cosrx * _sinry         ) * z) * rad_per_deg;
     } break;
     case RZ: {
-      const double deg2rad = M_PI / 180.0;
       jac[0] = (- (_sinrz * _cosry                             ) * x
-                + (_cosry * _cosrz                             ) * y) * deg2rad;
+                + (_cosry * _cosrz                             ) * y) * rad_per_deg;
       jac[1] = (+ (- _sinrx * _sinry * _sinrz - _cosrx * _cosrz) * x
-                + (  _sinrx * _sinry * _cosrz - _cosrx * _sinrz) * y) * deg2rad;
+                + (  _sinrx * _sinry * _cosrz - _cosrx * _sinrz) * y) * rad_per_deg;
       jac[2] = (+ (- _cosrx * _sinry * _sinrz + _sinrx * _cosrz) * x
-                + (  _cosrx * _sinry * _cosrz + _sinrx * _sinrz) * y) * deg2rad;
+                + (  _cosrx * _sinry * _cosrz + _sinrx * _sinrz) * y) * rad_per_deg;
     } break;
     default:
       cerr << this->NameOfClass() << "::JacobianDOFs(): No such parameter: " << dof << endl;
@@ -335,8 +327,6 @@ void RigidTransformation::DeriveJacobianWrtDOF(Matrix &dJdp, int dof, double, do
       return;
     } break;
     case RX: {
-      const double deg2rad = M_PI / 180.0;
-
       dJdp(0, 0) = .0;
       dJdp(1, 0) = + (_cosrx * _sinry * _cosrz + _sinrx * _sinrz);
       dJdp(2, 0) = + (_cosrx * _sinrz - _sinrx * _sinry * _cosrz);
@@ -346,12 +336,9 @@ void RigidTransformation::DeriveJacobianWrtDOF(Matrix &dJdp, int dof, double, do
       dJdp(0, 2) = .0;
       dJdp(1, 2) = + (_cosrx * _cosry);
       dJdp(2, 2) = - (_sinrx * _cosry);
-
-      dJdp *= deg2rad;
+      dJdp *= rad_per_deg;
     } break;
     case RY: {
-      const double deg2rad = M_PI / 180.0;
-
       dJdp(0, 0) = - (_sinry * _cosrz);
       dJdp(1, 0) = + (_sinrx * _cosry * _cosrz);
       dJdp(2, 0) = + (_cosrx * _cosry * _cosrz);
@@ -361,12 +348,9 @@ void RigidTransformation::DeriveJacobianWrtDOF(Matrix &dJdp, int dof, double, do
       dJdp(0, 2) = - (_cosry);
       dJdp(1, 2) = - (_sinry * _sinrx);
       dJdp(2, 2) = - (_cosrx * _sinry);
-
-      dJdp *= deg2rad;
+      dJdp *= rad_per_deg;
     } break;
     case RZ: {
-      const double deg2rad = M_PI / 180.0;
-
       dJdp(0, 0) = - (_sinrz * _cosry);
       dJdp(1, 0) = + (-_sinrx * _sinry * _sinrz - _cosrx * _cosrz);
       dJdp(2, 0) = + (-_cosrx * _sinry * _sinrz + _sinrx * _cosrz);
@@ -376,8 +360,7 @@ void RigidTransformation::DeriveJacobianWrtDOF(Matrix &dJdp, int dof, double, do
       dJdp(0, 2) = .0;
       dJdp(1, 2) = .0;
       dJdp(2, 2) = .0;
-
-      dJdp *= deg2rad;
+      dJdp *= rad_per_deg;
     } break;
     default:
       cerr << this->NameOfClass() << "::DeriveJacobianWrtDOF(): No such parameter: " << dof << endl;

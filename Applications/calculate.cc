@@ -82,12 +82,18 @@ void PrintHelp(const char *name)
   cout << "  -threshold-above <value>          Clamp values greator or equal a given threshold." << endl;
   cout << "  -rescale <min> <max>              Linearly rescale values to the interval [min, max]." << endl;
   cout << "  -inside <float>                   Set new value for all currently unmasked data values." << endl;
-  cout << "  -outside <float>                  Set new value for all currently masked data values." << endl;
-  cout << "  -out <file>                       Write current data sequence to file in the format of the input file." << endl;
+  cout << "  -outside, -pad <float>            Set new value for all currently masked data values." << endl;
+  cout << "  -out <file> [<type>]              Write current data sequence to file in the format of the input file." << endl;
+  cout << "                                    Output data type can be: uchar, short, ushort, int, uint, float, double." << endl;
   cout << "  -add <float|file>                 Add constant value or data sequence read from specified file." << endl;
   cout << "  -sub <float|file>                 Subtract constant value or data sequence read from specified file." << endl;
   cout << "  -mul <float|file>                 Multiply by constant value or data sequence read from specified file." << endl;
   cout << "  -div <float|file>                 Divide by constant value or data sequence read from specified file." << endl;
+  cout << "                                    When dividing by zero values in the input file, the result is NaN." << endl;
+  cout << "                                    Use :option:`-mask` with argument NaN and :option:`-outside` to replace" << endl;
+  cout << "                                    these undefined values by a constant such as zero." << endl;
+  cout << "  -div-with-zero <file>             Same as :option:`-div` but set result to zero instead of NaN in case of" << endl;
+  cout << "                                    a division by zero due to a zero value in the specified file." << endl;
   cout << "  -abs                              Take absolute values." << endl;
   cout << "  -pow <exponent>                   Raise values to the power of the given exponent." << endl;
   cout << "  -sq -square                       Raise values to the power of 2 (i.e, -pow 2)." << endl;
@@ -361,6 +367,8 @@ int main(int argc, char **argv)
       } else {
         ops.push_back(unique_ptr<Op>(new Div(arg)));
       }
+    } else if (OPTION("-div-with-zero")) {
+      ops.push_back(unique_ptr<Op>(new DivWithZero(ARGUMENT)));
     } else if (OPTION("-abs")) {
       ops.push_back(unique_ptr<Op>(new Abs()));
     } else if (OPTION("-pow") || OPTION("-power")) {

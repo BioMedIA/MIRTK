@@ -451,6 +451,28 @@ double Matrix3x3::Determinant() const
 }
 
 //----------------------------------------------------------------------------
+Matrix3x3 Matrix3x3::Adjoint() const
+{
+  Matrix3x3 adj;
+  adj[0][0] = m_aafEntry[1][1] * m_aafEntry[2][2] - m_aafEntry[1][2] * m_aafEntry[2][1];
+  adj[0][1] = m_aafEntry[1][2] * m_aafEntry[2][0] - m_aafEntry[1][0] * m_aafEntry[2][2];
+  adj[0][2] = m_aafEntry[1][0] * m_aafEntry[2][1] - m_aafEntry[1][1] * m_aafEntry[2][0];
+  adj[1][0] = m_aafEntry[0][2] * m_aafEntry[2][1] - m_aafEntry[0][1] * m_aafEntry[2][2];
+  adj[1][1] = m_aafEntry[0][0] * m_aafEntry[2][2] - m_aafEntry[0][2] * m_aafEntry[2][0];
+  adj[1][2] = m_aafEntry[0][1] * m_aafEntry[2][0] - m_aafEntry[0][0] * m_aafEntry[2][1];
+  adj[2][0] = m_aafEntry[0][1] * m_aafEntry[1][2] - m_aafEntry[0][2] * m_aafEntry[1][1];
+  adj[2][1] = m_aafEntry[1][0] * m_aafEntry[0][2] - m_aafEntry[0][0] * m_aafEntry[1][2];
+  adj[2][2] = m_aafEntry[0][0] * m_aafEntry[1][1] - m_aafEntry[0][1] * m_aafEntry[1][0];
+  return adj;
+}
+
+//----------------------------------------------------------------------------
+double Matrix3x3::Trace() const
+{
+  return m_aafEntry[0][0] + m_aafEntry[1][1] + m_aafEntry[2][2];
+}
+
+//----------------------------------------------------------------------------
 void Matrix3x3::Bidiagonalize(Matrix3x3& kA, Matrix3x3& kL, Matrix3x3& kR)
 {
   double afV[3], afW[3];
@@ -1061,7 +1083,7 @@ void Matrix3x3::ToAxisAngle (Vector3& rkAxis, double& rfRadians) const
   rfRadians = ACos(fCos);  // in [0,PI]
 
   if ( rfRadians > 0.0 ) {
-    if ( rfRadians < M_PI ) {
+    if ( rfRadians < pi ) {
       rkAxis.x = m_aafEntry[2][1]-m_aafEntry[1][2];
       rkAxis.y = m_aafEntry[0][2]-m_aafEntry[2][0];
       rkAxis.z = m_aafEntry[1][0]-m_aafEntry[0][1];
@@ -1150,8 +1172,8 @@ bool Matrix3x3::ToEulerAnglesXYZ (float& rfYAngle, float& rfPAngle,
   //       -cx*cz*sy+sx*sz  cz*sx+cx*sy*sz  cx*cy
 
   rfPAngle = ASin(m_aafEntry[0][2]);
-  if ( rfPAngle < M_PI/2.0 ) {
-    if ( rfPAngle > -M_PI/2.0 ) {
+  if ( rfPAngle < pi_half ) {
+    if ( rfPAngle > -pi_half ) {
       rfYAngle = ATan2(-m_aafEntry[1][2],m_aafEntry[2][2]);
       rfRAngle = ATan2(-m_aafEntry[0][1],m_aafEntry[0][0]);
       return true;
@@ -1180,8 +1202,8 @@ bool Matrix3x3::ToEulerAnglesXZY (float& rfYAngle, float& rfPAngle,
   //       -cx*sy+cy*sx*sz  cz*sx           cx*cy+sx*sy*sz
 
   rfPAngle = ASin(-m_aafEntry[0][1]);
-  if ( rfPAngle < M_PI/2.0 ) {
-    if ( rfPAngle > -M_PI/2.0 ) {
+  if ( rfPAngle < pi_half ) {
+    if ( rfPAngle > -pi_half ) {
       rfYAngle = ATan2(m_aafEntry[2][1],m_aafEntry[1][1]);
       rfRAngle = ATan2(m_aafEntry[0][2],m_aafEntry[0][0]);
       return true;
@@ -1210,8 +1232,8 @@ bool Matrix3x3::ToEulerAnglesYXZ (float& rfYAngle, float& rfPAngle,
   //       -cz*sy+cy*sx*sz  cy*cz*sx+sy*sz  cx*cy
 
   rfPAngle = ASin(-m_aafEntry[1][2]);
-  if ( rfPAngle < M_PI/2.0 ) {
-    if ( rfPAngle > -M_PI/2.0 ) {
+  if ( rfPAngle < pi_half ) {
+    if ( rfPAngle > -pi_half ) {
       rfYAngle = ATan2(m_aafEntry[0][2],m_aafEntry[2][2]);
       rfRAngle = ATan2(m_aafEntry[1][0],m_aafEntry[1][1]);
       return true;
@@ -1240,8 +1262,8 @@ bool Matrix3x3::ToEulerAnglesYZX (float& rfYAngle, float& rfPAngle,
   //       -cz*sy           cy*sx+cx*sy*sz  cx*cy-sx*sy*sz
 
   rfPAngle = ASin(m_aafEntry[1][0]);
-  if ( rfPAngle < M_PI/2.0 ) {
-    if ( rfPAngle > -M_PI/2.0 ) {
+  if ( rfPAngle < pi_half ) {
+    if ( rfPAngle > -pi_half ) {
       rfYAngle = ATan2(-m_aafEntry[2][0],m_aafEntry[0][0]);
       rfRAngle = ATan2(-m_aafEntry[1][2],m_aafEntry[1][1]);
       return true;
@@ -1270,8 +1292,8 @@ bool Matrix3x3::ToEulerAnglesZXY (float& rfYAngle, float& rfPAngle,
   //       -cx*sy           sx              cx*cy
 
   rfPAngle = ASin(m_aafEntry[2][1]);
-  if ( rfPAngle < M_PI/2.0 ) {
-    if ( rfPAngle > -M_PI/2.0 ) {
+  if ( rfPAngle < pi_half ) {
+    if ( rfPAngle > -pi_half ) {
       rfYAngle = ATan2(-m_aafEntry[0][1],m_aafEntry[1][1]);
       rfRAngle = ATan2(-m_aafEntry[2][0],m_aafEntry[2][2]);
       return true;
@@ -1299,8 +1321,8 @@ bool Matrix3x3::ToEulerAnglesZYX(float& rfYAngle, float& rfPAngle, float& rfRAng
   //       -sy              cy*sx           cx*cy
 
   rfPAngle = ASin(-m_aafEntry[2][0]);
-  if ( rfPAngle < M_PI/2.0 ) {
-    if ( rfPAngle > -M_PI/2.0 ) {
+  if ( rfPAngle < pi_half ) {
+    if ( rfPAngle > -pi_half ) {
       rfYAngle = ATan2(m_aafEntry[1][0],m_aafEntry[0][0]);
       rfRAngle = ATan2(m_aafEntry[2][1],m_aafEntry[2][2]);
       return true;

@@ -52,7 +52,7 @@ basis_project (
   # --------------------------------------------------------------------------
   # meta-data
   NAME         "MIRTK"
-  VERSION      "1.0.1" # Version of core (+ external) modules
+  VERSION      "1.1.0" # Version of core (+ external) modules
   SOVERSION    "0"     # API yet unstable
   AUTHORS      "Andreas Schuh"
   DESCRIPTION  "Medical Image Registration ToolKit"
@@ -64,7 +64,7 @@ basis_project (
  
   # --------------------------------------------------------------------------
   # directories
-  CONFIG_DIR  CMake
+  CONFIG_DIR  CMake/Config
   DOC_DIR     Documentation
   MODULES_DIR Modules
   TOOLS_DIR   Applications
@@ -95,6 +95,8 @@ basis_project (
     #<dependency>
   OPTIONAL_DEPENDS
     #<optional-dependency>
+  TOOLS_DEPENDS
+    PythonInterp
   TEST_DEPENDS
     #<test-dependency>
   OPTIONAL_TEST_DEPENDS

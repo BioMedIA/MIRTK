@@ -19,11 +19,13 @@
 
 #include <mirtkCurrentsDistance.h>
 
+#include <mirtkMath.h>
 #include <mirtkMemory.h>
 #include <mirtkVector3D.h>
 #include <mirtkParallel.h>
 #include <mirtkProfiling.h>
 #include <mirtkObjectFactory.h>
+#include <mirtkVtkMath.h>
 
 #include <vtkSmartPointer.h>
 #include <vtkPoints.h>
@@ -31,7 +33,6 @@
 #include <vtkFloatArray.h>
 #include <vtkPolyData.h>
 #include <vtkPointData.h>
-#include <vtkMath.h>
 // Due to a bug in vtkKdTreePointLocator, calling BuildLocator
 // is not sufficient to make FindClosestPoint thread-safe as it does
 // not call vtkBSPIntersections::BuildRegionsList
@@ -516,8 +517,8 @@ void CurrentsDistance::Init()
     _Source->InputPointSet()->GetBounds(bb);
     double va = (ba[1] - ba[0]) * (ba[3] - ba[2]) * (ba[5] - ba[4]);
     double vb = (bb[1] - bb[0]) * (bb[3] - bb[2]) * (bb[5] - bb[4]);
-    double ra = pow(va * 3.0 / 4.0 / M_PI, (1.0/3.0));
-    double rb = pow(vb * 3.0 / 4.0 / M_PI, (1.0/3.0));
+    double ra = pow(va * 3.0 / 4.0 / pi, (1.0/3.0));
+    double rb = pow(vb * 3.0 / 4.0 / pi, (1.0/3.0));
     _Sigma = 0.5 * (ra + rb) * abs(_Sigma);
   }
 

@@ -22,9 +22,7 @@
 
 #include <mirtkMath.h>
 #include <mirtkVtk.h>
-
-#include <vtkMath.h>
-#include <vtkSmartPointer.h>
+#include <mirtkVtkMath.h>
 
 class vtkDataSet;
 class vtkDataSetAttributes;
@@ -101,6 +99,16 @@ int WriteTetGenPoly(const char *fname, vtkPolyData *polydata, const PointSet *ho
 /// @param polydata Polydata to write.
 /// @param holes    Hole list.
 int WriteTetGenSMesh(const char *fname, vtkPolyData *polydata, const PointSet *holes = NULL);
+
+// =============================================================================
+// VTK / MIRTK type conversion
+// =============================================================================
+
+/// Add points of vtkPointSet to mirtk::PointSet
+///
+/// \param[out] oset Point set to which the vtkPointSet points are added.
+/// \param[in]  iset VTK point set.
+void AddPoints(PointSet &oset, vtkPointSet *iset);
 
 // =============================================================================
 // Point set domain

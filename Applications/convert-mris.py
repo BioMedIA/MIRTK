@@ -37,6 +37,7 @@ Arguments:
   output   Output VTK surface file. Must have extension .vtk or .vtp.
 
 """
+from __future__ import absolute_import, print_function, unicode_literals
 
 from subprocess import check_call, check_output, STDOUT
 from sys import argv, exit
@@ -85,6 +86,6 @@ def convert_mris(input_name, output_name):
 # ----------------------------------------------------------------------------------------------------------------------
 if __name__ == "__main__":
   if len(argv) != 3:
-    print "usage: " + basename(argv[0]) + " <surf> <output>"
+    print("usage: " + basename(argv[0]) + " <surf> <output>")
     exit(1)
   convert_mris(abspath(argv[1]), abspath(argv[2]))

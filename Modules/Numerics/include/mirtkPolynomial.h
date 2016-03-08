@@ -23,9 +23,14 @@
 #include <mirtkObject.h>
 
 #include <mirtkAssert.h>
+#include <mirtkArray.h>
+#include <mirtkStatus.h>
 #include <mirtkVector.h>
+#include <mirtkVector3.h>
 #include <mirtkMatrix.h>
+#include <mirtkMatrix3x3.h>
 #include <mirtkPointSet.h>
+#include <mirtkOrderedSet.h>
 
 
 namespace mirtk {
@@ -61,6 +66,9 @@ class Polynomial : public Object
   /// Coefficients of each model term
   mirtkReadOnlyAttributeMacro(Vector, Coefficients);
 
+  /// Status of coefficients, only active coefficients are free
+  mirtkAttributeMacro(Array<enum Status>, Status);
+
   /// Copy attributes of this class from another instance
   void CopyAttributes(const Polynomial &);
 
@@ -73,7 +81,7 @@ public:
   /// \param[in] order Order of the polynomial, i.e., highest model term exponent.
   Polynomial(int order = 2);
 
-  /// Construct complete polynomial order
+  /// Construct complete polynomial
   ///
   /// \param[in] p     Dimension of independent variable space.
   /// \param[in] order Order of the polynomial, i.e., highest model term exponent.
@@ -92,8 +100,23 @@ public:
   /// Destructor
   virtual ~Polynomial();
 
+  /// Build complete polynomial regression model of given order
+  ///
+  /// \param[in] p     Dimension of independent variable space.
+  /// \param[in] order Order of polynomial model, i.e., highest model term exponent.
+  ///                  When non-positive, the current order of the model is used.
+  ///
+  /// \returns Number of model terms.
+  int Initialize(int p, int order = 0);
+
   /// Number of model terms/coefficients
   int NumberOfTerms() const;
+
+  /// Number of passive model terms/coefficients
+  int NumberOfPassiveTerms() const;
+
+  /// Number of active model terms/coefficients
+  int NumberOfActiveTerms() const;
 
   /// Get exponent of independent variable in specified model term
   ///
@@ -128,19 +151,28 @@ public:
   /// \returns Coefficient of i-th term.
   double Coefficient(int i) const;
 
+  /// Set status of i-th coefficient
+  ///
+  /// \param[in] i Index of coefficient.
+  /// \param[in] s Status of coefficient.
+  void Status(int i, enum Status s);
+
+  /// Get status of i-th coefficient
+  ///
+  /// \param[in] i Index of coefficient.
+  ///
+  /// \returns Status of i-th coefficient.
+  enum Status Status(int i) const;
+
   /// Set all model coefficients to zero
   void SetCoefficientsToZero();
 
-protected:
-
-  /// Build complete polynomial regression model of given order
+  /// Sets coefficient(s) of constant model terms
   ///
-  /// \param[in] p     Dimension of independent variable space.
-  /// \param[in] order Order of polynomial model, i.e., highest model term exponent.
-  ///                  When non-positive, the current order of the model is used.
-  ///
-  /// \returns Number of model terms.
-  int Initialize(int p, int order = 0);
+  /// \param[in] value  Coefficient value.
+  /// \param[in] status Status of constant model terms. Set to Passive by
+  ///                   default, i.e., constant terms are fixed for model fitting.
+  void SetConstantCoefficient(double value, enum Status status = Passive);
 
   // ---------------------------------------------------------------------------
   // Regression
@@ -148,37 +180,134 @@ public:
 
   /// Fits polynomial regression model to one or more independent variables
   ///
-  /// \param[in] x     Values of independent variables, a matrix of size (n x p), where
-  ///                  n is the number of data points and
-  ///                  p is the dimension of the independent variable space.
-  /// \param[in] y     Values of dependent variable.
-  /// \param[in] order Order of polynomial model, i.e., highest model term exponent.
-  ///                  When non-positive, the current order of the model is used.
+  /// \param[in] x Values of independent variables, a matrix of size (n x p), where
+  ///              n is the number of data points and
+  ///              p is the dimension of the independent variable space.
+  /// \param[in] y Values of dependent variable.
   ///
   /// \returns RMS error of the regression.
-  double Fit(const Matrix &x, const Vector &y, int order = 0);
+  double Fit(const Matrix &x, const Vector &y);
 
   /// Fits polynomial regression model to one or more independent variables
   ///
-  /// \param[in] x     Values of independent variables.
-  ///                  The dimension of the independent variable space is 2 or 3.
-  /// \param[in] y     Values of dependent variable.
-  /// \param[in] order Order of polynomial model, i.e., highest model term exponent.
-  ///                  When non-positive, the current order of the model is used.
-  /// \param[in] twoD  Whether to ignore z coordinate.
+  /// \param[in] x      Values of independent variables, a matrix of size (n x p), where
+  ///                   n is the number of data points and
+  ///                   p is the dimension of the independent variable space.
+  /// \param[in] subset Indices of points to use for fitting.
+  /// \param[in] y      Values of dependent variable.
   ///
   /// \returns RMS error of the regression.
-  double Fit(const PointSet &x, const Vector &y, int order = 0, bool twoD = false);
+  double Fit(const Matrix &x, const Vector &y, const Array<int> &subset);
+
+  /// Fits polynomial regression model to one or more independent variables
+  ///
+  /// \param[in] x      Values of independent variables, a matrix of size (n x p), where
+  ///                   n is the number of data points and
+  ///                   p is the dimension of the independent variable space.
+  /// \param[in] subset Indices of points to use for fitting.
+  /// \param[in] y      Values of dependent variable.
+  ///
+  /// \returns RMS error of the regression.
+  double Fit(const Matrix &x, const Vector &y, const OrderedSet<int> &subset);
+
+  /// Fits polynomial regression model to one or more independent variables
+  ///
+  /// \param[in] x    Values of independent variables.
+  ///                 The dimension of the independent variable space is 2 or 3.
+  /// \param[in] y    Values of dependent variable.
+  /// \param[in] twoD Whether to ignore z coordinate.
+  ///
+  /// \returns RMS error of the regression.
+  double Fit(const PointSet &x, const Vector &y, bool twoD = false);
 
   /// Fits polynomial regression model to one independent variable
   ///
-  /// \param[in] x     Values of independent variable.
-  /// \param[in] y     Values of dependent variable.
-  /// \param[in] order Order of polynomial model, i.e., highest model term exponent.
-  ///                  When non-positive, the current order of the model is used.
+  /// \param[in] x Values of independent variable.
+  /// \param[in] y Values of dependent variable.
   ///
   /// \returns RMS error of the regression.
-  double Fit(const Vector &x, const Vector &y, int order = 0);
+  double Fit(const Vector &x, const Vector &y);
+
+  /// Fits polynomial surface model to 3D point cloud
+  ///
+  /// The dependent variable of the surface model is the algebraic distance of a
+  /// point from the surface. This function sets the coefficients of constant model
+  /// term(s) to 1 and excludes them from the fit to avoid the trivial solution
+  /// of the homogeneous linear system of equations.
+  ///
+  /// \param[in] x Points on surface.
+  ///
+  /// \returns RMS error of the regression.
+  double FitSurface(const PointSet &x);
+
+  /// Fits polynomial surface model to subset of 3D point cloud
+  ///
+  /// The dependent variable of the surface model is the algebraic distance of a
+  /// point from the surface. This function sets the coefficients of constant model
+  /// term(s) to 1 and excludes them from the fit to avoid the trivial solution
+  /// of the homogeneous linear system of equations.
+  ///
+  /// \param[in] x      Points on surface.
+  /// \param[in] subset Indices of points to use for fitting.
+  ///
+  /// \returns RMS error of the regression.
+  double FitSurface(const PointSet &x, const Array<int> &subset);
+
+  /// Fits polynomial surface model to subset of 3D point cloud
+  ///
+  /// The dependent variable of the surface model is the algebraic distance of a
+  /// point from the surface. This function sets the coefficients of constant model
+  /// term(s) to 1 and excludes them from the fit to avoid the trivial solution
+  /// of the homogeneous linear system of equations.
+  ///
+  /// \param[in] x      Points on surface.
+  /// \param[in] subset Indices of points to use for fitting.
+  ///
+  /// \returns RMS error of the regression.
+  double FitSurface(const PointSet &x, const OrderedSet<int> &subset);
+
+  /// Fits polynomial surface model to 3D point cloud
+  ///
+  /// The dependent variable of the surface model is the algebraic distance of a
+  /// point from the surface.
+  ///
+  /// \param[in] x Points on surface.
+  /// \param[in] n Surface normals at input points.
+  /// \param[in] c Offset along normal direction for points inside and outside
+  ///              the surface to be modelled.
+  ///
+  /// \returns RMS error of the regression.
+  double FitSurface(const PointSet &x, const PointSet &n, double c = 1.0);
+
+  /// Fits polynomial surface model to subset of 3D point cloud
+  ///
+  /// The dependent variable of the surface model is the distance of a point from
+  /// the surface.
+  ///
+  /// \param[in] x      Points on surface.
+  /// \param[in] n      Surface normals at input points.
+  /// \param[in] subset Indices of points to use for fitting.
+  /// \param[in] c      Offset along normal direction for points inside and outside
+  ///                   the surface to be modelled.
+  ///
+  /// \returns RMS error of the regression.
+  double FitSurface(const PointSet &x, const PointSet &n,
+                    const Array<int> &subset, double c = 1.0);
+
+  /// Fits polynomial surface model to subset of 3D point cloud
+  ///
+  /// The dependent variable of the surface model is the distance of a point from
+  /// the surface.
+  ///
+  /// \param[in] x      Points on surface.
+  /// \param[in] n      Surface normals at input points.
+  /// \param[in] subset Indices of points to use for fitting.
+  /// \param[in] c      Offset along normal direction for points inside and outside
+  ///                   the surface to be modelled.
+  ///
+  /// \returns RMS error of the regression.
+  double FitSurface(const PointSet &x, const PointSet &n,
+                    const OrderedSet<int> &subset, double c = 1.0);
 
   // ---------------------------------------------------------------------------
   // Evaluation
@@ -202,18 +331,35 @@ public:
 
   /// Evaluates polynomial for n 1-dimensional data points
   ///
-  /// \param[in] x Values of independent variable.
-  ///               The dimension of the model must be 1.
+  /// \param[in] x Values of independent variable. The dimension of the model must be 1.
   ///
   /// \returns Regressed values.
   Vector Evaluate(const Vector &x) const;
 
   /// Evaluates polynomial for one 3D point
   ///
-  /// \param[in] x Data point. The dimension of the model must be 3.
+  /// \param[in] x    Data point. The dimension of the model must be 2 or 3.
+  /// \param[in] twoD Whether to ignore z coordinate.
   ///
   /// \returns Regressed value.
-  double Evaluate(const Point &x) const;
+  double Evaluate(const Point &x, bool twoD = false) const;
+
+  /// Evaluates polynomial for one 3D point
+  ///
+  /// \param[in] x First  point coordinate.
+  /// \param[in] y Second point coordinate.
+  /// \param[in] z Third  point coordinate.
+  ///
+  /// \returns Regressed value.
+  double Evaluate(double x, double y, double z) const;
+
+  /// Evaluates polynomial for one 2D point
+  ///
+  /// \param[in] x First  point coordinate.
+  /// \param[in] y Second point coordinate.
+  ///
+  /// \returns Regressed value.
+  double Evaluate(double x, double y) const;
 
   /// Evaluates polynomial for one independent variable value
   ///
@@ -221,6 +367,158 @@ public:
   ///
   /// \returns Regressed value.
   double Evaluate(double x) const;
+
+  // ---------------------------------------------------------------------------
+  // 1st order derivatives
+
+  /// Evaluate 1st order partial derivative of polynomial
+  ///
+  /// \param[in] j Index of independent variable w.r.t. which the derivative is taken.
+  /// \param[in] x Matrix of size (n x p), where n is the number of data points
+  ///              to evaluate, and p is the dimension of the independent variable
+  ///              space of the polynomial model.
+  ///
+  /// \returns Values of 1st order derivative evaluated at given data points.
+  Vector Evaluate1stOrderDerivative(int j, const Matrix &x) const;
+
+  /// Evaluate 1st order partial derivative of polynomial
+  ///
+  /// \param[in] j    Index of independent variable w.r.t. which the derivative is taken.
+  /// \param[in] x    Data points. The dimension of the model must be 2 or 3.
+  /// \param[in] twoD Whether to ignore z coordinate.
+  ///
+  /// \returns Values of 1st order derivative evaluated at given data points.
+  Vector Evaluate1stOrderDerivative(int j, const PointSet &x, bool twoD = false) const;
+
+  /// Evaluate 1st order partial derivative of polynomial
+  ///
+  /// \param[in] j Index of independent variable w.r.t. which the derivative is taken.
+  /// \param[in] x Values of independent variable. The dimension of the model must be 1.
+  ///
+  /// \returns Values of 1st order derivative evaluated at given data points.
+  Vector Evaluate1stOrderDerivative(int j, const Vector &x) const;
+
+  /// Evaluate 1st order partial derivative of polynomial
+  ///
+  /// \param[in] j    Index of independent variable w.r.t. which the derivative is taken.
+  /// \param[in] x    Data point. The dimension of the model must be 2 or 3.
+  /// \param[in] twoD Whether to ignore z coordinate.
+  ///
+  /// \returns Value of 1st order derivative evaluated at given data point.
+  double Evaluate1stOrderDerivative(int j, const Point &x, bool twoD = false) const;
+
+  /// Evaluate 1st order partial derivative of polynomial
+  ///
+  /// \param[in] j Index of independent variable w.r.t. which the derivative is taken.
+  /// \param[in] x Data point. The dimension of the model must be 1.
+  ///
+  /// \returns Value of 1st order derivative evaluated at given data point.
+  double Evaluate1stOrderDerivative(int j, double x) const;
+
+  /// Evaluate gradient of 3D polynomial
+  ///
+  /// \param[in] x Data point. The dimension of the model must be 3.
+  ///
+  /// \returns Values of 1st order derivatives evaluated at given data point.
+  Vector3 EvaluateGradient(const Point &x) const;
+
+  // ---------------------------------------------------------------------------
+  // 2nd order derivatives
+
+  /// Evaluate 2nd order partial derivative of polynomial
+  ///
+  /// \param[in] x  Matrix of size (n x p), where n is the number of data points
+  ///               to evaluate, and p is the dimension of the independent variable
+  ///               space of the polynomial model.
+  /// \param[in] j1 Index of independent variable w.r.t. which the 1st derivative is taken.
+  /// \param[in] j2 Index of independent variable w.r.t. which the 2nd derivative is taken.
+  ///
+  /// \returns Values of 2nd order derivative evaluated at given data points.
+  Vector Evaluate2ndOrderDerivative(int j1, int j2, const Matrix &x) const;
+
+  /// Evaluate 2nd order partial derivative of polynomial
+  ///
+  /// \param[in] j1   Index of independent variable w.r.t. which the 1st derivative is taken.
+  /// \param[in] j2   Index of independent variable w.r.t. which the 2nd derivative is taken.
+  /// \param[in] x    Data points. The dimension of the model must be 2 or 3.
+  /// \param[in] twoD Whether to ignore z coordinate.
+  ///
+  /// \returns Values of 2nd order derivative evaluated at given data points.
+  Vector Evaluate2ndOrderDerivative(int j1, int j2, const PointSet &x, bool twoD = false) const;
+
+  /// Evaluate 2nd order partial derivative of polynomial
+  ///
+  /// \param[in] j1 Index of independent variable w.r.t. which the 1st derivative is taken.
+  /// \param[in] j2 Index of independent variable w.r.t. which the 2nd derivative is taken.
+  /// \param[in] x  Values of independent variable. The dimension of the model must be 1.
+  ///
+  /// \returns Values of 2nd order derivative evaluated at given data points.
+  Vector Evaluate2ndOrderDerivative(int j1, int j2, const Vector &x) const;
+
+  /// Evaluate 2nd order partial derivative of polynomial
+  ///
+  /// \param[in] j1   Index of independent variable w.r.t. which the 1st derivative is taken.
+  /// \param[in] j2   Index of independent variable w.r.t. which the 2nd derivative is taken.
+  /// \param[in] x    Data point. The dimension of the model must be 2 or 3.
+  /// \param[in] twoD Whether to ignore z coordinate.
+  ///
+  /// \returns Value of 2nd order derivative evaluated at given data point.
+  double Evaluate2ndOrderDerivative(int j1, int j2, const Point &x, bool twoD = false) const;
+
+  /// Evaluate 2nd order partial derivative of polynomial
+  ///
+  /// \param[in] j1 Index of independent variable w.r.t. which the 1st derivative is taken.
+  /// \param[in] j2 Index of independent variable w.r.t. which the 2nd derivative is taken.
+  /// \param[in] x  Data point. The dimension of the model must be 1.
+  ///
+  /// \returns Value of 2nd order derivative evaluated at given data point.
+  double Evaluate2ndOrderDerivative(int j1, int j2, double x) const;
+
+  /// Evaluate Hessian of 3D polynomial
+  ///
+  /// \param[in] x Data point. The dimension of the model must be 3.
+  ///
+  /// \returns Values of 2nd order derivatives evaluated at given data point.
+  Matrix3x3 EvaluateHessian(const Point &x) const;
+
+  // ---------------------------------------------------------------------------
+  // Implicit surface
+
+  /// Compute Taubin distance of a point to the implicit polynomial surface
+  ///
+  /// The Taubin distance is the agebraic distance, i.e., the value of the
+  /// implicit polynomial function at \p x, divided the norm of its gradient.
+  /// It is a first-order approximation to the Euclidean distance of the point
+  /// to the closest point on the surface.
+  ///
+  /// \param[in] x Data point. The dimension of the model must be 3.
+  ///
+  /// \returns Taubin distance of the point to the surface.
+  double EvaluateTaubinDistance(const Point &x) const;
+
+  /// Evaluate Gaussian curvature of implicit polynomial surface
+  ///
+  /// Ron Goldman, Curvature formulas for implicit curves and surfaces,
+  /// Computer Aided Geometric Design 22 (2005) 632–658.
+  ///
+  /// \sa http://www.cgeo.ulg.ac.be/CAO/Goldman_Curvature_formulas_implicit.pdf
+  ///
+  /// \param[in] x Data point. The dimension of the model must be 3.
+  ///
+  /// \returns Gaussian curvature of implicit surface at \p x.
+  double EvaluateGaussianCurvature(const Point &x) const;
+
+  /// Evaluate mean curvature of implicit polynomial surface
+  ///
+  /// Ron Goldman, Curvature formulas for implicit curves and surfaces,
+  /// Computer Aided Geometric Design 22 (2005) 632–658.
+  ///
+  /// \sa http://www.cgeo.ulg.ac.be/CAO/Goldman_Curvature_formulas_implicit.pdf
+  ///
+  /// \param[in] x Data point. The dimension of the model must be 3.
+  ///
+  /// \returns Mean curvature of implicit surface at \p x.
+  double EvaluateMeanCurvature(const Point &x) const;
 
   // ---------------------------------------------------------------------------
   // Debugging
@@ -242,13 +540,29 @@ public:
 // =============================================================================
 
 // -----------------------------------------------------------------------------
-int Polynomial::NumberOfTerms() const
+inline int Polynomial::NumberOfTerms() const
 {
   return _ModelTerms.Rows();
 }
 
 // -----------------------------------------------------------------------------
-int Polynomial::Exponent(int i, int j) const
+inline int Polynomial::NumberOfPassiveTerms() const
+{
+  int n = 0;
+  for (int i = 0; i < NumberOfTerms(); ++i) {
+    if (Status(i) == Passive) ++n;
+  }
+  return n;
+}
+
+// -----------------------------------------------------------------------------
+inline int Polynomial::NumberOfActiveTerms() const
+{
+  return NumberOfTerms() - NumberOfPassiveTerms();
+}
+
+// -----------------------------------------------------------------------------
+inline int Polynomial::Exponent(int i, int j) const
 {
   mirtkAssert(i < NumberOfTerms(), "model term index is within bounds");
   mirtkAssert(j < _Dimension,      "variable index is within bounds");
@@ -256,37 +570,67 @@ int Polynomial::Exponent(int i, int j) const
 }
 
 // -----------------------------------------------------------------------------
-bool Polynomial::IsConstant(int i) const
+inline bool Polynomial::IsConstant(int i) const
 {
   mirtkAssert(i < NumberOfTerms(), "model term index is within bounds");
   return (_ModelTerms.RowSum(i) == .0);
 }
 
 // -----------------------------------------------------------------------------
-void Polynomial::Coefficients(const Vector &coeff)
+inline void Polynomial::Coefficients(const Vector &coeff)
 {
   mirtkAssert(coeff.Rows() == NumberOfTerms(), "coefficient vector has element for each term");
   _Coefficients = coeff;
 }
 
 // -----------------------------------------------------------------------------
-void Polynomial::Coefficient(int i, double c)
+inline void Polynomial::Coefficient(int i, double c)
 {
   mirtkAssert(i < NumberOfTerms(), "model term index is within bounds");
   _Coefficients(i) = c;
 }
 
 // -----------------------------------------------------------------------------
-double Polynomial::Coefficient(int i) const
+inline double Polynomial::Coefficient(int i) const
 {
   mirtkAssert(i < NumberOfTerms(), "model term index is within bounds");
   return _Coefficients(i);
 }
 
 // -----------------------------------------------------------------------------
-void Polynomial::SetCoefficientsToZero()
+inline void Polynomial::Status(int i, enum Status s)
+{
+  mirtkAssert(i < NumberOfTerms(), "coefficient index is within bounds");
+  _Status[i] = s;
+}
+
+// -----------------------------------------------------------------------------
+inline enum Status Polynomial::Status(int i) const
+{
+  mirtkAssert(i < NumberOfTerms(), "coefficient index is within bounds");
+  return _Status[i];
+}
+
+// -----------------------------------------------------------------------------
+inline void Polynomial::SetCoefficientsToZero()
 {
   _Coefficients = .0;
+}
+
+// =============================================================================
+// Regression
+// =============================================================================
+
+// -----------------------------------------------------------------------------
+inline double Polynomial::Fit(const PointSet &x, const Vector &y, bool twoD)
+{
+  return Fit(Matrix(x, twoD), y);
+}
+
+// -----------------------------------------------------------------------------
+inline double Polynomial::Fit(const Vector &x, const Vector &y)
+{
+  return Fit(Matrix(x), y);
 }
 
 // =============================================================================
@@ -294,7 +638,7 @@ void Polynomial::SetCoefficientsToZero()
 // =============================================================================
 
 // -----------------------------------------------------------------------------
-Vector Polynomial::Evaluate(const PointSet &x, bool twoD) const
+inline Vector Polynomial::Evaluate(const PointSet &x, bool twoD) const
 {
   mirtkAssert(twoD ? _Dimension == 2 : _Dimension == 3,
       "dimension of independent variable space must be " << (twoD ? 2 : 3));
@@ -302,25 +646,47 @@ Vector Polynomial::Evaluate(const PointSet &x, bool twoD) const
 }
 
 // -----------------------------------------------------------------------------
-Vector Polynomial::Evaluate(const Vector &x) const
+inline Vector Polynomial::Evaluate(const Vector &x) const
 {
   mirtkAssert(_Dimension == 1, "dimension of independent variable space must be 1");
   return Evaluate(Matrix(x));
 }
 
 // -----------------------------------------------------------------------------
-double Polynomial::Evaluate(const Point &p) const
+inline double Polynomial::Evaluate(const Point &p, bool twoD) const
 {
-  mirtkAssert(_Dimension == 3, "dimension of independent variable space must be 3");
-  Matrix x(1, 3);
+  mirtkAssert(twoD ? _Dimension == 2 : _Dimension == 3,
+      "dimension of independent variable space must be " << (twoD ? 2 : 3));
+  Matrix x(1, twoD ? 2 : 3);
   x(0, 0) = p._x;
   x(0, 1) = p._y;
-  x(0, 2) = p._z;
+  if (!twoD) x(0, 2) = p._z;
   return Evaluate(x)(0);
 }
 
 // -----------------------------------------------------------------------------
-double Polynomial::Evaluate(double x) const
+inline double Polynomial::Evaluate(double x, double y, double z) const
+{
+  mirtkAssert(_Dimension == 3, "dimension of independent variable space must be 3");
+  Matrix m(1, 3);
+  m(0, 0) = x;
+  m(0, 1) = y;
+  m(0, 2) = z;
+  return Evaluate(m)(0);
+}
+
+// -----------------------------------------------------------------------------
+inline double Polynomial::Evaluate(double x, double y) const
+{
+  mirtkAssert(_Dimension == 2, "dimension of independent variable space must be 2");
+  Matrix m(1, 2);
+  m(0, 0) = x;
+  m(0, 1) = y;
+  return Evaluate(m)(0);
+}
+
+// -----------------------------------------------------------------------------
+inline double Polynomial::Evaluate(double x) const
 {
   mirtkAssert(_Dimension == 1, "dimension of independent variable space must be 1");
   Matrix m(1, 1);
@@ -329,11 +695,91 @@ double Polynomial::Evaluate(double x) const
 }
 
 // =============================================================================
+// 1st order derivatives
+// =============================================================================
+
+// -----------------------------------------------------------------------------
+inline Vector Polynomial::Evaluate1stOrderDerivative(int j1, const PointSet &x, bool twoD) const
+{
+  mirtkAssert(twoD ? _Dimension == 2 : _Dimension == 3,
+      "dimension of independent variable space must be " << (twoD ? 2 : 3));
+  return Evaluate1stOrderDerivative(j1, Matrix(x, twoD));
+}
+
+// -----------------------------------------------------------------------------
+inline Vector Polynomial::Evaluate1stOrderDerivative(int j1, const Vector &x) const
+{
+  mirtkAssert(_Dimension == 1, "dimension of independent variable space must be 1");
+  return Evaluate1stOrderDerivative(j1, Matrix(x));
+}
+
+// -----------------------------------------------------------------------------
+inline double Polynomial::Evaluate1stOrderDerivative(int j1, const Point &p, bool twoD) const
+{
+  mirtkAssert(twoD ? _Dimension == 2 : _Dimension == 3,
+      "dimension of independent variable space must be " << (twoD ? 2 : 3));
+  Matrix x(1, twoD ? 2 : 3);
+  x(0, 0) = p._x;
+  x(0, 1) = p._y;
+  if (!twoD) x(0, 2) = p._z;
+  return Evaluate1stOrderDerivative(j1, x)(0);
+}
+
+// -----------------------------------------------------------------------------
+inline double Polynomial::Evaluate1stOrderDerivative(int j1, double x) const
+{
+  mirtkAssert(_Dimension == 1, "dimension of independent variable space must be 1");
+  Matrix m(1, 1);
+  m(0, 0) = x;
+  return Evaluate1stOrderDerivative(j1, m)(0);
+}
+
+// =============================================================================
+// 2nd order derivatives
+// =============================================================================
+
+// -----------------------------------------------------------------------------
+inline Vector Polynomial::Evaluate2ndOrderDerivative(int j1, int j2, const PointSet &x, bool twoD) const
+{
+  mirtkAssert(twoD ? _Dimension == 2 : _Dimension == 3,
+      "dimension of independent variable space must be " << (twoD ? 2 : 3));
+  return Evaluate2ndOrderDerivative(j1, j2, Matrix(x, twoD));
+}
+
+// -----------------------------------------------------------------------------
+inline Vector Polynomial::Evaluate2ndOrderDerivative(int j1, int j2, const Vector &x) const
+{
+  mirtkAssert(_Dimension == 1, "dimension of independent variable space must be 1");
+  return Evaluate2ndOrderDerivative(j1, j2, Matrix(x));
+}
+
+// -----------------------------------------------------------------------------
+inline double Polynomial::Evaluate2ndOrderDerivative(int j1, int j2, const Point &p, bool twoD) const
+{
+  mirtkAssert(twoD ? _Dimension == 2 : _Dimension == 3,
+      "dimension of independent variable space must be " << (twoD ? 2 : 3));
+  Matrix x(1, twoD ? 2 : 3);
+  x(0, 0) = p._x;
+  x(0, 1) = p._y;
+  if (!twoD) x(0, 2) = p._z;
+  return Evaluate2ndOrderDerivative(j1, j2, x)(0);
+}
+
+// -----------------------------------------------------------------------------
+inline double Polynomial::Evaluate2ndOrderDerivative(int j1, int j2, double x) const
+{
+  mirtkAssert(_Dimension == 1, "dimension of independent variable space must be 1");
+  Matrix m(1, 1);
+  m(0, 0) = x;
+  return Evaluate2ndOrderDerivative(j1, j2, m)(0);
+}
+
+// =============================================================================
 // Debugging
 // =============================================================================
 
 // -----------------------------------------------------------------------------
-void Polynomial::Print(Indent indent) const
+inline void Polynomial::Print(Indent indent) const
 {
   Print(cout, indent);
 }

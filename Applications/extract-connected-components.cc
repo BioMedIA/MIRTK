@@ -53,6 +53,9 @@ void PrintHelp(const char *name)
   cout << "  -n <n>\n";
   cout << "      Extract (at most) n components. (default: 1)\n";
   cout << "\n";
+  cout << "  -all\n";
+  cout << "      Extract all components.\n";
+  cout << "\n";
   cout << "  -connectivity <num>\n";
   cout << "      Type of voxel connectivity (4, 6, 18, or 26). (default: 26)\n";
   cout << "\n";
@@ -99,6 +102,7 @@ int main(int argc, char *argv[])
   for (ALL_OPTIONS) {
     if      (OPTION("-m"))            PARSE_ARGUMENT(m);
     else if (OPTION("-n"))            PARSE_ARGUMENT(n);
+    else if (OPTION("-all"))          n = 0;
     else if (OPTION("-connectivity")) PARSE_ARGUMENT(connectivity);
     else if (OPTION("-ordering"))     PARSE_ARGUMENT(ordering);
     else if (OPTION("-output-component-labels")) output_type = ComponentLabels;
@@ -139,6 +143,7 @@ int main(int argc, char *argv[])
   if (m >= nregions) {
     FatalError("Start index -m is greater or equal than the total no. of components!");
   }
+  if (n <= 0) n = nregions;
   if (m + n > nregions) n = nregions - m;
 
   const GreyPixel min_label = m + 1; // component labels are 1-based

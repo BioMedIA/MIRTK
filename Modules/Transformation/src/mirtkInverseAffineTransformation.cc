@@ -134,7 +134,6 @@ void InverseAffineTransformation::JacobianDOFs(double jac[3], int dof, double x,
   const double &tansxy = _Transformation->_tansxy;
   const double &tansxz = _Transformation->_tansxz;
   const double &tansyz = _Transformation->_tansyz;
-  const double deg2rad = M_PI / 180.0;
 
   // inverse translation
   if (dof == TX) {
@@ -166,7 +165,7 @@ void InverseAffineTransformation::JacobianDOFs(double jac[3], int dof, double x,
     m[2][0] = .0;
     m[2][1] = cosrx * cosry;
     m[2][2] = - cosry * sinrx;
-    jac[0] *= deg2rad, jac[1] *= deg2rad, jac[2] *= deg2rad;
+    jac[0] *= rad_per_deg, jac[1] *= rad_per_deg, jac[2] *= rad_per_deg;
   } else if (dof == RY) {
     m[0][0] = - cosrz * sinry;
     m[0][1] = cosry * cosrz * sinrx;
@@ -177,7 +176,7 @@ void InverseAffineTransformation::JacobianDOFs(double jac[3], int dof, double x,
     m[2][0] = - cosry;
     m[2][1] = - sinrx * sinry;
     m[2][2] = - cosrx * sinry;
-    jac[0] *= deg2rad, jac[1] *= deg2rad, jac[2] *= deg2rad;
+    jac[0] *= rad_per_deg, jac[1] *= rad_per_deg, jac[2] *= rad_per_deg;
   } else if (dof == RZ) {
     m[0][0] = - cosry * sinrz;
     m[0][1] = - cosrx * cosrz - sinrx * sinry * sinrz;
@@ -188,7 +187,7 @@ void InverseAffineTransformation::JacobianDOFs(double jac[3], int dof, double x,
     m[2][0] = .0;
     m[2][1] = .0;
     m[2][2] = .0;
-    jac[0] *= deg2rad, jac[1] *= deg2rad, jac[2] *= deg2rad;
+    jac[0] *= rad_per_deg, jac[1] *= rad_per_deg, jac[2] *= rad_per_deg;
   } else {
     m[0][0] = cosry * cosrz;
     m[0][1] = cosrz * sinrx * sinry - cosrx * sinrz;
@@ -206,14 +205,14 @@ void InverseAffineTransformation::JacobianDOFs(double jac[3], int dof, double x,
   // inverse shearing
   memset(m, 0, sizeof(m));
   if (dof == SXY) {
-    const double derivative = deg2rad / pow(cos(param[SXY] * deg2rad), 2);
+    const double derivative = rad_per_deg / pow(cos(param[SXY] * rad_per_deg), 2);
     m[0][1] = - derivative;
     m[0][2] = tansyz * derivative;
   } else if (dof == SXZ) {
-    const double derivative = deg2rad / pow(cos(param[SXZ] * deg2rad), 2);
+    const double derivative = rad_per_deg / pow(cos(param[SXZ] * rad_per_deg), 2);
     m[0][2] = - derivative;
   } else if (dof == SYZ) {
-    const double derivative = deg2rad / pow(cos(param[SYZ] * deg2rad), 2);
+    const double derivative = rad_per_deg / pow(cos(param[SYZ] * rad_per_deg), 2);
     m[0][2] = tansxy * derivative;
     m[1][2] = - derivative;
   } else {
