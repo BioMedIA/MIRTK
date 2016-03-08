@@ -1,11 +1,9 @@
-.. title:: Help
-
 .. meta::
     :description: Report any issues with MIRTK or request new features on GitHub.
 
-============
-Getting Help
-============
+========
+Get Help
+========
 
 Please report bugs and request new or missing (M)IRTK features on GitHub:
 
