@@ -217,14 +217,14 @@ Using Ninja, run::
 To enable the convenient use of the :doc:`commands`, it is recommended
 to permanently add the ``$MIRTK_ROOT/bin`` directory to the
 `PATH environment variable`_ in the shell configuration file
-(e.g., ``$HOME/.bashrc`` or ``$HOME/.profile``), where MIRTK_ROOT is the directory
+(e.g., ``$HOME/.bashrc`` or ``$HOME/.bash_profile``), where MIRTK_ROOT is the directory
 chosen as CMAKE_INSTALL_PREFIX above.
 
 The MIRTK installation further includes a `Bash <https://www.gnu.org/software/bash/>`__
 completions script which when sourced in your Bash configuration file,
-enables auto-completion of available MIRTK commands for the ``mirtk`` command
-and ``docker run [options] <user>/mirtk``. To enable the MIRTK Bash completions,
-add the following lines to ``$HOME/.bashrc`` (Linux) or ``$HOME/.bash_profile`` (OS X)::
+enables auto-completion_ of available MIRTK commands for the ``mirtk`` command.
+To enable the MIRTK Bash completions, add the following lines to ``$HOME/.bashrc`` (Linux)
+or ``$HOME/.bash_profile`` (OS X)::
 
     [ ! -f "$MIRTK_ROOT/share/completion/bash/mirtk" ] ||
     source "$MIRTK_ROOT/share/completion/bash/mirtk"
@@ -259,3 +259,4 @@ The Bash completions are then available when a new Terminal window is opened.
 .. _PNG:       http://www.libpng.org/pub/png/spec/1.2/PNG-Structure.html
 .. _zlib:      http://www.zlib.net
 .. _PATH environment variable: https://en.wikipedia.org/wiki/PATH_(variable)
+.. _auto-completion:           https://www.gnu.org/software/bash/manual/html_node/Programmable-Completion.html
