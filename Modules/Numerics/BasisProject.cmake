@@ -62,7 +62,7 @@ basis_project (
     ARPACK
     UMFPACK
     MATLAB{mwmclmcrrt}
-    VTK-6{vtkCommonCore,vtkCommonDataModel,vtkIOGeometry,vtkIOLegacy,vtkIOPLY,vtkIOXML}
+    VTK-7|6{vtkCommonCore,vtkCommonDataModel,vtkIOGeometry,vtkIOLegacy,vtkIOPLY,vtkIOXML}
     #<optional-dependency>
   TEST_DEPENDS
     GTest

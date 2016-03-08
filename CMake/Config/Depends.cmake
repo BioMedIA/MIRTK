@@ -82,7 +82,7 @@ endif ()
 if (BUILD_APPLICATIONS)
   if (MODULE_PointSet)
     basis_find_package(
-      "VTK-6{
+      "VTK-7|6{
         vtkCommonCore,
         vtkCommonDataModel,
         vtkFiltersCore,

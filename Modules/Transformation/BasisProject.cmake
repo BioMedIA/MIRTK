@@ -59,7 +59,7 @@ basis_project (
     #<dependency>
   OPTIONAL_DEPENDS
     TBB
-    VTK-6{vtkCommonCore,vtkCommonDataModel}
+    VTK-7|6{vtkCommonCore,vtkCommonDataModel}
     #<optional-dependency>
   TEST_DEPENDS
     #<test-dependency>
