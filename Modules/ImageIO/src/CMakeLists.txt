@@ -47,6 +47,8 @@ set(SOURCES
 )
 
 set(DEPENDS
+  LibCommon
+  LibNumerics
   LibImage
 )
 

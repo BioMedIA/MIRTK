@@ -1616,95 +1616,9 @@ void GenericImage<VoxelType>::FlipZT(bool modifyOrigin)
 template <class VoxelType>
 bool GenericImage<VoxelType>::CropPad(int margin)
 {
-  ImageAttributes attr = _attr;
-  // Determine lower bound along x axis: i1
-  int i1 = _attr._x;
-  for (int l = 0; l < _attr._t; ++l)
-  for (int k = 0; k < _attr._z; ++k)
-  for (int j = 0; j < _attr._y; ++j)
-  for (int i = 0; i < _attr._x; ++i) {
-    if (IsForeground(i, j, k, l)) {
-      if (i < i1) i1 = i;
-      break;
-    }
-  }
-  // Determine upper bound along x axis: i2
-  int i2 = -1;
-  for (int l = 0; l < _attr._t; ++l)
-  for (int k = 0; k < _attr._z; ++k)
-  for (int j = 0; j < _attr._y; ++j)
-  for (int i = _attr._x - 1; i >= i1; --i) {
-    if (IsForeground(i, j, k, l)) {
-      if (i > i2) i2 = i;
-      break;
-    }
-  }
-  // Determine lower bound along y axis: j1
-  int j1 = _attr._y;
-  for (int l = 0; l < _attr._t; ++l)
-  for (int k = 0; k < _attr._z; ++k)
-  for (int i = i1; i <= i2; ++i)
-  for (int j = 0; j < _attr._y; ++j) {
-    if (IsForeground(i, j, k, l)) {
-      if (j < j1) j1 = j;
-      break;
-    }
-  }
-  // Determine upper bound along y axis: j2
-  int j2 = -1;
-  for (int l = 0; l < _attr._t; ++l)
-  for (int k = 0; k < _attr._z; ++k)
-  for (int i = i1; i <= i2; ++i)
-  for (int j = _attr._y - 1; j >= j1; --j) {
-    if (IsForeground(i, j, k, l)) {
-      if (j > j2) j2 = j;
-      break;
-    }
-  }
-  // Determine lower bound along z axis: k1
-  int k1 = _attr._z;
-  for (int l = 0; l < _attr._t; ++l)
-  for (int j = j1; j <= j2; ++j)
-  for (int i = i1; i <= i2; ++i)
-  for (int k = 0; k < _attr._z; ++k) {
-    if (IsForeground(i, j, k, l)) {
-      if (k < k1) k1 = k;
-      break;
-    }
-  }
-  // Determine upper bound along z axis: k2
-  int k2 = -1;
-  for (int l = 0; l < _attr._t; ++l)
-  for (int j = j1; j <= j2; ++j)
-  for (int i = i1; i <= i2; ++i)
-  for (int k = _attr._z - 1; k >= k1; --k) {
-    if (IsForeground(i, j, k, l)) {
-      if (k > k2) k2 = k;
-      break;
-    }
-  }
-  // Determine lower bound along t axis: l1
-  int l1 = _attr._t;
-  for (int k = k1; k <= k2; ++k)
-  for (int j = j1; j <= j2; ++j)
-  for (int i = i1; i <= i2; ++i)
-  for (int l = 0; l < _attr._t; ++l) {
-    if (IsForeground(i, j, k, l)) {
-      if (l < l1) l1 = l;
-      break;
-    }
-  }
-  // Determine upper bound along t axis: l2
-  int l2 = -1;
-  for (int k = k1; k <= k2; ++k)
-  for (int j = j1; j <= j2; ++j)
-  for (int i = i1; i <= i2; ++i)
-  for (int l = _attr._t - 1; l >= l1; --l) {
-    if (IsForeground(i, j, k, l)) {
-      if (l > l2) l2 = l;
-      break;
-    }
-  }
+  // Get bounding box of image foreground
+  int i1, j1, k1, l1, i2, j2, k2, l2;
+  this->BoundingBox(i1, j1, k1, l1, i2, j2, k2, l2);
   // Do nothing if all voxels are background, but report it
   if (i1 > i2 || j1 > j2 || k1 > k2 || l1 > l2) return false;
   // Convert upper index bounds to margin widths
@@ -1722,6 +1636,7 @@ bool GenericImage<VoxelType>::CropPad(int margin)
   if (i1 == 0 && i2 == 0 && j1 == 0 && j2 == 0 &&
       k1 == 0 && k2 == 0 && l1 == 0 && l2 == 0) return true;
   // Adjust image lattice
+  ImageAttributes attr = _attr;
   attr._x -= i1 + i2;
   attr._y -= j1 + j2;
   attr._z -= k1 + k2;
@@ -1740,21 +1655,18 @@ bool GenericImage<VoxelType>::CropPad(int margin)
   const int nvoxels = attr.NumberOfLatticePoints();
   VoxelType *data       = Allocate<VoxelType>(nvoxels);
   VoxelType *data_iter  = data;
-  for (int l = l1; l <= l2; ++l) {
-    for (int k = k1; k <= k2; ++k) {
-      for (int j = j1; j <= j2; ++j) {
-        for (int i = i1; i <= i2; ++i, ++data_iter) {
-          if (0 <= i && i < _attr._x &&
-              0 <= j && j < _attr._y &&
-              0 <= k && k < _attr._z &&
-              0 <= l && l < _attr._t) {
-            (*data_iter) = Get(i, j, k, l);
-          } else {
-            // Padded voxel to extend margin
-            (*data_iter) = voxel_cast<VoxelType>(_bg);
-          }
-        }
-      }
+  for (int l = l1; l <= l2; ++l)
+  for (int k = k1; k <= k2; ++k)
+  for (int j = j1; j <= j2; ++j)
+  for (int i = i1; i <= i2; ++i, ++data_iter) {
+    if (0 <= i && i < _attr._x &&
+        0 <= j && j < _attr._y &&
+        0 <= k && k < _attr._z &&
+        0 <= l && l < _attr._t) {
+      (*data_iter) = Get(i, j, k, l);
+    } else {
+      // Padded voxel to extend margin
+      (*data_iter) = voxel_cast<VoxelType>(_bg);
     }
   }
   // Initialize new image lattice

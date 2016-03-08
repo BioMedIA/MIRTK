@@ -23,13 +23,14 @@
 #include <mirtkEdgeTable.h>
 #include <mirtkPointSetUtils.h>
 #include <mirtkPolyDataRemeshing.h>
+#include <mirtkVtkMath.h>
 
 #include <vtkSmartPointer.h>
+#include <vtkDataReader.h> // VTK_BINARY, VTK_ASCII defines
 #include <vtkPolyData.h>
 #include <vtkPointData.h>
 #include <vtkCellArray.h>
 #include <vtkCellLocator.h>
-#include <vtkMath.h>
 
 using namespace mirtk;
 
@@ -41,28 +42,64 @@ using namespace mirtk;
 // -----------------------------------------------------------------------------
 void PrintHelp(const char *name)
 {
+  PolyDataRemeshing remesher; // with default settings
   cout << endl;
   cout << "Usage: " << name << " <input> <output> [options]" << endl;
   cout << endl;
   cout << "Description:" << endl;
   cout << "  Remeshes a surface mesh such that the resulting mesh has an average" << endl;
-  cout << "  edge length within the specified limits." << endl;
+  cout << "  edge length within the specified limits. The input surface mesh is" << endl;
+  cout << "  triangulated when necessary before the local remeshing passes." << endl;
+  cout << endl;
+  cout << "Arguments:" << endl;
+  cout << "  input    Input surface mesh." << endl;
+  cout << "  output   Output surface mesh." << endl;
   cout << endl;
   cout << "Options:" << endl;
-  cout << "  -write-all                         Write also intermediate meshes when more than one" << endl;
-  cout << "                                     desired average edge length was specified. Output file" << endl;
-  cout << "                                     names contain the level number as suffix. (default: off)" << endl;
-  cout << "  -target <file>                     Find closest cell points on target surface" << endl;
-  cout << "                                     and use these as new point locations." << endl;
-  cout << "  -edgelength    <float>...          Average edge length." << endl;
-  cout << "  -minedgelength <float>...          Minimum edge length. (default: 0)" << endl;
-  cout << "  -maxedgelength <float>...          Maximum edge length. (default: inf)" << endl;
-  cout << "  -adaptiveedgelength <name>         Name of point data array to use for adapting the edge length range. (default: none)" << endl;
-  cout << "  -meltorder <index|area|shortest>   Order in which to process cells in melting pass. (default: area)" << endl;
-  cout << "  -[no]meltnodes                     Whether to allow removal of nodes with connectivity 3. (default: off)" << endl;
-  cout << "  -[no]melttriangles                 Whether to melt triangles when all three edges are too short. (default: off)" << endl;
-  cout << "  -ascii/-binary                     Write legacy VTK in ASCII or binary format. (default: binary)" << endl;
-  cout << "  -[no]compress                      Write XML VTK file with or without compression. (default: compress)" << endl;
+  cout << "  -target <file>" << endl;
+  cout << "      Find closest cell points on target surface and use these as new point locations." << endl;
+  cout << "      (default: use points of input mesh)" << endl;
+  cout << "  -edgelength <float>..." << endl;
+  cout << "      Average edge length. (default: [0, inf)" << endl;
+  cout << "  -min-edgelength <float>..." << endl;
+  cout << "      Minimum edge length. (default: 0)" << endl;
+  cout << "  -max-edgelength <float>..." << endl;
+  cout << "      Maximum edge length. (default: inf)" << endl;
+  cout << "  -adaptive-edgelength <name>" << endl;
+  cout << "      Name of point data array to use for adapting the edge length range. (default: none)" << endl;
+  cout << "  -melting-order <none|area|shortest>" << endl;
+  cout << "      Order in which to process cells in melting pass. (default: ";
+  switch (remesher.MeltingOrder()) {
+    case PolyDataRemeshing::INDEX:         cout << "none"; break;
+    case PolyDataRemeshing::AREA:          cout << "area"; break;
+    case PolyDataRemeshing::SHORTEST_EDGE: cout << "shortest"; break;
+  }
+  cout << ")" << endl;
+  cout << "  -[no]melt-nodes" << endl;
+  cout << "      Whether to allow removal of adjacent nodes with connectivity three" << endl;
+  cout << "      during melting pass. (default: " << ToLower(ToString(remesher.MeltNodes())) << ")" << endl;
+  cout << "  -[no]melt-triangles" << endl;
+  cout << "      Whether to melt triangles when all three edges are too short. (default: "
+       << ToLower(ToString(remesher.MeltTriangles())) << ")" << endl;
+  cout << "  -[no]invert-long-edges" << endl;
+  cout << "      Enable/disable inversion of triangles sharing one too long edge. (default: "
+       << ToLower(ToString(remesher.InvertTrianglesSharingOneLongEdge())) << ")" << endl;
+  cout << "  -[no]invert-min-height" << endl;
+  cout << "      Enable/disable inversion of triangles when it increases the minimum height. (default: "
+       << ToLower(ToString(remesher.InvertTrianglesToIncreaseMinHeight())) << ")" << endl;
+  cout << "  -noinversion" << endl;
+  cout << "      Disable :option:`-invert-long-edges` and :option:`-invert-min-height`." << endl;
+  cout << endl;
+  cout << "Output options:" << endl;
+  cout << "  -write-all" << endl;
+  cout << "      Write also intermediate meshes when more than one edge length range" << endl;
+  cout << "      was specified. Output file names contain the level number as suffix. (default: off)" << endl;
+  cout << "  -[no]ascii" << endl;
+  cout << "      Write legacy VTK in ASCII or binary format. (default: input type)" << endl;
+  cout << "  -[no]binary" << endl;
+  cout << "      Write legacy VTK in ASCII or binary format. (default: input type)" << endl;
+  cout << "  -[no]compress" << endl;
+  cout << "      Write XML VTK file with or without compression. (default: on)" << endl;
   PrintStandardOptions(cout);
   cout << endl;
 }
@@ -74,42 +111,46 @@ void PrintHelp(const char *name)
 // -----------------------------------------------------------------------------
 int main(int argc, char *argv[])
 {
+  PolyDataRemeshing remesher;
+
+  // Parse positional arguments
   EXPECTS_POSARGS(2);
 
   const char *input_name  = POSARG(1);
   const char *output_name = POSARG(2);
 
-  string dir  = Directory(output_name);
-  string name = FileName(output_name);
-  string ext  = Extension(output_name);
+  const string dir  = Directory(output_name);
+  const string name = FileName (output_name);
+  const string ext  = Extension(output_name);
 
+  // Read input mesh
+  int output_type = VTK_BINARY;
+  vtkSmartPointer<vtkPolyData> mesh = ReadPolyData(input_name, &output_type);
+  const vtkIdType npoints = mesh->GetNumberOfPoints();
+  const vtkIdType ncells  = mesh->GetNumberOfCells();
+
+  // Parse optional arguments
   Array<double> minlength;
   Array<double> maxlength;
   Array<double> minangle;
   Array<double> maxangle;
 
-  bool        melt_nodes     = false;
-  bool        melt_triangles = false;
-  const char *adaptive_name  = NULL;
-  const char *target_name    = NULL;
-  bool        ascii          = false;
-  bool        compress       = true;
-  bool        write_all      = false;
-
-  PolyDataRemeshing::Order melt_order = PolyDataRemeshing::AREA;
+  const char *target_name = NULL;
+  bool        compress    = true;
+  bool        write_all   = false;
 
   for (ALL_OPTIONS) {
-    if (OPTION("-minedgelength")) {
+    if (OPTION("-min-edge-length") || OPTION("-min-edgelength") || OPTION("-minedgelength")) {
       do {
         minlength.push_back(atof(ARGUMENT));
       } while (HAS_ARGUMENT);
     }
-    else if (OPTION("-maxedgelength")) {
+    else if (OPTION("-max-edge-length") || OPTION("-max-edgelength") || OPTION("-maxedgelength")) {
       do {
         maxlength.push_back(atof(ARGUMENT));
       } while (HAS_ARGUMENT);
     }
-    else if (OPTION("-edgelength")) {
+    else if (OPTION("-edge-length") || OPTION("-edgelength")) {
       if (minlength.size() < maxlength.size()) minlength.resize(maxlength.size(), minlength.back());
       if (minlength.size() > maxlength.size()) maxlength.resize(minlength.size(), maxlength.back());
       do {
@@ -118,44 +159,83 @@ int main(int argc, char *argv[])
         maxlength.push_back(l);
       } while (HAS_ARGUMENT);
     }
-    else if (OPTION("-adaptive") || OPTION("-adaptiveedgelength")) {
-      adaptive_name = ARGUMENT;
+    else if (OPTION("-adaptive") || OPTION("-adaptive-edge-length") ||
+             OPTION("-adaptive-edgelength") || OPTION("-adaptiveedgelength")) {
+      const char *adaptive_name = ARGUMENT;
+      vtkDataArray *array = mesh->GetPointData()->GetArray(adaptive_name);
+      if (!array) {
+        cerr << "Error: Input mesh has no point data array named: " << adaptive_name << endl;
+        exit(1);
+      }
+      remesher.AdaptiveEdgeLengthArray(array);
     }
-    else if (OPTION("-minangle")) {
+    else if (OPTION("-min-angle") || OPTION("-minangle")) {
       do {
         minangle.push_back(atof(ARGUMENT));
       } while (HAS_ARGUMENT);
     }
-    else if (OPTION("-maxangle")) {
+    else if (OPTION("-max-angle") || OPTION("-maxangle")) {
       do {
         maxangle.push_back(atof(ARGUMENT));
       } while (HAS_ARGUMENT);
     }
-    else if (OPTION("-meltorder")) {
+    else if (OPTION("-melting-order") || OPTION("-melt-order") || OPTION("-meltorder")) {
       string arg = ARGUMENT;
       transform(arg.begin(), arg.end(), arg.begin(), ::tolower);
-      if (arg == "area" || arg == "smallest area" || arg == "smallestarea")
-        melt_order = PolyDataRemeshing::AREA;
-      else if (arg == "edge" ||
+      if (arg == "area" || arg == "smallest area" || arg == "smallestarea") {
+        remesher.MeltingOrder(PolyDataRemeshing::AREA);
+      } else if (arg == "edge" ||
                arg == "shortest" ||
                arg == "shortest edge" ||
-               arg == "shortestedge")
-        melt_order = PolyDataRemeshing::SHORTEST_EDGE;
-      else if (arg == "index" || arg == "none")
-        melt_order = PolyDataRemeshing::INDEX;
-      else {
+               arg == "shortestedge") {
+        remesher.MeltingOrder(PolyDataRemeshing::SHORTEST_EDGE);
+      } else if (arg == "index" || arg == "none") {
+        remesher.MeltingOrder(PolyDataRemeshing::INDEX);
+      } else {
         cerr << "Invalid -meltorder: " << arg << endl;
         exit(1);
       }
     }
     else if (OPTION("-write-all")) write_all = true;
-    else if (OPTION("-meltnodes")) melt_nodes = true;
-    else if (OPTION("-nomeltnodes")) melt_nodes = false;
-    else if (OPTION("-melttriangles")) melt_triangles = true;
-    else if (OPTION("-nomelttriangles")) melt_triangles = false;
+    else if (OPTION("-melt-nodes") || OPTION("-meltnodes")) {
+      bool melt_nodes = true;
+      if (HAS_ARGUMENT) PARSE_ARGUMENT(melt_nodes);
+      remesher.MeltNodes(melt_nodes);
+    }
+    else if (OPTION("-nomelt-nodes") || OPTION("-nomeltnodes")) {
+      remesher.MeltNodesOff();
+    }
+    else if (OPTION("-melt-triangles") || OPTION("-melttriangles")) {
+      bool melt_triangles = true;;
+      if (HAS_ARGUMENT) PARSE_ARGUMENT(melt_triangles);
+      remesher.MeltTriangles(melt_triangles);
+    }
+    else if (OPTION("-nomelt-triangles") || OPTION("-nomelttriangles")) {
+      remesher.MeltTrianglesOff();
+    }
+    else if (OPTION("-invert-long-edges")) {
+      bool invert = true;
+      if (HAS_ARGUMENT) PARSE_ARGUMENT(invert);
+      remesher.InvertTrianglesSharingOneLongEdge(invert);
+    }
+    else if (OPTION("-noinvert-long-edges")) {
+      remesher.InvertTrianglesSharingOneLongEdgeOff();
+    }
+    else if (OPTION("-invert-min-height")) {
+      bool invert = true;
+      if (HAS_ARGUMENT) PARSE_ARGUMENT(invert);
+      remesher.InvertTrianglesToIncreaseMinHeight(invert);
+    }
+    else if (OPTION("-noinvert-min-height")) {
+      remesher.InvertTrianglesToIncreaseMinHeightOff();
+    }
+    else if (OPTION("-noinversion")) {
+      remesher.InvertTrianglesSharingOneLongEdgeOff();
+      remesher.InvertTrianglesToIncreaseMinHeightOff();
+    }
     else if (OPTION("-target")) target_name = ARGUMENT;
-    else if (OPTION("-ascii" ) || OPTION("-nobinary")) ascii = true;
-    else if (OPTION("-binary") || OPTION("-noascii" )) ascii = false;
+    else if (OPTION("-ascii" ) || OPTION("-nobinary")) output_type = VTK_ASCII;
+    else if (OPTION("-binary") || OPTION("-noascii" )) output_type = VTK_BINARY;
     else if (OPTION("-compress"))   compress = true;
     else if (OPTION("-nocompress")) compress = false;
     else HANDLE_COMMON_OR_UNKNOWN_OPTION();
@@ -169,17 +249,6 @@ int main(int argc, char *argv[])
   maxangle .resize(nlevels, maxangle .empty() ? 180.0 : maxangle .back());
   for (size_t i = 0; i < nlevels; ++i) {
     if (minangle[i] > maxangle[i]) minangle[i] = maxangle[i];
-  }
-
-  // Read input surface
-  vtkSmartPointer<vtkPolyData> mesh = ReadPolyData(input_name);
-
-  const vtkIdType npoints = mesh->GetNumberOfPoints();
-  const vtkIdType ncells  = mesh->GetNumberOfCells();
-
-  if (verbose) {
-    cout << "No. of input vertices    = " << npoints << endl;
-    cout << "No. of input triangles   = " << ncells  << endl;
   }
 
   // Use point locations of closest target surface as initial vertex positions
@@ -198,19 +267,18 @@ int main(int argc, char *argv[])
   }
 
   // Remesh to desired average edge length
-  PolyDataRemeshing remesher;
-  remesher.MeltingOrder(melt_order);
-  remesher.MeltNodes(melt_nodes);
-  remesher.MeltTriangles(melt_triangles);
-  if (adaptive_name) {
-    vtkDataArray *array = mesh->GetPointData()->GetArray(adaptive_name);
-    if (!array) {
-      cerr << "Error: Input mesh has no point data array named: " << adaptive_name << endl;
-      exit(1);
-    }
-    remesher.AdaptiveEdgeLengthArray(array);
+  EdgeTable edgeTable;
+  vtkIdType nedges;
+  if (verbose) {
+    edgeTable.Initialize(mesh);
+    nedges = edgeTable.NumberOfEdges();
+    vtkIdType euler = mesh->GetNumberOfPoints() - nedges + mesh->GetNumberOfCells();
+    cout << "No. of input vertices  = " << npoints << "\n";
+    cout << "No. of input triangles = " << ncells  << "\n";
+    cout << "No. of input edges     = " << nedges  << "\n";
+    cout << "Euler characteristic   = " << euler << "\n";
+    cout.flush();
   }
-
   for (size_t i = 0; i < nlevels; ++i) {
     if (verbose) {
       cout << "\nRemeshing surface with edge length range [" << minlength[i] << ", " << maxlength[i] << "]";
@@ -223,21 +291,30 @@ int main(int argc, char *argv[])
     remesher.MinFeatureAngle(minangle [i]);
     remesher.MaxFeatureAngle(maxangle [i]);
     remesher.Run();
-    if (verbose > 1) {
-      cout << "No. of node-meltings     = " << remesher.NumberOfMeltedNodes() << endl;
-      cout << "No. of edge-meltings     = " << remesher.NumberOfMeltedEdges() << endl;
-      cout << "No. of triangle-meltings = " << remesher.NumberOfMeltedCells() << endl;
-      cout << "No. of inversions        = " << remesher.NumberOfInversions() << endl;
-      cout << "No. of bisections        = " << remesher.NumberOfBisections() << endl;
-      cout << "No. of trisections       = " << remesher.NumberOfTrisections() << endl;
-      cout << "No. of quadsections      = " << remesher.NumberOfQuadsections() << endl;
-    }
     mesh = remesher.Output();
+    if (verbose > 1) {
+      if (debug_time) cout << endl;
+      cout << "\n";
+      cout << "  No. of node-meltings     = " << remesher.NumberOfMeltedNodes()  << "\n";
+      cout << "  No. of edge-meltings     = " << remesher.NumberOfMeltedEdges()  << "\n";
+      cout << "  No. of triangle-meltings = " << remesher.NumberOfMeltedCells()  << "\n";
+      cout << "  No. of inversions        = " << remesher.NumberOfInversions()   << "\n";
+      cout << "  No. of bisections        = " << remesher.NumberOfBisections()   << "\n";
+      cout << "  No. of trisections       = " << remesher.NumberOfTrisections()  << "\n";
+      cout << "  No. of quadsections      = " << remesher.NumberOfQuadsections() << "\n";
+    }
     if (verbose) {
-      cout << "No. of output vertices   = " << mesh->GetNumberOfPoints()
-           << " (" << (100.0 * mesh->GetNumberOfPoints() / npoints) << "%)" << endl;
-      cout << "No. of output triangles  = " << mesh->GetNumberOfCells()
-           << " (" << (100.0 * mesh->GetNumberOfCells() / ncells) << "%)" << endl;
+      edgeTable.Initialize(mesh);
+      vtkIdType euler = mesh->GetNumberOfPoints() - edgeTable.NumberOfEdges() + mesh->GetNumberOfCells();
+      cout << "\n";
+      cout << "  No. of output vertices   = " << mesh->GetNumberOfPoints()
+           << " (" << (100.0 * mesh->GetNumberOfPoints() / npoints) << "%)" << "\n";
+      cout << "  No. of output triangles  = " << mesh->GetNumberOfCells()
+           << " (" << (100.0 * mesh->GetNumberOfCells() / ncells) << "%)" << "\n";
+      cout << "  No. of output edges      = " << edgeTable.NumberOfEdges()
+           << " (" << (100.0 * edgeTable.NumberOfEdges() / nedges) << "%)" << "\n";
+      cout << "  Euler characteristic     = " << euler << "\n";
+      cout.flush();
     }
     if (write_all && i < minlength.size() - 1) {
       ostringstream os;
@@ -253,8 +330,6 @@ int main(int argc, char *argv[])
     vtkIdType ptId1, ptId2;
     double p1[3], p2[3], l, sum = .0, max = .0;
     double min = numeric_limits<double>::infinity();
-
-    EdgeTable edgeTable(mesh);
     EdgeIterator it(edgeTable);
     for (it.InitTraversal(); it.GetNextEdge(ptId1, ptId2) != -1;) {
       mesh->GetPoint(ptId1, p1);
@@ -264,13 +339,13 @@ int main(int argc, char *argv[])
       if (l > max) max = l;
       sum += l;
     }
-
-    cout << endl;
-    cout << "Minimum edge length      = " << min << endl;
-    cout << "Maximum edge length      = " << max << endl;
-    cout << "Average edge length      = " << sum / edgeTable.NumberOfEdges() << endl;
+    cout << "\n";
+    cout << "Minimum edge length = " << min << "\n";
+    cout << "Maximum edge length = " << max << "\n";
+    cout << "Average edge length = " << sum / edgeTable.NumberOfEdges() << "\n";
+    cout.flush();
   }
 
   // Write surface mesh
-  return WritePolyData(output_name, mesh, compress, ascii) ? 0 : 1;
+  return WritePolyData(output_name, mesh, compress, output_type == VTK_ASCII) ? 0 : 1;
 }

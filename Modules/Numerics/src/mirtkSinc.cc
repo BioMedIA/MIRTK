@@ -41,7 +41,7 @@ void Sinc<TReal>::Initialize()
     // Fill remaining fields (symmetric, so we only use positive distances)
     TReal alpha;
     for (int i = 1; i < N; ++i) {
-      alpha          = M_PI * TReal(i) / LookupTableSize;
+      alpha          = pi * TReal(i) / LookupTableSize;
       LookupTable[i] = TReal(0.5) * (TReal(1) + cos(alpha/Radius)) * sin(alpha) / alpha;
     }
   }

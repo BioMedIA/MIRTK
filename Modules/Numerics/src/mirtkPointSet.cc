@@ -23,6 +23,7 @@
 #include <mirtkMath.h>
 #include <mirtkPath.h>
 
+#include <mirtkNumericsConfig.h>
 #if MIRTK_Numerics_WITH_VTK
 #  include <mirtkVtk.h>
 #  include <vtkSmartPointer.h>
@@ -47,10 +48,9 @@ namespace mirtk {
 int PointSet::POINTSET_SIZE = 4096;
 
 // -----------------------------------------------------------------------------
-void PointSet::Clear()
+void PointSet::Clear(bool deallocate)
 {
-  Deallocate(_data);
-  _m = 0;
+  if (deallocate) Deallocate(_data), _m = 0;
   _n = 0;
 }
 

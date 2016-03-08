@@ -240,7 +240,6 @@ inline int Intersections(Array<double> &distances, const double p[3], const doub
       d0 = Evaluate(distance, x, offset);
     }
   }
-  bool inside = (d0 < .0);
   while (maxh > minh) {
     d += (h = IntersectWithLine(x, e1, d0, minh, maxh, distance, offset, tol));
     if (h == maxh) break;
@@ -261,7 +260,6 @@ inline int Intersections(Array<double> &distances, const double p[3], const doub
       if (maxh <= minh) break;
       d0 = Evaluate(distance, x, offset);
     }
-    inside = !inside;
   }
   return static_cast<int>(distances.size());
 }
@@ -284,7 +282,7 @@ inline int Intersections(Array<double> &d, const double p[3], const double e[3],
 // -----------------------------------------------------------------------------
 /// Determine surface distance at a point in a specified direction
 ///
-/// \returns Surface distance in specified direction, clamped to \p maxw.
+/// \returns Surface distance in specified direction, clamped to \p maxd.
 inline double ForwardDistance(const double p[3], const double e1[3],
                               double mind, double minh, double maxd,
                               const DistanceFunction &distance, double offset = .0,
@@ -296,7 +294,7 @@ inline double ForwardDistance(const double p[3], const double e1[3],
 // -----------------------------------------------------------------------------
 /// Determine surface distance at a point in a specified direction
 ///
-/// \returns Surface distance in specified direction, clamped to \p maxw.
+/// \returns Surface distance in specified direction, clamped to \p maxd.
 inline double ForwardDistance(const double p[3], const double e1[3],
                               double minh, double maxd,
                               const DistanceFunction &distance, double offset = .0,
@@ -309,7 +307,7 @@ inline double ForwardDistance(const double p[3], const double e1[3],
 // -----------------------------------------------------------------------------
 /// Determine surface distance at a point in a specified direction
 ///
-/// \returns Surface distance in specified direction, clamped to \p maxw.
+/// \returns Surface distance in specified direction, clamped to \p maxd.
 inline double BackwardDistance(const double p[3], const double e1[3],
                                double mind, double minh, double maxd,
                                const DistanceFunction &distance, double offset = .0,
@@ -322,7 +320,7 @@ inline double BackwardDistance(const double p[3], const double e1[3],
 // -----------------------------------------------------------------------------
 /// Determine surface distance at a point in a specified direction
 ///
-/// \returns Surface distance in specified direction, clamped to \p maxw.
+/// \returns Surface distance in specified direction, clamped to \p maxd.
 inline double BackwardDistance(const double p[3], const double e1[3],
                                double minh, double maxd,
                                const DistanceFunction &distance, double offset = .0,
@@ -335,7 +333,7 @@ inline double BackwardDistance(const double p[3], const double e1[3],
 // -----------------------------------------------------------------------------
 /// Determine surface distance at a point in a specified direction
 ///
-/// \returns Surface distance in specified direction, clamped to \p maxw.
+/// \returns Surface distance in specified direction, clamped to \p maxd.
 inline double Distance(const double p[3], const double e1[3],
                        double mind, double minh, double maxd,
                        const DistanceFunction &distance, double offset = .0,
@@ -349,7 +347,7 @@ inline double Distance(const double p[3], const double e1[3],
 // -----------------------------------------------------------------------------
 /// Determine surface distance at a point in a specified direction
 ///
-/// \returns Surface distance in specified direction, clamped to \p maxw.
+/// \returns Surface distance in specified direction, clamped to \p maxd.
 inline double Distance(const double p[3], const double e1[3],
                        double minh, double maxd,
                        const DistanceFunction &distance, double offset = .0,
@@ -357,6 +355,32 @@ inline double Distance(const double p[3], const double e1[3],
 {
   const double mind = Evaluate(distance, p, offset);
   return Distance(p, e1, mind, minh, maxd, distance, offset, tol);
+}
+
+// -----------------------------------------------------------------------------
+/// Determine signed surface distance at a point in normal direction
+///
+/// \returns Signed surface distance in normal direction, clamped to \p maxd.
+inline double SignedDistance(const double p[3], const double n[3],
+                             double mind, double minh, double maxd,
+                             const DistanceFunction &distance, double offset = .0,
+                             double tol = 1e-3)
+{
+  if (mind < .0) return -ForwardDistance(p, n, mind, minh, maxd, distance, offset, tol);
+  else           return BackwardDistance(p, n, mind, minh, maxd, distance, offset, tol);
+}
+
+// -----------------------------------------------------------------------------
+/// Determine signed surface distance at a point in normal direction
+///
+/// \returns Signed surface distance in normal direction, clamped to \p maxw.
+inline double SignedDistance(const double p[3], const double n[3],
+                             double minh, double maxd,
+                             const DistanceFunction &distance, double offset = .0,
+                             double tol = 1e-3)
+{
+  const double mind = Evaluate(distance, p, offset);
+  return SignedDistance(p, n, mind, minh, maxd, distance, offset, tol);
 }
 
 // -----------------------------------------------------------------------------
@@ -770,14 +794,14 @@ inline void EvaluateTangential(DistanceMeasurement &d,
       dirs(3) = (Point(e1) - Point(e2)) / sqrt2;
     } break;
     default:
-      double alpha = .0, delta = M_PI / ndirs;
+      double alpha = .0, delta = pi / ndirs;
       for (int i = 0; i < ndirs; ++i, alpha += delta) {
         dirs(i) = Point(e1) * cos(alpha) + Point(e2) * sin(alpha);
       }
       break;
   }
   if (nbetas > 1) {
-    beta = M_PI * beta / 180.0;
+    beta *= rad_per_deg;
     Point sin_beta_n(n);
     sin_beta_n *= sin(beta);
     const double cos_beta = cos(beta);

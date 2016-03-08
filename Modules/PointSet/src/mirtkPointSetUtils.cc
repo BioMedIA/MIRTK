@@ -104,7 +104,7 @@ vtkSmartPointer<vtkPointSet> ReadPointSet(const char *fname, int *ftype, bool ex
 {
   vtkSmartPointer<vtkPointSet> pointset;
   const string ext = Extension(fname);
-  if (ext == ".vtp" || ext == ".stl" || ext == ".ply" || ext == ".obj" || ext == ".dfs") {
+  if (ext == ".vtp" || ext == ".stl" || ext == ".ply" || ext == ".obj" || ext == ".dfs" || ext == ".off") {
     pointset = ReadPolyData(fname);
   } else if (ext.length() == 4  && ext.substr(0, 3) == ".vt" && ext != ".vtk") {
     vtkSmartPointer<vtkXMLGenericDataObjectReader> reader;
@@ -229,6 +229,71 @@ vtkSmartPointer<vtkPolyData> ReadDFS(const char *fname)
 }
 
 // -----------------------------------------------------------------------------
+vtkSmartPointer<vtkPolyData> ReadOFF(const char *fname)
+{
+  vtkSmartPointer<vtkPolyData> polydata = vtkSmartPointer<vtkPolyData>::New();
+
+  ifstream ifs(fname);
+  if (!ifs) return polydata;
+
+  string keyword;
+  ifs >> keyword;
+  if (keyword != "OFF" && keyword != "off") return polydata;
+
+  int numVertices = -1, numFaces = -1, numEdges = -1;
+  ifs >> numVertices >> numFaces >> numEdges;
+  if (ifs.fail()) return polydata;
+
+  if (numVertices < 0) numVertices = 0;
+  if (numFaces    < 0) numFaces    = 0;
+
+  vtkSmartPointer<vtkPoints> points;
+  points = vtkSmartPointer<vtkPoints>::New();
+  points->SetNumberOfPoints(numVertices);
+
+  double p[3];
+  for (int i = 0; i < numVertices; ++i) {
+    ifs >> p[0] >> p[1] >> p[2];
+    if (ifs.fail()) break;
+    points->SetPoint(i, p);
+  }
+  if (ifs.fail()) return polydata;
+
+  vtkSmartPointer<vtkCellArray> verts, lines, polys;
+  vtkSmartPointer<vtkIdList> cell = vtkSmartPointer<vtkIdList>::New();
+  verts = vtkSmartPointer<vtkCellArray>::New();
+  lines = vtkSmartPointer<vtkCellArray>::New();
+  polys = vtkSmartPointer<vtkCellArray>::New();
+  for (int i = 0, ptId, n; i < numFaces; ++i) {
+    ifs >> n;
+    if (ifs.fail()) break;
+    if (n > 0) {
+      cell->Reset();
+      for (int j = 0; j < n; ++j) {
+        ifs >> ptId;
+        cell->InsertNextId(ptId);
+      }
+      if      (n == 1) verts->InsertNextCell(cell);
+      else if (n == 2) lines->InsertNextCell(cell);
+      else             polys->InsertNextCell(cell);
+      if (!ifs.good()) break;
+    }
+  }
+  if (ifs.fail()) return polydata;
+
+  verts->Squeeze();
+  lines->Squeeze();
+  polys->Squeeze();
+
+  polydata->SetPoints(points);
+  if (verts->GetNumberOfCells() > 0) polydata->SetVerts(verts);
+  if (lines->GetNumberOfCells() > 0) polydata->SetLines(lines);
+  if (polys->GetNumberOfCells() > 0) polydata->SetPolys(polys);
+
+  return polydata;
+}
+
+// -----------------------------------------------------------------------------
 vtkSmartPointer<vtkPolyData> ReadPolyData(const char *fname, int *ftype, bool exit_on_failure)
 {
   vtkSmartPointer<vtkPolyData> polydata;
@@ -259,6 +324,8 @@ vtkSmartPointer<vtkPolyData> ReadPolyData(const char *fname, int *ftype, bool ex
     polydata = reader->GetOutput();
   } else if (ext == ".dfs") {
     polydata = ReadDFS(fname);
+  } else if (ext == ".off") {
+    polydata = ReadOFF(fname);
   } else {
     vtkSmartPointer<vtkPolyDataReader> reader;
     reader = vtkSmartPointer<vtkPolyDataReader>::New();
@@ -539,6 +606,36 @@ int WriteTetGenSMesh(const char *fname, vtkPolyData *polydata, const PointSet *h
 }
 
 // -----------------------------------------------------------------------------
+bool WriteOFF(const char *fname, vtkPolyData *polydata)
+{
+  ofstream ofs(fname);
+  ofs.precision(12);
+
+  ofs << "OFF\n";
+  ofs << polydata->GetNumberOfPoints() << " ";
+  ofs << polydata->GetNumberOfCells()  << " 0\n";
+
+  double p[3];
+  for (vtkIdType ptId = 0; ptId < polydata->GetNumberOfPoints(); ++ptId) {
+    polydata->GetPoint(ptId, p);
+    ofs << p[0] << " " << p[1] << " " << p[2] << "\n";
+  }
+
+  vtkIdType numPts, *ptIds;
+  polydata->BuildCells();
+  for (vtkIdType cellId = 0; cellId < polydata->GetNumberOfCells(); ++cellId) {
+    polydata->GetCellPoints(cellId, numPts, ptIds);
+    ofs << numPts;
+    for (vtkIdType i = 0; i < numPts; ++i) {
+      ofs << " " << ptIds[i];
+    }
+    ofs << "\n";
+  }
+
+  return !ofs.fail();
+}
+
+// -----------------------------------------------------------------------------
 bool WritePointSet(const char *fname, vtkPointSet *pointset, bool compress, bool ascii)
 {
   vtkPolyData *polydata = vtkPolyData::SafeDownCast(pointset);
@@ -602,6 +699,8 @@ bool WritePolyData(const char *fname, vtkPolyData *polydata, bool compress, bool
     success = WriteTetGenSMesh(fname, polydata);
   } else if (ext == ".dfs") {
     success = WriteDFS(fname, polydata);
+  } else if (ext == ".off") {
+    success = WriteOFF(fname, polydata);
   } else {
     vtkSmartPointer<vtkPolyDataWriter> writer;
     writer = vtkSmartPointer<vtkPolyDataWriter>::New();
@@ -612,6 +711,21 @@ bool WritePolyData(const char *fname, vtkPolyData *polydata, bool compress, bool
     success = writer->Write();
   }
   return (success == 1);
+}
+
+// =============================================================================
+// VTK / MIRTK type conversion
+// =============================================================================
+
+// -----------------------------------------------------------------------------
+void AddPoints(PointSet &oset, vtkPointSet *iset)
+{
+  double p[3];
+  oset.Reserve(oset.Size() + static_cast<int>(iset->GetNumberOfPoints()));
+  for (vtkIdType ptId = 0; ptId < iset->GetNumberOfPoints(); ++ptId) {
+    iset->GetPoint(ptId, p);
+    oset.Add(Point(p));
+  }
 }
 
 // =============================================================================

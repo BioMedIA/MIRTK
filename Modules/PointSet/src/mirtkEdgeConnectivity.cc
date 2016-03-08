@@ -26,8 +26,8 @@
 #include <mirtkParallel.h>
 #include <mirtkProfiling.h>
 #include <mirtkAlgorithm.h> // sort
+#include <mirtkVtkMath.h>
 
-#include <vtkMath.h>
 #include <vtkSmartPointer.h>
 #include <vtkGenericCell.h>
 

@@ -1,7 +1,7 @@
 # ============================================================================
 # Copyright (c) 2011-2012 University of Pennsylvania
 # Copyright (c) 2013-2014 Carnegie Mellon University
-# Copyright (c) 2013-2014 Andreas Schuh
+# Copyright (c) 2013-2016 Andreas Schuh
 # All rights reserved.
 #
 # See COPYING file for license information or visit
@@ -80,6 +80,22 @@ endmacro ()
 # ----------------------------------------------------------------------------
 ## @brief Check meta-data and set defaults.
 #
+# This command sets PROJECT_IS_SUBPROJECT and PROJECT_IS_SUBMODULE. A project
+# is a (loosely coupled) "subproject" when it uses the SUBPROJECT option of
+# basis_project to define the name of the subproject. It then also must specify
+# the name of the PACKAGE this subproject belongs to. When a project uses the
+# NAME option instead to declare its name, it can be either an independent
+# project or a (tighly coupled) "submodule" of another project. A project is
+# regarded a "submodule" when it is not a subproject but specifies a PACKAGE
+# it belongs to. Otherwise, when only a project has only a NAME, but no PACKAGE
+# the PACKAGE name is set equal the project NAME and the project is regarded
+# as neither a subproject nor a submodule. When either a subproject or submodule
+# is built as part of a top-level project (usually the PACKAGE it belongs to),
+# the CMake variable PROJECT_IS_MODULE is furthermore set to TRUE by the
+# basis_add_module command. The PROJECT_IS_SUBPROJECT and PROJECT_IS_SUBMODULE
+# flags are used by the BASIS commands to decide to which "namespace" the
+# targets of a project belong to and what components to install.
+#
 # @sa basis_project()
 # @sa basis_slicer_module()
 macro (basis_project_check_metadata)
@@ -129,6 +145,11 @@ macro (basis_project_check_metadata)
   endif ()
   if (PROJECT_PACKAGE)
     set (PROJECT_PACKAGE_NAME "${PROJECT_PACKAGE}")
+  endif ()
+  if (PROJECT_PACKAGE_NAME AND NOT PROJECT_IS_SUBPROJECT)
+    set (PROJECT_IS_SUBMODULE TRUE)
+  else ()
+    set (PROJECT_IS_SUBMODULE FALSE)
   endif ()
   if (NOT PROJECT_PACKAGE_NAME)
     if (PROJECT_IS_MODULE)
@@ -746,7 +767,8 @@ endmacro ()
 # @retval PROJECT_OPTIONAL_TOOLS_DEPENDS  See @c OPTIONAL_TOOLS_DEPENDS.
 # @retval PROJECT_TEST_DEPENDS            See @c TEST_DEPENDS.
 # @retval PROJECT_OPTIONAL_TEST_DEPENDS   See @c OPTIONAL_TEST_DEPENDS.
-# @retval PROJECT_IS_SUBPROJECT           See @c TRUE if @c IS_SUBPROJECT option given or @c FALSE otherwise.
+# @retval PROJECT_IS_SUBPROJECT           @c TRUE if @c SUBPROJECT used instead of NAME or @c FALSE otherwise.
+# @retval PROJECT_IS_SUBMODULE            @c TRUE when project @c NAME and @c PACKAGE name is given, @c FALSE otherwise.
 # @retval PROJECT_DEFAULT_MODULES         See @c DEFAULT_MODULES.
 # @retval PROJECT_EXTERNAL_MODULES        See @c EXTERNAL_MODULES.
 #
@@ -869,9 +891,13 @@ macro (basis_project_modules)
     if (EXISTS "${_PATH}/BasisProject.cmake")
       list (APPEND MODULE_INFO_FILES "${_PATH}/BasisProject.cmake")
     else ()
-      message (FATAL_ERROR "Check your top-level ${CMAKE_CURRENT_SOURCE_DIR}/BasisProject.cmake"
-                           " file because the module ${_PATH}/BasisProject.cmake"
-                           " file does not appear to exist.")
+      get_filename_component(MODULE "${_PATH}" NAME)
+      list(FIND PROJECT_EXTERNAL_MODULES "${MODULE}" IDX)
+      if (IDX EQUAL -1)
+        message (FATAL_ERROR "Check your top-level ${CMAKE_CURRENT_SOURCE_DIR}/BasisProject.cmake"
+                             " file because the module ${_PATH}/BasisProject.cmake"
+                             " file does not appear to exist.")
+      endif ()
     endif ()
   endforeach ()
   unset (_PATH)
@@ -902,7 +928,7 @@ macro (basis_project_modules)
     # set in the scope of this function but its parent scope only
     set (${PROJECT_NAME}_DEPENDS                "${DEPENDS}"                PARENT_SCOPE)
     set (${PROJECT_NAME}_OPTIONAL_DEPENDS       "${OPTIONAL_DEPENDS}"       PARENT_SCOPE)
-    set (${PROJECT_NAME}_TOOLS_DEPENDS          "${TOOL_DEPENDS}"           PARENT_SCOPE)
+    set (${PROJECT_NAME}_TOOLS_DEPENDS          "${TOOLS_DEPENDS}"          PARENT_SCOPE)
     set (${PROJECT_NAME}_OPTIONAL_TOOLS_DEPENDS "${OPTIONAL_TOOLS_DEPENDS}" PARENT_SCOPE)
     set (${PROJECT_NAME}_TEST_DEPENDS           "${TEST_DEPENDS}"           PARENT_SCOPE)
     set (${PROJECT_NAME}_OPTIONAL_TEST_DEPENDS  "${OPTIONAL_TEST_DEPENDS}"  PARENT_SCOPE)
@@ -930,13 +956,14 @@ macro (basis_project_modules)
 
   set (PROJECT_MODULES)
   foreach (F IN LISTS MODULE_INFO_FILES)
+    # clean path without // to fix issue with UNC paths on Windows
+    get_filename_component (F "${F}" ABSOLUTE)
     basis_module_info (${F})
     list (APPEND PROJECT_MODULES ${MODULE})
     get_filename_component (${MODULE}_BASE ${F} PATH)
+    basis_get_relative_path (${MODULE}_BASE_REL "${CMAKE_CURRENT_SOURCE_DIR}" "${${MODULE}_BASE}")
     set (MODULE_${MODULE}_SOURCE_DIR "${${MODULE}_BASE}")
-    # use module name as subdirectory name such that the default package
-    # configuration file knows where to find the module configurations
-    set (MODULE_${MODULE}_BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}/modules/${MODULE}")
+    set (MODULE_${MODULE}_BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}/${${MODULE}_BASE_REL}")
     # help modules to find each other using basis_find_package()
     set (${MODULE}_DIR "${MODULE_${MODULE}_BINARY_DIR}")
     # only set EXCLUDE_<MODULE>_FROM_ALL when not specified on command-line using -D switch
@@ -1919,7 +1946,7 @@ macro (basis_initialize_settings)
   endif ()
   # package configuration
   set (_TOPLEVEL_PROJECT_PACKAGE_CONFIG_PREFIX "${TOPLEVEL_PROJECT_PACKAGE_NAME}")
-  if (PROJECT_IS_MODULE)
+  if (PROJECT_IS_MODULE OR PROJECT_IS_SUBMODULE)
     set (_PROJECT_PACKAGE_CONFIG_PREFIX "${_TOPLEVEL_PROJECT_PACKAGE_CONFIG_PREFIX}${PROJECT_NAME}")
   else ()
     set (_PROJECT_PACKAGE_CONFIG_PREFIX "${_TOPLEVEL_PROJECT_PACKAGE_CONFIG_PREFIX}")
@@ -2132,11 +2159,9 @@ endmacro ()
 # ----------------------------------------------------------------------------
 ## @brief Add subdirectory or ignore it if it does not exist.
 macro (basis_add_subdirectory SUBDIR)
-  if (NOT IS_ABSOLUTE "${SUBDIR}")
-    set (SUBDIR "${CMAKE_CURRENT_SOURCE_DIR}/${SUBDIR}")
-  endif ()
-  if (IS_DIRECTORY "${SUBDIR}")
-    add_subdirectory ("${SUBDIR}")
+  get_filename_component(_SUBDIR "${SUBDIR}" ABSOLUTE)
+  if (IS_DIRECTORY "${_SUBDIR}")
+    add_subdirectory ("${_SUBDIR}")
   elseif (BASIS_VERBOSE)
     message (WARNING "Skipping non-existing subdirectory ${SUBDIR}.")
   endif ()
@@ -2165,12 +2190,13 @@ macro (basis_add_module MODULE)
     message (STATUS "Configuring module ${MODULE}... - done")
   endif ()
   set (PROJECT_IS_MODULE FALSE)
-  include ("${${MODULE}_DIR}/${TOPLEVEL_PROJECT_PACKAGE_CONFIG_PREFIX}${MODULE}Config.cmake")
+  include ("${CMAKE_BINARY_DIR}/${TOPLEVEL_PROJECT_PACKAGE_CONFIG_PREFIX}${MODULE}Config.cmake")
 endmacro ()
 
 # ----------------------------------------------------------------------------
 ## @brief Use a previously added project module.
 macro (basis_use_module MODULE)
+  set (NO_${MODULE}_IMPORTS TRUE)
   include ("${${MODULE}_USE_FILE}")
   add_definitions(-DHAVE_${PROJECT_PACKAGE_NAME}_${MODULE})
 endmacro ()
@@ -2484,7 +2510,10 @@ macro (basis_project_end)
  
     # --------------------------------------------------------------------------
     # add installation rule to register package with CMake
-    if (BASIS_REGISTER AND NOT PROJECT_IS_MODULE AND PROJECT_VERSION VERSION_GREATER 0.0.0)
+    if (BASIS_REGISTER
+        AND NOT PROJECT_IS_MODULE
+        AND NOT PROJECT_IS_SUBMODULE
+        AND PROJECT_VERSION VERSION_GREATER 0.0.0)
       basis_register_package ()
     endif ()
  

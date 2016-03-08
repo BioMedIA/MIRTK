@@ -60,7 +60,7 @@ basis_project (
     MIRTK{PointSet}
     MIRTK{Deformable}
     MATLAB{mwmclmcrrt}
-    "VTK-6{
+    "VTK-7|6{
       vtkCommonCore,
       vtkCommonDataModel,
       vtkIOXML

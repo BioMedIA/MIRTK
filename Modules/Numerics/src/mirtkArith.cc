@@ -16,9 +16,8 @@
  * limitations under the License.
  */
 
-#include <cmath>
-#include <cstdlib>
 
+#include <mirtkMath.h>
 #include <mirtkArith.h>
 
 using namespace std;
@@ -66,7 +65,7 @@ double ACos(double fValue)
     else
       return 0.0;
   } else {
-    return M_PI;
+    return pi;
   }
 }
 
@@ -77,9 +76,9 @@ double ASin(double fValue)
     if ( fValue < 1.0 )
       return double(asin(fValue));
     else
-      return -M_PI/2.0;
+      return -pi_half;
   } else {
-    return M_PI/2.0;
+    return pi_half;
   }
 }
 

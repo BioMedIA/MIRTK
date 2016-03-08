@@ -22,7 +22,6 @@
 
 #include <mirtkPolyDataFilter.h>
 
-#include <mirtkArray.h>
 #include <mirtkPoint.h>
 
 #include <vtkPriorityQueue.h>
@@ -59,43 +58,12 @@ public:
   /// Enumeration of cell order in which melting is performed
   enum Order
   {
-    INDEX,         ///< Cell index
-    AREA,          ///< Cell area
-    SHORTEST_EDGE  ///< Length of shortest edge
+    INDEX,        ///< Cell index
+    AREA,         ///< Cell area
+    SHORTEST_EDGE ///< Length of shortest edge
   };
 
 protected:
-
-  /// Structure storing information about cell in priority queue
-  struct CellInfo {
-    vtkIdType cellId;
-    double    priority;
-
-    bool operator <(const CellInfo &other) const
-    {
-      return priority < other.priority;
-    }
-  };
-
-  /// Structure storing information about edge in priority queue
-  struct EdgeInfo {
-    vtkIdType ptId1;
-    vtkIdType ptId2;
-    double    priority;
-
-    bool operator <(const EdgeInfo &other) const
-    {
-      return priority < other.priority;
-    }
-  };
-
-  /// Order array of cell information structures used by Melting pass
-  typedef Array<CellInfo>           CellQueue;
-  typedef CellQueue::const_iterator CellIterator;
-
-  /// Order array of cell information structures used by Melting pass
-  typedef Array<EdgeInfo>           EdgeQueue;
-  typedef EdgeQueue::const_iterator EdgeIterator;
 
   // ---------------------------------------------------------------------------
   // Attributes
@@ -156,11 +124,20 @@ protected:
   /// Define in which order to process the cells in the melting pass
   mirtkPublicAttributeMacro(Order, MeltingOrder);
 
+  /// Priority queue used by melting pass
+  mirtkAttributeMacro(vtkSmartPointer<vtkPriorityQueue>, MeltingQueue);
+
   /// Whether to melt nodes with connectivity three by merging the adjacent triangles
   mirtkPublicAttributeMacro(bool, MeltNodes);
 
   /// Whether to melt entire triangles if all three edges are below threshold
   mirtkPublicAttributeMacro(bool, MeltTriangles);
+
+  /// Invert pairs of triangles which share an edge that is longer than the maximum
+  mirtkPublicAttributeMacro(bool, InvertTrianglesSharingOneLongEdge);
+
+  /// Invert edge of two triangles when it increases the minimum height
+  mirtkPublicAttributeMacro(bool, InvertTrianglesToIncreaseMinHeight);
 
   /// Number of melted nodes with connectivity 3
   mirtkReadOnlyAttributeMacro(int, NumberOfMeltedNodes);
@@ -188,6 +165,15 @@ protected:
 
 public:
 
+  /// Number of melting operations
+  int NumberOfMeltings() const;
+
+  /// Number of subdivision operations
+  int NumberOfSubdivisions() const;
+
+  /// Number of local remeshing operations
+  int NumberOfChanges() const;
+
   // ---------------------------------------------------------------------------
   // Construction/Destruction
 
@@ -204,9 +190,9 @@ public:
   virtual ~PolyDataRemeshing();
 
   // ---------------------------------------------------------------------------
-  // Auxiliary functions
+  // Inline auxiliary functions
 
-protected:
+private:
 
   /// Get (transformed) surface point
   void GetPoint(vtkIdType, double [3]) const;
@@ -254,14 +240,8 @@ protected:
   ///         its connectivity prohibits a melting operation.
   vtkIdType GetCellEdgeNeighborPoint(vtkIdType, vtkIdType, vtkIdType, bool = false);
 
-  /// Queue mesh cells by area, smallest first
-  CellQueue QueueCellsByArea() const;
-
-  /// Queue mesh cells by length of shortest edge, smallest first
-  CellQueue QueueCellsByShortestEdge() const;
-
-  /// Queue mesh edges by length, smallest first
-  EdgeQueue QueueEdgesByLength() const;
+  /// Get priority of cell during melting pass
+  double MeltingPriority(vtkIdType) const;
 
   /// Interpolate point attributes when subdividing edge
   void InterpolatePointData(vtkIdType, vtkIdType, vtkIdType);
@@ -277,21 +257,25 @@ protected:
 
   // ---------------------------------------------------------------------------
   // Local remeshing operations
-
-  /// Replace triangles adjacent to node with connectivity three by single triangle
-  void MeltTriplets();
+protected:
 
   /// Collapse single short edge of two adjacent triangles
-  void MeltEdge(vtkIdType, vtkIdType, vtkIdType, vtkIdList *);
+  bool MeltEdge(vtkIdType, vtkIdType, vtkIdType, vtkIdList *);
 
   /// Collapse entire triangle with more than one too short edges
-  void MeltTriangle(vtkIdType, vtkIdList *);
+  bool MeltTriangle(vtkIdType, vtkIdList *);
 
   /// Melt edges or triangle if one or more edge is too short
-  void Melting(vtkIdType, vtkIdList *);
+  void MeltingOfCells();
 
-  /// Melt edge if it still exists and is too short
-  void Melting(vtkIdType, vtkIdList *, vtkIdType, vtkIdList *);
+  /// Replace triangles adjacent to node with connectivity three by single triangle
+  void MeltingOfNodes();
+
+  /// Invert triangles which share one too long edge
+  void InversionOfTrianglesSharingOneLongEdge();
+
+  /// Invert triangles when minimum height over this edge increases
+  void InversionOfTrianglesToIncreaseMinHeight();
 
   /// Bisect triangle
   void Bisect(vtkIdType, vtkIdType, vtkIdType, vtkIdType, vtkPoints *, vtkCellArray *);
@@ -305,8 +289,6 @@ protected:
   // ---------------------------------------------------------------------------
   // Execution
 
-protected:
-
   /// Initialize filter after input and parameters are set
   virtual void Initialize();
 
@@ -316,10 +298,10 @@ protected:
   /// Perform local remeshing passes
   virtual void Execute();
 
-  /// Perform first pass: melt edges or triangles if one or more edge is too short
+  /// Perform first pass: melt edges or triangles if one or more edges are too short
   void Melting();
 
-  /// Perform second pass: invert of triangles sharing a long edge
+  /// Perform second pass: inversion of triangles sharing a long edge
   void Inversion();
 
   /// Perform third pass: subdivide triangles with remaining long edges
@@ -339,8 +321,35 @@ public:
   /// Enable/disable melting of triangles when all edges are too short
   mirtkOnOffMacro(MeltTriangles);
 
+  /// Enable/disable inversion of triangles which share one long edge
+  mirtkOnOffMacro(InvertTrianglesSharingOneLongEdge);
+
+  /// Enable/disable inversion of triangles when it increases minimum height
+  mirtkOnOffMacro(InvertTrianglesToIncreaseMinHeight);
+
 };
 
+////////////////////////////////////////////////////////////////////////////////
+// Inline definitions
+////////////////////////////////////////////////////////////////////////////////
+
+// -----------------------------------------------------------------------------
+int PolyDataRemeshing::NumberOfMeltings() const
+{
+  return _NumberOfMeltedNodes + _NumberOfMeltedEdges + _NumberOfMeltedCells;
+}
+
+// -----------------------------------------------------------------------------
+int PolyDataRemeshing::NumberOfSubdivisions() const
+{
+  return _NumberOfBisections + _NumberOfTrisections + _NumberOfQuadsections;
+}
+
+// -----------------------------------------------------------------------------
+int PolyDataRemeshing::NumberOfChanges() const
+{
+  return NumberOfMeltings() + NumberOfInversions() + NumberOfSubdivisions();
+}
 
 } // namespace mirtk
 

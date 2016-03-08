@@ -44,7 +44,7 @@ def export_library_path(paths):
         key = 'DYLD_LIBRARY_PATH'
     else:
         key = 'LD_LIBRARY_PATH'
-    paths = filter(bool, _LIBRARY_PATH)
+    paths = list(filter(bool, _LIBRARY_PATH))
     user_path = os.environ.get(key, '')
     if user_path: paths.append(user_path)
     os.environ[key] = ':'.join(paths)

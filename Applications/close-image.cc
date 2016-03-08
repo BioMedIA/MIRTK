@@ -62,8 +62,54 @@ void PrintHelp(const char *name)
 template <class TVoxel>
 void Close(BaseImage *image, int iterations, ConnectivityType connectivity)
 {
-  Dilate<TVoxel>(image, iterations, connectivity);
-  Erode <TVoxel>(image, iterations, connectivity);
+  int i1, j1, k1, i2, j2, k2;
+  image->PutBackgroundValueAsDouble(.0);
+  image->BoundingBox(i1, j1, k1, i2, j2, k2);
+
+  i1 -= iterations;
+  j1 -= iterations;
+  k1 -= iterations;
+  i2 += iterations;
+  j2 += iterations;
+  k2 += iterations;
+
+  if (i1 < 0 || i2 >= image->X() ||
+      j1 < 0 || j2 >= image->Y() ||
+      k1 < 0 || k2 >= image->Z()) {
+
+    GenericImage<TVoxel> padded(i2 - i1 + 1, j2 - j1 + 1, k2 - k1 + 1);
+
+    i1 += iterations;
+    j1 += iterations;
+    k1 += iterations;
+    i2 -= iterations;
+    j2 -= iterations;
+    k2 -= iterations;
+
+    for (int k = k1; k <= k2; ++k)
+    for (int j = j1; j <= j2; ++j)
+    for (int i = i1; i <= i2; ++i) {
+      padded(i - i1 + iterations, j - j1 + iterations, k - k1 + iterations)
+          = static_cast<TVoxel>(image->GetAsDouble(i, j, k));
+    }
+
+    Dilate<TVoxel>(&padded, iterations, connectivity);
+    Erode <TVoxel>(&padded, iterations, connectivity);
+
+    for (int k = k1; k <= k2; ++k)
+    for (int j = j1; j <= j2; ++j)
+    for (int i = i1; i <= i2; ++i) {
+      image->PutAsDouble(i, j, k, static_cast<double>(padded(i - i1 + iterations,
+                                                             j - j1 + iterations,
+                                                             k - k1 + iterations)));
+    }
+
+  } else {
+
+    Dilate<TVoxel>(image, iterations, connectivity);
+    Erode <TVoxel>(image, iterations, connectivity);
+
+  }
 }
 
 // =============================================================================
@@ -99,8 +145,11 @@ int main(int argc, char *argv[])
     case MIRTK_VOXEL_BINARY:  Close<BinaryPixel>(image.get(), iterations, connectivity); break;
     case MIRTK_VOXEL_GREY:    Close<GreyPixel  >(image.get(), iterations, connectivity); break;
     case MIRTK_VOXEL_REAL:    Close<RealPixel  >(image.get(), iterations, connectivity); break;
-    default:
-      FatalError("Unsupported voxel type: " << ToString(image->GetDataType()));
+    default: {
+      RealImage other(*image);
+      Close<RealPixel>(&other, iterations, connectivity);
+      *image = other;
+    } break;
   }
   if (verbose) cout << "done" << endl;
 

@@ -60,49 +60,53 @@ int main(int argc, char *argv[])
   const char *input_name  = POSARG(1);
   const char *output_name = POSARG(2);
 
-  int voxel_type = MIRTK_VOXEL_SHORT;
-  double min_value = numeric_limits<double>::quiet_NaN();
-  double max_value = numeric_limits<double>::quiet_NaN();
+  int    voxel_type = MIRTK_VOXEL_UNKNOWN;
+  double min_value  = numeric_limits<double>::quiet_NaN();
+  double max_value  = numeric_limits<double>::quiet_NaN();
 
   for (ALL_OPTIONS) {
-    if      (OPTION("-char")   == 0) voxel_type = MIRTK_VOXEL_CHAR;
-    else if (OPTION("-uchar")  == 0) voxel_type = MIRTK_VOXEL_UNSIGNED_CHAR;
-    else if (OPTION("-short")  == 0) voxel_type = MIRTK_VOXEL_SHORT;
-    else if (OPTION("-ushort") == 0) voxel_type = MIRTK_VOXEL_UNSIGNED_SHORT;
-    else if (OPTION("-float")  == 0) voxel_type = MIRTK_VOXEL_FLOAT;
-    else if (OPTION("-double") == 0) voxel_type = MIRTK_VOXEL_DOUBLE;
-    else if (OPTION("-rescale") == 0) {
-      const char *arg = ARGUMENT;
-      if (!FromString(arg, min_value)) {
-        FatalError("Invalid -rescale <min> argument: " << min_value);
-      }
-      arg = ARGUMENT;
-      if (!FromString(arg, max_value)) {
-        FatalError("Invalid -rescale <max> argument: " << max_value);
-      }
+    if      (OPTION("-char"))   voxel_type = MIRTK_VOXEL_CHAR;
+    else if (OPTION("-uchar"))  voxel_type = MIRTK_VOXEL_UNSIGNED_CHAR;
+    else if (OPTION("-short"))  voxel_type = MIRTK_VOXEL_SHORT;
+    else if (OPTION("-ushort")) voxel_type = MIRTK_VOXEL_UNSIGNED_SHORT;
+    else if (OPTION("-float"))  voxel_type = MIRTK_VOXEL_FLOAT;
+    else if (OPTION("-double")) voxel_type = MIRTK_VOXEL_DOUBLE;
+    else if (OPTION("-binary")) voxel_type = MIRTK_VOXEL_BINARY;
+    else if (OPTION("-byte"))   voxel_type = MIRTK_VOXEL_BYTE;
+    else if (OPTION("-grey"))   voxel_type = MIRTK_VOXEL_GREY;
+    else if (OPTION("-real"))   voxel_type = MIRTK_VOXEL_REAL;
+    else if (OPTION("-rescale")) {
+      PARSE_ARGUMENT(min_value);
+      PARSE_ARGUMENT(max_value);
     }
     else HANDLE_STANDARD_OR_UNKNOWN_OPTION();
   }
 
   // Read image
   InitializeImageIOLibrary();
-  GenericImage<double> image(input_name);
+  unique_ptr<BaseImage> input(BaseImage::New(input_name));
+  if (voxel_type == MIRTK_VOXEL_UNKNOWN) {
+    voxel_type = input->GetDataType();
+  }
 
   // Scale image
   if (!IsNaN(min_value) || !IsNaN(max_value)) {
     if (IsNaN(min_value) || IsNaN(max_value)) {
       double vmin, vmax;
-      image.GetMinMaxAsDouble(vmin, vmax);
+      input->GetMinMaxAsDouble(vmin, vmax);
       if (IsNaN(min_value)) min_value = vmin;
       if (IsNaN(max_value)) max_value = vmax;
     }
     if (min_value >= max_value) swap(min_value, max_value);
-    image.PutMinMaxAsDouble(min_value, max_value);
+    if (voxel_type != MIRTK_VOXEL_FLOAT && voxel_type != MIRTK_VOXEL_DOUBLE) {
+      input.reset(new GenericImage<double>(*input));
+    }
+    input->PutMinMaxAsDouble(min_value, max_value);
   }
 
   // Convert image
   unique_ptr<BaseImage> output(BaseImage::New(voxel_type));
-  *output = image;
+  *output = *input;
 
   // Write image
   output->Write(output_name);

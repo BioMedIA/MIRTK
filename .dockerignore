@@ -1,0 +1,16 @@
+Dockerfile
+Docker/Ubuntu/Dockerfile
+Docker/Ubuntu/.dockerignore
+build*
+Build*
+xcode*
+Xcode*
+Debug*
+Release*
+nbproject/private
+nbproject/configurations.xml
+CMakeLists.txt.user*
+.project
+.cproject
+**/.DS_Store
+.*.swp

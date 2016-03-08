@@ -393,7 +393,7 @@ int main(int argc, char *argv[])
         if (d > rmax) rmax = d;
       }
       double r = (type == OutputBoundingSphere ? rmax : rmin);
-      const double l = 2.0 * M_PI * r;
+      const double l = two_pi * r;
       if (IsNaN(resolution)) resolution = r / 8;
       vtkNew<vtkSphereSource> sphere;
       sphere->SetCenter(c);

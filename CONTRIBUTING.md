@@ -17,18 +17,21 @@ Technical support may also be requested by speaking with the team directly via
 ## Code contributions
 
 The MIRTK maintainers welcome code contributions from MIRTK users, preferrably via
-[pull requests](https://github.com/BioMedIA/MIRTK/pulls). Please provide as much information
-as possible to help with the code review, such as why this change is needed, what it does
-and how to check whether the code works as intended.
+[pull requests](https://github.com/BioMedIA/MIRTK/pulls) against the develop branch.
+Please provide as much information as possible to help with the code review, such as why
+this change is needed, what it does and how to check whether the code works as intended.
 
-If you have developed your own MIRTK Package and would like it to be added to the MIRTK
-distribution, please send a message to the mailing list or chat with the MIRTK team
-on [Gitter](https://gitter.im/BioMedIA/MIRTK). Examples of MIRTK Packages
-are the [Deformable](https://github.com/MIRTK/Deformable) and
+If you intend to contribute your applications to the MIRTK distribution, develop your tools
+either in a fork of the MIRTK Git repository or a your own MIRTK Package
+with the common file organization for MIRTK Packages and the appropriate CMake_ configuration
+files. See some of the already available modules in the ``Packages/`` directory of the
+MIRTK source tree as reference. Examples of MIRTK Packages are the
+[Deformable](https://github.com/MIRTK/Deformable) and
 [Volumetric Mapping](https://github.com/MIRTK/VolumetricMapping) modules,
-each developed in their own respective GitHub repository. Template files for the creation
-of a new MIRTK Package can be found in the [Templates](Templates/mirtk-module) directory.
-These template files can be customized using the
-[basisproject](http://opensource.andreasschuh.com/cmake-basis/howto/use-and-customize-templates.html#use-a-template)
-tool of [CMake BASIS](http://opensource.andreasschuh.com/cmake-basis/),
-but can also simply be copied and edited by hand.
+each developed in their own respective GitHub repository.
+Template files for the creation of a new MIRTK Package can be found in the
+[Templates](Templates/mirtk-module) directory. These template files can be customized using
+the [basisproject](http://opensource.andreasschuh.com/cmake-basis/howto/use-and-customize-templates.html#use-a-template)
+tool of [CMake BASIS](http://opensource.andreasschuh.com/cmake-basis/), but can also
+simply be copied and edited by hand. But do not copy the ```_conf.py``` file from the
+```Templates/mirtk-module/v*/``` directory.

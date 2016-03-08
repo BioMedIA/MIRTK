@@ -32,6 +32,7 @@ class Vector3
 public:
   // construction
   Vector3 ();
+  Vector3 (double fScalar);
   Vector3 (double fX, double fY, double fZ);
   Vector3 (double afCoordinate[3]);
   Vector3 (const Vector3& rkVector);
@@ -43,6 +44,7 @@ public:
 
   // assignment and comparison
   Vector3& operator= (const Vector3& rkVector);
+  Vector3& operator= (double fScalar);
   bool operator== (const Vector3& rkVector) const;
   bool operator!= (const Vector3& rkVector) const;
 
@@ -64,7 +66,8 @@ public:
   double Length () const;
   double SquaredLength () const;
   double Dot (const Vector3& rkVector) const;
-  double Unitize (double fTolerance = 1e-06);
+  double Normalize (double fTolerance = 1e-06);
+  double Unitize (double fTolerance = 1e-06); ///< \deprecated Use Normalize instead
   Vector3 Cross (const Vector3& rkVector) const;
   Vector3 UnitCross (const Vector3& rkVector) const;
 

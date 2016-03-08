@@ -29,6 +29,7 @@
 #include <mirtkPointSetUtils.h>
 #include <mirtkPolyDataSmoothing.h>
 #include <mirtkPolyDataCurvature.h>
+#include <mirtkVtkMath.h>
 
 #include <vtkSmartPointer.h>
 #include <vtkFloatArray.h>
@@ -38,7 +39,6 @@
 #include <vtkIdList.h>
 #include <vtkPolyDataNormals.h>
 #include <vtkCurvatures.h>
-#include <vtkMath.h>
 #include <vtkDataSetAttributes.h>
 #include <vtkWindowedSincPolyDataFilter.h>
 
@@ -304,7 +304,7 @@ void AreaWeightedLaplacianSmoothing(vtkPolyData *input,
     area = surfaceArea(input);
 
     // The L_2 norm using the Tosun formulation (MedIA 2004)
-    h2norm = sqrt(E_H2 * area / 4.0 / M_PI);
+    h2norm = sqrt(E_H2 * area / 4.0 / pi);
     if (h2norm < smoothnessThreshold) break;
     if (verbose > 1) cout << h2norm << endl;
 

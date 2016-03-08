@@ -21,15 +21,17 @@
 #include <mirtkOptions.h>
 
 #include <mirtkPointSetUtils.h>
+#include <mirtkVtkMath.h>
 
-#include <vtkMath.h>
 #include <vtkPointSet.h>
 #include <vtkPolyData.h>
 #include <vtkPointData.h>
 #include <vtkFloatArray.h>
 #include <vtkCellLocator.h>
 #include <vtkPolyDataNormals.h>
+#include <vtkModifiedBSPTree.h>
 #include <vtkKdTreePointLocator.h>
+#include <vtkDataReader.h> // VTK_ASCII, VTK_BINARY defines
 
 using namespace mirtk;
 
@@ -45,10 +47,23 @@ void PrintHelp(const char *name)
   cout << "Usage: " << name << " <target> <source> [<output>] [options]" << endl;
   cout << endl;
   cout << "Description:" << endl;
-  cout << "  Evaluate distance between two given point sets." << endl;
+  cout << "  Evaluate distance between two given point sets. With increased verbosity (see :option:`-v`)," << endl;
+  cout << "  the mean and standard deviation of the measured distances  (verbosity level >=1) and the" << endl;
+  cout << "  individual distance for each target point is reported (verbosity level >=2)." << endl;
+  cout << endl;
+  cout << "Arguments:" << endl;
+  cout << "  target   Target point set/surface." << endl;
+  cout << "  source   Source point set/surface." << endl;
+  cout << "  output   Output point set/surface with point data array of measured distances. (default: none)" << endl;
   cout << endl;
   cout << "Optional arguments:" << endl;
-  cout << "  -name   Name of output point distance array. (default: Distance)" << endl;
+  cout << "  -name <name>       Name of output point data array or column header. (default: Distance)" << endl;
+  cout << "  -separator <sep>   Column separator used for table of measured point distances. (default: \\t)" << endl;
+  cout << "  -point             Evaluate minimum distance to closest point. (default for point clouds)" << endl;
+  cout << "  -cell              Evaluate minimum distance to closest surface point. (default for surface meshes)" << endl;
+  cout << "  -normal            Evaluate minimum distance along surface normal." << endl;
+  cout << "  -index             Evaluate distance between points with identical index, e.g., pairs of fiducial markers." << endl;
+  cout << "  -hausdorff         Report Hausdorff distance. (default: off)" << endl;
   PrintStandardOptions(cout);
   cout << endl;
 }
@@ -64,8 +79,7 @@ void EvaluateClosestPointDistance(vtkPointSet *target, vtkPointSet *source, vtkD
   vtkIdType otherPtId;
   double    a[3], b[3];
 
-  vtkSmartPointer<vtkAbstractPointLocator> locator;
-  locator = vtkSmartPointer<vtkKdTreePointLocator>::New();
+  vtkNew<vtkKdTreePointLocator> locator;
   locator->SetDataSet(source);
   locator->BuildLocator();
 
@@ -83,17 +97,16 @@ void EvaluateClosestCellDistance(vtkPointSet *target, vtkPointSet *source, vtkDa
 {
   int       subId;
   vtkIdType cellId;
-  double    a[3], b[3], dist;
+  double    a[3], b[3], dist2;
 
-  vtkSmartPointer<vtkAbstractCellLocator> locator;
-  locator = vtkSmartPointer<vtkCellLocator>::New();
+  vtkNew<vtkCellLocator> locator;
   locator->SetDataSet(source);
   locator->BuildLocator();
 
   for (vtkIdType ptId = 0; ptId < target->GetNumberOfPoints(); ++ptId) {
     target->GetPoint(ptId, a);
-    locator->FindClosestPoint(a, b, cellId, subId, dist);
-    distance->SetComponent(ptId, 0, sqrt(dist));
+    locator->FindClosestPoint(a, b, cellId, subId, dist2);
+    distance->SetComponent(ptId, 0, sqrt(dist2));
   }
 }
 
@@ -140,8 +153,7 @@ void EvaluateNormalDistance(vtkPointSet *target, vtkPointSet *source, vtkDataArr
 
   const double max_dist = 1000.0;
 
-  vtkSmartPointer<vtkAbstractCellLocator> locator;
-  locator = vtkSmartPointer<vtkCellLocator>::New();
+  vtkNew<vtkModifiedBSPTree> locator;
   locator->SetDataSet(source);
   locator->BuildLocator();
 
@@ -178,7 +190,7 @@ int main(int argc, char *argv[])
 
   const char *target_name = POSARG(1);
   const char *source_name = POSARG(2);
-  const char *output_name = NULL;
+  const char *output_name = nullptr;
 
   if (NUM_POSARGS == 3) {
     output_name = POSARG(3);
@@ -189,6 +201,7 @@ int main(int argc, char *argv[])
 
   enum DistanceType
   {
+    Default,
     ClosestPoint,
     ClosestCell,
     AlongNormal,
@@ -196,24 +209,34 @@ int main(int argc, char *argv[])
   };
 
   const char  *array_name     = "Distance";
-  DistanceType dist_type      = ClosestPoint;
+  const char  *separator      = "\t";
+  DistanceType dist_type      = Default;
   bool         eval_hausdorff = false;
 
   for (ALL_OPTIONS) {
-    if      (OPTION("-name"))      array_name     = ARGUMENT;
+    if      (OPTION("-array") || OPTION("-name")) array_name = ARGUMENT;
     else if (OPTION("-point"))     dist_type      = ClosestPoint;
     else if (OPTION("-cell"))      dist_type      = ClosestCell;
     else if (OPTION("-normal"))    dist_type      = AlongNormal;
-    else if (OPTION("-corr"))      dist_type      = CorrespondingPoint;
+    else if (OPTION("-index"))     dist_type      = CorrespondingPoint;
     else if (OPTION("-hausdorff")) eval_hausdorff = true;
+    else if (OPTION("-sep") || OPTION("-separator") || OPTION("-delimiter")) {
+      separator = ARGUMENT;
+      if (strcmp(separator, "\\t") == 0) separator = "\t";
+    }
     else HANDLE_COMMON_OR_UNKNOWN_OPTION();
   }
 
   // read input point sets
+  int output_type = VTK_BINARY;
   vtkSmartPointer<vtkPointSet> target, source;
   target = ReadPointSet(target_name);
-  source = ReadPointSet(source_name);
+  source = ReadPointSet(source_name, &output_type);
 
+  if (dist_type == Default) {
+    if (target->GetNumberOfCells() > 0) dist_type = ClosestCell;
+    else                                dist_type = ClosestPoint;
+  }
   if (dist_type == ClosestCell) {
     if (source->GetNumberOfCells() == 0) {
       FatalError("Cannot evaluation -cell distance when source has no cells");
@@ -240,6 +263,7 @@ int main(int argc, char *argv[])
   target->GetPointData()->AddArray(distance);
 
   switch (dist_type) {
+    case Default: // never the case
     case ClosestPoint:       EvaluateClosestPointDistance      (target, source, distance); break;
     case ClosestCell:        EvaluateClosestCellDistance       (target, source, distance); break;
     case AlongNormal:        EvaluateNormalDistance            (target, source, distance); break;
@@ -263,8 +287,7 @@ int main(int argc, char *argv[])
   if (eval_hausdorff) {
     if (dist_type == ClosestCell) {
 
-      vtkSmartPointer<vtkAbstractCellLocator> locator;
-      locator = vtkSmartPointer<vtkCellLocator>::New();
+      vtkNew<vtkCellLocator> locator;
       locator->SetDataSet(target);
       locator->BuildLocator();
 
@@ -277,8 +300,7 @@ int main(int argc, char *argv[])
 
     } else {
 
-      vtkSmartPointer<vtkAbstractPointLocator> locator;
-      locator = vtkSmartPointer<vtkKdTreePointLocator>::New();
+      vtkNew<vtkKdTreePointLocator> locator;
       locator->SetDataSet(target);
       locator->BuildLocator();
 
@@ -295,23 +317,26 @@ int main(int argc, char *argv[])
 
   // write output
   if (output_name) {
-    if (!WritePointSet(output_name, target)) {
+    const bool compress = true;
+    if (!WritePointSet(output_name, target, compress, output_type == VTK_ASCII)) {
       FatalError("Failed to write output point set to " << output_name);
     }
   }
 
   // print distances and summary
-  if (verbose) {
-    cout << "ID,PointDistance" << endl;
+  if (verbose > 1) {
+    cout << "ID" << separator << array_name << "\n";
     for (vtkIdType ptId = 0; ptId < target->GetNumberOfPoints(); ++ptId) {
-      cout << (ptId+1) << "," << distance->GetComponent(ptId, 0) << endl;
+      cout << (ptId+1) << separator << distance->GetComponent(ptId, 0) << "\n";
     }
-    cout << endl;
+    cout << "\n";
   }
-  cout << "Minimum distance = " << min_dist << endl;
-  cout << "Maximum distance = " << max_dist << endl;
-  cout << "Average distance = " << sum_dist / target->GetNumberOfPoints() << endl;
-  if (eval_hausdorff) cout << "Hausdorff distance: " << hausdorff_dist << endl;
+  if (verbose || !output_name) {
+    cout << "Minimum distance   = " << min_dist << "\n";
+    cout << "Maximum distance   = " << max_dist << "\n";
+    cout << "Average distance   = " << sum_dist / target->GetNumberOfPoints() << "\n";
+  }
+  if (eval_hausdorff) cout << "Hausdorff distance = " << hausdorff_dist << "\n";
 
   return 0;
 }

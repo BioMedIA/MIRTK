@@ -57,7 +57,9 @@ set(HEADERS
   mirtkParallel.h
   mirtkPath.h
   mirtkProfiling.h
+  mirtkPriorityQueue.h
   mirtkQueue.h
+  mirtkRandom.h
   mirtkStack.h
   mirtkStatus.h
   mirtkStream.h
@@ -79,6 +81,7 @@ set(SOURCES
   mirtkCifstream.cc
   mirtkCofstream.cc
   mirtkConfigurable.cc
+  mirtkMath.cc
   mirtkMemory.cc
   mirtkObserver.cc
   mirtkOptions.cc
@@ -91,7 +94,7 @@ set(SOURCES
 )
 
 if (VTK_FOUND)
-  list(APPEND HEADERS mirtkVtk.h)
+  list(APPEND HEADERS mirtkVtk.h mirtkVtkMath.h)
   list(APPEND SOURCES mirtkVtk.cc)
   list(APPEND DEPENDS ${VTK_LIBRARIES})
 endif ()

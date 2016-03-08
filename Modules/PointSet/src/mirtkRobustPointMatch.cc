@@ -27,8 +27,8 @@
 #include <mirtkProfiling.h>
 #include <mirtkPointLocator.h>
 #include <mirtkSparseMatrix.h>
+#include <mirtkVtkMath.h>
 
-#include <vtkMath.h>
 #include <vtkSmartPointer.h>
 #include <vtkIdList.h>
 #include <vtkPointSet.h>

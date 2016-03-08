@@ -600,173 +600,160 @@ void NormalizedIntensityCrossCorrelation::SetKernelToGaussian(double sx, double 
 }
 
 // -----------------------------------------------------------------------------
-bool NormalizedIntensityCrossCorrelation::SetWithPrefix(const char *name, const char *value)
+bool NormalizedIntensityCrossCorrelation::SetWithPrefix(const char *param, const char *value)
 {
-  if (strncmp(name, "Local window radius", 19) == 0) {
+  if (strncmp(param, "Local window ", 13) == 0) {
 
-    if (strstr(name + 19, "[gauss]")    != NULL ||
-        strstr(name + 19, "[gaussian]") != NULL ||
-        strstr(name + 19, "[sigma]")    != NULL ||
-        strstr(name + 19, "[stddev]")   != NULL ||
-        strstr(name + 19, "[StdDev]")   != NULL) {
-      double sx = 0, sy = 0, sz = 0;
-      int n = sscanf(value, "%lf %lf %lf", &sx, &sy, &sz);
-      if (n == 0) return false;
-      if (n == 1) sz = sy = sx;
-      Units units = ParseUnits(value);
-      if (units != UNITS_Default) {
-        if (sx < 0 || sy < 0 || sz < 0) return false;
-        if (units == UNITS_Voxel) sx = -sx, sy = -sy, sz = -sz;
+    string name;
+    const char *default_units = "signed";
+    const string type = ParameterUnits(param,  &name, "box");
+    if (type == "mm" || type == "vox") default_units = type.c_str();
+    const string units = ValueUnits(value, nullptr, default_units);
+    if (units != "mm" && units != "vox" && units != "signed") return false;
+
+    if (name == "Local window radius") {
+
+      if (type == "sigma") {
+        double sx = 0, sy = 0, sz = 0;
+        int n = sscanf(value, "%lf %lf %lf", &sx, &sy, &sz);
+        if (n == 0) return false;
+        if (n == 1) sz = sy = sx;
+        if (units != "signed") {
+          if (sx < 0 || sy < 0 || sz < 0) return false;
+          if (units == "vox") sx = -sx, sy = -sy, sz = -sz;
+        }
+        _KernelType          = GaussianKernel;
+        _NeighborhoodSize._x = 4.29193 * sx; // StdDev -> FWTM
+        _NeighborhoodSize._y = 4.29193 * sy;
+        _NeighborhoodSize._z = 4.29193 * sz;
+        return true;
+      } else if (type == "fwhm" || type == "fwtm") {
+        return false; // makes only sense for "Local window size"
+      } else if (type == "vox") {
+        int rx = 0, ry = 0, rz = 0;
+        int n = sscanf(value, "%d %d %d", &rx, &ry, &rz);
+        if (n == 0) return false;
+        if (n == 1) rz = ry = rx;
+        if (units != "vox" || rx < 0 || ry < 0 || rz < 0) return false;
+        _KernelType          = BoxWindow;
+        _NeighborhoodSize._x = -(2.0 * rx + 1.0);
+        _NeighborhoodSize._y = -(2.0 * ry + 1.0);
+        _NeighborhoodSize._z = -(2.0 * rz + 1.0);
+        return true;
+      } else if (type == "mm") {
+        double rx = .0, ry = .0, rz = .0;
+        int n = sscanf(value, "%lf %lf %lf", &rx, &ry, &rz);
+        if (n == 0) return false;
+        if (n == 1) rz = ry = rx;
+        if (units != "mm" || rx < .0 || ry < .0 || rz < .0) return false;
+        _KernelType          = BoxWindow;
+        _NeighborhoodSize._x = 2.0 * rx;
+        _NeighborhoodSize._y = 2.0 * ry;
+        _NeighborhoodSize._z = 2.0 * rz;
+        return true;
+      } else if (type == "box") {
+        double rx = .0, ry = .0, rz = .0;
+        int n = sscanf(value, "%lf %lf %lf", &rx, &ry, &rz);
+        if (n == 0) return false;
+        if (n == 1) rz = ry = rx;
+        if (units != "signed") {
+          if (rx < 0 || ry < 0 || rz < 0) return false;
+          if (units == "vox") rx = -rx, ry = -ry, rz = -rz;
+        }
+        _KernelType          = BoxWindow;
+        _NeighborhoodSize._x = 2.0 * rx + ((rx < .0) ? -1 : 0);
+        _NeighborhoodSize._y = 2.0 * ry + ((ry < .0) ? -1 : 0);
+        _NeighborhoodSize._z = 2.0 * rz + ((rz < .0) ? -1 : 0);
+        return true;
       }
-      _KernelType          = GaussianKernel;
-      _NeighborhoodSize._x = 4.29193 * sx; // StdDev -> FWTM
-      _NeighborhoodSize._y = 4.29193 * sy;
-      _NeighborhoodSize._z = 4.29193 * sz;
-      return true;
-    } else if (strstr(name + 19, "[FWHM]") != NULL ||
-               strstr(name + 19, "[fwhm]") != NULL ||
-               strstr(name + 19, "[FWTM]") != NULL ||
-               strstr(name + 19, "[fwtm]") != NULL) {
-      return false; // makes only sense for "Local window size"
-    } else if (strstr(name + 19, "[voxels]") != NULL) {
-      int rx = 0, ry = 0, rz = 0;
-      int n = sscanf(value, "%d %d %d", &rx, &ry, &rz);
-      if (n == 0) return false;
-      if (n == 1) rz = ry = rx;
-      Units units = ParseUnits(value);
-      if (units == UNITS_MM || rx < 0 || ry < 0 || rz < 0) return false;
-      _KernelType          = BoxWindow;
-      _NeighborhoodSize._x = -(2.0 * rx + 1.0);
-      _NeighborhoodSize._y = -(2.0 * ry + 1.0);
-      _NeighborhoodSize._z = -(2.0 * rz + 1.0);
-      return true;
-    } else if (strstr(name + 19, "[mm]") != NULL) {
-      double rx = .0, ry = .0, rz = .0;
-      int n = sscanf(value, "%lf %lf %lf", &rx, &ry, &rz);
-      if (n == 0) return false;
-      if (n == 1) rz = ry = rx;
-      Units units = ParseUnits(value);
-      if (units == UNITS_Voxel || rx < .0 || ry < .0 || rz < .0) return false;
-      _KernelType          = BoxWindow;
-      _NeighborhoodSize._x = 2.0 * rx;
-      _NeighborhoodSize._y = 2.0 * ry;
-      _NeighborhoodSize._z = 2.0 * rz;
-      return true;
-    } else if (name[19] == '\0' || strstr(name + 19, "[box]") != NULL) {
-      double rx = .0, ry = .0, rz = .0;
-      int n = sscanf(value, "%lf %lf %lf", &rx, &ry, &rz);
-      if (n == 0) return false;
-      if (n == 1) rz = ry = rx;
-      Units units = ParseUnits(value);
-      if (units != UNITS_Default) {
-        if (rx < 0 || ry < 0 || rz < 0) return false;
-        if (units == UNITS_Voxel) rx = -rx, ry = -ry, rz = -rz;
+      return false;
+
+    } else if (name == "Local window size") {
+
+      if (type == "sigma") {
+        double sx = 0, sy = 0, sz = 0;
+        int n = sscanf(value, "%lf %lf %lf", &sx, &sy, &sz);
+        if (n == 0) return false;
+        if (n == 1) sz = sy = sx;
+        if (units != "signed") {
+          if (sx < 0 || sy < 0 || sz < 0) return false;
+          if (units == "vox") sx = -sx, sy = -sy, sz = -sz;
+        }
+        _KernelType          = GaussianKernel;
+        _NeighborhoodSize._x = 4.29193 * sx; // StdDev -> FWTM
+        _NeighborhoodSize._y = 4.29193 * sy;
+        _NeighborhoodSize._z = 4.29193 * sz;
+        return true;
+      } else if (type == "fwhm") {
+        double sx = 0, sy = 0, sz = 0;
+        int n = sscanf(value, "%lf %lf %lf", &sx, &sy, &sz);
+        if (n == 0) return false;
+        if (n == 1) sz = sy = sx;
+        if (units != "signed") {
+          if (sx < 0 || sy < 0 || sz < 0) return false;
+          if (units == "vox") sx = -sx, sy = -sy, sz = -sz;
+        }
+        _KernelType          = GaussianKernel;
+        _NeighborhoodSize._x = 1.82262 * sx; // FWHM -> FWTM
+        _NeighborhoodSize._y = 1.82262 * sy;
+        _NeighborhoodSize._z = 1.82262 * sz;
+        return true;
+      } else if (type == "fwtm") {
+        double sx = 0, sy = 0, sz = 0;
+        int n = sscanf(value, "%lf %lf %lf", &sx, &sy, &sz);
+        if (n == 0) return false;
+        if (n == 1) sz = sy = sx;
+        if (units != "signed") {
+          if (sx < 0 || sy < 0 || sz < 0) return false;
+          if (units == "vox") sx = -sx, sy = -sy, sz = -sz;
+        }
+        _KernelType          = GaussianKernel;
+        _NeighborhoodSize._x = sx;
+        _NeighborhoodSize._y = sy;
+        _NeighborhoodSize._z = sz;
+        return true;
+      } else if (type == "vox") {
+        int sx = 0, sy = 0, sz = 0;
+        int n = sscanf(value, "%d %d %d", &sx, &sy, &sz);
+        if (n == 0) return false;
+        if (n == 1) sz = sy = sx;
+        if (units != "vox" || sx < 0 || sy < 0 || sz < 0) return false;
+        _KernelType          = BoxWindow;
+        _NeighborhoodSize._x = -sx;
+        _NeighborhoodSize._y = -sy;
+        _NeighborhoodSize._z = -sz;
+        return true;
+      } else if (type == "mm") {
+        double sx = .0, sy = .0, sz = .0;
+        int n = sscanf(value, "%lf %lf %lf", &sx, &sy, &sz);
+        if (n == 0) return false;
+        if (n == 1) sz = sy = sx;
+        if (units != "mm" || sx < 0 || sy < 0 || sz < 0) return false;
+        _KernelType          = BoxWindow;
+        _NeighborhoodSize._x = sx;
+        _NeighborhoodSize._y = sy;
+        _NeighborhoodSize._z = sz;
+        return true;
+      } else if (type == "box") {
+        double sx = .0, sy = .0, sz = .0;
+        int n = sscanf(value, "%lf %lf %lf", &sx, &sy, &sz);
+        if (n == 0) return false;
+        if (n == 1) sz = sy = sx;
+        if (units != "signed") {
+          if (sx < 0 || sy < 0 || sz < 0) return false;
+          if (units == "vox") sx = -sx, sy = -sy, sz = -sz;
+        }
+        _KernelType          = BoxWindow;
+        _NeighborhoodSize._x = sx;
+        _NeighborhoodSize._y = sy;
+        _NeighborhoodSize._z = sz;
+        return true;
       }
-      _KernelType          = BoxWindow;
-      _NeighborhoodSize._x = 2.0 * rx + ((rx < .0) ? -1 : 0);
-      _NeighborhoodSize._y = 2.0 * ry + ((ry < .0) ? -1 : 0);
-      _NeighborhoodSize._z = 2.0 * rz + ((rz < .0) ? -1 : 0);
-      return true;
+      return false;
+
     }
-    return false;
-
-  } else if (strncmp(name, "Local window size", 17) == 0) {
-
-    if (strstr(name + 19, "[gauss]")    != NULL ||
-        strstr(name + 19, "[gaussian]") != NULL ||
-        strstr(name + 17, "[sigma]")    != NULL ||
-        strstr(name + 17, "[stddev]")   != NULL ||
-        strstr(name + 17, "[StdDev]")   != NULL) {
-      double sx = 0, sy = 0, sz = 0;
-      int n = sscanf(value, "%lf %lf %lf", &sx, &sy, &sz);
-      if (n == 0) return false;
-      if (n == 1) sz = sy = sx;
-      Units units = ParseUnits(value);
-      if (units != UNITS_Default) {
-        if (sx < 0 || sy < 0 || sz < 0) return false;
-        if (units == UNITS_Voxel) sx = -sx, sy = -sy, sz = -sz;
-      }
-      _KernelType          = GaussianKernel;
-      _NeighborhoodSize._x = 4.29193 * sx; // StdDev -> FWTM
-      _NeighborhoodSize._y = 4.29193 * sy;
-      _NeighborhoodSize._z = 4.29193 * sz;
-      return true;
-    } else if (strstr(name + 17, "[FWHM]") != NULL ||
-               strstr(name + 17, "[fwhm]") != NULL) {
-      double sx = 0, sy = 0, sz = 0;
-      int n = sscanf(value, "%lf %lf %lf", &sx, &sy, &sz);
-      if (n == 0) return false;
-      if (n == 1) sz = sy = sx;
-      Units units = ParseUnits(value);
-      if (units != UNITS_Default) {
-        if (sx < 0 || sy < 0 || sz < 0) return false;
-        if (units == UNITS_Voxel) sx = -sx, sy = -sy, sz = -sz;
-      }
-      _KernelType          = GaussianKernel;
-      _NeighborhoodSize._x = 1.82262 * sx; // FWHM -> FWTM
-      _NeighborhoodSize._y = 1.82262 * sy;
-      _NeighborhoodSize._z = 1.82262 * sz;
-      return true;
-    } else if (strstr(name + 17, "[FWTM]") != NULL ||
-               strstr(name + 17, "[fwtm]") != NULL) {
-      double sx = 0, sy = 0, sz = 0;
-      int n = sscanf(value, "%lf %lf %lf", &sx, &sy, &sz);
-      if (n == 0) return false;
-      if (n == 1) sz = sy = sx;
-      Units units = ParseUnits(value);
-      if (units != UNITS_Default) {
-        if (sx < 0 || sy < 0 || sz < 0) return false;
-        if (units == UNITS_Voxel) sx = -sx, sy = -sy, sz = -sz;
-      }
-      _KernelType          = GaussianKernel;
-      _NeighborhoodSize._x = sx;
-      _NeighborhoodSize._y = sy;
-      _NeighborhoodSize._z = sz;
-      return true;
-    } else if (strstr(name + 17, "[voxels]") != NULL) {
-      int sx = 0, sy = 0, sz = 0;
-      int n = sscanf(value, "%d %d %d", &sx, &sy, &sz);
-      if (n == 0) return false;
-      if (n == 1) sz = sy = sx;
-      Units units = ParseUnits(value);
-      if (units == UNITS_MM || sx < 0 || sy < 0 || sz < 0) return false;
-      _KernelType          = BoxWindow;
-      _NeighborhoodSize._x = -sx;
-      _NeighborhoodSize._y = -sy;
-      _NeighborhoodSize._z = -sz;
-      return true;
-    } else if (strstr(name + 17, "[mm]") != NULL) {
-      double sx = .0, sy = .0, sz = .0;
-      int n = sscanf(value, "%lf %lf %lf", &sx, &sy, &sz);
-      if (n == 0) return false;
-      if (n == 1) sz = sy = sx;
-      Units units = ParseUnits(value);
-      if (units == UNITS_Voxel || sx < 0 || sy < 0 || sz < 0) return false;
-      _KernelType          = BoxWindow;
-      _NeighborhoodSize._x = sx;
-      _NeighborhoodSize._y = sy;
-      _NeighborhoodSize._z = sz;
-      return true;
-    } else if (name[17] == '\0' || strstr(name + 17, "[box]") != NULL) {
-      double sx = .0, sy = .0, sz = .0;
-      int n = sscanf(value, "%lf %lf %lf", &sx, &sy, &sz);
-      if (n == 0) return false;
-      if (n == 1) sz = sy = sx;
-      Units units = ParseUnits(value);
-      if (units != UNITS_Default) {
-        if (sx < 0 || sy < 0 || sz < 0) return false;
-        if (units == UNITS_Voxel) sx = -sx, sy = -sy, sz = -sz;
-      }
-      _KernelType          = BoxWindow;
-      _NeighborhoodSize._x = sx;
-      _NeighborhoodSize._y = sy;
-      _NeighborhoodSize._z = sz;
-      return true;
-    }
-    return false;
-
   }
-  return ImageSimilarity::SetWithPrefix(name, value);
+  return ImageSimilarity::SetWithPrefix(param, value);
 }
 
 // -----------------------------------------------------------------------------
@@ -781,8 +768,8 @@ ParameterList NormalizedIntensityCrossCorrelation::Parameter() const
   }
   name += "]";
   string value = ToString(abs(_NeighborhoodSize._x)) + " "
-                    + ToString(abs(_NeighborhoodSize._y)) + " "
-                    + ToString(abs(_NeighborhoodSize._z));
+               + ToString(abs(_NeighborhoodSize._y)) + " "
+               + ToString(abs(_NeighborhoodSize._z));
   if (_NeighborhoodSize._x < .0) value += " vox";
   Insert(params, name, value);
   return params;
@@ -1149,9 +1136,9 @@ void NormalizedIntensityCrossCorrelation::Print(Indent indent) const
 
   const char *kernel_type;
   switch (_KernelType) {
-    case BoxWindow:      kernel_type = "Box window";
-    case GaussianKernel: kernel_type = "Gaussian";
-    default:             kernel_type = "Custom";
+    case BoxWindow:      kernel_type = "Box window"; break;
+    case GaussianKernel: kernel_type = "Gaussian";   break;
+    default:             kernel_type = "Custom";     break;
   }
   cout << indent << "Neighborhood kernel:  " << kernel_type << endl;
   cout << indent << "Neighborhood size:    " << abs(_NeighborhoodSize._x)

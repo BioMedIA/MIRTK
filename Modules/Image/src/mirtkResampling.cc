@@ -72,7 +72,7 @@ template <class VoxelType>
 void Resampling<VoxelType>::Initialize()
 {
   // Initialize base class
-  ImageToImage<VoxelType>::Initialize();
+  ImageToImage<VoxelType>::Initialize(false);
 
   // Set up interpolator
   if (_Interpolator == NULL) {

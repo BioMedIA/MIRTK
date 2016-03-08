@@ -1,6 +1,6 @@
 # ============================================================================
 # Copyright (c) 2011-2012 University of Pennsylvania
-# Copyright (c) 2013-2014 Andreas Schuh
+# Copyright (c) 2013-2016 Andreas Schuh
 # All rights reserved.
 #
 # See COPYING file for license information or visit
@@ -50,9 +50,9 @@ set (VERSION_FILE "${CONFIG_PREFIX}ConfigVersion.cmake")
 ## @brief Name of the CMake package use file.
 set (USE_FILE "${CONFIG_PREFIX}Use.cmake")
 ## @brief Name of the CMake target exports file.
-set (EXPORTS_FILE "${CONFIG_PREFIX}Exports.cmake")
+set (EXPORTS_FILE "${CONFIG_PREFIX}${BASIS_EXPORT_SUFFIX}.cmake")
 ## @brief Name of the CMake target exports file for custom targets.
-set (CUSTOM_EXPORTS_FILE "${CONFIG_PREFIX}CustomExports.cmake")
+set (CUSTOM_EXPORTS_FILE "${CONFIG_PREFIX}Custom${BASIS_EXPORT_SUFFIX}.cmake")
 
 
 ## @}
@@ -62,7 +62,7 @@ set (CUSTOM_EXPORTS_FILE "${CONFIG_PREFIX}CustomExports.cmake")
 # export build targets
 # ============================================================================
 
-if (BASIS_CREATE_EXPORTS_FILE)
+if (BASIS_EXPORT_ENABLED)
   basis_export_targets (
     FILE        "${EXPORTS_FILE}"
     CUSTOM_FILE "${CUSTOM_EXPORTS_FILE}"
@@ -75,8 +75,10 @@ endif ()
 
 # code used at top of package configuration and use files to set package
 # namespace prefix used for configuration variables
-if (PROJECT_IS_MODULE)
+if (PROJECT_IS_MODULE OR PROJECT_IS_SUBPROJECT)
   set (BASIS_NS "${PROJECT_NAME}")
+elseif (PROJECT_IS_SUBMODULE)
+  set (BASIS_NS "${PROJECT_PACKAGE_NAME}_${PROJECT_NAME}")
 else ()
   set (BASIS_NS "${PROJECT_PACKAGE_NAME}")
 endif ()
@@ -100,7 +102,7 @@ endif ()"
 
 if (EXISTS "${PROJECT_CONFIG_DIR}/Config.cmake.in")
   set (TEMPLATE "${PROJECT_CONFIG_DIR}/Config.cmake.in")
-elseif (PROJECT_IS_MODULE)
+elseif (PROJECT_IS_MODULE OR PROJECT_IS_SUBMODULE OR PROJECT_IS_SUBPROJECT)
   set (TEMPLATE "${CMAKE_CURRENT_LIST_DIR}/ModuleConfig.cmake.in")
 else ()
   set (TEMPLATE "${CMAKE_CURRENT_LIST_DIR}/Config.cmake.in")
@@ -110,7 +112,7 @@ endif ()
 # provide code of BASIS config file as variable
 
 if (NOT TEMPLATE MATCHES "^${CMAKE_CURRENT_LIST_DIR_RE}/")
-  if (PROJECT_IS_MODULE)
+  if (PROJECT_IS_MODULE OR PROJECT_IS_SUBMODULE OR PROJECT_IS_SUBPROJECT)
     file (READ "${CMAKE_CURRENT_LIST_DIR}/ModuleConfig.cmake.in" BASIS_TEMPLATE)
   else ()
     file (READ "${CMAKE_CURRENT_LIST_DIR}/Config.cmake.in"       BASIS_TEMPLATE)
@@ -133,7 +135,7 @@ include ("${PROJECT_CONFIG_DIR}/ConfigSettings.cmake" OPTIONAL)
 # configure project configuration file for build tree
 
 string (CONFIGURE "${BASIS_TEMPLATE}" BASIS_CONFIG @ONLY)
-configure_file ("${TEMPLATE}" "${PROJECT_BINARY_DIR}/${CONFIG_FILE}" @ONLY)
+configure_file ("${TEMPLATE}" "${CMAKE_BINARY_DIR}/${CONFIG_FILE}" @ONLY)
 
 if (NOT BASIS_BUILD_ONLY)
 
@@ -152,7 +154,7 @@ if (NOT BASIS_BUILD_ONLY)
   
   # --------------------------------------------------------------------------
   # install project configuration file
-  
+
   install (
     FILES       "${BINARY_CONFIG_DIR}/${CONFIG_FILE}"
     DESTINATION "${INSTALL_CONFIG_DIR}"
@@ -163,31 +165,33 @@ endif ()
 # ============================================================================
 # project version file
 # ============================================================================
+if (NOT PROJECT_IS_SUBMODULE)
 
-# ----------------------------------------------------------------------------
-# choose template
+  # --------------------------------------------------------------------------
+  # choose template
+  
+  if (EXISTS "${PROJECT_CONFIG_DIR}/ConfigVersion.cmake.in")
+    set (TEMPLATE "${PROJECT_CONFIG_DIR}/ConfigVersion.cmake.in")
+  else ()
+    set (TEMPLATE "${CMAKE_CURRENT_LIST_DIR}/ConfigVersion.cmake.in")
+  endif ()
+  
+  # --------------------------------------------------------------------------
+  # configure project configuration version file
+  
+  configure_file ("${TEMPLATE}" "${CMAKE_BINARY_DIR}/${VERSION_FILE}" @ONLY)
+  
+  # --------------------------------------------------------------------------
+  # install project configuration version file
+  
+  if (NOT BASIS_BUILD_ONLY)
+    install (
+      FILES       "${PROJECT_BINARY_DIR}/${VERSION_FILE}"
+      DESTINATION "${INSTALL_CONFIG_DIR}"
+    )
+  endif ()
 
-if (EXISTS "${PROJECT_CONFIG_DIR}/ConfigVersion.cmake.in")
-  set (TEMPLATE "${PROJECT_CONFIG_DIR}/ConfigVersion.cmake.in")
-else ()
-  set (TEMPLATE "${CMAKE_CURRENT_LIST_DIR}/ConfigVersion.cmake.in")
 endif ()
-
-# ----------------------------------------------------------------------------
-# configure project configuration version file
-
-configure_file ("${TEMPLATE}" "${PROJECT_BINARY_DIR}/${VERSION_FILE}" @ONLY)
-
-# ----------------------------------------------------------------------------
-# install project configuration version file
-
-if (NOT BASIS_BUILD_ONLY)
-  install (
-    FILES       "${PROJECT_BINARY_DIR}/${VERSION_FILE}"
-    DESTINATION "${INSTALL_CONFIG_DIR}"
-  )
-endif ()
-
 # ============================================================================
 # project use file
 # ============================================================================
@@ -200,7 +204,7 @@ if (EXISTS "${PROJECT_CONFIG_DIR}/ConfigUse.cmake.in")
 elseif (EXISTS "${PROJECT_CONFIG_DIR}/Use.cmake.in")
   # backwards compatibility to version <= 0.1.8 of BASIS
   set (TEMPLATE "${PROJECT_CONFIG_DIR}/Use.cmake.in")
-elseif (PROJECT_IS_MODULE)
+elseif (PROJECT_IS_MODULE OR PROJECT_IS_SUBMODULE OR PROJECT_IS_SUBPROJECT)
   set (TEMPLATE "${CMAKE_CURRENT_LIST_DIR}/ModuleConfigUse.cmake.in")
 else ()
   set (TEMPLATE "${CMAKE_CURRENT_LIST_DIR}/ConfigUse.cmake.in")
@@ -209,7 +213,7 @@ endif ()
 # ----------------------------------------------------------------------------
 # provide code of BASIS use file as variable
 if (NOT TEMPLATE MATCHES "^${CMAKE_CURRENT_LIST_DIR_RE}/")
-  if (PROJECT_IS_MODULE)
+  if (PROJECT_IS_MODULE OR PROJECT_IS_SUBMODULE OR PROJECT_IS_SUBPROJECT)
     file (READ "${CMAKE_CURRENT_LIST_DIR}/ModuleConfigUse.cmake.in" BASIS_USE)
   else ()
     file (READ "${CMAKE_CURRENT_LIST_DIR}/ConfigUse.cmake.in"       BASIS_USE)
@@ -225,14 +229,14 @@ endif ()
 # configure project use file
 
 string (CONFIGURE "${BASIS_USE}" BASIS_USE @ONLY)
-configure_file ("${TEMPLATE}" "${PROJECT_BINARY_DIR}/${USE_FILE}" @ONLY)
+configure_file ("${TEMPLATE}" "${CMAKE_BINARY_DIR}/${USE_FILE}" @ONLY)
 
 # ----------------------------------------------------------------------------
 # install project use file
 
 if (NOT BASIS_BUILD_ONLY)
   install (
-    FILES       "${PROJECT_BINARY_DIR}/${USE_FILE}"
+    FILES       "${CMAKE_BINARY_DIR}/${USE_FILE}"
     DESTINATION "${INSTALL_CONFIG_DIR}"
   )
 endif ()

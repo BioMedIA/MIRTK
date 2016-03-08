@@ -38,11 +38,13 @@
 #include <mirtkOrderedMap.h>
 #include <mirtkUnorderedSet.h>
 #include <mirtkUnorderedMap.h>
+#include <mirtkPriorityQueue.h>
 #include <mirtkQueue.h>
 #include <mirtkStack.h>
 
 // Standard functions/types
 #include <mirtkAssert.h>
+#include <mirtkMath.h>
 #include <mirtkMemory.h>
 #include <mirtkString.h>
 #include <mirtkPath.h>
@@ -51,6 +53,7 @@
 #include <mirtkFastDelegate.h>
 #include <mirtkStatus.h>
 #include <mirtkAlgorithm.h>
+#include <mirtkRandom.h>
 
 // Base classes
 #include <mirtkObject.h>

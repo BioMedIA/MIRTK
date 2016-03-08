@@ -19,14 +19,15 @@
 
 #include <mirtkPolyDataSmoothing.h>
 
-#include <mirtkVtk.h>
 #include <mirtkMath.h>
 #include <mirtkEdgeTable.h>
 #include <mirtkMatrix3x3.h>
 #include <mirtkVector3.h>
 #include <mirtkPointSetUtils.h>
 
-#include <vtkMath.h>
+#include <mirtkVtk.h>
+#include <mirtkVtkMath.h>
+
 #include <vtkPoints.h>
 #include <vtkIdList.h>
 #include <vtkCellArray.h>
@@ -281,9 +282,8 @@ struct SmoothData
         }
         if (smooth_data) {
           for (i = 0; i < _InputArrays->size(); ++i) {
-            ia  = (*_InputArrays )[i];
-            sum = data[i];
-            for (j = 0; j < ia->GetNumberOfComponents(); ++j, ++sum) {
+            ia = (*_InputArrays )[i];
+            for (j = 0, sum = data[i]; j < ia->GetNumberOfComponents(); ++j, ++sum) {
               (*sum) = w * ia->GetComponent(ptId, j);
             }
           }
@@ -292,9 +292,8 @@ struct SmoothData
         norm = p[0] = p[1] = p[2] = .0;
         if (smooth_data) {
           for (i = 0; i < _InputArrays->size(); ++i) {
-            sum = data[i];
-            ia  = (*_InputArrays )[i];
-            for (j = 0; j < ia->GetNumberOfComponents(); ++j, ++sum) (*sum) = .0;
+            ia = (*_InputArrays )[i];
+            memset(data[i], 0, ia->GetNumberOfComponents() * sizeof(double));
           }
         }
       }
@@ -340,10 +339,9 @@ struct SmoothData
         }
         if (smooth_data) {
           for (i = 0; i < _InputArrays->size(); ++i) {
-            ia  = (*_InputArrays )[i];
-            oa  = (*_OutputArrays)[i];
-            sum = data[i];
-            for (j = 0; j < oa->GetNumberOfComponents(); ++j, ++sum) {
+            ia = (*_InputArrays )[i];
+            oa = (*_OutputArrays)[i];
+            for (j = 0, sum = data[i]; j < oa->GetNumberOfComponents(); ++j, ++sum) {
               oa->SetComponent(ptId, j, alpha * ia->GetComponent(ptId, j) + beta * (*sum));
             }
           }
@@ -355,8 +353,7 @@ struct SmoothData
         if (smooth_data) {
           for (i = 0; i < _InputArrays->size(); ++i) {
             oa  = (*_OutputArrays)[i];
-            sum = data[i];
-            for (j = 0; j < oa->GetNumberOfComponents(); ++j, ++sum) {
+            for (j = 0, sum = data[i]; j < oa->GetNumberOfComponents(); ++j, ++sum) {
               oa->SetComponent(ptId, j, beta * (*sum));
             }
           }
@@ -395,6 +392,471 @@ struct SmoothData
   }
 };
 
+// -----------------------------------------------------------------------------
+/// Smooth node position and/or data magnitude using the given weighting function
+template <class TKernel>
+struct SmoothDataMagnitude
+{
+  typedef PolyDataSmoothing::DataArrays DataArrays;
+
+  vtkDataArray     *_Mask;
+  const EdgeTable  *_EdgeTable;
+  vtkPoints        *_InputPoints;
+  vtkPoints        *_OutputPoints;
+  const DataArrays *_InputArrays;
+  const DataArrays *_OutputArrays;
+  TKernel           _WeightFunction;
+  double            _Lambda;
+  bool              _InclNodeItself;
+
+  void operator ()(const blocked_range<vtkIdType> &re) const
+  {
+    double        p[3] = {.0}, p0[3], p1[3], w, norm, alpha, beta;
+    vtkDataArray *ia, *oa;
+    const int    *adjPtIt, *adjPtEnd;
+    vtkIdType     adjPtId;
+    size_t        i;
+    int           j;
+
+    const bool smooth_points = (_OutputPoints != nullptr);
+    double * const data = new double[_InputArrays->size()];
+    double val, sum2;
+
+    for (vtkIdType ptId = re.begin(); ptId != re.end(); ++ptId) {
+      _InputPoints->GetPoint(ptId, p0);
+
+      // Copy position/data of masked points
+      if (_Mask && _Mask->GetComponent(ptId, 0) == .0) {
+        if (smooth_points) {
+          _OutputPoints->SetPoint(ptId, p0);
+        }
+        for (i = 0; i < _InputArrays->size(); ++i) {
+          ia = (*_InputArrays )[i];
+          oa = (*_OutputArrays)[i];
+          for (j = 0; j < oa->GetNumberOfComponents(); ++j) {
+            oa->SetComponent(ptId, j, ia->GetComponent(ptId, j));
+          }
+        }
+        continue;
+      }
+
+      // Initialize sums
+      if (_InclNodeItself) {
+        norm = (w = _WeightFunction(ptId, p0, p0));
+        if (smooth_points) {
+          p[0] = w * p0[0];
+          p[1] = w * p0[1];
+          p[2] = w * p0[2];
+        }
+        for (i = 0; i < _InputArrays->size(); ++i) {
+          ia = (*_InputArrays )[i];
+          for (j = 0, sum2 = .0; j < ia->GetNumberOfComponents(); ++j) {
+            val   = ia->GetComponent(ptId, j);
+            sum2 += val * val;
+          }
+          data[i] = w * sqrt(sum2);
+        }
+      } else {
+        norm = p[0] = p[1] = p[2] = .0;
+        memset(data, 0, _InputArrays->size() * sizeof(double));
+      }
+
+      // Weighted sum of input data
+      for (_EdgeTable->GetAdjacentPoints(ptId, adjPtIt, adjPtEnd); adjPtIt != adjPtEnd; ++adjPtIt) {
+        adjPtId = static_cast<vtkIdType>(*adjPtIt);
+        _InputPoints->GetPoint(adjPtId, p1);
+        norm += (w = _WeightFunction(ptId, p0, p1));
+        if (smooth_points) {
+          p[0] += w * p1[0];
+          p[1] += w * p1[1];
+          p[2] += w * p1[2];
+        }
+        for (i = 0; i < _InputArrays->size(); ++i) {
+          ia = (*_InputArrays )[i];
+          for (j = 0, sum2 = .0; j < ia->GetNumberOfComponents(); ++j) {
+            val   = ia->GetComponent(adjPtId, j);
+            sum2 += val * val;
+          }
+          data[i] += w * sqrt(sum2);
+        }
+      }
+
+      // Normalize weights and compute output data
+      if (norm > .0) alpha = 1.0 - _Lambda, beta = _Lambda / norm;
+      else           alpha = 1.0,           beta = .0;
+      if (smooth_points) {
+        _OutputPoints->SetPoint(ptId, alpha * p0[0] + beta * p[0],
+                                      alpha * p0[1] + beta * p[1],
+                                      alpha * p0[2] + beta * p[2]);
+      }
+      for (i = 0; i < _InputArrays->size(); ++i) {
+        ia = (*_InputArrays )[i];
+        oa = (*_OutputArrays)[i];
+        for (j = 0, sum2 = .0; j < ia->GetNumberOfComponents(); ++j) {
+          val   = ia->GetComponent(ptId, j);
+          sum2 += val * val;
+        }
+        if (sum2 > .0) data[i] /= sqrt(sum2);
+        norm = alpha + beta * data[i];
+        for (j = 0; j < oa->GetNumberOfComponents(); ++j) {
+          oa->SetComponent(ptId, j, norm * ia->GetComponent(ptId, j));
+        }
+      }
+    }
+    delete[] data;
+  }
+
+  static void Run(vtkDataArray     *mask,
+                  const EdgeTable  *edgeTable,
+                  vtkPoints        *input_points,
+                  vtkPoints        *output_points,
+                  const DataArrays &input_arrays,
+                  const DataArrays &output_arrays,
+                  TKernel           kernel,
+                  double            lambda,
+                  bool              incl_node)
+  {
+    SmoothDataMagnitude<TKernel> body;
+    body._Mask           = mask;
+    body._EdgeTable      = edgeTable;
+    body._InputPoints    = input_points;
+    body._OutputPoints   = output_points;
+    body._InputArrays    = &input_arrays;
+    body._OutputArrays   = &output_arrays;
+    body._WeightFunction = kernel;
+    body._Lambda         = lambda;
+    body._InclNodeItself = incl_node;
+    blocked_range<vtkIdType> ptIds(0, input_points->GetNumberOfPoints());
+    parallel_for(ptIds, body);
+  }
+};
+
+// -----------------------------------------------------------------------------
+/// Smooth node position and/or "signed" data magnitude using the given weighting function
+template <class TKernel>
+struct SmoothSignedDataMagnitude
+{
+  typedef PolyDataSmoothing::DataArrays DataArrays;
+
+  vtkDataArray     *_Mask;
+  const EdgeTable  *_EdgeTable;
+  vtkPoints        *_InputPoints;
+  vtkPoints        *_OutputPoints;
+  const DataArrays *_InputArrays;
+  const DataArrays *_OutputArrays;
+  TKernel           _WeightFunction;
+  double            _Lambda;
+  bool              _InclNodeItself;
+
+  void operator ()(const blocked_range<vtkIdType> &re) const
+  {
+    double        p[3] = {.0}, p0[3], p1[3], w, norm, alpha, beta, val, sum2, dp;
+    vtkDataArray *ia, *oa;
+    const int    *adjPtIt, *adjPtEnd;
+    vtkIdType     adjPtId;
+    size_t        i;
+    int           j;
+
+    const bool smooth_points = (_OutputPoints != nullptr);
+    double * const data = new double[_InputArrays->size()];
+    double * const wsum = new double[_InputArrays->size()];
+    double ** dir = new double *[_InputArrays->size()];
+    for (i = 0; i < _InputArrays->size(); ++i) {
+      dir[i] = new double[(*_InputArrays )[i]->GetNumberOfComponents()];
+    }
+
+    for (vtkIdType ptId = re.begin(); ptId != re.end(); ++ptId) {
+      _InputPoints->GetPoint(ptId, p0);
+
+      // Copy position/data of masked points
+      if (_Mask && _Mask->GetComponent(ptId, 0) == .0) {
+        if (smooth_points) {
+          _OutputPoints->SetPoint(ptId, p0);
+        }
+        for (i = 0; i < _InputArrays->size(); ++i) {
+          ia = (*_InputArrays )[i];
+          oa = (*_OutputArrays)[i];
+          for (j = 0; j < oa->GetNumberOfComponents(); ++j) {
+            oa->SetComponent(ptId, j, ia->GetComponent(ptId, j));
+          }
+        }
+        continue;
+      }
+
+      // Copy data vectors at current point
+      for (i = 0; i < _InputArrays->size(); ++i) {
+        ia = (*_InputArrays )[i];
+        for (j = 0; j < ia->GetNumberOfComponents(); ++j) {
+          dir[i][j] = ia->GetComponent(ptId, j);
+        }
+      }
+
+      // Initialize sums
+      if (_InclNodeItself) {
+        norm = (w = _WeightFunction(ptId, p0, p0));
+        if (smooth_points) {
+          p[0] = w * p0[0];
+          p[1] = w * p0[1];
+          p[2] = w * p0[2];
+        }
+        for (i = 0; i < _InputArrays->size(); ++i) {
+          ia  = (*_InputArrays )[i];
+          for (j = 0, sum2 = .0; j < ia->GetNumberOfComponents(); ++j) {
+            val   = ia->GetComponent(ptId, j);
+            sum2 += val * val;
+          }
+          data[i] = w * sqrt(sum2);
+          wsum[i] = w;
+        }
+      } else {
+        norm = p[0] = p[1] = p[2] = .0;
+        memset(data, 0, _InputArrays->size() * sizeof(double));
+        memset(wsum, 0, _InputArrays->size() * sizeof(double));
+      }
+
+      // Weighted sum of input data
+      for (_EdgeTable->GetAdjacentPoints(ptId, adjPtIt, adjPtEnd); adjPtIt != adjPtEnd; ++adjPtIt) {
+        adjPtId = static_cast<vtkIdType>(*adjPtIt);
+        _InputPoints->GetPoint(adjPtId, p1);
+        norm += (w = _WeightFunction(ptId, p0, p1));
+        if (smooth_points) {
+          p[0] += w * p1[0];
+          p[1] += w * p1[1];
+          p[2] += w * p1[2];
+        }
+        for (i = 0; i < _InputArrays->size(); ++i) {
+          ia = (*_InputArrays )[i];
+          for (j = 0, sum2 = .0, dp = .0; j < ia->GetNumberOfComponents(); ++j) {
+            val   = ia->GetComponent(adjPtId, j);
+            dp   += dir[i][j] * val;
+            sum2 += val * val;
+          }
+          if (dp > .0) {
+            data[i] += w * sqrt(sum2);
+            wsum[i] += w;
+          }
+        }
+      }
+
+      // Normalize weights and compute output data
+      if (smooth_points) {
+        if (norm > .0) alpha = 1.0 - _Lambda, beta = _Lambda / norm;
+        else           alpha = 1.0,           beta = .0;
+        _OutputPoints->SetPoint(ptId, alpha * p0[0] + beta * p[0],
+                                      alpha * p0[1] + beta * p[1],
+                                      alpha * p0[2] + beta * p[2]);
+      }
+      for (i = 0; i < _InputArrays->size(); ++i) {
+        ia = (*_InputArrays )[i];
+        oa = (*_OutputArrays)[i];
+        if (wsum[i] > .0) alpha = 1.0 - _Lambda, beta = _Lambda / wsum[i];
+        else              alpha = 1.0,           beta = .0;
+        for (j = 0, sum2 = .0; j < ia->GetNumberOfComponents(); ++j) {
+          val   = ia->GetComponent(ptId, j);
+          sum2 += val * val;
+        }
+        if (sum2 > .0) data[i] /= sqrt(sum2);
+        alpha += beta * data[i];
+        for (j = 0; j < oa->GetNumberOfComponents(); ++j) {
+          oa->SetComponent(ptId, j, alpha * ia->GetComponent(ptId, j));
+        }
+      }
+    }
+
+    for (i = 0; i < _InputArrays->size(); ++i) delete[] dir[i];
+    delete[] dir;
+    delete[] data;
+    delete[] wsum;
+  }
+
+  static void Run(vtkDataArray     *mask,
+                  const EdgeTable  *edgeTable,
+                  vtkPoints        *input_points,
+                  vtkPoints        *output_points,
+                  const DataArrays &input_arrays,
+                  const DataArrays &output_arrays,
+                  TKernel           kernel,
+                  double            lambda,
+                  bool              incl_node)
+  {
+    SmoothSignedDataMagnitude<TKernel> body;
+    body._Mask           = mask;
+    body._EdgeTable      = edgeTable;
+    body._InputPoints    = input_points;
+    body._OutputPoints   = output_points;
+    body._InputArrays    = &input_arrays;
+    body._OutputArrays   = &output_arrays;
+    body._WeightFunction = kernel;
+    body._Lambda         = lambda;
+    body._InclNodeItself = incl_node;
+    blocked_range<vtkIdType> ptIds(0, input_points->GetNumberOfPoints());
+    parallel_for(ptIds, body);
+  }
+};
+
+// -----------------------------------------------------------------------------
+/// Smooth node position and/or "signed" data using the given weighting function
+template <class TKernel>
+struct SmoothSignedData
+{
+  typedef PolyDataSmoothing::DataArrays DataArrays;
+
+  vtkDataArray     *_Mask;
+  const EdgeTable  *_EdgeTable;
+  vtkPoints        *_InputPoints;
+  vtkPoints        *_OutputPoints;
+  const DataArrays *_InputArrays;
+  const DataArrays *_OutputArrays;
+  TKernel           _WeightFunction;
+  double            _Lambda;
+  bool              _InclNodeItself;
+
+  void operator ()(const blocked_range<vtkIdType> &re) const
+  {
+    double        p[3] = {.0}, p0[3], p1[3], w, norm, alpha, beta, val, dp;
+    vtkDataArray *ia, *oa;
+    const int    *adjPtIt, *adjPtEnd;
+    vtkIdType     adjPtId;
+    size_t        i;
+    int           j;
+
+    const bool smooth_points = (_OutputPoints != nullptr);
+
+    double * const wsum = new double[_InputArrays->size()];
+    double ** dir = new double *[_InputArrays->size()];
+    for (i = 0; i < _InputArrays->size(); ++i) {
+      dir[i] = new double[(*_InputArrays )[i]->GetNumberOfComponents()];
+    }
+    double *sum, **data = new double *[_InputArrays->size()];
+    for (i = 0; i < _InputArrays->size(); ++i) {
+      data[i] = new double[(*_InputArrays)[i]->GetNumberOfComponents()];
+    }
+
+    for (vtkIdType ptId = re.begin(); ptId != re.end(); ++ptId) {
+      _InputPoints->GetPoint(ptId, p0);
+
+      // Copy position/data of masked points
+      if (_Mask && _Mask->GetComponent(ptId, 0) == .0) {
+        if (smooth_points) {
+          _OutputPoints->SetPoint(ptId, p0);
+        }
+        for (i = 0; i < _InputArrays->size(); ++i) {
+          ia = (*_InputArrays )[i];
+          oa = (*_OutputArrays)[i];
+          for (j = 0; j < oa->GetNumberOfComponents(); ++j) {
+            oa->SetComponent(ptId, j, ia->GetComponent(ptId, j));
+          }
+        }
+        continue;
+      }
+
+      // Copy data vectors at current point
+      for (i = 0; i < _InputArrays->size(); ++i) {
+        ia = (*_InputArrays )[i];
+        for (j = 0; j < ia->GetNumberOfComponents(); ++j) {
+          dir[i][j] = ia->GetComponent(ptId, j);
+        }
+      }
+
+      // Initialize sums
+      if (_InclNodeItself) {
+        norm = (w = _WeightFunction(ptId, p0, p0));
+        if (smooth_points) {
+          p[0] = w * p0[0];
+          p[1] = w * p0[1];
+          p[2] = w * p0[2];
+        }
+        for (i = 0; i < _InputArrays->size(); ++i) {
+          ia = (*_InputArrays )[i];
+          for (j = 0, sum = data[i]; j < ia->GetNumberOfComponents(); ++j, ++sum) {
+            (*sum) = w * ia->GetComponent(ptId, j);
+          }
+          wsum[i] = w;
+        }
+      } else {
+        norm = p[0] = p[1] = p[2] = .0;
+        memset(data, 0, _InputArrays->size() * sizeof(double));
+        memset(wsum, 0, _InputArrays->size() * sizeof(double));
+      }
+
+      // Weighted sum of input data
+      for (_EdgeTable->GetAdjacentPoints(ptId, adjPtIt, adjPtEnd); adjPtIt != adjPtEnd; ++adjPtIt) {
+        adjPtId = static_cast<vtkIdType>(*adjPtIt);
+        _InputPoints->GetPoint(adjPtId, p1);
+        norm += (w = _WeightFunction(ptId, p0, p1));
+        if (smooth_points) {
+          p[0] += w * p1[0];
+          p[1] += w * p1[1];
+          p[2] += w * p1[2];
+        }
+        for (i = 0; i < _InputArrays->size(); ++i) {
+          ia = (*_InputArrays )[i];
+          for (j = 0, dp = .0; j < ia->GetNumberOfComponents(); ++j) {
+            val = ia->GetComponent(adjPtId, j);
+            dp += dir[i][j] * val;
+          }
+          if (dp > .0) {
+            for (j = 0, sum = data[i]; j < ia->GetNumberOfComponents(); ++j, ++sum) {
+              (*sum) += w * ia->GetComponent(adjPtId, j);
+            }
+            wsum[i] += w;
+          }
+        }
+      }
+
+      // Normalize weights and compute output data
+      if (smooth_points) {
+        if (norm > .0) alpha = 1.0 - _Lambda, beta = _Lambda / norm;
+        else           alpha = 1.0,           beta = .0;
+        _OutputPoints->SetPoint(ptId, alpha * p0[0] + beta * p[0],
+                                      alpha * p0[1] + beta * p[1],
+                                      alpha * p0[2] + beta * p[2]);
+      }
+      for (i = 0; i < _InputArrays->size(); ++i) {
+        ia = (*_InputArrays )[i];
+        oa = (*_OutputArrays)[i];
+        if (wsum[i] > .0) alpha = 1.0 - _Lambda, beta = _Lambda / wsum[i];
+        else              alpha = 1.0,           beta = .0;
+        for (j = 0, sum = data[i]; j < oa->GetNumberOfComponents(); ++j, ++sum) {
+          oa->SetComponent(ptId, j, alpha * ia->GetComponent(ptId, j) + beta * (*sum));
+        }
+      }
+    }
+
+    for (i = 0; i < _InputArrays->size(); ++i) {
+      delete[] dir [i];
+      delete[] data[i];
+    }
+    delete[] dir;
+    delete[] data;
+    delete[] wsum;
+  }
+
+  static void Run(vtkDataArray     *mask,
+                  const EdgeTable  *edgeTable,
+                  vtkPoints        *input_points,
+                  vtkPoints        *output_points,
+                  const DataArrays &input_arrays,
+                  const DataArrays &output_arrays,
+                  TKernel           kernel,
+                  double            lambda,
+                  bool              incl_node)
+  {
+    SmoothSignedData<TKernel> body;
+    body._Mask           = mask;
+    body._EdgeTable      = edgeTable;
+    body._InputPoints    = input_points;
+    body._OutputPoints   = output_points;
+    body._InputArrays    = &input_arrays;
+    body._OutputArrays   = &output_arrays;
+    body._WeightFunction = kernel;
+    body._Lambda         = lambda;
+    body._InclNodeItself = incl_node;
+    blocked_range<vtkIdType> ptIds(0, input_points->GetNumberOfPoints());
+    parallel_for(ptIds, body);
+  }
+};
+
 
 } // namespace PolyDataSmoothingUtils
 using namespace PolyDataSmoothingUtils;
@@ -414,6 +876,8 @@ PolyDataSmoothing::PolyDataSmoothing()
   _Weighting(InverseDistance),
   _AdjacentValuesOnly(false),
   _SmoothPoints(false),
+  _SmoothMagnitude(false),
+  _SignedSmoothing(false),
   _Verbose(0)
 {
 }
@@ -432,6 +896,8 @@ void PolyDataSmoothing::CopyAttributes(const PolyDataSmoothing &other)
   _MaximumDirectionName  = other._MaximumDirectionName;
   _AdjacentValuesOnly    = other._AdjacentValuesOnly;
   _SmoothPoints          = other._SmoothPoints;
+  _SmoothMagnitude       = other._SmoothMagnitude;
+  _SignedSmoothing       = other._SignedSmoothing;
   _SmoothArrays          = other._SmoothArrays;
   _Verbose               = other._Verbose;
 
@@ -627,29 +1093,69 @@ void PolyDataSmoothing::Execute()
     switch (_Weighting) {
       case Combinatorial: {
         typedef UniformWeightKernel Kernel;
-        SmoothData<Kernel>::Run(_Mask, _EdgeTable, ip, op, ia, oa, Kernel(), lambda, incl_node);
+        if (_SmoothArrays.empty() || (!_SmoothMagnitude && !_SignedSmoothing)) {
+          SmoothData<Kernel>::Run(_Mask, _EdgeTable, ip, op, ia, oa, Kernel(), lambda, incl_node);
+        } else if (_SmoothMagnitude && !_SignedSmoothing) {
+          SmoothDataMagnitude<Kernel>::Run(_Mask, _EdgeTable, ip, op, ia, oa, Kernel(), lambda, incl_node);
+        } else if (_SmoothMagnitude && _SignedSmoothing) {
+          SmoothSignedDataMagnitude<Kernel>::Run(_Mask, _EdgeTable, ip, op, ia, oa, Kernel(), lambda, incl_node);
+        } else if (_SignedSmoothing) {
+          SmoothSignedData<Kernel>::Run(_Mask, _EdgeTable, ip, op, ia, oa, Kernel(), lambda, incl_node);
+        }
       } break;
       case InverseDistance: {
         typedef InverseDistanceKernel Kernel;
-        SmoothData<Kernel>::Run(_Mask, _EdgeTable, ip, op, ia, oa, Kernel(_Sigma), lambda, incl_node);
+        if (_SmoothArrays.empty() || (!_SmoothMagnitude && !_SignedSmoothing)) {
+          SmoothData<Kernel>::Run(_Mask, _EdgeTable, ip, op, ia, oa, Kernel(_Sigma), lambda, incl_node);
+        } else if (_SmoothMagnitude && !_SignedSmoothing) {
+          SmoothDataMagnitude<Kernel>::Run(_Mask, _EdgeTable, ip, op, ia, oa, Kernel(_Sigma), lambda, incl_node);
+        } else if (_SmoothMagnitude && _SignedSmoothing) {
+          SmoothSignedDataMagnitude<Kernel>::Run(_Mask, _EdgeTable, ip, op, ia, oa, Kernel(_Sigma), lambda, incl_node);
+        } else if (_SignedSmoothing) {
+          SmoothSignedData<Kernel>::Run(_Mask, _EdgeTable, ip, op, ia, oa, Kernel(_Sigma), lambda, incl_node);
+        }
       } break;
       case Default:
       case Gaussian: {
         typedef GaussianKernel Kernel;
-        SmoothData<Kernel>::Run(_Mask, _EdgeTable, ip, op, ia, oa, Kernel(sigma1), lambda, incl_node);
+        if (_SmoothArrays.empty() || (!_SmoothMagnitude && !_SignedSmoothing)) {
+          SmoothData<Kernel>::Run(_Mask, _EdgeTable, ip, op, ia, oa, Kernel(sigma1), lambda, incl_node);
+        } else if (_SmoothMagnitude && !_SignedSmoothing) {
+          SmoothDataMagnitude<Kernel>::Run(_Mask, _EdgeTable, ip, op, ia, oa, Kernel(sigma1), lambda, incl_node);
+        } else if (_SmoothMagnitude && _SignedSmoothing) {
+          SmoothSignedDataMagnitude<Kernel>::Run(_Mask, _EdgeTable, ip, op, ia, oa, Kernel(sigma1), lambda, incl_node);
+        } else if (_SignedSmoothing) {
+          SmoothSignedData<Kernel>::Run(_Mask, _EdgeTable, ip, op, ia, oa, Kernel(sigma1), lambda, incl_node);
+        }
       } break;
       case AnisotropicGaussian: {
         typedef AnisotropicGaussianKernel Kernel;
         vtkPointData * const pd = _Input->GetPointData();
         if (!_GeometryTensorName.empty()) {
           Kernel kernel(pd->GetArray(_GeometryTensorName.c_str()), sigma1, sigma2);
-          SmoothData<Kernel>::Run(_Mask, _EdgeTable, ip, op, ia, oa, kernel, lambda, incl_node);
+          if (_SmoothArrays.empty() || (!_SmoothMagnitude && !_SignedSmoothing)) {
+            SmoothData<Kernel>::Run(_Mask, _EdgeTable, ip, op, ia, oa, kernel, lambda, incl_node);
+          } else if (_SmoothMagnitude && !_SignedSmoothing) {
+            SmoothDataMagnitude<Kernel>::Run(_Mask, _EdgeTable, ip, op, ia, oa, kernel, lambda, incl_node);
+          } else if (_SmoothMagnitude && _SignedSmoothing) {
+            SmoothSignedDataMagnitude<Kernel>::Run(_Mask, _EdgeTable, ip, op, ia, oa, kernel, lambda, incl_node);
+          } else if (_SignedSmoothing) {
+            SmoothSignedData<Kernel>::Run(_Mask, _EdgeTable, ip, op, ia, oa, kernel, lambda, incl_node);
+          }
         } else {
           Kernel kernel(pd->GetNormals(),
                         pd->GetArray(_MinimumDirectionName.c_str()),
                         pd->GetArray(_MaximumDirectionName.c_str()),
                         sigma1, sigma2);
-          SmoothData<Kernel>::Run(_Mask, _EdgeTable, ip, op, ia, oa, kernel, lambda, incl_node);
+          if (_SmoothArrays.empty() || (!_SmoothMagnitude && !_SignedSmoothing)) {
+            SmoothData<Kernel>::Run(_Mask, _EdgeTable, ip, op, ia, oa, kernel, lambda, incl_node);
+          } else if (_SmoothMagnitude && !_SignedSmoothing) {
+            SmoothDataMagnitude<Kernel>::Run(_Mask, _EdgeTable, ip, op, ia, oa, kernel, lambda, incl_node);
+          } else if (_SmoothMagnitude && _SignedSmoothing) {
+            SmoothSignedDataMagnitude<Kernel>::Run(_Mask, _EdgeTable, ip, op, ia, oa, kernel, lambda, incl_node);
+          } else if (_SignedSmoothing) {
+            SmoothSignedData<Kernel>::Run(_Mask, _EdgeTable, ip, op, ia, oa, kernel, lambda, incl_node);
+          }
         }
       } break;
     }

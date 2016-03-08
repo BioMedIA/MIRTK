@@ -16,4 +16,10 @@
 # limitations under the License.
 # ============================================================================
 
-basis_project_impl ()
+cmake_minimum_required(VERSION 2.8.12 FATAL_ERROR)
+
+if (NOT COMMAND mirtk_configure_module)
+  find_package(MIRTK REQUIRED COMPONENTS CMake)
+endif ()
+
+mirtk_configure_module()
