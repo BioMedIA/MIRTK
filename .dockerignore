@@ -1,5 +1,6 @@
-Docker/Dockerfile*
 Dockerfile
+Docker/Ubuntu/Dockerfile
+Docker/Ubuntu/.dockerignore
 build*
 Build*
 xcode*
