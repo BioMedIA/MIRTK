@@ -17,9 +17,10 @@ list the third-party libraries required by each module and describe how to
 build the MIRTK from its publicly available source code.
 
 Instead of manually installing the MIRTK locally on your system, you can use
-the pre-made `biomedia/mirtk <MIRTK Docker image>`_ Docker image to run the
-:doc:`commands` inside a `Docker container`_. For a guide to install and
-use Docker_, see the `official docs <https://docs.docker.com>`__.
+the pre-made `biomedia/mirtk <https://hub.docker.com/r/biomedia/mirtk/>`_
+Docker image to run the :doc:`commands` inside a `Docker container`_.
+
+For a guide to install and use Docker_, see the `official docs <https://docs.docker.com>`__.
 
 
 .. _BashCompletion:
@@ -27,21 +28,20 @@ use Docker_, see the `official docs <https://docs.docker.com>`__.
 Bash completion
 ---------------
 
-For information on how to enable `auto-completion <Bash completion>`_ when running
-``mirtk`` commands of a manual MIRTK installation in the Bash_ shell, see the
-:doc:`install` instructions.
+For information on how to enable auto-completion_ when running ``mirtk`` commands of
+a manual MIRTK installation in the Bash_ shell, see the :doc:`install` instructions.
 
 To enable Bash completion for running the MIRTK commands with Docker,
 copy the `docker <https://raw.githubusercontent.com/docker/docker/master/contrib/completion/bash/docker>`__
-and `docker-mirtk <https://raw.githubusercontent.com/BioMedIA/MIRTK/develop/Docker/Completion/Bash/docker-mirtk>`__
+and `docker-mirtk <https://raw.githubusercontent.com/BioMedIA/MIRTK/master/Docker/Completion/Bash/docker-mirtk>`__
 completion scripts to ``/etc/bash_completion.d/`` on Linux or,
 with the "bash-completion" Homebrew_ package installed on OS X,
 to ``/usr/local/etc/bash_completion.d/``, respectively.
 
 This can be done on Linux with the following Terminal commands::
 
-  sudo curl -L https://raw.githubusercontent.com/docker/docker/master/contrib/completion/bash/docker        > /etc/bash_completion.d/docker
-  sudo curl -L https://raw.githubusercontent.com/BioMedIA/MIRTK/develop/Docker/Completion/Bash/docker-mirtk > /etc/bash_completion.d/docker-mirtk
+  sudo curl -L https://raw.githubusercontent.com/docker/docker/master/contrib/completion/bash/docker       > /etc/bash_completion.d/docker
+  sudo curl -L https://raw.githubusercontent.com/BioMedIA/MIRTK/master/Docker/Completion/Bash/docker-mirtk > /etc/bash_completion.d/docker-mirtk
 
 On OS X with Homebrew, use these commands instead::
 
@@ -95,7 +95,7 @@ See the :doc:`commands` page for a description of each command and the available
 
 .. note::
 
-   When Bash_ completion of MIRTK commands is enabled (see :ref:`BashCompletion`),
+   When Bash completion of MIRTK commands is enabled (see :ref:`BashCompletion`),
    press the <tab> key twice after typing "mirtk " or "docker run biomedia/mirtk "
    (incl. a space) to see a list of all commands. To only see a list of partial matches,
    type "mirtk eval" or  "docker run biomedia/mirtk eval", for example, and press <tab> twice.
@@ -116,7 +116,7 @@ or develop your own MIRTK Package.
 
 
 .. _Bash:               https://www.gnu.org/software/bash/
-.. _Bash completion:    https://www.gnu.org/software/bash/manual/html_node/Programmable-Completion.html
+.. _auto-completion:    https://www.gnu.org/software/bash/manual/html_node/Programmable-Completion.html
 .. _Homebrew:           http://brew.sh
 .. _Doxygen:            http://www.doxygen.org/
 .. _Docker:             http://www.docker.com
