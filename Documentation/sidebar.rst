@@ -5,8 +5,8 @@
 
     Overview <index>
     getstarted
-    modules
     commands
+    modules
     Reference <apidoc>
 
 .. toctree::
