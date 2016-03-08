@@ -58,7 +58,7 @@ basis_project (
     #<dependency>
   OPTIONAL_DEPENDS
     TBB
-    VTK-6{vtkCommonCore,vtkCommonDataModel,vtkIOLegacy,vtkIOXML}
+    VTK-7|6{vtkCommonCore,vtkCommonDataModel,vtkIOLegacy,vtkIOXML}
     #<optional-dependency>
   TEST_DEPENDS
     GTest
