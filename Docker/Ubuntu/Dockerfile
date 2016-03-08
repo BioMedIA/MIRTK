@@ -4,8 +4,8 @@
 ## rarely changes and can thus be built and pushed to Docker Hub manually.
 ##
 ## How to build the image:
-## - Change to the Docker/ directory of the MIRTK source tree
-## - Run "docker build -f Dockerfile-ubuntu -t biomedia/ubuntu:mirtk ."
+## - Change to the Docker/Ubuntu/ directory of the MIRTK source tree
+## - Run "docker build -t biomedia/ubuntu:mirtk ."
 ##
 ## Upload image to Docker Hub:
 ## - Log in with "docker login" command if necessary
