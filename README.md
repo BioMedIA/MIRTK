@@ -1,6 +1,8 @@
 Medical Image Registration ToolKit (MIRTK)
 ==========================================
 
+[![](https://badge.imagelayers.io/biomedia/mirtk:latest.svg)](https://imagelayers.io/?images=biomedia/mirtk:latest)
+&nbsp;
 [![Join the chat at https://gitter.im/BioMedIA/MIRTK](https://badges.gitter.im/BioMedIA/MIRTK.svg)](https://gitter.im/BioMedIA/MIRTK?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 The MIRTK is a research-focused image processing toolkit, developed at the
