@@ -15,7 +15,8 @@
 #
 # Result variables::
 #
-#   MIRTK_FOUND            - True if headers and requested libraries were found.
+#   MIRTK_FOUND            - True if headers and required components were found.
+#   MIRTK_<Module>_FOUND   - True if requested module was found.
 #   MIRTK_VERSION          - Version of found MIRTK libraries.
 #   MIRTK_VERSION_MAJOR    - Major version number of found MIRTK libraries.
 #   MIRTK_VERSION_MINOR    - Minor version number of found MIRTK libraries.
@@ -27,7 +28,7 @@
 #   MIRTK_MODULES_FOUND    - List of requested and found MIRTK modules.
 #   MIRTK_MODULES_NOTFOUND - List of not found optional MIRTK modules.
 #
-# By default, this module reads hints about search locations from variables::
+# By default, this module reads hints about search paths from variables::
 #
 #   DEPENDS_MIRTK_DIR - Either installation root or MIRTKConfig.cmake directory.
 #   MIRTK_DIR         - Directory containing the MIRTKConfig.cmake file.
@@ -275,11 +276,6 @@ if (NOT MIRTK_FIND_QUIETLY)
   endif ()
 endif ()
 
-if (NOT "^${_cache}$" STREQUAL "^MIRTK_DIR$")
-  set_property(CACHE MIRTK_DIR PROPERTY TYPE INTERNAL)
-  set(_MIRTK_DIR "${MIRTK_DIR}" CACHE INTERNAL "Previous MIRTK_DIR value" FORCE)
-endif ()
-
 # Make internal search path cache entries consistent with non-internal cache entry
 if (MIRTK_FOUND)
   mark_as_advanced(FORCE ${_cache})
@@ -287,6 +283,10 @@ if (MIRTK_FOUND)
 else ()
   mark_as_advanced(CLEAR ${_cache})
   set(_prefix NOTFOUND)
+endif ()
+if (NOT "^${_cache}$" STREQUAL "^MIRTK_DIR$")
+  set_property(CACHE MIRTK_DIR PROPERTY TYPE INTERNAL)
+  set(_MIRTK_DIR "${MIRTK_DIR}" CACHE INTERNAL "Previous MIRTK_DIR value" FORCE)
 endif ()
 get_property(_cached CACHE MIRTK_ROOT PROPERTY TYPE SET)
 if (_cached)
