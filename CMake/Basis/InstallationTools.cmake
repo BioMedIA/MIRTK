@@ -404,9 +404,9 @@ function (basis_register_package)
        endif ()"
     )
   elseif (IS_DIRECTORY "$ENV{HOME}")
-    file (WRITE "${PROJECT_BINARY_DIR}/${PROJECT_PACKAGE_CONFIG_PREFIX}RegistryFile" "${PKGDIR}")
+    file (WRITE "${BINARY_CONFIG_DIR}/${PROJECT_PACKAGE_CONFIG_PREFIX}RegistryFile" "${PKGDIR}")
     install (
-      FILES       "${PROJECT_BINARY_DIR}/${PROJECT_PACKAGE_CONFIG_PREFIX}RegistryFile"
+      FILES       "${BINARY_CONFIG_DIR}/${PROJECT_PACKAGE_CONFIG_PREFIX}RegistryFile"
       DESTINATION "$ENV{HOME}/.cmake/packages/${PROJECT_PACKAGE_CONFIG_PREFIX}"
       RENAME      "${PKGUID}"
     )

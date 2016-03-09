@@ -278,7 +278,7 @@ function (basis_export_targets)
     endif ()
     export (
       TARGETS   ${EXPORT_TARGETS}
-      FILE      "${CMAKE_BINARY_DIR}/${ARGN_FILE}"
+      FILE      "${BINARY_LIBCONF_DIR}/${ARGN_FILE}"
       ${NAMESPACE_OPT}
     )
     basis_get_project_property (INSTALL_EXPORT_TARGETS)
@@ -303,12 +303,12 @@ function (basis_export_targets)
   if (CUSTOM_EXPORT_TARGETS OR TEST_EXPORT_TARGETS)
 
     # write exports for build tree
-    basis_export_header (CONTENT)
-    basis_export_import_targets (CONTENT ${CUSTOM_EXPORT_TARGETS} ${TEST_EXPORT_TARGETS})
-    basis_export_build_properties (CONTENT ${CUSTOM_EXPORT_TARGETS}  ${TEST_EXPORT_TARGETS})
-    basis_export_footer (CONTENT)
+    basis_export_header           (CONTENT)
+    basis_export_import_targets   (CONTENT ${CUSTOM_EXPORT_TARGETS} ${TEST_EXPORT_TARGETS})
+    basis_export_build_properties (CONTENT ${CUSTOM_EXPORT_TARGETS} ${TEST_EXPORT_TARGETS})
+    basis_export_footer           (CONTENT)
 
-    file (WRITE "${CMAKE_BINARY_DIR}/${ARGN_CUSTOM_FILE}" "${CONTENT}")
+    file (WRITE "${BINARY_LIBCONF_DIR}/${ARGN_CUSTOM_FILE}" "${CONTENT}")
     unset (CONTENT)
 
     # write exports for installation - excluding test targets

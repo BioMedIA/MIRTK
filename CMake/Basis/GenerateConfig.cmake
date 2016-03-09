@@ -135,7 +135,7 @@ include ("${PROJECT_CONFIG_DIR}/ConfigSettings.cmake" OPTIONAL)
 # configure project configuration file for build tree
 
 string (CONFIGURE "${BASIS_TEMPLATE}" BASIS_CONFIG @ONLY)
-configure_file ("${TEMPLATE}" "${CMAKE_BINARY_DIR}/${CONFIG_FILE}" @ONLY)
+configure_file ("${TEMPLATE}" "${BINARY_LIBCONF_DIR}/${CONFIG_FILE}" @ONLY)
 
 if (NOT BASIS_BUILD_ONLY)
 
@@ -179,14 +179,14 @@ if (NOT PROJECT_IS_SUBMODULE)
   # --------------------------------------------------------------------------
   # configure project configuration version file
   
-  configure_file ("${TEMPLATE}" "${CMAKE_BINARY_DIR}/${VERSION_FILE}" @ONLY)
+  configure_file ("${TEMPLATE}" "${BINARY_LIBCONF_DIR}/${VERSION_FILE}" @ONLY)
   
   # --------------------------------------------------------------------------
   # install project configuration version file
   
   if (NOT BASIS_BUILD_ONLY)
     install (
-      FILES       "${PROJECT_BINARY_DIR}/${VERSION_FILE}"
+      FILES       "${BINARY_LIBCONF_DIR}/${VERSION_FILE}"
       DESTINATION "${INSTALL_CONFIG_DIR}"
     )
   endif ()
@@ -229,14 +229,14 @@ endif ()
 # configure project use file
 
 string (CONFIGURE "${BASIS_USE}" BASIS_USE @ONLY)
-configure_file ("${TEMPLATE}" "${CMAKE_BINARY_DIR}/${USE_FILE}" @ONLY)
+configure_file ("${TEMPLATE}" "${BINARY_LIBCONF_DIR}/${USE_FILE}" @ONLY)
 
 # ----------------------------------------------------------------------------
 # install project use file
 
 if (NOT BASIS_BUILD_ONLY)
   install (
-    FILES       "${CMAKE_BINARY_DIR}/${USE_FILE}"
+    FILES       "${BINARY_LIBCONF_DIR}/${USE_FILE}"
     DESTINATION "${INSTALL_CONFIG_DIR}"
   )
 endif ()
