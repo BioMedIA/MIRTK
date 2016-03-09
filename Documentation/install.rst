@@ -9,6 +9,14 @@ Installation
 
 .. _BuildDependencies:
 
+Requirements
+============
+
+For the compilation of the MIRTK source code, a C++ compiler with support for the
+`C++11`_ standard is required. On Windows, the minimum required Visual Studio compiler
+version is 18.0 which is shipped with Visual Studio Version 12.0 (2013).
+
+
 Dependencies
 ============
 
@@ -245,6 +253,7 @@ The Bash completions are then available when a new Terminal window is opened.
    Only the executable files are always copied to ``$CMAKE_INSTALL_PREFIX/bin``.
 
 
+.. _C++11:     https://isocpp.org/wiki/faq/cpp11
 .. _Python:    https://www.python.org
 .. _Boost:     http://www.boost.org
 .. _Eigen:     http://eigen.tuxfamily.org
