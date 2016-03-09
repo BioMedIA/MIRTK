@@ -55,9 +55,10 @@ basis_project (
   # ----------------------------------------------------------------------------
   # dependencies
   DEPENDS
-    Common
+    MIRTK{Common,Numerics,Image}
     #<dependency>
   OPTIONAL_DEPENDS
+    MIRTK{PointSet}
     #<optional-dependency>
   TEST_DEPENDS
     #<test-dependency>
