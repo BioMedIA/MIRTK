@@ -569,9 +569,9 @@ function (basis_add_doxygen_doc TARGET_NAME)
       list (APPEND DOXYGEN_INPUT "${PROJECT_BINARY_DIR}/CTestCustom.cmake")
     endif ()
     # package configuration files - only exist *after* this function executed
-    list (APPEND DOXYGEN_INPUT "${BINARY_CONFIG_DIR}/${PROJECT_PACKAGE_CONFIG_PREFIX}Config.cmake")
-    list (APPEND DOXYGEN_INPUT "${PROJECT_BINARY_DIR}/${PROJECT_PACKAGE_CONFIG_PREFIX}ConfigVersion.cmake")
-    list (APPEND DOXYGEN_INPUT "${PROJECT_BINARY_DIR}/${PROJECT_PACKAGE_CONFIG_PREFIX}Use.cmake")
+    list (APPEND DOXYGEN_INPUT "${BINARY_LIBCONF_DIR}/${PROJECT_PACKAGE_CONFIG_PREFIX}Config.cmake")
+    list (APPEND DOXYGEN_INPUT "${BINARY_LIBCONF_DIR}/${PROJECT_PACKAGE_CONFIG_PREFIX}ConfigVersion.cmake")
+    list (APPEND DOXYGEN_INPUT "${BINARY_LIBCONF_DIR}/${PROJECT_PACKAGE_CONFIG_PREFIX}Use.cmake")
     # add .dox files with definition of BASIS Modules groups
     if (BASIS_DIR)
       list (APPEND DOXYGEN_INPUT "${BASIS_MODULE_PATH}/Modules.dox")

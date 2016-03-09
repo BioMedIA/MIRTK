@@ -2190,7 +2190,7 @@ macro (basis_add_module MODULE)
     message (STATUS "Configuring module ${MODULE}... - done")
   endif ()
   set (PROJECT_IS_MODULE FALSE)
-  include ("${CMAKE_BINARY_DIR}/${TOPLEVEL_PROJECT_PACKAGE_CONFIG_PREFIX}${MODULE}Config.cmake")
+  include ("${BINARY_LIBCONF_DIR}/${TOPLEVEL_PROJECT_PACKAGE_CONFIG_PREFIX}${MODULE}Config.cmake")
 endmacro ()
 
 # ----------------------------------------------------------------------------
