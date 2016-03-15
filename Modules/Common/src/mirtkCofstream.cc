@@ -19,8 +19,9 @@
 
 #include <mirtkCofstream.h>
 
-#include <mirtkCommonConfig.h>
-#include <mirtkMemory.h> // swap16, swap32
+#include <mirtkConfig.h>       // WINDOWS
+#include <mirtkCommonConfig.h> // MIRTK_Common_BIG_ENDIAN, MIRTK_Common_WITH_ZLIB
+#include <mirtkMemory.h>       // swap16, swap32
 
 #if MIRTK_Common_WITH_ZLIB
 #  include <zlib.h>
@@ -73,7 +74,12 @@ void Cofstream::Open(const char *fname)
     exit(1);
 #endif // MIRTK_Common_WITH_ZLIB
   } else {
+#if WINDOWS
+    errno_t err = fopen_s(&_File, fname, "wb");
+    if (err != 0) _File = NULL;
+#else
     _File = fopen(fname, "wb");
+#endif
     if (_File == NULL) {
       cerr << "Cofstream::Open: Cannot open file " << fname << endl;
       exit(1);
@@ -100,25 +106,25 @@ void Cofstream::Close()
 // -----------------------------------------------------------------------------
 int Cofstream::IsCompressed() const
 {
-  return static_cast<int>(_Compressed);
+  return _Compressed ? 1 : 0;
 }
 
 // -----------------------------------------------------------------------------
 void Cofstream::IsCompressed(int compressed)
 {
-  _Compressed = static_cast<bool>(compressed);
+  _Compressed = (compressed != 0);
 }
 
 // -----------------------------------------------------------------------------
 int Cofstream::IsSwapped() const
 {
-  return static_cast<int>(_Swapped);
+  return _Swapped ? 1 : 0;
 }
 
 // -----------------------------------------------------------------------------
 void Cofstream::IsSwapped(int swapped)
 {
-  _Swapped = static_cast<bool>(swapped);
+  _Swapped = (swapped != 0);
 }
 
 // -----------------------------------------------------------------------------

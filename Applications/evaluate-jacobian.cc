@@ -154,9 +154,9 @@ struct JacobianImpl : public VoxelReduction
 
   double Jacobian(int i, int j, int k, const BinaryPixel *mask)
   {
-    if (static_cast<bool>(*mask) == false) return _outside;
+    if (!(*mask)) return _outside;
 
-    _m++;
+    ++_m;
 
     double jac = numeric_limits<double>::quiet_NaN();
 
@@ -166,33 +166,33 @@ struct JacobianImpl : public VoxelReduction
       case DefaultJacobian:
       case TotalJacobian: {
         jac = _dof->Jacobian(x, y, z, _t, _t0);
-        if (jac < .0) _n++;
+        if (jac < .0) ++_n;
       } break;
       case LocalJacobian: {
         jac = _dof->LocalJacobian(x, y, z, _t, _t0);
-        if (jac < .0) _n++;
+        if (jac < .0) ++_n;
       }break;
       case GlobalJacobian: {
         jac = _dof->GlobalJacobian(x, y, z, _t, _t0);
       }break;
       case RelativeJacobian: {
         jac = _dof->LocalJacobian(x, y, z, _t, _t0);
-        if (jac < .0) _n++;
+        if (jac < .0) ++_n;
         jac /= _dof->GlobalJacobian(x, y, z, _t, _t0);
       } break;
       case LogJacobian: {
         jac = _dof->Jacobian(x, y, z, _t, _t0);
-        if (jac < .0) _n++;
+        if (jac < .0) ++_n;
         jac = log(max(jac, _threshold));
       } break;
       case AbsLogJacobian: {
         jac = _dof->Jacobian(x, y, z, _t, _t0);
-        if (jac < .0) _n++;
+        if (jac < .0) ++_n;
         jac = fabs(log(max(jac, _threshold)));
       } break;
       case TotalAndLogJacobian: {
         jac = _dof->Jacobian(x, y, z, _t, _t0);
-        if (jac < .0) _n++;
+        if (jac < .0) ++_n;
       } break;
     }
 
@@ -289,9 +289,10 @@ struct JacobianImpl : public VoxelReduction
           svffd->ScalingAndSquaring<double>(attr, NULL, NULL, NULL, &lj, NULL, svffd->UpperIntegrationLimit(_t, _t0));
           MIRTK_DEBUG_TIMING(1, "computation of log(det(Jac)) using scaling and squaring");
           for (int idx = 0; idx < _nvox; ++idx) {
-            if (static_cast<bool>(_mask(idx)) == false) continue;
-            _jacobian->PutAsDouble(idx, 100.0 * lj(idx));
-            _m++;
+            if (_mask(idx)) {
+              _jacobian->PutAsDouble(idx, 100.0 * lj(idx));
+              ++_m;
+            }
           }
         } break;
         case AbsLogJacobian: {
@@ -301,9 +302,10 @@ struct JacobianImpl : public VoxelReduction
           svffd->ScalingAndSquaring<double>(attr, NULL, NULL, NULL, &lj, NULL, svffd->UpperIntegrationLimit(_t, _t0));
           MIRTK_DEBUG_TIMING(1, "computation of log(det(Jac)) using scaling and squaring");
           for (int idx = 0; idx < _nvox; ++idx) {
-            if (static_cast<bool>(_mask(idx)) == false) continue;
-            _jacobian->PutAsDouble(idx, 100.0 * fabs(lj(idx)));
-            _m++;
+            if (_mask(idx)) {
+              _jacobian->PutAsDouble(idx, 100.0 * fabs(lj(idx)));
+              ++_m;
+            }
           }
         } break;
         case TotalAndLogJacobian: {
@@ -313,10 +315,11 @@ struct JacobianImpl : public VoxelReduction
           svffd->ScalingAndSquaring<double>(attr, NULL, NULL, &dj, &lj, NULL, svffd->UpperIntegrationLimit(_t, _t0));
           MIRTK_DEBUG_TIMING(1, "computation of det(Jac) and log using scaling and squaring");
           for (int idx = 0; idx < _nvox; ++idx) {
-            if (static_cast<bool>(_mask(idx)) == false) continue;
-            _jacobian->PutAsDouble(idx,         100.0 * dj(idx));
-            _jacobian->PutAsDouble(idx + _nvox, 100.0 * lj(idx));
-            _m++, _n += static_cast<int>(dj(idx) < .0);
+            if (_mask(idx)) {
+              _jacobian->PutAsDouble(idx, 100.0 * dj(idx));
+              _jacobian->PutAsDouble(idx + _nvox, 100.0 * lj(idx));
+              ++_m, _n += (dj(idx) < .0 ? 1 : 0);
+            }
           }
         } break;
         default: {
@@ -326,9 +329,10 @@ struct JacobianImpl : public VoxelReduction
           svffd->ScalingAndSquaring<double>(attr, NULL, NULL, &dj, NULL, NULL, svffd->UpperIntegrationLimit(_t, _t0));
           MIRTK_DEBUG_TIMING(1, "computation of det(Jac) using scaling and squaring");
           for (int idx = 0; idx < _nvox; ++idx) {
-            if (static_cast<bool>(_mask(idx)) == false) continue;
-            _jacobian->PutAsDouble(idx, 100.0 * dj(idx));
-            _m++, _n += static_cast<int>(dj(idx) < .0);
+            if (!_mask(idx)) {
+              _jacobian->PutAsDouble(idx, 100.0 * dj(idx));
+              ++_m, _n += (dj(idx) < .0 ? 1 : 0);
+            }
           }
         } break;
       }

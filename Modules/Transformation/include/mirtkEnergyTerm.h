@@ -209,9 +209,7 @@ public:                                                                        \
   static mirtk::EnergyMeasure ID() { return id; }                              \
   /** Energy measure implemented by this term */                               \
   virtual mirtk::EnergyMeasure EnergyMeasure() const { return id; }            \
-private:                                                                       \
-  /* require developer to end macro with a semicolon */                        \
-  static void _mirtkEnergyTermMacro_needs_trailing_semicolon()
+private:
 
 // -----------------------------------------------------------------------------
 /// Register object type with factory singleton

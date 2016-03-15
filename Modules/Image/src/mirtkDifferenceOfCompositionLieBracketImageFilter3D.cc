@@ -73,8 +73,8 @@ struct DifferenceOfCompositionLieBracket : public VoxelFunction
   DifferenceOfCompositionLieBracket(double sx, InputType *X,
                                     double sy, InputType *Y)
   :
-    _LeftField (X), _LeftScaling (sx),
-    _RightField(Y), _RightScaling(sy),
+    _LeftField (X), _LeftScaling (static_cast<RealType>(sx)),
+    _RightField(Y), _RightScaling(static_cast<RealType>(sy)),
     _Domain    (X->Input()),
     _y         (_Domain->NumberOfSpatialVoxels()),
     _z         (_y + _y)
@@ -189,7 +189,8 @@ template <class VectorType>
 struct DifferenceOfCompositionLieBracket3D : public VoxelFunction
 {
   // TODO: Change WorldCoordsImage to use real3 as voxel type
-  typedef typename voxel_info<VectorType>::RealType      RealType;
+  typedef typename voxel_info<VectorType>::ScalarType    ScalarType;
+  typedef typename voxel_info<ScalarType>::RealType      RealType;
   typedef typename WorldCoordsImage::VoxelType           CoordType;
   typedef Vector3D<CoordType>                            CoordVector;
   typedef GenericImage<VectorType>                       VectorImage;
@@ -198,8 +199,8 @@ struct DifferenceOfCompositionLieBracket3D : public VoxelFunction
   /// Constructor
   DifferenceOfCompositionLieBracket3D(const InputType *X, const InputType *Y)
   :
-    _LeftField (X), _LeftScaling (1.0),
-    _RightField(Y), _RightScaling(1.0),
+    _LeftField (X), _LeftScaling (RealType(1.0)),
+    _RightField(Y), _RightScaling(RealType(1.0)),
     _Domain    (X->Input())
   {
     if (X->Input()->Attributes() != Y->Input()->Attributes()) {
@@ -213,8 +214,8 @@ struct DifferenceOfCompositionLieBracket3D : public VoxelFunction
   DifferenceOfCompositionLieBracket3D(double sx, const InputType *X,
                                       double sy, const InputType *Y)
   :
-    _LeftField (X), _LeftScaling (sx),
-    _RightField(Y), _RightScaling(sy),
+    _LeftField (X), _LeftScaling (static_cast<RealType>(sx)),
+    _RightField(Y), _RightScaling(static_cast<RealType>(sy)),
     _Domain    (X->Input())
   {
     if (X->Input()->Attributes() != Y->Input()->Attributes()) {

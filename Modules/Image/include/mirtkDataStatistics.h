@@ -1027,8 +1027,8 @@ public:
   template <class T>
   static double Calculate(int p, int n, const T *data, const bool *mask = NULL)
   {
-    const double min = Percentile::Calculate(        p, n, data, mask);
-    const double max = Percentile::Calculate(100.0 - p, n, data, mask);
+    const double min = Percentile::Calculate(      p, n, data, mask);
+    const double max = Percentile::Calculate(100 - p, n, data, mask);
 
     int    m =  0;
     double v = .0, d;

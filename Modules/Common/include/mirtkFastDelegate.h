@@ -47,6 +47,7 @@
 //
 // 17-Dec-15      * Andreas Schuh: Change fastdelegate namespace to mirtk namespace and
 //                                 prefix macro definitions by MIRTK_.
+// 15-Mar-16      * Andreas Schuh: Change include of <memory.h> to <memory>.
 
 #ifndef MIRTK_FastDelegate_H
 #define MIRTK_FastDelegate_H
@@ -54,7 +55,7 @@
 #  pragma once
 #endif // _MSC_VER > 1000
 
-#include <memory.h> // to allow <,> comparisons
+#include <memory> // to allow <,> comparisons
 
 ////////////////////////////////////////////////////////////////////////////////
 //						Configuration options

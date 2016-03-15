@@ -55,26 +55,26 @@ void ShapeBasedInterpolateImageFunction::Refine()
   double min, max, current, icurrent, dcurrent, rcurrent, sum, sumcount;
 
   // Initialization
-  sum = 0;
+  sum = .0;
 
   // For every intensity value
   Input()->GetMinMaxAsDouble(&min, &max);
 
   // Initialize _rcdmap
-  for (l = 0; l < _rcdmap.GetT(); ++l)
-  for (k = 0; k < _rcdmap.GetZ(); ++k)
-  for (j = 0; j < _rcdmap.GetY(); ++j)
-  for (i = 0; i < _rcdmap.GetX(); ++i) {
+  for (l = 0; l < _rcdmap.T(); ++l)
+  for (k = 0; k < _rcdmap.Z(); ++k)
+  for (j = 0; j < _rcdmap.Y(); ++j)
+  for (i = 0; i < _rcdmap.X(); ++i) {
     _rcdmap.PutAsDouble(i, j, k, l, 30);
   }
 
   for (current = min; current <= max; current++) {
     // Threshold
-    sumcount = 0;
-    for (l = 0; l < _tinput.GetT(); ++l)
-    for (k = 0; k < _tinput.GetZ(); ++k)
-    for (j = 0; j < _tinput.GetY(); ++j)
-    for (i = 0; i < _tinput.GetX(); ++i) {
+    sumcount = .0;
+    for (l = 0; l < _tinput.T(); ++l)
+    for (k = 0; k < _tinput.Z(); ++k)
+    for (j = 0; j < _tinput.Y(); ++j)
+    for (i = 0; i < _tinput.X(); ++i) {
       icurrent = Input()->GetAsDouble(i, j, k, l);
       if (icurrent < current || icurrent >= (current + 1)) {
         _tinput(i, j, k, l) = 0;
@@ -88,14 +88,14 @@ void ShapeBasedInterpolateImageFunction::Refine()
     if (verbose && iround(current) % 20 == 0) {
       if (max < current + 19) {
         cout << "Doing outside DT for value == : "<< current << " to " << max << endl;
-        cout << "Doing inside DT for value == : "<< current << " to " << max << endl;
+        cout << "Doing inside  DT for value == : "<< current << " to " << max << endl;
       } else {
-        cout << "Doing outside DT for value == : "<< current << " to " << current+19 << endl;
-        cout << "Doing inside DT for value == : "<< current << " to " << current+19 << endl;
+        cout << "Doing outside DT for value == : "<< current << " to " << current + 19.0 << endl;
+        cout << "Doing inside  DT for value == : "<< current << " to " << current + 19.0 << endl;
       }
     }
 
-    if (sumcount > 0) {
+    if (sumcount > .0) {
       // Dmap _tinput to _dmap
       {
         RealImage inputA, inputB, outputA, outputB;
@@ -110,7 +110,7 @@ void ShapeBasedInterpolateImageFunction::Refine()
         for (k = 0; k < _tinput.Z(); ++k)
         for (j = 0; j < _tinput.Y(); ++j)
         for (i = 0; i < _tinput.X(); ++i) {
-          if (_tinput(i, j, k, l) > 0.5) {
+          if (_tinput(i, j, k, l) > .5) {
             inputA(i, j, k, l) = 1;
             inputB(i, j, k, l) = 0;
           } else {
@@ -163,8 +163,8 @@ void ShapeBasedInterpolateImageFunction::Refine()
           rcurrent = _rcdmap.GetAsDouble(i, j, k, l);
           if (dcurrent < 0 && current >= icurrent && dcurrent < rcurrent) {
             _rcdmap.PutAsDouble(i, j, k, l, dcurrent);
-          } else if (dcurrent <= 0 && current >= icurrent && dcurrent < rcurrent) {
-            sum = 0, sumcount = 0;
+          } else if (dcurrent <= .0 && current >= icurrent && dcurrent < rcurrent) {
+            sum = .0, sumcount = .0;
             if (i > 0) {
               sum += _rdmap.GetAsDouble(i-1, j, k, l);
               ++sumcount;
@@ -187,14 +187,14 @@ void ShapeBasedInterpolateImageFunction::Refine()
               ++sumcount;
             }
             sum = sum/sumcount;
-            if (sum <= 0) {
+            if (sum <= .0) {
               _rcdmap.PutAsDouble(i, j, k, l, dcurrent);
             }
-          } else if (dcurrent > 0 && icurrent <= current && dcurrent < rcurrent) {
+          } else if (dcurrent > .0 && icurrent <= current && dcurrent < rcurrent) {
             _rinput.PutAsDouble(i, j, k, l, current);
             _rcdmap.PutAsDouble(i, j, k, l, dcurrent);
-          } else if (dcurrent >= 0 && icurrent <= current && dcurrent < rcurrent) {
-            if (sum > 0) {
+          } else if (dcurrent >= .0 && icurrent <= current && dcurrent < rcurrent) {
+            if (sum > .0) {
               _rinput.PutAsDouble(i, j, k, l, current);
               _rcdmap.PutAsDouble(i, j, k, l, dcurrent);
             }
@@ -285,9 +285,9 @@ void ShapeBasedInterpolateImageFunction::Initialize(bool coeff)
   Input()->GetMinMaxAsDouble(&min, &max);
 
   labelcount = 0;
-  for (current = min; current <= max; current++) {
+  for (current = min; current <= max; ++current) {
     // Threshold
-    sumcount = 0;
+    sumcount = .0;
     for (l = 0; l < _tinput.T(); ++l)
     for (k = 0; k < _tinput.Z(); ++k)
     for (j = 0; j < _tinput.Y(); ++j)
@@ -298,22 +298,22 @@ void ShapeBasedInterpolateImageFunction::Initialize(bool coeff)
         _tinput(i, j, k, l) = 1;
       }
       if (Input()->GetAsDouble(i, j, k, l) >= current &&
-          Input()->GetAsDouble(i, j, k, l) <  current + 1) {
+          Input()->GetAsDouble(i, j, k, l) <  current + 1.0) {
         ++sumcount;
       }
     }
 
     if (verbose && iround(current) % 20 == 0) {
-      if (max < current + 19) {
+      if (max < current + 19.0) {
         cout << "Doing outside DT for value >= : "<< current << " to " << max << endl;
-        cout << "Doing inside DT for value >= : "<< current << " to " << max << endl;
+        cout << "Doing inside  DT for value >= : "<< current << " to " << max << endl;
       } else {
-        cout << "Doing outside DT for value >= : "<< current << " to " << current+19 << endl;
-        cout << "Doing inside DT for value >= : "<< current << " to " << current+19 << endl;
+        cout << "Doing outside DT for value >= : "<< current << " to " << current + 19.0 << endl;
+        cout << "Doing inside  DT for value >= : "<< current << " to " << current + 19.0 << endl;
       }
     }
 
-    if (sumcount > 0) {
+    if (sumcount > .0) {
       ++labelcount;
       // Dmap _tinput to _dmap
       {
@@ -329,7 +329,7 @@ void ShapeBasedInterpolateImageFunction::Initialize(bool coeff)
         for (k = 0; k < _tinput.Z(); ++k)
         for (j = 0; j < _tinput.Y(); ++j)
         for (i = 0; i < _tinput.X(); ++i) {
-          if (_tinput(i, j, k, l) > 0.5) {
+          if (_tinput(i, j, k, l) > .5) {
             inputA(i, j, k, l) = 1;
             inputB(i, j, k, l) = 0;
           } else {
@@ -378,10 +378,10 @@ void ShapeBasedInterpolateImageFunction::Initialize(bool coeff)
         for (k = 0; k < _rdmap.Z(); ++k)
         for (j = 0; j < _rdmap.Y(); ++j)
         for (i = 0; i < _rdmap.X(); ++i) {
-          if (_rdmap.GetAsDouble(i, j, k, l) < 0) {
+          if (_rdmap.GetAsDouble(i, j, k, l) < .0) {
             _rinput.PutAsDouble(i, j, k, l, current);
-          } else if (_rdmap.GetAsDouble(i, j, k, l) <= 0) {
-            sum = 0; sumcount = 0;
+          } else if (_rdmap.GetAsDouble(i, j, k, l) <= .0) {
+            sum = .0, sumcount = .0;
             if (i > 0) {
               sum += _rdmap.GetAsDouble(i-1, j, k, l);
               ++sumcount;
@@ -404,7 +404,7 @@ void ShapeBasedInterpolateImageFunction::Initialize(bool coeff)
               ++sumcount;
             }
             sum = sum/sumcount;
-            if (sum <= 0) {
+            if (sum <= .0) {
               _rinput.PutAsDouble(i, j, k, l, current);
             }
           }

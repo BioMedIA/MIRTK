@@ -195,8 +195,7 @@ inline ParameterList &Remove(ParameterList &params, string name)
     inline static const char *NameOfType() { return #name; }                   \
     /** Get name of class, which this object is an instance of */              \
     virtual const char *NameOfClass() const = 0;                               \
-  private:                                                                     \
-    static void _mirtkAbstractMacro_needs_trailing_semicolon()
+  private:
 
 // -----------------------------------------------------------------------------
 /// Declare class derived from Object
@@ -206,8 +205,7 @@ inline ParameterList &Remove(ParameterList &params, string name)
     inline static  const char *NameOfType() { return #name; }                  \
     /** Get name of class, which this object is an instance of */              \
     inline virtual const char *NameOfClass() const { return #name; }           \
-  private:                                                                     \
-    static void _irtkObjectMacro_needs_trailing_semicolon()
+  private:
 
 // -----------------------------------------------------------------------------
 /// Declare class of mutable objects, i.e., ones which define their own
@@ -219,30 +217,26 @@ inline ParameterList &Remove(ParameterList &params, string name)
     inline static const char *NameOfType() { return #name; }                   \
     /** Get name of class, which this object is an instance of */              \
     virtual const char *NameOfClass() const;                                   \
-  private:                                                                     \
-    static void _mirtkMutableObjectMacro_needs_trailing_semicolon()
+  private:
 
 // -----------------------------------------------------------------------------
 /// Define setter for class member variable
 /// \sa mirtkPublicAttributeMacro
 #define mirtkSetMacro(name, type)                                              \
-    virtual void Set##name(type arg) { this->_##name = arg; }                  \
-    static void _mirtkSetMacro_##name##_needs_trailing_semicolon()
+    virtual void Set##name(type arg) { this->_##name = arg; }
 
 // -----------------------------------------------------------------------------
 /// Define getter for class member variable
 /// \sa mirtkPublicAttributeMacro, mirtkReadOnlyAttributeMacro
 #define mirtkGetMacro(name, type)                                              \
-    type Get##name() const { return this->_##name; }                           \
-    static void _mirtkGetMacro_##name##_needs_trailing_semicolon()
+    type Get##name() const { return this->_##name; }
 
 // -----------------------------------------------------------------------------
 /// Define VTK-like On/Off setter for boolean class member variable
 /// \sa mirtkPublicAttributeMacro
 #define mirtkOnOffMacro(name)                                                  \
     virtual void name##On()  { this->_##name = true;  }                        \
-    virtual void name##Off() { this->_##name = false; }                        \
-    static void _mirtkOnOffMacro_##name##_needs_trailing_semicolon()
+    virtual void name##Off() { this->_##name = false; }
 
 // -----------------------------------------------------------------------------
 /// Define read-only class attribute and corresponding accessors
@@ -254,9 +248,7 @@ inline ParameterList &Remove(ParameterList &params, string name)
     inline type &name() { return _##name; }                                    \
     /** Get value of _##name attribute */                                      \
     inline const type &name() const { return _##name; }                        \
-  private:                                                                     \
-    /* require developer to end macro with a semicolon */                      \
-    static void _mirtkAttributeMacro_##name##_needs_trailing_semicolon()
+  private:
 
 // -----------------------------------------------------------------------------
 /// Define class attribute and corresponding accessors
@@ -270,9 +262,7 @@ inline ParameterList &Remove(ParameterList &params, string name)
     inline type &name() { return _##name; }                                    \
     /** Get value of _##name attribute */                                      \
     inline const type &name() const { return _##name; }                        \
-  private:                                                                     \
-    /* require developer to end macro with a semicolon */                      \
-    static void _mirtkAttributeMacro_##name##_needs_trailing_semicolon()
+  private:
 
 // -----------------------------------------------------------------------------
 /// Define public attribute
@@ -303,9 +293,7 @@ inline ParameterList &Remove(ParameterList &params, string name)
     inline virtual void name(type *arg) { _##name = arg; }                     \
     /** Get value of _##name attribute */                                      \
     inline type *name() const { return _##name; }                              \
-  private:                                                                     \
-    /* require developer to end macro with a semicolon */                      \
-    static void _mirtkAggregateMacro_##name##_needs_trailing_semicolon()
+  private:
 
 // -----------------------------------------------------------------------------
 /// Define pointer to aggregate (cf. UML aggregation) and corresponding accessors
@@ -315,9 +303,7 @@ inline ParameterList &Remove(ParameterList &params, string name)
   access:                                                                      \
     /** Get value of _##name attribute */                                      \
     inline type *name() const { return _##name; }                              \
-  private:                                                                     \
-    /* require developer to end macro with a semicolon */                      \
-    static void _mirtkReadOnlyAggregateMacro_##name##_needs_trailing_semicolon()
+  private:
 
 // -----------------------------------------------------------------------------
 /// Define public pointer to aggregate (cf. UML aggregation)
@@ -344,9 +330,7 @@ inline ParameterList &Remove(ParameterList &params, string name)
     inline type *name() { return _##name; }                                    \
     /** Get const pointer to _##name attribute */                              \
     inline const type *name() const { return _##name; }                        \
-  private:                                                                     \
-    /* require developer to end macro with a semicolon */                      \
-    static void _mirtkComponentMacro_##name##_needs_trailing_semicolon()
+  private:
 
 // -----------------------------------------------------------------------------
 /// Define public pointer to component (cf. UML composition)

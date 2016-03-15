@@ -40,7 +40,7 @@ template <class TImage>
 GenericSincInterpolateImageFunction<TImage>
 ::GenericSincInterpolateImageFunction()
 :
-  _Epsilon(0.000001)
+  _Epsilon(1e-6)
 {
 }
 
@@ -79,7 +79,7 @@ template <class TImage>
 void GenericSincInterpolateImageFunction<TImage>
 ::BoundingInterval(double x, int &i, int &I) const
 {
-  const int c = static_cast<int>(round(x));
+  const int c = iround(x);
   i = c - Kernel::Radius;
   I = c + Kernel::Radius;
 }
@@ -94,10 +94,10 @@ inline typename GenericSincInterpolateImageFunction<TImage>::VoxelType
 GenericSincInterpolateImageFunction<TImage>
 ::Get2D(double x, double y, double z, double t) const
 {
-  int i = static_cast<int>(round(x));
-  int j = static_cast<int>(round(y));
-  int k = static_cast<int>(round(z));
-  int l = static_cast<int>(round(t));
+  int i = iround(x);
+  int j = iround(y);
+  int k = iround(z);
+  int l = iround(t);
 
   if (k < 0 || k >= this->Input()->Z() ||
       l < 0 || l >= this->Input()->T()) {
@@ -123,14 +123,14 @@ GenericSincInterpolateImageFunction<TImage>
   const int j2 = j + Kernel::Radius;
 
   RealType val = voxel_cast<RealType>(0);
-  Real     nrm = .0, wy, w;
+  Real     nrm(0), wy, w;
 
   for (j = j1; j <= j2; ++j) {
     if (0 <= j && j < this->Input()->Y()) {
-      wy = Kernel::Lookup(y - j);
+      wy = Kernel::Lookup(Real(y - j));
       for (i = i1; i <= i2; ++i) {
         if (0 <= i && i < this->Input()->X()) {
-          w    = Kernel::Lookup(x - i) * wy;
+          w    = Kernel::Lookup(Real(x - i)) * wy;
           val += w * voxel_cast<RealType>(this->Input()->Get(i, j, k, l));
           nrm += w;
         }
@@ -150,10 +150,10 @@ inline typename GenericSincInterpolateImageFunction<TImage>::VoxelType
 GenericSincInterpolateImageFunction<TImage>
 ::GetWithPadding2D(double x, double y, double z, double t) const
 {
-  int i = static_cast<int>(round(x));
-  int j = static_cast<int>(round(y));
-  int k = static_cast<int>(round(z));
-  int l = static_cast<int>(round(t));
+  int i = iround(x);
+  int j = iround(y);
+  int k = iround(z);
+  int l = iround(t);
 
   if (k < 0 || k >= this->Input()->Z() ||
       l < 0 || l >= this->Input()->T()) {
@@ -178,12 +178,12 @@ GenericSincInterpolateImageFunction<TImage>
   const int j2 = j + Kernel::Radius;
 
   RealType val = voxel_cast<RealType>(0);
-  Real     fgw = .0, bgw = .0, wy, w;
+  Real     fgw(0), bgw(0), wy, w;
 
   for (j = j1; j <= j2; ++j) {
-    wy = Kernel::Lookup(y - j);
+    wy = Kernel::Lookup(Real(y - j));
     for (i = i1; i <= i2; ++i) {
-      w = Kernel::Lookup(x - i) * wy;
+      w = Kernel::Lookup(Real(x - i)) * wy;
       if (this->Input()->IsInsideForeground(i, j, k, l)) {
         val += w * voxel_cast<RealType>(this->Input()->Get(i, j, k, l));
         fgw += w;
@@ -208,10 +208,10 @@ GenericSincInterpolateImageFunction<TImage>
   typedef typename TOtherImage::VoxelType VoxelType;
   typedef typename TOtherImage::RealType  RealType;
 
-  int i = static_cast<int>(round(x));
-  int j = static_cast<int>(round(y));
-  int k = static_cast<int>(round(z));
-  int l = static_cast<int>(round(t));
+  int i = iround(x);
+  int j = iround(y);
+  int k = iround(z);
+  int l = iround(t);
 
   // Return value of nearest neighbor if distance is negligible
   if (fequal(x, i, _Epsilon) &&
@@ -227,12 +227,12 @@ GenericSincInterpolateImageFunction<TImage>
   const int j2 = j + Kernel::Radius;
 
   RealType val = voxel_cast<RealType>(0);
-  Real     nrm = .0, wy, w;
+  Real     nrm(0), wy, w;
 
   for (j = j1; j <= j2; ++j) {
-    wy = Kernel::Lookup(y - j);
+    wy = Kernel::Lookup(Real(y - j));
     for (i = i1; i <= i2; ++i) {
-      w    = Kernel::Lookup(x - i) * wy;
+      w    = Kernel::Lookup(Real(x - i)) * wy;
       val += w * voxel_cast<RealType>(input->Get(i, j, k, l));
       nrm += w;
     }
@@ -253,10 +253,10 @@ GenericSincInterpolateImageFunction<TImage>
   typedef typename TOtherImage::VoxelType VoxelType;
   typedef typename TOtherImage::RealType  RealType;
 
-  int i = static_cast<int>(round(x));
-  int j = static_cast<int>(round(y));
-  int k = static_cast<int>(round(z));
-  int l = static_cast<int>(round(t));
+  int i = iround(x);
+  int j = iround(y);
+  int k = iround(z);
+  int l = iround(t);
 
   // Return value of nearest neighbor if distance is negligible
   if (fequal(x, i, _Epsilon) &&
@@ -276,12 +276,12 @@ GenericSincInterpolateImageFunction<TImage>
   const int j2 = j + Kernel::Radius;
 
   RealType val = voxel_cast<RealType>(0);
-  Real     fgw = .0, bgw = .0, wy, w;
+  Real     fgw(0), bgw(0), wy, w;
 
   for (j = j1; j <= j2; ++j) {
-    wy = Kernel::Lookup(y - j);
+    wy = Kernel::Lookup(Real(y - j));
     for (i = i1; i <= i2; ++i) {
-      w = Kernel::Lookup(x - i) * wy;
+      w = Kernel::Lookup(Real(x - i)) * wy;
       if (input->IsForeground(i, j, k, l)) {
         val += w * voxel_cast<RealType>(input->Get(i, j, k, l));
         fgw += w;
@@ -303,10 +303,10 @@ inline typename GenericSincInterpolateImageFunction<TImage>::VoxelType
 GenericSincInterpolateImageFunction<TImage>
 ::Get3D(double x, double y, double z, double t) const
 {
-  int i = static_cast<int>(round(x));
-  int j = static_cast<int>(round(y));
-  int k = static_cast<int>(round(z));
-  int l = static_cast<int>(round(t));
+  int i = iround(x);
+  int j = iround(y);
+  int k = iround(z);
+  int l = iround(t);
 
   if (l < 0 || l >= this->Input()->T()) {
     return voxel_cast<VoxelType>(this->DefaultValue());
@@ -335,17 +335,17 @@ GenericSincInterpolateImageFunction<TImage>
   const int k2 = k + Kernel::Radius;
 
   RealType val = voxel_cast<RealType>(0);
-  Real     nrm = .0, wz, wyz, w;
+  Real     nrm(0), wz, wyz, w;
 
   for (k = k1; k <= k2; ++k) {
     if (0 <= k && k < this->Input()->Z()) {
-      wz = Kernel::Lookup(z - k);
+      wz = Kernel::Lookup(Real(z - k));
       for (j = j1; j <= j2; ++j) {
         if (0 <= j && j < this->Input()->Y()) {
-          wyz = Kernel::Lookup(y - j) * wz;
+          wyz = Kernel::Lookup(Real(y - j)) * wz;
           for (i = i1; i <= i2; ++i) {
             if (0 <= i && i < this->Input()->X()) {
-              w    = Kernel::Lookup(x - i) * wyz;
+              w    = Kernel::Lookup(Real(x - i)) * wyz;
               val += w * voxel_cast<RealType>(this->Input()->Get(i, j, k, l));
               nrm += w;
             }
@@ -367,10 +367,10 @@ inline typename GenericSincInterpolateImageFunction<TImage>::VoxelType
 GenericSincInterpolateImageFunction<TImage>
 ::GetWithPadding3D(double x, double y, double z, double t) const
 {
-  int i = static_cast<int>(round(x));
-  int j = static_cast<int>(round(y));
-  int k = static_cast<int>(round(z));
-  int l = static_cast<int>(round(t));
+  int i = iround(x);
+  int j = iround(y);
+  int k = iround(z);
+  int l = iround(t);
 
   if (l < 0 || l >= this->Input()->T()) {
     return voxel_cast<VoxelType>(this->DefaultValue());
@@ -397,14 +397,14 @@ GenericSincInterpolateImageFunction<TImage>
   const int k2 = k + Kernel::Radius;
 
   RealType val = voxel_cast<RealType>(0);
-  Real     fgw = .0, bgw = .0, wz, wyz, w;
+  Real     fgw(0), bgw(0), wz, wyz, w;
 
   for (k = k1; k <= k2; ++k) {
-    wz = Kernel::Lookup(z - k);
+    wz = Kernel::Lookup(Real(z - k));
     for (j = j1; j <= j2; ++j) {
-      wyz = Kernel::Lookup(y - j) * wz;
+      wyz = Kernel::Lookup(Real(y - j)) * wz;
       for (i = i1; i <= i2; ++i) {
-        w  = Kernel::Lookup(x - i) * wyz;
+        w  = Kernel::Lookup(Real(x - i)) * wyz;
         if (this->Input()->IsInsideForeground(i, j, k, l)) {
           val += w * voxel_cast<RealType>(this->Input()->Get(i, j, k, l));
           fgw += w;
@@ -430,10 +430,10 @@ GenericSincInterpolateImageFunction<TImage>
   typedef typename TOtherImage::VoxelType VoxelType;
   typedef typename TOtherImage::RealType  RealType;
 
-  int i = static_cast<int>(round(x));
-  int j = static_cast<int>(round(y));
-  int k = static_cast<int>(round(z));
-  int l = static_cast<int>(round(t));
+  int i = iround(x);
+  int j = iround(y);
+  int k = iround(z);
+  int l = iround(t);
 
   // Return value of nearest neighbor if distance is negligible
   if (fequal(x, i, _Epsilon) &&
@@ -452,14 +452,14 @@ GenericSincInterpolateImageFunction<TImage>
   const int k2 = k + Kernel::Radius;
 
   RealType val = voxel_cast<RealType>(0);
-  Real     nrm = .0, wz, wyz, w;
+  Real     nrm(0), wz, wyz, w;
 
   for (k = k1; k <= k2; ++k) {
-    wz = Kernel::Lookup(z - k);
+    wz = Kernel::Lookup(Real(z - k));
     for (j = j1; j <= j2; ++j) {
-      wyz = Kernel::Lookup(y - j) * wz;
+      wyz = Kernel::Lookup(Real(y - j)) * wz;
       for (i = i1; i <= i2; ++i) {
-        w    = Kernel::Lookup(x - i) * wyz;
+        w    = Kernel::Lookup(Real(x - i)) * wyz;
         val += w * voxel_cast<RealType>(input->Get(i, j, k, l));
         nrm += w;
       }
@@ -481,10 +481,10 @@ GenericSincInterpolateImageFunction<TImage>
   typedef typename TOtherImage::VoxelType VoxelType;
   typedef typename TOtherImage::RealType  RealType;
 
-  int i = static_cast<int>(round(x));
-  int j = static_cast<int>(round(y));
-  int k = static_cast<int>(round(z));
-  int l = static_cast<int>(round(t));
+  int i = iround(x);
+  int j = iround(y);
+  int k = iround(z);
+  int l = iround(t);
 
   // Return value of nearest neighbor if distance is negligible
   if (fequal(x, i, _Epsilon) &&
@@ -507,14 +507,14 @@ GenericSincInterpolateImageFunction<TImage>
   const int k2 = k + Kernel::Radius;
 
   RealType val = voxel_cast<RealType>(0);
-  Real     fgw = .0, bgw = .0, wz, wyz, w;
+  Real     fgw(0), bgw(0), wz, wyz, w;
 
   for (k = k1; k <= k2; ++k) {
-    wz = Kernel::Lookup(z - k);
+    wz = Kernel::Lookup(Real(z - k));
     for (j = j1; j <= j2; ++j) {
-      wyz = Kernel::Lookup(y - j) * wz;
+      wyz = Kernel::Lookup(Real(y - j)) * wz;
       for (i = i1; i <= i2; ++i) {
-        w = Kernel::Lookup(x - i) * wyz;
+        w = Kernel::Lookup(Real(x - i)) * wyz;
         if (input->IsForeground(i, j, k, l)) {
           val += w * voxel_cast<RealType>(input->Get(i, j, k, l));
           fgw += w;
@@ -537,10 +537,10 @@ inline typename GenericSincInterpolateImageFunction<TImage>::VoxelType
 GenericSincInterpolateImageFunction<TImage>
 ::Get4D(double x, double y, double z, double t) const
 {
-  int i = static_cast<int>(round(x));
-  int j = static_cast<int>(round(y));
-  int k = static_cast<int>(round(z));
-  int l = static_cast<int>(round(t));
+  int i = iround(x);
+  int j = iround(y);
+  int k = iround(z);
+  int l = iround(t);
 
   // Return value of nearest neighbor if distance is negligible
   if (fequal(x, i, _Epsilon) &&
@@ -566,20 +566,20 @@ GenericSincInterpolateImageFunction<TImage>
   const int l2 = l + Kernel::Radius;
 
   RealType val = voxel_cast<RealType>(0);
-  Real     nrm = .0, wt, wzt, wyzt, w;
+  Real     nrm(0), wt, wzt, wyzt, w;
 
   for (l = l1; l <= l2; ++l) {
     if (0 <= l && l < this->Input()->T()) {
-      wt = Kernel::Lookup(t - l);
+      wt = Kernel::Lookup(Real(t - l));
       for (k = k1; k <= k2; ++k) {
         if (0 <= k && k < this->Input()->Z()) {
-          wzt = Kernel::Lookup(z - k) * wt;
+          wzt = Kernel::Lookup(Real(z - k)) * wt;
           for (j = j1; j <= j2; ++j) {
             if (0 <= j && j < this->Input()->Y()) {
-              wyzt = Kernel::Lookup(y - j) * wzt;
+              wyzt = Kernel::Lookup(Real(y - j)) * wzt;
               for (i = i1; i <= i2; ++i) {
                 if (0 <= i && i < this->Input()->X()) {
-                  w    = Kernel::Lookup(x - i) * wyzt;
+                  w    = Kernel::Lookup(Real(x - i)) * wyzt;
                   val += w * voxel_cast<RealType>(this->Input()->Get(i, j, k, l));
                   nrm += w;
                 }
@@ -603,10 +603,10 @@ inline typename GenericSincInterpolateImageFunction<TImage>::VoxelType
 GenericSincInterpolateImageFunction<TImage>
 ::GetWithPadding4D(double x, double y, double z, double t) const
 {
-  int i = static_cast<int>(round(x));
-  int j = static_cast<int>(round(y));
-  int k = static_cast<int>(round(z));
-  int l = static_cast<int>(round(t));
+  int i = iround(x);
+  int j = iround(y);
+  int k = iround(z);
+  int l = iround(t);
 
   // Return value of nearest neighbor if distance is negligible
   if (fequal(x, i, _Epsilon) &&
@@ -632,16 +632,16 @@ GenericSincInterpolateImageFunction<TImage>
   const int l2 = l + Kernel::Radius;
 
   RealType val = voxel_cast<RealType>(0);
-  Real     fgw = .0, bgw = .0, wt, wzt, wyzt, w;
+  Real     fgw(0), bgw(0), wt, wzt, wyzt, w;
 
   for (l = l1; l <= l2; ++l) {
-    wt = Kernel::Lookup(t - l);
+    wt = Kernel::Lookup(Real(t - l));
     for (k = k1; k <= k2; ++k) {
-      wzt = Kernel::Lookup(z - k) * wt;
+      wzt = Kernel::Lookup(Real(z - k)) * wt;
       for (j = j1; j <= j2; ++j) {
-        wyzt = Kernel::Lookup(y - j) * wzt;
+        wyzt = Kernel::Lookup(Real(y - j)) * wzt;
         for (i = i1; i <= i2; ++i) {
-          w = Kernel::Lookup(x - i) * wyzt;
+          w = Kernel::Lookup(Real(x - i)) * wyzt;
           if (this->Input()->IsInsideForeground(i, j, k, l)) {
             val += w * voxel_cast<RealType>(this->Input()->Get(i, j, k, l));
             fgw += w;
@@ -668,10 +668,10 @@ GenericSincInterpolateImageFunction<TImage>
   typedef typename TOtherImage::VoxelType VoxelType;
   typedef typename TOtherImage::RealType  RealType;
 
-  int i = static_cast<int>(round(x));
-  int j = static_cast<int>(round(y));
-  int k = static_cast<int>(round(z));
-  int l = static_cast<int>(round(t));
+  int i = iround(x);
+  int j = iround(y);
+  int k = iround(z);
+  int l = iround(t);
 
   // Return value of nearest neighbor if distance is negligible
   if (fequal(x, i, _Epsilon) &&
@@ -693,16 +693,16 @@ GenericSincInterpolateImageFunction<TImage>
   const int l2 = l + Kernel::Radius;
 
   RealType val = voxel_cast<RealType>(0);
-  Real     nrm = .0, wt, wzt, wyzt, w;
+  Real     nrm(0), wt, wzt, wyzt, w;
 
   for (l = l1; l <= l2; ++l) {
-    wt = Kernel::Lookup(t - l);
+    wt = Kernel::Lookup(Real(t - l));
     for (k = k1; k <= k2; ++k) {
-      wzt = Kernel::Lookup(z - k) * wt;
+      wzt = Kernel::Lookup(Real(z - k)) * wt;
       for (j = j1; j <= j2; ++j) {
-        wyzt = Kernel::Lookup(y - j) * wzt;
+        wyzt = Kernel::Lookup(Real(y - j)) * wzt;
         for (i = i1; i <= i2; ++i) {
-          w    = Kernel::Lookup(x - i) * wyzt;
+          w    = Kernel::Lookup(Real(x - i)) * wyzt;
           val += w * voxel_cast<RealType>(input->Get(i, j, k, l));
           nrm += w;
         }
@@ -725,10 +725,10 @@ GenericSincInterpolateImageFunction<TImage>
   typedef typename TOtherImage::VoxelType VoxelType;
   typedef typename TOtherImage::RealType  RealType;
 
-  int i = static_cast<int>(round(x));
-  int j = static_cast<int>(round(y));
-  int k = static_cast<int>(round(z));
-  int l = static_cast<int>(round(t));
+  int i = iround(x);
+  int j = iround(y);
+  int k = iround(z);
+  int l = iround(t);
 
   // Return value of nearest neighbor if distance is negligible
   if (fequal(x, i, _Epsilon) &&
@@ -754,16 +754,16 @@ GenericSincInterpolateImageFunction<TImage>
   const int l2 = l + Kernel::Radius;
 
   RealType val = voxel_cast<RealType>(0);
-  Real     fgw = .0, bgw = .0, wt, wzt, wyzt, w;
+  Real     fgw(0), bgw(0), wt, wzt, wyzt, w;
 
   for (l = l1; l <= l2; ++l) {
-    wt = Kernel::Lookup(t - l);
+    wt = Kernel::Lookup(Real(t - l));
     for (k = k1; k <= k2; ++k) {
-      wzt = Kernel::Lookup(z - k) * wt;
+      wzt = Kernel::Lookup(Real(z - k)) * wt;
       for (j = j1; j <= j2; ++j) {
-        wyzt = Kernel::Lookup(y - j) * wzt;
+        wyzt = Kernel::Lookup(Real(y - j)) * wzt;
         for (i = i1; i <= i2; ++i) {
-          w = Kernel::Lookup(x - i) * wyzt;
+          w = Kernel::Lookup(Real(x - i)) * wyzt;
           if (input->IsForeground(i, j, k, l)) {
             val += w * voxel_cast<RealType>(input->Get(i, j, k, l));
             fgw += w;

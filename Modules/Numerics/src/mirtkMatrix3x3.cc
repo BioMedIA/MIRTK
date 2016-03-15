@@ -1090,20 +1090,18 @@ void Matrix3x3::ToAxisAngle (Vector3& rkAxis, double& rfRadians) const
       rkAxis.Unitize();
     } else {
       // angle is PI
-      float fHalfInverse;
+      double fHalfInverse;
       if ( m_aafEntry[0][0] >= m_aafEntry[1][1] ) {
         // r00 >= r11
         if ( m_aafEntry[0][0] >= m_aafEntry[2][2] ) {
           // r00 is maximum diagonal term
-          rkAxis.x = 0.5*Sqrt(m_aafEntry[0][0] -
-                                         m_aafEntry[1][1] - m_aafEntry[2][2] + 1.0);
+          rkAxis.x = 0.5*Sqrt(m_aafEntry[0][0] - m_aafEntry[1][1] - m_aafEntry[2][2] + 1.0);
           fHalfInverse = 0.5/rkAxis.x;
           rkAxis.y = fHalfInverse*m_aafEntry[0][1];
           rkAxis.z = fHalfInverse*m_aafEntry[0][2];
         } else {
           // r22 is maximum diagonal term
-          rkAxis.z = 0.5*Sqrt(m_aafEntry[2][2] -
-                                         m_aafEntry[0][0] - m_aafEntry[1][1] + 1.0);
+          rkAxis.z = 0.5*Sqrt(m_aafEntry[2][2] - m_aafEntry[0][0] - m_aafEntry[1][1] + 1.0);
           fHalfInverse = 0.5/rkAxis.z;
           rkAxis.x = fHalfInverse*m_aafEntry[0][2];
           rkAxis.y = fHalfInverse*m_aafEntry[1][2];
@@ -1112,15 +1110,13 @@ void Matrix3x3::ToAxisAngle (Vector3& rkAxis, double& rfRadians) const
         // r11 > r00
         if ( m_aafEntry[1][1] >= m_aafEntry[2][2] ) {
           // r11 is maximum diagonal term
-          rkAxis.y = 0.5*Sqrt(m_aafEntry[1][1] -
-                                         m_aafEntry[0][0] - m_aafEntry[2][2] + 1.0);
+          rkAxis.y = 0.5*Sqrt(m_aafEntry[1][1] - m_aafEntry[0][0] - m_aafEntry[2][2] + 1.0);
           fHalfInverse  = 0.5/rkAxis.y;
           rkAxis.x = fHalfInverse*m_aafEntry[0][1];
           rkAxis.z = fHalfInverse*m_aafEntry[1][2];
         } else {
           // r22 is maximum diagonal term
-          rkAxis.z = 0.5*Sqrt(m_aafEntry[2][2] -
-                                         m_aafEntry[0][0] - m_aafEntry[1][1] + 1.0);
+          rkAxis.z = 0.5*Sqrt(m_aafEntry[2][2] - m_aafEntry[0][0] - m_aafEntry[1][1] + 1.0);
           fHalfInverse = 0.5/rkAxis.z;
           rkAxis.x = fHalfInverse*m_aafEntry[0][2];
           rkAxis.y = fHalfInverse*m_aafEntry[1][2];
@@ -1164,8 +1160,7 @@ void Matrix3x3::FromAxisAngle (const Vector3& rkAxis, double fRadians)
 }
 
 //----------------------------------------------------------------------------
-bool Matrix3x3::ToEulerAnglesXYZ (float& rfYAngle, float& rfPAngle,
-                                      float& rfRAngle) const
+bool Matrix3x3::ToEulerAnglesXYZ(double& rfYAngle, double& rfPAngle, double& rfRAngle) const
 {
   // rot =  cy*cz          -cy*sz           sy
   //        cz*sx*sy+cx*sz  cx*cz-sx*sy*sz -cy*sx
@@ -1174,19 +1169,19 @@ bool Matrix3x3::ToEulerAnglesXYZ (float& rfYAngle, float& rfPAngle,
   rfPAngle = ASin(m_aafEntry[0][2]);
   if ( rfPAngle < pi_half ) {
     if ( rfPAngle > -pi_half ) {
-      rfYAngle = ATan2(-m_aafEntry[1][2],m_aafEntry[2][2]);
-      rfRAngle = ATan2(-m_aafEntry[0][1],m_aafEntry[0][0]);
+      rfYAngle = ATan2(-m_aafEntry[1][2], m_aafEntry[2][2]);
+      rfRAngle = ATan2(-m_aafEntry[0][1], m_aafEntry[0][0]);
       return true;
     } else {
       // WARNING.  Not a unique solution.
-      float fRmY = ATan2(m_aafEntry[1][0],m_aafEntry[1][1]);
+      double fRmY = ATan2(m_aafEntry[1][0], m_aafEntry[1][1]);
       rfRAngle = 0.0;  // any angle works
       rfYAngle = rfRAngle - fRmY;
       return false;
     }
   } else {
     // WARNING.  Not a unique solution.
-    float fRpY = ATan2(m_aafEntry[1][0],m_aafEntry[1][1]);
+    double fRpY = ATan2(m_aafEntry[1][0], m_aafEntry[1][1]);
     rfRAngle = 0.0;  // any angle works
     rfYAngle = fRpY - rfRAngle;
     return false;
@@ -1194,8 +1189,7 @@ bool Matrix3x3::ToEulerAnglesXYZ (float& rfYAngle, float& rfPAngle,
 }
 
 //----------------------------------------------------------------------------
-bool Matrix3x3::ToEulerAnglesXZY (float& rfYAngle, float& rfPAngle,
-                                      float& rfRAngle) const
+bool Matrix3x3::ToEulerAnglesXZY (double& rfYAngle, double& rfPAngle, double& rfRAngle) const
 {
   // rot =  cy*cz          -sz              cz*sy
   //        sx*sy+cx*cy*sz  cx*cz          -cy*sx+cx*sy*sz
@@ -1209,14 +1203,14 @@ bool Matrix3x3::ToEulerAnglesXZY (float& rfYAngle, float& rfPAngle,
       return true;
     } else {
       // WARNING.  Not a unique solution.
-      float fRmY = ATan2(-m_aafEntry[2][0],m_aafEntry[2][2]);
+      double fRmY = ATan2(-m_aafEntry[2][0],m_aafEntry[2][2]);
       rfRAngle = 0.0;  // any angle works
       rfYAngle = rfRAngle - fRmY;
       return false;
     }
   } else {
     // WARNING.  Not a unique solution.
-    float fRpY = ATan2(-m_aafEntry[2][0],m_aafEntry[2][2]);
+    double fRpY = ATan2(-m_aafEntry[2][0],m_aafEntry[2][2]);
     rfRAngle = 0.0;  // any angle works
     rfYAngle = fRpY - rfRAngle;
     return false;
@@ -1224,8 +1218,7 @@ bool Matrix3x3::ToEulerAnglesXZY (float& rfYAngle, float& rfPAngle,
 }
 
 //----------------------------------------------------------------------------
-bool Matrix3x3::ToEulerAnglesYXZ (float& rfYAngle, float& rfPAngle,
-                                      float& rfRAngle) const
+bool Matrix3x3::ToEulerAnglesYXZ(double& rfYAngle, double& rfPAngle, double& rfRAngle) const
 {
   // rot =  cy*cz+sx*sy*sz  cz*sx*sy-cy*sz  cx*sy
   //        cx*sz           cx*cz          -sx
@@ -1234,19 +1227,19 @@ bool Matrix3x3::ToEulerAnglesYXZ (float& rfYAngle, float& rfPAngle,
   rfPAngle = ASin(-m_aafEntry[1][2]);
   if ( rfPAngle < pi_half ) {
     if ( rfPAngle > -pi_half ) {
-      rfYAngle = ATan2(m_aafEntry[0][2],m_aafEntry[2][2]);
-      rfRAngle = ATan2(m_aafEntry[1][0],m_aafEntry[1][1]);
+      rfYAngle = ATan2(m_aafEntry[0][2], m_aafEntry[2][2]);
+      rfRAngle = ATan2(m_aafEntry[1][0], m_aafEntry[1][1]);
       return true;
     } else {
       // WARNING.  Not a unique solution.
-      float fRmY = ATan2(-m_aafEntry[0][1],m_aafEntry[0][0]);
+      double fRmY = ATan2(-m_aafEntry[0][1], m_aafEntry[0][0]);
       rfRAngle = 0.0;  // any angle works
       rfYAngle = rfRAngle - fRmY;
       return false;
     }
   } else {
     // WARNING.  Not a unique solution.
-    float fRpY = ATan2(-m_aafEntry[0][1],m_aafEntry[0][0]);
+    double fRpY = ATan2(-m_aafEntry[0][1], m_aafEntry[0][0]);
     rfRAngle = 0.0;  // any angle works
     rfYAngle = fRpY - rfRAngle;
     return false;
@@ -1254,8 +1247,7 @@ bool Matrix3x3::ToEulerAnglesYXZ (float& rfYAngle, float& rfPAngle,
 }
 
 //----------------------------------------------------------------------------
-bool Matrix3x3::ToEulerAnglesYZX (float& rfYAngle, float& rfPAngle,
-                                      float& rfRAngle) const
+bool Matrix3x3::ToEulerAnglesYZX (double& rfYAngle, double& rfPAngle, double& rfRAngle) const
 {
   // rot =  cy*cz           sx*sy-cx*cy*sz  cx*sy+cy*sx*sz
   //        sz              cx*cz          -cz*sx
@@ -1264,19 +1256,19 @@ bool Matrix3x3::ToEulerAnglesYZX (float& rfYAngle, float& rfPAngle,
   rfPAngle = ASin(m_aafEntry[1][0]);
   if ( rfPAngle < pi_half ) {
     if ( rfPAngle > -pi_half ) {
-      rfYAngle = ATan2(-m_aafEntry[2][0],m_aafEntry[0][0]);
-      rfRAngle = ATan2(-m_aafEntry[1][2],m_aafEntry[1][1]);
+      rfYAngle = ATan2(-m_aafEntry[2][0], m_aafEntry[0][0]);
+      rfRAngle = ATan2(-m_aafEntry[1][2], m_aafEntry[1][1]);
       return true;
     } else {
       // WARNING.  Not a unique solution.
-      float fRmY = ATan2(m_aafEntry[2][1],m_aafEntry[2][2]);
+      double fRmY = ATan2(m_aafEntry[2][1], m_aafEntry[2][2]);
       rfRAngle = 0.0;  // any angle works
       rfYAngle = rfRAngle - fRmY;
       return false;
     }
   } else {
     // WARNING.  Not a unique solution.
-    float fRpY = ATan2(m_aafEntry[2][1],m_aafEntry[2][2]);
+    double fRpY = ATan2(m_aafEntry[2][1], m_aafEntry[2][2]);
     rfRAngle = 0.0;  // any angle works
     rfYAngle = fRpY - rfRAngle;
     return false;
@@ -1284,8 +1276,7 @@ bool Matrix3x3::ToEulerAnglesYZX (float& rfYAngle, float& rfPAngle,
 }
 
 //----------------------------------------------------------------------------
-bool Matrix3x3::ToEulerAnglesZXY (float& rfYAngle, float& rfPAngle,
-                                      float& rfRAngle) const
+bool Matrix3x3::ToEulerAnglesZXY (double& rfYAngle, double& rfPAngle, double& rfRAngle) const
 {
   // rot =  cy*cz-sx*sy*sz -cx*sz           cz*sy+cy*sx*sz
   //        cz*sx*sy+cy*sz  cx*cz          -cy*cz*sx+sy*sz
@@ -1294,19 +1285,19 @@ bool Matrix3x3::ToEulerAnglesZXY (float& rfYAngle, float& rfPAngle,
   rfPAngle = ASin(m_aafEntry[2][1]);
   if ( rfPAngle < pi_half ) {
     if ( rfPAngle > -pi_half ) {
-      rfYAngle = ATan2(-m_aafEntry[0][1],m_aafEntry[1][1]);
-      rfRAngle = ATan2(-m_aafEntry[2][0],m_aafEntry[2][2]);
+      rfYAngle = ATan2(-m_aafEntry[0][1], m_aafEntry[1][1]);
+      rfRAngle = ATan2(-m_aafEntry[2][0], m_aafEntry[2][2]);
       return true;
     } else {
       // WARNING.  Not a unique solution.
-      float fRmY = ATan2(m_aafEntry[0][2],m_aafEntry[0][0]);
+      double fRmY = ATan2(m_aafEntry[0][2], m_aafEntry[0][0]);
       rfRAngle = 0.0;  // any angle works
       rfYAngle = rfRAngle - fRmY;
       return false;
     }
   } else {
     // WARNING.  Not a unique solution.
-    float fRpY = ATan2(m_aafEntry[0][2],m_aafEntry[0][0]);
+    double fRpY = ATan2(m_aafEntry[0][2], m_aafEntry[0][0]);
     rfRAngle = 0.0;  // any angle works
     rfYAngle = fRpY - rfRAngle;
     return false;
@@ -1314,7 +1305,7 @@ bool Matrix3x3::ToEulerAnglesZXY (float& rfYAngle, float& rfPAngle,
 }
 
 //----------------------------------------------------------------------------
-bool Matrix3x3::ToEulerAnglesZYX(float& rfYAngle, float& rfPAngle, float& rfRAngle) const
+bool Matrix3x3::ToEulerAnglesZYX(double& rfYAngle, double& rfPAngle, double& rfRAngle) const
 {
   // rot =  cy*cz           cz*sx*sy-cx*sz  cx*cz*sy+sx*sz
   //        cy*sz           cx*cz+sx*sy*sz -cz*sx+cx*sy*sz
@@ -1323,19 +1314,19 @@ bool Matrix3x3::ToEulerAnglesZYX(float& rfYAngle, float& rfPAngle, float& rfRAng
   rfPAngle = ASin(-m_aafEntry[2][0]);
   if ( rfPAngle < pi_half ) {
     if ( rfPAngle > -pi_half ) {
-      rfYAngle = ATan2(m_aafEntry[1][0],m_aafEntry[0][0]);
-      rfRAngle = ATan2(m_aafEntry[2][1],m_aafEntry[2][2]);
+      rfYAngle = ATan2(m_aafEntry[1][0], m_aafEntry[0][0]);
+      rfRAngle = ATan2(m_aafEntry[2][1], m_aafEntry[2][2]);
       return true;
     } else {
       // WARNING.  Not a unique solution.
-      float fRmY = ATan2(-m_aafEntry[0][1],m_aafEntry[0][2]);
+      double fRmY = ATan2(-m_aafEntry[0][1], m_aafEntry[0][2]);
       rfRAngle = 0.0;  // any angle works
       rfYAngle = rfRAngle - fRmY;
       return false;
     }
   } else {
     // WARNING.  Not a unique solution.
-    float fRpY = ATan2(-m_aafEntry[0][1],m_aafEntry[0][2]);
+    double fRpY = ATan2(-m_aafEntry[0][1], m_aafEntry[0][2]);
     rfRAngle = 0.0;  // any angle works
     rfYAngle = fRpY - rfRAngle;
     return false;
@@ -1343,7 +1334,7 @@ bool Matrix3x3::ToEulerAnglesZYX(float& rfYAngle, float& rfPAngle, float& rfRAng
 }
 
 //----------------------------------------------------------------------------
-void Matrix3x3::FromEulerAnglesXYZ(float fYAngle, float fPAngle, float fRAngle)
+void Matrix3x3::FromEulerAnglesXYZ(double fYAngle, double fPAngle, double fRAngle)
 {
   double fCos, fSin;
 
@@ -1363,7 +1354,7 @@ void Matrix3x3::FromEulerAnglesXYZ(float fYAngle, float fPAngle, float fRAngle)
 }
 
 //----------------------------------------------------------------------------
-void Matrix3x3::FromEulerAnglesXZY(float fYAngle, float fPAngle, float fRAngle)
+void Matrix3x3::FromEulerAnglesXZY(double fYAngle, double fPAngle, double fRAngle)
 {
   double fCos, fSin;
 
@@ -1383,7 +1374,7 @@ void Matrix3x3::FromEulerAnglesXZY(float fYAngle, float fPAngle, float fRAngle)
 }
 
 //----------------------------------------------------------------------------
-void Matrix3x3::FromEulerAnglesYXZ(float fYAngle, float fPAngle, float fRAngle)
+void Matrix3x3::FromEulerAnglesYXZ(double fYAngle, double fPAngle, double fRAngle)
 {
   double fCos, fSin;
 
@@ -1403,7 +1394,7 @@ void Matrix3x3::FromEulerAnglesYXZ(float fYAngle, float fPAngle, float fRAngle)
 }
 
 //----------------------------------------------------------------------------
-void Matrix3x3::FromEulerAnglesYZX(float fYAngle, float fPAngle, float fRAngle)
+void Matrix3x3::FromEulerAnglesYZX(double fYAngle, double fPAngle, double fRAngle)
 {
   double fCos, fSin;
 
@@ -1423,7 +1414,7 @@ void Matrix3x3::FromEulerAnglesYZX(float fYAngle, float fPAngle, float fRAngle)
 }
 
 //----------------------------------------------------------------------------
-void Matrix3x3::FromEulerAnglesZXY(float fYAngle, float fPAngle, float fRAngle)
+void Matrix3x3::FromEulerAnglesZXY(double fYAngle, double fPAngle, double fRAngle)
 {
   double fCos, fSin;
 
@@ -1443,7 +1434,7 @@ void Matrix3x3::FromEulerAnglesZXY(float fYAngle, float fPAngle, float fRAngle)
 }
 
 //----------------------------------------------------------------------------
-void Matrix3x3::FromEulerAnglesZYX(float fYAngle, float fPAngle, float fRAngle)
+void Matrix3x3::FromEulerAnglesZYX(double fYAngle, double fPAngle, double fRAngle)
 {
   double fCos, fSin;
 

@@ -472,7 +472,7 @@ struct ConcurrentImageReader
     body._DoFInvert = tinv;
     body._Image     = &image;
     body._Error     = error;
-    blocked_range<size_t> idx(0, fname.size());
+    blocked_range<size_t> idx(0u, fname.size());
 //    parallel_for(idx, body);
     body(idx);
   }
@@ -587,9 +587,9 @@ int main(int argc, char **argv)
   Array<bool>   pdof_invert;
 
   for (ALL_POSARGS) {
-    int len = strlen(POSARG(ARGIDX));
-    if (len > 4 && (strcmp(POSARG(ARGIDX) + len - 4, ".vtk") == 0 ||
-                    strcmp(POSARG(ARGIDX) + len - 4, ".VTK") == 0)) {
+    size_t len = strlen(POSARG(ARGIDX));
+    if (len > 4 && (strcmp(POSARG(ARGIDX) + len - 4u, ".vtk") == 0 ||
+                    strcmp(POSARG(ARGIDX) + len - 4u, ".VTK") == 0)) {
       pset_names.push_back(POSARG(ARGIDX));
     } else {
       image_names.push_back(POSARG(ARGIDX));
@@ -982,8 +982,8 @@ int main(int argc, char **argv)
     elapsed_time = static_cast<double>(clock() - start_time)
                  / static_cast<double>(CLOCKS_PER_SEC);
 #endif
-    int m = floor(elapsed_time / 60.0);
-    int s = round(elapsed_time - m * 60);
+    int m = ifloor(elapsed_time / 60.0);
+    int s = iround(elapsed_time - m * 60);
     if (s == 60) m += 1, s = 0;
     cout << "\nFinished in " << m << " min " << s << " sec" << endl;
   }

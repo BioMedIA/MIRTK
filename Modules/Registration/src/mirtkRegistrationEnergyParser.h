@@ -865,7 +865,7 @@ protected:
           info._TargetTransformation = target_transformation;
           info._SourceIndex          = source_index[s];
           info._SourceTransformation = source_transformation;
-          info._Name                 = TermName(name, info, t);
+          info._Name                 = TermName(name, info, static_cast<int>(t));
           _Filter->_ImageSimilarityInfo.push_back(info);
         }
       } else {
@@ -884,7 +884,7 @@ protected:
           info._TargetTransformation = target_transformation;
           info._SourceIndex          = source_index[s];
           info._SourceTransformation = source_transformation;
-          info._Name                 = TermName(name, info, s);
+          info._Name                 = TermName(name, info, static_cast<int>(s));
           _Filter->_ImageSimilarityInfo.push_back(info);
         }
       }
@@ -924,7 +924,7 @@ protected:
           info._TargetTransformation = target_transformation;
           info._SourceIndex          = source_index[s];
           info._SourceTransformation = source_transformation;
-          info._Name                 = TermName(name, info, t);
+          info._Name                 = TermName(name, info, static_cast<int>(t));
           _Filter->_PointSetDistanceInfo.push_back(info);
         }
       } else {
@@ -943,7 +943,7 @@ protected:
           info._TargetTransformation = target_transformation;
           info._SourceIndex          = source_index[s];
           info._SourceTransformation = source_transformation;
-          info._Name                 = TermName(name, info, s);
+          info._Name                 = TermName(name, info, static_cast<int>(s));
           _Filter->_PointSetDistanceInfo.push_back(info);
         }
       }
@@ -983,7 +983,7 @@ protected:
               info._RefPointSetIndex   = source_index[s];
               info._RefImageIndex      = -1;
             }
-            info._Name = TermName(name, info, t);
+            info._Name = TermName(name, info, static_cast<int>(t));
             _Filter->_PointSetConstraintInfo.push_back(info);
           }
         } else {
@@ -1006,7 +1006,7 @@ protected:
               info._RefPointSetIndex   = source_index[s];
               info._RefImageIndex      = -1;
             }
-            info._Name = TermName(name, info, s);
+            info._Name = TermName(name, info, static_cast<int>(s));
             _Filter->_PointSetConstraintInfo.push_back(info);
           }
         }

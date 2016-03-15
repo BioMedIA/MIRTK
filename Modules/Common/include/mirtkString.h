@@ -20,6 +20,8 @@
 #ifndef MIRTK_String_H
 #define MIRTK_String_H
 
+#include <mirtkCommonExport.h>
+
 #include <cctype>
 #include <cstring>
 #include <string>
@@ -85,13 +87,13 @@ inline bool iequal(const string &a, const string &b)
 // =============================================================================
 
 /// General routine to read float from a file stream
-int ReadInt(std::ifstream &);
+MIRTK_Common_DEPRECATED int ReadInt(std::ifstream &);
 
 /// General routine to read float from a file stream
-float ReadFloat(std::ifstream &);
+MIRTK_Common_DEPRECATED float ReadFloat(std::ifstream &);
 
 /// General routine to read list of char (string) from a file stream
-char *ReadString(std::ifstream &);
+MIRTK_Common_DEPRECATED char *ReadString(std::ifstream &);
 
 /// Convert string to numeric value
 template <typename T>

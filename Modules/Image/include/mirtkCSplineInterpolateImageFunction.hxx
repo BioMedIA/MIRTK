@@ -97,7 +97,7 @@ template <class TImage>
 void GenericCSplineInterpolateImageFunction<TImage>
 ::BoundingInterval(double x, int &i, int &I) const
 {
-  i = static_cast<int>(floor(x)) - 1, I = i + 3;
+  i = ifloor(x) - 1, I = i + 3;
 }
 
 // =============================================================================
@@ -110,10 +110,10 @@ inline typename GenericCSplineInterpolateImageFunction<TImage>::VoxelType
 GenericCSplineInterpolateImageFunction<TImage>
 ::Get2D(double x, double y, double z, double t) const
 {
-  int i = static_cast<int>(floor(x));
-  int j = static_cast<int>(floor(y));
-  int k = static_cast<int>(round(z));
-  int l = static_cast<int>(round(t));
+  int i = ifloor(x);
+  int j = ifloor(y);
+  int k = iround(z);
+  int l = iround(t);
 
   if (k < 0 || k >= this->Input()->Z() ||
       l < 0 || l >= this->Input()->T()) {
@@ -126,15 +126,15 @@ GenericCSplineInterpolateImageFunction<TImage>
   const int j2 = j + 2;
 
   RealType val = voxel_cast<RealType>(0);
-  Real     nrm = .0, wy, w;
+  Real     nrm(0), wy, w;
 
   for (j = j1; j <= j2; ++j) {
     if (0 <= j && j < this->Input()->Y()) {
-      wy = CSpline(y - j);
+      wy = CSpline(Real(y - j));
       for (i = i1; i <= i2; ++i) {
         if (0 <= i && i < this->Input()->X()) {
-          w    = CSpline(x - i) * wy;
-          val += w * static_cast<RealType>(this->Input()->Get(i, j, k, l));
+          w    = CSpline(Real(x - i)) * wy;
+          val += w * voxel_cast<RealType>(this->Input()->Get(i, j, k, l));
           nrm += w;
         }
       }
@@ -153,10 +153,10 @@ inline typename GenericCSplineInterpolateImageFunction<TImage>::VoxelType
 GenericCSplineInterpolateImageFunction<TImage>
 ::GetWithPadding2D(double x, double y, double z, double t) const
 {
-  int i = static_cast<int>(floor(x));
-  int j = static_cast<int>(floor(y));
-  int k = static_cast<int>(round(z));
-  int l = static_cast<int>(round(t));
+  int i = ifloor(x);
+  int j = ifloor(y);
+  int k = iround(z);
+  int l = iround(t);
 
   if (k < 0 || k >= this->Input()->Z() ||
       l < 0 || l >= this->Input()->T()) {
@@ -169,14 +169,14 @@ GenericCSplineInterpolateImageFunction<TImage>
   const int j2 = j + 2;
 
   RealType val = voxel_cast<RealType>(0);
-  Real     fgw = .0, bgw = .0, wy, w;
+  Real     fgw(0), bgw(0), wy, w;
 
   for (j = j1; j <= j2; ++j) {
-    wy = CSpline(y - j);
+    wy = CSpline(Real(y - j));
     for (i = i1; i <= i2; ++i) {
-      w = CSpline(x - i) * wy;
+      w = CSpline(Real(x - i)) * wy;
       if (this->Input()->IsInsideForeground(i, j, k, l)) {
-        val += w * static_cast<RealType>(this->Input()->Get(i, j, k, l));
+        val += w * voxel_cast<RealType>(this->Input()->Get(i, j, k, l));
         fgw += w;
       } else {
         bgw += w;
@@ -199,10 +199,10 @@ GenericCSplineInterpolateImageFunction<TImage>
   typedef typename TOtherImage::VoxelType VoxelType;
   typedef typename TOtherImage::RealType  RealType;
 
-  int i = static_cast<int>(floor(x));
-  int j = static_cast<int>(floor(y));
-  int k = static_cast<int>(round(z));
-  int l = static_cast<int>(round(t));
+  int i = ifloor(x);
+  int j = ifloor(y);
+  int k = iround(z);
+  int l = iround(t);
 
   const int i1 = i - 1;
   const int j1 = j - 1;
@@ -210,13 +210,13 @@ GenericCSplineInterpolateImageFunction<TImage>
   const int j2 = j + 2;
 
   RealType val = voxel_cast<RealType>(0);
-  Real     nrm = .0, wy, w;
+  Real     nrm(0), wy, w;
 
   for (j = j1; j <= j2; ++j) {
-    wy = CSpline(y - j);
+    wy = CSpline(Real(y - j));
     for (i = i1; i <= i2; ++i) {
-      w    = CSpline(x - i) * wy;
-      val += w * static_cast<RealType>(input->Get(i, j, k, l));
+      w    = CSpline(Real(x - i)) * wy;
+      val += w * voxel_cast<RealType>(input->Get(i, j, k, l));
       nrm += w;
     }
   }
@@ -236,10 +236,10 @@ GenericCSplineInterpolateImageFunction<TImage>
   typedef typename TOtherImage::VoxelType VoxelType;
   typedef typename TOtherImage::RealType  RealType;
 
-  int i = static_cast<int>(floor(x));
-  int j = static_cast<int>(floor(y));
-  int k = static_cast<int>(round(z));
-  int l = static_cast<int>(round(t));
+  int i = ifloor(x);
+  int j = ifloor(y);
+  int k = iround(z);
+  int l = iround(t);
 
   const int i1 = i - 1;
   const int j1 = j - 1;
@@ -247,14 +247,14 @@ GenericCSplineInterpolateImageFunction<TImage>
   const int j2 = j + 2;
 
   RealType val = voxel_cast<RealType>(0);
-  Real     fgw = .0, bgw = .0, wy, w;
+  Real     fgw(0), bgw(0), wy, w;
 
   for (j = j1; j <= j2; ++j) {
-    wy = CSpline(y - j);
+    wy = CSpline(Real(y - j));
     for (i = i1; i <= i2; ++i) {
-      w    = CSpline(x - i) * wy;
+      w    = CSpline(Real(x - i)) * wy;
       if (input->IsForeground(i, j, k, l)) {
-        val += w * static_cast<RealType>(input->Get(i, j, k, l));
+        val += w * voxel_cast<RealType>(input->Get(i, j, k, l));
         fgw += w;
       } else {
         bgw += w;
@@ -274,10 +274,10 @@ inline typename GenericCSplineInterpolateImageFunction<TImage>::VoxelType
 GenericCSplineInterpolateImageFunction<TImage>
 ::Get3D(double x, double y, double z, double t) const
 {
-  int i = static_cast<int>(floor(x));
-  int j = static_cast<int>(floor(y));
-  int k = static_cast<int>(floor(z));
-  int l = static_cast<int>(round(t));
+  int i = ifloor(x);
+  int j = ifloor(y);
+  int k = ifloor(z);
+  int l = iround(t);
 
   if (l < 0 || l >= this->Input()->T()) {
     return voxel_cast<VoxelType>(this->DefaultValue());
@@ -291,18 +291,18 @@ GenericCSplineInterpolateImageFunction<TImage>
   const int k2 = k + 2;
 
   RealType val = voxel_cast<RealType>(0);
-  Real     nrm = .0, wz, wyz, w;
+  Real     nrm(0), wz, wyz, w;
 
   for (k = k1; k <= k2; ++k) {
     if (0 <= k && k < this->Input()->Z()) {
-      wz = CSpline(z - k);
+      wz = CSpline(Real(z - k));
       for (j = j1; j <= j2; ++j) {
         if (0 <= j && j < this->Input()->Y()) {
-          wyz = CSpline(y - j) * wz;
+          wyz = CSpline(Real(y - j)) * wz;
           for (i = i1; i <= i2; ++i) {
             if (0 <= i && i < this->Input()->X()) {
-              w    = CSpline(x - i) * wyz;
-              val += w * static_cast<RealType>(this->Input()->Get(i, j, k, l));
+              w    = CSpline(Real(x - i)) * wyz;
+              val += w * voxel_cast<RealType>(this->Input()->Get(i, j, k, l));
               nrm += w;
             }
           }
@@ -323,10 +323,10 @@ inline typename GenericCSplineInterpolateImageFunction<TImage>::VoxelType
 GenericCSplineInterpolateImageFunction<TImage>
 ::GetWithPadding3D(double x, double y, double z, double t) const
 {
-  int i = static_cast<int>(floor(x));
-  int j = static_cast<int>(floor(y));
-  int k = static_cast<int>(floor(z));
-  int l = static_cast<int>(round(t));
+  int i = ifloor(x);
+  int j = ifloor(y);
+  int k = ifloor(z);
+  int l = iround(t);
 
   if (l < 0 || l >= this->Input()->T()) {
     return voxel_cast<VoxelType>(this->DefaultValue());
@@ -340,16 +340,16 @@ GenericCSplineInterpolateImageFunction<TImage>
   const int k2 = k + 2;
 
   RealType val = voxel_cast<RealType>(0);
-  Real     fgw = .0, bgw = .0, wz, wyz, w;
+  Real     fgw(0), bgw(0), wz, wyz, w;
 
   for (k = k1; k <= k2; ++k) {
-    wz = CSpline(z - k);
+    wz = CSpline(Real(z - k));
     for (j = j1; j <= j2; ++j) {
-      wyz = CSpline(y - j) * wz;
+      wyz = CSpline(Real(y - j)) * wz;
       for (i = i1; i <= i2; ++i) {
-        w = CSpline(x - i) * wyz;
+        w = CSpline(Real(x - i)) * wyz;
         if (this->Input()->IsInsideForeground(i, j, k, l)) {
-          val += w * static_cast<RealType>(this->Input()->Get(i, j, k, l));
+          val += w * voxel_cast<RealType>(this->Input()->Get(i, j, k, l));
           fgw += w;
         } else {
           bgw += w;
@@ -373,10 +373,10 @@ GenericCSplineInterpolateImageFunction<TImage>
   typedef typename TOtherImage::VoxelType VoxelType;
   typedef typename TOtherImage::RealType  RealType;
 
-  int i = static_cast<int>(floor(x));
-  int j = static_cast<int>(floor(y));
-  int k = static_cast<int>(floor(z));
-  int l = static_cast<int>(round(t));
+  int i = ifloor(x);
+  int j = ifloor(y);
+  int k = ifloor(z);
+  int l = iround(t);
 
   const int i1 = i - 1;
   const int j1 = j - 1;
@@ -386,15 +386,15 @@ GenericCSplineInterpolateImageFunction<TImage>
   const int k2 = k + 2;
 
   RealType val = voxel_cast<RealType>(0);
-  Real     nrm = .0, wz, wyz, w;
+  Real     nrm(0), wz, wyz, w;
 
   for (k = k1; k <= k2; ++k) {
-    wz = CSpline(z - k);
+    wz = CSpline(Real(z - k));
     for (j = j1; j <= j2; ++j) {
-      wyz = CSpline(y - j) * wz;
+      wyz = CSpline(Real(y - j)) * wz;
       for (i = i1; i < i2; ++i) {
-        w    = CSpline(x - i) * wyz;
-        val += w * static_cast<RealType>(input->Get(i, j, k, l));
+        w    = CSpline(Real(x - i)) * wyz;
+        val += w * voxel_cast<RealType>(input->Get(i, j, k, l));
         nrm += w;
       }
     }
@@ -415,10 +415,10 @@ GenericCSplineInterpolateImageFunction<TImage>
   typedef typename TOtherImage::VoxelType VoxelType;
   typedef typename TOtherImage::RealType  RealType;
 
-  int i = static_cast<int>(floor(x));
-  int j = static_cast<int>(floor(y));
-  int k = static_cast<int>(floor(z));
-  int l = static_cast<int>(round(t));
+  int i = ifloor(x);
+  int j = ifloor(y);
+  int k = ifloor(z);
+  int l = iround(t);
 
   const int i1 = i - 1;
   const int j1 = j - 1;
@@ -428,16 +428,16 @@ GenericCSplineInterpolateImageFunction<TImage>
   const int k2 = k + 2;
 
   RealType val = voxel_cast<RealType>(0);
-  Real     fgw = .0, bgw = .0, wz, wyz, w;
+  Real     fgw(0), bgw(0), wz, wyz, w;
 
   for (k = k1; k <= k2; ++k) {
-    wz = CSpline(z - k);
+    wz = CSpline(Real(z - k));
     for (j = j1; j <= j2; ++j) {
-      wyz = CSpline(y - j) * wz;
+      wyz = CSpline(Real(y - j)) * wz;
       for (i = i1; i < i2; ++i) {
-        w = CSpline(x - i) * wyz;
+        w = CSpline(Real(x - i)) * wyz;
         if (input->IsForeground(i, j, k, l)) {
-          val += w * static_cast<RealType>(input->Get(i, j, k, l));
+          val += w * voxel_cast<RealType>(input->Get(i, j, k, l));
           fgw += w;
         } else {
           bgw += w;
@@ -458,10 +458,10 @@ inline typename GenericCSplineInterpolateImageFunction<TImage>::VoxelType
 GenericCSplineInterpolateImageFunction<TImage>
 ::Get4D(double x, double y, double z, double t) const
 {
-  int i = static_cast<int>(floor(x));
-  int j = static_cast<int>(floor(y));
-  int k = static_cast<int>(floor(z));
-  int l = static_cast<int>(floor(t));
+  int i = ifloor(x);
+  int j = ifloor(y);
+  int k = ifloor(z);
+  int l = ifloor(t);
 
   const int i1 = i - 1;
   const int j1 = j - 1;
@@ -473,21 +473,21 @@ GenericCSplineInterpolateImageFunction<TImage>
   const int l2 = l + 2;
 
   RealType val = voxel_cast<RealType>(0);
-  Real     nrm = .0, wt, wzt, wyzt, w;
+  Real     nrm(0), wt, wzt, wyzt, w;
 
   for (l = l1; l <= l2; ++l) {
     if (0 <= l && l < this->Input()->T()) {
-      wt = CSpline(t - l);
+      wt = CSpline(Real(t - l));
       for (k = k1; k <= k2; ++k) {
         if (0 <= k && k < this->Input()->Z()) {
-          wzt = CSpline(z - k) * wt;
+          wzt = CSpline(Real(z - k)) * wt;
           for (j = j1; j <= j2; ++j) {
             if (0 <= j && j < this->Input()->Y()) {
-              wyzt = CSpline(y - j) * wzt;
+              wyzt = CSpline(Real(y - j)) * wzt;
               for (i = i1; i <= i2; ++i) {
                 if (0 <= i && i < this->Input()->X()) {
-                  w    = CSpline(x - i) * wyzt;
-                  val += w * static_cast<RealType>(this->Input()->Get(i, j, k, l));
+                  w    = CSpline(Real(x - i)) * wyzt;
+                  val += w * voxel_cast<RealType>(this->Input()->Get(i, j, k, l));
                   nrm += w;
                 }
               }
@@ -510,10 +510,10 @@ inline typename GenericCSplineInterpolateImageFunction<TImage>::VoxelType
 GenericCSplineInterpolateImageFunction<TImage>
 ::GetWithPadding4D(double x, double y, double z, double t) const
 {
-  int i = static_cast<int>(floor(x));
-  int j = static_cast<int>(floor(y));
-  int k = static_cast<int>(floor(z));
-  int l = static_cast<int>(floor(t));
+  int i = ifloor(x);
+  int j = ifloor(y);
+  int k = ifloor(z);
+  int l = ifloor(t);
 
   const int i1 = i - 1;
   const int j1 = j - 1;
@@ -525,18 +525,18 @@ GenericCSplineInterpolateImageFunction<TImage>
   const int l2 = l + 2;
 
   RealType val = voxel_cast<RealType>(0);
-  Real     fgw = .0, bgw = .0, wt, wzt, wyzt, w;
+  Real     fgw(0), bgw(0), wt, wzt, wyzt, w;
 
   for (l = l1; l <= l2; ++l) {
-    wt = CSpline(t - l);
+    wt = CSpline(Real(t - l));
     for (k = k1; k <= k2; ++k) {
-      wzt = CSpline(z - k) * wt;
+      wzt = CSpline(Real(z - k)) * wt;
       for (j = j1; j <= j2; ++j) {
-        wyzt = CSpline(y - j) * wzt;
+        wyzt = CSpline(Real(y - j)) * wzt;
         for (i = i1; i <= i2; ++i) {
-          w = CSpline(x - i) * wyzt;
+          w = CSpline(Real(x - i)) * wyzt;
           if (this->Input()->IsInsideForeground(i, j, k, l)) {
-            val += w * static_cast<RealType>(this->Input()->Get(i, j, k, l));
+            val += w * voxel_cast<RealType>(this->Input()->Get(i, j, k, l));
             fgw += w;
           } else {
             bgw += w;
@@ -561,10 +561,10 @@ GenericCSplineInterpolateImageFunction<TImage>
   typedef typename TOtherImage::VoxelType VoxelType;
   typedef typename TOtherImage::RealType  RealType;
 
-  int i = static_cast<int>(floor(x));
-  int j = static_cast<int>(floor(y));
-  int k = static_cast<int>(floor(z));
-  int l = static_cast<int>(floor(t));
+  int i = ifloor(x);
+  int j = ifloor(y);
+  int k = ifloor(z);
+  int l = ifloor(t);
 
   const int i1 = i - 1;
   const int j1 = j - 1;
@@ -576,17 +576,17 @@ GenericCSplineInterpolateImageFunction<TImage>
   const int l2 = l + 2;
 
   RealType val = voxel_cast<RealType>(0);
-  Real     nrm = .0, wt, wzt, wyzt, w;
+  Real     nrm(0), wt, wzt, wyzt, w;
 
   for (l = l1; l <= l2; ++l) {
-    wt = CSpline(t - l);
+    wt = CSpline(Real(t - l));
     for (k = k1; k <= k2; ++k) {
-      wzt = CSpline(z - k) * wt;
+      wzt = CSpline(Real(z - k)) * wt;
       for (j = j1; j <= j2; ++j) {
-        wyzt = CSpline(y - j) * wzt;
+        wyzt = CSpline(Real(y - j)) * wzt;
         for (i = i1; i <= i2; ++i) {
-          w    = CSpline(x - i) * wyzt;
-          val += w * static_cast<RealType>(input->Get(i, j, k, l));
+          w    = CSpline(Real(x - i)) * wyzt;
+          val += w * voxel_cast<RealType>(input->Get(i, j, k, l));
           nrm += w;
         }
       }
@@ -608,10 +608,10 @@ GenericCSplineInterpolateImageFunction<TImage>
   typedef typename TOtherImage::VoxelType VoxelType;
   typedef typename TOtherImage::RealType  RealType;
 
-  int i = static_cast<int>(floor(x));
-  int j = static_cast<int>(floor(y));
-  int k = static_cast<int>(floor(z));
-  int l = static_cast<int>(floor(t));
+  int i = ifloor(x);
+  int j = ifloor(y);
+  int k = ifloor(z);
+  int l = ifloor(t);
 
   const int i1 = i - 1;
   const int j1 = j - 1;
@@ -623,18 +623,18 @@ GenericCSplineInterpolateImageFunction<TImage>
   const int l2 = l + 2;
 
   RealType val = voxel_cast<RealType>(0);
-  Real     fgw = .0, bgw = .0, wt, wzt, wyzt, w;
+  Real     fgw(0), bgw(0), wt, wzt, wyzt, w;
 
   for (l = l1; l <= l2; ++l) {
-    wt = CSpline(t - l);
+    wt = CSpline(Real(t - l));
     for (k = k1; k <= k2; ++k) {
-      wzt = CSpline(z - k) * wt;
+      wzt = CSpline(Real(z - k)) * wt;
       for (j = j1; j <= j2; ++j) {
-        wyzt = CSpline(y - j) * wzt;
+        wyzt = CSpline(Real(y - j)) * wzt;
         for (i = i1; i <= i2; ++i) {
-          w = CSpline(x - i) * wyzt;
+          w = CSpline(Real(x - i)) * wyzt;
           if (input->IsForeground(i, j, k, l)) {
-            val += w * static_cast<RealType>(input->Get(i, j, k, l));
+            val += w * voxel_cast<RealType>(input->Get(i, j, k, l));
             fgw += w;
           } else {
             bgw += w;

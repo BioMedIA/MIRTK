@@ -475,16 +475,16 @@ public:
 //  template <class T>
 //  void Evaluate(Vector2D<T> &v, double x, double y, double z)
 //  {
-//    v._x = _LogA(0, 0) * x + _LogA(0, 1) * y + _LogA(0, 2) * z + _LogA(0, 3);
-//    v._y = _LogA(1, 0) * x + _LogA(1, 1) * y + _LogA(1, 2) * z + _LogA(1, 3);
+//    v._x = static_cast<T>(_LogA(0, 0) * x + _LogA(0, 1) * y + _LogA(0, 2) * z + _LogA(0, 3));
+//    v._y = static_cast<T>(_LogA(1, 0) * x + _LogA(1, 1) * y + _LogA(1, 2) * z + _LogA(1, 3));
 //  }
 
   template <class T>
   void Evaluate(Vector3D<T> &v, double x, double y, double z)
   {
-    v._x = _LogA(0, 0) * x + _LogA(0, 1) * y + _LogA(0, 2) * z + _LogA(0, 3);
-    v._y = _LogA(1, 0) * x + _LogA(1, 1) * y + _LogA(1, 2) * z + _LogA(1, 3);
-    v._z = _LogA(2, 0) * x + _LogA(2, 1) * y + _LogA(2, 2) * z + _LogA(2, 3);
+    v._x = static_cast<T>(_LogA(0, 0) * x + _LogA(0, 1) * y + _LogA(0, 2) * z + _LogA(0, 3));
+    v._y = static_cast<T>(_LogA(1, 0) * x + _LogA(1, 1) * y + _LogA(1, 2) * z + _LogA(1, 3));
+    v._z = static_cast<T>(_LogA(2, 0) * x + _LogA(2, 1) * y + _LogA(2, 2) * z + _LogA(2, 3));
   }
 
   template <class VectorType>
@@ -519,9 +519,9 @@ public:
   {
     double x = i, y = j, z = k;
     _Output->ImageToWorld(x, y, z);
-    out[_x] = _LogA(0, 0) * x + _LogA(0, 1) * y + _LogA(0, 2) * z + _LogA(0, 3);
-    out[_y] = _LogA(1, 0) * x + _LogA(1, 1) * y + _LogA(1, 2) * z + _LogA(1, 3);
-    out[_z] = _LogA(2, 0) * x + _LogA(2, 1) * y + _LogA(2, 2) * z + _LogA(2, 3);
+    out[_x] = static_cast<T>(_LogA(0, 0) * x + _LogA(0, 1) * y + _LogA(0, 2) * z + _LogA(0, 3));
+    out[_y] = static_cast<T>(_LogA(1, 0) * x + _LogA(1, 1) * y + _LogA(1, 2) * z + _LogA(1, 3));
+    out[_z] = static_cast<T>(_LogA(2, 0) * x + _LogA(2, 1) * y + _LogA(2, 2) * z + _LogA(2, 3));
   }
 
 private:
@@ -554,7 +554,9 @@ public:
   template <class T>
   void Put(Vector3D<T> *v, double vx, double vy, double vz)
   {
-    v->_x = vx, v->_y = vy, v->_z = vz;
+    v->_x = static_cast<T>(vx);
+    v->_y = static_cast<T>(vy);
+    v->_z = static_cast<T>(vz);
   }
 
   template <class VectorType>
@@ -593,9 +595,9 @@ public:
     _Output->ImageToWorld  (x, y, z);
     _Input ->WorldToLattice(x, y, z);
     _Input ->Evaluate      (x, y, z);
-    out[_x] = x;
-    out[_y] = y;
-    out[_z] = z;
+    out[_x] = static_cast<T>(x);
+    out[_y] = static_cast<T>(y);
+    out[_z] = static_cast<T>(z);
   }
   
 private:
@@ -622,13 +624,16 @@ public:
 //  template <class T>
 //  void Add(Vector2D<T> *v, double vx, double vy, double)
 //  {
-//    v->_x += vx, v->_y += vy;
+//    v->_x += static_cast<T>(vx);
+//    v->_y += static_cast<T>(vy);
 //  }
 
   template <class T>
   void Add(Vector3D<T> *v, double vx, double vy, double vz)
   {
-    v->_x += vx, v->_y += vy, v->_z += vz;
+    v->_x += static_cast<T>(vx);
+    v->_y += static_cast<T>(vy);
+    v->_z += static_cast<T>(vz);
   }
 
   template <class VectorType>
@@ -667,9 +672,9 @@ public:
     _Output->ImageToWorld  (x, y, z);
     _Input ->WorldToLattice(x, y, z);
     _Input ->Evaluate      (x, y, z);
-    out[_x] += x;
-    out[_y] += y;
-    out[_z] += z;
+    out[_x] += static_cast<T>(x);
+    out[_y] += static_cast<T>(y);
+    out[_z] += static_cast<T>(z);
   }
 
 private:

@@ -191,7 +191,7 @@ public:
 inline void ShapeBasedInterpolateImageFunction
 ::BoundingInterval(double x, int &i, int &I) const
 {
-  i = I = static_cast<int>(round(x));
+  i = I = iround(x);
 }
 
 // =============================================================================

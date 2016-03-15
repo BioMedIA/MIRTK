@@ -70,7 +70,7 @@ public:
 template <class TReal>
 inline TReal Sinc<TReal>::Lookup(TReal x)
 {
-  return LookupTable[static_cast<int>(round(fabs(x) * LookupTableSize))];
+  return LookupTable[iround(abs(x) * LookupTableSize)];
 }
 
 

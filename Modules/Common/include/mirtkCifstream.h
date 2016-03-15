@@ -20,8 +20,10 @@
 #ifndef MIRTK_Cifstream_H
 #define MIRTK_Cifstream_H
 
-#include <mirtkObject.h>
 #include <mirtkCommonConfig.h>
+#include <mirtkCommonExport.h>
+
+#include <mirtkObject.h>
 
 #if MIRTK_Common_WITH_ZLIB
 #  include <zlib.h>
@@ -106,11 +108,11 @@ public:
 
   /// Returns whether file is swapped
   /// \deprecated Use Swapped() instead.
-  int IsSwapped() const;
+  MIRTK_Common_DEPRECATED int IsSwapped() const;
 
   /// Sets whether file is swapped
   /// \deprecated Use Swapped(bool) instead.
-  void IsSwapped(int);
+  MIRTK_Common_DEPRECATED void IsSwapped(int);
 
 };
 

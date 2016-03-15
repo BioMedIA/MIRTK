@@ -114,6 +114,23 @@ void PrintHelp(const char *name)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+// Auxiliaries
+////////////////////////////////////////////////////////////////////////////////
+
+// -----------------------------------------------------------------------------
+/// Open file with the specified mode
+FILE *OpenFile(const char *fname, const char *mode)
+{
+  FILE *fp = nullptr;
+  #if WINDOWS
+    if (fopen_s(&fp, fname, mode) != 0) fp = nullptr;
+  #else
+    fp = fopen(fname, mode);
+  #endif
+  return fp;
+}
+
+////////////////////////////////////////////////////////////////////////////////
 // Types
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -502,7 +519,10 @@ Transformation *ReadFNIRTDisplacement(const char *fname)
 Transformation *ReadAladin(const char *fname)
 {
   Matrix m(4, 4);
-  FILE *f = fopen(fname, "r");
+  FILE *f = OpenFile(fname, "r");
+  #if WINDOWS
+  #  define fscanf fscanf_s
+  #endif // WINDOWS
   if (fscanf(f, "%lf %lf %lf %lf\n", &m(0, 0), &m(0, 1), &m(0, 2), &m(0, 3)) != 4 ||
       fscanf(f, "%lf %lf %lf %lf\n", &m(1, 0), &m(1, 1), &m(1, 2), &m(1, 3)) != 4 ||
       fscanf(f, "%lf %lf %lf %lf\n", &m(2, 0), &m(2, 1), &m(2, 2), &m(2, 3)) != 4) {
@@ -510,6 +530,9 @@ Transformation *ReadAladin(const char *fname)
     FatalError("File does not appear to be a valid Aladin output file: " << fname);
     exit(1);
   }
+  #if WINDOWS
+  #  undef fscanf
+  #endif // WINDOWS
   m(3, 0) = m(3, 1) = m(3, 2) = .0; m(3, 3) = 1.0;
   fclose(f);
   unique_ptr<AffineTransformation> dof(new AffineTransformation);
@@ -533,7 +556,7 @@ Transformation *ReadF3D(const char *fname, const char *dofin_name = NULL,
     if (type == F3D_TYPE_UNKNOWN) {
       if (hdr.intent_code == NIFTI_INTENT_VECTOR &&
           hdr.intent_name == "NREG_TRANS") {
-        type = static_cast<F3DTransformationType>(hdr.intent_p1);
+        type = static_cast<F3DTransformationType>(static_cast<int>(hdr.intent_p1));
       } else {
         FatalError("Cannot determine format of input F3D vector field from NIfTI intent code!");
       }
@@ -592,7 +615,7 @@ Transformation *ReadF3D(const char *fname, const char *dofin_name = NULL,
       }
       case F3D_SPLINE_VEL_GRID: {
         BSplineFreeFormTransformationSV *ffd = new BSplineFreeFormTransformationSV(cpp, displacement);
-        ffd->NumberOfSteps(pow(2.0, steps));
+        ffd->NumberOfSteps(static_cast<int>(pow(2, steps)));
         ffd->IntegrationMethod(FFDIM_FastSS);
         mffd->PushLocalTransformation(ffd);
         break;
@@ -1115,7 +1138,7 @@ bool WriteAladin(const char *fname, const Transformation *dof)
     }
   }
   Matrix m = lin->GetMatrix();
-  FILE *f = fopen(fname, "w");
+  FILE *f = OpenFile(fname, "w");
   fprintf(f, "%lf %lf %lf %lf\n", m(0, 0), m(0, 1), m(0, 2), m(0, 3));
   fprintf(f, "%lf %lf %lf %lf\n", m(1, 0), m(1, 1), m(1, 2), m(1, 3));
   fprintf(f, "%lf %lf %lf %lf\n", m(2, 0), m(2, 1), m(2, 2), m(2, 3));

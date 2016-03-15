@@ -192,7 +192,8 @@ bool LocalOptimizer::Converged(int iter, double prev, double value, const double
   if (_Function->GradientNorm(dx) <= _Delta) return true;
 
   // Test other stopping criteria
-  for (size_t n = 0; n < _StoppingCriteria.size(); ++n) {
+  const int ncriteria = static_cast<int>(_StoppingCriteria.size());
+  for (int n = 0; n < ncriteria; ++n) {
     if (StoppingCriterion(n)->Fulfilled(iter, prev, value, dx)) return true;
   }
   return false;

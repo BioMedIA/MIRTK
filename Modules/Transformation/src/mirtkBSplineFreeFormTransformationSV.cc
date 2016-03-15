@@ -255,19 +255,19 @@ public:
     x = .0;
     for (int K = k-1; K <= k+1; K++) {
       B_K = Kernel::LatticeWeights[K - (k-1)];
-      if      (K <  0)        KK = 0;
-      else if (K >= v.GetZ()) KK = v.GetZ()-1;
-      else                    KK = K;
+      if      (K <  0)     KK = 0;
+      else if (K >= v.Z()) KK = v.Z()-1;
+      else                 KK = K;
       for (int J = j-1; J <= j+1; J++) {
         B_J = Kernel::LatticeWeights[J - (j-1)];
-        if      (J <  0)        JJ = 0;
-        else if (J >= v.GetY()) JJ = v.GetY()-1;
-        else                    JJ = J;
+        if      (J <  0)     JJ = 0;
+        else if (J >= v.Y()) JJ = v.Y() - 1;
+        else                 JJ = J;
         for (int I = i-1; I <= i+1; I++) {
           B_I = Kernel::LatticeWeights[I - (i-1)];
-          if      (I <  0)        II = 0;
-          else if (I >= v.GetX()) II = v.GetX()-1;
-          else                    II = I;
+          if      (I <  0)     II = 0;
+          else if (I >= v.X()) II = v.X() - 1;
+          else                 II = I;
           x += B_I * B_J * B_K * s * v(II, JJ, KK);
         }
       }
@@ -285,21 +285,21 @@ public:
     for (K = k-1; K <= k+1; K++) {
       B_K   = Kernel::LatticeWeights  [K - (k-1)];
       B_K_I = Kernel::LatticeWeights_I[K - (k-1)];
-      if      (K <  0)        KK = 0;
-      else if (K >= v.GetZ()) KK = v.GetZ()-1;
-      else                    KK = K;
+      if      (K <  0)     KK = 0;
+      else if (K >= v.Z()) KK = v.Z()-1;
+      else                 KK = K;
       for (J = j-1; J <= j+1; J++) {
         B_J   = Kernel::LatticeWeights  [J - (j-1)];
         B_J_I = Kernel::LatticeWeights_I[J - (j-1)];
-        if      (J <  0)        JJ = 0;
-        else if (J >= v.GetY()) JJ = v.GetY()-1;
-        else                    JJ = J;
+        if      (J <  0)     JJ = 0;
+        else if (J >= v.Y()) JJ = v.Y()-1;
+        else                 JJ = J;
         for (I = i-1; I <= i+1; I++) {
           B_I   = Kernel::LatticeWeights  [I - (i-1)];
           B_I_I = Kernel::LatticeWeights_I[I - (i-1)];
-          if      (I <  0)        II = 0;
-          else if (I >= v.GetX()) II = v.GetX()-1;
-          else                    II = I;
+          if      (I <  0)     II = 0;
+          else if (I >= v.X()) II = v.X()-1;
+          else                 II = I;
           const Vector &coeff = v(II, JJ, KK);
           dx += B_I_I * B_J   * B_K   * s * coeff;
           dy += B_I   * B_J_I * B_K   * s * coeff;
@@ -536,24 +536,22 @@ ImageAttributes BSplineFreeFormTransformationSV
   double margin_back   = .0;
 
   double x, y, z, wx, wy, wz;
-  for (int k = 0; k < attr._z; ++k) {
-    for (int j = 0; j < attr._y; ++j) {
-      for (int i = 0; i < attr._x; ++i) {
-        wx = i2w(0, 0) * i + i2w(0, 1) * j + i2w(0, 2) * k + i2w(0, 3);
-        wy = i2w(1, 0) * i + i2w(1, 1) * j + i2w(1, 2) * k + i2w(1, 3);
-        wz = i2w(2, 0) * i + i2w(2, 1) * j + i2w(2, 2) * k + i2w(2, 3);
-        dof->Transform(wx, wy, wz);
-        x = w2i(0, 0) * wx + w2i(0, 1) * wy + w2i(0, 2) * wz + w2i(0, 3);
-        y = w2i(1, 0) * wx + w2i(1, 1) * wy + w2i(1, 2) * wz + w2i(1, 3);
-        z = w2i(2, 0) * wx + w2i(2, 1) * wy + w2i(2, 2) * wz + w2i(2, 3);
-        if (x <  0           && -x              > margin_left)   margin_left   = -x;
-        if (y <  0           && -y              > margin_bottom) margin_bottom = -y;
-        if (z <  0           && -z              > margin_front)  margin_front  = -z;
-        if (x >= grid._x - 1 && x - grid._x - 1 > margin_right)  margin_right  = x - grid._x - 1;
-        if (y >= grid._y - 1 && y - grid._y - 1 > margin_top)    margin_top    = y - grid._y - 1;
-        if (z >= grid._z - 1 && z - grid._z - 1 > margin_back)   margin_back   = z - grid._z - 1;
-      }
-    }
+  for (int k = 0; k < attr._z; ++k)
+  for (int j = 0; j < attr._y; ++j)
+  for (int i = 0; i < attr._x; ++i) {
+    wx = i2w(0, 0) * i + i2w(0, 1) * j + i2w(0, 2) * k + i2w(0, 3);
+    wy = i2w(1, 0) * i + i2w(1, 1) * j + i2w(1, 2) * k + i2w(1, 3);
+    wz = i2w(2, 0) * i + i2w(2, 1) * j + i2w(2, 2) * k + i2w(2, 3);
+    dof->Transform(wx, wy, wz);
+    x = w2i(0, 0) * wx + w2i(0, 1) * wy + w2i(0, 2) * wz + w2i(0, 3);
+    y = w2i(1, 0) * wx + w2i(1, 1) * wy + w2i(1, 2) * wz + w2i(1, 3);
+    z = w2i(2, 0) * wx + w2i(2, 1) * wy + w2i(2, 2) * wz + w2i(2, 3);
+    if (x <  0           && -x              > margin_left)   margin_left   = -x;
+    if (y <  0           && -y              > margin_bottom) margin_bottom = -y;
+    if (z <  0           && -z              > margin_front)  margin_front  = -z;
+    if (x >= grid._x - 1 && x - grid._x - 1 > margin_right)  margin_right  = x - grid._x - 1;
+    if (y >= grid._y - 1 && y - grid._y - 1 > margin_top)    margin_top    = y - grid._y - 1;
+    if (z >= grid._z - 1 && z - grid._z - 1 > margin_back)   margin_back   = z - grid._z - 1;
   }
 
   // Account for inter-/extrapolation error on boundary of FFD lattice and
@@ -573,9 +571,9 @@ ImageAttributes BSplineFreeFormTransformationSV
   const double oz = (margin_back  - margin_front)  * grid._dz / 2.0;
 
   // Initialize free-form deformation (for extended image grid)
-  grid._x       += margin_left + margin_right;
-  grid._y       += margin_bottom + margin_top;
-  grid._z       += margin_front + margin_back;
+  grid._x       += static_cast<int>(margin_left + margin_right);
+  grid._y       += static_cast<int>(margin_bottom + margin_top);
+  grid._z       += static_cast<int>(margin_front + margin_back);
   grid._xorigin += grid._xaxis[0] * ox + grid._yaxis[0] * oy + grid._zaxis[0] * oz;
   grid._yorigin += grid._xaxis[1] * ox + grid._yaxis[1] * oy + grid._zaxis[1] * oz;
   grid._zorigin += grid._xaxis[2] * ox + grid._yaxis[2] * oy + grid._zaxis[2] * oz;
@@ -614,13 +612,11 @@ double BSplineFreeFormTransformationSV
     // Evaluate velocities of other SV FFD at control points of this SV FFD
     } else {
       Vector *v = _CPImage.GetPointerToVoxels();
-      for (int k = 0; k < _z; ++k) {
-        for (int j = 0; j < _y; ++j) {
-          for (int i = 0; i < _x; ++i, ++v) {
-            v->_x = i, v->_y = j, v->_z = k;
-            svffd->Evaluate(v->_x, v->_y, v->_z);
-          }
-        }
+      for (int k = 0; k < _z; ++k)
+      for (int j = 0; j < _y; ++j)
+      for (int i = 0; i < _x; ++i, ++v) {
+        v->_x = i, v->_y = j, v->_z = k;
+        svffd->Evaluate(v->_x, v->_y, v->_z);
       }
     }
 
@@ -880,7 +876,7 @@ bool BSplineFreeFormTransformationSV::Set(const char *name, const char *value)
   } else if (strcmp(name,    "No. of squaring steps")    == 0 ||
              strcmp(name, "Number of squaring steps") == 0) {
     if (!FromString(value, _NumberOfSteps) || _NumberOfSteps <= 0) return false;
-    _NumberOfSteps = pow(2.0, _NumberOfSteps);
+    _NumberOfSteps = static_cast<int>(pow(2, _NumberOfSteps));
     if (_IntegrationMethod != FFDIM_SS && _IntegrationMethod != FFDIM_FastSS) {
       _IntegrationMethod = FFDIM_FastSS;
     }
@@ -1050,7 +1046,7 @@ void BSplineFreeFormTransformationSV
     VelocityToDisplacementFieldSS<VoxelType> exp;
     exp.UpperIntegrationLimit(T);
     exp.NumberOfSteps(NumberOfStepsForIntervalLength(T));
-    exp.MaxScaledVelocity(_MaxScaledVelocity);
+    exp.MaxScaledVelocity(static_cast<VoxelType>(_MaxScaledVelocity));
     exp.Interpolation(fast ? Interpolation_FastCubicBSpline : Interpolation_Linear);
     exp.Upsample(false);  // better, but too expensive
     exp.Input(0, &v);     // velocity field to be exponentiated

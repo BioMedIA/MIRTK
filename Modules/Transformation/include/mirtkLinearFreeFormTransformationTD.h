@@ -167,8 +167,8 @@ inline void LinearFreeFormTransformationTD::LocalTransform(double &x, double &y,
   Matrix sjac(3, 3);
 
   // Number of integration steps
-  int minsteps = abs(round((t2 - t1) / _MaxTimeStep));
-  int maxsteps = abs(round((t2 - t1) / _MinTimeStep));
+  int minsteps = abs(iround((t2 - t1) / _MaxTimeStep));
+  int maxsteps = abs(iround((t2 - t1) / _MinTimeStep));
   if (minsteps < 2) minsteps = 2;
   if (maxsteps < 2) maxsteps = 2;
 

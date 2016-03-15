@@ -78,7 +78,7 @@ inline typename GenericBSplineInterpolateImageFunction2D<TImage>::VoxelType
 GenericBSplineInterpolateImageFunction2D<TImage>
 ::GetInside(double x, double y, double z, double t) const
 {
-  return Get(&this->_Coefficient, x, y, z, t);
+  return voxel_cast<VoxelType>(Get(&this->_Coefficient, x, y, z, t));
 }
 
 // -----------------------------------------------------------------------------
@@ -88,7 +88,7 @@ GenericBSplineInterpolateImageFunction2D<TImage>
 ::GetOutside(double x, double y, double z, double t) const
 {
   if (this->_InfiniteCoefficient) {
-    return Get(this->_InfiniteCoefficient, x, y, z, t);
+    return voxel_cast<VoxelType>(Get(this->_InfiniteCoefficient, x, y, z, t));
   } else {
     return Get(x, y, z, t);
   }
@@ -100,7 +100,7 @@ inline typename GenericBSplineInterpolateImageFunction2D<TImage>::VoxelType
 GenericBSplineInterpolateImageFunction2D<TImage>
 ::GetWithPaddingInside(double x, double y, double z, double t) const
 {
-  return GetWithPadding(this->Input(), &this->_Coefficient, x, y, z, t);
+  return voxel_cast<VoxelType>(GetWithPadding(this->Input(), &this->_Coefficient, x, y, z, t));
 }
 
 // -----------------------------------------------------------------------------
@@ -110,7 +110,7 @@ GenericBSplineInterpolateImageFunction2D<TImage>
 ::GetWithPaddingOutside(double x, double y, double z, double t) const
 {
   if (this->Extrapolator() && this->_InfiniteCoefficient) {
-    return GetWithPadding(this->Extrapolator(), this->_InfiniteCoefficient, x, y, z, t);
+    return voxel_cast<VoxelType>(GetWithPadding(this->Extrapolator(), this->_InfiniteCoefficient, x, y, z, t));
   } else {
     return GetWithPadding(x, y, z, t);
   }

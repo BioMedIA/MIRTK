@@ -1150,11 +1150,15 @@ public:
     _Domain.LatticeToWorld(x, y, z);
     double t = _Domain.LatticeToTime(l);
     // Apply current displacement
-    x += *dx, y += *dy, z += *dz;
+    x += static_cast<double>(*dx);
+    y += static_cast<double>(*dy);
+    z += static_cast<double>(*dz);
     // Calculate displacement
     _Transformation->Displacement(x, y, z, t, _TargetTime);
     // Update displacement
-    *dx += x, *dy += y, *dz += z;
+    *dx += static_cast<TReal>(x);
+    *dy += static_cast<TReal>(y);
+    *dz += static_cast<TReal>(z);
   }
 };
 
@@ -1224,32 +1228,34 @@ struct TransformationToDisplacementImage : public VoxelFunction
     double x = i, y = j, z = (_z != 0 ? k : .0);
     _Displacement->ImageToWorld(x, y, z);
     // Apply current displacement
-    x += disp[_x];
-    y += disp[_y];
-    if (_z != 0) z += disp[_z];
+    x += static_cast<double>(disp[_x]);
+    y += static_cast<double>(disp[_y]);
+    if (_z != 0) z += static_cast<double>(disp[_z]);
     // Calculate displacement
     _Transformation->Displacement(x, y, z, _SourceTime, _TargetTime);
     // Update displacement
-    disp[_x] += x;
-    disp[_y] += y;
-    if (_z != 0) disp[_z] += z;
+    disp[_x] += static_cast<TReal>(x);
+    disp[_y] += static_cast<TReal>(y);
+    if (_z != 0) disp[_z] += static_cast<TReal>(z);
   }
 
   template <class TCoord, class TReal>
   void operator ()(int, int, int k, int, TCoord *wc, TReal *disp)
   {
     // Transform point into world coordinates
-    double x = wc[_x], y = wc[_y], z = (_z != 0 ? wc[_z] : .0);
+    double x = static_cast<double>(wc[_x]);
+    double y = static_cast<double>(wc[_y]);
+    double z = (_z != 0 ? static_cast<double>(wc[_z]) : .0);
     // Apply current displacement
-    x += disp[_x];
-    y += disp[_y];
-    if (_z != 0) z += disp[_z];
+    x += static_cast<double>(disp[_x]);
+    y += static_cast<double>(disp[_y]);
+    if (_z != 0) z += static_cast<double>(disp[_z]);
     // Calculate displacement
     _Transformation->Displacement(x, y, z, _SourceTime, _TargetTime);
     // Update displacement
-    disp[_x] += x;
-    disp[_y] += y;
-    if (_z != 0) disp[_z] += z;
+    disp[_x] += static_cast<TReal>(x);
+    disp[_y] += static_cast<TReal>(y);
+    if (_z != 0) disp[_z] += static_cast<TReal>(z);
   }
 
 private:
@@ -1386,13 +1392,17 @@ public:
     _Domain.LatticeToWorld(x, y, z);
     double t = _Domain.LatticeToTime(l);
     // Apply current displacement
-    x += *dx, y += *dy, z += *dz;
+    x += static_cast<double>(*dx);
+    y += static_cast<double>(*dy);
+    z += static_cast<double>(*dz);
     // Calculate inverse displacement
     if (!_Transformation->InverseDisplacement(x, y, z, t, _TargetTime)) {
       ++_NumberOfSingularPoints;
     }
     // Update displacement
-    *dx += x, *dy += y, *dz += z;
+    *dx += static_cast<TReal>(x);
+    *dy += static_cast<TReal>(y);
+    *dz += static_cast<TReal>(z);
   }
 };
 
@@ -1479,36 +1489,38 @@ struct TransformationToInverseDisplacementImage : public VoxelReduction
     double x = i, y = j, z = (_z != 0 ? k : .0);
     _Displacement->ImageToWorld(x, y, z);
     // Apply current displacement
-    x += disp[_x];
-    y += disp[_y];
-    if (_z != 0) z += disp[_z];
+    x += static_cast<double>(disp[_x]);
+    y += static_cast<double>(disp[_y]);
+    if (_z != 0) z += static_cast<double>(disp[_z]);
     // Calculate inverse displacement
     if (!_Transformation->InverseDisplacement(x, y, z, _SourceTime, _TargetTime)) {
       ++_NumberOfSingularPoints;
     }
     // Update displacement
-    disp[_x] += x;
-    disp[_y] += y;
-    if (_z != 0) disp[_z] += z;
+    disp[_x] += static_cast<TReal>(x);
+    disp[_y] += static_cast<TReal>(y);
+    if (_z != 0) disp[_z] += static_cast<TReal>(z);
   }
 
   template <class TCoord, class TReal>
   void operator ()(int, int, int k, int, TCoord *wc, TReal *disp)
   {
     // Transform point into world coordinates
-    double x = wc[_x], y = wc[_y], z = (_z != 0 ? wc[_z] : .0);
+    double x = static_cast<double>(wc[_x]);
+    double y = static_cast<double>(wc[_y]);
+    double z = (_z != 0 ? static_cast<double>(wc[_z]) : .0);
     // Apply current displacement
-    x += disp[_x];
-    y += disp[_y];
-    if (_z != 0) z += disp[_z];
+    x += static_cast<double>(disp[_x]);
+    y += static_cast<double>(disp[_y]);
+    if (_z != 0) z += static_cast<double>(disp[_z]);
     // Calculate inverse displacement
     if (!_Transformation->InverseDisplacement(x, y, z, _SourceTime, _TargetTime)) {
       ++_NumberOfSingularPoints;
     }
     // Update displacement
-    disp[_x] += x;
-    disp[_y] += y;
-    if (_z != 0) disp[_z] += z;
+    disp[_x] += static_cast<TReal>(x);
+    disp[_y] += static_cast<TReal>(y);
+    if (_z != 0) disp[_z] += static_cast<TReal>(z);
   }
 
 private:

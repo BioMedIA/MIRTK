@@ -56,7 +56,7 @@ template <class TImage>
 void GenericNearestNeighborInterpolateImageFunction<TImage>
 ::BoundingInterval(double x, int &i, int &I) const
 {
-  i = I = static_cast<int>(round(x));
+  i = I = iround(x);
 }
 
 // =============================================================================
@@ -69,10 +69,10 @@ inline typename GenericNearestNeighborInterpolateImageFunction<TImage>::VoxelTyp
 GenericNearestNeighborInterpolateImageFunction<TImage>
 ::Get(double x, double y, double z, double t) const
 {
-  const int i = static_cast<int>(round(x));
-  const int j = static_cast<int>(round(y));
-  const int k = static_cast<int>(round(z));
-  const int l = static_cast<int>(round(t));
+  const int i = iround(x);
+  const int j = iround(y);
+  const int k = iround(z);
+  const int l = iround(t);
 
   if (this->Input()->IsInside(i, j, k, l)) {
     return this->Input()->Get(i, j, k, l);
@@ -87,10 +87,10 @@ inline typename GenericNearestNeighborInterpolateImageFunction<TImage>::VoxelTyp
 GenericNearestNeighborInterpolateImageFunction<TImage>
 ::GetWithPadding(double x, double y, double z, double t) const
 {
-  const int i = static_cast<int>(round(x));
-  const int j = static_cast<int>(round(y));
-  const int k = static_cast<int>(round(z));
-  const int l = static_cast<int>(round(t));
+  const int i = iround(x);
+  const int j = iround(y);
+  const int k = iround(z);
+  const int l = iround(t);
 
   if (this->Input()->IsInsideForeground(i, j, k, l)) {
     return this->Input()->Get(i, j, k, l);
@@ -105,10 +105,7 @@ inline typename TOtherImage::VoxelType
 GenericNearestNeighborInterpolateImageFunction<TImage>
 ::Get(const TOtherImage *input, double x, double y, double z, double t) const
 {
-  return input->Get(static_cast<int>(round(x)),
-                    static_cast<int>(round(y)),
-                    static_cast<int>(round(z)),
-                    static_cast<int>(round(t)));
+  return input->Get(iround(x), iround(y), iround(z), iround(t));
 }
 
 // -----------------------------------------------------------------------------
@@ -117,10 +114,10 @@ inline typename TOtherImage::VoxelType
 GenericNearestNeighborInterpolateImageFunction<TImage>
 ::GetWithPadding(const TOtherImage *input, double x, double y, double z, double t) const
 {
-  const int i = static_cast<int>(round(x));
-  const int j = static_cast<int>(round(y));
-  const int k = static_cast<int>(round(z));
-  const int l = static_cast<int>(round(t));
+  const int i = iround(x);
+  const int j = iround(y);
+  const int k = iround(z);
+  const int l = iround(t);
 
   if (input->IsForeground(i, j, k, l)) {
     return input->Get(i, j, k, l);

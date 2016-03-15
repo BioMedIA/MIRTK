@@ -17,6 +17,12 @@
  * limitations under the License.
  */
 
+// Disable MSVC warning caused by <boost/random.hpp>
+// (see https://svn.boost.org/trac/boost/ticket/11426)
+#ifdef _MSC_VER
+#  pragma warning(disable:4996)
+#endif
+
 #include <mirtkPointSamples.h>
 
 #include <mirtkMath.h>
@@ -280,8 +286,8 @@ void PointSamples::SampleRegularHalfSphere(double cx, double cy, double cz,
 
   // Determine angular sampling rate from desired number of samples (_n)
   const double delta    = 1.23 * sqrt(4.0 / _n);
-  const double dTheta   = M_PI_2 / round(M_PI_2 / clamp(delta, .0, M_PI_2));
-  const int    maxTheta = iround(M_PI_2 / dTheta);
+  const double dTheta   = two_pi / round(two_pi / clamp(delta, .0, two_pi));
+  const int    maxTheta = iround(two_pi / dTheta);
 
   Array<int>    maxPhi(maxTheta + 1);
   Array<double> dPhi  (maxTheta + 1);
@@ -295,14 +301,14 @@ void PointSamples::SampleRegularHalfSphere(double cx, double cy, double cz,
       dPhi  [i] = .0;
     }
     // On the equator, we only need half of the directions
-    else if (theta >= (M_PI_2 - epsilon)) {
-      dPhi  [i] = min(M_PI_2, dTheta / sinf( theta ) );
+    else if (theta >= (two_pi - epsilon)) {
+      dPhi  [i] = min(two_pi, dTheta / sin(theta));
       maxPhi[i] = max(1, static_cast<int>(pi / dPhi[i]) - 1);
       dPhi  [i] = pi / (maxPhi[i] + 1);
     }
     // Otherwise, let's sample the entire circle parallel to the equator
     else {
-      dPhi  [i] = min(M_PI_2, dTheta / sin(theta));
+      dPhi  [i] = min(two_pi, dTheta / sin(theta));
       maxPhi[i] = max(3, 2 * static_cast<int>(pi / dPhi[i]) - 1);
       dPhi  [i] = two_pi / (maxPhi[i] + 1);
     }

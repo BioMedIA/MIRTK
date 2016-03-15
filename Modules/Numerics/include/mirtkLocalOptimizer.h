@@ -174,9 +174,7 @@ public:                                                                        \
   static enum OptimizationMethod ID() { return method; }                       \
   /** Optimization method implemented by this optimizer */                     \
   virtual enum OptimizationMethod OptimizationMethod() const { return method; }\
-private:                                                                       \
-  /* require developer to end macro with a semicolon */                        \
-  static void _mirtkOptimizerMacro_needs_trailing_semicolon()
+private:
 
 // -----------------------------------------------------------------------------
 /// Register object type with factory singleton

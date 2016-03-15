@@ -77,11 +77,11 @@ void NiftiImage::Initialize(int x, int y, int z, int t, int u,
   nim->nu         = (u > 1 ? u : 1); // ...
   nim->nv         = 1;               // ...
   nim->nw         = 1;               // ...
-  nim->dx         = abs(xsize);     // Store only absolute pixel size values
-  nim->dy         = abs(ysize);     // dito
-  nim->dz         = abs(zsize);     // ...
-  nim->dt         = abs(tsize);
-  nim->toffset    = torigin;
+  nim->dx         = abs(static_cast<float>(xsize)); // Store only absolute pixel size values
+  nim->dy         = abs(static_cast<float>(ysize)); // dito
+  nim->dz         = abs(static_cast<float>(zsize)); // ...
+  nim->dt         = abs(static_cast<float>(tsize));
+  nim->toffset    = static_cast<float>(torigin);
   // Redundant fields ndim->dim/pixdim will be filled by nim2nhdr/nhdr2nim conversions in Write()
 
   // Derived values
@@ -92,7 +92,7 @@ void NiftiImage::Initialize(int x, int y, int z, int t, int u,
   // Compute qform
   for (i = 0; i < 4; ++i)
   for (j = 0; j < 4; ++j) {
-    mat_44.m[i][j] = qmat(i, j);
+    mat_44.m[i][j] = static_cast<float>(qmat(i, j));
   }
 
   nim->qform_code = 1;
@@ -108,7 +108,7 @@ void NiftiImage::Initialize(int x, int y, int z, int t, int u,
   if (smat) {
     for (i = 0; i < 4; ++i)
     for (j = 0; j < 4; ++j) {
-      mat_44.m[i][j] = (*smat)(i, j);
+      mat_44.m[i][j] = static_cast<float>((*smat)(i, j));
     }
     nim->sform_code = NIFTI_XFORM_ALIGNED_ANAT;
     nim->sto_xyz    = mat_44;

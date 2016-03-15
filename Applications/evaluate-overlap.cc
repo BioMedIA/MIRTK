@@ -137,22 +137,17 @@ int main(int argc, char **argv)
   int i2 = -1, j2 = -1, k2 = -1;
 
   for (ARGUMENTS_AFTER(nposarg)) {
-    if      (OPTION("-Tp"))  padding = atof(ARGUMENT);
-    else if (OPTION("-label")) label = atof(ARGUMENT);
-    else if (OPTION("-metric")) {
-      const char *arg = ARGUMENT;
-      if (!FromString(arg, metric)) {
-        FatalError("Invalid -metric argument: " << arg);
-      }
-    }
-    else if (OPTION("-precision")) digits = atoi(ARGUMENT);
-    else if (OPTION("-delim"))     delim  = ARGUMENT;
-    else if (OPTION("-Rx1")) i1 = atoi(ARGUMENT);
-    else if (OPTION("-Rx2")) i2 = atoi(ARGUMENT);
-    else if (OPTION("-Ry1")) j1 = atoi(ARGUMENT);
-    else if (OPTION("-Ry2")) j2 = atoi(ARGUMENT);
-    else if (OPTION("-Rz1")) k1 = atoi(ARGUMENT);
-    else if (OPTION("-Rz2")) k2 = atoi(ARGUMENT);
+    if      (OPTION("-Tp")) PARSE_ARGUMENT(padding);
+    else if (OPTION("-label")) PARSE_ARGUMENT(label);
+    else if (OPTION("-metric")) PARSE_ARGUMENT(metric);
+    else if (OPTION("-precision")) PARSE_ARGUMENT(digits);
+    else if (OPTION("-delim")) delim = ARGUMENT;
+    else if (OPTION("-Rx1")) PARSE_ARGUMENT(i1);
+    else if (OPTION("-Rx2")) PARSE_ARGUMENT(i2);
+    else if (OPTION("-Ry1")) PARSE_ARGUMENT(j1);
+    else if (OPTION("-Ry2")) PARSE_ARGUMENT(j2);
+    else if (OPTION("-Rz1")) PARSE_ARGUMENT(k1);
+    else if (OPTION("-Rz2")) PARSE_ARGUMENT(k2);
     else HANDLE_COMMON_OR_UNKNOWN_OPTION();
   }
 

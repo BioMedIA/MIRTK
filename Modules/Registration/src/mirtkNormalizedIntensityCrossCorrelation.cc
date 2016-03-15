@@ -19,6 +19,7 @@
 
 #include <mirtkNormalizedIntensityCrossCorrelation.h>
 
+#include <mirtkConfig.h> // WINDOWS
 #include <mirtkMath.h>
 #include <mirtkMemory.h>
 #include <mirtkParallel.h>
@@ -61,11 +62,31 @@ namespace NormalizedIntensityCrossCorrelationUtil {
 typedef NormalizedIntensityCrossCorrelation::RealImage RealImage;
 
 // -----------------------------------------------------------------------------
+int ParseValues(const char *str, const char *format, int *x, int *y, int *z)
+{
+#if WINDOWS
+  return sscanf_s(str, format, x, y, z);
+#else
+  return sscanf(str, format, x, y, z);
+#endif
+}
+
+// -----------------------------------------------------------------------------
+int ParseValues(const char *str, const char *format, double *x, double *y, double *z)
+{
+  #if WINDOWS
+    return sscanf_s(str, format, x, y, z);
+  #else
+    return sscanf(str, format, x, y, z);
+  #endif
+}
+
+// -----------------------------------------------------------------------------
 NormalizedIntensityCrossCorrelation::Units ParseUnits(const char *value)
 {
   // Start at end of string
-  const int len = strlen(value);
-  const char *p = value + len;
+  const size_t len = strlen(value);
+  const char    *p = value + len;
   // Skip trailing whitespaces
   while (p != value && (*(p-1) == ' ' || *(p-1) == '\t')) --p;
   // Skip lowercase letters
@@ -615,7 +636,7 @@ bool NormalizedIntensityCrossCorrelation::SetWithPrefix(const char *param, const
 
       if (type == "sigma") {
         double sx = 0, sy = 0, sz = 0;
-        int n = sscanf(value, "%lf %lf %lf", &sx, &sy, &sz);
+        int n = ParseValues(value, "%lf %lf %lf", &sx, &sy, &sz);
         if (n == 0) return false;
         if (n == 1) sz = sy = sx;
         if (units != "signed") {
@@ -631,7 +652,7 @@ bool NormalizedIntensityCrossCorrelation::SetWithPrefix(const char *param, const
         return false; // makes only sense for "Local window size"
       } else if (type == "vox") {
         int rx = 0, ry = 0, rz = 0;
-        int n = sscanf(value, "%d %d %d", &rx, &ry, &rz);
+        int n = ParseValues(value, "%d %d %d", &rx, &ry, &rz);
         if (n == 0) return false;
         if (n == 1) rz = ry = rx;
         if (units != "vox" || rx < 0 || ry < 0 || rz < 0) return false;
@@ -642,7 +663,7 @@ bool NormalizedIntensityCrossCorrelation::SetWithPrefix(const char *param, const
         return true;
       } else if (type == "mm") {
         double rx = .0, ry = .0, rz = .0;
-        int n = sscanf(value, "%lf %lf %lf", &rx, &ry, &rz);
+        int n = ParseValues(value, "%lf %lf %lf", &rx, &ry, &rz);
         if (n == 0) return false;
         if (n == 1) rz = ry = rx;
         if (units != "mm" || rx < .0 || ry < .0 || rz < .0) return false;
@@ -653,7 +674,7 @@ bool NormalizedIntensityCrossCorrelation::SetWithPrefix(const char *param, const
         return true;
       } else if (type == "box") {
         double rx = .0, ry = .0, rz = .0;
-        int n = sscanf(value, "%lf %lf %lf", &rx, &ry, &rz);
+        int n = ParseValues(value, "%lf %lf %lf", &rx, &ry, &rz);
         if (n == 0) return false;
         if (n == 1) rz = ry = rx;
         if (units != "signed") {
@@ -672,7 +693,7 @@ bool NormalizedIntensityCrossCorrelation::SetWithPrefix(const char *param, const
 
       if (type == "sigma") {
         double sx = 0, sy = 0, sz = 0;
-        int n = sscanf(value, "%lf %lf %lf", &sx, &sy, &sz);
+        int n = ParseValues(value, "%lf %lf %lf", &sx, &sy, &sz);
         if (n == 0) return false;
         if (n == 1) sz = sy = sx;
         if (units != "signed") {
@@ -686,7 +707,7 @@ bool NormalizedIntensityCrossCorrelation::SetWithPrefix(const char *param, const
         return true;
       } else if (type == "fwhm") {
         double sx = 0, sy = 0, sz = 0;
-        int n = sscanf(value, "%lf %lf %lf", &sx, &sy, &sz);
+        int n = ParseValues(value, "%lf %lf %lf", &sx, &sy, &sz);
         if (n == 0) return false;
         if (n == 1) sz = sy = sx;
         if (units != "signed") {
@@ -700,7 +721,7 @@ bool NormalizedIntensityCrossCorrelation::SetWithPrefix(const char *param, const
         return true;
       } else if (type == "fwtm") {
         double sx = 0, sy = 0, sz = 0;
-        int n = sscanf(value, "%lf %lf %lf", &sx, &sy, &sz);
+        int n = ParseValues(value, "%lf %lf %lf", &sx, &sy, &sz);
         if (n == 0) return false;
         if (n == 1) sz = sy = sx;
         if (units != "signed") {
@@ -714,7 +735,7 @@ bool NormalizedIntensityCrossCorrelation::SetWithPrefix(const char *param, const
         return true;
       } else if (type == "vox") {
         int sx = 0, sy = 0, sz = 0;
-        int n = sscanf(value, "%d %d %d", &sx, &sy, &sz);
+        int n = ParseValues(value, "%d %d %d", &sx, &sy, &sz);
         if (n == 0) return false;
         if (n == 1) sz = sy = sx;
         if (units != "vox" || sx < 0 || sy < 0 || sz < 0) return false;
@@ -725,7 +746,7 @@ bool NormalizedIntensityCrossCorrelation::SetWithPrefix(const char *param, const
         return true;
       } else if (type == "mm") {
         double sx = .0, sy = .0, sz = .0;
-        int n = sscanf(value, "%lf %lf %lf", &sx, &sy, &sz);
+        int n = ParseValues(value, "%lf %lf %lf", &sx, &sy, &sz);
         if (n == 0) return false;
         if (n == 1) sz = sy = sx;
         if (units != "mm" || sx < 0 || sy < 0 || sz < 0) return false;
@@ -736,7 +757,7 @@ bool NormalizedIntensityCrossCorrelation::SetWithPrefix(const char *param, const
         return true;
       } else if (type == "box") {
         double sx = .0, sy = .0, sz = .0;
-        int n = sscanf(value, "%lf %lf %lf", &sx, &sy, &sz);
+        int n = ParseValues(value, "%lf %lf %lf", &sx, &sy, &sz);
         if (n == 0) return false;
         if (n == 1) sz = sy = sx;
         if (units != "signed") {

@@ -51,7 +51,7 @@ inline Eigen::VectorXd VectorToEigen(const Vector &a)
 // -----------------------------------------------------------------------------
 inline Vector EigenToVector(const Eigen::VectorXd &a)
 {
-  Vector b(a.size());
+  Vector b(static_cast<int>(a.size()));
   for (int i = 0; i < b.Rows(); ++i) b(i) = a(i);
   return b;
 }
@@ -70,7 +70,7 @@ inline Eigen::MatrixXd MatrixToEigen(const Matrix &a)
 // -----------------------------------------------------------------------------
 inline Matrix EigenToMatrix(const Eigen::MatrixXd &a)
 {
-  Matrix b(a.rows(), a.cols());
+  Matrix b(static_cast<int>(a.rows()), static_cast<int>(a.cols()));
   for (int i = 0; i < b.Rows(); ++i)
   for (int j = 0; j < b.Cols(); ++j) {
     b(i, j) = a(i, j);

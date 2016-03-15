@@ -474,8 +474,7 @@ public:
     /** Get interpolation mode implemented by this class */                    \
     inline static  enum InterpolationMode InterpolationType()                  \
     { return mode; }                                                           \
-  private:                                                                     \
-    static void _mirtkGradientInterpolatorMacro_needs_trailing_semicolon()
+  private:
 
 // -----------------------------------------------------------------------------
 #define mirtkGenericGradientInterpolatorTypes(superclsname)                    \
@@ -486,15 +485,13 @@ public:
     typedef typename Superclass::Real                      Real;               \
     typedef typename Superclass::ExtrapolatorType          ExtrapolatorType;   \
     typedef typename Superclass::GradientType              GradientType;       \
-  private:                                                                     \
-    static void _mirtkGenericGradientInterpolatorTypedefsMacro_needs_trailing_semicolon()
+  private:
 
 // -----------------------------------------------------------------------------
 #define mirtkGenericGradientInterpolatorMacro(clsname, mode)                   \
     mirtkGradientInterpolatorMacro(clsname, mode);                             \
     mirtkGenericGradientInterpolatorTypes(GenericImageGradientFunction);       \
-  private:                                                                     \
-     static void _mirtkGenericGradientInterpolatorMacro_needs_trailing_semicolon()
+  private:
 
 ////////////////////////////////////////////////////////////////////////////////
 // Inline definitions -- ImageGradientFunction
@@ -629,7 +626,7 @@ inline void ImageGradientFunction::BoundingBox(double x, double y, double z,
   } else {
     this->BoundingInterval(x, i1, i2);
     this->BoundingInterval(y, j1, j2);
-    k1 = k2 = round(z);
+    k1 = k2 = iround(z);
   }
 }
 
@@ -647,12 +644,12 @@ inline void ImageGradientFunction::BoundingBox(double x, double y, double z, dou
     this->BoundingInterval(x, i1, i2);
     this->BoundingInterval(y, j1, j2);
     this->BoundingInterval(z, k1, k2);
-    l1 = l2 = round(t);
+    l1 = l2 = iround(t);
   } else {
     this->BoundingInterval(x, i1, i2);
     this->BoundingInterval(y, j1, j2);
-    k1 = k2 = round(z);
-    l1 = l2 = round(t);
+    k1 = k2 = iround(z);
+    l1 = l2 = iround(t);
   }
 }
 

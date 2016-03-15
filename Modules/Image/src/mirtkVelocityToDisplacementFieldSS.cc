@@ -126,8 +126,8 @@ void VelocityToDisplacementFieldSS<VoxelType>::Initialize()
   if (_NumberOfSquaringSteps <= 0) _NumberOfSquaringSteps = iceil(log(static_cast<double>(n)) / log(2.0));
   if (_NumberOfSquaringSteps <  0) _NumberOfSquaringSteps = 0;
 
-  double max   = .0;
-  double scale = this->UpperIntegrationLimit() / pow(2.0, _NumberOfSquaringSteps);
+  VoxelType max(0);
+  VoxelType scale = static_cast<VoxelType>(this->UpperIntegrationLimit() / pow(2.0, _NumberOfSquaringSteps));
 
   VoxelType *s = _Displacement->Data();
   for (int idx = 0; idx < nvox; ++idx, ++s) {
@@ -139,11 +139,11 @@ void VelocityToDisplacementFieldSS<VoxelType>::Initialize()
   // exceeds the specified maximum; skip if fixed number of steps
   if (_MaxScaledVelocity > .0) {
     scale = 1.0;
-    while ((max * scale) > _MaxScaledVelocity) {
-      scale *= 0.5;
+    while (static_cast<double>(max * scale) > _MaxScaledVelocity) {
+      scale *= VoxelType(.5);
       _NumberOfSquaringSteps++;
     }
-    if (scale != 1.0) {
+    if (scale != VoxelType(1)) {
       VoxelType *s = _Displacement->Data();
       for (int idx = 0; idx < nvox; ++idx, ++s) {
         (*s) *= scale;

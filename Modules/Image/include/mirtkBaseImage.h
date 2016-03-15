@@ -1389,7 +1389,7 @@ inline bool BaseImage::IsForeground(int idx) const
 {
   if (_mask) {
     if (_mask->T() != _attr._t) idx = idx % (_attr._x * _attr._y * _attr._z);
-    return _mask->Get(idx);
+    return _mask->Get(idx) != BinaryPixel(0);
   } else if (_bgSet) {
     const double value = this->GetAsDouble(idx);
     return (value != _bg) && (!IsNaN(value) || !IsNaN(_bg));
@@ -1402,7 +1402,7 @@ inline bool BaseImage::IsForeground(int i, int j, int k, int l) const
 {
   if (_mask) {
     if (_mask->T() != _attr._t) l = 0;
-    return _mask->Get(i, j, k, l);
+    return _mask->Get(i, j, k, l) != BinaryPixel(0);
   } else if (_bgSet) {
     const double value = this->GetAsDouble(i, j, k, l);
     return (value != _bg) && (!IsNaN(value) || !IsNaN(_bg));

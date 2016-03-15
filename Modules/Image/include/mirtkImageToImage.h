@@ -139,8 +139,7 @@ public:
   protected:                                                                   \
     /** Indicates that this filter cannot run in-place */                      \
     virtual bool RequiresBuffering() const { return true; }                    \
-  private:                                                                     \
-    static void _mirtkImageFilterMacro_needs_trailing_semicolon()
+  private:
 
 // -----------------------------------------------------------------------------
 #define mirtkInPlaceImageFilterMacro(clsname, voxeltype)                       \
@@ -149,8 +148,7 @@ public:
   protected:                                                                   \
     /** Indicates that this filter can run in-place */                         \
     virtual bool RequiresBuffering() const { return false; }                   \
-  private:                                                                     \
-    static void _mirtkInPlaceImageFilterMacro_needs_trailing_semicolon()
+  private:
 
 
 } // namespace mirtk

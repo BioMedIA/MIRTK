@@ -42,7 +42,7 @@ void MarkUnvisited(const GenericImage<TLabel> &segmentation,
     if (segmentation(idx)) {
       components(idx) = voxel_limits<TLabel>::max_value();
     } else {
-      components(idx) = 0;
+      components(idx) = TLabel(0);
     }
   }
 }
@@ -154,7 +154,7 @@ void ConnectedComponents<VoxelType>::Run()
   this->Initialize();
 
   int num, seed;
-  VoxelType c = 0;
+  VoxelType c(0);
   while ((seed = NextSeed(*this->Output())) != -1) {
     if (++c == voxel_limits<VoxelType>::max_value()) {
       cerr << "ConnectedComponents::Run: No. of components exceeded maximum label value!" << endl;
@@ -187,9 +187,10 @@ void ConnectedComponents<VoxelType>::Finalize()
     GenericImage<VoxelType> &output = *this->Output();
     const Array<int> new_size = _ComponentSize; // make copy
     VoxelType current;
+    const VoxelType zero(0);
     for (int idx = 0; idx < output.NumberOfVoxels(); ++idx) {
       current = output(idx);
-      if (current > 0) {
+      if (current > zero) {
         output(idx)                   = new_label[current-1];
         _ComponentSize[output(idx)-1] = new_size [current-1];
       }
@@ -204,10 +205,11 @@ template <class VoxelType>
 void ConnectedComponents<VoxelType>::DeleteComponent(VoxelType c)
 {
   ++c; // 1-indexed component labels
+  const VoxelType zero(0);
   GenericImage<VoxelType> &output = *this->Output();
   for (int idx = 0; idx < output.NumberOfVoxels(); ++idx) {
     if (output(idx) == c) {
-      output(idx) = 0;
+      output(idx) = zero;
     }
   }
 }

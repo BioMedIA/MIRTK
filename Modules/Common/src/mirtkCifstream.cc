@@ -19,8 +19,9 @@
 
 #include <mirtkCifstream.h>
 
-#include <mirtkCommonConfig.h>
-#include <mirtkMemory.h> // swap16, swap32
+#include <mirtkConfig.h>       // WINDOWS
+#include <mirtkCommonConfig.h> // MIRTK_Common_BIG_ENDIAN, MIRTK_Common_WITH_ZLIB
+#include <mirtkMemory.h>       // swap16, swap32
 
 
 namespace mirtk {
@@ -50,6 +51,9 @@ void Cifstream::Open(const char *fname)
 {
 #if MIRTK_Common_WITH_ZLIB
   _File = gzopen(fname, "rb");
+#elif WINDOWS
+  errno_t err = fopen_s(&_File, fname, "rb");
+  if (err != 0) _File = NULL;
 #else
   _File = fopen(fname, "rb");
 #endif
@@ -75,13 +79,13 @@ void Cifstream::Close()
 // -----------------------------------------------------------------------------
 int Cifstream::IsSwapped() const
 {
-  return static_cast<int>(_Swapped);
+  return _Swapped ? 1 : 0;
 }
 
 // -----------------------------------------------------------------------------
 void Cifstream::IsSwapped(int swapped)
 {
-  _Swapped = static_cast<bool>(swapped);
+  _Swapped = (swapped != 0);
 }
 
 // -----------------------------------------------------------------------------

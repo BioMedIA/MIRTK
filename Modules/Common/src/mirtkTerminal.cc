@@ -17,6 +17,7 @@
  * limitations under the License.
  */
 
+#include <mirtkConfig.h> // WINDOWS
 #include <mirtkTerminal.h>
 #include <mirtkOptions.h>
 #include <mirtkStream.h>
@@ -115,8 +116,21 @@ struct SetDefaultColorMode
 {
   SetDefaultColorMode()
   {
+#if WINDOWS
+    char *term;
+    size_t len;
+    errno_t err = _dupenv_s(&term, &len, "TERM");
+    if (err != 0) {
+      stdout_color = false;
+      return;
+    }
+#else
     const char *term = getenv("TERM");
-    if (!term) term = "dumb";
+    if (term == nullptr) {
+      stdout_color = false;
+      return;
+    }
+#endif
     const char **color_term = COLOR_ENABLED_TERMINALS;
     while (*color_term) {
       if (strcmp(term, *color_term) == 0) break;

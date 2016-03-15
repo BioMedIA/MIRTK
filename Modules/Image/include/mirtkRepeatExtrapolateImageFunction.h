@@ -63,7 +63,7 @@ public:
   /// \note Use static function as RepeatExtrapolateImageFunction::Apply.
   static void Apply(double &cindex, int max)
   {
-    int    index    = static_cast<int>(floor(cindex));
+    int    index    = ifloor(cindex);
     double fraction = cindex - index;
     Apply(index, max);
     cindex = index + fraction;

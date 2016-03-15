@@ -316,8 +316,8 @@ struct ComposeDisplacementFields2D : VoxelFunction
     _D1Interpolator->Evaluate (d, x, y, z1);
     x2 = x2 + d[0];
     y2 = y2 + d[1];
-    dout[_x] = x2 - x1;
-    dout[_y] = y2 - y1;
+    dout[_x] = static_cast<TReal>(x2 - x1);
+    dout[_y] = static_cast<TReal>(y2 - y1);
   }
   
 private:
@@ -359,9 +359,9 @@ struct ComposeDisplacementFields3D : VoxelFunction
     x2 = x2 + d[0];
     y2 = y2 + d[1];
     z2 = z2 + d[2];
-    dout[_x] = x2 - x1;
-    dout[_y] = y2 - y1;
-    dout[_z] = z2 - z1;
+    dout[_x] = static_cast<TReal>(x2 - x1);
+    dout[_y] = static_cast<TReal>(y2 - y1);
+    dout[_z] = static_cast<TReal>(z2 - z1);
   }
   
 private:

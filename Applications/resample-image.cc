@@ -129,7 +129,7 @@ bool Resample(BaseImage *image, InterpolateImageFunction *interp,
 {
   GenericImage<TVoxel> *im = dynamic_cast<GenericImage<TVoxel> *>(image);
   if (im == nullptr) return false;
-  ResamplingWithPadding<TVoxel> resampling(nx, ny, nz, dx, dy, dz, padding_value);
+  ResamplingWithPadding<TVoxel> resampling(nx, ny, nz, dx, dy, dz, static_cast<TVoxel>(padding_value));
   resampling.Input (im);
   resampling.Output(im);
   resampling.Interpolator(interp);

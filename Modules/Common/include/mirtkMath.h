@@ -84,7 +84,7 @@ using std::copysign;
 MIRTKCU_API inline bool IsNaN(double x)
 {
 #if WINDOWS
-  return _isnan(x);
+  return (_isnan(x) != 0);
 #else
   return ::isnan(x);
 #endif

@@ -57,9 +57,9 @@ struct ConvertToDisplacement3D : public VoxelFunction
   {
     double x = i, y = j, z = k;
     _Domain.LatticeToWorld(x, y, z);
-    u[_x] = d[_x] - x;
-    u[_y] = d[_y] - y;
-    u[_z] = d[_z] - z;
+    u[_x] = d[_x] - static_cast<TReal>(x);
+    u[_y] = d[_y] - static_cast<TReal>(y);
+    u[_z] = d[_z] - static_cast<TReal>(z);
   }
 };
 
@@ -79,9 +79,9 @@ struct ConvertToDeformation3D : public VoxelFunction
   {
     double x = i, y = j, z = k;
     _Domain.LatticeToWorld(x, y, z);
-    d[_x] = x + u[_x];
-    d[_y] = y + u[_y];
-    d[_z] = z + u[_z];
+    d[_x] = static_cast<TReal>(x) + u[_x];
+    d[_y] = static_cast<TReal>(y) + u[_y];
+    d[_z] = static_cast<TReal>(z) + u[_z];
   }
 };
 
@@ -101,11 +101,13 @@ struct ConvertToVoxelUnits3D : public VoxelFunction
   {
     double x = i, y = j, z = k;
     _Domain.LatticeToWorld(x, y, z);
-    x += d[_x], y += d[_y], z += d[_z];
+    x += static_cast<double>(d[_x]);
+    y += static_cast<double>(d[_y]);
+    z += static_cast<double>(d[_z]);
     _Domain.WorldToLattice(x, y, z);
-    u[_x] = x - i;
-    u[_y] = y - j;
-    u[_z] = z - k;
+    u[_x] = static_cast<TReal>(x - i);
+    u[_y] = static_cast<TReal>(y - j);
+    u[_z] = static_cast<TReal>(z - k);
   }
 };
 
@@ -129,9 +131,9 @@ struct ConvertToWorldUnits3D : public VoxelFunction
     double y2 = j + u[_y];
     double z2 = k + u[_z];
     _Domain.LatticeToWorld(x2, y2, z2);
-    d[_x] = x2 - x1;
-    d[_y] = y2 - y1;
-    d[_z] = z2 - z1;
+    d[_x] = static_cast<TReal>(x2 - x1);
+    d[_y] = static_cast<TReal>(y2 - y1);
+    d[_z] = static_cast<TReal>(z2 - z1);
   }
 };
 
@@ -205,15 +207,21 @@ struct EvaluateJacobianBase : public VoxelFunction
   // ---------------------------------------------------------------------------
   inline void PutJacobian(const Matrix &jac, TReal *out)
   {
-    out[_xx] = jac(0, 0); out[_xy] = jac(0, 1); out[_xz] = jac(0, 2);
-    out[_yx] = jac(1, 0); out[_yy] = jac(1, 1); out[_yz] = jac(1, 2);
-    out[_zx] = jac(2, 0); out[_zy] = jac(2, 1); out[_zz] = jac(2, 2);
+    out[_xx] = static_cast<TReal>(jac(0, 0));
+    out[_xy] = static_cast<TReal>(jac(0, 1));
+    out[_xz] = static_cast<TReal>(jac(0, 2));
+    out[_yx] = static_cast<TReal>(jac(1, 0));
+    out[_yy] = static_cast<TReal>(jac(1, 1));
+    out[_yz] = static_cast<TReal>(jac(1, 2));
+    out[_zx] = static_cast<TReal>(jac(2, 0));
+    out[_zy] = static_cast<TReal>(jac(2, 1));
+    out[_zz] = static_cast<TReal>(jac(2, 2));
   }
 
   // ---------------------------------------------------------------------------
   inline void PutDetJacobian(const Matrix &jac, TReal *dj)
   {
-    *dj = jac.Det3x3();
+    *dj = static_cast<TReal>(jac.Det3x3());
   }
 
   // ---------------------------------------------------------------------------
@@ -221,14 +229,14 @@ struct EvaluateJacobianBase : public VoxelFunction
   {
     double dj = jac.Det3x3();
     if (dj < .0001) dj = .0001;
-    *lj = log(dj);
+    *lj = static_cast<TReal>(log(dj));
   }
 
   // ---------------------------------------------------------------------------
   inline void PutDetAndLogJacobian(const Matrix &jac, TReal *dj, TReal *lj)
   {
-    *dj = jac.Det3x3();
-    if (*dj < .0001) *dj = .0001;
+    *dj = static_cast<TReal>(jac.Det3x3());
+    if (*dj < TReal(.0001)) *dj = TReal(.0001);
     *lj = log(*dj);
   }
 };
@@ -332,10 +340,12 @@ struct UpdateDisplacement : public VoxelFunction
   void operator()(int i, int j, int k, int, const TReal *in, TReal *out)
   {
     double u[3] = {.0, .0, .0};
-    _Displacement->Evaluate(u, i + in[_x], j + in[_y], k + in[_z]);
-    out[_x] = in[_x] + u[0];
-    out[_y] = in[_y] + u[1];
-    out[_z] = in[_z] + u[2];
+    _Displacement->Evaluate(u, static_cast<double>(i + in[_x]),
+                               static_cast<double>(j + in[_y]),
+                               static_cast<double>(k + in[_z]));
+    out[_x] = in[_x] + static_cast<TReal>(u[0]);
+    out[_y] = in[_y] + static_cast<TReal>(u[1]);
+    out[_z] = in[_z] + static_cast<TReal>(u[2]);
   }
 };
 
@@ -376,7 +386,9 @@ struct UpdateJacobianBase : public VoxelFunction
   // ---------------------------------------------------------------------------
   inline void Transform(double &x, double &y, double &z, const TReal *u)
   {
-    x += u[_x], y += u[_y], z += u[_z];
+    x += static_cast<double>(u[_x]);
+    y += static_cast<double>(u[_y]);
+    z += static_cast<double>(u[_z]);
   }
 
   // ---------------------------------------------------------------------------
@@ -385,15 +397,33 @@ struct UpdateJacobianBase : public VoxelFunction
     if (_Jacobian->IsInside(x, y, z)) {
       double jac[9];
       _Jacobian->EvaluateInside(jac, x, y, z);
-      out[_xx] = jac[0] * in[_xx] + jac[1] * in[_yx] + jac[2] * in[_zx];
-      out[_xy] = jac[0] * in[_xy] + jac[1] * in[_yy] + jac[2] * in[_zy];
-      out[_xz] = jac[0] * in[_xz] + jac[1] * in[_yz] + jac[2] * in[_zz];
-      out[_yx] = jac[3] * in[_xx] + jac[4] * in[_yx] + jac[5] * in[_zx];
-      out[_yy] = jac[3] * in[_xy] + jac[4] * in[_yy] + jac[5] * in[_zy];
-      out[_yz] = jac[3] * in[_xz] + jac[4] * in[_yz] + jac[5] * in[_zz];
-      out[_zx] = jac[6] * in[_xx] + jac[7] * in[_yx] + jac[8] * in[_zx];
-      out[_zy] = jac[6] * in[_xy] + jac[7] * in[_yy] + jac[8] * in[_zy];
-      out[_zz] = jac[6] * in[_xz] + jac[7] * in[_yz] + jac[8] * in[_zz];
+      out[_xx] = static_cast<TReal>(jac[0]) * in[_xx]
+               + static_cast<TReal>(jac[1]) * in[_yx]
+               + static_cast<TReal>(jac[2]) * in[_zx];
+      out[_xy] = static_cast<TReal>(jac[0]) * in[_xy]
+               + static_cast<TReal>(jac[1]) * in[_yy]
+               + static_cast<TReal>(jac[2]) * in[_zy];
+      out[_xz] = static_cast<TReal>(jac[0]) * in[_xz]
+               + static_cast<TReal>(jac[1]) * in[_yz]
+               + static_cast<TReal>(jac[2]) * in[_zz];
+      out[_yx] = static_cast<TReal>(jac[3]) * in[_xx]
+               + static_cast<TReal>(jac[4]) * in[_yx]
+               + static_cast<TReal>(jac[5]) * in[_zx];
+      out[_yy] = static_cast<TReal>(jac[3]) * in[_xy]
+               + static_cast<TReal>(jac[4]) * in[_yy]
+               + static_cast<TReal>(jac[5]) * in[_zy];
+      out[_yz] = static_cast<TReal>(jac[3]) * in[_xz]
+               + static_cast<TReal>(jac[4]) * in[_yz]
+               + static_cast<TReal>(jac[5]) * in[_zz];
+      out[_zx] = static_cast<TReal>(jac[6]) * in[_xx]
+               + static_cast<TReal>(jac[7]) * in[_yx]
+               + static_cast<TReal>(jac[8]) * in[_zx];
+      out[_zy] = static_cast<TReal>(jac[6]) * in[_xy]
+               + static_cast<TReal>(jac[7]) * in[_yy]
+               + static_cast<TReal>(jac[8]) * in[_zy];
+      out[_zz] = static_cast<TReal>(jac[6]) * in[_xz]
+               + static_cast<TReal>(jac[7]) * in[_yz]
+               + static_cast<TReal>(jac[8]) * in[_zz];
     } else {
       out[_xx] = in[_xx]; out[_xy] = in[_xy]; out[_xz] = in[_xz];
       out[_yx] = in[_yx]; out[_yy] = in[_yy]; out[_yz] = in[_yz];
@@ -405,7 +435,7 @@ struct UpdateJacobianBase : public VoxelFunction
   inline void UpdateDet(double x, double y, double z, const TReal *dj_in, TReal *dj_out)
   {
     if (_DetJacobian->IsInside(x, y, z)) {
-      (*dj_out) = (*dj_in) * max(.0001, _DetJacobian->EvaluateInside(x, y, z));
+      (*dj_out) = (*dj_in) * static_cast<TReal>(max(.0001, _DetJacobian->EvaluateInside(x, y, z)));
     } else {
       (*dj_out) = (*dj_in);
     }
@@ -415,7 +445,7 @@ struct UpdateJacobianBase : public VoxelFunction
   inline void UpdateLog(double x, double y, double z, const TReal *lj_in, TReal *lj_out)
   {
     if (_LogJacobian->IsInside(x, y, z)) {
-      (*lj_out) = (*lj_in) + max(/*log(.0001)=*/-4.0, _LogJacobian->EvaluateInside(x, y, z));
+      (*lj_out) = (*lj_in) + static_cast<TReal>(max(/*log(.0001)=*/-4.0, _LogJacobian->EvaluateInside(x, y, z)));
     } else {
       (*lj_out) = (*lj_in);
     }
@@ -430,7 +460,7 @@ struct UpdateJacobianBase : public VoxelFunction
                               TReal *dj_out, TReal *lj_out)
   {
     if (_DetJacobian->IsInside(x, y, z)) {
-      (*lj_out) = (*lj_in) + log(max(.0001, _DetJacobian->EvaluateInside(x, y, z)));
+      (*lj_out) = (*lj_in) + static_cast<TReal>(log(max(.0001, _DetJacobian->EvaluateInside(x, y, z))));
       (*dj_out) = exp(*lj_out);
     } else {
       (*lj_out) = (*lj_in);
@@ -570,15 +600,42 @@ struct UpdateJacobianDOFs : public VoxelFunction
     double x = i + u[_x], y = j + u[_y], z = k + u[_z], jac[9], jacdof[9];
     _Jacobian    ->Evaluate(jac,    x, y, z);
     _JacobianDOFs->Evaluate(jacdof, x, y, z);
-    out[_xx] = jac[0] * in[_xx] + jac[1] * in[_yx] + jac[2] * in[_zx] + jacdof[0];
-    out[_xy] = jac[0] * in[_xy] + jac[1] * in[_yy] + jac[2] * in[_zy] + jacdof[1];
-    out[_xz] = jac[0] * in[_xz] + jac[1] * in[_yz] + jac[2] * in[_zz] + jacdof[2];
-    out[_yx] = jac[3] * in[_xx] + jac[4] * in[_yx] + jac[5] * in[_zx] + jacdof[3];
-    out[_yy] = jac[3] * in[_xy] + jac[4] * in[_yy] + jac[5] * in[_zy] + jacdof[4];
-    out[_yz] = jac[3] * in[_xz] + jac[4] * in[_yz] + jac[5] * in[_zz] + jacdof[5];
-    out[_zx] = jac[6] * in[_xx] + jac[7] * in[_yx] + jac[8] * in[_zx] + jacdof[6];
-    out[_zy] = jac[6] * in[_xy] + jac[7] * in[_yy] + jac[8] * in[_zy] + jacdof[7];
-    out[_zz] = jac[6] * in[_xz] + jac[7] * in[_yz] + jac[8] * in[_zz] + jacdof[8];
+    out[_xx] = static_cast<TReal>(jac[0]) * in[_xx]
+             + static_cast<TReal>(jac[1]) * in[_yx]
+             + static_cast<TReal>(jac[2]) * in[_zx]
+             + static_cast<TReal>(jacdof[0]);
+    out[_xy] = static_cast<TReal>(jac[0]) * in[_xy]
+             + static_cast<TReal>(jac[1]) * in[_yy]
+             + static_cast<TReal>(jac[2]) * in[_zy]
+             + static_cast<TReal>(jacdof[1]);
+    out[_xz] = static_cast<TReal>(jac[0]) * in[_xz]
+             + static_cast<TReal>(jac[1]) * in[_yz]
+             + static_cast<TReal>(jac[2]) * in[_zz]
+             + static_cast<TReal>(jacdof[2]);
+    out[_yx] = static_cast<TReal>(jac[3]) * in[_xx]
+             + static_cast<TReal>(jac[4]) * in[_yx]
+             + static_cast<TReal>(jac[5]) * in[_zx]
+             + static_cast<TReal>(jacdof[3]);
+    out[_yy] = static_cast<TReal>(jac[3]) * in[_xy]
+             + static_cast<TReal>(jac[4]) * in[_yy]
+             + static_cast<TReal>(jac[5]) * in[_zy]
+             + static_cast<TReal>(jacdof[4]);
+    out[_yz] = static_cast<TReal>(jac[3]) * in[_xz]
+             + static_cast<TReal>(jac[4]) * in[_yz]
+             + static_cast<TReal>(jac[5]) * in[_zz]
+             + static_cast<TReal>(jacdof[5]);
+    out[_zx] = static_cast<TReal>(jac[6]) * in[_xx]
+             + static_cast<TReal>(jac[7]) * in[_yx]
+             + static_cast<TReal>(jac[8]) * in[_zx]
+             + static_cast<TReal>(jacdof[6]);
+    out[_zy] = static_cast<TReal>(jac[6]) * in[_xy]
+             + static_cast<TReal>(jac[7]) * in[_yy]
+             + static_cast<TReal>(jac[8]) * in[_zy]
+             + static_cast<TReal>(jacdof[7]);
+    out[_zz] = static_cast<TReal>(jac[6]) * in[_xz]
+             + static_cast<TReal>(jac[7]) * in[_yz]
+             + static_cast<TReal>(jac[8]) * in[_zz]
+             + static_cast<TReal>(jacdof[8]);
   }
 };
 
@@ -607,7 +664,7 @@ struct ApplyInputDisplacement : public VoxelFunction
     x += d[_x], y += d[_y], z += d[_z];
     _Image->Input()->WorldToImage(x, y, z);
     for (int l = 0; l < _NumberOfComponents; ++l, out += _y /* =X*Y*Z */) {
-      (*out) = _Image->Evaluate(x, y, z, l);
+      (*out) = static_cast<TReal>(_Image->Evaluate(x, y, z, l));
     }
   }
 };
@@ -634,7 +691,7 @@ struct ApplyInputDeformation : public VoxelFunction
     double x = pos[_x], y = pos[_y], z = pos[_z];
     _Image->Input()->WorldToImage(x, y, z);
     for (int l = 0; l < _NumberOfComponents; ++l, out += _y /* =X*Y*Z */) {
-      (*out) = _Image->Evaluate(x, y, z, l);
+      (*out) = static_cast<TReal>(_Image->Evaluate(x, y, z, l));
     }
   }
 };
@@ -664,7 +721,7 @@ struct ResampleOutput : public VoxelFunction
     _Domain.LatticeToWorld(x, y, z);
     _Image->Input()->WorldToImage(x, y, z);
     for (int l = 0; l < _NumberOfComponents; ++l, value += _NumberOfVoxels) {
-      (*value) = _Image->Evaluate(x, y, z, l);
+      (*value) = static_cast<TReal>(_Image->Evaluate(x, y, z, l));
     }
   }
 };
@@ -795,14 +852,14 @@ void ScalingAndSquaring<TReal>::Initialize()
   _InterimAttributes._t = 1, _InterimAttributes._dt = .0;
   ImageAttributes attr = _InterimAttributes;
   if (_Upsample) {
-    if (attr._x > 1) attr._x *= 2, attr._dx /= 2;
-    if (attr._y > 1) attr._y *= 2, attr._dy /= 2;
-    if (attr._z > 1) attr._z *= 2, attr._dz /= 2;
+    if (attr._x > 1) attr._x *= 2, attr._dx /= 2.0;
+    if (attr._y > 1) attr._y *= 2, attr._dy /= 2.0;
+    if (attr._z > 1) attr._z *= 2, attr._dz /= 2.0;
   }
 
   // Number of squaring steps
   if (_NumberOfSquaringSteps <= 0) {
-    _NumberOfSquaringSteps = ceil(log(static_cast<double>(_NumberOfSteps)) / log(2.0));
+    _NumberOfSquaringSteps = iceil(log(static_cast<double>(_NumberOfSteps)) / log(2.0));
   }
   if (_NumberOfSquaringSteps < 0) {
     _NumberOfSquaringSteps = 0; // i.e., 1 integration step only
@@ -813,8 +870,8 @@ void ScalingAndSquaring<TReal>::Initialize()
   _InterimDisplacement = new ImageType(attr, 3);
   velocity.Evaluate(*_InterimDisplacement);
 
-  TReal  vmax  = .0;
-  TReal  scale = _UpperIntegrationLimit / pow(2.0, _NumberOfSquaringSteps);
+  TReal  vmax(0);
+  TReal  scale = static_cast<TReal>(_UpperIntegrationLimit / pow(2.0, _NumberOfSquaringSteps));
   TReal *v     = _InterimDisplacement->Data();
   const int n  = 3 * attr.NumberOfSpatialPoints();
   for (int idx = 0; idx < n; ++idx, ++v) {
@@ -825,12 +882,12 @@ void ScalingAndSquaring<TReal>::Initialize()
   // Continue halfing input velocities as long as maximum absolute velocity
   // exceeds the specified maximum; skip if fixed number of steps
   if (_MaxScaledVelocity > .0) {
-    TReal s = 1.0;
+    TReal s(1);
     while ((vmax * s) > _MaxScaledVelocity) {
-      s *= 0.5;
+      s *= TReal(.5);
       _NumberOfSquaringSteps++;
     }
-    if (s != 1.0) {
+    if (s != TReal(1)) {
       (*_InterimDisplacement) *= s;
       vmax                    *= s;
       scale                   *= s;
@@ -838,7 +895,7 @@ void ScalingAndSquaring<TReal>::Initialize()
   }
 
   // Update number of steps
-  _NumberOfSteps = pow(2.0, _NumberOfSquaringSteps);
+  _NumberOfSteps = static_cast<int>(pow(2, _NumberOfSquaringSteps));
 
   // Compute derivatives of initial deformation w.r.t. x and/or its (log) determinant
   int jac_mode = 0;
@@ -946,9 +1003,9 @@ void ScalingAndSquaring<TReal>
   // ...or resample intermediate output if necessary
   } else if (attr != _InterimAttributes) {
     if (_SmoothBeforeDownsampling) {
-      const double sx = (attr._dx > interim->GetXSize()) ? attr._dx / 2.0 : .0;
-      const double sy = (attr._dy > interim->GetYSize()) ? attr._dy / 2.0 : .0;
-      const double sz = (attr._dz > interim->GetZSize()) ? attr._dz / 2.0 : .0;
+      const double sx = (attr._dx > interim->XSize()) ? attr._dx / 2.0 : .0;
+      const double sy = (attr._dy > interim->YSize()) ? attr._dy / 2.0 : .0;
+      const double sz = (attr._dz > interim->ZSize()) ? attr._dz / 2.0 : .0;
       if (sx || sy || sz) {
         GaussianBlurring<TReal> blurring(sx, sy, sz);
         blurring.Input (interim);

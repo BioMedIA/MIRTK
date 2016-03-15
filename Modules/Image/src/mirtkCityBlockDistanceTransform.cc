@@ -19,6 +19,7 @@
 
 #include <mirtkCityBlockDistanceTransform.h>
 
+#include <mirtkArray.h>
 #include <mirtkBaseImage.h>
 
 
@@ -199,7 +200,7 @@ void CityBlockDistanceTransform<VoxelType>::Run2D()
   }
 
   // Storage for recording the indices of border voxels.
-  int *borderIndices = new int[nx * ny];
+  Array<int> borderIndices(nx * ny);
 
   for (int l = 0; l < nt; ++l) {
     do {
@@ -226,7 +227,7 @@ void CityBlockDistanceTransform<VoxelType>::Run2D()
       GreyPixel * const ptr2start = _data.Data(0, 0, 0, l);
       for (int j = 1; j < ny - 1; ++j)
       for (int i = 1; i < nx - 1; ++i) {
-		if (_data(i, j, 0, l) > 0) {
+        if (_data(i, j, 0, l) > 0) {
           // Object voxel. Check face neighbourhood for background.
           ptr2current = _data.Data(i, j, 0, l);
           // 2D case: Only need to check first 4 neighbours in offset list.
@@ -234,7 +235,7 @@ void CityBlockDistanceTransform<VoxelType>::Run2D()
             ptr2offset = ptr2current + _offsets(m);
             if (*ptr2offset < 1) {
               // Border voxel.
-              borderIndices[borderVoxelCount] = ptr2current - ptr2start;
+              borderIndices[borderVoxelCount] = static_cast<int>(ptr2current - ptr2start);
               ++borderVoxelCount;
               break;
             }
@@ -244,8 +245,8 @@ void CityBlockDistanceTransform<VoxelType>::Run2D()
 
       // Remove the current border voxels.
       for (int n = 0; n < borderVoxelCount; ++n){
-	    ptr2current = ptr2start + borderIndices[n];
-	    (*ptr2current) = 0;
+	      ptr2current = ptr2start + borderIndices[n];
+	      (*ptr2current) = 0;
       }
 
       // Update count of object voxels.
@@ -253,7 +254,6 @@ void CityBlockDistanceTransform<VoxelType>::Run2D()
 
     } while (objectVoxelCount > 0);
   }
-  delete[] borderIndices;
 }
 
 // -----------------------------------------------------------------------------
@@ -272,7 +272,7 @@ void CityBlockDistanceTransform<VoxelType>::Run3D()
   const int nt = _data.T();
 
   // Storage for recording the indices of border voxels.
-  int *borderIndices = new int[nx * ny * nz];
+  Array<int> borderIndices(nx * ny * nz);
 
   for (int l = 0; l < nt; ++l) {
 
@@ -309,7 +309,7 @@ void CityBlockDistanceTransform<VoxelType>::Run3D()
             ptr2offset = ptr2current + _offsets(m);
             if (*ptr2offset < 1) {
               // Border voxel.
-              borderIndices[borderVoxelCount] = ptr2current - ptr2start;
+              borderIndices[borderVoxelCount] = static_cast<int>(ptr2current - ptr2start);
               ++borderVoxelCount;
               break;
             }
@@ -329,8 +329,6 @@ void CityBlockDistanceTransform<VoxelType>::Run3D()
     } while (objectVoxelCount > 0);
 
   }
-
-  delete[] borderIndices;
 }
 
 // -----------------------------------------------------------------------------
