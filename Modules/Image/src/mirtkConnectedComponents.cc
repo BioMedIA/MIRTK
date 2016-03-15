@@ -40,7 +40,7 @@ void MarkUnvisited(const GenericImage<TLabel> &segmentation,
 {
   for (int idx = 0; idx < segmentation.NumberOfVoxels(); ++idx) {
     if (segmentation(idx)) {
-      components(idx) = voxel_limits<TLabel>::max();
+      components(idx) = voxel_limits<TLabel>::max_value();
     } else {
       components(idx) = 0;
     }
@@ -53,7 +53,7 @@ template <class TLabel>
 int NextSeed(const GenericImage<TLabel> &components)
 {
   for (int idx = 0; idx < components.NumberOfVoxels(); ++idx) {
-    if (components(idx) == voxel_limits<TLabel>::max()) return idx;
+    if (components(idx) == voxel_limits<TLabel>::max_value()) return idx;
   }
   return -1;
 }
@@ -67,7 +67,7 @@ int LabelComponent(const NeighborhoodOffsets  &offsets,
                    int                         seed,
                    TLabel                      component_label)
 {
-  const TLabel unvisited     = voxel_limits<TLabel>::max();
+  const TLabel unvisited     = voxel_limits<TLabel>::max_value();
   const TLabel current_label = segmentation(seed);
   const TLabel * start_label = segmentation.Data();
 
@@ -156,7 +156,7 @@ void ConnectedComponents<VoxelType>::Run()
   int num, seed;
   VoxelType c = 0;
   while ((seed = NextSeed(*this->Output())) != -1) {
-    if (++c == voxel_limits<VoxelType>::max()) {
+    if (++c == voxel_limits<VoxelType>::max_value()) {
       cerr << "ConnectedComponents::Run: No. of components exceeded maximum label value!" << endl;
       exit(1);
     }
