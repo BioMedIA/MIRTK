@@ -39,6 +39,7 @@ function(mirtk_add_library)
       set(TARGET_${arg} "${${arg}}")
     endif ()
   endforeach ()
+  # Add library target
   set(target_name "Lib${PROJECT_NAME}")
   set(headers)
   foreach (hdr IN LISTS TARGET_HEADERS)
@@ -58,12 +59,6 @@ function(mirtk_add_library)
       LIBRARY_OUTPUT_NAME "${OUTPUT_NAME}"
       DEFINE_SYMBOL       "MIRTK_${PROJECT_NAME}_EXPORTS"
   )
-  if (WIN32 AND BUILD_SHARED_LIBS)
-    if (CMAKE_VERSION VERSION_LESS 3.4)
-      message(FATAL_ERROR "Build of DLLs on Windows (BUILD_SHARED_LIBS=ON) requires CMake version 3.4 or greater!")
-    endif ()
-    set_target_properties(${target_uid} PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS TRUE)
-  endif ()
   target_include_directories(${target_uid}
     PUBLIC $<BUILD_INTERFACE:${PROJECT_INCLUDE_DIR}>
            $<INSTALL_INTERFACE:${INSTALL_INCLUDE_DIR}>
@@ -71,6 +66,25 @@ function(mirtk_add_library)
   )
   if (TARGET_AUTO_REGISTER AND BUILD_SHARED_LIBS)
     target_compile_definitions(${target_uid} PRIVATE MIRTK_AUTO_REGISTER)
+  endif ()
+  # Generate export header file and set WINDOWS_EXPORT_ALL_SYMBOLS target property
+  include(GenerateExportHeader)
+  generate_export_header(${target_uid}
+    PREFIX_NAME              "MIRTK_"
+    BASE_NAME                "${PROJECT_NAME}"
+    EXPORT_MACRO_NAME        "${PROJECT_NAME}_EXPORT"
+    NO_EXPORT_MACRO_NAME     "${PROJECT_NAME}_NO_EXPORT"
+    DEPRECATED_MACRO_NAME    "${PROJECT_NAME}_DEPRECATED"
+    NO_DEPRECATED_MACRO_NAME "${PROJECT_NAME}_NO_DEPRECATED"
+    STATIC_DEFINE            "${PROJECT_NAME}_STATIC_DEFINE"
+    EXPORT_FILE_NAME         "${BINARY_INCLUDE_DIR}/mirtk${PROJECT_NAME}Export.h"
+    DEFINE_NO_DEPRECATED
+  )
+  if (WIN32 AND BUILD_SHARED_LIBS)
+    if (CMAKE_VERSION VERSION_LESS 3.4)
+      message(FATAL_ERROR "Build of DLLs on Windows (BUILD_SHARED_LIBS=ON) requires CMake version 3.4 or greater!")
+    endif ()
+    set_target_properties(${target_uid} PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS TRUE)
   endif ()
   # Add link dependencies and record all directories containing
   # external/imported library files for [DY]LD_LIBRARY_PATH
