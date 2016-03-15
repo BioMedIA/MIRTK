@@ -73,10 +73,6 @@ set(HEADERS
   ${BINARY_INCLUDE_DIR}/mirtkVersionInfo.h
 )
 
-if (WIN32)
-  list(APPEND HEADERS mirtkWindows.h)
-endif ()
-
 set(SOURCES
   mirtkCifstream.cc
   mirtkCofstream.cc
