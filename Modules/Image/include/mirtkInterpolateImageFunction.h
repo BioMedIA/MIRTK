@@ -429,7 +429,7 @@ public:
   typedef TImage                                     ImageType;
   typedef typename ImageType::VoxelType              VoxelType;
   typedef typename ImageType::RealType               RealType;
-  typedef typename voxel_info<RealType>::ScalarType  Real;
+  typedef typename ImageType::RealScalarType         Real;
   typedef GenericExtrapolateImageFunction<ImageType> ExtrapolatorType;
 
   // ---------------------------------------------------------------------------

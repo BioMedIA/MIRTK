@@ -742,8 +742,10 @@ public:
   /// Default voxel type used by generic interpolate/extrapolate image functions
   /// when instantiated with BaseImage as template argument as done by the
   /// general interpolate image functions which thus can interpolate any scalar image.
-  typedef double                           VoxelType;
-  typedef voxel_info<VoxelType>::RealType  RealType;
+  typedef double                             VoxelType;
+  typedef voxel_info<VoxelType>::ScalarType  ScalarType;
+  typedef voxel_info<VoxelType>::RealType    RealType;
+  typedef voxel_info<RealType>::ScalarType   RealScalarType;
 
   /// Get pixel value at voxel with given index
   VoxelType Get(int) const;

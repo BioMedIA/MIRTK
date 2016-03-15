@@ -58,6 +58,9 @@ public:
   /// Scalar type corresponding to voxel type
   typedef typename voxel_info<VoxelType>::ScalarType ScalarType;
 
+  /// Floating point type corresponding to scalar type of voxel type
+  typedef typename voxel_info<ScalarType>::RealType RealScalarType;
+
   // ---------------------------------------------------------------------------
   // Data members
 
