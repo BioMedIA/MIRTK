@@ -128,56 +128,57 @@ public:
 template <typename T>
 class blocked_range
 {
-  int _lbound;
-  int _ubound;
+  T _lbound;
+  T _ubound;
 public:
-  blocked_range(int l, int u, int = 1) : _lbound(l), _ubound(u) {}
-  int begin() const { return _lbound; }
-  int end()   const { return _ubound; }
+  blocked_range(T l, T u)         : _lbound(l), _ubound(u) {}
+  blocked_range(T l, T u, size_t) : _lbound(l), _ubound(u) {}
+  T begin() const { return _lbound; }
+  T end()   const { return _ubound; }
 };
 
 /// Two-dimensional range
 template <typename T>
 class blocked_range2d
 {
-  blocked_range<int> _rows;
-  blocked_range<int> _cols;
+  blocked_range<T> _rows;
+  blocked_range<T> _cols;
 
 public:
 
-  blocked_range2d(int rl, int ru,
-                  int cl, int cu)
+  blocked_range2d(T rl, T ru,
+                  T cl, T cu)
   :
     _rows (rl, ru),
     _cols (cl, cu)
   {
   }
 
-  blocked_range2d(int rl, int ru, int,
-                  int cl, int cu, int)
+  blocked_range2d(T rl, T ru, size_t,
+                  T cl, T cu, size_t)
   :
     _rows (rl, ru),
     _cols (cl, cu)
   {
   }
 
-  const blocked_range<int> &rows() const { return _rows; }
-  const blocked_range<int> &cols() const { return _cols; }
+  const blocked_range<T> &rows() const { return _rows; }
+  const blocked_range<T> &cols() const { return _cols; }
 };
 
 /// Three-dimensional range
 template <typename T>
 class blocked_range3d
 {
-  blocked_range<int> _pages;
-  blocked_range<int> _rows;
-  blocked_range<int> _cols;
+  blocked_range<T> _pages;
+  blocked_range<T> _rows;
+  blocked_range<T> _cols;
 
 public:
 
-  blocked_range3d(int pl, int pu,
-                  int rl, int ru,
-                  int cl, int cu)
+  blocked_range3d(T pl, T pu,
+                  T rl, T ru,
+                  T cl, T cu)
   :
     _pages(pl, pu),
     _rows (rl, ru),
@@ -185,9 +186,9 @@ public:
   {
   }
 
-  blocked_range3d(int pl, int pu, int,
-                  int rl, int ru, int,
-                  int cl, int cu, int)
+  blocked_range3d(T pl, T pu, size_t,
+                  T rl, T ru, size_t,
+                  T cl, T cu, size_t)
   :
     _pages(pl, pu),
     _rows (rl, ru),
@@ -195,9 +196,9 @@ public:
   {
   }
 
-  const blocked_range<int> &pages() const { return _pages; }
-  const blocked_range<int> &rows() const { return _rows; }
-  const blocked_range<int> &cols() const { return _cols; }
+  const blocked_range<T> &pages() const { return _pages; }
+  const blocked_range<T> &rows() const { return _rows; }
+  const blocked_range<T> &cols() const { return _cols; }
 };
 
 /// parallel_for dummy template function which executes the body serially
