@@ -48,7 +48,7 @@ configure_file(
   @ONLY
 )
 
-configure_file (
+configure_file(
   "${PROJECT_CONFIG_DIR}/version.h.in"
   "${BINARY_INCLUDE_DIR}/mirtkVersionInfo.h"
   @ONLY
