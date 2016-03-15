@@ -170,7 +170,7 @@ public:
   double ValToCDF(double val) const;
 
   /// Convert cumulative density distributions to bin value
-  double CDFToBin(double p) const;
+  int CDFToBin(double p) const;
 
   /// Convert cumulative density distributions to sample value
   double CDFToVal(double p) const;
@@ -237,7 +237,7 @@ inline void Histogram1D<HistogramType>::NumberOfBins(int nbins)
     Allocate(_bins, nbins);
     _nbins = nbins;
     _width = (_max - _min) / _nbins;
-    _nsamp = .0;
+    _nsamp = 0;
   }
 }
 
@@ -341,7 +341,7 @@ template <class HistogramType>
 inline void Histogram1D<HistogramType>::AddSample(double x, HistogramType n)
 {
   if (x < _min || x > _max) return;
-  int index = static_cast<int>(round(_nbins * (x - _min - 0.5*_width) / (_max - _min)));
+  int index = iround(_nbins * (x - _min - 0.5*_width) / (_max - _min));
   if (index <  0     ) index = 0;
   if (index >= _nbins) index = _nbins - 1;
   _bins[index] += n;
@@ -353,7 +353,7 @@ template <class HistogramType>
 inline void Histogram1D<HistogramType>::DelSample(double x, HistogramType n)
 {
   if (x < _min || x > _max) return;
-  int index = round(_nbins * (x - _min - 0.5*_width) / (_max - _min));
+  int index = iround(_nbins * (x - _min - 0.5*_width) / (_max - _min));
   if (index <  0     ) index = 0;
   if (index >= _nbins) index = _nbins - 1;
   _bins[index] -= n;
@@ -371,7 +371,7 @@ inline double Histogram1D<HistogramType>::ValToRange(double val) const
 template <class HistogramType>
 inline int Histogram1D<HistogramType>::ValToBin(double val) const
 {
-  const int index = static_cast<int>(round(ValToRange(val)));
+  const int index = iround(ValToRange(val));
   return (index < 0 ? 0 : (index >= _nbins ? _nbins - 1 : index));
 }
 
@@ -387,6 +387,56 @@ template <class HistogramType>
 inline double Histogram1D<HistogramType>::BinToPDF(int i) const
 {
   return ((_nsamp == .0) ? .0 : _bins[i] / _nsamp);
+}
+
+// -----------------------------------------------------------------------------
+template <class HistogramType>
+inline double Histogram1D<HistogramType>::ValToPDF(double val) const
+{
+  return BinToPDF(ValToBin(val));
+}
+
+// -----------------------------------------------------------------------------
+template <class HistogramType>
+inline double Histogram1D<HistogramType>::BinToCDF(int i) const
+{
+  if (_nsamp == .0) return .0;
+  double s = .0;
+  for (int j = 0; j <= i; ++j) {
+    s += _bins[j];
+  }
+  return s / _nsamp;
+}
+
+// -----------------------------------------------------------------------------
+template <class HistogramType>
+inline double Histogram1D<HistogramType>::ValToCDF(double val) const
+{
+  return BinToCDF(ValToBin(val));
+}
+
+// -----------------------------------------------------------------------------
+template <class HistogramType>
+inline int Histogram1D<HistogramType>::CDFToBin(double p) const
+{
+  if (p < .0 || p > .1) {
+    cerr << "Histogram1D<HistogramType>::CDFToBin: Must be between 0 and 1" << endl;
+    exit(1);
+  }
+  int i;
+  double sum = .0;
+  for (i = 0; i < _nbins; ++i) {
+    sum += static_cast<double>(_bins[i]);
+    if (sum / _nsamp >= p) return i;
+  }
+  return _nbins - 1;
+}
+
+// -----------------------------------------------------------------------------
+template <class HistogramType>
+inline double Histogram1D<HistogramType>::CDFToVal(double p) const
+{
+  return BinToVal(CDFToBin(p));
 }
 
 

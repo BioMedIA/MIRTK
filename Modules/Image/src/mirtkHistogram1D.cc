@@ -75,7 +75,7 @@ Histogram1D<HistogramType>::Histogram1D(double min, double max, double width)
   _width = static_cast<double>(_max - _min) / _nbins;
   _nsamp = 0;
   if (_nbins < 1) {
-    cerr << "Histogram1D<HistogramType>::Histogram1D: Should have at least one bin" << endl;
+    cerr << "Histogram1D::Histogram1D: Should have at least one bin" << endl;
     exit(1);
   }
   CAllocate(_bins, _nbins);
@@ -87,13 +87,13 @@ Histogram1D<HistogramType>::Histogram1D(const char *filename)
 {
   ifstream from(filename);
   if (!from) {
-    cerr << "Histogram1D<HistogramType>::Read: Can't open file " << filename << endl;
+    cerr << "Histogram1D::Read: Can't open file " << filename << endl;
     exit(1);
   }
   char buffer[255];
   from >> buffer;
   if (strcmp(buffer, "Histogram1D") != 0) {
-    cerr << "Histogram1D<HistogramType>::Read: Invalid format" << endl;
+    cerr << "Histogram1D::Read: Invalid format" << endl;
     exit(1);
   }
   from >> _nbins >> _nsamp >> _min >> _max >> _width;
@@ -143,7 +143,7 @@ void Histogram1D<HistogramType>::PutWidth(double width)
 {
   const int nbins = iround((_max - _min) / width);
   if (nbins < 1) {
-    cerr << "Histogram1D<HistogramType>::PutWidth: Should have at least one bin" << endl;
+    cerr << "Histogram1D::PutWidth: Should have at least one bin" << endl;
     exit(1);
   }
   if (_nbins != nbins) {
@@ -160,7 +160,7 @@ template <class HistogramType>
 void Histogram1D<HistogramType>::PutNumberOfBins(int nbins)
 {
   if (nbins < 1) {
-    cerr << "Histogram1D<HistogramType>::PutNumberOfBins: Should have at least one bin" << endl;
+    cerr << "Histogram1D::PutNumberOfBins: Should have at least one bin" << endl;
     exit(1);
   }
   NumberOfBins(nbins);
@@ -169,40 +169,63 @@ void Histogram1D<HistogramType>::PutNumberOfBins(int nbins)
 
 // -----------------------------------------------------------------------------
 template <class HistogramType>
-double Histogram1D<HistogramType>::CDFToVal(double p) const
+void Histogram1D<HistogramType>::Log()
 {
-  if (p < 0 || p > 1) {
-    cerr << "Histogram1D<HistogramType>::CDFToVal: Must be between 0 and 1" << endl;
-    exit(1);
-  }
-  int i;
-  HistogramType sum = 0;
-  for (i = 0; i < _nbins; ++i) {
-    sum += _bins[i];
-    if (sum / _nsamp >= p) {
-      break;
-    }
-  }
-  return BinToVal(i);
-}
-
-// -----------------------------------------------------------------------------
-template <>
-void Histogram1D<double>::Log()
-{
-  if (_nsamp == 0) {
+  const HistogramType zero(0);
+  if (_nsamp == zero) {
     if (debug) {
-      cerr << "Histogram1D<HistogramType>::Log: No samples in Histogram" << endl;
+      cerr << "Histogram1D::Log: No samples in Histogram" << endl;
     }
     return;
   }
   for (int i = 0; i < _nbins; ++i) {
-    if (_bins[i] > 0) {
-      _bins[i] = log(static_cast<double>(_bins[i]) / _nsamp);
+    if (_bins[i] > zero) {
+      _bins[i] = static_cast<HistogramType>(log(static_cast<double>(_bins[i]) / static_cast<double>(_nsamp)));
     } else {
-      _bins[i] = 0;
+      _bins[i] = zero;
     }
   }
+}
+
+// -----------------------------------------------------------------------------
+template <class HistogramType>
+void Histogram1D<HistogramType>::Smooth()
+{
+  if (_nsamp == 0) {
+    if (debug) {
+      cerr << "Histogram1D::Smooth: No samples in Histogram" << endl;
+    }
+    return;
+  }
+  if (_nbins == 0) return;
+
+  // Smoothing kernel
+  const double kernel[3] = { 1.0 / 6.0, 2.0 / 3.0, 1.0 / 6.0 };
+
+  // Allocate new histogram
+  HistogramType *bins = Allocate<HistogramType>(_nbins);
+
+  // Smooth histogram
+  if (_nbins > 1) {
+    bins[0] = static_cast<HistogramType>(kernel[1] * static_cast<double>(_bins[0])
+                                       + kernel[0] * static_cast<double>(_bins[1]));
+  }
+  else {
+    bins[0] = static_cast<HistogramType>(kernel[1] * static_cast<double>(_bins[0]));
+  }
+  for (int i = 1; i < _nbins - 1; ++i) {
+    bins[i] = static_cast<HistogramType>(kernel[2] * static_cast<double>(_bins[i - 1])
+                                       + kernel[1] * static_cast<double>(_bins[i])
+                                       + kernel[0] * static_cast<double>(_bins[i + 1]));
+  }
+  if (_nbins > 1) {
+    bins[_nbins - 1] = static_cast<HistogramType>(kernel[1] * static_cast<double>(_bins[_nbins - 1])
+                                                + kernel[2] * static_cast<double>(_bins[_nbins - 2]));
+  }
+
+  // Replace histogram by smoothed version
+  Deallocate(_bins);
+  _bins = bins;
 }
 
 // -----------------------------------------------------------------------------
@@ -211,7 +234,7 @@ double Histogram1D<HistogramType>::Mean() const
 {
   if (_nsamp == 0) {
     if (debug) {
-      cerr << "Histogram1D<HistogramType>::Mean: No samples in Histogram" << endl;
+      cerr << "Histogram1D::Mean: No samples in Histogram" << endl;
     }
     return 0;
   }
@@ -228,7 +251,7 @@ double Histogram1D<HistogramType>::Variance() const
 {
   if (_nsamp == 0) {
     if (debug) {
-      cerr << "Histogram1D<HistogramType>::Variance: No samples in Histogram" << endl;
+      cerr << "Histogram1D::Variance: No samples in Histogram" << endl;
     }
     return 0;
   }
@@ -252,7 +275,7 @@ double Histogram1D<HistogramType>::Entropy() const
 {
   if (_nsamp == 0) {
     if (debug) {
-      cerr << "Histogram1D<HistogramType>::Entropy: No samples in Histogram" << endl;
+      cerr << "Histogram1D::Entropy: No samples in Histogram" << endl;
     }
     return 0;
   }
@@ -272,55 +295,19 @@ double Histogram1D<HistogramType>::Entropy() const
 }
 
 // -----------------------------------------------------------------------------
-template <>
-void Histogram1D<double>::Smooth()
-{
-  if (_nsamp == 0) {
-    if (debug) {
-      cerr << "Histogram1D<HistogramType>::Smooth: No samples in Histogram" << endl;
-    }
-    return;
-  }
-  if (_nbins == 0) return;
-
-  // Smoothing kernel
-  const double kernel[3] = { 1.0/6.0, 2.0/3.0, 1.0/6.0 };
-
-  // Allocate new histogram
-  double *bins = Allocate<double>(_nbins);
-
-  // Smooth histogram
-  bins[0]                  = kernel[1] * _bins[0];
-  if (_nbins > 1) bins[0] += kernel[0] * _bins[1];
-  for (int i = 1; i < _nbins - 1; ++i) {
-    bins[i] = kernel[2] * _bins[i - 1]
-            + kernel[1] * _bins[i    ]
-            + kernel[0] * _bins[i + 1];
-  }
-  if (_nbins > 1) {
-    bins[_nbins-1] = kernel[1] * _bins[_nbins-1]
-                   + kernel[2] * _bins[_nbins-2];
-  }
-
-  // Replace histogram by smoothed version
-  Deallocate(_bins);
-  _bins = bins;
-}
-
-// -----------------------------------------------------------------------------
 template <class HistogramType>
 void Histogram1D<HistogramType>::Read(const char *filename)
 {
   ifstream from(filename);
   if (!from) {
-    cerr << "Histogram1D<HistogramType>::Read: Can't open file " << filename << endl;
+    cerr << "Histogram1D::Read: Can't open file " << filename << endl;
     exit(1);
   }
 
   char buffer[255];
   from >> buffer;
   if (strcmp(buffer, "Histogram1D") != 0) {
-    cerr << "Histogram1D<HistogramType>::Read: Invalid format" << endl;
+    cerr << "Histogram1D::Read: Invalid format" << endl;
     exit(1);
   }
 
@@ -340,7 +327,7 @@ void Histogram1D<HistogramType>::Write(const char *filename) const
 {
   ofstream to(filename);
   if (!to) {
-    cerr << "Histogram1D<HistogramType>::Write: Can't open file " << filename << endl;
+    cerr << "Histogram1D::Write: Can't open file " << filename << endl;
     exit(1);
   }
   to << "Histogram1D\n";

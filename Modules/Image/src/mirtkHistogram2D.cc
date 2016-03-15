@@ -379,6 +379,20 @@ void Histogram2D<HistogramType>::PutNumberOfBins(int nbins_x, int nbins_y)
 
 // -----------------------------------------------------------------------------
 template <class HistogramType>
+void Histogram2D<HistogramType>::PutNumberOfBinsX(int nbins_x)
+{
+  this->PutNumberOfBins(nbins_x, this->NumberOfBinsY());
+}
+
+// -----------------------------------------------------------------------------
+template <class HistogramType>
+void Histogram2D<HistogramType>::PutNumberOfBinsY(int nbins_y)
+{
+  this->PutNumberOfBins(this->NumberOfBinsX(), nbins_y);
+}
+
+// -----------------------------------------------------------------------------
+template <class HistogramType>
 void Histogram2D<HistogramType>::GetNumberOfBins(int *nbins_x, int *nbins_y) const
 {
   *nbins_x = _nbins_x;
@@ -438,10 +452,10 @@ void Histogram2D<HistogramType>::HistogramY(Histogram1D<HistogramType> &hy) cons
 }
 
 // -----------------------------------------------------------------------------
-template <>
-void Histogram2D<double>::Log()
+template <class HistogramType>
+void Histogram2D<HistogramType>::Log()
 {
-  LogTransform<double>::Run(this);
+  LogTransform<HistogramType>::Run(this);
 }
 
 // -----------------------------------------------------------------------------
@@ -620,32 +634,50 @@ double Histogram2D<HistogramType>::JointEntropy() const
 template <class HistogramType>
 double Histogram2D<HistogramType>::ConditionalMeanXY(int i) const
 {
-  double m = 0, p = 0;
+  double m = .0, p = .0;
   for (int j = 0; j < _nbins_x; j++) {
     m += this->JointProbability(j, i) * this->BinToValX(j);
     p += this->JointProbability(j, i);
   }
-  if (p > 0) {
-    return m / p;
-  } else {
-    return 0;
-  }
+  return ((p > .0) ? (m / p) : .0);
 }
 
 // -----------------------------------------------------------------------------
 template <class HistogramType>
 double Histogram2D<HistogramType>::ConditionalMeanYX(int i) const
 {
-  double m = 0, p = 0;
+  double m = .0, p = .0;
   for (int j = 0; j < _nbins_y; j++) {
     m += this->JointProbability(i, j) * this->BinToValY(j);
     p += this->JointProbability(i, j);
   }
-  if (p > 0) {
-    return m / p;
-  } else {
-    return 0;
+  return ((p > .0) ? (m / p) : .0);
+}
+
+// -----------------------------------------------------------------------------
+template <class HistogramType>
+double Histogram2D<HistogramType>::ConditionalVarianceXY(int i) const
+{
+  double s = .0, p = .0;
+  const double m = this->ConditionalMeanXY(i);
+  for (int j = 0; j < _nbins_x; j++) {
+    s += this->JointProbability(j, i) * pow(this->BinToValX(j) - m, 2);
+    p += this->JointProbability(j, i);
   }
+  return ((p > .0) ? (s / p) : .0);
+}
+
+// -----------------------------------------------------------------------------
+template <class HistogramType>
+double Histogram2D<HistogramType>::ConditionalVarianceYX(int i) const
+{
+  double s = .0, p = .0;
+  const double m = this->ConditionalMeanYX(i);
+  for (int j = 0; j < _nbins_y; j++) {
+    s += this->JointProbability(i, j) * pow(this->BinToValY(j) - m, 2);
+    p += this->JointProbability(i, j);
+  }
+  return ((p > .0) ? (s / p) : .0);
 }
 
 // -----------------------------------------------------------------------------
@@ -811,8 +843,8 @@ double Histogram2D<HistogramType>::Kappa() const
 }
 
 // -----------------------------------------------------------------------------
-template <>
-void Histogram2D<double>::Smooth()
+template <class HistogramType>
+void Histogram2D<HistogramType>::Smooth()
 {
   if (_nsamp == 0) {
     if (debug) {
@@ -833,7 +865,7 @@ void Histogram2D<double>::Smooth()
     value = .0;
     for (int k = 0; k < 3; k++) {
       if ((i-1+k >= 0) && (i-1+k < _nbins_x)) {
-        value += kernel[k] * _bins[j][i-1+k];
+        value += kernel[k] * static_cast<double>(_bins[j][i-1+k]);
       }
     }
     tmp[j][i] = value;
@@ -849,8 +881,8 @@ void Histogram2D<double>::Smooth()
         value += kernel[k] * tmp[j-1+k][i];
       }
     }
-    _bins[j][i] = value;
-    _nsamp += value;
+    _bins[j][i] = static_cast<HistogramType>(value);
+    _nsamp     += static_cast<HistogramType>(value);
   }
 
   // Free tmp memory
