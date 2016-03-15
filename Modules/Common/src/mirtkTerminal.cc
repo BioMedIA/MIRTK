@@ -26,7 +26,7 @@ namespace mirtk {
 
 
 /// Whether to use color output to STDOUT
-bool stdout_color = false;
+MIRTK_Common_EXPORT bool stdout_color = false;
 
 // =============================================================================
 // Command help
@@ -63,40 +63,40 @@ void PrintTerminalOptions(ostream &out)
 // Terminal colors
 // =============================================================================
 
-const char *xreset       = "\x1b[0m";
-const char *xblack       = "\x1b[30m";
-const char *xred         = "\x1b[31m";
-const char *xgreen       = "\x1b[32m";
-const char *xyellow      = "\x1b[33m";
-const char *xblue        = "\x1b[34m";
-const char *xmagenta     = "\x1b[35m";
-const char *xcyan        = "\x1b[36m";
-const char *xwhite       = "\x1b[37m";
-const char *xboldblack   = "\x1b[30;1m";
-const char *xboldred     = "\x1b[31;1m";
-const char *xboldgreen   = "\x1b[32;1m";
-const char *xboldyellow  = "\x1b[33;1m";
-const char *xboldblue    = "\x1b[34;1m";
-const char *xboldmagenta = "\x1b[35;1m";
-const char *xboldcyan    = "\x1b[36;1m";
-const char *xboldwhite   = "\x1b[37;1m";
+MIRTK_Common_EXPORT const char *xreset       = "\x1b[0m";
+MIRTK_Common_EXPORT const char *xblack       = "\x1b[30m";
+MIRTK_Common_EXPORT const char *xred         = "\x1b[31m";
+MIRTK_Common_EXPORT const char *xgreen       = "\x1b[32m";
+MIRTK_Common_EXPORT const char *xyellow      = "\x1b[33m";
+MIRTK_Common_EXPORT const char *xblue        = "\x1b[34m";
+MIRTK_Common_EXPORT const char *xmagenta     = "\x1b[35m";
+MIRTK_Common_EXPORT const char *xcyan        = "\x1b[36m";
+MIRTK_Common_EXPORT const char *xwhite       = "\x1b[37m";
+MIRTK_Common_EXPORT const char *xboldblack   = "\x1b[30;1m";
+MIRTK_Common_EXPORT const char *xboldred     = "\x1b[31;1m";
+MIRTK_Common_EXPORT const char *xboldgreen   = "\x1b[32;1m";
+MIRTK_Common_EXPORT const char *xboldyellow  = "\x1b[33;1m";
+MIRTK_Common_EXPORT const char *xboldblue    = "\x1b[34;1m";
+MIRTK_Common_EXPORT const char *xboldmagenta = "\x1b[35;1m";
+MIRTK_Common_EXPORT const char *xboldcyan    = "\x1b[36;1m";
+MIRTK_Common_EXPORT const char *xboldwhite   = "\x1b[37;1m";
 
-const char *xbrightblack       = "\x1b[90m";
-const char *xbrightred         = "\x1b[91m";
-const char *xbrightgreen       = "\x1b[92m";
-const char *xbrightyellow      = "\x1b[93m";
-const char *xbrightblue        = "\x1b[94m";
-const char *xbrightmagenta     = "\x1b[95m";
-const char *xbrightcyan        = "\x1b[96m";
-const char *xbrightwhite       = "\x1b[97m";
-const char *xboldbrightblack   = "\x1b[90;1m";
-const char *xboldbrightred     = "\x1b[91;1m";
-const char *xboldbrightgreen   = "\x1b[92;1m";
-const char *xboldbrightyellow  = "\x1b[93;1m";
-const char *xboldbrightblue    = "\x1b[94;1m";
-const char *xboldbrightmagenta = "\x1b[95;1m";
-const char *xboldbrightcyan    = "\x1b[96;1m";
-const char *xboldbrightwhite   = "\x1b[97;1m";
+MIRTK_Common_EXPORT const char *xbrightblack       = "\x1b[90m";
+MIRTK_Common_EXPORT const char *xbrightred         = "\x1b[91m";
+MIRTK_Common_EXPORT const char *xbrightgreen       = "\x1b[92m";
+MIRTK_Common_EXPORT const char *xbrightyellow      = "\x1b[93m";
+MIRTK_Common_EXPORT const char *xbrightblue        = "\x1b[94m";
+MIRTK_Common_EXPORT const char *xbrightmagenta     = "\x1b[95m";
+MIRTK_Common_EXPORT const char *xbrightcyan        = "\x1b[96m";
+MIRTK_Common_EXPORT const char *xbrightwhite       = "\x1b[97m";
+MIRTK_Common_EXPORT const char *xboldbrightblack   = "\x1b[90;1m";
+MIRTK_Common_EXPORT const char *xboldbrightred     = "\x1b[91;1m";
+MIRTK_Common_EXPORT const char *xboldbrightgreen   = "\x1b[92;1m";
+MIRTK_Common_EXPORT const char *xboldbrightyellow  = "\x1b[93;1m";
+MIRTK_Common_EXPORT const char *xboldbrightblue    = "\x1b[94;1m";
+MIRTK_Common_EXPORT const char *xboldbrightmagenta = "\x1b[95;1m";
+MIRTK_Common_EXPORT const char *xboldbrightcyan    = "\x1b[96;1m";
+MIRTK_Common_EXPORT const char *xboldbrightwhite   = "\x1b[97;1m";
 
 // =============================================================================
 // Static initializer

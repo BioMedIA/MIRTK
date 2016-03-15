@@ -24,10 +24,12 @@
 #include <mirtkEuclideanDistanceTransform.h>
 #include <mirtkLinearInterpolateImageFunction.hxx>
 
+#include <mirtkCommonExport.h>
+
 
 namespace mirtk {
 
-extern int verbose; // cf. mirtkOptions.cc
+MIRTK_Common_EXPORT extern int verbose; // cf. mirtkOptions.cc
 
 
 // =============================================================================

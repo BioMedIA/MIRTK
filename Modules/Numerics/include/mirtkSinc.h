@@ -23,6 +23,8 @@
 #include <mirtkConfig.h>
 #include <mirtkMath.h>
 
+#include <mirtkNumericsExport.h>
+
 
 namespace mirtk {
 
@@ -50,7 +52,7 @@ public:
   MIRTKCU_API static const int LookupTableSize = 1000000;
 
   /// Lookup table of Sinc function values
-  MIRTKCU_API static Real *LookupTable;
+  MIRTK_Numerics_EXPORT MIRTKCU_API static Real *LookupTable;
 
   /// Initialize lookup table of Sinc function values
   MIRTKCU_API static void Initialize();

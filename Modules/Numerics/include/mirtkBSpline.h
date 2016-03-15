@@ -24,6 +24,8 @@
 #include <mirtkMath.h>
 #include <mirtkStream.h>
 
+#include <mirtkNumericsExport.h>
+
 
 namespace mirtk {
 
@@ -99,16 +101,16 @@ public:
   static int VariableToIndex(TReal);
 
   /// Lookup table of B-spline function values
-  static TReal WeightLookupTable[LookupTableSize];
+  MIRTK_Numerics_EXPORT static TReal WeightLookupTable[LookupTableSize];
 
   /// Lookup table of B-spline basis function values
-  static TReal LookupTable[LookupTableSize][4];
+  MIRTK_Numerics_EXPORT static TReal LookupTable[LookupTableSize][4];
 
   /// Lookup table of B-spline basis function 1st derivative values
-  static TReal LookupTable_I[LookupTableSize][4];
+  MIRTK_Numerics_EXPORT static TReal LookupTable_I[LookupTableSize][4];
 
   /// Lookup table of B-spline basis function 2nd derivative values
-  static TReal LookupTable_II[LookupTableSize][4];
+  MIRTK_Numerics_EXPORT static TReal LookupTable_II[LookupTableSize][4];
 
   // ---------------------------------------------------------------------------
   // B-spline basis functions
@@ -206,7 +208,7 @@ public:
 protected:
 
   /// Flag which indicates whether the lookup tables are initialized
-  static bool _initialized;
+  MIRTK_Numerics_EXPORT static bool _initialized;
 };
 
 // -----------------------------------------------------------------------------

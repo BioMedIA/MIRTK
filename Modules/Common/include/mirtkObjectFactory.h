@@ -23,12 +23,14 @@
 #include <mirtkUnorderedMap.h>
 #include <mirtkStream.h>
 
+#include <mirtkCommonExport.h>
+
 
 namespace mirtk {
 
 
 // Global "debug" flag (cf. mirtkOptions.cc)
-extern int debug;
+MIRTK_Common_EXPORT extern int debug;
 
 
 /**

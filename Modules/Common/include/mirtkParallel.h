@@ -20,6 +20,8 @@
 #ifndef MIRTK_Parallel_H
 #define MIRTK_Parallel_H
 
+#include <mirtkCommonExport.h>
+
 #include <mirtkStream.h>
 
 #include <memory>
@@ -44,13 +46,13 @@ namespace mirtk {
 // =============================================================================
 
 /// Enable/disable GPU acceleration
-extern bool use_gpu;
+MIRTK_Common_EXPORT extern bool use_gpu;
 
 /// Debugging level of GPU code
-extern int debug_gpu;
+MIRTK_Common_EXPORT extern int debug_gpu;
 
 /// Debugging level of TBB code
-extern int tbb_debug;
+MIRTK_Common_EXPORT extern int tbb_debug;
 
 // =============================================================================
 // Command help
@@ -100,7 +102,7 @@ using tbb::split;
 // instance is created and the -threads argument passed on to its initialize
 // method by ParseParallelOption. There should be no task scheduler created/
 // terminated in any of the IRTK libraries functions and classes.
-extern std::unique_ptr<task_scheduler_init> tbb_scheduler;
+MIRTK_Common_EXPORT extern std::unique_ptr<task_scheduler_init> tbb_scheduler;
 
 
 // -----------------------------------------------------------------------------

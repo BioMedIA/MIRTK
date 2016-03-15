@@ -28,11 +28,11 @@ namespace mirtk {
 
 
 //----------------------------------------------------------------------------
-const double Matrix3x3::EPSILON = 1e-06;
-const Matrix3x3 Matrix3x3::ZERO(0,0,0,0,0,0,0,0,0);
-const Matrix3x3 Matrix3x3::IDENTITY(1,0,0,0,1,0,0,0,1);
-const double Matrix3x3::ms_fSvdEpsilon = 1e-04;
-const int Matrix3x3::ms_iSvdMaxIterations = 32;
+MIRTK_Numerics_EXPORT const double Matrix3x3::EPSILON = 1e-06;
+MIRTK_Numerics_EXPORT const Matrix3x3 Matrix3x3::ZERO(0,0,0,0,0,0,0,0,0);
+MIRTK_Numerics_EXPORT const Matrix3x3 Matrix3x3::IDENTITY(1,0,0,0,1,0,0,0,1);
+MIRTK_Numerics_EXPORT const double Matrix3x3::ms_fSvdEpsilon = 1e-04;
+MIRTK_Numerics_EXPORT const int Matrix3x3::ms_iSvdMaxIterations = 32;
 
 //----------------------------------------------------------------------------
 Matrix3x3::Matrix3x3()

@@ -19,6 +19,8 @@
 #ifndef MIRTK_Matrix3x3_H
 #define MIRTK_Matrix3x3_H
 
+#include <mirtkNumericsExport.h>
+
 #include <mirtkVector3.h>
 
 
@@ -153,17 +155,17 @@ public:
   static void TensorProduct (const Vector3& rkU, const Vector3& rkV,
                              Matrix3x3& rkProduct);
 
-  static const double EPSILON;
-  static const Matrix3x3 ZERO;
-  static const Matrix3x3 IDENTITY;
+  MIRTK_Numerics_EXPORT static const double EPSILON;
+  MIRTK_Numerics_EXPORT static const Matrix3x3 ZERO;
+  MIRTK_Numerics_EXPORT static const Matrix3x3 IDENTITY;
 
   // support for eigensolver
   void Tridiagonal(double afDiag[3], double afSubDiag[3]);
   bool QLAlgorithm(double afDiag[3], double afSubDiag[3]);
 
   // support for singular value decomposition
-  static const double ms_fSvdEpsilon;
-  static const int ms_iSvdMaxIterations;
+  MIRTK_Numerics_EXPORT static const double ms_fSvdEpsilon;
+  MIRTK_Numerics_EXPORT static const int ms_iSvdMaxIterations;
   static void Bidiagonalize (Matrix3x3& kA, Matrix3x3& kL,
                              Matrix3x3& kR);
   static void GolubKahanStep (Matrix3x3& kA, Matrix3x3& kL,

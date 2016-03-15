@@ -26,7 +26,7 @@ namespace mirtk {
 
 // -----------------------------------------------------------------------------
 template <class TReal>
-TReal *Sinc<TReal>::LookupTable = 0;
+MIRTK_Numerics_EXPORT TReal *Sinc<TReal>::LookupTable = 0;
 
 // -----------------------------------------------------------------------------
 template <class TReal>
