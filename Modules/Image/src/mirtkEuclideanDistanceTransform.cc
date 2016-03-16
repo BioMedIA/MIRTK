@@ -444,20 +444,17 @@ void EuclideanDistanceTransform<VoxelType>
 ::edtComputeEDT_2D_anisotropic(const VoxelType *img, VoxelType *edt, long nX, long nY, double wX, double wY)
 {
   const VoxelType *c;
-  long i, j, nXY;
   VoxelType d, *p, *q, *f;
 
   /* nXY is number of voxels in 2D image */
-  nXY = nX * nY;
+  const long nXY = nX * nY;
 
   /* if binary image is provided in the array img, copy it to the arry edt */
   /* this is effectively equivalent to computing D_0 */
-  if (img != NULL) {
+  if (img != nullptr) {
     c = img;
     p = edt;
-    for (i = 0; i < nXY; i++, c++, p++) {
-      *p = *c;
-    }
+    memcpy(edt, img, nXY * sizeof(VoxelType));
   }
 
   /* compute D_1 as simple forward-and-reverse distance propagation */
@@ -465,34 +462,31 @@ void EuclideanDistanceTransform<VoxelType>
   /* D_1 is distance to closest feature voxel in row (x direction) */
   /* it is possible to use a simple distance propagation for D_1  because */
   /* L_1 and L_2 norms are equivalent for 1D case */
-  for (j = 0; j < nY; j++) {
+  for (long j = 0; j < nY; j++) {
     /* forward pass */
     p = edt + j * nX;
     d = EDT_MAX_DISTANCE_SQUARED_ANISOTROPIC;
-    for (i = 0; i < nX; i++, p++) {
+    for (long i = 0; i < nX; i++, p++) {
       /* set d = 0 when we encounter a feature voxel */
       if (*p) {
         *p = d = 0;
-      }
       /* increment distance ... */
-      else if (d != EDT_MAX_DISTANCE_SQUARED_ANISOTROPIC) {
+      } else if (d != EDT_MAX_DISTANCE_SQUARED_ANISOTROPIC) {
         *p = ++d;
-      }
       /* ... unless we haven't encountered a feature voxel yet */
-      else {
+      } else {
         *p = EDT_MAX_DISTANCE_SQUARED_ANISOTROPIC;
       }
     }
     /* reverse pass */
     if (*(--p) != EDT_MAX_DISTANCE_SQUARED_ANISOTROPIC) {
       d = EDT_MAX_DISTANCE_SQUARED_ANISOTROPIC;
-      for (i = nX - 1; i >= 0; i--, p--) {
+      for (long i = nX - 1; i >= 0; i--, p--) {
         /* set d = 0 when we encounter a feature voxel */
         if (*p == 0) {
           d = 0;
-        }
         /* increment distance after encountering a feature voxel */
-        else if (d != EDT_MAX_DISTANCE_SQUARED_ANISOTROPIC) {
+        } else if (d != EDT_MAX_DISTANCE_SQUARED_ANISOTROPIC) {
           /* compare forward and reverse distances */
           if (++d < *p) {
             *p = d;
@@ -514,19 +508,19 @@ void EuclideanDistanceTransform<VoxelType>
     fprintf(stderr, "Cannot malloc f\n");
     exit(EXIT_FAILURE);
   }
-  for (i = 0; i < nX; i++) {
+  for (long i = 0; i < nX; i++) {
     /* fill array f with D_1 distances in column */
     /* this is essentially line 4 in Procedure VoronoiEDT() in tPAMI paper */
     p = edt + i;
     q = f;
-    for (j = 0; j < nY; j++, p += nX, q++) {
+    for (long j = 0; j < nY; j++, p += nX, q++) {
       *q = *p;
     }
     /* call edtVornoiEDT */
     if (edtVornoiEDT_anisotropic(f, nY, wY)) {
       p = edt + i;
       q = f;
-      for (j = 0; j < nY; j++, p += nX, q++) {
+      for (long j = 0; j < nY; j++, p += nX, q++) {
         *p = *q;
       }
     }
@@ -600,34 +594,36 @@ void EuclideanDistanceTransform<VoxelType>
 template <class VoxelType>
 void EuclideanDistanceTransform<VoxelType>::Run()
 {
-  int nx, ny, nz, nt, z, t;
-  double wx, wy, wz;
-
   // Do the initial set up
   this->Initialize();
 
-  // Calculate image dimensions
-  nx = this->_Input->X();
-  ny = this->_Input->Y();
-  nz = this->_Input->Z();
-  nt = this->_Input->T();
+  // Get image pointers (*after* Initialize()!)
+  const ImageType * const input  = this->Input();
+  ImageType       * const output = this->Output();
 
-  // Calculate voxel size
-  this->_Input->GetPixelSize(&wx, &wy, &wz);
-  for ( t = 0; t < nt; t++){
-	  if (this->_distanceTransformMode == EuclideanDistanceTransform::DT_3D) {
-		  // Calculate 3D distance transform
+  // Get image size
+  const int nx = input->X();
+  const int ny = input->Y();
+  const int nz = input->Z();
+  const int nt = input->T();
+
+  // Get voxel size
+  const double dx = input->XSize();
+  const double dy = input->YSize();
+  const double dz = input->ZSize();
+
+  for (int t = 0; t < nt; ++t) {
+	  if (_distanceTransformMode == DT_3D) {
 		  edtComputeEDT_3D_anisotropic(
-        this->_Input ->Data(0,0,0,t),
-			  this->_Output->Data(0,0,0,t),
-			  nx, ny, nz, wx, wy, wz);
+        input ->Data(0, 0, 0, t),
+			  output->Data(0, 0, 0, t),
+			  nx, ny, nz, dx, dy, dz);
 	  } else {
-		  for (z = 0; z < nz; z++) {
-			  // Calculate 2D distance transform slice by slice
+		  for (int z = 0; z < nz; ++z) {
 			  edtComputeEDT_2D_anisotropic(
-          this->_Input ->Data(0, 0, z, t),
-				  this->_Output->Data(0, 0, z, t),
-				  nx, ny, wx, wy);
+          input ->Data(0, 0, z, t),
+				  output->Data(0, 0, z, t),
+				  nx, ny, dx, dy);
 		  }
 	  }
   }
