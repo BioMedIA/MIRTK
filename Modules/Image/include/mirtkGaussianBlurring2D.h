@@ -35,10 +35,10 @@ namespace mirtk {
  * blurring is implemented by two successive 1D convolutions with a 1D
  * Gaussian kernel.
  */
-template <class VoxelType>
-class GaussianBlurring2D : public GaussianBlurring<VoxelType>
+template <class TVoxel>
+class GaussianBlurring2D : public GaussianBlurring<TVoxel>
 {
-  mirtkInPlaceImageFilterMacro(GaussianBlurring2D);
+  mirtkInPlaceImageFilterMacro(GaussianBlurring2D, TVoxel);
 
 public:
 

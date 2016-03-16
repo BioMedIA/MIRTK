@@ -24,7 +24,6 @@
 #include <mirtkLieBracketImageFilter.h>
 
 #include <mirtkMatrix.h>
-#include <mirtkGenericImage.h>
 #include <mirtkParallel.h>
 #include <mirtkProfiling.h>
 
@@ -36,10 +35,15 @@ namespace mirtk {
  * Image filter for computation of Lie bracket of two 3D vector fields.
  */
 
-template <class VoxelType>
-class LieBracketImageFilter3D : public LieBracketImageFilter<VoxelType>
+template <class TVoxel>
+class LieBracketImageFilter3D : public LieBracketImageFilter<TVoxel>
 {
-  mirtkImageFilterMacro(LieBracketImageFilter3D);
+  mirtkImageFilterMacro(LieBracketImageFilter3D, TVoxel);
+
+public:
+
+  /// Type of superclass of this concrete image filter
+  typedef LieBracketImageFilter<TVoxel> Superclass;
 
 protected:
 
@@ -47,7 +51,7 @@ protected:
   Matrix _MatW2I;
 
   /// Compute 1st order derivatives of given vector field
-  void Jacobian(Matrix &, const GenericImage<VoxelType> &, int, int, int);
+  void Jacobian(Matrix &, const ImageType &, int, int, int);
 
   /// Initialize filter
   virtual void Initialize();
@@ -61,10 +65,10 @@ public:
   virtual ~LieBracketImageFilter3D();
 
   // Import other overloads
-  using LieBracketImageFilter<VoxelType>::Output;
+  using Superclass::Output;
 
   /// Set output
-  virtual void Output(GenericImage<VoxelType> *);
+  virtual void Output(ImageType *);
 
   /// Run filter on every voxel
   virtual void Run();
@@ -85,7 +89,6 @@ public:
 template <class VoxelType>
 LieBracketImageFilter3D<VoxelType>::LieBracketImageFilter3D()
 :
-  LieBracketImageFilter<VoxelType>(),
   _MatW2I(3, 3)
 {
   _MatW2I.Ident();
@@ -99,9 +102,9 @@ LieBracketImageFilter3D<VoxelType>::~LieBracketImageFilter3D()
 
 // --------------------------------------------------------------------------
 template <class VoxelType>
-void LieBracketImageFilter3D<VoxelType>::Output(GenericImage<VoxelType> *output)
+void LieBracketImageFilter3D<VoxelType>::Output(ImageType *output)
 {
-  LieBracketImageFilter<VoxelType>::Output(output);
+  Superclass::Output(output);
   _MatW2I = output->GetWorldToImageMatrix()(0, 0, 3, 3);
 }
 
@@ -110,7 +113,7 @@ template <class VoxelType>
 void LieBracketImageFilter3D<VoxelType>::Initialize()
 {
   // Initialize base class
-  LieBracketImageFilter<VoxelType>::Initialize();
+  Superclass::Initialize();
 
   // Ensure that input vector fields are 3D
   // Note that base class already ensures that inputs and output have same attributes
@@ -124,9 +127,8 @@ void LieBracketImageFilter3D<VoxelType>::Initialize()
 // ---------------------------------------------------------------------------
 // Note: Using NN extrapolation at boundary
 template <class VoxelType>
-void
-LieBracketImageFilter3D<VoxelType>
-::Jacobian(Matrix &jac, const GenericImage<VoxelType> &v, int i, int j, int k)
+void LieBracketImageFilter3D<VoxelType>
+::Jacobian(Matrix &jac, const ImageType &v, int i, int j, int k)
 {
   int a, b;
   // Finite difference in x dimension
@@ -181,8 +183,8 @@ double LieBracketImageFilter3D<VoxelType>::Run(int i, int j, int k, int t)
 {
   Matrix lJ(3, 3), rJ(3, 3);
 
-  const GenericImage<VoxelType> &lv = *this->GetInput(0);
-  const GenericImage<VoxelType> &rv = *this->GetInput(1);
+  const ImageType &lv = *this->GetInput(0);
+  const ImageType &rv = *this->GetInput(1);
 
   const VoxelType &lx = lv(i, j, k, 0);
   const VoxelType &ly = lv(i, j, k, 1);
@@ -205,8 +207,8 @@ void LieBracketImageFilter3D<VoxelType>::Run(double vec[3], int i, int j, int k)
 {
   Matrix lJ(3, 3), rJ(3, 3);
 
-  const GenericImage<VoxelType> &lv = *this->GetInput(0);
-  const GenericImage<VoxelType> &rv = *this->GetInput(1);
+  const ImageType &lv = *this->GetInput(0);
+  const ImageType &rv = *this->GetInput(1);
 
   const VoxelType &lx = lv(i, j, k, 0);
   const VoxelType &ly = lv(i, j, k, 1);
@@ -231,62 +233,58 @@ void LieBracketImageFilter3D<VoxelType>::Run(double vec[3], int i, int j, int k)
            (lJ(2, 2) * rz - lz * rJ(2, 2));
 }
 
+namespace LieBracketImageFilter3DUtils {
+
 // ---------------------------------------------------------------------------
 /// Parallelizable body of LieBracketImageFilter3D::Run.
 template <class VoxelType>
-class LieBracketImageFilter3DRun
+class Run
 {
 private:
-  LieBracketImageFilter3D<VoxelType> *_LieBracketFilter; ///< Lie bracket filter
-  GenericImage<VoxelType>            *_Output;           ///< Output vector field
+
+  typedef LieBracketImageFilter3D<VoxelType> FilterType;
+  typedef typename FilterType::ImageType     ImageType;
+
+  FilterType *_LieBracketFilter; ///< Lie bracket filter
+  ImageType  *_Output;           ///< Output vector field
 
 public:
 
-  /// Default constructor
-  LieBracketImageFilter3DRun(LieBracketImageFilter3D<VoxelType> *filter,
-                             GenericImage<VoxelType>            *output)
+  /// Constructor
+  Run(FilterType *filter, ImageType *output)
   :
     _LieBracketFilter(filter),
     _Output(output)
-  {
-  }
-
-  /// Copy constructor
-  LieBracketImageFilter3DRun(const LieBracketImageFilter3DRun<VoxelType> &other)
-  :
-    _LieBracketFilter(other._LieBracketFilter),
-    _Output          (other._Output)
-  {
-  }
+  {}
 
   /// Run Lie bracket filter for each voxel in specified range
   void operator ()(const blocked_range3d<int> &r) const
   {
     double vec[3];
-    for (int k = r.pages().begin(); k != r.pages().end(); k++) {
-      for (int j = r.rows().begin(); j != r.rows().end(); j++) {
-        for (int i = r.cols().begin(); i != r.cols().end(); i++) {
-          _LieBracketFilter->Run(vec, i, j, k);
-          _Output->Put(i, j, k, 0, vec[0]);
-          _Output->Put(i, j, k, 1, vec[1]);
-          _Output->Put(i, j, k, 2, vec[2]);
-        }
-      }
+    for (int k = r.pages().begin(); k != r.pages().end(); ++k)
+    for (int j = r.rows ().begin(); j != r.rows ().end(); ++j)
+    for (int i = r.cols ().begin(); i != r.cols ().end(); ++i) {
+      _LieBracketFilter->Run(vec, i, j, k);
+      _Output->Put(i, j, k, 0, vec[0]);
+      _Output->Put(i, j, k, 1, vec[1]);
+      _Output->Put(i, j, k, 2, vec[2]);
     }
   }
 };
+
+} // namespace LieBracketImageFilter3DUtils
 
 // ---------------------------------------------------------------------------
 template <class VoxelType>
 void LieBracketImageFilter3D<VoxelType>::Run()
 {
-  blocked_range3d<int> voxels(0, this->GetInput(0)->Z(), 1,
-                              0, this->GetInput(0)->Y(), 1,
-                              0, this->GetInput(0)->X(), 1);
-  LieBracketImageFilter3DRun<VoxelType> body(this, this->Output());
+  blocked_range3d<int> voxels(0, this->GetInput(0)->Z(),
+                              0, this->GetInput(0)->Y(),
+                              0, this->GetInput(0)->X());
+  LieBracketImageFilter3DUtils::Run<VoxelType> run(this, this->Output());
   MIRTK_START_TIMING();
   this->Initialize();
-  parallel_for(voxels, body);
+  parallel_for(voxels, run);
   this->Finalize();
   MIRTK_DEBUG_TIMING(2, "LieBracketImageFilter");
 }

@@ -30,10 +30,10 @@ namespace mirtk {
 /**
  * Filter for down-/upsampling of a Gaussian pyramid image from one level to another
  */
-template <class VoxelType>
-class GaussianPyramidFilter : public ImageToImage<VoxelType>
+template <class TVoxel>
+class GaussianPyramidFilter : public ImageToImage<TVoxel>
 {
-  mirtkImageFilterMacro(GaussianPyramidFilter);
+  mirtkImageFilterMacro(GaussianPyramidFilter, TVoxel);
 
   /// Level of the input image
   mirtkPublicAttributeMacro(int, InputLevel);

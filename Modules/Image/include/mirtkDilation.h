@@ -30,10 +30,10 @@ namespace mirtk {
 /**
  * morphological erosion of images.
  */
-template <class VoxelType>
-class Dilation : public ImageToImage<VoxelType>
+template <class TVoxel>
+class Dilation : public ImageToImage<TVoxel>
 {
-  mirtkImageFilterMacro(Dilation);
+  mirtkImageFilterMacro(Dilation, TVoxel);
 
   /// What connectivity to assume when running the filter.
   mirtkPublicAttributeMacro(ConnectivityType, Connectivity);

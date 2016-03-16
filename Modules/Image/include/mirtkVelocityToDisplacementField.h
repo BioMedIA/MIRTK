@@ -36,10 +36,10 @@ namespace mirtk {
  * stationary velocity field. The filter output is a diffeomorphic
  * displacement field.
  */
-template <class VoxelType>
-class VelocityToDisplacementField : public ImageToImage<VoxelType>
+template <class TVoxel>
+class VelocityToDisplacementField : public ImageToImage<TVoxel>
 {
-  mirtkImageFilterMacro(VelocityToDisplacementField);
+  mirtkAbstractImageFilterMacro(VelocityToDisplacementField, TVoxel);
 
   // ---------------------------------------------------------------------------
   // Attributes
@@ -70,7 +70,7 @@ protected:
 
   /// Optional input displacement field which is composed with the
   /// exponential of the velocity field, i.e., exp(v) ° phi
-  const GenericImage<VoxelType> *_InputDisplacementField;
+  const ImageType *_InputDisplacementField;
 
   /// Initialize filter
   virtual void Initialize();
@@ -87,13 +87,13 @@ public:
   virtual ~VelocityToDisplacementField();
  
   // Import other overloads
-  using ImageToImage<VoxelType>::Input;
+  using Baseclass::Input;
 
   /// Set n-th input (0: velocity field, 1: input displacement field, optional)
-  virtual void Input(int, const GenericImage<VoxelType> *);
+  virtual void Input(int, const ImageType *);
 
   /// Get n-th input (0: velocity field, 1: input displacement field, optional)
-  virtual const GenericImage<VoxelType> *Input(int);
+  virtual const ImageType *Input(int);
 
 };
 

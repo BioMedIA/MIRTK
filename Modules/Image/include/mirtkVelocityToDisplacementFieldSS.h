@@ -38,10 +38,10 @@ class InterpolateImageFunction;
  * of a stationary velocity field using the scaling and squaring method.
  * The result is a diffeomorphic displacement field.
  */
-template <class VoxelType>
-class VelocityToDisplacementFieldSS : public VelocityToDisplacementField<VoxelType>
+template <class TVoxel>
+class VelocityToDisplacementFieldSS : public VelocityToDisplacementField<TVoxel>
 {
-  mirtkInPlaceImageFilterMacro(VelocityToDisplacementFieldSS);
+  mirtkInPlaceImageFilterMacro(VelocityToDisplacementFieldSS, TVoxel);
 
   // ---------------------------------------------------------------------------
   // Attributes
@@ -65,10 +65,10 @@ class VelocityToDisplacementFieldSS : public VelocityToDisplacementField<VoxelTy
   mirtkPublicAttributeMacro(VoxelType, MaxScaledVelocity);
 
   /// External memory that can be used for intermedate displacement field
-  mirtkPublicAggregateMacro(GenericImage<VoxelType>, ExternalCache);
+  mirtkPublicAggregateMacro(ImageType, ExternalCache);
 
   /// Intermediate displacement field
-  mirtkAggregateMacro(GenericImage<VoxelType>, Displacement);
+  mirtkAggregateMacro(ImageType, Displacement);
 
   /// Interpolator of intermediate displacement field
   mirtkAggregateMacro(InterpolateImageFunction, Interpolator);

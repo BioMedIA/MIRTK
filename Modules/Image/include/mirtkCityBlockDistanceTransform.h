@@ -38,10 +38,10 @@ namespace mirtk {
  * voxels. The border voxels are removed and the the next iteration starts.
  * If any dimension is a singleton, a 2D version is applied.
  */
-template <class VoxelType>
-class CityBlockDistanceTransform : public ImageToImage<VoxelType>
+template <class TVoxel>
+class CityBlockDistanceTransform : public ImageToImage<TVoxel>
 {
-  mirtkInPlaceImageFilterMacro(CityBlockDistanceTransform);
+  mirtkInPlaceImageFilterMacro(CityBlockDistanceTransform, TVoxel);
 
   // ---------------------------------------------------------------------------
   // Types

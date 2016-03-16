@@ -32,10 +32,10 @@ namespace mirtk {
  * The class provides an interface to calculating the second order gradient in the
  * x-x-, x-y-, x-z-, y-y-, y-z- and z-z- directions.
  */
-template <class VoxelType>
-class HessianImageFilter : public ImageToImage<VoxelType>
+template <class TVoxel>
+class HessianImageFilter : public ImageToImage<TVoxel>
 {
-  mirtkImageFilterMacro(HessianImageFilter);
+  mirtkImageFilterMacro(HessianImageFilter, TVoxel);
 
   // ---------------------------------------------------------------------------
   // Types

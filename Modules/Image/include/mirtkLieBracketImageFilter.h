@@ -33,17 +33,17 @@ namespace mirtk {
 /**
  * Base class for image filters which compute the Lie bracket of two vector fields.
  */
-template <class VoxelType>
-class LieBracketImageFilter : public ImageToImage<VoxelType>
+template <class TVoxel>
+class LieBracketImageFilter : public ImageToImage<TVoxel>
 {
-  mirtkImageFilterMacro(LieBracketImageFilter);
+  mirtkAbstractImageFilterMacro(LieBracketImageFilter, TVoxel);
 
 protected:
 
-  using ImageToImage<VoxelType>::Input;
+  using Baseclass::Input;
 
   /// Second input vector field
-  const GenericImage<VoxelType> *_Input2;
+  const ImageType *_Input2;
 
   /// Constructor
   LieBracketImageFilter();
@@ -63,16 +63,16 @@ public:
   virtual ~LieBracketImageFilter();
 
   /// Set n-th input
-  virtual void Input(int, const GenericImage<VoxelType> *);
+  virtual void Input(int, const ImageType *);
 
   /// Get n-th input
-  virtual const GenericImage<VoxelType> *Input(int) const;
+  virtual const ImageType *Input(int) const;
 
   /// Get n-th input
   ///
   /// This overload can be used to disambiguate the getter Input(0) from
   /// the setter Input(NULL). Alternatively, use Input(int(0)).
-  virtual const GenericImage<VoxelType> *GetInput(int) const;
+  virtual const ImageType *GetInput(int) const;
 
 };
 
@@ -96,9 +96,9 @@ LieBracketImageFilter<VoxelType>::~LieBracketImageFilter()
 
 // --------------------------------------------------------------------------
 template <class VoxelType>
-void LieBracketImageFilter<VoxelType>::Input(int i, const GenericImage<VoxelType> *image)
+void LieBracketImageFilter<VoxelType>::Input(int i, const ImageType *image)
 {
-  if      (i == 0) ImageToImage<VoxelType>::Input(image);
+  if      (i == 0) Baseclass::Input(image);
   else if (i == 1) _Input2 = image;
   else {
     cerr << this->NameOfClass() << "::Input: Input index out of range: " << i << endl;
@@ -108,9 +108,10 @@ void LieBracketImageFilter<VoxelType>::Input(int i, const GenericImage<VoxelType
 
 // --------------------------------------------------------------------------
 template <class VoxelType>
-const GenericImage<VoxelType> *LieBracketImageFilter<VoxelType>::Input(int i) const
+const typename LieBracketImageFilter<VoxelType>::ImageType *
+LieBracketImageFilter<VoxelType>::Input(int i) const
 {
-  if      (i == 0) return ImageToImage<VoxelType>::Input();
+  if      (i == 0) return Baseclass::Input();
   else if (i == 1) return _Input2;
   else {
     cerr << this->NameOfClass() << "::Input: Input index out of range: " << i << endl;
@@ -120,7 +121,8 @@ const GenericImage<VoxelType> *LieBracketImageFilter<VoxelType>::Input(int i) co
 
 // --------------------------------------------------------------------------
 template <class VoxelType>
-const GenericImage<VoxelType> *LieBracketImageFilter<VoxelType>::GetInput(int i) const
+const typename LieBracketImageFilter<VoxelType>::ImageType *
+LieBracketImageFilter<VoxelType>::GetInput(int i) const
 {
   return Input(i); // with explicit "int" type
 }
@@ -130,7 +132,7 @@ template <class VoxelType>
 void LieBracketImageFilter<VoxelType>::Initialize()
 {
   // Initialize base class
-  ImageToImage<VoxelType>::Initialize();
+  Baseclass::Initialize();
 
   // Check second input
   if (_Input2 == NULL) {

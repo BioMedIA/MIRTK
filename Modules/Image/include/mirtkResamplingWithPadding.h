@@ -36,10 +36,10 @@ namespace mirtk {
  * have intensities smaller or equal to the padding value, the resampled
  * voxel will be filled with the padding value.
  */
-template <class VoxelType>
-class ResamplingWithPadding : public Resampling<VoxelType>
+template <class TVoxel>
+class ResamplingWithPadding : public Resampling<TVoxel>
 {
-  mirtkImageFilterMacro(ResamplingWithPadding);
+  mirtkImageFilterMacro(ResamplingWithPadding, TVoxel);
 
   // ---------------------------------------------------------------------------
   // Attributes

@@ -41,10 +41,10 @@ namespace mirtk {
  * dimensions of more than one voxel size and for which a non-zero
  * standard deviation for the Gaussian kernel has been set.
  */
-template <class VoxelType>
-class GaussianBlurring : public ImageToImage<VoxelType>
+template <class TVoxel>
+class GaussianBlurring : public ImageToImage<TVoxel>
 {
-  mirtkInPlaceImageFilterMacro(GaussianBlurring);
+  mirtkInPlaceImageFilterMacro(GaussianBlurring, TVoxel);
 
   /// Standard deviation of Gaussian kernel in x
   mirtkAttributeMacro(double, SigmaX);

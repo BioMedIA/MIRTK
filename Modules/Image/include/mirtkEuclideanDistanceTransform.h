@@ -25,10 +25,10 @@
 namespace mirtk {
 
 
-template <class VoxelType>
-class EuclideanDistanceTransform : public ImageToImage<VoxelType>
+template <class TVoxel>
+class EuclideanDistanceTransform : public ImageToImage<TVoxel>
 {
-  mirtkInPlaceImageFilterMacro(EuclideanDistanceTransform);
+  mirtkInPlaceImageFilterMacro(EuclideanDistanceTransform, TVoxel);
 
 public:
 
