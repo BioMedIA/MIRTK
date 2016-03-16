@@ -145,7 +145,7 @@ int main(int argc, char *argv[])
       euclidean_mode = EuclideanDistanceTransformType::DT_2D;
     }
     else if (OPTION("-3D")) {
-      euclidean_mode = EuclideanDistanceTransformType::DT_2D;
+      euclidean_mode = EuclideanDistanceTransformType::DT_3D;
     }
     else if (OPTION("-radial")) {
       radial = 1;
