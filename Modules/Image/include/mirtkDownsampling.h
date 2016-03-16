@@ -35,10 +35,10 @@ namespace mirtk {
  * the neighborhood corresponding to each downsampled voxel. This can be disabled
  * by specifying a zero sigma value for the Gaussian kernel.
  */
-template <class VoxelType>
-class Downsampling : public ImageToImage<VoxelType>
+template <class TVoxel>
+class Downsampling : public ImageToImage<TVoxel>
 {
-  mirtkImageFilterMacro(Downsampling);
+  mirtkImageFilterMacro(Downsampling, TVoxel);
 
   // ---------------------------------------------------------------------------
   // Attributes

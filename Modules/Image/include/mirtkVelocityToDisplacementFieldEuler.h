@@ -37,10 +37,10 @@ class InterpolateImageFunction;
  * of a stationary velocity field using the forward Euler integration method.
  * The result is a diffeomorphic displacement field.
  */
-template <class VoxelType>
-class VelocityToDisplacementFieldEuler : public VelocityToDisplacementField<VoxelType>
+template <class TVoxel>
+class VelocityToDisplacementFieldEuler : public VelocityToDisplacementField<TVoxel>
 {
-  mirtkImageFilterMacro(VelocityToDisplacementFieldEuler);
+  mirtkImageFilterMacro(VelocityToDisplacementFieldEuler, TVoxel);
 
 protected:
 

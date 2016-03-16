@@ -36,10 +36,10 @@ namespace mirtk {
  * have intensities smaller or equal to the padding value, the blurred voxel
  * will be filled with the padding value.
  */
-template <class VoxelType>
-class GaussianBlurringWithPadding : public GaussianBlurring<VoxelType>
+template <class TVoxel>
+class GaussianBlurringWithPadding : public GaussianBlurring<TVoxel>
 {
-  mirtkInPlaceImageFilterMacro(GaussianBlurringWithPadding);
+  mirtkInPlaceImageFilterMacro(GaussianBlurringWithPadding, TVoxel);
 
   /// Padding value
   mirtkAttributeMacro(VoxelType, PaddingValue);

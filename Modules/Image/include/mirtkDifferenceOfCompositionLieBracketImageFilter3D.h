@@ -34,11 +34,11 @@ namespace mirtk {
  * of the composition of the first vector field with the second and vice versa,
  * i.e., [X,Y] = X(Y) - Y(X).
  */
-template <class VoxelType>
+template <class TVoxel>
 class DifferenceOfCompositionLieBracketImageFilter3D
-: public LieBracketImageFilter<VoxelType>
+: public LieBracketImageFilter<TVoxel>
 {
-  mirtkImageFilterMacro(DifferenceOfCompositionLieBracketImageFilter3D);
+  mirtkImageFilterMacro(DifferenceOfCompositionLieBracketImageFilter3D, TVoxel);
 
   /// Vector field interpolation mode
   mirtkPublicAttributeMacro(InterpolationMode, Interpolation);
@@ -52,8 +52,7 @@ class DifferenceOfCompositionLieBracketImageFilter3D
 
 protected:
 
-  typedef GenericImage<VoxelType>                      InputType;
-  typedef GenericInterpolateImageFunction<InputType>   InterpolatorType;
+  typedef GenericInterpolateImageFunction<ImageType> InterpolatorType;
 
   InterpolatorType *_Interpolator[2]; /// Input vector field interpolators
   double            _Scaling     [2]; /// Scaling of input vector fields

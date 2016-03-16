@@ -39,10 +39,10 @@ class InterpolateImageFunction;
  * interpolation of the old image intensities. Possible interpolation schemes
  * are nearest neighbor, linear, cubic spline and B-spline interpolation.
  */
-template <class VoxelType>
-class Resampling : public ImageToImage<VoxelType>
+template <class TVoxel>
+class Resampling : public ImageToImage<TVoxel>
 {
-  mirtkImageFilterMacro(Resampling);
+  mirtkImageFilterMacro(Resampling, TVoxel);
 
   // ---------------------------------------------------------------------------
   // Attributes

@@ -31,10 +31,10 @@ namespace mirtk {
  * Base class of image filters which compute a stationary velocity field
  * given a displacement field.
  */
-template <class VoxelType>
-class DisplacementToVelocityField : public ImageToImage<VoxelType>
+template <class TVoxel>
+class DisplacementToVelocityField : public ImageToImage<TVoxel>
 {
-  mirtkImageFilterMacro(DisplacementToVelocityField);
+  mirtkAbstractImageFilterMacro(DisplacementToVelocityField, TVoxel);
 
 protected:
 

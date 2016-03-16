@@ -39,10 +39,10 @@ namespace mirtk {
  * such as the gradient vector magnitude, the output image has the same
  * number of components (t dimension) as the input image.
  */
-template <class VoxelType>
-class GradientImageFilter : public ImageToImage<VoxelType>
+template <class TVoxel>
+class GradientImageFilter : public ImageToImage<TVoxel>
 {
-  mirtkImageFilterMacro(GradientImageFilter);
+  mirtkImageFilterMacro(GradientImageFilter, TVoxel);
 
   // ---------------------------------------------------------------------------
   // Types

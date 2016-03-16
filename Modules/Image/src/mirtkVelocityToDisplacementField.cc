@@ -53,9 +53,9 @@ VelocityToDisplacementField<VoxelType>::~VelocityToDisplacementField()
 
 // --------------------------------------------------------------------------
 template <class VoxelType>
-void VelocityToDisplacementField<VoxelType>::Input(int i, const GenericImage<VoxelType> *image)
+void VelocityToDisplacementField<VoxelType>::Input(int i, const ImageType *image)
 {
-  if      (i == 0) ImageToImage<VoxelType>::Input(image);
+  if      (i == 0) Baseclass::Input(image);
   else if (i == 1) _InputDisplacementField = image;
   else {
     cerr << this->NameOfClass() << "::Input: Input index out of range: " << i << endl;
@@ -65,7 +65,8 @@ void VelocityToDisplacementField<VoxelType>::Input(int i, const GenericImage<Vox
 
 // --------------------------------------------------------------------------
 template <class VoxelType>
-const GenericImage<VoxelType> *VelocityToDisplacementField<VoxelType>::Input(int i)
+const typename VelocityToDisplacementField<VoxelType>::ImageType *
+VelocityToDisplacementField<VoxelType>::Input(int i)
 {
   if      (i == 0) return this->Input();
   else if (i == 1) return _InputDisplacementField;
@@ -80,7 +81,7 @@ template <class VoxelType>
 void VelocityToDisplacementField<VoxelType>::Initialize()
 {
   // Initialize base class
-  ImageToImage<VoxelType>::Initialize();
+  Baseclass::Initialize();
 
   // Check input
   if (this->Input()->Z() < 1) {
@@ -118,7 +119,7 @@ void VelocityToDisplacementField<VoxelType>::Finalize()
   // Reset upper integration limit attribute
   if (_ComputeInverse) _UpperIntegrationLimit = -_UpperIntegrationLimit;
   // Finalize base class
-  ImageToImage<VoxelType>::Finalize();
+  Baseclass::Finalize();
 }
 
 // ===========================================================================

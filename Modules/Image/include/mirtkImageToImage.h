@@ -34,22 +34,35 @@ namespace mirtk {
  * filters which take an image as input and produce an image as output. Each
  * derived class has to implement all abstract member functions.
  */
-template <class VoxelType>
+template <class TVoxel>
 class ImageToImage : public Object
 {
   mirtkAbstractMacro(ImageToImage);
 
   // ---------------------------------------------------------------------------
+  // Types
+
+public:
+
+  /// Input/output image voxel type
+  typedef TVoxel VoxelType;
+
+  /// Input/output image type
+  typedef GenericImage<VoxelType> ImageType;
+
+  // ---------------------------------------------------------------------------
   // Attributes
 
+protected:
+
   /// Input image for filter
-  mirtkPublicAggregateMacro(const GenericImage<VoxelType>, Input);
+  mirtkPublicAggregateMacro(const ImageType, Input);
 
   /// Output image for filter
-  mirtkPublicAggregateMacro(GenericImage<VoxelType>, Output);
+  mirtkPublicAggregateMacro(ImageType, Output);
 
   /// Buffer
-  mirtkAggregateMacro(GenericImage<VoxelType>, Buffer);
+  mirtkAggregateMacro(ImageType, Buffer);
 
   // ---------------------------------------------------------------------------
   // Construction/Destruction
@@ -96,22 +109,43 @@ public:
 
 };
 
-///////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 // Auxiliary macro for subclass implementation
-///////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 
-// ----------------------------------------------------------------------------
-#define mirtkImageFilterMacro(clsname)                                         \
+// -----------------------------------------------------------------------------
+#define mirtkDefineImageFilterTypesMacro(voxeltype)                            \
+  public:                                                                      \
+    /** Type of image filter base class */                                     \
+    typedef mirtk::ImageToImage<voxeltype> Baseclass;                          \
+    /** Input/output image voxel type */                                       \
+    typedef typename Baseclass::VoxelType VoxelType;                           \
+    /** Input/output image type */                                             \
+    typedef typename Baseclass::ImageType ImageType;                           \
+  private:
+
+// -----------------------------------------------------------------------------
+#define mirtkAbstractImageFilterMacro(clsname, voxeltype)                      \
+  mirtkAbstractMacro(clsname);                                                 \
+  mirtkDefineImageFilterTypesMacro(voxeltype);                                 \
+  public:                                                                      \
+    typedef clsname<voxeltype> Superclass;                                     \
+  private:
+
+// -----------------------------------------------------------------------------
+#define mirtkImageFilterMacro(clsname, voxeltype)                              \
   mirtkObjectMacro(clsname);                                                   \
+  mirtkDefineImageFilterTypesMacro(voxeltype);                                 \
   protected:                                                                   \
     /** Indicates that this filter cannot run in-place */                      \
     virtual bool RequiresBuffering() const { return true; }                    \
   private:                                                                     \
     static void _mirtkImageFilterMacro_needs_trailing_semicolon()
 
-// ----------------------------------------------------------------------------
-#define mirtkInPlaceImageFilterMacro(clsname)                                  \
+// -----------------------------------------------------------------------------
+#define mirtkInPlaceImageFilterMacro(clsname, voxeltype)                       \
   mirtkObjectMacro(clsname);                                                   \
+  mirtkDefineImageFilterTypesMacro(voxeltype);                                 \
   protected:                                                                   \
     /** Indicates that this filter can run in-place */                         \
     virtual bool RequiresBuffering() const { return false; }                   \
