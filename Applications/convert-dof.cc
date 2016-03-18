@@ -75,14 +75,13 @@ void PrintHelp(const char *name)
   cout << "  f3d_disp_vel_field     Nifty Reg reg_f3d output image displacement field as stationary velocity field.\n";
   cout << "  f3d_spline_vel_grid    Nifty Reg reg_f3d output control point velocity field.\n";
   cout << "  =====================  =================================================================================\n";
-#if MIRTK_ImageIO_WITH_NIfTI
+#if !MIRTK_ImageIO_WITH_NIfTI
   cout << "\n";
-  cout << "  Note: Cannot convert from/to the following formats because of missing NIfTI module.\n";
-  cout << "        Rebuild the MIRTK with the NIfTI module enabled to use these formats.\n";
+  cout << "  Cannot convert from/to the following formats because the ImageIO module is missing NIfTI support:\n";
   cout << "\n";
-  cout << "  Not available: f3d*, fnirt\n";
+  cout << "    f3d*, fnirt\n";
   cout << "\n";
-#endif // MIRTK_ImageIO_WITH_NIfTI
+#endif // !MIRTK_ImageIO_WITH_NIfTI
   cout << "\n";
   cout << "Arguments:\n";
   cout << "  input    Input transformation file.\n";
