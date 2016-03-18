@@ -975,35 +975,42 @@ bool WriteFLIRT(const char *fname, const ImageAttributes &target_attr,
 /// Convert 3D+t displacement field to FSL warp
 class ConvertToFSLWarp : public VoxelFunction
 {
-  const Matrix    *_World2Source;
-  const BaseImage *_Warp;
-  bool             _Relative;
+  const ImageAttributes &_Source;
+  const BaseImage       &_Warp;
+  bool                   _Relative;
+
+  const Matrix _World2Source;
 
   static const int _x = 0;
   const int        _y, _z;
 
 public:
 
-  ConvertToFSLWarp(const Matrix *w2s, const BaseImage &warp, bool relative)
+  ConvertToFSLWarp(const ImageAttributes &source, const BaseImage &warp, bool relative)
   :
-    _World2Source(w2s), _Warp(&warp), _Relative(relative),
+    _Source(source), _Warp(warp), _Relative(relative),
+    _World2Source(source.GetWorldToImageMatrix()),
     _y(warp.NumberOfSpatialVoxels()), _z(_y + _y)
   {}
 
   template <class TIn, class TOut>
   void operator ()(int i, int j, int k, int, const TIn *din, TOut *dout) const
   {
-    double x, y, z;
-    x = i, y = j, z = k;
-    _Warp->ImageToWorld(x, y, z);
+    double x = i, y = j, z = k;
+    _Warp.ImageToWorld(x, y, z);
     x += static_cast<double>(din[_x]);
     y += static_cast<double>(din[_y]);
     z += static_cast<double>(din[_z]);
-    Transform(*_World2Source, x, y, z);
-    if (_Relative) x -= i, y -= j, z -= k;
-    dout[_x] = static_cast<TOut>(x * _Warp->GetXSize());
-    dout[_y] = static_cast<TOut>(y * _Warp->GetYSize());
-    dout[_z] = static_cast<TOut>(z * _Warp->GetZSize());
+    Transform(_World2Source, x, y, z);
+    x *= _Source._dx, y *= _Source._dy, z *= _Source._dz;
+    if (_Relative) {
+      x -= i * _Warp.XSize();
+      y -= j * _Warp.YSize();
+      z -= k * _Warp.ZSize();
+    }
+    dout[_x] = static_cast<TOut>(x);
+    dout[_y] = static_cast<TOut>(y);
+    dout[_z] = static_cast<TOut>(z);
   }
 
   template <class TInOut>
@@ -1034,8 +1041,7 @@ GenericImage<TReal> ToFSLWarpField(const ImageAttributes &target,
   dof->Displacement(warp);
 
   // Convert to FSL warp field
-  const Matrix i2s = source.GetWorldToImageMatrix();
-  ParallelForEachVoxel(ConvertToFSLWarp(&i2s, warp, relative), warp.Attributes(), warp);
+  ParallelForEachVoxel(ConvertToFSLWarp(source, warp, relative), warp.Attributes(), warp);
 
   // Set _dt != 0 such that warp field is saved as 3D+t time series instead of
   // 3D vector field, i.e., such that NIfTI dim[8] = {4, _x, _y, _z, 3, 1, 1, 1}
