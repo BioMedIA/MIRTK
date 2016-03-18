@@ -1363,7 +1363,7 @@ int main(int argc, char *argv[])
   }
 
   // Guess output file format
-  const string ext_out = Extension(input_name, EXT_LastWithoutGz); 
+  const string ext_out = Extension(output_name, EXT_LastWithoutGz);
   bool  ext_out_nifti  = (ext_out == ".nii" || ext_out == ".hdr" || ext_out == ".img");
   bool  is_linear      = (dynamic_cast<HomogeneousTransformation *>(dof.get()) != nullptr);
 
