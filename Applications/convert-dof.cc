@@ -75,14 +75,13 @@ void PrintHelp(const char *name)
   cout << "  f3d_disp_vel_field     Nifty Reg reg_f3d output image displacement field as stationary velocity field.\n";
   cout << "  f3d_spline_vel_grid    Nifty Reg reg_f3d output control point velocity field.\n";
   cout << "  =====================  =================================================================================\n";
-#if MIRTK_ImageIO_WITH_NIfTI
+#if !MIRTK_ImageIO_WITH_NIfTI
   cout << "\n";
-  cout << "  Note: Cannot convert from/to the following formats because of missing NIfTI module.\n";
-  cout << "        Rebuild the MIRTK with the NIfTI module enabled to use these formats.\n";
+  cout << "  Cannot convert from/to the following formats because the ImageIO module is missing NIfTI support:\n";
   cout << "\n";
-  cout << "  Not available: f3d*, fnirt\n";
+  cout << "    f3d*, fnirt\n";
   cout << "\n";
-#endif // MIRTK_ImageIO_WITH_NIfTI
+#endif // !MIRTK_ImageIO_WITH_NIfTI
   cout << "\n";
   cout << "Arguments:\n";
   cout << "  input    Input transformation file.\n";
@@ -976,35 +975,42 @@ bool WriteFLIRT(const char *fname, const ImageAttributes &target_attr,
 /// Convert 3D+t displacement field to FSL warp
 class ConvertToFSLWarp : public VoxelFunction
 {
-  const Matrix    *_World2Source;
-  const BaseImage *_Warp;
-  bool             _Relative;
+  const ImageAttributes &_Source;
+  const BaseImage       &_Warp;
+  bool                   _Relative;
+
+  const Matrix _World2Source;
 
   static const int _x = 0;
   const int        _y, _z;
 
 public:
 
-  ConvertToFSLWarp(const Matrix *w2s, const BaseImage &warp, bool relative)
+  ConvertToFSLWarp(const ImageAttributes &source, const BaseImage &warp, bool relative)
   :
-    _World2Source(w2s), _Warp(&warp), _Relative(relative),
+    _Source(source), _Warp(warp), _Relative(relative),
+    _World2Source(source.GetWorldToImageMatrix()),
     _y(warp.NumberOfSpatialVoxels()), _z(_y + _y)
   {}
 
   template <class TIn, class TOut>
   void operator ()(int i, int j, int k, int, const TIn *din, TOut *dout) const
   {
-    double x, y, z;
-    x = i, y = j, z = k;
-    _Warp->ImageToWorld(x, y, z);
+    double x = i, y = j, z = k;
+    _Warp.ImageToWorld(x, y, z);
     x += static_cast<double>(din[_x]);
     y += static_cast<double>(din[_y]);
     z += static_cast<double>(din[_z]);
-    Transform(*_World2Source, x, y, z);
-    if (_Relative) x -= i, y -= j, z -= k;
-    dout[_x] = static_cast<TOut>(x * _Warp->GetXSize());
-    dout[_y] = static_cast<TOut>(y * _Warp->GetYSize());
-    dout[_z] = static_cast<TOut>(z * _Warp->GetZSize());
+    Transform(_World2Source, x, y, z);
+    x *= _Source._dx, y *= _Source._dy, z *= _Source._dz;
+    if (_Relative) {
+      x -= i * _Warp.XSize();
+      y -= j * _Warp.YSize();
+      z -= k * _Warp.ZSize();
+    }
+    dout[_x] = static_cast<TOut>(x);
+    dout[_y] = static_cast<TOut>(y);
+    dout[_z] = static_cast<TOut>(z);
   }
 
   template <class TInOut>
@@ -1035,8 +1041,7 @@ GenericImage<TReal> ToFSLWarpField(const ImageAttributes &target,
   dof->Displacement(warp);
 
   // Convert to FSL warp field
-  const Matrix i2s = source.GetWorldToImageMatrix();
-  ParallelForEachVoxel(ConvertToFSLWarp(&i2s, warp, relative), warp.Attributes(), warp);
+  ParallelForEachVoxel(ConvertToFSLWarp(source, warp, relative), warp.Attributes(), warp);
 
   // Set _dt != 0 such that warp field is saved as 3D+t time series instead of
   // 3D vector field, i.e., such that NIfTI dim[8] = {4, _x, _y, _z, 3, 1, 1, 1}
@@ -1193,24 +1198,14 @@ int main(int argc, char *argv[])
   #endif 
 
   for (ALL_OPTIONS) {
-    if (OPTION("-input-format")) {
-      const char *arg = ARGUMENT;
-      if (!FromString(arg, format_in)) {
-        FatalError("Invalid -input-format file format argument: " << arg);
-        exit(1);
-      }
-    }
+    if (OPTION("-input-format")) PARSE_ARGUMENT(format_in);
     else if (OPTION("-format") || OPTION("-output-format")) {
-      const char *arg = ARGUMENT;
-      if (!FromString(arg, format_out)) {
-        FatalError("Invalid [-output]-format file format argument: " << arg);
-        exit(1);
-      }
+      PARSE_ARGUMENT(format_out);
     }
     else if (OPTION("-dofin")) dofin_name = ARGUMENT;
     else if (OPTION("-target")) target_name = ARGUMENT;
     else if (OPTION("-source")) source_name = ARGUMENT;
-    else if (OPTION("-steps")) steps = atoi(ARGUMENT);
+    else if (OPTION("-steps")) PARSE_ARGUMENT(steps);
     else if (OPTION("-Ts")) PARSE_ARGUMENT(ts);
     else if (OPTION("-ds")) {
       PARSE_ARGUMENT(dx);
@@ -1220,12 +1215,10 @@ int main(int argc, char *argv[])
     else if (OPTION("-dy")) PARSE_ARGUMENT(dy);
     else if (OPTION("-dz")) PARSE_ARGUMENT(dz);
     else if (OPTION("-xyz_units")) {
-      const char *arg = ARGUMENT;
       #if MIRTK_ImageIO_WITH_NIfTI
-        if (!FromString(arg, xyz_units)) {
-          FatalError("Invalid argument for option -xyz_units: " << arg);
-          exit(1);
-        }
+        PARSE_ARGUMENT(xyz_units);
+      #else
+        ARGUMENT; // unused, but needs to be parsed
       #endif // MIRTK_ImageIO_WITH_NIfTI
     }
     else HANDLE_STANDARD_OR_UNKNOWN_OPTION();
@@ -1364,7 +1357,7 @@ int main(int argc, char *argv[])
   }
 
   // Guess output file format
-  const string ext_out = Extension(input_name, EXT_LastWithoutGz); 
+  const string ext_out = Extension(output_name, EXT_LastWithoutGz);
   bool  ext_out_nifti  = (ext_out == ".nii" || ext_out == ".hdr" || ext_out == ".img");
   bool  is_linear      = (dynamic_cast<HomogeneousTransformation *>(dof.get()) != nullptr);
 
