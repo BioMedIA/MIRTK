@@ -89,7 +89,7 @@ void PrintHelp(const char *name)
   cout << "\n";
   cout << "Options:\n";
   cout << "  -input-format  <format>    Format of input file. (default: unknown)\n";
-  cout << "  -output-format <format>    Format of output file. (default: mirtk)\n";
+  cout << "  -output-format <format>    Format of output file. (default: .nii[.gz] -> disp_world, .dof[.gz] -> mirtk)\n";
   cout << "  -format <format>           Short for :option:`-output-format`.\n";
   cout << "  -dofin <fname>             Affine transformation component in MIRTK format which\n";
   cout << "                             shall be removed from Nifty Reg's FFD such that the\n";
@@ -1183,7 +1183,7 @@ int main(int argc, char *argv[])
   }
 
   TransformationFileFormat format_in  = Format_Unknown;
-  TransformationFileFormat format_out = Format_MIRTK;
+  TransformationFileFormat format_out = Format_Unknown;
 
   const char *dofin_name  = nullptr;
   const char *target_name = nullptr;
@@ -1224,8 +1224,17 @@ int main(int argc, char *argv[])
     else HANDLE_STANDARD_OR_UNKNOWN_OPTION();
   }
 
+  const string ext_out       = Extension(output_name, EXT_LastWithoutGz);
+  const bool   ext_out_nifti = (ext_out == ".nii" || ext_out == ".hdr" || ext_out == ".img");
+  const bool   ext_out_mirtk = (ext_out == ".dof");
+
+  // Choose default output format based on output file name extension
   if (format_out == Format_Unknown) {
-    FatalError("Output file format cannot be unknown");
+    if      (ext_out_nifti) format_out = Format_WorldDisplacement;
+    else if (ext_out_mirtk) format_out = Format_MIRTK;
+    else {
+      FatalError("No default output format available for extension " << ext_out << ", use [-output]-format option!");
+    }
   }
 
   // Read target/source attributes
@@ -1357,9 +1366,7 @@ int main(int argc, char *argv[])
   }
 
   // Guess output file format
-  const string ext_out = Extension(output_name, EXT_LastWithoutGz);
-  bool  ext_out_nifti  = (ext_out == ".nii" || ext_out == ".hdr" || ext_out == ".img");
-  bool  is_linear      = (dynamic_cast<HomogeneousTransformation *>(dof.get()) != nullptr);
+  bool is_linear = (dynamic_cast<HomogeneousTransformation *>(dof.get()) != nullptr);
 
   if (format_out == Format_FSL) {
     if (ext_out_nifti || !is_linear) format_out = Format_FSL_WarpRelative;
