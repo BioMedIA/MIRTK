@@ -1192,24 +1192,14 @@ int main(int argc, char *argv[])
   #endif 
 
   for (ALL_OPTIONS) {
-    if (OPTION("-input-format")) {
-      const char *arg = ARGUMENT;
-      if (!FromString(arg, format_in)) {
-        FatalError("Invalid -input-format file format argument: " << arg);
-        exit(1);
-      }
-    }
+    if (OPTION("-input-format")) PARSE_ARGUMENT(format_in);
     else if (OPTION("-format") || OPTION("-output-format")) {
-      const char *arg = ARGUMENT;
-      if (!FromString(arg, format_out)) {
-        FatalError("Invalid [-output]-format file format argument: " << arg);
-        exit(1);
-      }
+      PARSE_ARGUMENT(format_out);
     }
     else if (OPTION("-dofin")) dofin_name = ARGUMENT;
     else if (OPTION("-target")) target_name = ARGUMENT;
     else if (OPTION("-source")) source_name = ARGUMENT;
-    else if (OPTION("-steps")) steps = atoi(ARGUMENT);
+    else if (OPTION("-steps")) PARSE_ARGUMENT(steps);
     else if (OPTION("-Ts")) PARSE_ARGUMENT(ts);
     else if (OPTION("-ds")) {
       PARSE_ARGUMENT(dx);
@@ -1219,12 +1209,10 @@ int main(int argc, char *argv[])
     else if (OPTION("-dy")) PARSE_ARGUMENT(dy);
     else if (OPTION("-dz")) PARSE_ARGUMENT(dz);
     else if (OPTION("-xyz_units")) {
-      const char *arg = ARGUMENT;
       #if MIRTK_ImageIO_WITH_NIfTI
-        if (!FromString(arg, xyz_units)) {
-          FatalError("Invalid argument for option -xyz_units: " << arg);
-          exit(1);
-        }
+        PARSE_ARGUMENT(xyz_units);
+      #else
+        ARGUMENT; // unused, but needs to be parsed
       #endif // MIRTK_ImageIO_WITH_NIfTI
     }
     else HANDLE_STANDARD_OR_UNKNOWN_OPTION();
