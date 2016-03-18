@@ -968,6 +968,14 @@ bool WriteFLIRT(const char *fname, const ImageAttributes &target_attr,
       return false;
     }
   }
+  if (!target_attr) {
+    Warning("Cannot convert linear transformation to Aladin format without input -target image!");
+    return false;
+  }
+  if (!source_attr) {
+    Warning("Cannot convert linear transformation to Aladin format without input -source image!");
+    return false;
+  }
   return WriteFLIRTMatrix(fname, ToFLIRTMatrix(target_attr, source_attr, lin));
 }
 
@@ -1065,6 +1073,12 @@ bool WriteFSLWarpField(const char *fname, ImageAttributes        target,
                                           bool relative = true)
 {
   if (!target) {
+    // FIXME: Warp field not correct when voxel size/image orientation different
+    //        from the target/reference image used for FSL's applywarp.
+#if 1
+    Warning("Cannot convert transformation to FSL warp field without input -target image!");
+    return false;
+#else
     const MultiLevelTransformation *mffd = dynamic_cast<const MultiLevelTransformation *>(dof);
     const FreeFormTransformation   *ffd  = dynamic_cast<const FreeFormTransformation   *>(dof);
     if (mffd) ffd = mffd->GetLocalTransformation(-1);
@@ -1073,6 +1087,11 @@ bool WriteFSLWarpField(const char *fname, ImageAttributes        target,
       return false;
     }
     target = ffd->Attributes();
+#endif
+  }
+  if (!source) {
+    Warning("Cannot convert transformation to FSL warp field without input -source image!");
+    return false;
   }
   ToFSLWarpField<double>(target, source, dof, relative).Write(fname);
   return true;
