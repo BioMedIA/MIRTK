@@ -50,9 +50,9 @@ set (VERSION_FILE "${CONFIG_PREFIX}ConfigVersion.cmake")
 ## @brief Name of the CMake package use file.
 set (USE_FILE "${CONFIG_PREFIX}Use.cmake")
 ## @brief Name of the CMake target exports file.
-set (EXPORTS_FILE "${CONFIG_PREFIX}Exports.cmake")
+set (EXPORTS_FILE "${CONFIG_PREFIX}${BASIS_EXPORT_SUFFIX}.cmake")
 ## @brief Name of the CMake target exports file for custom targets.
-set (CUSTOM_EXPORTS_FILE "${CONFIG_PREFIX}CustomExports.cmake")
+set (CUSTOM_EXPORTS_FILE "${CONFIG_PREFIX}Custom${BASIS_EXPORT_SUFFIX}.cmake")
 
 
 ## @}
@@ -62,7 +62,7 @@ set (CUSTOM_EXPORTS_FILE "${CONFIG_PREFIX}CustomExports.cmake")
 # export build targets
 # ============================================================================
 
-if (BASIS_CREATE_EXPORTS_FILE)
+if (BASIS_EXPORT_ENABLED)
   basis_export_targets (
     FILE        "${EXPORTS_FILE}"
     CUSTOM_FILE "${CUSTOM_EXPORTS_FILE}"
@@ -135,7 +135,7 @@ include ("${PROJECT_CONFIG_DIR}/ConfigSettings.cmake" OPTIONAL)
 # configure project configuration file for build tree
 
 string (CONFIGURE "${BASIS_TEMPLATE}" BASIS_CONFIG @ONLY)
-configure_file ("${TEMPLATE}" "${PROJECT_BINARY_DIR}/${CONFIG_FILE}" @ONLY)
+configure_file ("${TEMPLATE}" "${BINARY_LIBCONF_DIR}/${CONFIG_FILE}" @ONLY)
 
 if (NOT BASIS_BUILD_ONLY)
 
@@ -154,7 +154,7 @@ if (NOT BASIS_BUILD_ONLY)
   
   # --------------------------------------------------------------------------
   # install project configuration file
-  
+
   install (
     FILES       "${BINARY_CONFIG_DIR}/${CONFIG_FILE}"
     DESTINATION "${INSTALL_CONFIG_DIR}"
@@ -165,31 +165,33 @@ endif ()
 # ============================================================================
 # project version file
 # ============================================================================
+if (NOT PROJECT_IS_SUBMODULE)
 
-# ----------------------------------------------------------------------------
-# choose template
+  # --------------------------------------------------------------------------
+  # choose template
+  
+  if (EXISTS "${PROJECT_CONFIG_DIR}/ConfigVersion.cmake.in")
+    set (TEMPLATE "${PROJECT_CONFIG_DIR}/ConfigVersion.cmake.in")
+  else ()
+    set (TEMPLATE "${CMAKE_CURRENT_LIST_DIR}/ConfigVersion.cmake.in")
+  endif ()
+  
+  # --------------------------------------------------------------------------
+  # configure project configuration version file
+  
+  configure_file ("${TEMPLATE}" "${BINARY_LIBCONF_DIR}/${VERSION_FILE}" @ONLY)
+  
+  # --------------------------------------------------------------------------
+  # install project configuration version file
+  
+  if (NOT BASIS_BUILD_ONLY)
+    install (
+      FILES       "${BINARY_LIBCONF_DIR}/${VERSION_FILE}"
+      DESTINATION "${INSTALL_CONFIG_DIR}"
+    )
+  endif ()
 
-if (EXISTS "${PROJECT_CONFIG_DIR}/ConfigVersion.cmake.in")
-  set (TEMPLATE "${PROJECT_CONFIG_DIR}/ConfigVersion.cmake.in")
-else ()
-  set (TEMPLATE "${CMAKE_CURRENT_LIST_DIR}/ConfigVersion.cmake.in")
 endif ()
-
-# ----------------------------------------------------------------------------
-# configure project configuration version file
-
-configure_file ("${TEMPLATE}" "${PROJECT_BINARY_DIR}/${VERSION_FILE}" @ONLY)
-
-# ----------------------------------------------------------------------------
-# install project configuration version file
-
-if (NOT BASIS_BUILD_ONLY)
-  install (
-    FILES       "${PROJECT_BINARY_DIR}/${VERSION_FILE}"
-    DESTINATION "${INSTALL_CONFIG_DIR}"
-  )
-endif ()
-
 # ============================================================================
 # project use file
 # ============================================================================
@@ -227,14 +229,14 @@ endif ()
 # configure project use file
 
 string (CONFIGURE "${BASIS_USE}" BASIS_USE @ONLY)
-configure_file ("${TEMPLATE}" "${PROJECT_BINARY_DIR}/${USE_FILE}" @ONLY)
+configure_file ("${TEMPLATE}" "${BINARY_LIBCONF_DIR}/${USE_FILE}" @ONLY)
 
 # ----------------------------------------------------------------------------
 # install project use file
 
 if (NOT BASIS_BUILD_ONLY)
   install (
-    FILES       "${PROJECT_BINARY_DIR}/${USE_FILE}"
+    FILES       "${BINARY_LIBCONF_DIR}/${USE_FILE}"
     DESTINATION "${INSTALL_CONFIG_DIR}"
   )
 endif ()

@@ -17,6 +17,10 @@
 #     <td>Path to the Perl interpreter.</td>
 #   </tr>
 #   <tr>
+#     @tp @b Perl_DIR @endtp
+#     <td>Installation prefix of the Perl interpreter.</td>
+#   </tr>
+#   <tr>
 #     @tp @b PERL_VERSION_STRING @endtp
 #     <td>Perl version found e.g. 5.12.4.</td>
 #   </tr>
@@ -72,10 +76,9 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #=============================================================================
 
-include (FindCygwin)
+include ("${CMAKE_ROOT}/Modules/FindCygwin.cmake")
 
 set (PERL_POSSIBLE_BIN_PATHS "${CYGWIN_INSTALL_PATH}/bin")
-
 if (WIN32)
   get_filename_component (
     ActivePerl_CurrentVersion 
@@ -86,11 +89,14 @@ if (WIN32)
     "C:/Perl/bin" 
     "[HKEY_LOCAL_MACHINE\\SOFTWARE\\ActiveState\\ActivePerl\\${ActivePerl_CurrentVersion}]/bin"
   )
+  unset (ActivePerl_CurrentVersion)
 endif ()
 
 find_program (PERL_EXECUTABLE NAMES perl PATHS ${PERL_POSSIBLE_BIN_PATHS})
+unset (PERL_POSSIBLE_BIN_PATHS)
 
 if (PERL_EXECUTABLE)
+  string (REGEX REPLACE "/bin/[pP]erl[^/]*" "" Perl_DIR "${PERL_EXECUTABLE}")
   execute_process (COMMAND "${PERL_EXECUTABLE}" --version OUTPUT_VARIABLE _Perl_STDOUT ERROR_VARIABLE _Perl_STDERR)
   if (_Perl_STDOUT MATCHES "[( ]v([0-9]+)\\.([0-9]+)\\.([0-9]+)[ )]")
     set (PERL_VERSION_MAJOR "${CMAKE_MATCH_1}")
@@ -105,6 +111,17 @@ if (PERL_EXECUTABLE)
 endif ()
 
 include (FindPackageHandleStandardArgs)
-FIND_PACKAGE_HANDLE_STANDARD_ARGS (Perl DEFAULT_MSG PERL_EXECUTABLE)
+
+find_package_handle_standard_args (
+  Perl
+  REQUIRED_VARS
+    PERL_EXECUTABLE
+  VERSION_VAR
+    PERL_VERSION_STRING
+)
+
+if (NOT DEFINED Perl_FOUND AND DEFINED PERL_FOUND)
+  set (Perl_FOUND "${PERL_FOUND}")
+endif ()
 
 mark_as_advanced (PERL_EXECUTABLE)

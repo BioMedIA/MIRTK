@@ -99,6 +99,8 @@ set (BINARY_INCLUDE_DIR "@BINARY_INCLUDE_DIR@")
 set (BINARY_LIBRARY_DIR "@BINARY_LIBRARY_DIR@")
 ## @brief Absolute path to output directory for static and import libraries.
 set (BINARY_ARCHIVE_DIR "@BINARY_ARCHIVE_DIR@")
+## @brief Absolute path to build tree package configuration files.
+set (BINARY_LIBCONF_DIR "@BINARY_LIBCONF_DIR@")
 
 ## @brief Absolute path to output directory for Python modules.
 set (BINARY_PYTHON_LIBRARY_DIR "@BINARY_PYTHON_LIBRARY_DIR@")

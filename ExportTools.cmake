@@ -278,11 +278,11 @@ function (basis_export_targets)
     endif ()
     export (
       TARGETS   ${EXPORT_TARGETS}
-      FILE      "${PROJECT_BINARY_DIR}/${ARGN_FILE}"
+      FILE      "${BINARY_LIBCONF_DIR}/${ARGN_FILE}"
       ${NAMESPACE_OPT}
     )
     basis_get_project_property (INSTALL_EXPORT_TARGETS)
-    if (INSTALL_EXPORT_TARGETS)
+    if (INSTALL_EXPORT_TARGETS AND NOT BASIS_BUILD_ONLY)
       foreach (COMPONENT "${BASIS_RUNTIME_COMPONENT}" "${BASIS_LIBRARY_COMPONENT}")
         install (
           EXPORT      "${PROJECT_NAME}"
@@ -303,16 +303,16 @@ function (basis_export_targets)
   if (CUSTOM_EXPORT_TARGETS OR TEST_EXPORT_TARGETS)
 
     # write exports for build tree
-    basis_export_header (CONTENT)
-    basis_export_import_targets (CONTENT ${CUSTOM_EXPORT_TARGETS} ${TEST_EXPORT_TARGETS})
-    basis_export_build_properties (CONTENT ${CUSTOM_EXPORT_TARGETS}  ${TEST_EXPORT_TARGETS})
-    basis_export_footer (CONTENT)
+    basis_export_header           (CONTENT)
+    basis_export_import_targets   (CONTENT ${CUSTOM_EXPORT_TARGETS} ${TEST_EXPORT_TARGETS})
+    basis_export_build_properties (CONTENT ${CUSTOM_EXPORT_TARGETS} ${TEST_EXPORT_TARGETS})
+    basis_export_footer           (CONTENT)
 
-    file (WRITE "${PROJECT_BINARY_DIR}/${ARGN_CUSTOM_FILE}" "${CONTENT}")
+    file (WRITE "${BINARY_LIBCONF_DIR}/${ARGN_CUSTOM_FILE}" "${CONTENT}")
     unset (CONTENT)
 
     # write exports for installation - excluding test targets
-    if (CUSTOM_EXPORT_TARGETS)
+    if (CUSTOM_EXPORT_TARGETS AND NOT BASIS_BUILD_ONLY)
       set (INSTALL_EXPORT_FILE "${PROJECT_BINARY_DIR}/CMakeFiles/Export/${INSTALL_CONFIG_DIR}/${ARGN_CUSTOM_FILE}")
 
       basis_export_header (CONTENT)

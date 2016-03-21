@@ -46,7 +46,7 @@ endif ()
 # CMake version and policies
 # ============================================================================
 
-cmake_minimum_required (VERSION 2.8.4)
+cmake_minimum_required (VERSION 2.8.12 FATAL_ERROR)
 
 # Add policies introduced with CMake versions newer than the one specified
 # above. These policies would otherwise trigger a policy not set warning by
@@ -499,7 +499,7 @@ basis_list_to_regex (BASIS_PROPERTIES_ON_TARGETS_RE ${BASIS_PROPERTIES_ON_TARGET
 # of the build system because every target name must be mapped to its
 # target UID and possibly vice versa. Moreover, the use of target UIDs
 # is less intuitive for those new to BASIS but experienced with CMake.
-basis_set_if_empty (BASIS_USE_TARGET_UIDS OFF)
+basis_set_if_not_set (BASIS_USE_TARGET_UIDS OFF)
 
 ## @brief Whether BASIS shall use fully-qualified target UIDs.
 #
@@ -510,7 +510,7 @@ basis_set_if_empty (BASIS_USE_TARGET_UIDS OFF)
 # "@PROJECT_NAME_L@.target", the CMake target name will simply
 # be "target". Only when the target is referenced from another project,
 # the fully-qualified target UID is usually required.
-basis_set_if_empty (BASIS_USE_FULLY_QUALIFIED_UIDS OFF)
+basis_set_if_not_set (BASIS_USE_FULLY_QUALIFIED_UIDS OFF)
 
 ## @brief Default component used for library targets when no component is specified.
 #
@@ -559,13 +559,20 @@ mark_as_advanced (BUILD_BASIS_UTILITIES_FOR_CXX
 # This global variable specifies the default for the export of build targets if the
 # @c EXPORT or @c NO_EXPORT options of the basis_add_executable and basis_add_library
 # commands are not given.
-set (BASIS_EXPORT TRUE)
+set (BASIS_EXPORT_DEFAULT TRUE)
 
-## @brief Whether to create "<Package>Exports.cmake" file so other projects can import the exported targets.
+## @brief Suffix used for target exports file "<Package><ExportSuffix>.cmake"
+set (BASIS_EXPORT_SUFFIX "Exports")
+
+## @brief Whether to create "<Package><ExportSuffix>.cmake" file so other projects can import the exported targets.
 #
 # @sa GenerateConfig.cmake, ExportTools.cmake, http://www.cmake.org/cmake/help/v2.8.12/cmake.html#command:export
-option (BASIS_CREATE_EXPORTS_FILE "Create <Package>Exports.cmake file so other projects can import the build targets from this one. OFF may reduce configure time." ON)
-mark_as_advanced (BASIS_CREATE_EXPORTS_FILE)
+set (BASIS_EXPORT_ENABLED ON)
+
+basis_is_cached (BASIS_DEPRECATED_CREATE_EXPORTS_FILE_OPTION BASIS_CREATE_EXPORTS_FILE)
+if (BASIS_DEPRECATED_CREATE_EXPORTS_FILE_OPTION)
+  set (BASIS_EXPORT_ENABLED "${BASIS_CREATE_EXPORTS_FILE}")
+endif ()
 
 ## @brief Disable use of the revision information obtained from the revision
 #         control software such as Subversion or Git.
@@ -640,7 +647,7 @@ set (BASIS_SVN_USERS_FILE "${BASIS_MODULE_PATH}/SubversionUsers.txt")
 # project-specific BASIS C++ utilities.
 #
 # @sa basis_install_public_headers()
-basis_set_if_empty (BASIS_INSTALL_PUBLIC_HEADERS_OF_CXX_UTILITIES FALSE)
+basis_set_if_not_set (BASIS_INSTALL_PUBLIC_HEADERS_OF_CXX_UTILITIES FALSE)
 
 ## @brief Whether BASIS should configure any public header file with the .in file name suffix.
 #

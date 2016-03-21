@@ -97,4 +97,8 @@ elseif (NOT DEFINED JythonInterp_FOUND)
   set (JythonInterp_FOUND FALSE)
 endif ()
 
+if (JYTHON_EXECUTABLE)
+  string (REGEX REPLACE "/jython[^/]*$" "" JythonInterp_DIR "${JYTHON_EXECUTABLE}")
+  string (REGEX REPLACE "/[bB]in$"      "" JythonInterp_DIR "${JythonInterp_DIR}")
+endif ()
 mark_as_advanced (JYTHON_EXECUTABLE)

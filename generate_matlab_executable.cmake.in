@@ -19,7 +19,7 @@
 # such that the build command can be made dependent on the configured build script.
 ##############################################################################
 
-cmake_minimum_required (VERSION 2.8.4)
+cmake_minimum_required (VERSION 2.8.12 FATAL_ERROR)
 
 include ("@BASIS_MODULE_PATH@/MatlabTools.cmake") # basis_generate_matlab_executable()
                                                   # basis_write_addpaths_mfile()

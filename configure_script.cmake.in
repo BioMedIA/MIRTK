@@ -21,7 +21,7 @@
 # the script file for use in the build tree, and once for installation (optional).
 ##############################################################################
 
-cmake_minimum_required (VERSION 2.8.4)
+cmake_minimum_required (VERSION 2.8.12 FATAL_ERROR)
 
 include ("@BASIS_MODULE_PATH@/CommonTools.cmake") # basis_configure_script()
 
