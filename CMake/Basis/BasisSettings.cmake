@@ -46,7 +46,7 @@ endif ()
 # CMake version and policies
 # ============================================================================
 
-cmake_minimum_required (VERSION 2.8.4)
+cmake_minimum_required (VERSION 2.8.12 FATAL_ERROR)
 
 # Add policies introduced with CMake versions newer than the one specified
 # above. These policies would otherwise trigger a policy not set warning by
