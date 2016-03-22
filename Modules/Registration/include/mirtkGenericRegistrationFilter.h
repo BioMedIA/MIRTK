@@ -93,6 +93,9 @@ public:
   /// Type of cached displacement field
   typedef GenericImage<double>                    DisplacementImageType;
 
+  /// Enumeration of resampling resolution units
+  enum Units { UNITS_Default, UNITS_MM, UNITS_Voxel, UNITS_Percentage };
+
   /// Structure storing information about transformation instance
   struct TransformationInfo
   {
