@@ -52,7 +52,7 @@ int main(int argc, char *argv[])
 {
   REQUIRES_POSARGS(2);
   unique_ptr<Transformation> dof(Transformation::New(POSARG(1)));
-  const HomogeneousTransformation *lin = dynamic_cast<HomogeneousTransformation *>(dof.get());
+  HomogeneousTransformation *lin = dynamic_cast<HomogeneousTransformation *>(dof.get());
   if (!lin) {
     FatalError("Input transformation must be either Rigid, Similarity, or Affine");
   }
