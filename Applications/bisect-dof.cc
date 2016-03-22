@@ -34,7 +34,7 @@ using namespace mirtk;
 void PrintHelp(const char *name)
 {
   cout << endl;
-  cout << "Usage: " << name << " <dofout> <dofin>" << endl;
+  cout << "Usage: " << name << " <dofin> <dofout>" << endl;
   cout << endl;
   cout << "Description:" << endl;
   cout << "  This command bisects a rigid or affine transformation by calculating the" << endl;
