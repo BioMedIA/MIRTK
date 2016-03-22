@@ -1,9 +1,8 @@
 ﻿/*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2008-2015 Imperial College London
- * Copyright 2008-2013 Daniel Rueckert, Julia Schnabel
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2016 Imperial College London
+ * Copyright 2016 Christian Ledig
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,9 +20,8 @@
 #include <mirtkCommon.h>
 #include <mirtkOptions.h>
 
-#include <mirtkImageIOConfig.h>
-
-#include <mirtkTransformations.h>
+#include <mirtkMatrix.h>
+#include <mirtkHomogeneousTransformation.h>
 
 using namespace mirtk;
 
@@ -41,6 +39,7 @@ void PrintHelp(const char *name)
   cout << "Description:" << endl;
   cout << "  This command bisects a rigid or affine transformation by calculating the" << endl;
   cout << "  matrix square root of the transformation matrix." << endl;
+  PrintStandardOptions(cout);
   cout << endl;
 }
 
@@ -49,40 +48,15 @@ void PrintHelp(const char *name)
 // ===========================================================================
 
 // ---------------------------------------------------------------------------
-int main(int argc, char **argv)
+int main(int argc, char *argv[])
 {
-  InitializeImageIOLibrary();
-
   REQUIRES_POSARGS(2);
-
-  string        dofout;
-  string	dofin;
-
-  // Parse arguments
-  dofout = POSARG(1);
-  dofin  = POSARG(2);
-
-  // Read transformation from file
-  unique_ptr<Transformation> t(Transformation::New(dofin.c_str()));
-  // Determine actual type of transformation
-  RigidTransformation         *rigid      = NULL;
-  AffineTransformation        *affine     = NULL;
-  if (!((rigid      = dynamic_cast<RigidTransformation *>(t.get())) ||
-        (affine     = dynamic_cast<AffineTransformation        *>(t.get())))) {
-    cerr << EXECNAME << ": Cannot process transformation \"" << dofin << "\" of type " << t->NameOfClass() << endl;
-    exit(1);
+  unique_ptr<Transformation> dof(Transformation::New(POSARG(1)));
+  const HomogeneousTransformation *lin = dynamic_cast<HomogeneousTransformation *>(dof.get());
+  if (!lin) {
+    FatalError("Input transformation must be either Rigid, Similarity, or Affine");
   }
-  if (affine) {
-  	Matrix bisectMat = affine->GetMatrix();
-  	bisectMat = bisectMat.Sqrt();
-  	affine->PutMatrix(bisectMat);
-  	affine->Write(dofout.c_str());
-  }
-  else if (rigid) {
-        Matrix bisectMat = rigid->GetMatrix();
-	bisectMat = bisectMat.Sqrt();
-	rigid->PutMatrix(bisectMat);
-	rigid->Write(dofout.c_str());
-  }
+  lin->PutMatrix(lin->GetMatrix().Sqrt());
+  lin->Write(POSARG(2));
   return 0;
 }
