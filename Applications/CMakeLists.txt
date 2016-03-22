@@ -109,6 +109,7 @@ if (MODULE_Transformation)
     endmacro()
 
     add_image_transformation_command(average-dofs)
+    add_image_transformation_command(bisect-dof)
     add_image_transformation_command(concatenate-dofs)
     add_image_transformation_command(convert-dof)
     add_image_transformation_command(convert-dof2csv)
