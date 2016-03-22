@@ -34,7 +34,7 @@ using namespace mirtk;
 void PrintHelp(const char *name)
 {
   cout << endl;
-  cout << "Usage: " << name << " <dofout> <dofin>" << endl;
+  cout << "Usage: " << name << " <dofin> <dofout>" << endl;
   cout << endl;
   cout << "Description:" << endl;
   cout << "  This command bisects a rigid or affine transformation by calculating the" << endl;
@@ -52,7 +52,7 @@ int main(int argc, char *argv[])
 {
   REQUIRES_POSARGS(2);
   unique_ptr<Transformation> dof(Transformation::New(POSARG(1)));
-  const HomogeneousTransformation *lin = dynamic_cast<HomogeneousTransformation *>(dof.get());
+  HomogeneousTransformation *lin = dynamic_cast<HomogeneousTransformation *>(dof.get());
   if (!lin) {
     FatalError("Input transformation must be either Rigid, Similarity, or Affine");
   }

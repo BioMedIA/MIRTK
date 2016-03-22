@@ -6,6 +6,7 @@
 
    /commands/average-dofs
    /commands/average-images
+   /commands/bisect-dof
    /commands/calculate
    /commands/calculate-distance-map
    /commands/calculate-exponential-map
@@ -66,6 +67,7 @@ Command                        Description
 ============================== ================================================
 |average-dofs|                 |average-dofs-brief-description|
 |average-images|               |average-images-brief-description|
+|bisect-dof|                   |bisect-dof-brief-description|
 |calculate|                    |calculate-brief-description|
 |calculate-distance-map|       |calculate-distance-map-brief-description|
 |calculate-exponential-map|    |calculate-exponential-map-brief-description|
@@ -124,6 +126,7 @@ Command                        Description
 
 .. |average-dofs|                 replace:: :doc:`/commands/average-dofs`
 .. |average-images|               replace:: :doc:`/commands/average-images`
+.. |bisect-dof|                   replace:: :doc:`/commands/bisect-dof`
 .. |calculate|                    replace:: :doc:`/commands/calculate`
 .. |calculate-distance-map|       replace:: :doc:`/commands/calculate-distance-map`
 .. |calculate-exponential-map|    replace:: :doc:`/commands/calculate-exponential-map`
@@ -181,6 +184,7 @@ Command                        Description
 
 .. include:: /commands/_summaries/average-dofs.rst
 .. include:: /commands/_summaries/average-images.rst
+.. include:: /commands/_summaries/bisect-dof.rst
 .. include:: /commands/_summaries/calculate.rst
 .. include:: /commands/_summaries/calculate-distance-map.rst
 .. include:: /commands/_summaries/calculate-exponential-map.rst
