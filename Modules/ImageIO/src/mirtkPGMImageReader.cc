@@ -76,7 +76,7 @@ void PGMImageReader::ReadHeader()
   } while (buffer[0] == '#');
 
   // Parse voxel dimensions
-#if WINDOWS
+#ifdef WINDOWS
   sscanf_s(buffer, "%d %d", &_Attributes._x, &_Attributes._y);
 #else
   sscanf(buffer, "%d %d", &_Attributes._x, &_Attributes._y);

@@ -64,7 +64,7 @@ typedef NormalizedIntensityCrossCorrelation::RealImage RealImage;
 // -----------------------------------------------------------------------------
 int ParseValues(const char *str, const char *format, int *x, int *y, int *z)
 {
-#if WINDOWS
+#ifdef WINDOWS
   return sscanf_s(str, format, x, y, z);
 #else
   return sscanf(str, format, x, y, z);
@@ -74,11 +74,11 @@ int ParseValues(const char *str, const char *format, int *x, int *y, int *z)
 // -----------------------------------------------------------------------------
 int ParseValues(const char *str, const char *format, double *x, double *y, double *z)
 {
-  #if WINDOWS
-    return sscanf_s(str, format, x, y, z);
-  #else
-    return sscanf(str, format, x, y, z);
-  #endif
+#ifdef WINDOWS
+  return sscanf_s(str, format, x, y, z);
+#else
+  return sscanf(str, format, x, y, z);
+#endif
 }
 
 // -----------------------------------------------------------------------------

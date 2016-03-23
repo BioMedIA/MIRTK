@@ -1166,7 +1166,7 @@ bool GenericRegistrationFilter::Set(const char *name, const char *value, int lev
   // Transformation model
   } else if (strcmp(name, "Transformation model") == 0) {
     _TransformationModel.clear();
-    #if WINDOWS
+    #ifdef WINDOWS
       char *str = _strdup(value);
       char *nxt = nullptr;
       char *val = strtok_s(str, " \t,+", &nxt);
@@ -1183,7 +1183,7 @@ bool GenericRegistrationFilter::Set(const char *name, const char *value, int lev
         free(str);
         return false;
       }
-      #if WINDOWS
+      #ifdef WINDOWS
         val = strtok_s(nullptr, " \t,+", &nxt);
       #else // WINDOWS
         val = strtok(nullptr, " \t,+");
@@ -1240,7 +1240,7 @@ bool GenericRegistrationFilter::Set(const char *name, const char *value, int lev
   // Image resolution
   } else if (strncmp(name, "Resolution", 10) == 0) {
     double dx = .0, dy = .0, dz = .0;
-    #if WINDOWS
+    #ifdef WINDOWS
       int n = sscanf_s(value, "%lf %lf %lf", &dx, &dy, &dz);
     #else
       int n = sscanf(value, "%lf %lf %lf", &dx, &dy, &dz);
@@ -3598,7 +3598,7 @@ RegisteredPointSet *GenericRegistrationFilter::OutputPointSet(int n, double t, T
         _DisplacementInfo.resize(_DisplacementInfo.size() + 1);
         i = _DisplacementInfo.end() - 1;
         i->_InputTime      = output->InputTime();
-        i->_DispIndex      = _DisplacementField.size();
+        i->_DispIndex      = static_cast<int>(_DisplacementField.size());
         i->_Domain         = output->Domain();
         i->_Transformation = output->Transformation();
         _DisplacementField.push_back(new DisplacementImageType(output->Domain(), 3));

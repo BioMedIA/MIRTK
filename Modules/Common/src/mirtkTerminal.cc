@@ -116,7 +116,7 @@ struct SetDefaultColorMode
 {
   SetDefaultColorMode()
   {
-#if WINDOWS
+#ifdef WINDOWS
     char *term;
     size_t len;
     errno_t err = _dupenv_s(&term, &len, "TERM");

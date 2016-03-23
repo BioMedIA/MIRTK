@@ -60,7 +60,7 @@ MIRTK_Common_EXPORT extern int debug;
 // -----------------------------------------------------------------------------
 void CopyString(char *out, size_t sz, const string &str)
 {
-#if WINDOWS
+#ifdef WINDOWS
   strcpy_s(out, sz, str.c_str());
 #else
   strcpy(out, str.c_str());
@@ -344,7 +344,7 @@ void GenericRegistrationDebugger::HandleEvent(Observable *obj, Event event, cons
       #ifdef HAVE_MIRTK_PointSet
         for (size_t i = 0; i < r->_PointSet[r->_CurrentLevel].size(); ++i) {
           vtkPointSet *pointset = r->_PointSet[r->_CurrentLevel][i];
-          snprintf(fname, sz, "%spointset_%02lu%s", prefix, i+1, DefaultExtension(pointset));
+          snprintf(fname, sz, "%spointset_%02zu%s", prefix, i+1, DefaultExtension(pointset));
           WritePointSet(fname, pointset);
         }
       #endif // HAVE_MIRTK_PointSet

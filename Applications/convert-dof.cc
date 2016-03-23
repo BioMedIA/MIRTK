@@ -122,11 +122,11 @@ void PrintHelp(const char *name)
 FILE *OpenFile(const char *fname, const char *mode)
 {
   FILE *fp = nullptr;
-  #if WINDOWS
-    if (fopen_s(&fp, fname, mode) != 0) fp = nullptr;
-  #else
-    fp = fopen(fname, mode);
-  #endif
+#ifdef WINDOWS
+  if (fopen_s(&fp, fname, mode) != 0) fp = nullptr;
+#else
+  fp = fopen(fname, mode);
+#endif
   return fp;
 }
 
@@ -520,7 +520,7 @@ Transformation *ReadAladin(const char *fname)
 {
   Matrix m(4, 4);
   FILE *f = OpenFile(fname, "r");
-  #if WINDOWS
+  #ifdef WINDOWS
   #  define fscanf fscanf_s
   #endif // WINDOWS
   if (fscanf(f, "%lf %lf %lf %lf\n", &m(0, 0), &m(0, 1), &m(0, 2), &m(0, 3)) != 4 ||
@@ -530,7 +530,7 @@ Transformation *ReadAladin(const char *fname)
     FatalError("File does not appear to be a valid Aladin output file: " << fname);
     exit(1);
   }
-  #if WINDOWS
+  #ifdef WINDOWS
   #  undef fscanf
   #endif // WINDOWS
   m(3, 0) = m(3, 1) = m(3, 2) = .0; m(3, 3) = 1.0;

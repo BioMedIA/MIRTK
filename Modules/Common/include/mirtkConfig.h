@@ -27,7 +27,9 @@
 
 /// Whether to build for execution on Microsoft Windows
 #ifndef WINDOWS
-#  define WINDOWS (defined (_WIN32) || defined(_WIN64) || defined (_WINDOWS))
+#  if defined(_WIN32) || defined(_WIN64) || defined(_WINDOWS) || defined(WIN32) 
+#    define WINDOWS
+#  endif
 #endif
 
 /// Precision of floating point types to use by default

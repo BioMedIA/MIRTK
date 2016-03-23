@@ -26,7 +26,7 @@
 #include <mirtkStream.h>
 
 #include <cstdio>
-#if !WINDOWS
+#ifndef WINDOWS
 #  include <unistd.h>
 #endif
 
@@ -61,7 +61,7 @@ void PrintTerminalOptions(ostream &);
 // -----------------------------------------------------------------------------
 inline bool StdOutIsRedirected()
 {
-#if WINDOWS
+#ifdef WINDOWS
   return false;
 #else
  return !isatty(fileno(stdout));
