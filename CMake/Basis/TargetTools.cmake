@@ -429,6 +429,9 @@ endif ()
 # Another reason is the mapping of build target names to fully-qualified
 # build target names as used by BASIS (see basis_get_target_uid()).
 #
+# Only link dependencies added with this function are considered for the setting
+# of the INSTALL_RPATH of executable targets (see basis_set_target_install_rpath()).
+#
 # Example:
 # @code
 # basis_add_library (MyMEXFunc MEX myfunc.c)
@@ -2579,7 +2582,6 @@ function (basis_set_target_install_rpath TARGET_NAME)
     list (REMOVE_DUPLICATES INSTALL_RPATH)
   endif ()
   # set INSTALL_RPATH property
-  string (REPLACE ";" ":" INSTALL_RPATH "${INSTALL_RPATH}")
   set_target_properties (${TARGET_UID} PROPERTIES INSTALL_RPATH "${INSTALL_RPATH}")
   if (BASIS_DEBUG)
     message ("**    INSTALL_RPATH: [${INSTALL_RPATH}]")
