@@ -1726,12 +1726,6 @@ void GenericImage<VoxelType>::ImageToVTK(vtkStructuredPoints *vtk) const
     for (int l = 0; l < _attr._t; ++l, ++ptr2) *ptr2 = ptr1[l * nvox];
   }
 }
-template <>
-void GenericImage<Matrix3x3>::ImageToVTK(vtkStructuredPoints *) const
-{
-  cerr << "GenericImage<Matrix3x3>::VTKToImage: Not implemented" << endl;
-  exit(1);
-}
 
 // -----------------------------------------------------------------------------
 template <class Type>
