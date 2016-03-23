@@ -61,6 +61,8 @@ endif ()
 # By default, use included Eigen header files
 if (Eigen3_INCLUDE_DIR)
   set(Eigen3_DIR "${Eigen3_INCLUDE_DIR}")
+elseif (EIGEN3_INCLUDE_DIR)
+  set(Eigen3_DIR "${EIGEN3_INCLUDE_DIR}")
 endif ()
 if (NOT Eigen3_DIR AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/Eigen/signature_of_eigen3_matrix_library")
   set(Eigen3_DIR "${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/Eigen")
