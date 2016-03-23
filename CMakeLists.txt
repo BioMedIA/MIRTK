@@ -40,6 +40,11 @@ include(BasisSettings)
 include(BasisTools)
 include(mirtkTools)
 
+# Reset global properties used to collect information about MIRTK commands
+# and the LD_LIBRARY_PATH of external libraries required by these
+set_property(GLOBAL PROPERTY MIRTK_COMMANDS     "")
+set_property(GLOBAL PROPERTY MIRTK_LIBRARY_PATH "")
+
 # ----------------------------------------------------------------------------
 # Configure build system
 
