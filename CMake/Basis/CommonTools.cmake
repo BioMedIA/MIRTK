@@ -46,7 +46,7 @@ include (CMakeParseArguments)
 # has modified these variables, but not restored their initial value.
 macro (find_package)
   if (BASIS_DEBUG)
-    message ("find_package(${ARGV})")
+    message ("** find_package(${ARGV})")
   endif ()
   # attention: find_package() can be recursive. Hence, use "stack" to keep
   #            track of library suffixes. Further note that we need to
@@ -1518,7 +1518,7 @@ endmacro ()
 # @note This function may only be used in script configurations such as
 #       in particular the ScriptConfig.cmake.in file. It requires that the
 #       variables @c __DIR__ and @c BUILD_INSTALL_SCRIPT are set properly.
-#       These variables are set by the configure_script() function.
+#       These variables are set by the basis_configure_script() function.
 #       Moreover, it makes use of the global @c CMAKE_INSTALL_PREFIX and
 #       @c PROJECT_SOURCE_DIR variables.
 #
@@ -2998,6 +2998,10 @@ endmacro ()
 #         Python modules can be compiled.</td>
 #   </tr>
 #   <tr>
+#     #tp @b CONFIGURATION <name> @endtp
+#     <td>Name of build configuration.</td>
+#   </tr>
+#   <tr>
 #     @tp @b COPYONLY @endtp
 #     <td>Whether to only copy the script file without replacing CMake variables
 #         within the file. This option is passed on to CMake's configure_file()
@@ -3011,6 +3015,14 @@ endmacro ()
 #         file name contains a file name extension, the given script file is
 #         configured as module script. A script file with an output file name
 #         that has no extension, is always considered to be an executable.</td>
+#   </tr>
+#   <tr>
+#     @tp @b DIRECTORY dir @endtp
+#     <td>Build tree directory of configured script. By default, the directory
+#         of the output script file is used to set the @c __DIR__ variable
+#         used to make absolute file paths relative to the configured build
+#         tree script file in the script configuration file
+#         (see basis_set_script_path()).
 #   </tr>
 #   <tr>
 #     @tp @b DESTINATION dir @endtp
@@ -3057,7 +3069,7 @@ function (basis_configure_script INPUT OUTPUT)
   CMAKE_PARSE_ARGUMENTS (
     ARGN
       "COMPILE;COPYONLY;EXECUTABLE"
-      "DESTINATION;LANGUAGE"
+      "DIRECTORY;DESTINATION;LANGUAGE;CONFIGURATION"
       "CACHE_FILE;CONFIG_FILE;LINK_DEPENDS"
     ${ARGN}
   )
@@ -3077,12 +3089,9 @@ function (basis_configure_script INPUT OUTPUT)
     include ("${_F}")
   endforeach ()
   # --------------------------------------------------------------------------
-  # set general variables for use in scripts
-  set (__FILE__ "${_OUTPUT_FILE}")
-  get_filename_component (__NAME__ "${_OUTPUT_FILE}" NAME)
-  # --------------------------------------------------------------------------
-  # variables mainly intended for use in script configurations, in particular,
-  # these are used by basis_set_script_path() to make absolute paths relative
+  # general variables for use in scripts and those intended for use in script
+  # configurations; the __DIR__ is in particular used by basis_set_script_path()
+  # to make absolute paths relative to the script file location
   if (ARGN_DESTINATION)
     if (NOT IS_ABSOLUTE "${ARGN_DESTINATION}")
       set (ARGN_DESTINATION "${CMAKE_INSTALL_PREFIX}/${ARGN_DESTINATION}")
@@ -3091,8 +3100,19 @@ function (basis_configure_script INPUT OUTPUT)
     set (__DIR__ "${ARGN_DESTINATION}")
   else ()
     set (BUILD_INSTALL_SCRIPT FALSE)
-    get_filename_component (__DIR__ "${_OUTPUT_FILE}" PATH)
+    if (ARGN_DIRECTORY)
+      if (NOT IS_ABSOLUTE "${ARGN_DIRECTORY}")
+        message (FATAL_ERROR "Build tree script DIRECTORY must be an absolute path")
+      endif ()
+      set (__DIR__ "${ARGN_DIRECTORY}")
+      string (REPLACE "$<CONFIGURATION>" "${ARGN_CONFIGURATION}" __DIR__ "${__DIR__}")
+    else ()
+      get_filename_component (__DIR__ "${_OUTPUT_FILE}" PATH)
+    endif ()
   endif ()
+  get_filename_component (__NAME__ "${_OUTPUT_FILE}" NAME)
+  set (__FILE__   "${__DIR__}/${__NAME__}")
+  set (__CONFIG__ "${ARGN_CONFIGURATION}")
   # --------------------------------------------------------------------------
   # include script configuration files
   foreach (_F IN LISTS ARGN_CONFIG_FILE)
@@ -3405,7 +3425,7 @@ function (basis_get_target_location VAR TARGET_NAME PART)
           endif ()
         endforeach ()
       endif ()
-      # make path relative to CMAKE_INSTALL_PREFIX if POST_CMAKE_INSTALL_PREFIX given
+      # make path relative to CMAKE_INSTALL_PREFIX if POST_INSTALL_RELATIVE given
       if (LOCATION AND ARGV2 MATCHES "POST_INSTALL_RELATIVE")
         file (RELATIVE_PATH LOCATION "${CMAKE_INSTALL_PREFIX}" "${LOCATION}")
       endif ()
@@ -3544,9 +3564,9 @@ function (basis_get_target_link_libraries LINK_DEPENDS TARGET_NAME)
     message (FATAL_ERROR "basis_get_target_link_libraries(): Unknown target: ${TARGET_UID}")
   endif ()
   if (BASIS_DEBUG AND BASIS_VERBOSE)
-    message (STATUS "** basis_get_target_link_libraries():")
-    message (STATUS "**   TARGET_NAME:     ${TARGET_NAME}")
-    message (STATUS "**   CURRENT_DEPENDS: ${ARGN}")
+    message ("** basis_get_target_link_libraries():")
+    message ("**   TARGET_NAME:     ${TARGET_NAME}")
+    message ("**   CURRENT_DEPENDS: ${ARGN}")
   endif ()
   # get type of target
   get_target_property (BASIS_TYPE ${TARGET_UID} BASIS_TYPE)

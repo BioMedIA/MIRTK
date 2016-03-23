@@ -2670,7 +2670,7 @@ function (basis_build_script TARGET_UID)
   endif ()
   set (SOURCE_FILE "${SOURCES}")
   set (BUILD_DIR   "${BUILD_DIRECTORY}.dir")
-  # output name
+  # output directory and name
   if (NOT OUTPUT_NAME)
     basis_get_target_name (OUTPUT_NAME ${TARGET_UID})
   endif ()
@@ -2680,15 +2680,21 @@ function (basis_build_script TARGET_UID)
   if (SUFFIX)
     set (OUTPUT_NAME "${OUTPUT_NAME}${SUFFIX}")
   endif ()
+  if ((MODULE AND COMPILE) OR CMAKE_GENERATOR MATCHES "Visual Studio|Xcode")
+    set (OUTPUT_FILE "${BUILD_DIR}/build/${OUTPUT_NAME}")
+    set (OUTPUT_DIR  "${OUTPUT_DIRECTORY}/$<CONFIGURATION>")
+  else ()
+    set (OUTPUT_FILE "${OUTPUT_DIRECTORY}/${OUTPUT_NAME}")
+    unset (OUTPUT_DIR)
+  endif ()
   # arguments of build script
-  set (OUTPUT_FILE "${OUTPUT_DIRECTORY}/${OUTPUT_NAME}")
   if (INSTALL_DIRECTORY)
     if (MODULE)
       get_filename_component (SOURCE_NAME "${SOURCE_FILE}" NAME)
-      set (INSTALL_FILE "${BUILD_DIR}/build/${SOURCE_NAME}")
+      set (INSTALL_FILE "${BUILD_DIR}/install/${SOURCE_NAME}")
       string (REGEX REPLACE "\\.in$" "" INSTALL_FILE "${INSTALL_FILE}")
     else ()
-      set (INSTALL_FILE "${BUILD_DIR}/build/${OUTPUT_NAME}")
+      set (INSTALL_FILE "${BUILD_DIR}/install/${OUTPUT_NAME}")
     endif ()
     set (DESTINATION "${INSTALL_DIRECTORY}")
     if (NOT IS_ABSOLUTE "${DESTINATION}")
@@ -2844,7 +2850,7 @@ function (basis_build_script TARGET_UID)
   endif ()
   add_custom_command (
     OUTPUT          ${OUTPUT_FILES}
-    COMMAND         "${CMAKE_COMMAND}" -P "${BUILD_SCRIPT}"
+    COMMAND         "${CMAKE_COMMAND}" -D "CONFIGURATION:STRING=$<CONFIGURATION>" -P "${BUILD_SCRIPT}"
     MAIN_DEPENDENCY "${SOURCE_FILE}"
     DEPENDS         "${BUILD_SCRIPT}" "${BASIS_MODULE_PATH}/CommonTools.cmake" # basis_configure_script() definition
                     "${CACHE_FILE}" ${CONFIG_FILES}
@@ -2870,6 +2876,31 @@ function (basis_build_script TARGET_UID)
       endif ()
     endif ()
   endforeach ()
+  # copy configured (and compiled) script to (configuration specific) output directory
+  if (OUTPUT_DIR)
+    if (OUTPUT_CFILE)
+      get_filename_component (OUTPUT_CNAME "${OUTPUT_CFILE}" NAME)
+      add_custom_command (
+        TARGET _${TARGET_UID} POST_BUILD
+        COMMAND "${CMAKE_COMMAND}" -E copy "${OUTPUT_CFILE}" "${OUTPUT_DIR}/${OUTPUT_CNAME}"
+      )
+      set_property (DIRECTORY APPEND PROPERTY ADDITIONAL_MAKE_CLEAN_FILES "${OUTPUT_DIR}/${OUTPUT_CNAME}")
+      if (JYTHON_OUTPUT_CFILE)
+        get_filename_component (OUTPUT_CNAME "${JYTHON_OUTPUT_CFILE}" NAME)
+        add_custom_command (
+          TARGET _${TARGET_UID} POST_BUILD
+          COMMAND "${CMAKE_COMMAND}" -E copy "${JYTHON_OUTPUT_CFILE}" "${OUTPUT_DIR}/${OUTPUT_CNAME}"
+        )
+        set_property (DIRECTORY APPEND PROPERTY ADDITIONAL_MAKE_CLEAN_FILES "${OUTPUT_DIR}/${OUTPUT_CNAME}")
+      endif ()
+    else ()
+      add_custom_command (
+        TARGET _${TARGET_UID} POST_BUILD
+        COMMAND "${CMAKE_COMMAND}" -E copy "${OUTPUT_FILE}" "${OUTPUT_DIR}/${OUTPUT_NAME}"
+      )
+      set_property (DIRECTORY APPEND PROPERTY ADDITIONAL_MAKE_CLEAN_FILES "${OUTPUT_DIR}/${OUTPUT_NAME}")
+    endif ()
+  endif ()
   # export target
   if (EXPORT)
     basis_add_custom_export_target (${TARGET_UID} "${IS_TEST}")
@@ -3023,9 +3054,17 @@ function (basis_build_script_library TARGET_UID)
     list (APPEND OPTIONS COMPILE)
   endif ()
   # add build command for each module
-  set (OUTPUT_FILES)                                  # list of all output files
-  set (FILES_TO_INSTALL)                              # list of output files for installation
-  set (BINARY_INSTALL_DIRECTORY "${BUILD_DIR}/build") # common base directory for files to install 
+  set (OUTPUT_FILES)                                    # list of all output files
+  set (FILES_TO_COPY)                                   # relative paths of build tree modules
+  set (FILES_TO_INSTALL)                                # list of output files for installation
+  set (BINARY_INSTALL_DIRECTORY "${BUILD_DIR}/install") # common base directory for files to install 
+  if (COMPILE OR CMAKE_GENERATOR MATCHES "Visual Studio|Xcode") # post-build copy to <libdir>/<config>/
+    set (BINARY_OUTPUT_DIRECTORY "${BUILD_DIR}/build")  # common base directory for build tree files
+    set (POST_BUILD_COPY TRUE)
+  else ()
+    set (BINARY_OUTPUT_DIRECTORY "${LIBRARY_OUTPUT_DIRECTORY}")
+    set (POST_BUILD_COPY FALSE)
+  endif ()
   foreach (SOURCE_FILE IN LISTS SOURCES)
     file (RELATIVE_PATH S "${SOURCE_DIRECTORY}" "${SOURCE_FILE}")
     string (REGEX REPLACE "\\.in$" "" S "${S}")
@@ -3034,7 +3073,8 @@ function (basis_build_script_library TARGET_UID)
     if (PREFIX)
       set (S "${PREFIX}${S}")
     endif ()
-    set (OUTPUT_FILE    "${LIBRARY_OUTPUT_DIRECTORY}/${S}")
+    set (OUTPUT_FILE "${BINARY_OUTPUT_DIRECTORY}/${S}")
+    get_filename_component (OUTPUT_DIR "${LIBRARY_OUTPUT_DIRECTORY}/${S}" PATH)
     if (LIBRARY_INSTALL_DIRECTORY)
       set (INSTALL_FILE "${BINARY_INSTALL_DIRECTORY}/${S}")
       set (DESTINATION  "${LIBRARY_INSTALL_DIRECTORY}/${S}")
@@ -3077,6 +3117,18 @@ function (basis_build_script_library TARGET_UID)
         endif ()
       endif ()
     endif ()
+    if (POST_BUILD_COPY)
+      if (OUTPUT_CFILE)
+        file (RELATIVE_PATH _file "${BINARY_OUTPUT_DIRECTORY}" "${OUTPUT_CFILE}")
+        list (APPEND FILES_TO_COPY "${_file}")
+        if (JYTHON_OUTPUT_CFILE)
+          file (RELATIVE_PATH _file "${BINARY_OUTPUT_DIRECTORY}" "${JYTHON_OUTPUT_CFILE}")
+          list (APPEND FILES_TO_COPY "${_file}")
+        endif ()
+      else ()
+        list (APPEND FILES_TO_COPY "${S}")
+      endif ()
+    endif ()
     if (INSTALL_CFILE)
       list (APPEND FILES_TO_INSTALL "${INSTALL_CFILE}")
     elseif (INSTALL_FILE)
@@ -3091,7 +3143,7 @@ function (basis_build_script_library TARGET_UID)
     set (COMMENT "Building ${LANGUAGE} module ${REL}...")
     add_custom_command (
       OUTPUT          ${_OUTPUT_FILES}
-      COMMAND         "${CMAKE_COMMAND}" -P "${BUILD_SCRIPT}"
+      COMMAND         "${CMAKE_COMMAND}" -D "CONFIGURATION=$<CONFIGURATION>" -P "${BUILD_SCRIPT}"
       MAIN_DEPENDENCY "${SOURCE_FILE}"
       DEPENDS         "${BUILD_SCRIPT}" "${BASIS_MODULE_PATH}/CommonTools.cmake" # basis_configure_script() definition
                       "${CACHE_FILE}" ${CONFIG_FILES}
@@ -3109,6 +3161,13 @@ function (basis_build_script_library TARGET_UID)
     endif ()
   endforeach ()
   add_dependencies (${TARGET_UID} _${TARGET_UID})
+  # copy configured modules to output directory
+  foreach (OUTPUT_FILE IN LISTS FILES_TO_COPY)
+    add_custom_command (
+      TARGET _${TARGET_UID} POST_BUILD
+      COMMAND "${CMAKE_COMMAND}" -E copy "${BINARY_OUTPUT_DIRECTORY}/${OUTPUT_FILE}" "${LIBRARY_OUTPUT_DIRECTORY}/${OUTPUT_FILE}"
+    )
+  endforeach ()
   # cleanup on "make clean" - including compiled files regardless of COMPILE flag
   set_property (DIRECTORY APPEND PROPERTY ADDITIONAL_MAKE_CLEAN_FILES ${OUTPUT_FILES})
   foreach (OUTPUT_FILE IN LISTS OUTPUT_FILES)
