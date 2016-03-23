@@ -45,7 +45,7 @@ function (mirtk_target_dependencies target_name)
       if (TARGET "${dep_name}")
         get_target_property(dep_type ${dep_name} TYPE)
         # Add dependency on imported link library
-        if (type MATCHES "LIBRARY")
+        if (dep_type MATCHES "LIBRARY")
           target_link_libraries(${target_uid} ${dep_attr} ${dep_name})
           get_property(dep_imported TARGET ${dep_name} PROPERTY IMPORTED)
           if (dep_imported)
