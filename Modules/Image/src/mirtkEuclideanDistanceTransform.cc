@@ -486,7 +486,7 @@ void EuclideanDistanceTransform<VoxelType>
       }
     }
     /* reverse pass */
-    if (*(--p) != max_dist2 {
+    if (*(--p) != max_dist2) {
       d = max_dist2;
       for (long i = nX - 1; i >= 0; i--, p--) {
         /* set d = 0 when we encounter a feature voxel */
