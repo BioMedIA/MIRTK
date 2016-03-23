@@ -270,7 +270,7 @@ int main(int argc, char *argv[])
       int ok = 0;
       Point    hole;
       PointSet holes;
-      holes.Reserve(pointsets.size() - 1);
+      holes.Reserve(static_cast<int>(pointsets.size()) - 1);
       for (size_t i = 1; i < pointsets.size(); ++i) {
         if (GetPointInside(pointsets[i], hole)) {
           if (verbose) cout << "Add hole at [" << hole << "]" << endl;
