@@ -338,7 +338,7 @@ public:
     for (int i = re.begin(); i != re.end(); ++i) {
       _DataSet->GetPoint(PointCorrespondence::GetPointIndex(_DataSet, _Sample, i), p);
       weight = exp(- p.SquaredDistance(_Cluster) / _Temperature);
-      _CorrWeights[i].push_back(MakePair(_N, weight));
+      _CorrWeights[i].push_back(MakePair(_N, static_cast<WeightMatrix::EntryType>(weight)));
     }
   }
 
@@ -397,7 +397,7 @@ public:
     for (int i = re.begin(); i != re.end(); ++i) {
       _DataSet->GetPoint(PointCorrespondence::GetPointIndex(_DataSet, _Sample, i), p);
       weight = exp(- p.SquaredDistance(_Cluster) / _Temperature);
-      (*_CorrWeights)[i] = MakePair(i, weight);
+      (*_CorrWeights)[i] = MakePair(i, static_cast<WeightMatrix::EntryType>(weight));
     }
   }
 

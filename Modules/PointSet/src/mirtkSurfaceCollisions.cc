@@ -445,13 +445,13 @@ vtkDataArray *SurfaceCollisions::GetCollisionTypeArray() const
 // -----------------------------------------------------------------------------
 SurfaceCollisions::CollisionType SurfaceCollisions::GetCollisionType(int cellId) const
 {
-  return static_cast<CollisionType>(GetCollisionTypeArray()->GetComponent(cellId, 0));
+  return static_cast<CollisionType>(static_cast<int>(GetCollisionTypeArray()->GetComponent(cellId, 0)));
 }
 
 // -----------------------------------------------------------------------------
 SurfaceCollisions::CollisionType SurfaceCollisions::GetCollisionType(vtkIdType cellId) const
 {
-  return static_cast<CollisionType>(GetCollisionTypeArray()->GetComponent(cellId, 0));
+  return static_cast<CollisionType>(static_cast<int>(GetCollisionTypeArray()->GetComponent(cellId, 0)));
 }
 
 // =============================================================================

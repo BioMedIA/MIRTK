@@ -541,14 +541,16 @@ void UpdateEigenmodes(const RegisteredPointSet         *target,
   AdjacencyMatrix(cols, SparseMatrix::CCS, 0, 0, vtkPolyData::SafeDownCast(target->InputPointSet()));
   AdjacencyMatrix(cols, SparseMatrix::CCS, m, m, vtkPolyData::SafeDownCast(source->InputPointSet()));
   // Set inter-mesh affinity weights
-  for (size_t i = 0; i < corr12.size(); ++i) {
+  const int ncorr12 = static_cast<int>(corr12.size());
+  for (int i = 0; i < ncorr12; ++i) {
     dist12[i] = 1.0 / (sqrt(dist12[i]) + EPSILON);
     const int r = corr12[i] + m;
     const int c = PointCorrespondence::GetPointIndex(target, &target_sample, i);
     cols[c].push_back(MakePair(r, dist12[i]));
     cols[r].push_back(MakePair(c, dist12[i]));
   }
-  for (size_t i = 0; i < corr21.size(); ++i) {
+  const int ncorr21 = static_cast<int>(corr21.size());
+  for (int i = 0; i < ncorr21; ++i) {
     dist21[i] = 1.0 / (sqrt(dist21[i]) + EPSILON);
     const int r = corr21[i];
     const int c = PointCorrespondence::GetPointIndex(source, &source_sample, i) + m;

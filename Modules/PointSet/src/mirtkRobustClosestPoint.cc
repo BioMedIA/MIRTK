@@ -132,6 +132,10 @@ void RobustClosestPoint::CalculateWeights()
   for (int i = 0; i < nentries; ++i) entries[i].reserve(2);
 
   // Symmetric closest point matching with outlier rejection
+  const WeightMatrix::EntryType one(1.0);
+  const int ncorr12 = static_cast<int>(corr12.size());
+  const int ncorr21 = static_cast<int>(corr21.size());
+
   if (_Sigma > .0) {
 
     double max_dist, dist_mean = .0, dist_mean2 = .0;
@@ -149,18 +153,18 @@ void RobustClosestPoint::CalculateWeights()
     max_dist = dist_mean + _Sigma * sqrt(dist_mean2 - dist_mean * dist_mean);
 
     if (_Weight.Layout() == WeightMatrix::CRS) {
-      for (size_t r = 0; r < corr12.size(); ++r) {
-        if (dist12[r] <= max_dist) entries[r].push_back(MakePair(corr12[r], 1.0));
+      for (int r = 0; r < ncorr12; ++r) {
+        if (dist12[r] <= max_dist) entries[r].push_back(MakePair(corr12[r], one));
       }
-      for (size_t c = 0; c < corr21.size(); ++c) {
-        if (dist21[c] <= max_dist) entries[corr21[c]].push_back(MakePair(c, 1.0));
+      for (int c = 0; c < ncorr21; ++c) {
+        if (dist21[c] <= max_dist) entries[corr21[c]].push_back(MakePair(c, one));
       }
     } else {
-      for (size_t r = 0; r < corr12.size(); ++r) {
-        if (dist12[r] <= max_dist) entries[corr12[r]].push_back(MakePair(r, 1.0));
+      for (int r = 0; r < ncorr12; ++r) {
+        if (dist12[r] <= max_dist) entries[corr12[r]].push_back(MakePair(r, one));
       }
-      for (size_t c = 0; c < corr21.size(); ++c) {
-        if (dist21[c] <= max_dist) entries[c].push_back(MakePair(corr21[c], 1.0));
+      for (int c = 0; c < ncorr21; ++c) {
+        if (dist21[c] <= max_dist) entries[c].push_back(MakePair(corr21[c], one));
       }
     }
 
@@ -168,18 +172,18 @@ void RobustClosestPoint::CalculateWeights()
   } else {
 
     if (_Weight.Layout() == WeightMatrix::CRS) {
-      for (size_t r = 0; r < corr12.size(); ++r) {
-        entries[r].push_back(MakePair(corr12[r], 1.0));
+      for (int r = 0; r < ncorr12; ++r) {
+        entries[r].push_back(MakePair(corr12[r], one));
       }
-      for (size_t c = 0; c < corr21.size(); ++c) {
-        entries[corr21[c]].push_back(MakePair(c, 1.0));
+      for (int c = 0; c < ncorr21; ++c) {
+        entries[corr21[c]].push_back(MakePair(c, one));
       }
     } else {
-      for (size_t r = 0; r < corr12.size(); ++r) {
-        entries[corr12[r]].push_back(MakePair(r, 1.0));
+      for (int r = 0; r < ncorr12; ++r) {
+        entries[corr12[r]].push_back(MakePair(r, one));
       }
-      for (size_t c = 0; c < corr21.size(); ++c) {
-        entries[c].push_back(MakePair(corr21[c], 1.0));
+      for (int c = 0; c < ncorr21; ++c) {
+        entries[c].push_back(MakePair(corr21[c], one));
       }
     }
 

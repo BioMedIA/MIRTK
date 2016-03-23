@@ -529,7 +529,7 @@ Array<int> PointLocator
   query._Locator  = this;
   query._Index    = &index;
   query._Dist2    = dist2;
-  parallel_for(blocked_range<int>(0, index.size()), query);
+  parallel_for(blocked_range<int>(0, static_cast<int>(index.size())), query);
   return index;
 }
 
@@ -652,7 +652,7 @@ Array<Array<int> > PointLocator
   query._Indices  = &indices;
   query._Dist2    = dist2;
   query._K        = k;
-  parallel_for(blocked_range<int>(0, indices.size()), query);
+  parallel_for(blocked_range<int>(0, static_cast<int>(indices.size())), query);
   return indices;
 }
 
@@ -777,7 +777,7 @@ Array<Array<int> > PointLocator
   query._Indices  = &indices;
   query._Dist2    = dist2;
   query._Radius   = radius;
-  parallel_for(blocked_range<int>(0, indices.size()), query);
+  parallel_for(blocked_range<int>(0, static_cast<int>(indices.size())), query);
   return indices;
 }
 

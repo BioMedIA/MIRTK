@@ -158,7 +158,7 @@ int main(int argc, char *argv[])
   }
   test_file   = argv[1];
   result_file = argv[2];
-  if (argc > 3) factor  = atof(argv[3]);
+  if (argc > 3) factor  = atoi(argv[3]);
   if (argc > 4) sigma   = atof(argv[4]);
   if (argc > 5) bgvalue = atof(argv[5]);
   return RUN_ALL_TESTS();

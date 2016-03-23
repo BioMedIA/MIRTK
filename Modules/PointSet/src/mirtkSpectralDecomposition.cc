@@ -52,7 +52,7 @@ namespace mirtk { namespace SpectralDecomposition {
 // =============================================================================
 
 /// Small number added to denominator of adjacency weights
-const double EPSILON = 1e-6;
+MIRTK_PointSet_EXPORT const double EPSILON = 1e-6;
 
 // =============================================================================
 // Auxiliary functions
@@ -518,15 +518,15 @@ void AdjacencyMatrix(SparseMatrix::Entries        adjw[],
 
   // Iterate over edges
   vtkIdType ptId1, ptId2;
-  double w;
+  SparseMatrix::EntryType w;
 
   EdgeIterator it(edgeTable);
   for (it.InitTraversal(); it.GetNextEdge(ptId1, ptId2) != -1;) {
     GetFeatures(dataset, ptId1, p1, &weights);
     GetFeatures(dataset, ptId2, p2, &weights);
-    w = 1.0 / (sqrt(Distance2BetweenPoints(p1, p2, d)) + EPSILON);
-    adjw[r1 + ptId1].push_back(MakePair(c1 + ptId2, w));
-    adjw[r1 + ptId2].push_back(MakePair(c1 + ptId1, w));
+    w = static_cast<SparseMatrix::EntryType>(1.0 / (sqrt(Distance2BetweenPoints(p1, p2, d)) + EPSILON));
+    adjw[r1 + ptId1].push_back(MakePair(c1 + static_cast<int>(ptId2), w));
+    adjw[r1 + ptId2].push_back(MakePair(c1 + static_cast<int>(ptId1), w));
   }
 
   // Free memory
