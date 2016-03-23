@@ -35,11 +35,17 @@ function(mirtk_add_executable target_name)
   if (TARGET_UNPARSED_ARGUMENTS)
     message(FATAL_ERROR "mirtk_add_executable called with unrecognized arguments: ${TARGET_UNPARSED_ARGUMENTS}!")
   endif ()
-  if ("^${target_name}$" STREQUAL "^commands$")
-    message(FATAL_ERROR "Invalid command name ${target_name}, used internally!")
+  if (target_name MATCHES "^(commands|commands-help)$")
+    message(FATAL_ERROR "Internally used target name cannot be used for command: ${target_name}")
   endif ()
   # Add executable target
   set(LANGUAGE CXX)
+  set(BINARY_LIBEXEC_DIR "${TOPLEVEL_BINARY_LIBEXEC_DIR}/mirtk")
+  if (TOPLEVEL_INSTALL_LIBEXEC_DIR MATCHES "/mirtk/*$")
+    set(INSTALL_LIBEXEC_DIR "${TOPLEVEL_INSTALL_LIBEXEC_DIR}")
+  else ()
+    set(INSTALL_LIBEXEC_DIR "${TOPLEVEL_INSTALL_LIBEXEC_DIR}/mirtk")
+  endif ()
   if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${target_name}.cc")
     basis_add_executable(${target_name}.cc ${TARGET_SOURCES} LIBEXEC)
   elseif (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${target_name}.cxx")
@@ -59,77 +65,131 @@ function(mirtk_add_executable target_name)
                         " Must have extension '.cc', '.cxx', '.cpp', '.sh', or '.py'."
                         " Exclude extension from mirtk_add_executable argument.")
   endif ()
-  set_target_properties(
-    ${target_name} PROPERTIES
-      OUTPUT_NAME "${PROJECT_PACKAGE_NAME_L}-${target_name}"
-  )
   set_property(GLOBAL APPEND PROPERTY MIRTK_COMMANDS ${target_name})
+  basis_get_target_uid(target_uid "${target_name}")
   if (LANGUAGE STREQUAL CXX)
+    # Set RPATH of installed binary
+    #
+    # Would be set automatically by basis_project_end/mirtk_project_end when
+    # BASIS_INSTALL_RPATH is set to TRUE/ON in mirtk_project_begin instead.
+    # This requires, however, the use of basis_target_link_libraries instead of
+    # the CMake target_link_libraries command for basis_get_target_link_libraries
+    # used by basis_set_target_install_rpath to work. This function is very
+    # costly. Hence, as we know what RPATH we want without inspecting the list
+    # of all link dependencies, we rather set the INSTALL_RPATH ourselves.
+    if (CMAKE_HOST_APPLE)
+      set(ORIGIN "@loader_path")
+    else ()
+      set(ORIGIN "\$ORIGIN")
+    endif ()
+    basis_get_relative_path(rpath
+      "${CMAKE_INSTALL_PREFIX}/${INSTALL_LIBEXEC_DIR}"
+      "${CMAKE_INSTALL_PREFIX}/${INSTALL_LIBRARY_DIR}"
+    )
+    string(REGEX REPLACE "/+$" "" rpath "${rpath}")
+    set_target_properties(${target_uid} PROPERTIES INSTALL_RPATH "${ORIGIN}/${rpath}")
     # Add custom target to generate command documentation page
     if (BUILD_DOCUMENTATION AND BUILD_DOCUMENTATION_SOURCES AND NOT "^${target_name}$" STREQUAL "^help-rst$")
-      if (TARGET help-rst)
-        basis_get_target_location (mirtk_path mirtk ABSOLUTE)
-        add_custom_target(${target_name}-description
+      basis_get_target_uid(help_rst_target help-rst)
+      if (TARGET ${help_rst_target})
+        basis_get_target_uid(mirtk_target mirtk)
+        basis_get_target_location(mirtk_path mirtk ABSOLUTE)
+        add_custom_target(${target_uid}-description
           COMMAND "${mirtk_path}" help-rst "${target_name}" -generated -description -noheaders
                   -output "${TOPLEVEL_PROJECT_DOC_DIR}/commands/_descriptions/${target_name}.rst"
                   -output-brief-description "${TOPLEVEL_PROJECT_DOC_DIR}/commands/_summaries/${target_name}.rst"
-          DEPENDS mirtk help-rst ${target_name}
-          COMMENT "Extracting command description from ${target_name} -help"
+          DEPENDS ${mirtk_target} ${help_rst_target} ${target_uid}
+          COMMENT "Extracting command description from mirtk ${target_name} -help"
         )
-        add_custom_target(${target_name}-help
+        add_custom_target(${target_uid}-help
           COMMAND "${mirtk_path}" help-rst "${target_name}" -generated -orphan
                   "-include-description" "_descriptions/${target_name}.rst"
                   -output "${TOPLEVEL_PROJECT_DOC_DIR}/commands/${target_name}.rst"
-          DEPENDS mirtk help-rst ${target_name} ${target_name}-description
+          DEPENDS ${mirtk_target} ${help_rst_target} ${target_uid} ${target_uid}-description
           COMMENT "Generating documentation page for command ${target_name}"
         )
-        if (NOT TARGET commands-help)
-          add_custom_target(commands-help)
+        basis_get_target_uid(commands_help_target commands-help)
+        if (NOT TARGET ${commands_help_target})
+          add_custom_target(${commands_help_target})
         endif ()
-        add_dependencies(commands-help ${target_name}-help)
+        add_dependencies(${commands_help_target} ${target_uid}-help)
       else ()
         message(WARNING "Target help-rst missing! Skipping auto-generation of command documentation.")
       endif ()
     endif ()
-    # Add required dependencies
-    set(keyword)
-    foreach (dep IN LISTS TARGET_DEPENDS)
-      if (dep MATCHES "^(debug|optimized|general)$")
-        set(keyword ${dep})
-      else ()
-        mirtk_get_target_name(dep_name ${dep})
-        if (TARGET ${dep_name})
-          get_property(type TARGET ${dep_name} PROPERTY TYPE)
-          if (type MATCHES LIBRARY)
-            target_link_libraries(${target_name} ${keyword} ${dep_name})
-          else ()
-            add_dependencies(${target_name} ${dep_name})
-          endif ()
+    # Add link dependencies and record all directories containing
+    # external/imported library files for [DY]LD_LIBRARY_PATH
+    # setting in "mirtk" command execution script
+    if (TARGET_DEPENDS OR TARGET_OPTIONAL)
+      if (NOT COMMAND mirtk_get_target_name)
+        include("${MIRTK_MODULE_PATH}/mirtkGetTargetName.cmake")
+      endif ()
+      # Add required dependencies
+      set(keyword)
+      foreach (dep IN LISTS TARGET_DEPENDS)
+        if (dep MATCHES "^(debug|optimized|general)$")
+          set(keyword ${dep})
         else ()
-          target_link_libraries(${target_name} ${keyword} ${dep_name})
-        endif ()
-        set(keyword)
-      endif ()
-    endforeach ()
-    # Add optional dependencies if targets exist
-    set(keyword)
-    foreach (dep IN LISTS TARGET_OPTIONAL)
-      if (dep MATCHES "^(debug|optimized|general)$")
-        set(keyword ${dep})
-      else ()
-        mirtk_get_target_name(dep_name ${dep})
-        if (TARGET ${dep_name})
-          get_property(type TARGET ${dep_name} PROPERTY TYPE)
-          if (type MATCHES LIBRARY)
-            target_link_libraries(${target_name} ${keyword} ${dep_name})
+          mirtk_get_target_name(dep_name ${dep})
+          if (TARGET ${dep_name})
+            get_property(type TARGET ${dep_name} PROPERTY TYPE)
+            if (type MATCHES LIBRARY)
+              target_link_libraries(${target_uid} ${keyword} ${dep_name})
+              get_property(is_imported TARGET ${dep_name} PROPERTY IMPORTED)
+              if (is_imported)
+                basis_get_target_location(dep_path ${dep_name} PATH)
+                if (dep_path)
+                  set_property(GLOBAL APPEND PROPERTY MIRTK_LIBRARY_PATH ${dep_path})
+                endif ()
+              endif ()
+            else ()
+              add_dependencies(${target_uid} ${dep_name})
+            endif ()
           else ()
-            add_dependencies(${target_name} ${dep_name})
+            target_link_libraries(${target_uid} ${keyword} ${dep_name})
+            if (IS_ABSOLUTE "${dep_name}")
+              get_filename_component(dep_path "${dep_name}" PATH)
+              set_property(GLOBAL APPEND PROPERTY MIRTK_LIBRARY_PATH ${dep_path})
+            endif ()
           endif ()
-        elseif (dep_name MATCHES "\\.(so|a|dylib|lib)(\\.[0-9].*)?$")
-          target_link_libraries(${target_name} ${keyword} ${dep_name})
+          set(keyword)
         endif ()
-        set(keyword)
-      endif ()
-    endforeach ()
+      endforeach ()
+      # Add optional dependencies if targets exist
+      set(keyword)
+      foreach (dep IN LISTS TARGET_OPTIONAL)
+        if (dep MATCHES "^(debug|optimized|general)$")
+          set(keyword ${dep})
+        else ()
+          mirtk_get_target_name(dep_name ${dep})
+          if (TARGET ${dep_name})
+            get_property(type TARGET ${dep_name} PROPERTY TYPE)
+            if (type MATCHES LIBRARY)
+              target_link_libraries(${target_uid} ${keyword} ${dep_name})
+              get_property(is_imported TARGET ${dep_name} PROPERTY IMPORTED)
+              if (is_imported)
+                basis_get_target_location(dep_path ${dep_name} PATH)
+                if (dep_path)
+                  set_property(GLOBAL APPEND PROPERTY MIRTK_LIBRARY_PATH ${dep_path})
+                endif ()
+              endif ()
+            else ()
+              add_dependencies(${target_uid} ${dep_name})
+            endif ()
+          elseif (dep_name MATCHES "\\.(so|a|dylib|lib)(\\.[0-9].*)?$")
+            target_link_libraries(${target_uid} ${keyword} ${dep_name})
+            if (IS_ABSOLUTE "${dep_name}")
+              get_filename_component(dep_path "${dep_name}" PATH)
+              set_property(GLOBAL APPEND PROPERTY MIRTK_LIBRARY_PATH ${dep_path})
+            endif ()
+          endif ()
+          set(keyword)
+        endif ()
+      endforeach ()
+      # Remove duplicates from MIRTK_LIBRARY_PATH
+      get_property(ldpath GLOBAL PROPERTY MIRTK_LIBRARY_PATH)
+      list(REMOVE_DUPLICATES ldpath)
+      set_property(GLOBAL PROPERTY MIRTK_LIBRARY_PATH "${ldpath}")
+    endif ()
   endif ()
 endfunction()

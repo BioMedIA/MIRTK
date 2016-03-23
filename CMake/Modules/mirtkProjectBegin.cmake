@@ -43,6 +43,8 @@ macro(mirtk_project_begin)
     endforeach ()
     unset(lang)
   endif ()
+  # mirtk_add_executable sets the INSTALL_RPATH itself
+  set(BASIS_INSTALL_RPATH OFF)
   # Export of build targets
   if (PROJECT_IS_MODULE)
     set(BASIS_EXPORT_ENABLED OFF)

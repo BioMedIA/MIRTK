@@ -21,8 +21,7 @@
 # @file  CMakeLists.txt
 # @brief Root build configuration file.
 #
-# @note This package utilizes <a href="http://opensource.andreasschuh.com/cmake-basis">CMake BASIS</a>.
-#
+# @sa <a href="http://opensource.andreasschuh.com/cmake-basis">CMake BASIS</a>
 ##############################################################################
 
 # ----------------------------------------------------------------------------
@@ -63,8 +62,14 @@ endif ()
 #       when BUILD_DOCUMENTATION is ON.
 if (BUILD_APPLICATIONS)
   basis_add_executable(help-rst "${PROJECT_TOOLS_DIR}/help-rst.py" LIBEXEC)
-  basis_set_target_properties(help-rst PROPERTIES OUTPUT_NAME "mirtk-help-rst")
-  basis_set_project_property(APPEND PROPERTY MIRTK_COMMANDS help-rst)
+  basis_set_target_properties(help-rst PROPERTIES
+    OUTPUT_DIRECTORY "${BINARY_LIBEXEC_DIR}/mirtk"
+  )
+  if (NOT INSTALL_LIBEXEC_DIR MATCHES "/mirtk/*$")
+    basis_set_target_properties(help-rst PROPERTIES
+      INSTALL_DIRECTORY "${INSTALL_LIBEXEC_DIR}/mirtk"
+    )
+  endif ()
   basis_add_dependencies(help-rst mirtk)
 endif ()
 
@@ -78,6 +83,23 @@ endforeach ()
 foreach (SUBDIR IN LISTS PROJECT_SUBDIRS)
   basis_add_subdirectory(${SUBDIR})
 endforeach ()
+
+# Set MIRTK_LIBRARY_PATH for "mirtk" script
+get_property(ldpath GLOBAL PROPERTY MIRTK_LIBRARY_PATH)
+list(REMOVE_DUPLICATES ldpath)
+if (UNIX)
+  list(REMOVE_ITEM ldpath "/lib")
+  list(REMOVE_ITEM ldpath "/lib64")
+  list(REMOVE_ITEM ldpath "/usr/lib")
+  list(REMOVE_ITEM ldpath "/usr/lib64")
+  list(REMOVE_ITEM ldpath "/usr/local/lib")
+  list(REMOVE_ITEM ldpath "/opt/local/lib")
+endif ()
+basis_set_target_properties(mirtk PROPERTIES
+  SCRIPT_DEFINITIONS
+    "basis_list_to_delimited_string(MIRTK_LIBRARY_PATH_CONFIG \"', '\" NOAUTOQUOTE \"${ldpath}\")"
+)
+unset(ldpath)
 
 # Install CMake modules
 basis_add_subdirectory(CMake)

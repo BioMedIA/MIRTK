@@ -30,18 +30,25 @@ import subprocess
 # environment
 # ============================================================================
 
+_config      = '@__CONFIG__@'
 _libexec_dir = os.path.realpath(os.path.join(__dir__, '@LIBEXEC_DIR@'))
-_paths       = [__dir__, _libexec_dir]
+_paths       = [__dir__]
 _ldpaths     = []
 
-_tbb_library_dir='@TBB_LIBRARY_DIR_CONFIG@'
-if _tbb_library_dir != '':
-    _ldpaths.append(_tbb_library_dir)
+if _config:
+    _ldpaths.append(os.path.join(_libexec_dir, 'mirtk', _config))
+    _ldpaths.append(os.path.join(_libexec_dir, _config))
+_ldpaths.append(os.path.join(_libexec_dir, 'mirtk'))
+_ldpaths.append(_libexec_dir)
 
-_vtk_library_dirs=['@VTK_LIBRARY_DIRS_CONFIG@']
-for _vtk_library_dir in _vtk_library_dirs:
-    if _vtk_library_dir != '':
-        _ldpaths.append(_vtk_library_dir)
+_paths.extend(_ldpaths)
+
+def _add_external_library_paths():
+    _libdirs = ['@MIRTK_LIBRARY_PATH_CONFIG@']
+    for _libdir in _libdirs:
+        if _libdir != '':
+            _ldpaths.append(_libdir)
+_add_external_library_paths()
 
 if sys.platform.startswith('linux'):
     _paths.extend(os.environ.get('PATH', '').split(':'))
@@ -90,15 +97,15 @@ Optional arguments:
 # ----------------------------------------------------------------------------
 def call(argv):
     """Execute MIRTK command."""
-    fname = 'mirtk-' + argv[0]
-    for cfg in ['MinSizeRel', 'Release', 'RelWithDebInfo', 'Debug']:
-        fpath = os.path.join(_libexec_dir, cfg, fname)
-        if os.path.isfile(fpath) and os.access(fpath, os.X_OK):
-            fname = os.path.join(cfg, fname)
-            break
-    argv[0] = os.path.join(_libexec_dir, fname)
-    if not os.path.isfile(argv[0]) or not os.access(argv[0], os.X_OK):
-        sys.stderr.write('Error: Command execuable ' + argv[0] + ' does not exist!')
+    command = argv[0]
+    argv[0] = os.path.join(_libexec_dir, 'mirtk', _config, command)
+    if not os.path.isfile(argv[0]):
+        argv[0] = os.path.join(_libexec_dir, 'mirtk', command)
+        if not os.path.isfile(argv[0]):
+            sys.stderr.write('Error: Missing execuable for command: ' + argv[0])
+            return 1
+    if not os.access(argv[0], os.X_OK):
+        sys.stderr.write('Error: Insufficient permissions to execute: ' + argv[0])
         return 1
     if verbose > 0:
         args = []
