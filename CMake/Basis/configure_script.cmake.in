@@ -19,6 +19,9 @@
 # such that build command can be made dependent on the configured build script.
 # It calls the function basis_configure_script() twice, once to configure
 # the script file for use in the build tree, and once for installation (optional).
+#
+# The build configuration name can be set using the
+# -D CONFIGURATION=$<CONFIGURATION> CMake option with generator expression.
 ##############################################################################
 
 cmake_minimum_required (VERSION 2.8.12 FATAL_ERROR)
@@ -29,6 +32,7 @@ include ("@BASIS_MODULE_PATH@/CommonTools.cmake") # basis_configure_script()
 set (SOURCE_FILE          "@SOURCE_FILE@")
 set (OUTPUT_FILE          "@OUTPUT_FILE@")
 set (INSTALL_FILE         "@INSTALL_FILE@")
+set (DIRECTORY            "@OUTPUT_DIR@")
 set (DESTINATION          "@DESTINATION@")
 set (BUILD_LINK_DEPENDS   "@BUILD_LINK_DEPENDS@")
 set (INSTALL_LINK_DEPENDS "@INSTALL_LINK_DEPENDS@")
@@ -39,20 +43,23 @@ set (OPTIONS              "@OPTIONS@")
 # configure ("build") script - always touch files to update build timestamp
 basis_configure_script (
   "${SOURCE_FILE}" "${OUTPUT_FILE}"
-  LINK_DEPENDS "${BUILD_LINK_DEPENDS}"
-  CACHE_FILE   "${CACHE_FILE}"
-  CONFIG_FILE  "${CONFIG_FILE}"
-  LANGUAGE     "${LANGUAGE}"
+  DIRECTORY     "${DIRECTORY}"
+  LINK_DEPENDS  "${BUILD_LINK_DEPENDS}"
+  CACHE_FILE    "${CACHE_FILE}"
+  CONFIG_FILE   "${CONFIG_FILE}"
+  LANGUAGE      "${LANGUAGE}"
+  CONFIGURATION "${CONFIGURATION}"
   ${OPTIONS}
 )
 if (INSTALL_FILE AND DESTINATION)
   basis_configure_script (
     "${SOURCE_FILE}" "${INSTALL_FILE}"
-    DESTINATION  "${DESTINATION}"
-    LINK_DEPENDS "${INSTALL_LINK_DEPENDS}"
-    CACHE_FILE   "${CACHE_FILE}"
-    CONFIG_FILE  "${CONFIG_FILE}"
-    LANGUAGE     "${LANGUAGE}"
+    DESTINATION   "${DESTINATION}"
+    LINK_DEPENDS  "${INSTALL_LINK_DEPENDS}"
+    CACHE_FILE    "${CACHE_FILE}"
+    CONFIG_FILE   "${CONFIG_FILE}"
+    LANGUAGE      "${LANGUAGE}"
+    CONFIGURATION "${CONFIGURATION}"
     ${OPTIONS}
   )
 endif ()
