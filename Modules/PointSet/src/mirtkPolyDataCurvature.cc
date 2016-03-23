@@ -49,16 +49,16 @@ namespace mirtk {
 // Names of output point data arrays
 // =============================================================================
 
-const char *PolyDataCurvature::MINIMUM            = "Minimum_Curvature";
-const char *PolyDataCurvature::MAXIMUM            = "Maximum_Curvature";
-const char *PolyDataCurvature::MEAN               = "Mean_Curvature";
-const char *PolyDataCurvature::GAUSS              = "Gauss_Curvature";
-const char *PolyDataCurvature::CURVEDNESS         = "Curvedness";
-const char *PolyDataCurvature::MINIMUM_DIRECTION  = "Minimum_Curvature_Direction";
-const char *PolyDataCurvature::MAXIMUM_DIRECTION  = "Maximum_Curvature_Direction";
-const char *PolyDataCurvature::TENSOR             = "Curvature_Tensor";
-const char *PolyDataCurvature::INVERSE_TENSOR     = "Inverse_Curvature_Tensor";
-const char *PolyDataCurvature::NORMALS            = "Normals";
+MIRTK_PointSet_EXPORT const char *PolyDataCurvature::MINIMUM            = "Minimum_Curvature";
+MIRTK_PointSet_EXPORT const char *PolyDataCurvature::MAXIMUM            = "Maximum_Curvature";
+MIRTK_PointSet_EXPORT const char *PolyDataCurvature::MEAN               = "Mean_Curvature";
+MIRTK_PointSet_EXPORT const char *PolyDataCurvature::GAUSS              = "Gauss_Curvature";
+MIRTK_PointSet_EXPORT const char *PolyDataCurvature::CURVEDNESS         = "Curvedness";
+MIRTK_PointSet_EXPORT const char *PolyDataCurvature::MINIMUM_DIRECTION  = "Minimum_Curvature_Direction";
+MIRTK_PointSet_EXPORT const char *PolyDataCurvature::MAXIMUM_DIRECTION  = "Maximum_Curvature_Direction";
+MIRTK_PointSet_EXPORT const char *PolyDataCurvature::TENSOR             = "Curvature_Tensor";
+MIRTK_PointSet_EXPORT const char *PolyDataCurvature::INVERSE_TENSOR     = "Inverse_Curvature_Tensor";
+MIRTK_PointSet_EXPORT const char *PolyDataCurvature::NORMALS            = "Normals";
 
 // =============================================================================
 // Auxiliary functors

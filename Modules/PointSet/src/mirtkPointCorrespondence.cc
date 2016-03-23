@@ -33,6 +33,8 @@
 #include <mirtkSpectralDecomposition.h>
 #include <mirtkPointSetUtils.h>
 
+#include <mirtkCommonExport.h>
+
 #include <vtkSmartPointer.h>
 #include <vtkDataArray.h>
 #include <vtkPointData.h>
@@ -57,7 +59,7 @@ namespace mirtk {
 
 
 // Global debug level
-extern int debug;
+MIRTK_Common_EXPORT extern int debug; // cf. mirtkOptions.h
 
 
 // =============================================================================

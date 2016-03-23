@@ -45,7 +45,7 @@ namespace mirtk {
 
 
 // -----------------------------------------------------------------------------
-int PointSet::POINTSET_SIZE = 4096;
+MIRTK_Numerics_EXPORT int PointSet::POINTSET_SIZE = 4096;
 
 // -----------------------------------------------------------------------------
 void PointSet::Clear(bool deallocate)
