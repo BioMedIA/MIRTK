@@ -25,12 +25,6 @@
 
 #include <mirtkObject.h>
 
-#if MIRTK_Common_WITH_ZLIB
-#  include <zlib.h>
-#else
-#  include <cstdio>
-#endif
-
 
 namespace mirtk {
 
@@ -47,11 +41,7 @@ class Cifstream : public Object
   mirtkObjectMacro(Cifstream);
 
   /// File pointer to potentially compressed file
-#if MIRTK_Common_WITH_ZLIB
-  gzFile _File;
-#else
-  FILE  *_File;
-#endif
+  void *_File;
 
   /// Flag indicating whether file bytes are swapped
   mirtkPublicAttributeMacro(bool, Swapped);

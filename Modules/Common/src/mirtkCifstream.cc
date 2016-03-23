@@ -23,6 +23,12 @@
 #include <mirtkCommonConfig.h> // MIRTK_Common_BIG_ENDIAN, MIRTK_Common_WITH_ZLIB
 #include <mirtkMemory.h>       // swap16, swap32
 
+#if MIRTK_Common_WITH_ZLIB
+#  include <zlib.h>
+#else
+#  include <cstdio>
+#endif
+
 
 namespace mirtk {
 
@@ -30,13 +36,13 @@ namespace mirtk {
 // -----------------------------------------------------------------------------
 Cifstream::Cifstream(const char *fname)
 :
-  _File(NULL)
+  _File(nullptr)
 {
-#if MIRTK_Common_BIG_ENDIAN
-  _Swapped = false;
-#else
-  _Swapped = true;
-#endif
+  #if MIRTK_Common_BIG_ENDIAN
+    _Swapped = false;
+  #else
+    _Swapped = true;
+  #endif
   if (fname) Open(fname);
 }
 
@@ -49,15 +55,17 @@ Cifstream::~Cifstream()
 // -----------------------------------------------------------------------------
 void Cifstream::Open(const char *fname)
 {
-#if MIRTK_Common_WITH_ZLIB
-  _File = gzopen(fname, "rb");
-#elif WINDOWS
-  errno_t err = fopen_s(&_File, fname, "rb");
-  if (err != 0) _File = NULL;
-#else
-  _File = fopen(fname, "rb");
-#endif
-  if (_File == NULL) {
+  #if MIRTK_Common_WITH_ZLIB
+    _File = gzopen(fname, "rb");
+  #elif defined(WINDOWS)
+    FILE *fp;
+    errno_t err = fopen_s(&fp, fname, "rb");
+    if (err != 0) _File = nullptr;
+    _File = fp;
+  #else
+    _File = fopen(fname, "rb");
+  #endif
+  if (_File == nullptr) {
     cerr << "Cifstream::Open: Cannot open file " << fname << endl;
     exit(1);
   }
@@ -66,13 +74,13 @@ void Cifstream::Open(const char *fname)
 // -----------------------------------------------------------------------------
 void Cifstream::Close()
 {
-  if (_File != NULL) {
-#if MIRTK_Common_WITH_ZLIB
-    gzclose(_File);
-#else
-    fclose(_File);
-#endif
-    _File = NULL;
+  if (_File != nullptr) {
+    #if MIRTK_Common_WITH_ZLIB
+      gzclose(reinterpret_cast<gzFile>(_File));
+    #else
+      fclose(reinterpret_cast<FILE *>(_File));
+    #endif
+    _File = nullptr;
   }
 }
 
@@ -92,9 +100,9 @@ void Cifstream::IsSwapped(int swapped)
 long Cifstream::Tell() const
 {
 #if MIRTK_Common_WITH_ZLIB
-  return gztell(_File);
+  return gztell(reinterpret_cast<gzFile>(_File));
 #else
-  return ftell(_File);
+  return ftell(reinterpret_cast<FILE *>(_File));
 #endif
 }
 
@@ -102,9 +110,9 @@ long Cifstream::Tell() const
 void Cifstream::Seek(long offset)
 {
 #if MIRTK_Common_WITH_ZLIB
-  gzseek(_File, offset, SEEK_SET);
+  gzseek(reinterpret_cast<gzFile>(_File), offset, SEEK_SET);
 #else
-  fseek(_File, offset, SEEK_SET);
+  fseek(reinterpret_cast<FILE *>(_File), offset, SEEK_SET);
 #endif
 }
 
@@ -112,11 +120,13 @@ void Cifstream::Seek(long offset)
 bool Cifstream::Read(char *mem, long start, long num)
 {
 #if MIRTK_Common_WITH_ZLIB
-  if (start != -1) gzseek(_File, start, SEEK_SET);
-  return (gzread(_File, mem, num) == num);
+  gzFile fp = reinterpret_cast<gzFile>(_File);
+  if (start != -1) gzseek(fp, start, SEEK_SET);
+  return (gzread(fp, mem, num) == num);
 #else
-  if (start != -1) fseek(_File, start, SEEK_SET);
-  return (fread(mem, num, 1, _File) == 1);
+  FILE * fp = reinterpret_cast<FILE *>(_File);
+  if (start != -1) fseek(fp, start, SEEK_SET);
+  return (fread(mem, num, 1, fp) == 1);
 #endif
 }
 
@@ -185,11 +195,13 @@ bool Cifstream::ReadAsString(char *data, long length, long offset)
 {
   // Read string
 #if MIRTK_Common_WITH_ZLIB
-  if (offset != -1) gzseek(_File, offset, SEEK_SET);
-  if (gzgets(_File, data, length) == Z_NULL) return false;
+  gzFile fp = reinterpret_cast<gzFile>(_File);
+  if (offset != -1) gzseek(fp, offset, SEEK_SET);
+  if (gzgets(fp, data, length) == Z_NULL) return false;
 #else
-  if (offset != -1) fseek(_File, offset, SEEK_SET);
-  if (fgets(data, length, _File) == NULL) return false;
+  FILE *fp = reinterpret_cast<FILE *>(_File);
+  if (offset != -1) fseek(fp, offset, SEEK_SET);
+  if (fgets(data, length, fp) == nullptr) return false;
 #endif // MIRTK_Common_WITH_ZLIB
 
   // Discard end-of-line character(s)

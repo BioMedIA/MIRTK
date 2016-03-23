@@ -25,12 +25,6 @@
 
 #include <mirtkObject.h>
 
-#if MIRTK_Common_WITH_ZLIB
-#  include <zlib.h>
-#else
-#  include <cstdio>
-#endif
-
 
 namespace mirtk {
 
@@ -52,7 +46,7 @@ class Cofstream : public Object
 
   /// File pointer to compressed file
 #if MIRTK_Common_WITH_ZLIB
-  gzFile _ZFile;
+  void *_ZFile;
 #endif
 
   /// Flag whether file is compressed
