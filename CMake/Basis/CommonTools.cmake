@@ -312,19 +312,32 @@ macro (basis_find_package PACKAGE)
             message (FATAL_ERROR "Module ${PROJECT_NAME} has module ${_BFP_CMP} of top-level project ${PKG}"
                                  " as dependency, but no such module exists.")
           endif ()
-          if (${PKG}_FIND_REQUIRED_${_BFP_CMP})
-            list (FIND PROJECT_MODULES_ENABLED "${_BFP_CMP}" _BFP_CMPIDX)
-            if (_BFP_CMPIDX EQUAL -1)
-              message (FATAL_ERROR "Module ${PROJECT_NAME} requires module ${_BFP_CMP}"
-                                   " of top-level project ${PKG}, but module ${_BFP_CMP}"
-                                   " is not enabled.")
+          list (FIND PROJECT_MODULES_ENABLED "${_BFP_CMP}" _BFP_CMPIDX)
+          if (_BFP_CMPIDX EQUAL -1)
+            if (BASIS_DEBUG)
+              message ("**     Identified it as disabled module of this project.")
             endif ()
+            if (${PKG}_FIND_REQUIRED_${_BFP_CMP})
+              if (_BFP_ARGN_REQUIRED)
+                message (FATAL_ERROR
+                  "Module ${PROJECT_NAME} requires module ${_BFP_CMP} of top-level project ${PKG},"
+                  " but module ${_BFP_CMP} is not enabled."
+                )
+              elseif (NOT _BFP_ARGN_QUIET)
+                message (WARNING
+                  "Module ${PROJECT_NAME} uses module ${_BFP_CMP} of top-level project ${PKG},"
+                  " but module ${_BFP_CMP} is not enabled."
+                )
+              endif ()
+            endif ()
+            set (${PKG}_${_BFP_CMP}_FOUND FALSE)
+          else ()
+            if (BASIS_DEBUG)
+              message ("**     Identified it as enabled module of this project.")
+            endif ()
+            include ("${BINARY_LIBCONF_DIR}/${TOPLEVEL_PROJECT_PACKAGE_CONFIG_PREFIX}${_BFP_CMP}Config.cmake")
+            set (${PKG}_${_BFP_CMP}_FOUND TRUE)
           endif ()
-          if (BASIS_DEBUG)
-            message ("**     Identified it as other module of this project.")
-          endif ()
-          include ("${BINARY_LIBCONF_DIR}/${TOPLEVEL_PROJECT_PACKAGE_CONFIG_PREFIX}${_BFP_CMP}Config.cmake")
-          set (${PKG}_${_BFP_CMP}_FOUND TRUE)
         endforeach ()
       else ()
         if (BASIS_DEBUG)
@@ -339,14 +352,28 @@ macro (basis_find_package PACKAGE)
       if (NOT _BFP_PKGIDX EQUAL -1)
         set (_BFP_IS_MODULE TRUE)
         list (FIND PROJECT_MODULES_ENABLED "${PKG}" _BFP_PKGIDX)
-        if (NOT _BFP_PKGIDX EQUAL -1)
+        if (_BFP_PKGIDX EQUAL -1)
           if (BASIS_DEBUG)
-            message ("**     Identified it as other module of this project.")
+            message ("**     Identified it as disable module of this project.")
+          endif ()
+          if (_BFP_ARGN_REQUIRED)
+            message (FATAL_ERROR
+              "Module ${PROJECT_NAME} requires module ${_BFP_CMP} of top-level project ${PKG},"
+              " but module ${_BFP_CMP} is not enabled."
+            )
+          elseif (NOT _BFP_ARGN_QUIET)
+            message (WARNING
+              "Module ${PROJECT_NAME} optionally uses module ${_BFP_CMP} of top-level project ${PKG},"
+              " but module ${_BFP_CMP} is not enabled."
+            )
+          endif ()
+          set (${PKG}_FOUND FALSE)
+        else ()
+          if (BASIS_DEBUG)
+            message ("**     Identified it as enabled module of this project.")
           endif ()
           include ("${BINARY_LIBCONF_DIR}/${TOPLEVEL_PROJECT_PACKAGE_CONFIG_PREFIX}${PKG}Config.cmake")
           set (${PKG}_FOUND TRUE)
-        else ()
-          set (${PKG}_FOUND FALSE)
         endif ()
       endif ()
     endif ()
