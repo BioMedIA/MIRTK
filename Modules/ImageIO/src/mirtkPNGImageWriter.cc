@@ -17,6 +17,8 @@
  * limitations under the License.
  */
 
+#include <mirtkConfig.h>
+
 #include <mirtkPNGImageWriter.h>
 #include <png.h>
 
@@ -81,7 +83,17 @@ void PNGImageWriter::Run()
   }
 
   // Open file
+#ifdef WINDOWS
+  FILE *fp;
+  errno_t err = fopen_s(&fp, _FileName.c_str(), "wb");
+  if (err != 0) fp = nullptr;
+#else
   FILE *fp = fopen(_FileName.c_str(), "wb");
+#endif
+  if (fp == nullptr) {
+    cerr << this->NameOfClass() << "::Run: Failed to open PNG file for writing: " << _FileName << endl;
+    exit(1);
+  }
 
   // Initialize PNG I/O
   png_init_io(png_ptr, fp);

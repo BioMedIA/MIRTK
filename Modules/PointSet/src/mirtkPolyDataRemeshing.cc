@@ -19,6 +19,7 @@
 
 #include <mirtkPolyDataRemeshing.h>
 
+#include <mirtkConfig.h> // WINDOWS
 #include <mirtkVtk.h>
 #include <mirtkAssert.h>
 #include <mirtkMath.h>
@@ -838,7 +839,11 @@ void PolyDataRemeshing::Initialize()
 
     static int iter = 0; ++iter;
     char fname[64];
-    sprintf(fname, "remesh_input_%03d.vtp", iter);
+    #ifdef WINDOWS
+      sprintf_s(fname, 64, "remesh_input_%03d.vtp", iter);
+    #else
+      sprintf(fname, "remesh_input_%03d.vtp", iter);
+    #endif
     WritePolyData(fname, input);
   }
 
