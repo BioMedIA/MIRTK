@@ -27,6 +27,11 @@
 #include <memory>
 
 #ifdef HAVE_TBB
+// TBB includes windows header which defines min/max macros otherwise
+#  ifndef NOMINMAX
+#    define NOMINMAX
+#    define MIRTK_UNDEF_NOMINMAX
+#  endif
 #  include <tbb/task_scheduler_init.h>
 #  include <tbb/blocked_range.h>
 #  include <tbb/blocked_range2d.h>
@@ -35,6 +40,10 @@
 #  include <tbb/parallel_reduce.h>
 #  include <tbb/concurrent_queue.h>
 #  include <tbb/mutex.h>
+#  ifdef MIRTK_UNDEF_NOMINMAX
+#    undef MIRTK_UNDEF_NOMINMAX
+#    undef NOMINMAX
+#  endif
 #endif
 
 

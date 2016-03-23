@@ -26,7 +26,16 @@
 
 #include <ctime>
 #ifdef HAVE_TBB
+// TBB includes windows header which defines min/max macros otherwise
+#  ifndef NOMINMAX
+#    define NOMINMAX
+#    define MIRTK_UNDEF_NOMINMAX
+#  endif
 #  include <tbb/tick_count.h>
+#  ifdef MIRTK_UNDEF_NOMINMAX
+#    undef MIRTK_UNDEF_NOMINMAX
+#    undef NOMINMAX
+#  endif
 #endif
 
 
