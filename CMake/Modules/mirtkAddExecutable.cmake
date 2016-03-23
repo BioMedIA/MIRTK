@@ -21,15 +21,15 @@ if (COMMAND mirtk_add_executable)
   return()
 endif ()
 
-include(CMakeParseArguments)
-include("${CMAKE_CURRENT_LIST_DIR}/mirtkGetTargetName.cmake")
-
 # ------------------------------------------------------------------------------
 ## Add build target for executable MIRTK command
 function(mirtk_add_executable target_name)
   # Parse arguments
   if (NOT PROJECT_NAME)
     message(FATAL_ERROR "mirtk_add_executable called outside project scope!")
+  endif ()
+  if (NOT COMMAND cmake_parse_arguments)
+    include("${CMAKE_ROOT}/Modules/CMakeParseArguments.cmake")
   endif ()
   cmake_parse_arguments(TARGET "" "" "SOURCES;DEPENDS;OPTIONAL" ${ARGN})
   if (TARGET_UNPARSED_ARGUMENTS)
