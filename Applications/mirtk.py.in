@@ -43,9 +43,9 @@ _ldpaths.append(_libexec_dir)
 
 _paths.extend(_ldpaths)
 
-_libexec_suf = ['']
+_libexec_ext = ['']
 if sys.platform.startswith('win'):
-    _libexec_suf.extend(['.exe', '.cmd', '.bat'])
+    _libexec_ext.extend(['.exe', '.cmd', '.bat'])
 
 def _add_external_library_paths():
     for d in ['@MIRTK_LIBRARY_PATH_CONFIG@']:
