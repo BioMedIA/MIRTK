@@ -238,7 +238,6 @@ set(FOREACHVOXELFUNCTIONS
 )
 
 foreach(f IN LISTS FOREACHVOXELFUNCTIONS)
-  find_package(PythonInterp REQUIRED)
   string(REGEX REPLACE "ForEach|VoxelFunction" "" arity "${f}")
   string(TOLOWER "${arity}" arity)
   add_custom_command(

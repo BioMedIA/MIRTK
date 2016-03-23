@@ -54,6 +54,7 @@ basis_project (
   # ----------------------------------------------------------------------------
   # dependencies
   DEPENDS
+    PythonInterp # mirtkForEachVoxelFunction.py generator script
     MIRTK{Common,Numerics}
     #<dependency>
   OPTIONAL_DEPENDS
