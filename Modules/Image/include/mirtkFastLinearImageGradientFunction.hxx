@@ -176,8 +176,6 @@ inline typename GenericFastLinearImageGradientFunction<TImage>::GradientType
 GenericFastLinearImageGradientFunction<TImage>
 ::Get2D(const TOtherImage *input, double x, double y, double z, double t) const
 {
-  typedef typename TOtherImage::VoxelType VoxelType;
-
   const int i = ifloor(x);
   const int j = ifloor(y);
   const int k = iround(z);

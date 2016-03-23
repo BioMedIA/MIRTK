@@ -123,7 +123,6 @@ struct GlobalInverseTransformFunctor
   return_type operator()(const vector_type & x)
   {
     typedef typename vector_type::value_type value_type;
-    typedef typename vector_type::size_type size_type;
 
     value_type x1 = x(0), x2 = x(1), x3 = x(2);
     transformation_->GlobalTransform(x1, x2, x3, t_, t0_);
@@ -185,7 +184,6 @@ struct LocalInverseTransformFunctor
   return_type operator()(vector_type x)
   {
     typedef typename vector_type::value_type value_type;
-    typedef typename vector_type::size_type size_type;
 
     value_type x1 = x(0), x2 = x(1), x3 = x(2);
     transformation_->LocalTransform(x1, x2, x3, t_, t0_);
@@ -247,7 +245,6 @@ struct InverseTransformFunctor
   return_type operator()(vector_type x)
   {
     typedef typename vector_type::value_type value_type;
-    typedef typename vector_type::size_type size_type;
 
     value_type x1 = x(0), x2 = x(1), x3 = x(2);
     transformation_->Transform(x1, x2, x3, t_, t0_);
@@ -309,7 +306,6 @@ struct InverseMultiLevelTransformFunctor
   return_type operator()(vector_type x)
   {
     typedef typename vector_type::value_type value_type;
-    typedef typename vector_type::size_type size_type;
 
     value_type x1 = x(0), x2 = x(1), x3 = x(2);
     transformation_->Transform(m_, n_, x1, x2, x3, t_, t0_);
