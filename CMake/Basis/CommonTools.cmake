@@ -716,12 +716,14 @@ macro (basis_find_package PACKAGE)
         endif ()
         unset (_BFP_VERSION_STRING)
         # update DEPENDS_<PKG>_DIR from variables set by find_package
-        set (_BFP_PREFIX "NOTFOUND")
         if (${PKG}_FOUND)
-          if (${PKG}_DIR)
+          if (${PKG}_DIR AND IS_ABSOLUTE "${${PKG}_DIR}" AND
+              (EXISTS "${${PKG}_DIR}/${PKG}Config.cmake" OR
+               EXISTS "${${PKG}_DIR}/${PKG_L}-config.cmake"))
             list (GET ${PKG}_DIR 0 _BFP_PREFIX)
             _basis_config_to_prefix_dir(${PKG} "${_BFP_PREFIX}" _BFP_PREFIX)
-          else ()
+            basis_update_value (DEPENDS_${PKG}_DIR "${_BFP_PREFIX}")
+          elseif (NOT DEPENDS_${PKG}_DIR)
             if (${PKG}_INCLUDE_DIR)
               list (GET ${PKG}_INCLUDE_DIR 0 _BFP_PREFIX)
               string (REGEX REPLACE "^(.*)/[iI]ncludes?(/.*)?$" "\\1" _BFP_PREFIX "${_BFP_PREFIX}")
@@ -750,9 +752,11 @@ macro (basis_find_package PACKAGE)
                 endif ()
               endforeach ()
             endif ()
+            basis_update_value (DEPENDS_${PKG}_DIR "${_BFP_PREFIX}")
           endif ()
+        else ()
+          basis_update_value (DEPENDS_${PKG}_DIR "NOTFOUND")
         endif ()
-        basis_update_value (DEPENDS_${PKG}_DIR "${_BFP_PREFIX}")
         # make internal copy of DEPENDS_<PKG>_DIR used to detect change
         set (_DEPENDS_${PKG}_DIR "${DEPENDS_${PKG}_DIR}" CACHE INTERNAL "(Previous) DEPENDS_${PKG}_DIR value." FORCE)
         # make internal search path cache entries consistent with DEPENDS_<PKG>_DIR
@@ -764,8 +768,8 @@ macro (basis_find_package PACKAGE)
         endforeach ()
         # make internal copy of <PKG>_DIR used to detect change via -D option
         #
-        # Note: All other alternative variables such as <PKG>_ROOT are forced to be
-        #       equal DEPENDS_<PKG>_DIR. Only <PKG>_DIR usually points to the
+        # Note: All other alternative variables such as <PKG>_ROOT are forced to
+        #       be equal DEPENDS_<PKG>_DIR. Only <PKG>_DIR usually points to the
         #       <PKG>Config, while DEPENDS_<PKG>_DIR is the installation prefix.
         set (_${PKG}_DIR "${${PKG}_DIR}" CACHE INTERNAL "(Previous) ${PKG}_DIR value." FORCE)
         # status message with information about found package
