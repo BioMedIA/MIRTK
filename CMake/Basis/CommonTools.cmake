@@ -603,8 +603,11 @@ macro (basis_find_package PACKAGE)
         # as "last resort" when variable not set by the following find_package
         set (_BFP_VERSION_STRING "${${PKG}_VERSION_STRING}")
         unset (${PKG}_VERSION_STRING)
-        # set internal <PKG>_DIR used by find_package to locate <Pkg>Config
+        # set internal <Pkg>_DIR used by find_package to locate <Pkg>Config
         set (${PKG}_DIR "${DEPENDS_${PKG}_DIR}" CACHE INTERNAL "Directory containing ${PKG}Config.cmake file." FORCE)
+        # set <PKG>_ROOT used by some Find<Pkg> modules
+        # Attention: FindBoost does not allow Boost_ROOT to be set, only BOOST_ROOT!
+        set (${PKG_U}_ROOT "${DEPENDS_${PKG}_DIR}")
         # call find_package if not all components found yet
         set (_BFP_FOUND "${${PKG}_FOUND}") # used to decide what the intersection of
                                            # multiple find invocations for the same
