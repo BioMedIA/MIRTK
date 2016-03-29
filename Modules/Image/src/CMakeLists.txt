@@ -219,8 +219,8 @@ set(SOURCES
 )
 
 set(DEPENDS LibCommon LibNumerics)
-if (TBB_FOUND)
-  list(APPEND DEPENDS ${TBB_LIBRARIES})
+if (TARGET TBB::tbb)
+  list(APPEND DEPENDS TBB::tbb)
 endif ()
 
 # ------------------------------------------------------------------------------

@@ -93,4 +93,8 @@ if (TARGET LibPointSet AND VTK_FOUND)
   endif ()
 endif ()
 
+if (TARGET TBB::tbb)
+  list(APPEND DEPENDS TBB::tbb)
+endif ()
+
 mirtk_add_library(AUTO_REGISTER)

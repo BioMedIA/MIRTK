@@ -101,8 +101,8 @@ if (MATLAB_FOUND)
   list(APPEND DEPENDS ${MATLAB_mwmclmcrrt_LIBRARY})
 endif ()
 
-if (TBB_FOUND)
-  list(APPEND DEPENDS ${TBB_LIBRARIES})
+if (TARGET TBB::tbb)
+  list(APPEND DEPENDS TBB::tbb)
 endif ()
 
 if (ZLIB_FOUND)

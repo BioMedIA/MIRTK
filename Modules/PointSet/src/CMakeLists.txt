@@ -86,6 +86,10 @@ set(DEPENDS
   ${VTK_LIBRARIES}
 )
 
+if (TARGET TBB::tbb)
+  list(APPEND DEPENDS TBB::tbb)
+endif ()
+
 if (FLANN_FOUND)
   list(APPEND DEPENDS ${FLANN_LIBRARY})
 endif ()
