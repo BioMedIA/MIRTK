@@ -794,14 +794,6 @@ macro (basis_find_package PACKAGE)
           message (STATUS "${_BFP_STATUS}")
         endif ()
         unset (_BFP_STATUS)
-        # show/hide DEPENDS_<PKG>_DIR in GUI
-        if (DEPENDS_${PKG}_DIR
-            OR (NOT _BFP_ARGN_REQUIRED AND NOT WITH_${PKG})
-            OR (DEFINED USE_${PKG}     AND NOT USE_${PKG}))
-          mark_as_advanced (FORCE DEPENDS_${PKG}_DIR)
-        else ()
-          mark_as_advanced (CLEAR DEPENDS_${PKG}_DIR)
-        endif ()
         # raise error when a required package was not found
         if (NOT ${PKG}_FOUND AND NOT _BFP_ARGN_NO_NOTFOUND_ERROR AND (_BFP_ARGN_REQUIRED OR WITH_${PKG}))
           set (_BFP_ERROR)
