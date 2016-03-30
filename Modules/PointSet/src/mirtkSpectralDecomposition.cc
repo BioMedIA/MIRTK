@@ -48,13 +48,6 @@ namespace mirtk { namespace SpectralDecomposition {
 
 
 // =============================================================================
-// Constants
-// =============================================================================
-
-/// Small number added to denominator of adjacency weights
-MIRTK_PointSet_EXPORT const double EPSILON = 1e-6;
-
-// =============================================================================
 // Auxiliary functions
 // =============================================================================
 

@@ -23,12 +23,6 @@
 
 namespace mirtk {
 
-
-// Current release version
-MIRTK_Common_EXPORT const Version current_version(MIRTK_VERSION_MAJOR,
-                                                  MIRTK_VERSION_MINOR,
-                                                  MIRTK_VERSION_PATCH);
-
 // Default: "Emulate" latest version
 MIRTK_Common_EXPORT Version version = current_version;
 

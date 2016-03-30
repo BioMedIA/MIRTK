@@ -49,7 +49,7 @@ namespace SpectralDecomposition {
 typedef GenericSparseMatrix<double>  SparseMatrix;
 typedef Array<Pair<int, double> >    FeatureWeights;
 
-MIRTK_PointSet_EXPORT extern const double EPSILON;
+const double EPSILON = 1e-6;
 
 // =============================================================================
 // Bipartite graph matching / Optimal assignment problem
