@@ -2012,7 +2012,7 @@ macro (basis_find_packages)
   # --------------------------------------------------------------------------
   # optional dependencies
   foreach (P IN LISTS PROJECT_OPTIONAL_DEPENDS)
-    basis_find_package ("${P}" QUIET)
+    basis_find_package ("${P}")
     basis_use_package  ("${P}")
   endforeach ()
 
@@ -2048,7 +2048,7 @@ macro (basis_find_packages)
     endforeach ()
     # optional application dependencies
     foreach (P IN LISTS PROJECT_OPTIONAL_TOOLS_DEPENDS)
-      basis_find_package ("${P}" QUIET)
+      basis_find_package ("${P}")
       basis_use_package ("${P}")
     endforeach ()
   endif ()
@@ -2085,7 +2085,7 @@ macro (basis_find_packages)
     endforeach ()
     # optional test dependencies
     foreach (P IN LISTS PROJECT_OPTIONAL_TEST_DEPENDS)
-      basis_find_package ("${P}" QUIET)
+      basis_find_package ("${P}")
       basis_use_package ("${P}")
     endforeach ()
   endif ()
