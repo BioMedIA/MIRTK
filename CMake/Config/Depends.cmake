@@ -103,7 +103,7 @@ if (BUILD_APPLICATIONS)
       REQUIRED
     )
     if (WITH_FLANN)
-      basis_find_package(FLANN)
+      basis_find_package(FLANN COMPONENTS cpp_static)
     endif ()
     if (WITH_MATLAB)
       basis_find_package(MATLAB{mwmclmcrrt})
