@@ -108,5 +108,12 @@ if (BUILD_APPLICATIONS)
     if (WITH_MATLAB)
       basis_find_package(MATLAB{mwmclmcrrt})
     endif ()
+  elseif (WITH_VTK AND MODULE_Image)
+    basis_find_package(
+      "VTK-7|6{
+        vtkCommonCore,
+        vtkCommonDataModel
+      }"
+    )
   endif ()
 endif ()

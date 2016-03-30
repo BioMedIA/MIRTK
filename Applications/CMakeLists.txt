@@ -24,8 +24,15 @@
 
 # ----------------------------------------------------------------------------
 # Include optional dependencies (cf. Config/Depends.cmake)
+if (MODULE_Image)
+  if (VTK_FOUND)
+    basis_use_package(VTK)
+  endif ()
+endif ()
 if (MODULE_PointSet)
-  basis_use_package(VTK)
+  if (VTK_FOUND)
+    basis_use_package(VTK)
+  endif ()
   if (FLANN_FOUND)
     basis_use_package(FLANN)
   else ()
