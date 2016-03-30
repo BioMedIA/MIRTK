@@ -218,9 +218,17 @@ set(SOURCES
   mirtkVoxel.cc
 )
 
-set(DEPENDS LibCommon LibNumerics)
+set(DEPENDS
+  LibCommon
+  LibNumerics
+)
+
 if (TARGET TBB::tbb)
   list(APPEND DEPENDS TBB::tbb)
+endif ()
+
+if (VTK_FOUND)
+  list(APPEND DEPENDS ${VTK_LIBRARIES})
 endif ()
 
 # ------------------------------------------------------------------------------
