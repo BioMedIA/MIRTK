@@ -2847,7 +2847,6 @@ function (basis_build_script TARGET_UID)
     COMMAND         "${CMAKE_COMMAND}" -D "CONFIGURATION:STRING=$<CONFIGURATION>" -P "${BUILD_SCRIPT}"
     MAIN_DEPENDENCY "${SOURCE_FILE}"
     DEPENDS         "${BUILD_SCRIPT}" "${BASIS_MODULE_PATH}/CommonTools.cmake" # basis_configure_script() definition
-                    "${CACHE_FILE}" ${CONFIG_FILES}
     COMMENT         "${COMMENT}"
     VERBATIM
   )
@@ -3134,7 +3133,6 @@ function (basis_build_script_library TARGET_UID)
       COMMAND         "${CMAKE_COMMAND}" -D "CONFIGURATION=$<CONFIGURATION>" -P "${BUILD_SCRIPT}"
       MAIN_DEPENDENCY "${SOURCE_FILE}"
       DEPENDS         "${BUILD_SCRIPT}" "${BASIS_MODULE_PATH}/CommonTools.cmake" # basis_configure_script() definition
-                      "${CACHE_FILE}" ${CONFIG_FILES}
       COMMENT         "${COMMENT}"
       VERBATIM
     )
