@@ -230,15 +230,13 @@ macro (basis_find_package PACKAGE)
   # ------------------------------------------------------------------------
   # tokenize dependency specification
   basis_tokenize_dependency ("${PACKAGE}" PKG _BFP_VERSIONS _BFP_COMPONENTS)
-  list (APPEND _BFP_ARGN_COMPONENTS ${_BFP_COMPONENTS})
-  unset (_BFP_COMPONENTS)
   list (GET _BFP_ARGN_UNPARSED_ARGUMENTS 0 _BFP_VERSION)
   if (_BFP_VERSION MATCHES "^[0-9]+(\\.[0-9]+)*$")
-    list (REMOVE_AT _BFP_ARGN_UNPARSED_ARGUMENTS 0)
     if (_BFP_VERSIONS)
       message (FATAL_ERROR "Cannot use both version specification as part of "
                            "package name and explicit version argument.")
     endif ()
+    list (REMOVE_AT _BFP_ARGN_UNPARSED_ARGUMENTS 0)
     set (_BFP_VERSIONS "${_BFP_VERSION}")
   endif ()
   list (LENGTH _BFP_VERSIONS _BFP_VERSIONS_COUNT)
@@ -250,6 +248,28 @@ macro (basis_find_package PACKAGE)
   endif ()
   string (TOLOWER "${PKG}" PKG_L)
   string (TOUPPER "${PKG}" PKG_U)
+  # ------------------------------------------------------------------------
+  # set <PKG>_FIND_REQUIRED_<CMP>
+  foreach (_BFP_CMP IN LISTS _BFP_COMPONENTS)
+    set (${PKG}_FIND_REQUIRED_${_BFP_CMP} ${_BFP_ARGN_REQUIRED})
+  endforeach ()
+  foreach (_BFP_CMP IN LISTS _BFP_ARGN_COMPONENTS)
+    set (${PKG}_FIND_REQUIRED_${_BFP_CMP} TRUE)
+  endforeach ()
+  foreach (_BFP_CMP IN LISTS _BFP_ARGN_OPTIONAL_COMPONENTS)
+    set (${PKG}_FIND_REQUIRED_${_BFP_CMP} FALSE)
+  endforeach ()
+  list (APPEND _BFP_ARGN_COMPONENTS ${_BFP_COMPONENTS})
+  if (_BFP_ARGN_COMPONENTS)
+    list (REMOVE_DUPLICATES _BFP_ARGN_COMPONENTS)
+  endif ()
+  # ------------------------------------------------------------------------
+  # prefix of package variable names set by Find<Pkg> or <Pkg>Config
+  if (PKG MATCHES "^((P|J)ython)Interp$")
+    string (TOUPPER "${CMAKE_MATCH_1}" _BFP_NS)
+  else ()
+    set (_BFP_NS "${PKG}")
+  endif ()
   # ------------------------------------------------------------------------
   # some debugging output
   if (BASIS_DEBUG)
@@ -288,14 +308,6 @@ macro (basis_find_package PACKAGE)
     unset (_BFP_ARGS)
   endif ()
   # ------------------------------------------------------------------------
-  # set <PKG>_FIND_REQUIRED_<CMP>
-  foreach (_BFP_CMP IN LISTS _BFP_ARGN_COMPONENTS)
-    set (${PKG}_FIND_REQUIRED_${_BFP_CMP} TRUE)
-  endforeach ()
-  foreach (_BFP_CMP IN LISTS _BFP_ARGN_OPTIONAL_COMPONENTS)
-    set (${PKG}_FIND_REQUIRED_${_BFP_CMP} FALSE)
-  endforeach ()
-  # ------------------------------------------------------------------------
   # find other modules of same project
   set (_BFP_IS_PROJECT FALSE)
   set (_BFP_IS_MODULE  FALSE)
@@ -325,8 +337,8 @@ macro (basis_find_package PACKAGE)
                   " but module ${_BFP_CMP} is not enabled."
                 )
               elseif (NOT _BFP_ARGN_QUIET)
-                message (WARNING
-                  "Module ${PROJECT_NAME} uses module ${_BFP_CMP} of top-level project ${PKG},"
+                message (STATUS
+                  "Module ${PROJECT_NAME} optionally uses module ${_BFP_CMP} of top-level project ${PKG},"
                   " but module ${_BFP_CMP} is not enabled."
                 )
               endif ()
@@ -363,7 +375,7 @@ macro (basis_find_package PACKAGE)
               " but module ${_BFP_CMP} is not enabled."
             )
           elseif (NOT _BFP_ARGN_QUIET)
-            message (WARNING
+            message (STATUS
               "Module ${PROJECT_NAME} optionally uses module ${_BFP_CMP} of top-level project ${PKG},"
               " but module ${_BFP_CMP} is not enabled."
             )
