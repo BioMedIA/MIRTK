@@ -19,6 +19,9 @@
 
 #if defined(HAVE_FLANN) && defined(_MSC_VER)
   #pragma warning(disable: 4267) // conversion from 'size_t'
+  #ifndef _SCL_SECURE_NO_WARNINGS
+    #define _SCL_SECURE_NO_WARNINGS
+  #endif
 #endif
 
 #include <mirtkCommon.h>
