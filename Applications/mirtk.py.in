@@ -5,8 +5,8 @@
 ##############################################################################
 # Medical Image Registration ToolKit (MIRTK)
 #
-# Copyright 2013-2015 Imperial College London
-# Copyright 2013-2015 Andreas Schuh
+# Copyright 2013-2016 Imperial College London
+# Copyright 2013-2016 Andreas Schuh
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -36,9 +36,11 @@ _paths       = [__dir__]
 _ldpaths     = []
 
 if _config:
-    _ldpaths.append(os.path.join(_libexec_dir, 'mirtk', _config))
+    if not _libexec_dir.endswith('/mirtk'):
+        _ldpaths.append(os.path.join(_libexec_dir, 'mirtk', _config))
     _ldpaths.append(os.path.join(_libexec_dir, _config))
-_ldpaths.append(os.path.join(_libexec_dir, 'mirtk'))
+if not _libexec_dir.endswith('/mirtk'):
+    _ldpaths.append(os.path.join(_libexec_dir, 'mirtk'))
 _ldpaths.append(_libexec_dir)
 
 _paths.extend(_ldpaths)
@@ -100,13 +102,16 @@ Optional arguments:
 def call(argv):
     """Execute MIRTK command."""
     fpath = None
+    fbase = _libexec_dir
+    if os.path.basename(fbase) != 'mirtk':
+        fbase = os.path.join(fbase, 'mirtk')
     for ext in _libexec_ext:
-        fpath = os.path.join(_libexec_dir, 'mirtk', _config, argv[0] + ext)
+        fpath = os.path.join(fbase, _config, argv[0] + ext)
         if os.path.isfile(fpath): break
         else: fpath = None
     if not fpath:
         for ext in _libexec_ext:
-            fpath = os.path.join(_libexec_dir, 'mirtk', argv[0] + ext)
+            fpath = os.path.join(fbase, argv[0] + ext)
             if os.path.isfile(fpath): break
             else: fpath = None
         if not fpath:
