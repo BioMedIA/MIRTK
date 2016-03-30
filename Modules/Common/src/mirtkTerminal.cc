@@ -120,22 +120,22 @@ struct SetDefaultColorMode
     char *term;
     size_t len;
     errno_t err = _dupenv_s(&term, &len, "TERM");
-    if (err != 0) {
-      stdout_color = false;
-      return;
-    }
+    if (err != 0) term = nullptr;
 #else
     const char *term = getenv("TERM");
+#endif
     if (term == nullptr) {
       stdout_color = false;
       return;
     }
-#endif
     const char **color_term = COLOR_ENABLED_TERMINALS;
     while (*color_term) {
       if (strcmp(term, *color_term) == 0) break;
       ++color_term;
     }
+#ifdef WINDOWS
+    free(term);
+#endif
     stdout_color = (*color_term && !StdOutIsRedirected());
   }
 };
