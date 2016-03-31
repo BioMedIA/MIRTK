@@ -1,0 +1,98 @@
+##############################################################################
+# Medical Image Registration ToolKit (MIRTK)
+#
+# Copyright 2013-2016 Imperial College London
+# Copyright 2013-2016 Andreas Schuh
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+##############################################################################
+
+import os
+import sys
+import subprocess
+
+# ============================================================================
+# constants
+# ============================================================================
+
+# directory of this module __file__
+__dir__ = os.path.dirname(os.path.realpath(__file__))
+
+# build configuration and prefix+suffix of MIRTK command executables
+config      = '@__CONFIG__@'
+libexec_dir = os.path.realpath(os.path.join(__dir__, '@LIBEXEC_DIR@'))
+if sys.platform.startswith('win'): libexec_ext = ['.exe', '.cmd', '.bat']
+else:                              libexec_ext = ['']
+
+# executable search paths
+paths = []
+if config != '': paths.append(os.path.join(libexec_dir, config))
+paths.append(libexec_dir)
+
+# shared library search paths
+ldpaths = paths
+for path in ['@MIRTK_LIBRARY_PATH_CONFIG@']:
+    if path != '': ldpaths.append(path)
+del path
+
+# ============================================================================
+# execute MIRTK command
+# ============================================================================
+
+# ----------------------------------------------------------------------------
+def putenvs():
+    """Set up MIRTK command execution environment."""
+    for d in ['@MIRTK_LIBRARY_PATH_CONFIG@']:
+        if d != '': ldpaths.append(d)
+    if sys.platform.startswith('linux'):
+        paths.extend(os.environ.get('PATH', '').split(':'))
+        os.environ['PATH'] = ':'.join(paths)
+        ldpaths.extend(os.environ.get('LD_LIBRARY_PATH', '').split(':'))
+        os.environ['LD_LIBRARY_PATH'] = ':'.join(ldpaths)
+    elif sys.platform.startswith('darwin'):
+        paths.extend(os.environ.get('PATH', '').split(':'))
+        os.environ['PATH'] = ':'.join(paths)
+        ldpaths.extend(os.environ.get('DYLD_LIBRARY_PATH', '').split(':'))
+        os.environ['DYLD_LIBRARY_PATH'] = ':'.join(ldpaths)
+    elif sys.platform.startswith('win'):
+        paths.extend(ldpaths)
+        paths.extend(os.environ.get('PATH', '').split(';'))
+        os.environ['PATH'] = ';'.join(paths)
+
+# ----------------------------------------------------------------------------
+def call(argv, verbose=0):
+    """Execute MIRTK command."""
+    fpath = None
+    for ext in libexec_ext:
+        fpath = os.path.join(libexec_dir, config, argv[0] + ext)
+        if os.path.isfile(fpath): break
+        else: fpath = None
+    if not fpath:
+        for ext in libexec_ext:
+            fpath = os.path.join(libexec_dir, argv[0] + ext)
+            if os.path.isfile(fpath): break
+            else: fpath = None
+        if not fpath:
+            sys.stderr.write('Error: Missing execuable for command: ' + argv[0])
+            return 1
+    if not os.access(fpath, os.X_OK):
+        sys.stderr.write('Error: Insufficient permissions to execute command: ' + fpath)
+        return 1
+    argv[0] = fpath
+    if verbose > 0:
+        args = []
+        for arg in argv:
+            if ' ' in arg: arg = '"' + arg + '"'
+            args.append(arg)
+        print(' '.join(args))
+    return subprocess.call(argv)
