@@ -17,12 +17,12 @@
  * limitations under the License.
  */
 
-#include <gtest/gtest.h>
+#include "gtest/gtest.h"
 
-#include <mirtkGenericImage.h>
-#include <mirtkConvolutionFunction.h>
-#include <mirtkScalarGaussian.h>
-#include <mirtkScalarFunctionToImage.h>
+#include "mirtk/GenericImage.h"
+#include "mirtk/ConvolutionFunction.h"
+#include "mirtk/ScalarGaussian.h"
+#include "mirtk/ScalarFunctionToImage.h"
 
 using namespace mirtk;
 using namespace mirtk::ConvolutionFunction;

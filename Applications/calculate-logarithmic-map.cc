@@ -17,15 +17,15 @@
  * limitations under the License.
  */
 
-#include <mirtkCommon.h>
-#include <mirtkOptions.h>
+#include "mirtk/Common.h"
+#include "mirtk/Options.h"
 
-#include <mirtkIOConfig.h>
+#include "mirtk/IOConfig.h"
 
-#include <mirtkVelocityToDisplacementField.h>
-#include <mirtkVelocityToDisplacementFieldEuler.h>
-#include <mirtkVelocityToDisplacementFieldSS.h>
-#include <mirtkDisplacementToVelocityFieldBCH.h>
+#include "mirtk/VelocityToDisplacementField.h"
+#include "mirtk/VelocityToDisplacementFieldEuler.h"
+#include "mirtk/VelocityToDisplacementFieldSS.h"
+#include "mirtk/DisplacementToVelocityFieldBCH.h"
 
 using namespace mirtk;
 

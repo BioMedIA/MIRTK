@@ -22,25 +22,25 @@
  * limitations under the License.
  */
 
-#include <mirtkCommon.h>
-#include <mirtkOptions.h>
+#include "mirtk/Common.h"
+#include "mirtk/Options.h"
 
-#include <mirtkEdgeTable.h>
-#include <mirtkPointSetUtils.h>
-#include <mirtkPolyDataSmoothing.h>
-#include <mirtkPolyDataCurvature.h>
-#include <mirtkVtkMath.h>
+#include "mirtk/EdgeTable.h"
+#include "mirtk/PointSetUtils.h"
+#include "mirtk/PolyDataSmoothing.h"
+#include "mirtk/PolyDataCurvature.h"
+#include "mirtk/VtkMath.h"
 
-#include <vtkSmartPointer.h>
-#include <vtkFloatArray.h>
-#include <vtkPointData.h>
-#include <vtkCellArray.h>
-#include <vtkTriangle.h>
-#include <vtkIdList.h>
-#include <vtkPolyDataNormals.h>
-#include <vtkCurvatures.h>
-#include <vtkDataSetAttributes.h>
-#include <vtkWindowedSincPolyDataFilter.h>
+#include "vtkSmartPointer.h"
+#include "vtkFloatArray.h"
+#include "vtkPointData.h"
+#include "vtkCellArray.h"
+#include "vtkTriangle.h"
+#include "vtkIdList.h"
+#include "vtkPolyDataNormals.h"
+#include "vtkCurvatures.h"
+#include "vtkDataSetAttributes.h"
+#include "vtkWindowedSincPolyDataFilter.h"
 
 using namespace mirtk;
 

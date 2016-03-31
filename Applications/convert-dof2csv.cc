@@ -17,15 +17,15 @@
  * limitations under the License.
  */
 
-#include <mirtkCommon.h>
-#include <mirtkOptions.h>
+#include "mirtk/Common.h"
+#include "mirtk/Options.h"
 
-#include <mirtkIOConfig.h>
-#include <mirtkGenericImage.h>
-#include <mirtkTransformation.h>
-#include <mirtkHomogeneousTransformation.h>
-#include <mirtkBSplineFreeFormTransformation3D.h>
-#include <mirtkMultiLevelFreeFormTransformation.h>
+#include "mirtk/IOConfig.h"
+#include "mirtk/GenericImage.h"
+#include "mirtk/Transformation.h"
+#include "mirtk/HomogeneousTransformation.h"
+#include "mirtk/BSplineFreeFormTransformation3D.h"
+#include "mirtk/MultiLevelFreeFormTransformation.h"
 
 using namespace mirtk;
 

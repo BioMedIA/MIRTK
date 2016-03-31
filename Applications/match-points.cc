@@ -17,23 +17,23 @@
  * limitations under the License.
  */
 
-#include <mirtkCommon.h>
-#include <mirtkOptions.h>
+#include "mirtk/Common.h"
+#include "mirtk/Options.h"
 
-#include <mirtkTransformation.h>
-#include <mirtkPointCorrespondence.h>
-#include <mirtkRegisteredPointSet.h>
-#include <mirtkPointCorrespondence.h>
-#include <mirtkPointSetUtils.h>
+#include "mirtk/Transformation.h"
+#include "mirtk/PointCorrespondence.h"
+#include "mirtk/RegisteredPointSet.h"
+#include "mirtk/PointCorrespondence.h"
+#include "mirtk/PointSetUtils.h"
 
-#include <vtkSmartPointer.h>
-#include <vtkPoints.h>
-#include <vtkFloatArray.h>
-#include <vtkDoubleArray.h>
-#include <vtkCellArray.h>
-#include <vtkIdTypeArray.h>
-#include <vtkPolyData.h>
-#include <vtkCellData.h>
+#include "vtkSmartPointer.h"
+#include "vtkPoints.h"
+#include "vtkFloatArray.h"
+#include "vtkDoubleArray.h"
+#include "vtkCellArray.h"
+#include "vtkIdTypeArray.h"
+#include "vtkPolyData.h"
+#include "vtkCellData.h"
 
 using namespace mirtk;
 

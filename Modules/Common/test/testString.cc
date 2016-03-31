@@ -17,9 +17,9 @@
  * limitations under the License.
  */
 
-#include <gtest/gtest.h>
+#include "gtest/gtest.h"
 
-#include <mirtkString.h>
+#include "mirtk/String.h"
 using namespace mirtk;
 
 

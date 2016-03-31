@@ -18,27 +18,27 @@
  * limitations under the License.
  */
 
-#include <mirtkCommon.h>
-#include <mirtkOptions.h>
+#include "mirtk/Common.h"
+#include "mirtk/Options.h"
 
-#include <mirtkVtk.h>
-#include <mirtkIOConfig.h>
-#include <mirtkGenericImage.h>
-#include <mirtkPointSetUtils.h>
-#include <mirtkTransformation.h>
-#include <mirtkPointSetUtils.h>
+#include "mirtk/Vtk.h"
+#include "mirtk/IOConfig.h"
+#include "mirtk/GenericImage.h"
+#include "mirtk/PointSetUtils.h"
+#include "mirtk/Transformation.h"
+#include "mirtk/PointSetUtils.h"
 
-#include <vtkSmartPointer.h>
-#include <vtkDataSetReader.h>
-#include <vtkXMLGenericDataObjectReader.h>
-#include <vtkDataSet.h>
-#include <vtkImageData.h>
-#include <vtkPointSet.h>
-#include <vtkPoints.h>
-#include <vtkPointData.h>
-#include <vtkCellData.h>
-#include <vtkPolyDataNormals.h>
-#include <vtkImageDataToPointSet.h>
+#include "vtkSmartPointer.h"
+#include "vtkDataSetReader.h"
+#include "vtkXMLGenericDataObjectReader.h"
+#include "vtkDataSet.h"
+#include "vtkImageData.h"
+#include "vtkPointSet.h"
+#include "vtkPoints.h"
+#include "vtkPointData.h"
+#include "vtkCellData.h"
+#include "vtkPolyDataNormals.h"
+#include "vtkImageDataToPointSet.h"
 
 using namespace mirtk;
 

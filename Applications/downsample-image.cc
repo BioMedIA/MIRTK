@@ -17,12 +17,12 @@
  * limitations under the License.
  */
 
-#include <mirtkCommon.h>
-#include <mirtkOptions.h>
+#include "mirtk/Common.h"
+#include "mirtk/Options.h"
 
-#include <mirtkIOConfig.h>
-#include <mirtkGenericImage.h>
-#include <mirtkGaussianPyramidFilter.h>
+#include "mirtk/IOConfig.h"
+#include "mirtk/GenericImage.h"
+#include "mirtk/GaussianPyramidFilter.h"
 
 using namespace mirtk;
 

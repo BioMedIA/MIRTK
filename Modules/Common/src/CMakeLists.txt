@@ -23,81 +23,83 @@
 ##############################################################################
 
 set(HEADERS
-  mirtkAlgorithm.h
-  mirtkAllocate.h
-  mirtkArray.h
-  mirtkArrayHeap.h
-  mirtkAssert.h
-  mirtkCfstream.h
-  mirtkCifstream.h
-  mirtkCofstream.h
-  mirtkCommon.h
-  mirtkConfig.h
-  mirtkConfigurable.h
-  mirtkCuda.h
-  mirtkCudaRuntime.h
-  mirtkCutilMath.h
-  mirtkDeallocate.h
-  mirtkEnergyMeasure.h
-  mirtkEvent.h
-  mirtkEventDelegate.h
-  mirtkFastDelegate.h
-  mirtkIndent.h
-  mirtkList.h
-  mirtkMath.h
-  mirtkMemory.h
-  mirtkObject.h
-  mirtkObjectFactory.h
-  mirtkObservable.h
-  mirtkObserver.h
-  mirtkOptions.h
-  mirtkOrderedMap.h
-  mirtkOrderedSet.h
-  mirtkPair.h
-  mirtkParallel.h
-  mirtkPath.h
-  mirtkProfiling.h
-  mirtkPriorityQueue.h
-  mirtkQueue.h
-  mirtkRandom.h
-  mirtkStack.h
-  mirtkStatus.h
-  mirtkStream.h
-  mirtkString.h
-  mirtkTerminal.h
-  mirtkTestProd.h
-  mirtkUnorderedMap.h
-  mirtkUnorderedSet.h
-  mirtkUtils.h
-  mirtkVersion.h
-  ${BINARY_INCLUDE_DIR}/mirtkVersionInfo.h
+  ${BINARY_INCLUDE_DIR}/mirtk/CommonConfig.h
+  ${BINARY_INCLUDE_DIR}/mirtk/CommonExport.h
+  ${BINARY_INCLUDE_DIR}/mirtk/VersionInfo.h
+  Algorithm.h
+  Allocate.h
+  Array.h
+  ArrayHeap.h
+  Assert.h
+  Cfstream.h
+  Cifstream.h
+  Cofstream.h
+  Common.h
+  Config.h
+  Configurable.h
+  Cuda.h
+  CudaRuntime.h
+  CutilMath.h
+  Deallocate.h
+  EnergyMeasure.h
+  Event.h
+  EventDelegate.h
+  FastDelegate.h
+  Indent.h
+  List.h
+  Math.h
+  Memory.h
+  Object.h
+  ObjectFactory.h
+  Observable.h
+  Observer.h
+  Options.h
+  OrderedMap.h
+  OrderedSet.h
+  Pair.h
+  Parallel.h
+  Path.h
+  Profiling.h
+  PriorityQueue.h
+  Queue.h
+  Random.h
+  Stack.h
+  Status.h
+  Stream.h
+  String.h
+  Terminal.h
+  TestProd.h
+  UnorderedMap.h
+  UnorderedSet.h
+  Utils.h
+  Version.h
 )
 
 set(SOURCES
-  mirtkCifstream.cc
-  mirtkCofstream.cc
-  mirtkConfigurable.cc
-  mirtkMath.cc
-  mirtkMemory.cc
-  mirtkObserver.cc
-  mirtkOptions.cc
-  mirtkParallel.cc
-  mirtkPath.cc
-  mirtkProfiling.cc
-  mirtkString.cc
-  mirtkTerminal.cc
-  mirtkVersion.cc
+  Cifstream.cc
+  Cofstream.cc
+  Configurable.cc
+  Math.cc
+  Memory.cc
+  Observer.cc
+  Options.cc
+  Parallel.cc
+  Path.cc
+  Profiling.cc
+  String.cc
+  Terminal.cc
+  Version.cc
 )
 
 if (VTK_FOUND)
-  list(APPEND HEADERS mirtkVtk.h mirtkVtkMath.h)
-  list(APPEND SOURCES mirtkVtk.cc)
+  list(APPEND HEADERS Vtk.h VtkMath.h)
+  list(APPEND SOURCES Vtk.cc)
   list(APPEND DEPENDS ${VTK_LIBRARIES})
 endif ()
 
 if (MATLAB_FOUND)
-  list(APPEND HEADERS mirtkMatlab.h)
-  list(APPEND SOURCES mirtkMatlab.cc)
+  list(APPEND HEADERS Matlab.h)
+  list(APPEND SOURCES Matlab.cc)
   list(APPEND DEPENDS ${MATLAB_mwmclmcrrt_LIBRARY})
 endif ()
 

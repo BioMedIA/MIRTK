@@ -17,21 +17,21 @@
  * limitations under the License.
  */
 
-#include <mirtkCommon.h>
-#include <mirtkOptions.h>
+#include "mirtk/Common.h"
+#include "mirtk/Options.h"
 
-#include <mirtkPointSetUtils.h>
-#include <mirtkRegisteredSurface.h>
-#include <mirtkPointCorrespondence.h>
-#include <mirtkFuzzyCorrespondence.h>
-#include <mirtkSpectralDecomposition.h>
-#include <mirtkVtkMath.h>
+#include "mirtk/PointSetUtils.h"
+#include "mirtk/RegisteredSurface.h"
+#include "mirtk/PointCorrespondence.h"
+#include "mirtk/FuzzyCorrespondence.h"
+#include "mirtk/SpectralDecomposition.h"
+#include "mirtk/VtkMath.h"
 
-#include <vtkSmartPointer.h>
-#include <vtkPolyData.h>
-#include <vtkPointData.h>
-#include <vtkDataArray.h>
-#include <vtkFloatArray.h>
+#include "vtkSmartPointer.h"
+#include "vtkPolyData.h"
+#include "vtkPointData.h"
+#include "vtkDataArray.h"
+#include "vtkFloatArray.h"
 
 using namespace mirtk;
 using namespace mirtk::SpectralDecomposition;

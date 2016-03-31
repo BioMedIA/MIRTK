@@ -19,7 +19,7 @@
 
 #include "mirtkNumericsTest.h"
 
-#include <mirtkMatrix.h>
+#include "mirtk/Matrix.h"
 using namespace mirtk;
 
 // =============================================================================

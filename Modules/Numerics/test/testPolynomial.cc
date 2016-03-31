@@ -19,7 +19,7 @@
 
 #include "mirtkNumericsTest.h"
 
-#include <mirtkPolynomial.h>
+#include "mirtk/Polynomial.h"
 using namespace mirtk;
 
 // =============================================================================

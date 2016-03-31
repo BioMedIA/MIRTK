@@ -18,16 +18,16 @@
  * limitations under the License.
  */
 
-#include <mirtkCommon.h>
-#include <mirtkOptions.h>
+#include "mirtk/Common.h"
+#include "mirtk/Options.h"
 
-#include <mirtkBaseImage.h>
-#include <mirtkIOConfig.h>
+#include "mirtk/BaseImage.h"
+#include "mirtk/IOConfig.h"
 
 #ifdef HAVE_MIRTK_Transformation
-  #include <mirtkTransformation.h>
-  #include <mirtkHomogeneousTransformation.h>
-  #include <mirtkMultiLevelTransformation.h>
+  #include "mirtk/Transformation.h"
+  #include "mirtk/HomogeneousTransformation.h"
+  #include "mirtk/MultiLevelTransformation.h"
 #endif
 
 using namespace mirtk;

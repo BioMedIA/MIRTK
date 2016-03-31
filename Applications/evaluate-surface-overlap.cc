@@ -24,21 +24,21 @@
   #endif
 #endif
 
-#include <mirtkCommon.h>
-#include <mirtkOptions.h>
+#include "mirtk/Common.h"
+#include "mirtk/Options.h"
 
-#include <mirtkPointSetUtils.h>
+#include "mirtk/PointSetUtils.h"
 
-#include <vtkCell.h>
-#include <vtkTriangle.h>
-#include <vtkTriangleFilter.h>
-#include <vtkPoints.h>
-#include <vtkPolyData.h>
-#include <vtkPointData.h>
-#include <vtkCellData.h>
-#include <vtkDataArray.h>
-#include <vtkKdTree.h>
-#include <vtkKdTreePointLocator.h>
+#include "vtkCell.h"
+#include "vtkTriangle.h"
+#include "vtkTriangleFilter.h"
+#include "vtkPoints.h"
+#include "vtkPolyData.h"
+#include "vtkPointData.h"
+#include "vtkCellData.h"
+#include "vtkDataArray.h"
+#include "vtkKdTree.h"
+#include "vtkKdTreePointLocator.h"
 
 #ifdef HAVE_FLANN
   // Compiler warning "Using integer absolute value function 'abs' when
@@ -60,7 +60,7 @@
     #pragma clang diagnostic ignored "-Wunused-local-typedefs"
   #endif
   // Include FLANN
-  #include <flann/flann.hpp>
+  #include "flann/flann.hpp"
   // Enable warnings again
   #if defined(_MSC_VER)
     #pragma warning(pop)

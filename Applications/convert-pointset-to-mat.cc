@@ -17,19 +17,19 @@
  * limitations under the License.
  */
 
-#include <mirtkCommon.h>
-#include <mirtkOptions.h>
+#include "mirtk/Common.h"
+#include "mirtk/Options.h"
 
-#include <mirtkMatrix.h>
-#include <mirtkMatlab.h>
-#include <mirtkPointSetUtils.h>
+#include "mirtk/Matrix.h"
+#include "mirtk/Matlab.h"
+#include "mirtk/PointSetUtils.h"
 
-#include <vtkSmartPointer.h>
-#include <vtkPolyData.h>
-#include <vtkCellArray.h>
-#include <vtkPointData.h>
-#include <vtkCellData.h>
-#include <vtkTriangleFilter.h>
+#include "vtkSmartPointer.h"
+#include "vtkPolyData.h"
+#include "vtkCellArray.h"
+#include "vtkPointData.h"
+#include "vtkCellData.h"
+#include "vtkTriangleFilter.h"
 
 using namespace mirtk;
 

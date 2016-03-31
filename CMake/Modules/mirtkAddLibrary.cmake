@@ -45,7 +45,7 @@ function(mirtk_add_library)
   set(headers)
   foreach (hdr IN LISTS TARGET_HEADERS)
     if (NOT IS_ABSOLUTE "${hdr}")
-      set(hdr "${PROJECT_INCLUDE_DIR}/${hdr}")
+      set(hdr "${PROJECT_INCLUDE_DIR}/${PROJECT_PACKAGE_NAME_L}/${hdr}")
     endif ()
     list(APPEND headers "${hdr}")
   endforeach ()
@@ -91,7 +91,7 @@ function(mirtk_add_library)
     DEPRECATED_MACRO_NAME    "${PROJECT_NAME}_DEPRECATED"
     NO_DEPRECATED_MACRO_NAME "${PROJECT_NAME}_NO_DEPRECATED"
     STATIC_DEFINE            "${PROJECT_NAME}_STATIC_DEFINE"
-    EXPORT_FILE_NAME         "${BINARY_INCLUDE_DIR}/mirtk${PROJECT_NAME}Export.h"
+    EXPORT_FILE_NAME         "${BINARY_INCLUDE_DIR}/${PROJECT_PACKAGE_NAME_L}/${PROJECT_NAME}Export.h"
   )
   if (BUILD_SHARED_LIBS)
     if (WIN32)

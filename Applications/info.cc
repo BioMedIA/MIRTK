@@ -17,41 +17,41 @@
  * limitations under the License.
  */
 
-#include <mirtkCommon.h>
-#include <mirtkOptions.h>
+#include "mirtk/Common.h"
+#include "mirtk/Options.h"
 
-#include <mirtkIOConfig.h>
+#include "mirtk/IOConfig.h"
 
-#include <mirtkBaseImage.h>
-#include <mirtkImageReader.h>
+#include "mirtk/BaseImage.h"
+#include "mirtk/ImageReader.h"
 
 #ifdef HAVE_MIRTK_Transformation
-#  include <mirtkTransformation.h>
-#  include <mirtkAffineTransformation.h>
+#  include "mirtk/Transformation.h"
+#  include "mirtk/AffineTransformation.h"
 #endif // HAVE_MIRTK_Transformation
 
 #ifdef HAVE_MIRTK_PointSet
-#  include <mirtkEdgeTable.h>
-#  include <mirtkTriangle.h>
-#  include <mirtkPolyhedron.h>
-#  include <mirtkPointSetUtils.h>
-#  include <mirtkDataStatistics.h>
-#  include <mirtkVtkMath.h>
+#  include "mirtk/EdgeTable.h"
+#  include "mirtk/Triangle.h"
+#  include "mirtk/Polyhedron.h"
+#  include "mirtk/PointSetUtils.h"
+#  include "mirtk/DataStatistics.h"
+#  include "mirtk/VtkMath.h"
 
-#  include <vtkSmartPointer.h>
-#  include <vtkPolyData.h>
-#  include <vtkDataArray.h>
-#  include <vtkCellArray.h>
-#  include <vtkPointData.h>
-#  include <vtkCellData.h>
-#  include <vtkGenericCell.h>
-#  include <vtkOctreePointLocator.h>
-#  include <vtkUnsignedCharArray.h>
-#  include <vtkFloatArray.h>
-#  include <vtkDataSetSurfaceFilter.h>
-#  include <vtkCleanPolyData.h>
-#  include <vtkPolyDataConnectivityFilter.h>
-#  include <vtkIntersectionPolyDataFilter.h>
+#  include "vtkSmartPointer.h"
+#  include "vtkPolyData.h"
+#  include "vtkDataArray.h"
+#  include "vtkCellArray.h"
+#  include "vtkPointData.h"
+#  include "vtkCellData.h"
+#  include "vtkGenericCell.h"
+#  include "vtkOctreePointLocator.h"
+#  include "vtkUnsignedCharArray.h"
+#  include "vtkFloatArray.h"
+#  include "vtkDataSetSurfaceFilter.h"
+#  include "vtkCleanPolyData.h"
+#  include "vtkPolyDataConnectivityFilter.h"
+#  include "vtkIntersectionPolyDataFilter.h"
 #endif // HAVE_MIRTK_PointSet
 
 using namespace mirtk;

@@ -18,9 +18,9 @@
  * limitations under the License.
  */
 
-#include <mirtkCommon.h>
-#include <mirtkOptions.h>
-#include <mirtkTransformations.h>
+#include "mirtk/Common.h"
+#include "mirtk/Options.h"
+#include "mirtk/Transformations.h"
 
 using namespace mirtk;
 

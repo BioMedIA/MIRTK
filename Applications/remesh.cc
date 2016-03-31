@@ -17,20 +17,20 @@
  * limitations under the License.
  */
 
-#include <mirtkCommon.h>
-#include <mirtkOptions.h>
+#include "mirtk/Common.h"
+#include "mirtk/Options.h"
 
-#include <mirtkEdgeTable.h>
-#include <mirtkPointSetUtils.h>
-#include <mirtkPolyDataRemeshing.h>
-#include <mirtkVtkMath.h>
+#include "mirtk/EdgeTable.h"
+#include "mirtk/PointSetUtils.h"
+#include "mirtk/PolyDataRemeshing.h"
+#include "mirtk/VtkMath.h"
 
-#include <vtkSmartPointer.h>
-#include <vtkDataReader.h> // VTK_BINARY, VTK_ASCII defines
-#include <vtkPolyData.h>
-#include <vtkPointData.h>
-#include <vtkCellArray.h>
-#include <vtkCellLocator.h>
+#include "vtkSmartPointer.h"
+#include "vtkDataReader.h" // VTK_BINARY, VTK_ASCII defines
+#include "vtkPolyData.h"
+#include "vtkPointData.h"
+#include "vtkCellArray.h"
+#include "vtkCellLocator.h"
 
 using namespace mirtk;
 

@@ -17,13 +17,13 @@
  * limitations under the License.
  */
 
-#include <mirtkCommon.h>
-#include <mirtkOptions.h>
+#include "mirtk/Common.h"
+#include "mirtk/Options.h"
 
-#include <mirtkIOConfig.h>
-#include <mirtkGenericImage.h>
-#include <mirtkImageFunction.h>
-#include <mirtkHistogram1D.h>
+#include "mirtk/IOConfig.h"
+#include "mirtk/GenericImage.h"
+#include "mirtk/ImageFunction.h"
+#include "mirtk/Histogram1D.h"
 
 using namespace mirtk;
 

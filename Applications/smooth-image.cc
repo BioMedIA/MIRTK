@@ -18,13 +18,13 @@
  * limitations under the License.
  */
 
-#include <mirtkCommon.h>
-#include <mirtkOptions.h>
+#include "mirtk/Common.h"
+#include "mirtk/Options.h"
 
-#include <mirtkImageReader.h>
-#include <mirtkIOConfig.h>
-#include <mirtkGaussianBlurring.h>
-#include <mirtkGaussianBlurring4D.h>
+#include "mirtk/ImageReader.h"
+#include "mirtk/IOConfig.h"
+#include "mirtk/GaussianBlurring.h"
+#include "mirtk/GaussianBlurring4D.h"
 
 using namespace mirtk;
 

@@ -18,17 +18,17 @@
  * limitations under the License.
  */
 
-#include <mirtkCommon.h>
-#include <mirtkOptions.h>
+#include "mirtk/Common.h"
+#include "mirtk/Options.h"
 
-#include <mirtkBaseImage.h>
-#include <mirtkImageReader.h>
-#include <mirtkIOConfig.h>
-#include <mirtkTransformation.h>
-#include <mirtkHomogeneousTransformation.h>
-#include <mirtkRigidTransformation.h>
-#include <mirtkImageTransformation.h>
-#include <mirtkInterpolateImageFunction.h>
+#include "mirtk/BaseImage.h"
+#include "mirtk/ImageReader.h"
+#include "mirtk/IOConfig.h"
+#include "mirtk/Transformation.h"
+#include "mirtk/HomogeneousTransformation.h"
+#include "mirtk/RigidTransformation.h"
+#include "mirtk/ImageTransformation.h"
+#include "mirtk/InterpolateImageFunction.h"
 
 using namespace mirtk;
 

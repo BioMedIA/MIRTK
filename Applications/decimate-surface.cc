@@ -17,19 +17,19 @@
  * limitations under the License.
  */
 
-#include <mirtkCommon.h>
-#include <mirtkOptions.h>
+#include "mirtk/Common.h"
+#include "mirtk/Options.h"
 
-#include <mirtkPointSetUtils.h>
+#include "mirtk/PointSetUtils.h"
 
-#include <vtkPolyData.h>
-#include <vtkPolyDataReader.h>
-#include <vtkPolyDataWriter.h>
-#include <vtkTriangleFilter.h>
-#include <vtkDecimatePro.h>
-#include <vtkSmartPointer.h>
+#include "vtkPolyData.h"
+#include "vtkPolyDataReader.h"
+#include "vtkPolyDataWriter.h"
+#include "vtkTriangleFilter.h"
+#include "vtkDecimatePro.h"
+#include "vtkSmartPointer.h"
 
-#include <vtkQuadricDecimation.h>
+#include "vtkQuadricDecimation.h"
 
 using namespace mirtk;
 

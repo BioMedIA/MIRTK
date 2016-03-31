@@ -44,12 +44,12 @@ basis_set_config_option(WITH_ZLIB_CONFIG   "${ZLIB_FOUND}")
 
 configure_file(
   "${PROJECT_CONFIG_DIR}/config.h.in"
-  "${BINARY_INCLUDE_DIR}/mirtkCommonConfig.h"
+  "${BINARY_INCLUDE_DIR}/mirtk/CommonConfig.h"
   @ONLY
 )
 
 configure_file(
   "${PROJECT_CONFIG_DIR}/version.h.in"
-  "${BINARY_INCLUDE_DIR}/mirtkVersionInfo.h"
+  "${BINARY_INCLUDE_DIR}/mirtk/VersionInfo.h"
   @ONLY
 )

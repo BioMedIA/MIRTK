@@ -29,21 +29,22 @@
 ##############################################################################
 
 set(HEADERS
-  ${BINARY_INCLUDE_DIR}/mirtkIOConfig.h
-  mirtkGIPLImageReader.h
-  mirtkGIPLImageWriter.h
-  mirtkPGMImageReader.h
-  mirtkPGMImageWriter.h
+  ${BINARY_INCLUDE_DIR}/mirtk/IOConfig.h
+  ${BINARY_INCLUDE_DIR}/mirtk/IOExport.h
+  GIPLImageReader.h
+  GIPLImageWriter.h
+  PGMImageReader.h
+  PGMImageWriter.h
 )
 
 set(SOURCES
-  mirtkGIPL.h
-  mirtkGIPLImageReader.cc
-  mirtkGIPLImageWriter.cc
-  mirtkIOConfig.cc
-  mirtkPGM.h
-  mirtkPGMImageReader.cc
-  mirtkPGMImageWriter.cc
+  GIPL.h
+  GIPLImageReader.cc
+  GIPLImageWriter.cc
+  IOConfig.cc
+  PGM.h
+  PGMImageReader.cc
+  PGMImageWriter.cc
 )
 
 set(DEPENDS
@@ -54,24 +55,24 @@ set(DEPENDS
 
 if (NiftiCLib_FOUND)
   list(APPEND HEADERS
-    mirtkNiftiImageInfo.h
-    mirtkNiftiImageReader.h
-    mirtkNiftiImageWriter.h
+    NiftiImageInfo.h
+    NiftiImageReader.h
+    NiftiImageWriter.h
   )
   list(APPEND SOURCES
-    mirtkNiftiImage.h
-    mirtkNiftiImage.cc
-    mirtkNiftiImageInfo.cc
-    mirtkNiftiImageReader.cc
-    mirtkNiftiImageWriter.cc
+    NiftiImage.h
+    NiftiImage.cc
+    NiftiImageInfo.cc
+    NiftiImageReader.cc
+    NiftiImageWriter.cc
   )
   list(APPEND DEPENDS ${NiftiCLib_LIBRARIES})
 endif ()
 
 if (PNG_FOUND)
   add_definitions(${PNG_DEFINITIONS})
-  list(APPEND HEADERS mirtkPNGImageWriter.h)
-  list(APPEND SOURCES mirtkPNGImageWriter.cc)
+  list(APPEND HEADERS PNGImageWriter.h)
+  list(APPEND SOURCES PNGImageWriter.cc)
   list(APPEND DEPENDS ${PNG_LIBRARIES})
 endif ()
 

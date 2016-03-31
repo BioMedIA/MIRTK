@@ -17,22 +17,22 @@
  * limitations under the License.
  */
 
-#include <mirtkCommon.h>
-#include <mirtkOptions.h>
+#include "mirtk/Common.h"
+#include "mirtk/Options.h"
 
-#include <mirtkPoint.h>
-#include <mirtkPointSet.h>
-#include <mirtkGenericImage.h>
-#include <mirtkPointSetUtils.h>
-#include <mirtkEuclideanDistanceTransform.h>
+#include "mirtk/Point.h"
+#include "mirtk/PointSet.h"
+#include "mirtk/GenericImage.h"
+#include "mirtk/PointSetUtils.h"
+#include "mirtk/EuclideanDistanceTransform.h"
 
-#include <vtkPolyData.h>
-#include <vtkUnstructuredGrid.h>
-#include <vtkImageData.h>
-#include <vtkPointData.h>
-#include <vtkCellData.h>
-#include <vtkAppendFilter.h>
-#include <vtkAppendPolyData.h>
+#include "vtkPolyData.h"
+#include "vtkUnstructuredGrid.h"
+#include "vtkImageData.h"
+#include "vtkPointData.h"
+#include "vtkCellData.h"
+#include "vtkAppendFilter.h"
+#include "vtkAppendPolyData.h"
 
 using namespace mirtk;
 
