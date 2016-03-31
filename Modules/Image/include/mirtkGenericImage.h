@@ -58,6 +58,9 @@ public:
   /// Scalar type corresponding to voxel type
   typedef typename voxel_info<VoxelType>::ScalarType ScalarType;
 
+  /// Floating point type corresponding to scalar type of voxel type
+  typedef typename voxel_info<ScalarType>::RealType RealScalarType;
+
   // ---------------------------------------------------------------------------
   // Data members
 
@@ -349,20 +352,20 @@ public:
   GenericImage& operator*=(const GenericImage &); ///< Multipy voxels
   GenericImage& operator/=(const GenericImage &); ///< Divide voxels
 
-  GenericImage& operator+=(ScalarType); ///< Add scalar
-  GenericImage& operator-=(ScalarType); ///< Subtract scalar
-  GenericImage& operator*=(ScalarType); ///< Multiply by scalar
-  GenericImage& operator/=(ScalarType); ///< Divide by scalar
+  GenericImage& operator+=(double); ///< Add scalar
+  GenericImage& operator-=(double); ///< Subtract scalar
+  GenericImage& operator*=(double); ///< Multiply by scalar
+  GenericImage& operator/=(double); ///< Divide by scalar
 
   GenericImage  operator+ (const GenericImage &) const; ///< Add images
   GenericImage  operator- (const GenericImage &) const; ///< Subtract images
   GenericImage  operator* (const GenericImage &) const; ///< Multiply images voxel-wise
   GenericImage  operator/ (const GenericImage &) const; ///< Divide images voxel-wise
 
-  GenericImage  operator+ (ScalarType) const; ///< Add scalar to image
-  GenericImage  operator- (ScalarType) const; ///< Subtract scalar from image
-  GenericImage  operator* (ScalarType) const; ///< Multiply image by scalar
-  GenericImage  operator/ (ScalarType) const; ///< Divide image by scalar
+  GenericImage  operator+ (double) const; ///< Add scalar to image
+  GenericImage  operator- (double) const; ///< Subtract scalar from image
+  GenericImage  operator* (double) const; ///< Multiply image by scalar
+  GenericImage  operator/ (double) const; ///< Divide image by scalar
 
   // ---------------------------------------------------------------------------
   // Thresholding
@@ -517,7 +520,7 @@ inline int GenericImage<VoxelType>::N() const
 template <class VoxelType>
 inline int GenericImage<VoxelType>::VoxelToIndex(int x, int y, int z, int t) const
 {
-  return (&_matrix[t][z][y][x] - &_matrix[0][0][0][0]);
+  return static_cast<int>(&_matrix[t][z][y][x] - &_matrix[0][0][0][0]);
 }
 
 // =============================================================================

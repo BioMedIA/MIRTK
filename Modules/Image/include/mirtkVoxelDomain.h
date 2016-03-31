@@ -177,16 +177,16 @@ struct InMask
   {
     const BinaryImage * const mask = image.GetMask();
     if (mask->GetT() > 1) {
-      return static_cast<bool>(mask->Get(idx));
+      return (mask->Get(idx) != BinaryPixel(0));
     } else {
-      return static_cast<bool>(mask->Get(idx % (image.GetX() * image.GetY() * image.GetZ())));
+      return (mask->Get(idx % (image.GetX() * image.GetY() * image.GetZ())) != BinaryPixel(0));
     }
   }
 
   static inline bool IsInside(const BaseImage &image, int i, int j, int k, int l, const void *)
   {
     const BinaryImage * const mask = image.GetMask();
-    return static_cast<bool>(mask->Get(i, j, k, mask->GetT() > 1 ? l : 0));
+    return (mask->Get(i, j, k, mask->GetT() > 1 ? l : 0) != BinaryPixel(0));
   }
 };
 
@@ -201,12 +201,12 @@ struct InSpatialMask
 {
   static inline bool IsInside(const BaseImage &image, int idx, const void *)
   {
-    return static_cast<bool>(image.GetMask()->Get(idx % (image.GetX() * image.GetY() * image.GetZ())));
+    return (image.GetMask()->Get(idx % (image.GetX() * image.GetY() * image.GetZ())) != BinaryPixel(0));
   }
 
   static inline bool IsInside(const BaseImage &image, int i, int j, int k, int, const void *)
   {
-    return static_cast<bool>(image.GetMask()->Get(i, j, k));
+    return (image.GetMask()->Get(i, j, k) != BinaryPixel(0));
   }
 };
 

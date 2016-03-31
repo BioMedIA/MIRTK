@@ -1374,12 +1374,12 @@ void Evaluate2ndOrderBSplineFFDDerivatives::InitializeLookupTable3D()
 }
 
 } // namespace BSplineFreeFormTransformation3DUtils
-using namespace BSplineFreeFormTransformation3DUtils;
-
 
 // -----------------------------------------------------------------------------
 void BSplineFreeFormTransformation3D::BendingEnergyGradient(double *gradient, double weight, bool incl_passive, bool wrt_world) const
 {
+  using namespace BSplineFreeFormTransformation3DUtils;
+  
   Vector sum;
   int    m, n;
 

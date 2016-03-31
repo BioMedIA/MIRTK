@@ -20,6 +20,9 @@
 #ifndef MIRTK_Version_H
 #define MIRTK_Version_H
 
+#include <mirtkCommonExport.h>
+#include <mirtkVersionInfo.h>
+
 #include <mirtkObject.h>
 
 
@@ -86,10 +89,12 @@ public:
 ////////////////////////////////////////////////////////////////////////////////
 
 /// Current software version
-extern const Version current_version;
+const Version current_version(MIRTK_VERSION_MAJOR,
+                              MIRTK_VERSION_MINOR,
+                              MIRTK_VERSION_PATCH);
 
 /// Version to emulate
-extern Version version;
+MIRTK_Common_EXPORT extern Version version;
 
 /// Print software revision number (or version if not available) only
 void PrintRevision(ostream &);

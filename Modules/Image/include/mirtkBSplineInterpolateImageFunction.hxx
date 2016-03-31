@@ -126,8 +126,8 @@ template <class TImage>
 void GenericBSplineInterpolateImageFunction<TImage>
 ::BoundingInterval(double x, int &i, int &I) const
 {
-  if (_SplineDegree & 1) i = static_cast<int>(floor(x      )) - _SplineDegree / 2;
-  else                   i = static_cast<int>(floor(x + 0.5)) - _SplineDegree / 2;
+  if (_SplineDegree & 1) i = ifloor(x      ) - _SplineDegree / 2;
+  else                   i = ifloor(x + 0.5) - _SplineDegree / 2;
   I = i + _SplineDegree;
 }
 
@@ -141,8 +141,8 @@ typename GenericBSplineInterpolateImageFunction<TImage>::VoxelType
 GenericBSplineInterpolateImageFunction<TImage>
 ::Get2D(double x, double y, double z, double t) const
 {
-  const int k = static_cast<int>(round(z));
-  const int l = static_cast<int>(round(t));
+  const int k = iround(z);
+  const int l = iround(t);
 
   if (k < 0 || k >= _Coefficient.Z() ||
       l < 0 || l >= _Coefficient.T()) {
@@ -157,7 +157,7 @@ GenericBSplineInterpolateImageFunction<TImage>
 
   // Perform interpolation without extrapolation
   RealType val = voxel_cast<RealType>(0);
-  Real     nrm = .0, w;
+  Real     nrm(0), w;
 
   for (int b = 0; b <= _SplineDegree; ++b) {
     if (0 <= j[b] && j[b] < _Coefficient.Y()) {
@@ -183,8 +183,8 @@ typename GenericBSplineInterpolateImageFunction<TImage>::VoxelType
 GenericBSplineInterpolateImageFunction<TImage>
 ::GetWithPadding2D(double x, double y, double z, double t) const
 {
-  const int k = static_cast<int>(round(z));
-  const int l = static_cast<int>(round(t));
+  const int k = iround(z);
+  const int l = iround(t);
 
   if (k < 0 || k >= _Coefficient.Z() ||
       l < 0 || l >= _Coefficient.T()) {
@@ -199,7 +199,7 @@ GenericBSplineInterpolateImageFunction<TImage>
 
   // Perform interpolation without extrapolation
   RealType val = voxel_cast<RealType>(0);
-  Real     fgw = .0, bgw = .0, w;
+  Real     fgw(0), bgw(0), w;
 
   for (int b = 0; b <= _SplineDegree; ++b) {
     for (int a = 0; a <= _SplineDegree; ++a) {
@@ -227,8 +227,8 @@ typename TCoefficient::VoxelType GenericBSplineInterpolateImageFunction<TImage>
   typedef typename TCoefficient::VoxelType VoxelType;
   typedef typename TCoefficient::RealType  RealType;
 
-  const int k = static_cast<int>(round(z));
-  const int l = static_cast<int>(round(t));
+  const int k = iround(z);
+  const int l = iround(t);
 
   // Compute indices and weights
   int  i [6], j [6];
@@ -240,7 +240,7 @@ typename TCoefficient::VoxelType GenericBSplineInterpolateImageFunction<TImage>
   RealType val = voxel_cast<RealType>(0);
   for (int b = 0; b <= _SplineDegree; ++b) {
     for (int a = 0; a <= _SplineDegree; ++a) {
-      val += wx[a] * wy[b] * coeff->Get(i[a], j[b], k, l);
+      val += wx[a] * wy[b] * voxel_cast<RealType>(coeff->Get(i[a], j[b], k, l));
     }
   }
 
@@ -256,8 +256,8 @@ typename TCoefficient::VoxelType GenericBSplineInterpolateImageFunction<TImage>
   typedef typename TCoefficient::VoxelType VoxelType;
   typedef typename TCoefficient::RealType  RealType;
 
-  const int k = static_cast<int>(round(z));
-  const int l = static_cast<int>(round(t));
+  const int k = iround(z);
+  const int l = iround(t);
 
   // Compute indices and weights
   int  i [6], j [6];
@@ -267,13 +267,13 @@ typename TCoefficient::VoxelType GenericBSplineInterpolateImageFunction<TImage>
 
   // Perform interpolation
   RealType val = voxel_cast<RealType>(0);
-  Real     fgw = .0, bgw = .0, w;
+  Real     fgw(0), bgw(0), w;
 
   for (int b = 0; b <= _SplineDegree; ++b) {
     for (int a = 0; a <= _SplineDegree; ++a) {
       w = wx[a] * wy[b];
       if (image->IsForeground(i[a], j[b], k, l)) {
-        val += w * coeff->Get(i[a], j[b], k, l);
+        val += w * voxel_cast<RealType>(coeff->Get(i[a], j[b], k, l));
         fgw += w;
       } else {
         bgw += w;
@@ -293,7 +293,7 @@ typename GenericBSplineInterpolateImageFunction<TImage>::VoxelType
 GenericBSplineInterpolateImageFunction<TImage>
 ::Get3D(double x, double y, double z, double t) const
 {
-  const int l = static_cast<int>(round(t));
+  const int l = iround(t);
 
   if (l < 0 || l >= _Coefficient.T()) {
     return voxel_cast<VoxelType>(this->DefaultValue());
@@ -307,7 +307,7 @@ GenericBSplineInterpolateImageFunction<TImage>
 
   // Perform interpolation without extrapolation
   RealType val = voxel_cast<RealType>(0);
-  Real     nrm = .0, wyz, w;
+  Real     nrm(0), wyz, w;
 
   for (int c = 0; c <= _SplineDegree; ++c) {
     if (0 <= k[c] && k[c] < _Coefficient.Z()) {
@@ -338,7 +338,7 @@ typename GenericBSplineInterpolateImageFunction<TImage>::VoxelType
 GenericBSplineInterpolateImageFunction<TImage>
 ::GetWithPadding3D(double x, double y, double z, double t) const
 {
-  const int l = static_cast<int>(round(t));
+  const int l = iround(t);
 
   if (l < 0 || l >= _Coefficient.T()) {
     return voxel_cast<VoxelType>(this->DefaultValue());
@@ -352,7 +352,7 @@ GenericBSplineInterpolateImageFunction<TImage>
 
   // Perform interpolation without extrapolation
   RealType val = voxel_cast<RealType>(0);
-  Real     fgw = .0, bgw = .0, wyz, w;
+  Real     fgw(0), bgw(0), wyz, w;
 
   for (int c = 0; c <= _SplineDegree; ++c) {
     for (int b = 0; b <= _SplineDegree; ++b) {
@@ -383,7 +383,7 @@ typename TCoefficient::VoxelType GenericBSplineInterpolateImageFunction<TImage>
   typedef typename TCoefficient::VoxelType VoxelType;
   typedef typename TCoefficient::RealType  RealType;
 
-  const int l = static_cast<int>(round(t));
+  const int l = iround(t);
 
   // Compute indices and weights
   int  i [6], j [6], k [6];
@@ -399,7 +399,7 @@ typename TCoefficient::VoxelType GenericBSplineInterpolateImageFunction<TImage>
     for (int b = 0; b <= _SplineDegree; ++b) {
       wyz = wy[b] * wz[c];
       for (int a = 0; a <= _SplineDegree; ++a) {
-        val += wx[a] * wyz * coeff->Get(i[a], j[b], k[c], l);
+        val += wx[a] * wyz * voxel_cast<RealType>(coeff->Get(i[a], j[b], k[c], l));
       }
     }
   }
@@ -415,7 +415,7 @@ typename TCoefficient::VoxelType GenericBSplineInterpolateImageFunction<TImage>
 {
   typedef typename TCoefficient::RealType RealType;
 
-  const int l = static_cast<int>(round(t));
+  const int l = iround(t);
 
   // Compute indices and weights
   int  i [6], j [6], k [6];
@@ -425,7 +425,7 @@ typename TCoefficient::VoxelType GenericBSplineInterpolateImageFunction<TImage>
 
   // Perform interpolation
   RealType val = voxel_cast<RealType>(0);
-  Real     fgw = .0, bgw = .0, wyz, w;
+  Real     fgw(0), bgw(0), wyz, w;
 
   for (int c = 0; c <= _SplineDegree; ++c) {
     for (int b = 0; b <= _SplineDegree; ++b) {
@@ -433,7 +433,7 @@ typename TCoefficient::VoxelType GenericBSplineInterpolateImageFunction<TImage>
       for (int a = 0; a <= _SplineDegree; ++a) {
         w = wx[a] * wyz;
         if (image->IsForeground(i[a], j[b], k[c], l)) {
-          val += w * coeff->Get(i[a], j[b], k[c], l);
+          val += w * voxel_cast<RealType>(coeff->Get(i[a], j[b], k[c], l));
           fgw += w;
         } else {
           bgw += w;
@@ -462,7 +462,7 @@ GenericBSplineInterpolateImageFunction<TImage>
 
   // Perform interpolation without extrapolation
   RealType val = voxel_cast<RealType>(0);
-  Real     nrm = .0, wzt, wyzt, w;
+  Real     nrm(0), wzt, wyzt, w;
 
   for (int d = 0; d <= _SplineDegree; ++d) {
     if (0 <= l[d] && l[d] < _Coefficient.T()) {
@@ -506,7 +506,7 @@ GenericBSplineInterpolateImageFunction<TImage>
 
   // Perform interpolation without extrapolation
   RealType val = voxel_cast<RealType>(0);
-  Real     fgw = .0, bgw = .0, wzt, wyzt, w;
+  Real     fgw(0), bgw(0), wzt, wyzt, w;
 
   for (int d = 0; d <= _SplineDegree; ++d) {
     for (int c = 0; c <= _SplineDegree; ++c) {
@@ -556,7 +556,7 @@ typename TCoefficient::VoxelType GenericBSplineInterpolateImageFunction<TImage>
       for (int b = 0; b <= _SplineDegree; ++b) {
         wyzt = wy[b] * wzt;
         for (int a = 0; a <= _SplineDegree; ++a) {
-          val += wx[a] * wyzt * coeff->Get(i[a], j[b], k[c], l[d]);
+          val += wx[a] * wyzt * voxel_cast<RealType>(coeff->Get(i[a], j[b], k[c], l[d]));
         }
       }
     }
@@ -582,7 +582,7 @@ typename TCoefficient::VoxelType GenericBSplineInterpolateImageFunction<TImage>
 
   // Perform interpolation
   RealType val = voxel_cast<RealType>(0);
-  Real     fgw = .0, bgw = .0, wzt, wyzt, w;
+  Real     fgw(0), bgw(0), wzt, wyzt, w;
 
   for (int d = 0; d <= _SplineDegree; ++d) {
     for (int c = 0; c <= _SplineDegree; ++c) {
@@ -592,7 +592,7 @@ typename TCoefficient::VoxelType GenericBSplineInterpolateImageFunction<TImage>
         for (int a = 0; a <= _SplineDegree; ++a) {
           w = wx[a] * wyzt;
           if (image->IsForeground(i[a], j[b], k[c], l[d])) {
-            val += w * coeff->Get(i[a], j[b], k[c], l[d]);
+            val += w * voxel_cast<RealType>(coeff->Get(i[a], j[b], k[c], l[d]));
             fgw += w;
           } else {
             bgw += w;
@@ -667,7 +667,7 @@ typename GenericBSplineInterpolateImageFunction<TImage>::VoxelType
 GenericBSplineInterpolateImageFunction<TImage>
 ::GetInside(double x, double y, double z, double t) const
 {
-  return Get(&_Coefficient, x, y, z, t);
+  return voxel_cast<VoxelType>(Get(&_Coefficient, x, y, z, t));
 }
 
 // -----------------------------------------------------------------------------
@@ -677,7 +677,7 @@ GenericBSplineInterpolateImageFunction<TImage>
 ::GetOutside(double x, double y, double z, double t) const
 {
   if (_InfiniteCoefficient) {
-    return Get(_InfiniteCoefficient, x, y, z, t);
+    return voxel_cast<VoxelType>(Get(_InfiniteCoefficient, x, y, z, t));
   } else {
     return Get(x, y, z, t);
   }
@@ -689,7 +689,7 @@ typename GenericBSplineInterpolateImageFunction<TImage>::VoxelType
 GenericBSplineInterpolateImageFunction<TImage>
 ::GetWithPaddingInside(double x, double y, double z, double t) const
 {
-  return GetWithPadding(this->Input(), &_Coefficient, x, y, z, t);
+  return voxel_cast<VoxelType>(GetWithPadding(this->Input(), &_Coefficient, x, y, z, t));
 }
 
 // -----------------------------------------------------------------------------
@@ -699,7 +699,7 @@ GenericBSplineInterpolateImageFunction<TImage>
 ::GetWithPaddingOutside(double x, double y, double z, double t) const
 {
   if (this->Extrapolator() && _InfiniteCoefficient) {
-    return GetWithPadding(this->Extrapolator(), _InfiniteCoefficient, x, y, z, t);
+    return voxel_cast<VoxelType>(GetWithPadding(this->Extrapolator(), _InfiniteCoefficient, x, y, z, t));
   } else {
     return GetWithPadding(x, y, z, t);
   }

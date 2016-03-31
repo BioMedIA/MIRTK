@@ -20,11 +20,22 @@
 #ifndef MIRTK_Profiling_H
 #define MIRTK_Profiling_H
 
+#include <mirtkCommonExport.h>
+
 #include <mirtkStream.h>
 
 #include <ctime>
 #ifdef HAVE_TBB
+// TBB includes windows header which defines min/max macros otherwise
+#  ifndef NOMINMAX
+#    define NOMINMAX
+#    define MIRTK_UNDEF_NOMINMAX
+#  endif
 #  include <tbb/tick_count.h>
+#  ifdef MIRTK_UNDEF_NOMINMAX
+#    undef MIRTK_UNDEF_NOMINMAX
+#    undef NOMINMAX
+#  endif
 #endif
 
 
@@ -45,10 +56,10 @@ enum TimeUnit {TIME_IN_DEFAULT_UNIT, TIME_IN_MILLISECONDS, TIME_IN_SECONDS};
 /// If less or equal to zero, no timing measurements are printed to screen.
 /// Otherwise, whether a timing measure is output or not depends on the
 /// set debugging level.
-extern int debug_time;
+MIRTK_Common_EXPORT extern int debug_time;
 
 /// Time unit to use for output of time measurements.
-extern TimeUnit debug_time_unit;
+MIRTK_Common_EXPORT extern TimeUnit debug_time_unit;
 
 // =============================================================================
 // Command help

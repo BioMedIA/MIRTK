@@ -7,15 +7,24 @@ Installation
 ============
 
 
-.. _BuildDependencies:
+.. _BuildRequirements:
 
 Requirements
 ============
 
+For the generation of build environment specific build configuration files,
+the Cross-platform Make tool named CMake_ is needed. The minimum required version
+for Linux and OS X is 2.8.12, while version 3.4 or newer is needed on Windows.
+
 For the compilation of the MIRTK source code, a C++ compiler with support for the
 `C++11`_ standard is required. On Windows, the minimum required Visual Studio compiler
-version is 18.0 which is shipped with Visual Studio Version 12.0 (2013).
+version is 18.0. A compatible compiler is shipped with Visual Studio 2013 or newer.
 
+To execute the :doc:`MIRTK commands <commands>`, a Python_ installation is required.
+Note that Python has to be installed before configuring the MIRTK build using CMake.
+
+
+.. _BuildDependencies:
 
 Dependencies
 ============
@@ -45,9 +54,6 @@ as described in the :ref:`download instructions <DownloadSources>`. The source c
 the NiftiCLib_ and libLBFGS_ libraries are included in the basic download package and need
 not be installed. The WITH_NiftiCLib build option can be used, however, to force the use
 of an existing NiftiCLib installation. See :ref:`build configuration steps below <ConfigurationSteps>`.
-
-To execute the :doc:`commands`, a Python_ installation is further required. Note that
-Python has to be installed before building the MIRTK from its source code.
 
 The intra-module dependencies are as follows. When a module is enabled,
 all modules required by this module are automatically enabled as well.
@@ -84,7 +90,7 @@ CMake GUI Example
 -----------------
 
 After obtaining a copy of the MIRTK source files, generate the build configuration
-files for your build tool of choice using CMake_ version 2.8.12 or newer.
+files for your build tool of choice using CMake_.
 We recommend the use of the CMake GUI with the "Grouped" checkbox enabled.
 Advanced options should normally not be required to be modified.
 
@@ -128,6 +134,7 @@ Step-by-step
    CMAKE_INSTALL_PREFIX          Installation directory (default on Linux and OS X is `/opt/mirtk-<version>`).
    PYTHON_EXECUTABLE             Python_ executable used for execution of Python scripts.
    WITH_ARPACK                   Enable eigendecomposition of sparse matrices. Required for spectral surface matching.
+   WITH_FLANN                    Use the Fast Library for Approximate Nearest Neighbors to locate points.
    WITH_MATLAB                   Enable output of matrices to .mat files and use of MATLAB functions.
    WITH_NiftiCLib                Force use of existing system installation of NiftiCLib_.
    WITH_PNG                      Enable writing of 2D images in PNG_ file format.

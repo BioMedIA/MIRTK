@@ -35,10 +35,10 @@ function(mirtk_add_test target_name)
   if (TARGET_UNPARSED_ARGUMENTS)
     message(FATAL_ERROR "mirtk_add_test called with unrecognized arguments: ${TARGET_UNPARSED_ARGUMENTS}!")
   endif ()
+  # Add optional dependencies if targets exist
   if (NOT COMMAND mirtk_get_target_name)
     include("${MIRTK_MODULE_PATH}/mirtkGetTargetName.cmake")
   endif ()
-  # Add optional dependencies if targets exist
   foreach (dep IN LISTS TARGET_OPTIONAL)
     mirtk_get_target_name(dep_name ${dep})
     if (TARGET ${dep_name})

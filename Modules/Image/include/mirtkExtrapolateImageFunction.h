@@ -344,8 +344,7 @@ public:
     /** Get extrapolation mode implemented by this class */                    \
     inline static  enum ExtrapolationMode ExtrapolationType()                  \
     { return mode; }                                                           \
-  private:                                                                     \
-    static void _mirtkExtrapolatorMacro_needs_trailing_semicolon()
+  private:
 
 // -----------------------------------------------------------------------------
 #define mirtkGenericExtrapolatorMacro(clsname, mode)                           \
@@ -359,8 +358,7 @@ public:
     typedef typename ImageType::RealType    RealType;                          \
     /* Import overloaded non-virtual member functions from base class */       \
     using GenericExtrapolateImageFunction<TImage>::Get;                        \
-  private:                                                                     \
-    static void _mirtkGenericExtrapolatorMacro_needs_trailing_semicolon()
+  private:
 
 ////////////////////////////////////////////////////////////////////////////////
 // Inline definitions -- ExtrapolateImageFunction

@@ -1383,9 +1383,9 @@ void GenericSparseMatrix<TEntry>::Diag(const Vector &d)
     }
     // Set/insert diagonal entry
     if (i >= row[r] && col[i] == r) {
-      col[j] = r, _Data[j] = d(r), --i, --j;
+      col[j] = r, _Data[j] = static_cast<TEntry>(d(r)), --i, --j;
     } else if (d(r) != .0) {
-      col[j] = r, _Data[j] = d(r), --j;
+      col[j] = r, _Data[j] = static_cast<TEntry>(d(r)), --j;
     }
     // Move columns below diagonal to make space for new entries
     if (i < j) {
@@ -1408,7 +1408,7 @@ void GenericSparseMatrix<TEntry>::Diag(const Vector &d)
       while (i >= row[r] && col[i] > r) --i;
       // Modify diagonal entry of this row
       mirtkAssert(i >= row[r] && col[i] == r, "diagonal entry must exist");
-      _Data[i] = d(r);
+      _Data[i] = static_cast<TEntry>(d(r));
       // Leave columns below diagonal untouched
     }
     i = row[r] - 1;
@@ -1423,7 +1423,7 @@ void GenericSparseMatrix<TEntry>::Diag(const Vector &d)
 template <class TEntry>
 void GenericSparseMatrix<TEntry>::Diag(TEntry d)
 {
-  Diag(Vector(_Rows, d));
+  Diag(Vector(_Rows, static_cast<double>(d)));
 }
 
 // -----------------------------------------------------------------------------
@@ -1744,7 +1744,7 @@ GenericSparseMatrix<TEntry> &GenericSparseMatrix<TEntry>::ScaleColumn(int c, TEn
 template <class TEntry>
 GenericSparseMatrix<TEntry> &GenericSparseMatrix<TEntry>::ScaleCol(int c, TEntry s)
 {
-  return ScaleCol(c, s);
+  return ScaleColumn(c, s);
 }
 
 // -----------------------------------------------------------------------------
@@ -1872,10 +1872,13 @@ mxArray *GenericSparseMatrix<TEntry>::MxArray() const
   return sa;
 }
 
+#endif // MIRTK_Numerics_WITH_MATLAB && defined(HAVE_MATLAB)
+
 // -----------------------------------------------------------------------------
 template <class TEntry>
 bool GenericSparseMatrix<TEntry>::ReadMAT(const char *fname, const char *varname)
 {
+#if MIRTK_Numerics_WITH_MATLAB && defined(HAVE_MATLAB)
   Matlab::Initialize();
   MATFile *fp = matOpen(fname, "r");
   if (fp == NULL) return false;
@@ -1887,12 +1890,17 @@ bool GenericSparseMatrix<TEntry>::ReadMAT(const char *fname, const char *varname
   Initialize(pm);
   mxDestroyArray(pm);
   return (matClose(fp) == 0);
+#else
+  cerr << "GenericSparseMatrix::ReadMAT: Must be compiled WITH_MATLAB enabled" << endl;
+  return false;
+#endif
 }
 
 // -----------------------------------------------------------------------------
 template <class TEntry>
 bool GenericSparseMatrix<TEntry>::WriteMAT(const char *fname, const char *varname) const
 {
+#if MIRTK_Numerics_WITH_MATLAB && defined(HAVE_MATLAB)
   Matlab::Initialize();
   MATFile *fp = matOpen(fname, "w");
   if (fp == NULL) return false;
@@ -1904,9 +1912,11 @@ bool GenericSparseMatrix<TEntry>::WriteMAT(const char *fname, const char *varnam
   }
   mxDestroyArray(m);
   return (matClose(fp) == 0);
+#else
+  cerr << "GenericSparseMatrix::WriteMAT: Must be compiled WITH_MATLAB enabled" << endl;
+  return false;
+#endif
 }
-
-#endif // MIRTK_Numerics_WITH_MATLAB
 
 // -----------------------------------------------------------------------------
 template <class TEntry>

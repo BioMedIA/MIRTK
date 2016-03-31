@@ -23,14 +23,8 @@
 
 namespace mirtk {
 
-
-// Current release version
-const Version current_version(MIRTK_VERSION_MAJOR,
-                              MIRTK_VERSION_MINOR,
-                              MIRTK_VERSION_PATCH);
-
 // Default: "Emulate" latest version
-Version version = current_version;
+MIRTK_Common_EXPORT Version version = current_version;
 
 // -----------------------------------------------------------------------------
 void PrintRevision(ostream &out)

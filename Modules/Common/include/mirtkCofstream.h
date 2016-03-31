@@ -21,13 +21,9 @@
 #define MIRTK_Cofstream_H
 
 #include <mirtkCommonConfig.h>
-#include <mirtkObject.h>
+#include <mirtkCommonExport.h>
 
-#if MIRTK_Common_WITH_ZLIB
-#  include <zlib.h>
-#else
-#  include <cstdio>
-#endif
+#include <mirtkObject.h>
 
 
 namespace mirtk {
@@ -50,7 +46,7 @@ class Cofstream : public Object
 
   /// File pointer to compressed file
 #if MIRTK_Common_WITH_ZLIB
-  gzFile _ZFile;
+  void *_ZFile;
 #endif
 
   /// Flag whether file is compressed
@@ -121,19 +117,19 @@ public:
 
   /// Returns whether file is compressed
   /// \deprecated Used Compressed() instead.
-  int IsCompressed() const;
+  MIRTK_Common_DEPRECATED int IsCompressed() const;
 
   /// Sets whether file is compressed
   /// \deprecated Used Compressed(bool) instead.
-  void IsCompressed(int);
+  MIRTK_Common_DEPRECATED void IsCompressed(int);
 
   /// Returns whether file is swapped
   /// \deprecated Used Swapped() instead.
-  int IsSwapped() const;
+  MIRTK_Common_DEPRECATED int IsSwapped() const;
 
   /// Sets whether file is swapped
   /// \deprecated Used Swapped(bool) instead.
-  void IsSwapped(int);
+  MIRTK_Common_DEPRECATED void IsSwapped(int);
 
 };
 

@@ -123,7 +123,6 @@ struct GlobalInverseTransformFunctor
   return_type operator()(const vector_type & x)
   {
     typedef typename vector_type::value_type value_type;
-    typedef typename vector_type::size_type size_type;
 
     value_type x1 = x(0), x2 = x(1), x3 = x(2);
     transformation_->GlobalTransform(x1, x2, x3, t_, t0_);
@@ -135,9 +134,10 @@ struct GlobalInverseTransformFunctor
     Matrix J(3, 3);
     transformation_->GlobalJacobian(J, x(0), x(1), x(2), t_, t0_);
     matrix_type f1(3, 3);
-    for(size_type icol = 0; icol < 3; icol++)
-      for(size_type irow = 0; irow < 3; irow++)
-        f1(irow, icol) = J(irow, icol);
+    for (int icol = 0; icol < 3; ++icol)
+    for (int irow = 0; irow < 3; ++irow) {
+      f1(irow, icol) = J(irow, icol);
+    }
 
     return boost::math::make_tuple(f0, f1);
   }
@@ -184,7 +184,6 @@ struct LocalInverseTransformFunctor
   return_type operator()(vector_type x)
   {
     typedef typename vector_type::value_type value_type;
-    typedef typename vector_type::size_type size_type;
 
     value_type x1 = x(0), x2 = x(1), x3 = x(2);
     transformation_->LocalTransform(x1, x2, x3, t_, t0_);
@@ -196,9 +195,10 @@ struct LocalInverseTransformFunctor
     Matrix J(3, 3);
     transformation_->LocalJacobian(J, x(0), x(1), x(2), t_, t0_);
     matrix_type f1(3, 3);
-    for(size_type icol = 0; icol < 3; icol++)
-      for(size_type irow = 0; irow < 3; irow++)
-        f1(irow, icol) = J(irow, icol);
+    for (int icol = 0; icol < 3; ++icol)
+    for (int irow = 0; irow < 3; ++irow) {
+      f1(irow, icol) = J(irow, icol);
+    }
 
     return boost::math::make_tuple(f0, f1);
   }
@@ -245,7 +245,6 @@ struct InverseTransformFunctor
   return_type operator()(vector_type x)
   {
     typedef typename vector_type::value_type value_type;
-    typedef typename vector_type::size_type size_type;
 
     value_type x1 = x(0), x2 = x(1), x3 = x(2);
     transformation_->Transform(x1, x2, x3, t_, t0_);
@@ -257,9 +256,10 @@ struct InverseTransformFunctor
     Matrix J(3, 3);
     transformation_->Jacobian(J, x(0), x(1), x(2), t_, t0_);
     matrix_type f1(3, 3);
-    for(size_type icol = 0; icol < 3; icol++)
-      for(size_type irow = 0; irow < 3; irow++)
-        f1(irow, icol) = J(irow, icol);
+    for (int icol = 0; icol < 3; ++icol)
+    for (int irow = 0; irow < 3; ++irow) {
+      f1(irow, icol) = J(irow, icol);
+    }
 
     return boost::math::make_tuple(f0, f1);
   }
@@ -306,7 +306,6 @@ struct InverseMultiLevelTransformFunctor
   return_type operator()(vector_type x)
   {
     typedef typename vector_type::value_type value_type;
-    typedef typename vector_type::size_type size_type;
 
     value_type x1 = x(0), x2 = x(1), x3 = x(2);
     transformation_->Transform(m_, n_, x1, x2, x3, t_, t0_);
@@ -318,9 +317,10 @@ struct InverseMultiLevelTransformFunctor
     Matrix J(3, 3);
     transformation_->Jacobian(m_, n_, J, x(0), x(1), x(2), t_, t0_);
     matrix_type f1(3, 3);
-    for(size_type icol = 0; icol < 3; icol++)
-      for(size_type irow = 0; irow < 3; irow++)
-        f1(irow, icol) = J(irow, icol);
+    for (int icol = 0; icol < 3; ++icol)
+    for (int irow = 0; irow < 3; ++irow) {
+      f1(irow, icol) = J(irow, icol);
+    }
 
     return boost::math::make_tuple(f0, f1);
   }

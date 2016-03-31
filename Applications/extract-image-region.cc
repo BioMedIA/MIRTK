@@ -130,8 +130,8 @@ void ScaleInterval(int &i, int &j, double s)
   if (s == 1.0) return;
   double m = (i + j) / 2.0;
   double r = s * abs(j - i) / 2.0;
-  i = floor(m - r);
-  j = ceil (m + r);
+  i = ifloor(m - r);
+  j = iceil (m + r);
 }
 
 // =============================================================================

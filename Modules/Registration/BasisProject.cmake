@@ -65,7 +65,7 @@ basis_project (
       vtkCommonDataModel,
       vtkIOXML
     }"
-    TBB
+    TBB{tbb}
     #<optional-dependency>
   TEST_DEPENDS
     GTest

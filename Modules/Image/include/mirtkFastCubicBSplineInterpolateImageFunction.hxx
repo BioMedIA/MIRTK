@@ -132,7 +132,7 @@ template <class TImage>
 void GenericFastCubicBSplineInterpolateImageFunction<TImage>
 ::BoundingInterval(double x, int &i, int &I) const
 {
-  i = static_cast<int>(floor(x)), I = i + 3;
+  i = ifloor(x), I = i + 3;
 }
 
 // =============================================================================
@@ -145,23 +145,23 @@ inline typename GenericFastCubicBSplineInterpolateImageFunction<TImage>::VoxelTy
 GenericFastCubicBSplineInterpolateImageFunction<TImage>
 ::Get2D(double x, double y, double z, double t) const
 {
-  int i = static_cast<int>(floor(x));
-  int j = static_cast<int>(floor(y));
-  int k = static_cast<int>(round(z));
-  int l = static_cast<int>(round(t));
+  int i = ifloor(x);
+  int j = ifloor(y);
+  int k = iround(z);
+  int l = iround(t);
 
   if (k < 0 || k >= _Coefficient.Z() ||
       l < 0 || l >= _Coefficient.T()) {
     return voxel_cast<VoxelType>(this->DefaultValue());
   }
 
-  const int A = Kernel::VariableToIndex(x - i);
-  const int B = Kernel::VariableToIndex(y - j);
+  const int A = Kernel::VariableToIndex(Real(x - i));
+  const int B = Kernel::VariableToIndex(Real(y - j));
 
   --i, --j;
 
   RealType val = voxel_cast<RealType>(0);
-  Real     nrm = .0, w;
+  Real     nrm(0), w;
 
   int ia, jb;
   for (int b = 0; b <= 3; ++b) {
@@ -191,23 +191,23 @@ inline typename GenericFastCubicBSplineInterpolateImageFunction<TImage>::VoxelTy
 GenericFastCubicBSplineInterpolateImageFunction<TImage>
 ::GetWithPadding2D(double x, double y, double z, double t) const
 {
-  int i = static_cast<int>(floor(x));
-  int j = static_cast<int>(floor(y));
-  int k = static_cast<int>(round(z));
-  int l = static_cast<int>(round(t));
+  int i = ifloor(x);
+  int j = ifloor(y);
+  int k = iround(z);
+  int l = iround(t);
 
   if (k < 0 || k >= _Coefficient.Z() ||
       l < 0 || l >= _Coefficient.T()) {
     return voxel_cast<VoxelType>(this->DefaultValue());
   }
 
-  const int A = Kernel::VariableToIndex(x - i);
-  const int B = Kernel::VariableToIndex(y - j);
+  const int A = Kernel::VariableToIndex(Real(x - i));
+  const int B = Kernel::VariableToIndex(Real(y - j));
 
   --i, --j;
 
   RealType val = voxel_cast<RealType>(0);
-  Real     fgw = .0, bgw = .0, w;
+  Real     fgw(0), bgw(0), w;
 
   int ia, jb;
   for (int b = 0; b <= 3; ++b) {
@@ -239,13 +239,13 @@ GenericFastCubicBSplineInterpolateImageFunction<TImage>
   typedef typename TCoefficient::VoxelType VoxelType;
   typedef typename TCoefficient::RealType  RealType;
 
-  int i = static_cast<int>(floor(x));
-  int j = static_cast<int>(floor(y));
-  int k = static_cast<int>(round(z));
-  int l = static_cast<int>(round(t));
+  int i = ifloor(x);
+  int j = ifloor(y);
+  int k = iround(z);
+  int l = iround(t);
 
-  const int A = Kernel::VariableToIndex(x - i);
-  const int B = Kernel::VariableToIndex(y - j);
+  const int A = Kernel::VariableToIndex(Real(x - i));
+  const int B = Kernel::VariableToIndex(Real(y - j));
 
   --i, --j;
 
@@ -273,13 +273,13 @@ GenericFastCubicBSplineInterpolateImageFunction<TImage>
   typedef typename TCoefficient::VoxelType VoxelType;
   typedef typename TCoefficient::RealType  RealType;
 
-  int i = static_cast<int>(floor(x));
-  int j = static_cast<int>(floor(y));
-  int k = static_cast<int>(round(z));
-  int l = static_cast<int>(round(t));
+  int i = ifloor(x);
+  int j = ifloor(y);
+  int k = iround(z);
+  int l = iround(t);
 
-  const int A = Kernel::VariableToIndex(x - i);
-  const int B = Kernel::VariableToIndex(y - j);
+  const int A = Kernel::VariableToIndex(Real(x - i));
+  const int B = Kernel::VariableToIndex(Real(y - j));
 
   --i, --j;
 
@@ -293,7 +293,7 @@ GenericFastCubicBSplineInterpolateImageFunction<TImage>
       ia = i + a;
       w = Kernel::LookupTable[A][a] * Kernel::LookupTable[B][b];
       if (input->IsForeground(ia, jb, k, l)) {
-        val += w * coeff->Get(ia, jb, k, l);
+        val += w * voxel_cast<RealType>(coeff->Get(ia, jb, k, l));
         fgw += w;
       } else {
         bgw += w;
@@ -313,23 +313,23 @@ inline typename GenericFastCubicBSplineInterpolateImageFunction<TImage>::VoxelTy
 GenericFastCubicBSplineInterpolateImageFunction<TImage>
 ::Get3D(double x, double y, double z, double t) const
 {
-  int i = static_cast<int>(floor(x));
-  int j = static_cast<int>(floor(y));
-  int k = static_cast<int>(floor(z));
-  int l = static_cast<int>(round(t));
+  int i = ifloor(x);
+  int j = ifloor(y);
+  int k = ifloor(z);
+  int l = iround(t);
 
   if (l < 0 || l >= _Coefficient.T()) {
     return voxel_cast<VoxelType>(this->DefaultValue());
   }
 
-  const int A = Kernel::VariableToIndex(x - i);
-  const int B = Kernel::VariableToIndex(y - j);
-  const int C = Kernel::VariableToIndex(z - k);
+  const int A = Kernel::VariableToIndex(Real(x - i));
+  const int B = Kernel::VariableToIndex(Real(y - j));
+  const int C = Kernel::VariableToIndex(Real(z - k));
 
   --i, --j, --k;
 
   RealType val = voxel_cast<RealType>(0);
-  Real     nrm = .0, wyz, w;
+  Real     nrm(0), wyz, w;
 
   int ia, jb, kc;
   for (int c = 0; c <= 3; ++c) {
@@ -364,23 +364,23 @@ inline typename GenericFastCubicBSplineInterpolateImageFunction<TImage>::VoxelTy
 GenericFastCubicBSplineInterpolateImageFunction<TImage>
 ::GetWithPadding3D(double x, double y, double z, double t) const
 {
-  int i = static_cast<int>(floor(x));
-  int j = static_cast<int>(floor(y));
-  int k = static_cast<int>(floor(z));
-  int l = static_cast<int>(round(t));
+  int i = ifloor(x);
+  int j = ifloor(y);
+  int k = ifloor(z);
+  int l = iround(t);
 
   if (l < 0 || l >= _Coefficient.T()) {
     return voxel_cast<VoxelType>(this->DefaultValue());
   }
 
-  const int A = Kernel::VariableToIndex(x - i);
-  const int B = Kernel::VariableToIndex(y - j);
-  const int C = Kernel::VariableToIndex(z - k);
+  const int A = Kernel::VariableToIndex(Real(x - i));
+  const int B = Kernel::VariableToIndex(Real(y - j));
+  const int C = Kernel::VariableToIndex(Real(z - k));
 
   --i, --j, --k;
 
   RealType val = voxel_cast<RealType>(0);
-  Real     fgw = .0, bgw = .0, wyz, w;
+  Real     fgw(0), bgw(0), wyz, w;
 
   int ia, jb, kc;
   for (int c = 0; c <= 3; ++c) {
@@ -416,14 +416,14 @@ GenericFastCubicBSplineInterpolateImageFunction<TImage>
   typedef typename TCoefficient::VoxelType VoxelType;
   typedef typename TCoefficient::RealType  RealType;
 
-  int i = static_cast<int>(floor(x));
-  int j = static_cast<int>(floor(y));
-  int k = static_cast<int>(floor(z));
-  int l = static_cast<int>(round(t));
+  int i = ifloor(x);
+  int j = ifloor(y);
+  int k = ifloor(z);
+  int l = iround(t);
 
-  const int A = Kernel::VariableToIndex(x - i);
-  const int B = Kernel::VariableToIndex(y - j);
-  const int C = Kernel::VariableToIndex(z - k);
+  const int A = Kernel::VariableToIndex(Real(x - i));
+  const int B = Kernel::VariableToIndex(Real(y - j));
+  const int C = Kernel::VariableToIndex(Real(z - k));
 
   --i, --j, --k;
 
@@ -436,10 +436,10 @@ GenericFastCubicBSplineInterpolateImageFunction<TImage>
     for (int b = 0; b <= 3; ++b) {
       jb   = j + b;
       wyz  = Kernel::LookupTable[B][b] * Kernel::LookupTable[C][c];
-      val += Kernel::LookupTable[A][0] * wyz * coeff->Get(i,   jb, kc, l);
-      val += Kernel::LookupTable[A][1] * wyz * coeff->Get(i+1, jb, kc, l);
-      val += Kernel::LookupTable[A][2] * wyz * coeff->Get(i+2, jb, kc, l);
-      val += Kernel::LookupTable[A][3] * wyz * coeff->Get(i+3, jb, kc, l);
+      val += Kernel::LookupTable[A][0] * wyz * voxel_cast<RealType>(coeff->Get(i,   jb, kc, l));
+      val += Kernel::LookupTable[A][1] * wyz * voxel_cast<RealType>(coeff->Get(i+1, jb, kc, l));
+      val += Kernel::LookupTable[A][2] * wyz * voxel_cast<RealType>(coeff->Get(i+2, jb, kc, l));
+      val += Kernel::LookupTable[A][3] * wyz * voxel_cast<RealType>(coeff->Get(i+3, jb, kc, l));
     }
   }
 
@@ -456,14 +456,14 @@ GenericFastCubicBSplineInterpolateImageFunction<TImage>
   typedef typename TCoefficient::VoxelType VoxelType;
   typedef typename TCoefficient::RealType  RealType;
 
-  int i = static_cast<int>(floor(x));
-  int j = static_cast<int>(floor(y));
-  int k = static_cast<int>(floor(z));
-  int l = static_cast<int>(round(t));
+  int i = ifloor(x);
+  int j = ifloor(y);
+  int k = ifloor(z);
+  int l = iround(t);
 
-  const int A = Kernel::VariableToIndex(x - i);
-  const int B = Kernel::VariableToIndex(y - j);
-  const int C = Kernel::VariableToIndex(z - k);
+  const int A = Kernel::VariableToIndex(Real(x - i));
+  const int B = Kernel::VariableToIndex(Real(y - j));
+  const int C = Kernel::VariableToIndex(Real(z - k));
 
   --i, --j, --k;
 
@@ -480,7 +480,7 @@ GenericFastCubicBSplineInterpolateImageFunction<TImage>
         ia = i + a;
         w  = Kernel::LookupTable[A][a] * wyz;
         if (input->IsForeground(ia, jb, kc, l)) {
-          val += w * coeff->Get(ia, jb, kc, l);
+          val += w * voxel_cast<RealType>(coeff->Get(ia, jb, kc, l));
           fgw += w;
         } else {
           bgw += w;
@@ -501,20 +501,20 @@ inline typename GenericFastCubicBSplineInterpolateImageFunction<TImage>::VoxelTy
 GenericFastCubicBSplineInterpolateImageFunction<TImage>
 ::Get4D(double x, double y, double z, double t) const
 {
-  int i = static_cast<int>(floor(x));
-  int j = static_cast<int>(floor(y));
-  int k = static_cast<int>(floor(z));
-  int l = static_cast<int>(floor(t));
+  int i = ifloor(x);
+  int j = ifloor(y);
+  int k = ifloor(z);
+  int l = ifloor(t);
 
-  const int A = Kernel::VariableToIndex(x - i);
-  const int B = Kernel::VariableToIndex(y - j);
-  const int C = Kernel::VariableToIndex(z - k);
-  const int D = Kernel::VariableToIndex(t - l);
+  const int A = Kernel::VariableToIndex(Real(x - i));
+  const int B = Kernel::VariableToIndex(Real(y - j));
+  const int C = Kernel::VariableToIndex(Real(z - k));
+  const int D = Kernel::VariableToIndex(Real(t - l));
 
   --i, --j, --k, --l;
 
   RealType val = voxel_cast<RealType>(0);
-  Real     nrm = .0, wzt, wyzt, w;
+  Real     nrm(0), wzt, wyzt, w;
 
   int ia, jb, kc, ld;
   for (int d = 0; d <= 3; ++d) {
@@ -555,20 +555,20 @@ inline typename GenericFastCubicBSplineInterpolateImageFunction<TImage>::VoxelTy
 GenericFastCubicBSplineInterpolateImageFunction<TImage>
 ::GetWithPadding4D(double x, double y, double z, double t) const
 {
-  int i = static_cast<int>(floor(x));
-  int j = static_cast<int>(floor(y));
-  int k = static_cast<int>(floor(z));
-  int l = static_cast<int>(floor(t));
+  int i = ifloor(x);
+  int j = ifloor(y);
+  int k = ifloor(z);
+  int l = ifloor(t);
 
-  const int A = Kernel::VariableToIndex(x - i);
-  const int B = Kernel::VariableToIndex(y - j);
-  const int C = Kernel::VariableToIndex(z - k);
-  const int D = Kernel::VariableToIndex(t - l);
+  const int A = Kernel::VariableToIndex(Real(x - i));
+  const int B = Kernel::VariableToIndex(Real(y - j));
+  const int C = Kernel::VariableToIndex(Real(z - k));
+  const int D = Kernel::VariableToIndex(Real(t - l));
 
   --i, --j, --k, --l;
 
   RealType val = voxel_cast<RealType>(0);
-  Real     fgw = .0, bgw = .0, wzt, wyzt, w;
+  Real     fgw(0), bgw(0), wzt, wyzt, w;
 
   int ia, jb, kc, ld;
   for (int d = 0; d <= 3; ++d) {
@@ -608,15 +608,15 @@ GenericFastCubicBSplineInterpolateImageFunction<TImage>
   typedef typename TCoefficient::VoxelType VoxelType;
   typedef typename TCoefficient::RealType  RealType;
 
-  int i = static_cast<int>(floor(x));
-  int j = static_cast<int>(floor(y));
-  int k = static_cast<int>(floor(z));
-  int l = static_cast<int>(floor(t));
+  int i = ifloor(x);
+  int j = ifloor(y);
+  int k = ifloor(z);
+  int l = ifloor(t);
 
-  const int A = Kernel::VariableToIndex(x - i);
-  const int B = Kernel::VariableToIndex(y - j);
-  const int C = Kernel::VariableToIndex(z - k);
-  const int D = Kernel::VariableToIndex(t - l);
+  const int A = Kernel::VariableToIndex(Real(x - i));
+  const int B = Kernel::VariableToIndex(Real(y - j));
+  const int C = Kernel::VariableToIndex(Real(z - k));
+  const int D = Kernel::VariableToIndex(Real(t - l));
 
   --i, --j, --k, --l;
 
@@ -632,10 +632,10 @@ GenericFastCubicBSplineInterpolateImageFunction<TImage>
       for (int b = 0; b <= 3; ++b) {
         jb   = j + b;
         wyzt = Kernel::LookupTable[B][b] * wzt;
-        val += Kernel::LookupTable[A][0] * wyzt * coeff->Get(i,   jb, kc, ld);
-        val += Kernel::LookupTable[A][1] * wyzt * coeff->Get(i+1, jb, kc, ld);
-        val += Kernel::LookupTable[A][2] * wyzt * coeff->Get(i+2, jb, kc, ld);
-        val += Kernel::LookupTable[A][3] * wyzt * coeff->Get(i+3, jb, kc, ld);
+        val += Kernel::LookupTable[A][0] * wyzt * voxel_cast<RealType>(coeff->Get(i,   jb, kc, ld));
+        val += Kernel::LookupTable[A][1] * wyzt * voxel_cast<RealType>(coeff->Get(i+1, jb, kc, ld));
+        val += Kernel::LookupTable[A][2] * wyzt * voxel_cast<RealType>(coeff->Get(i+2, jb, kc, ld));
+        val += Kernel::LookupTable[A][3] * wyzt * voxel_cast<RealType>(coeff->Get(i+3, jb, kc, ld));
       }
     }
   }
@@ -653,20 +653,20 @@ GenericFastCubicBSplineInterpolateImageFunction<TImage>
   typedef typename TCoefficient::VoxelType VoxelType;
   typedef typename TCoefficient::RealType  RealType;
 
-  int i = static_cast<int>(floor(x));
-  int j = static_cast<int>(floor(y));
-  int k = static_cast<int>(floor(z));
-  int l = static_cast<int>(floor(t));
+  int i = ifloor(x);
+  int j = ifloor(y);
+  int k = ifloor(z);
+  int l = ifloor(t);
 
-  const int A = Kernel::VariableToIndex(x - i);
-  const int B = Kernel::VariableToIndex(y - j);
-  const int C = Kernel::VariableToIndex(z - k);
-  const int D = Kernel::VariableToIndex(t - l);
+  const int A = Kernel::VariableToIndex(Real(x - i));
+  const int B = Kernel::VariableToIndex(Real(y - j));
+  const int C = Kernel::VariableToIndex(Real(z - k));
+  const int D = Kernel::VariableToIndex(Real(t - l));
 
   --i, --j, --k, --l;
 
   RealType val = voxel_cast<RealType>(0);
-  Real     fgw = .0, bgw = .0, wzt, wyzt, w;
+  Real     fgw(0), bgw(0), wzt, wyzt, w;
 
   int ia, jb, kc, ld;
   for (int d = 0; d <= 3; ++d) {
@@ -681,7 +681,7 @@ GenericFastCubicBSplineInterpolateImageFunction<TImage>
           ia = i + a;
           w  = Kernel::LookupTable[A][a] * wyzt;
           if (input->IsForeground(ia, jb, kc, ld)) {
-            val += w * coeff->Get(ia, jb, kc, ld);
+            val += w * voxel_cast<RealType>(coeff->Get(ia, jb, kc, ld));
             fgw += w;
           } else {
             bgw += w;
@@ -756,13 +756,13 @@ inline typename GenericFastCubicBSplineInterpolateImageFunction<TImage>::VoxelTy
 GenericFastCubicBSplineInterpolateImageFunction<TImage>
 ::GetInside2D(double x, double y, double z, double t) const
 {
-  int i = static_cast<int>(floor(x));
-  int j = static_cast<int>(floor(y));
-  int k = static_cast<int>(round(z));
-  int l = static_cast<int>(round(t));
+  int i = ifloor(x);
+  int j = ifloor(y);
+  int k = iround(z);
+  int l = iround(t);
 
-  const int A = Kernel::VariableToIndex(x - i);
-  const int B = Kernel::VariableToIndex(y - j);
+  const int A = Kernel::VariableToIndex(Real(x - i));
+  const int B = Kernel::VariableToIndex(Real(y - j));
 
   --i, --j;
 
@@ -770,10 +770,10 @@ GenericFastCubicBSplineInterpolateImageFunction<TImage>
   const RealType *coeff = _Coefficient.Data(i, j, k, l);
 
   for (int b = 0; b <= 3; ++b, coeff += _s2) {
-    val += Kernel::LookupTable[A][0] * Kernel::LookupTable[B][b] * (*coeff++);
-    val += Kernel::LookupTable[A][1] * Kernel::LookupTable[B][b] * (*coeff++);
-    val += Kernel::LookupTable[A][2] * Kernel::LookupTable[B][b] * (*coeff++);
-    val += Kernel::LookupTable[A][3] * Kernel::LookupTable[B][b] * (*coeff++);
+    val += Kernel::LookupTable[A][0] * Kernel::LookupTable[B][b] * (*coeff), ++coeff;
+    val += Kernel::LookupTable[A][1] * Kernel::LookupTable[B][b] * (*coeff), ++coeff;
+    val += Kernel::LookupTable[A][2] * Kernel::LookupTable[B][b] * (*coeff), ++coeff;
+    val += Kernel::LookupTable[A][3] * Kernel::LookupTable[B][b] * (*coeff), ++coeff;
   }
 
   return voxel_cast<VoxelType>(val);
@@ -785,14 +785,14 @@ inline typename GenericFastCubicBSplineInterpolateImageFunction<TImage>::VoxelTy
 GenericFastCubicBSplineInterpolateImageFunction<TImage>
 ::GetInside3D(double x, double y, double z, double t) const
 {
-  int i = static_cast<int>(floor(x));
-  int j = static_cast<int>(floor(y));
-  int k = static_cast<int>(floor(z));
-  int l = static_cast<int>(round(t));
+  int i = ifloor(x);
+  int j = ifloor(y);
+  int k = ifloor(z);
+  int l = iround(t);
 
-  const int A = Kernel::VariableToIndex(x - i);
-  const int B = Kernel::VariableToIndex(y - j);
-  const int C = Kernel::VariableToIndex(z - k);
+  const int A = Kernel::VariableToIndex(Real(x - i));
+  const int B = Kernel::VariableToIndex(Real(y - j));
+  const int C = Kernel::VariableToIndex(Real(z - k));
 
   --i, --j, --k;
 
@@ -803,10 +803,10 @@ GenericFastCubicBSplineInterpolateImageFunction<TImage>
   for (int c = 0; c <= 3; ++c, coeff += _s3) {
     for (int b = 0; b <= 3; ++b, coeff += _s2) {
       wyz  = Kernel::LookupTable[B][b] * Kernel::LookupTable[C][c];
-      val += Kernel::LookupTable[A][0] * wyz * (*coeff++);
-      val += Kernel::LookupTable[A][1] * wyz * (*coeff++);
-      val += Kernel::LookupTable[A][2] * wyz * (*coeff++);
-      val += Kernel::LookupTable[A][3] * wyz * (*coeff++);
+      val += Kernel::LookupTable[A][0] * wyz * (*coeff), ++coeff;
+      val += Kernel::LookupTable[A][1] * wyz * (*coeff), ++coeff;
+      val += Kernel::LookupTable[A][2] * wyz * (*coeff), ++coeff;
+      val += Kernel::LookupTable[A][3] * wyz * (*coeff), ++coeff;
     }
   }
 
@@ -819,15 +819,15 @@ inline typename GenericFastCubicBSplineInterpolateImageFunction<TImage>::VoxelTy
 GenericFastCubicBSplineInterpolateImageFunction<TImage>
 ::GetInside4D(double x, double y, double z, double t) const
 {
-  int i = static_cast<int>(floor(x));
-  int j = static_cast<int>(floor(y));
-  int k = static_cast<int>(floor(z));
-  int l = static_cast<int>(floor(t));
+  int i = ifloor(x);
+  int j = ifloor(y);
+  int k = ifloor(z);
+  int l = ifloor(t);
 
-  const int A = Kernel::VariableToIndex(x - i);
-  const int B = Kernel::VariableToIndex(y - j);
-  const int C = Kernel::VariableToIndex(z - k);
-  const int D = Kernel::VariableToIndex(t - l);
+  const int A = Kernel::VariableToIndex(Real(x - i));
+  const int B = Kernel::VariableToIndex(Real(y - j));
+  const int C = Kernel::VariableToIndex(Real(z - k));
+  const int D = Kernel::VariableToIndex(Real(t - l));
 
   --i, --j, --k, --l;
 
@@ -840,10 +840,10 @@ GenericFastCubicBSplineInterpolateImageFunction<TImage>
       wzt = Kernel::LookupTable[C][c] * Kernel::LookupTable[D][d];
       for (int b = 0; b <= 3; ++b, coeff += _s2) {
         wyzt = Kernel::LookupTable[B][b] * wzt;
-        val += Kernel::LookupTable[A][0] * wyzt * (*coeff++);
-        val += Kernel::LookupTable[A][1] * wyzt * (*coeff++);
-        val += Kernel::LookupTable[A][2] * wyzt * (*coeff++);
-        val += Kernel::LookupTable[A][3] * wyzt * (*coeff++);
+        val += Kernel::LookupTable[A][0] * wyzt * (*coeff), ++coeff;
+        val += Kernel::LookupTable[A][1] * wyzt * (*coeff), ++coeff;
+        val += Kernel::LookupTable[A][2] * wyzt * (*coeff), ++coeff;
+        val += Kernel::LookupTable[A][3] * wyzt * (*coeff), ++coeff;
       }
     }
   }
@@ -872,7 +872,7 @@ GenericFastCubicBSplineInterpolateImageFunction<TImage>
 ::GetOutside(double x, double y, double z, double t) const
 {
   if (_InfiniteCoefficient) {
-    return Get(_InfiniteCoefficient, x, y, z, t);
+    return voxel_cast<VoxelType>(Get(_InfiniteCoefficient, x, y, z, t));
   } else {
     return Get(x, y, z, t);
   }
@@ -885,9 +885,9 @@ GenericFastCubicBSplineInterpolateImageFunction<TImage>
 ::GetWithPaddingInside(double x, double y, double z, double t) const
 {
   switch (this->NumberOfDimensions()) {
-    case 3:  return GetWithPadding3D(this->Input(), &_Coefficient, x, y, z, t);
-    case 2:  return GetWithPadding2D(this->Input(), &_Coefficient, x, y, z, t);
-    default: return GetWithPadding4D(this->Input(), &_Coefficient, x, y, z, t);
+    case 3:  return voxel_cast<VoxelType>(GetWithPadding3D(this->Input(), &_Coefficient, x, y, z, t));
+    case 2:  return voxel_cast<VoxelType>(GetWithPadding2D(this->Input(), &_Coefficient, x, y, z, t));
+    default: return voxel_cast<VoxelType>(GetWithPadding4D(this->Input(), &_Coefficient, x, y, z, t));
   }
 }
 
@@ -898,7 +898,7 @@ GenericFastCubicBSplineInterpolateImageFunction<TImage>
 ::GetWithPaddingOutside(double x, double y, double z, double t) const
 {
   if (this->Extrapolator() && _InfiniteCoefficient) {
-    return GetWithPadding(this->Extrapolator(), _InfiniteCoefficient, x, y, z, t);
+    return voxel_cast<VoxelType>(GetWithPadding(this->Extrapolator(), _InfiniteCoefficient, x, y, z, t));
   } else {
     return GetWithPadding(x, y, z, t);
   }
@@ -915,18 +915,18 @@ void GenericFastCubicBSplineInterpolateImageFunction<TImage>
 {
   jac.Initialize(_Coefficient.N(), 2);
 
-  int i = static_cast<int>(floor(x));
-  int j = static_cast<int>(floor(y));
-  int k = static_cast<int>(round(z));
-  int l = static_cast<int>(round(t));
+  int i = ifloor(x);
+  int j = ifloor(y);
+  int k = iround(z);
+  int l = iround(t);
 
   if (k < 0 || k >= _Coefficient.Z() ||
       l < 0 || l >= _Coefficient.T()) {
     return;
   }
 
-  const int A = Kernel::VariableToIndex(x - i);
-  const int B = Kernel::VariableToIndex(y - j);
+  const int A = Kernel::VariableToIndex(Real(x - i));
+  const int B = Kernel::VariableToIndex(Real(y - j));
 
   --i, --j;
 
@@ -966,13 +966,13 @@ void GenericFastCubicBSplineInterpolateImageFunction<TImage>
 {
   jac.Initialize(coeff->N(), 2);
 
-  int i = static_cast<int>(floor(x));
-  int j = static_cast<int>(floor(y));
-  int k = static_cast<int>(round(z));
-  int l = static_cast<int>(round(t));
+  int i = ifloor(x);
+  int j = ifloor(y);
+  int k = iround(z);
+  int l = iround(t);
 
-  const int A = Kernel::VariableToIndex(x - i);
-  const int B = Kernel::VariableToIndex(y - j);
+  const int A = Kernel::VariableToIndex(Real(x - i));
+  const int B = Kernel::VariableToIndex(Real(y - j));
 
   --i, --j;
 
@@ -989,8 +989,8 @@ void GenericFastCubicBSplineInterpolateImageFunction<TImage>
       ia = i + a;
       wx[0] = Kernel::LookupTable  [A][a];
       wx[1] = Kernel::LookupTable_I[A][a];
-      dx += (wx[1] * wy[0]) * coeff->Get(ia, jb, k, l);
-      dy += (wx[0] * wy[1]) * coeff->Get(ia, jb, k, l);
+      dx += (wx[1] * wy[0]) * voxel_cast<RealType>(coeff->Get(ia, jb, k, l));
+      dy += (wx[0] * wy[1]) * voxel_cast<RealType>(coeff->Get(ia, jb, k, l));
     }
   }
 
@@ -1007,18 +1007,18 @@ void GenericFastCubicBSplineInterpolateImageFunction<TImage>
 {
   jac.Initialize(_Coefficient.N(), 3);
 
-  int i = static_cast<int>(floor(x));
-  int j = static_cast<int>(floor(y));
-  int k = static_cast<int>(floor(z));
-  int l = static_cast<int>(round(t));
+  int i = ifloor(x);
+  int j = ifloor(y);
+  int k = ifloor(z);
+  int l = iround(t);
 
   if (l < 0 || l >= _Coefficient.T()) {
     return;
   }
 
-  const int A = Kernel::VariableToIndex(x - i);
-  const int B = Kernel::VariableToIndex(y - j);
-  const int C = Kernel::VariableToIndex(z - k);
+  const int A = Kernel::VariableToIndex(Real(x - i));
+  const int B = Kernel::VariableToIndex(Real(y - j));
+  const int C = Kernel::VariableToIndex(Real(z - k));
 
   --i, --j, --k;
 
@@ -1068,14 +1068,14 @@ void GenericFastCubicBSplineInterpolateImageFunction<TImage>
 {
   jac.Initialize(coeff->N(), 3);
 
-  int i = static_cast<int>(floor(x));
-  int j = static_cast<int>(floor(y));
-  int k = static_cast<int>(floor(z));
-  int l = static_cast<int>(round(t));
+  int i = ifloor(x);
+  int j = ifloor(y);
+  int k = ifloor(z);
+  int l = iround(t);
 
-  const int A = Kernel::VariableToIndex(x - i);
-  const int B = Kernel::VariableToIndex(y - j);
-  const int C = Kernel::VariableToIndex(z - k);
+  const int A = Kernel::VariableToIndex(Real(x - i));
+  const int B = Kernel::VariableToIndex(Real(y - j));
+  const int C = Kernel::VariableToIndex(Real(z - k));
 
   --i, --j, --k;
 
@@ -1097,9 +1097,9 @@ void GenericFastCubicBSplineInterpolateImageFunction<TImage>
         ia = i + a;
         wx[0] = Kernel::LookupTable  [A][a];
         wx[1] = Kernel::LookupTable_I[A][a];
-        dx += (wx[1] * wy[0] * wz[0]) * coeff->Get(ia, jb, kc, l);
-        dy += (wx[0] * wy[1] * wz[0]) * coeff->Get(ia, jb, kc, l);
-        dz += (wx[0] * wy[0] * wz[1]) * coeff->Get(ia, jb, kc, l);
+        dx += (wx[1] * wy[0] * wz[0]) * voxel_cast<RealType>(coeff->Get(ia, jb, kc, l));
+        dy += (wx[0] * wy[1] * wz[0]) * voxel_cast<RealType>(coeff->Get(ia, jb, kc, l));
+        dz += (wx[0] * wy[0] * wz[1]) * voxel_cast<RealType>(coeff->Get(ia, jb, kc, l));
       }
     }
   }
@@ -1118,15 +1118,15 @@ void GenericFastCubicBSplineInterpolateImageFunction<TImage>
 {
   jac.Initialize(_Coefficient.N(), 4);
 
-  int i = static_cast<int>(floor(x));
-  int j = static_cast<int>(floor(y));
-  int k = static_cast<int>(floor(z));
-  int l = static_cast<int>(floor(t));
+  int i = ifloor(x);
+  int j = ifloor(y);
+  int k = ifloor(z);
+  int l = ifloor(t);
 
-  const int A = Kernel::VariableToIndex(x - i);
-  const int B = Kernel::VariableToIndex(y - j);
-  const int C = Kernel::VariableToIndex(z - k);
-  const int D = Kernel::VariableToIndex(t - l);
+  const int A = Kernel::VariableToIndex(Real(x - i));
+  const int B = Kernel::VariableToIndex(Real(y - j));
+  const int C = Kernel::VariableToIndex(Real(z - k));
+  const int D = Kernel::VariableToIndex(Real(t - l));
 
   --i, --j, --k, --l;
 
@@ -1186,15 +1186,15 @@ void GenericFastCubicBSplineInterpolateImageFunction<TImage>
 {
   jac.Initialize(coeff->N(), 4);
 
-  int i = static_cast<int>(floor(x));
-  int j = static_cast<int>(floor(y));
-  int k = static_cast<int>(floor(z));
-  int l = static_cast<int>(floor(t));
+  int i = ifloor(x);
+  int j = ifloor(y);
+  int k = ifloor(z);
+  int l = ifloor(t);
 
-  const int A = Kernel::VariableToIndex(x - i);
-  const int B = Kernel::VariableToIndex(y - j);
-  const int C = Kernel::VariableToIndex(z - k);
-  const int D = Kernel::VariableToIndex(t - l);
+  const int A = Kernel::VariableToIndex(Real(x - i));
+  const int B = Kernel::VariableToIndex(Real(y - j));
+  const int C = Kernel::VariableToIndex(Real(z - k));
+  const int D = Kernel::VariableToIndex(Real(t - l));
 
   --i, --j, --k, --l;
 
@@ -1221,10 +1221,10 @@ void GenericFastCubicBSplineInterpolateImageFunction<TImage>
           ia = i + a;
           wx[0] = Kernel::LookupTable  [A][a];
           wx[1] = Kernel::LookupTable_I[A][a];
-          dx += (wx[1] * wy[0] * wz[0] * wt[0]) * coeff->Get(ia, jb, kc, ld);
-          dy += (wx[0] * wy[1] * wz[0] * wt[0]) * coeff->Get(ia, jb, kc, ld);
-          dz += (wx[0] * wy[0] * wz[1] * wt[0]) * coeff->Get(ia, jb, kc, ld);
-          dt += (wx[0] * wy[0] * wz[0] * wt[1]) * coeff->Get(ia, jb, kc, ld);
+          dx += (wx[1] * wy[0] * wz[0] * wt[0]) * voxel_cast<RealType>(coeff->Get(ia, jb, kc, ld));
+          dy += (wx[0] * wy[1] * wz[0] * wt[0]) * voxel_cast<RealType>(coeff->Get(ia, jb, kc, ld));
+          dz += (wx[0] * wy[0] * wz[1] * wt[0]) * voxel_cast<RealType>(coeff->Get(ia, jb, kc, ld));
+          dt += (wx[0] * wy[0] * wz[0] * wt[1]) * voxel_cast<RealType>(coeff->Get(ia, jb, kc, ld));
         }
       }
     }

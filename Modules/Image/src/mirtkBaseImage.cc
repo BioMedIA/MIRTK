@@ -529,7 +529,7 @@ void BaseImage::InitializeMask(int t, bool force)
         for (int k = 0; k < _attr._z; k++) {
           for (int j = 0; j < _attr._y; j++) {
             for (int i = 0; i < _attr._x; i++) {
-              if (*ptr2msk == true) {
+              if (*ptr2msk != BinaryPixel(0)) {
                 (*ptr2msk) = (this->GetAsDouble(i, j, k, l) == _bg ? false : true);
               }
               ++ptr2msk;

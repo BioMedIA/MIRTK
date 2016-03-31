@@ -20,6 +20,8 @@
 #ifndef MIRTK_Path_H
 #define MIRTK_Path_H
 
+#include <mirtkCommonExport.h>
+
 #include <mirtkString.h>
 
 
@@ -30,7 +32,7 @@ namespace mirtk {
 // =============================================================================
 
 /// Path separating character
-extern const char PATHSEP;
+MIRTK_Common_EXPORT extern const char PATHSEP;
 
 // =============================================================================
 // Split file path

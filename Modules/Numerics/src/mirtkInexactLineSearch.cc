@@ -147,7 +147,7 @@ ParameterList InexactLineSearch::Parameter() const
   if (_StrictStepLengthRange == 2) {
     Insert(params, "Strict total step length range", true);
   } else {
-    Insert(params, "Strict incremental step length range", static_cast<bool>(_StrictStepLengthRange));
+    Insert(params, "Strict incremental step length range", _StrictStepLengthRange != 0);
   }
   return params;
 }

@@ -654,7 +654,7 @@ inline vtkDataArray *PointLocator::GetDataArray(vtkPointSet *dataset, const Feat
 // -----------------------------------------------------------------------------
 inline int PointLocator::GetNumberOfPoints(vtkPointSet *dataset, const Array<int> *sample)
 {
-  return (sample && sample->size() > 0 ? sample->size() : dataset->GetNumberOfPoints());
+  return (sample && sample->size() > 0 ? static_cast<int>(sample->size()) : dataset->GetNumberOfPoints());
 }
 
 // -----------------------------------------------------------------------------

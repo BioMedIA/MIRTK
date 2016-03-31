@@ -49,16 +49,16 @@ namespace mirtk {
 // Names of output point data arrays
 // =============================================================================
 
-const char *PolyDataCurvature::MINIMUM            = "Minimum_Curvature";
-const char *PolyDataCurvature::MAXIMUM            = "Maximum_Curvature";
-const char *PolyDataCurvature::MEAN               = "Mean_Curvature";
-const char *PolyDataCurvature::GAUSS              = "Gauss_Curvature";
-const char *PolyDataCurvature::CURVEDNESS         = "Curvedness";
-const char *PolyDataCurvature::MINIMUM_DIRECTION  = "Minimum_Curvature_Direction";
-const char *PolyDataCurvature::MAXIMUM_DIRECTION  = "Maximum_Curvature_Direction";
-const char *PolyDataCurvature::TENSOR             = "Curvature_Tensor";
-const char *PolyDataCurvature::INVERSE_TENSOR     = "Inverse_Curvature_Tensor";
-const char *PolyDataCurvature::NORMALS            = "Normals";
+MIRTK_PointSet_EXPORT const char *PolyDataCurvature::MINIMUM            = "Minimum_Curvature";
+MIRTK_PointSet_EXPORT const char *PolyDataCurvature::MAXIMUM            = "Maximum_Curvature";
+MIRTK_PointSet_EXPORT const char *PolyDataCurvature::MEAN               = "Mean_Curvature";
+MIRTK_PointSet_EXPORT const char *PolyDataCurvature::GAUSS              = "Gauss_Curvature";
+MIRTK_PointSet_EXPORT const char *PolyDataCurvature::CURVEDNESS         = "Curvedness";
+MIRTK_PointSet_EXPORT const char *PolyDataCurvature::MINIMUM_DIRECTION  = "Minimum_Curvature_Direction";
+MIRTK_PointSet_EXPORT const char *PolyDataCurvature::MAXIMUM_DIRECTION  = "Maximum_Curvature_Direction";
+MIRTK_PointSet_EXPORT const char *PolyDataCurvature::TENSOR             = "Curvature_Tensor";
+MIRTK_PointSet_EXPORT const char *PolyDataCurvature::INVERSE_TENSOR     = "Inverse_Curvature_Tensor";
+MIRTK_PointSet_EXPORT const char *PolyDataCurvature::NORMALS            = "Normals";
 
 // =============================================================================
 // Auxiliary functors
@@ -572,21 +572,21 @@ void PolyDataCurvature::Initialize()
   }
 
   // Compute volume and approximate radius of convex hull
-  if (_Normalize && (_CurvatureType & (Mean | Gauss))) {
+  if (_Normalize && (_CurvatureType & (Mean | Gauss)) != 0) {
     _Volume = GetVolume(ConvexHull(_Input));
     _Radius = pow( 3 * _Volume / (4.0 * pi), 1.0/3.0);
   }
 
   // Remove requested outputs from input to force recomputation
   vtkPointData *pd = _Output->GetPointData();
-  if (_CurvatureType & Minimum)          pd->RemoveArray(MINIMUM);
-  if (_CurvatureType & Maximum)          pd->RemoveArray(MAXIMUM);
-  if (_CurvatureType & Mean)             pd->RemoveArray(MEAN);
-  if (_CurvatureType & Gauss)            pd->RemoveArray(GAUSS);
-  if (_CurvatureType & MinimumDirection) pd->RemoveArray(MINIMUM_DIRECTION);
-  if (_CurvatureType & MaximumDirection) pd->RemoveArray(MAXIMUM_DIRECTION);
-  if (_CurvatureType & Tensor)           pd->RemoveArray(TENSOR);
-  if (_CurvatureType & InverseTensor)    pd->RemoveArray(TENSOR);
+  if ((_CurvatureType & Minimum         ) != 0) pd->RemoveArray(MINIMUM);
+  if ((_CurvatureType & Maximum         ) != 0) pd->RemoveArray(MAXIMUM);
+  if ((_CurvatureType & Mean            ) != 0) pd->RemoveArray(MEAN);
+  if ((_CurvatureType & Gauss           ) != 0) pd->RemoveArray(GAUSS);
+  if ((_CurvatureType & MinimumDirection) != 0) pd->RemoveArray(MINIMUM_DIRECTION);
+  if ((_CurvatureType & MaximumDirection) != 0) pd->RemoveArray(MAXIMUM_DIRECTION);
+  if ((_CurvatureType & Tensor          ) != 0) pd->RemoveArray(TENSOR);
+  if ((_CurvatureType & InverseTensor   ) != 0) pd->RemoveArray(TENSOR);
 }
 
 // -----------------------------------------------------------------------------
@@ -630,24 +630,24 @@ void PolyDataCurvature::Execute()
   // Compute curvature tensor field and its eigenvalues if needed
   if (!_VtkCurvatures) {
     ComputeTensorField();
-    if (_CurvatureType - (_CurvatureType & Tensor)) {
+    if ((_CurvatureType - (_CurvatureType & Tensor)) != 0) {
       DecomposeTensorField();
     }
   }
 
   // Compute mean and/or Gauss curvature either using vtkCurvatures
   // or from minimum and maximum curvature values
-  if (_CurvatureType & Mean ) ComputeMeanCurvature();
-  if (_CurvatureType & Gauss) ComputeGaussCurvature();
+  if ((_CurvatureType & Mean ) != 0) ComputeMeanCurvature();
+  if ((_CurvatureType & Gauss) != 0) ComputeGaussCurvature();
 
   // Compute minimum and/or maximum curvature from mean and Gauss curvature
   // if not obtained from curvature tensor before
   if (_VtkCurvatures) {
-    ComputeMinMaxCurvature(_CurvatureType & Minimum, _CurvatureType & Maximum);
+    ComputeMinMaxCurvature((_CurvatureType & Minimum) != 0, (_CurvatureType & Maximum) != 0);
   }
 
   // Compute curvedness from minimum and maximum curvature
-  if (_CurvatureType & Curvedness) ComputeCurvedness();
+  if ((_CurvatureType & Curvedness) != 0) ComputeCurvedness();
 }
 
 // -----------------------------------------------------------------------------
@@ -695,26 +695,26 @@ void PolyDataCurvature::DecomposeTensorField()
 
   tensors = _Output->GetPointData()->GetArray(TENSOR);
 
-  if (_CurvatureType & (Minimum | Mean | Gauss | Curvedness)) {
+  if ((_CurvatureType & (Minimum | Mean | Gauss | Curvedness)) != 0) {
     minimum = NewArray(MINIMUM, n, 1, _DoublePrecision);
     _Output->GetPointData()->AddArray(minimum);
   }
-  if (_CurvatureType & (Maximum | Mean | Gauss | Curvedness)) {
+  if ((_CurvatureType & (Maximum | Mean | Gauss | Curvedness)) != 0) {
     maximum = NewArray(MAXIMUM, n, 1, _DoublePrecision);
     _Output->GetPointData()->AddArray(maximum);
   }
-  if (_CurvatureType & MinimumDirection) {
+  if ((_CurvatureType & MinimumDirection) != 0) {
     minimum_direction = NewArray(MINIMUM_DIRECTION, n, 3, _DoublePrecision);
     _Output->GetPointData()->AddArray(minimum_direction);
   }
-  if (_CurvatureType & MaximumDirection) {
+  if ((_CurvatureType & MaximumDirection) != 0) {
     maximum_direction = NewArray(MAXIMUM_DIRECTION, n, 3, _DoublePrecision);
     _Output->GetPointData()->AddArray(maximum_direction);
   }
   input_normals = _Output->GetPointData()->GetNormals();
-  if (_CurvatureType & Normal) output_normals = input_normals;
-  if (_CurvatureType & InverseTensor) {
-    if (_CurvatureType & Tensor) {
+  if ((_CurvatureType & Normal) != 0) output_normals = input_normals;
+  if ((_CurvatureType & InverseTensor) != 0) {
+    if ((_CurvatureType & Tensor) != 0) {
       inverse_tensors = NewArray(INVERSE_TENSOR, n, 6, _DoublePrecision);
       _Output->GetPointData()->AddArray(inverse_tensors);
     } else {

@@ -429,7 +429,7 @@ public:
   typedef TImage                                     ImageType;
   typedef typename ImageType::VoxelType              VoxelType;
   typedef typename ImageType::RealType               RealType;
-  typedef typename voxel_info<RealType>::ScalarType  Real;
+  typedef typename ImageType::RealScalarType         Real;
   typedef GenericExtrapolateImageFunction<ImageType> ExtrapolatorType;
 
   // ---------------------------------------------------------------------------
@@ -642,8 +642,7 @@ public:
     /** Get interpolation mode implemented by this class */                    \
     inline static  enum InterpolationMode InterpolationType()                  \
     { return mode; }                                                           \
-  private:                                                                     \
-    static void _mirtkInterpolatorMacro_needs_trailing_semicolon()
+  private:
 
 // -----------------------------------------------------------------------------
 #define mirtkGenericInterpolatorTypes(superclsname)                            \
@@ -654,15 +653,13 @@ public:
     typedef typename Superclass::RealType                  RealType;           \
     typedef typename Superclass::Real                      Real;               \
     typedef typename Superclass::ExtrapolatorType          ExtrapolatorType;   \
-  private:                                                                     \
-    static void _mirtkGenericInterpolatorTypedefsMacro_needs_trailing_semicolon()
+  private:
 
 // -----------------------------------------------------------------------------
 #define mirtkGenericInterpolatorMacro(clsname, mode)                           \
     mirtkInterpolatorMacro(clsname, mode);                                     \
     mirtkGenericInterpolatorTypes(GenericInterpolateImageFunction);            \
-  private:                                                                     \
-     static void _mirtkGenericInterpolatorMacro_needs_trailing_semicolon()
+  private:
 
 ////////////////////////////////////////////////////////////////////////////////
 // Inline definitions -- InterpolateImageFunction
@@ -802,7 +799,7 @@ inline void InterpolateImageFunction::BoundingBox(double x, double y, double z,
   } else {
     this->BoundingInterval(x, i1, i2);
     this->BoundingInterval(y, j1, j2);
-    k1 = k2 = round(z);
+    k1 = k2 = iround(z);
   }
 }
 
@@ -820,12 +817,12 @@ inline void InterpolateImageFunction::BoundingBox(double x, double y, double z, 
     this->BoundingInterval(x, i1, i2);
     this->BoundingInterval(y, j1, j2);
     this->BoundingInterval(z, k1, k2);
-    l1 = l2 = round(t);
+    l1 = l2 = iround(t);
   } else {
     this->BoundingInterval(x, i1, i2);
     this->BoundingInterval(y, j1, j2);
-    k1 = k2 = round(z);
-    l1 = l2 = round(t);
+    k1 = k2 = iround(z);
+    l1 = l2 = iround(t);
   }
 }
 

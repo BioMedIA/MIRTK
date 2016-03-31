@@ -19,6 +19,7 @@
 
 #include <mirtkGenericRegistrationDebugger.h>
 
+#include <mirtkConfig.h> // WINDOWS
 #include <mirtkEvent.h>
 #include <mirtkPoint.h>
 #include <mirtkMatrix.h>
@@ -44,6 +45,8 @@
 #  include <mirtkPointSetUtils.h>
 #endif // HAVE_MIRTK_PointSet
 
+#include <mirtkCommonExport.h>
+
 #include <cstdio>
 
 
@@ -51,8 +54,18 @@ namespace mirtk {
 
 
 // global "debug" flag (cf. mirtkOptions.cc)
-extern int debug;
+MIRTK_Common_EXPORT extern int debug;
 
+
+// -----------------------------------------------------------------------------
+void CopyString(char *out, size_t sz, const string &str)
+{
+#ifdef WINDOWS
+  strcpy_s(out, sz, str.c_str());
+#else
+  strcpy(out, str.c_str());
+#endif
+}
 
 // -----------------------------------------------------------------------------
 template <class TReal>
@@ -233,7 +246,7 @@ void GenericRegistrationDebugger::HandleEvent(Observable *obj, Event event, cons
         snprintf(prefix, sz, "%slevel_%d_",         _Prefix.c_str(), _Level);
         snprintf(suffix, sz, "_%03d",               _Iteration);
       } else {
-        strcpy(prefix, _Prefix.c_str());
+        CopyString(prefix, sz, _Prefix);
         snprintf(suffix, sz, "_%03d",               _Iteration);
       }
       break;
@@ -242,7 +255,7 @@ void GenericRegistrationDebugger::HandleEvent(Observable *obj, Event event, cons
         snprintf(prefix, sz, "%slevel_%d_",         _Prefix.c_str(), _Level);
         snprintf(suffix, sz, "_%03d_%03d_accepted", _Iteration, _LineIteration);
       } else {
-        strcpy(prefix, _Prefix.c_str());
+        CopyString(prefix, sz, _Prefix);
         snprintf(suffix, sz, "_%03d_%03d_accepted", _Iteration, _LineIteration);
       }
       break;
@@ -251,7 +264,7 @@ void GenericRegistrationDebugger::HandleEvent(Observable *obj, Event event, cons
         snprintf(prefix, sz, "%slevel_%d_",         _Prefix.c_str(), _Level);
         snprintf(suffix, sz, "_%03d_%03d_rejected", _Iteration, _LineIteration);
       } else {
-        strcpy(prefix, _Prefix.c_str());
+        CopyString(prefix, sz, _Prefix);
         snprintf(suffix, sz, "_%03d_%03d_rejected", _Iteration, _LineIteration);
       }
       break;
@@ -293,7 +306,7 @@ void GenericRegistrationDebugger::HandleEvent(Observable *obj, Event event, cons
 
       // Write input images and their derivatives
       for (size_t i = 0; i < r->_Image[r->_CurrentLevel].size(); ++i) {
-        snprintf(fname, sz, "%simage_%02lu", prefix, i+1);
+        snprintf(fname, sz, "%simage_%02zu", prefix, i+1);
         r->_Image[r->_CurrentLevel][i].Write(fname);
         if (debug >= 2) {
           BaseImage *gradient = NULL;
@@ -311,11 +324,11 @@ void GenericRegistrationDebugger::HandleEvent(Observable *obj, Event event, cons
             }
           }
           if (gradient) {
-            snprintf(fname, sz, "%simage_%02lu_gradient", prefix, i+1);
+            snprintf(fname, sz, "%simage_%02zu_gradient", prefix, i+1);
             gradient->Write(fname);
           }
           if (hessian) {
-            snprintf(fname, sz, "%simage_%02lu_hessian", prefix, i+1);
+            snprintf(fname, sz, "%simage_%02zu_hessian", prefix, i+1);
             hessian->Write(fname);
           }
         }
@@ -331,7 +344,7 @@ void GenericRegistrationDebugger::HandleEvent(Observable *obj, Event event, cons
       #ifdef HAVE_MIRTK_PointSet
         for (size_t i = 0; i < r->_PointSet[r->_CurrentLevel].size(); ++i) {
           vtkPointSet *pointset = r->_PointSet[r->_CurrentLevel][i];
-          snprintf(fname, sz, "%spointset_%02lu%s", prefix, i+1, DefaultExtension(pointset));
+          snprintf(fname, sz, "%spointset_%02zu%s", prefix, i+1, DefaultExtension(pointset));
           WritePointSet(fname, pointset);
         }
       #endif // HAVE_MIRTK_PointSet

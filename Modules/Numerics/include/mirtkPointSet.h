@@ -29,6 +29,8 @@
 #include <mirtkArray.h>
 #include <mirtkOrderedSet.h>
 
+#include <mirtkNumericsExport.h>
+
 
 // Forward declaration of VTK type
 class vtkAbstractArray;
@@ -58,7 +60,7 @@ protected:
   /// Pointer to Points
   Point *_data;
 
-  static int POINTSET_SIZE;
+  MIRTK_Numerics_EXPORT static int POINTSET_SIZE;
 
 public:
 

@@ -36,8 +36,6 @@ class FreeFormTransformation3D : public FreeFormTransformation
 {
   mirtkAbstractTransformationMacro(FreeFormTransformation3D);
 
-  friend class Evaluate2ndOrderBSplineFFDDerivatives;
-
   // ---------------------------------------------------------------------------
   // Construction/Destruction
 

@@ -127,9 +127,9 @@ int main(int argc, char *argv[])
     else if (OPTION("-jac"))    UseJacobian            = true;
     else if (OPTION("-int")) {
       const char *arg = ARGUMENT;
-      unsigned int len = strlen(arg);
-      if (len > 99) len = 99;
-      for (unsigned int i = 0; i < len; i++) {
+      size_t len = strlen(arg);
+      if (len > 99u) len = 99u;
+      for (size_t i = 0u; i < len; ++i) {
         if ('a' <= arg[i] && arg[i] <= 'z') IntegrationMethod[i] = 'A' + (arg[i] - 'a');
         else                                IntegrationMethod[i] = arg[i];
       }

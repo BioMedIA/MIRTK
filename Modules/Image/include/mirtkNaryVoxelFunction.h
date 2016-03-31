@@ -80,8 +80,8 @@ struct ExpVelocityFieldEuler2D : public VoxelFunction
       x2 += v[0] * _dt;
       y2 += v[1] * _dt;
     }
-    d[_x] = x2 - x1;
-    d[_y] = y2 - y1;
+    d[_x] = static_cast<T>(x2 - x1);
+    d[_y] = static_cast<T>(y2 - y1);
   }
   
   template <class T>
@@ -99,8 +99,8 @@ struct ExpVelocityFieldEuler2D : public VoxelFunction
       x2 += v[0] * _dt;
       y2 += v[1] * _dt;
     }
-    dout[_x] = x2 - x1;
-    dout[_y] = y2 - y1;
+    dout[_x] = static_cast<T>(x2 - x1);
+    dout[_y] = static_cast<T>(y2 - y1);
   }
 };
 
@@ -143,9 +143,9 @@ struct ExpVelocityFieldEuler3D : public VoxelFunction
       y2 += v[1] * _dt;
       z2 += v[2] * _dt;
     }
-    d[_x] = x2 - x1;
-    d[_y] = y2 - y1;
-    d[_z] = y2 - y1;
+    d[_x] = static_cast<T>(x2 - x1);
+    d[_y] = static_cast<T>(y2 - y1);
+    d[_z] = static_cast<T>(z2 - z1);
   }
   
   template <class T>
@@ -165,9 +165,9 @@ struct ExpVelocityFieldEuler3D : public VoxelFunction
       y2 += v[1] * _dt;
       z2 += v[2] * _dt;
     }
-    dout[_x] = x2 - x1;
-    dout[_y] = y2 - y1;
-    dout[_z] = y2 - y1;
+    dout[_x] = static_cast<T>(x2 - x1);
+    dout[_y] = static_cast<T>(y2 - y1);
+    dout[_z] = static_cast<T>(z2 - z1);
   }
 };
 
@@ -227,25 +227,25 @@ struct EvaluateBCHFormula : public VoxelFunction
   template <class TImage, class T>
   void operator()(const TImage &, int, const T *v, const T *d, const T *l1, T *out)
   {
-    (*out) = (*v) + (*d) + (*l1) / 2.0;
+    (*out) = static_cast<T>((*v) + (*d) + (*l1) / 2.0);
   }
   
   template <class TImage, class T>
   void operator()(const TImage &, int, const T *v, const T *d, const T *l1, const T *l2, T *out)
   {
-    (*out) = (*v) + (*d) + (*l1) / 2.0 + (*l2) / 12.0;
+    (*out) = static_cast<T>((*v) + (*d) + (*l1) / 2.0 + (*l2) / 12.0);
   }
   
   template <class TImage, class T>
   void operator()(const TImage &, int, const T *v, const T *d, const T *l1, const T *l2, const T *l3, T *out)
   {
-    (*out) = (*v) + (*d) + (*l1) / 2.0 + (*l2) / 12.0 - (*l3) / 12.0;
+    (*out) = static_cast<T>((*v) + (*d) + (*l1) / 2.0 + (*l2) / 12.0 - (*l3) / 12.0);
   }
   
   template <class TImage, class T>
   void operator()(const TImage &, int, const T *v, const T *d, const T *l1, const T *l2, const T *l3, const T *l4, T *out)
   {
-    (*out) = (*v) + (*d) + (*l1) / 2.0 + (*l2) / 12.0 - (*l3) / 12.0 - (*l4) / 24.0;
+    (*out) = static_cast<T>((*v) + (*d) + (*l1) / 2.0 + (*l2) / 12.0 - (*l3) / 12.0 - (*l4) / 24.0);
   }
 };
 
@@ -256,25 +256,25 @@ struct EvaluateBCHUpdate : public VoxelFunction
   template <class TImage, class T>
   void operator()(const TImage &, int, const T *d, const T *l1, T *out)
   {
-    (*out) = (*d) + (*l1) / 2.0;
+    (*out) = static_cast<T>((*d) + (*l1) / 2.0);
   }
 
   template <class TImage, class T>
   void operator()(const TImage &, int, const T *d, const T *l1, const T *l2, T *out)
   {
-    (*out) = (*d) + (*l1) / 2.0 + (*l2) / 12.0;
+    (*out) = static_cast<T>((*d) + (*l1) / 2.0 + (*l2) / 12.0);
   }
 
   template <class TImage, class T>
   void operator()(const TImage &, int, const T *d, const T *l1, const T *l2, const T *l3, T *out)
   {
-    (*out) = (*d) + (*l1) / 2.0 + (*l2) / 12.0 - (*l3) / 12.0;
+    (*out) = static_cast<T>((*d) + (*l1) / 2.0 + (*l2) / 12.0 - (*l3) / 12.0);
   }
 
   template <class TImage, class T>
   void operator()(const TImage &, int, const T *d, const T *l1, const T *l2, const T *l3, const T *l4, T *out)
   {
-    (*out) = (*d) + (*l1) / 2.0 + (*l2) / 12.0 - (*l3) / 12.0 - (*l4) / 24.0;
+    (*out) = static_cast<T>((*d) + (*l1) / 2.0 + (*l2) / 12.0 - (*l3) / 12.0 - (*l4) / 24.0);
   }
 };
 

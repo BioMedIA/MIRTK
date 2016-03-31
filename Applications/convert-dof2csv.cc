@@ -111,7 +111,7 @@ int main(int argc, char *argv[])
   }
   if (dt > .0) {
     double T = domain.LatticeToTime(domain._t - 1) - domain.LatticeToTime(0);
-    domain._t  = floor(T / dt);
+    domain._t  = ifloor(T / dt);
     domain._dt = dt;
   }
 

@@ -24,11 +24,6 @@
 #include <mirtkConfig.h>
 #include <mirtkCommonConfig.h>
 
-// Windows
-#if WINDOWS
-#  include <mirtkWindows.h>
-#endif
-
 // Standard containers
 #include <mirtkPair.h>
 #include <mirtkArray.h>
@@ -48,7 +43,6 @@
 #include <mirtkMemory.h>
 #include <mirtkString.h>
 #include <mirtkPath.h>
-#include <mirtkMath.h>
 #include <mirtkVersion.h>
 #include <mirtkFastDelegate.h>
 #include <mirtkStatus.h>

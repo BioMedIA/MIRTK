@@ -19,8 +19,9 @@
 
 #include <mirtkCofstream.h>
 
-#include <mirtkCommonConfig.h>
-#include <mirtkMemory.h> // swap16, swap32
+#include <mirtkConfig.h>       // WINDOWS
+#include <mirtkCommonConfig.h> // MIRTK_Common_BIG_ENDIAN, MIRTK_Common_WITH_ZLIB
+#include <mirtkMemory.h>       // swap16, swap32
 
 #if MIRTK_Common_WITH_ZLIB
 #  include <zlib.h>
@@ -33,9 +34,9 @@ namespace mirtk {
 // -----------------------------------------------------------------------------
 Cofstream::Cofstream(const char *fname)
 {
-  _File = NULL;
+  _File = nullptr;
 #if MIRTK_Common_WITH_ZLIB
-  _ZFile = NULL;
+  _ZFile = nullptr;
 #endif
 #if MIRTK_Common_BIG_ENDIAN
   _Swapped = false;
@@ -55,26 +56,33 @@ Cofstream::~Cofstream()
 // -----------------------------------------------------------------------------
 void Cofstream::Open(const char *fname)
 {
+  Close();
   size_t len = strlen(fname);
   if (len == 0) {
     cerr << "Cofstream::Open: Filename is empty!" << endl;
     exit(1);
   }
   if (len > 3 && (strncmp(fname + len-3, ".gz", 3) == 0 || strncmp(fname + len-3, ".GZ", 3) == 0)) {
-#if MIRTK_Common_WITH_ZLIB
-    _ZFile = gzopen(fname, "wb");
-    if (_ZFile == NULL) {
-      cerr << "Cofstream::Open: Cannot open file " << fname << endl;
+    #if MIRTK_Common_WITH_ZLIB
+      gzFile fp = gzopen(fname, "wb");
+      if (fp == nullptr) {
+        cerr << "Cofstream::Open: Cannot open file " << fname << endl;
+        exit(1);
+      }
+      _ZFile = fp;
+      _Compressed = true;
+    #else // MIRTK_Common_WITH_ZLIB
+      cerr << "Cofstream::Open: Cannot write compressed file when Common module not built WITH_ZLIB" << endl;
       exit(1);
-    }
-    _Compressed = true;
-#else // MIRTK_Common_WITH_ZLIB
-    cerr << "Cofstream::Open: Cannot write compressed file when Common module not built WITH_ZLIB" << endl;
-    exit(1);
-#endif // MIRTK_Common_WITH_ZLIB
+    #endif // MIRTK_Common_WITH_ZLIB
   } else {
-    _File = fopen(fname, "wb");
-    if (_File == NULL) {
+    #ifdef WINDOWS
+      errno_t err = fopen_s(&_File, fname, "wb");
+      if (err != 0) _File = nullptr;
+    #else
+      _File = fopen(fname, "wb");
+    #endif
+    if (_File == nullptr) {
       cerr << "Cofstream::Open: Cannot open file " << fname << endl;
       exit(1);
     }
@@ -85,58 +93,59 @@ void Cofstream::Open(const char *fname)
 // -----------------------------------------------------------------------------
 void Cofstream::Close()
 {
-#if MIRTK_Common_WITH_ZLIB
-  if (_ZFile) {
-    gzclose(_ZFile);
-    _ZFile = NULL;
-  }
-#endif // MIRTK_Common_WITH_ZLIB
-  if (_File) {
+  #if MIRTK_Common_WITH_ZLIB
+    if (_ZFile != nullptr) {
+      gzclose(reinterpret_cast<gzFile>(_ZFile));
+      _ZFile = nullptr;
+    }
+  #endif // MIRTK_Common_WITH_ZLIB
+  if (_File != nullptr) {
     fclose(_File);
-    _File = NULL;
+    _File = nullptr;
   }
 }
 
 // -----------------------------------------------------------------------------
 int Cofstream::IsCompressed() const
 {
-  return static_cast<int>(_Compressed);
+  return _Compressed ? 1 : 0;
 }
 
 // -----------------------------------------------------------------------------
 void Cofstream::IsCompressed(int compressed)
 {
-  _Compressed = static_cast<bool>(compressed);
+  _Compressed = (compressed != 0);
 }
 
 // -----------------------------------------------------------------------------
 int Cofstream::IsSwapped() const
 {
-  return static_cast<int>(_Swapped);
+  return _Swapped ? 1 : 0;
 }
 
 // -----------------------------------------------------------------------------
 void Cofstream::IsSwapped(int swapped)
 {
-  _Swapped = static_cast<bool>(swapped);
+  _Swapped = (swapped != 0);
 }
 
 // -----------------------------------------------------------------------------
 bool Cofstream::Write(const char *data, long offset, long length)
 {
-#if MIRTK_Common_WITH_ZLIB
-  if (_Compressed) {
-    if (offset != -1) {
-      if (gztell(_ZFile) > offset) {
-        cerr << "Error: Writing compressed files only supports forward seek (pos="
-                  << gztell(_ZFile) << ", offset=" << offset << ")" << endl;
-        exit(1);
+  #if MIRTK_Common_WITH_ZLIB
+    if (_Compressed) {
+      gzFile fp = reinterpret_cast<gzFile>(_ZFile);
+      if (offset != -1) {
+        if (gztell(fp) > offset) {
+          cerr << "Error: Writing compressed files only supports forward seek (pos="
+               << gztell(fp) << ", offset=" << offset << ")" << endl;
+          exit(1);
+        }
+        gzseek(fp, offset, SEEK_SET);
       }
-      gzseek(_ZFile, offset, SEEK_SET);
+      return (gzwrite(fp, data, length) == length);
     }
-    return (gzwrite(_ZFile, data, length) == length);
-  }
-#endif // MIRTK_Common_WITH_ZLIB
+  #endif // MIRTK_Common_WITH_ZLIB
   if (offset != -1) fseek(_File, offset, SEEK_SET);
   return (fwrite(data, length, 1, _File) == 1);
 }
@@ -264,12 +273,13 @@ bool Cofstream::WriteAsDouble(double data, long offset)
 // -----------------------------------------------------------------------------
 bool Cofstream::WriteAsString(const char *data, long offset)
 {
-#if MIRTK_Common_WITH_ZLIB
-  if (_Compressed) {
-    if (offset != -1) gzseek(_ZFile, offset, SEEK_SET);
-    return (gzputs(_ZFile, data) > 0);
-  }
-#endif // MIRTK_Common_WITH_ZLIB
+  #if MIRTK_Common_WITH_ZLIB
+    if (_Compressed) {
+      gzFile fp = reinterpret_cast<gzFile>(_ZFile);
+      if (offset != -1) gzseek(fp, offset, SEEK_SET);
+      return (gzputs(fp, data) > 0);
+    }
+  #endif // MIRTK_Common_WITH_ZLIB
   if (offset != -1) fseek(_File, offset, SEEK_SET);
   return (fputs(data, _File) != EOF);
 }

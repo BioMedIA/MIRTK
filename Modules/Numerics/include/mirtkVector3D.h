@@ -316,27 +316,27 @@ inline Vector3D<T>::Vector3D(T x, T y, T z)
 template <typename T>
 inline Vector3D<T>::Vector3D(const Point &p)
 {
-  _x = p._x;
-  _y = p._y;
-  _z = p._z;
+  _x = static_cast<T>(p._x);
+  _y = static_cast<T>(p._y);
+  _z = static_cast<T>(p._z);
 }
 
 // -----------------------------------------------------------------------------
 template <typename T1> template <typename T2>
 inline Vector3D<T1>::Vector3D(const Vector3D<T2> &v)
 {
-  _x = v._x;
-  _y = v._y;
-  _z = v._z;
+  _x = static_cast<T1>(v._x);
+  _y = static_cast<T1>(v._y);
+  _z = static_cast<T1>(v._z);
 }
 
 // -----------------------------------------------------------------------------
 template <typename T>
 inline Vector3D<T> &Vector3D<T>::operator =(const Vector3D &v)
 {
-  _x = v._x;
-  _y = v._y;
-  _z = v._z;
+  _x = static_cast<T>(v._x);
+  _y = static_cast<T>(v._y);
+  _z = static_cast<T>(v._z);
   return *this;
 }
 
@@ -344,9 +344,9 @@ inline Vector3D<T> &Vector3D<T>::operator =(const Vector3D &v)
 template <typename T>
 inline Vector3D<T> &Vector3D<T>::operator =(const Point &p)
 {
-  _x = p._x;
-  _y = p._y;
-  _z = p._z;
+  _x = static_cast<T>(p._x);
+  _y = static_cast<T>(p._y);
+  _z = static_cast<T>(p._z);
   return *this;
 }
 
@@ -383,9 +383,9 @@ inline T Vector3D<T>::operator ()(int i) const
 template <typename T>
 inline Vector3D<T>& Vector3D<T>::operator =(int s)
 {
-  _x = s;
-  _y = s;
-  _z = s;
+  _x = static_cast<T>(s);
+  _y = static_cast<T>(s);
+  _z = static_cast<T>(s);
   return *this;
 }
 
@@ -393,9 +393,9 @@ inline Vector3D<T>& Vector3D<T>::operator =(int s)
 template <typename T>
 inline Vector3D<T>& Vector3D<T>::operator +=(int s)
 {
-  _x += s;
-  _y += s;
-  _z += s;
+  _x = static_cast<T>(static_cast<double>(_x) + static_cast<double>(s));
+  _y = static_cast<T>(static_cast<double>(_y) + static_cast<double>(s));
+  _z = static_cast<T>(static_cast<double>(_z) + static_cast<double>(s));
   return *this;
 }
 
@@ -403,9 +403,9 @@ inline Vector3D<T>& Vector3D<T>::operator +=(int s)
 template <typename T>
 inline Vector3D<T>& Vector3D<T>::operator -=(int s)
 {
-  _x -= s;
-  _y -= s;
-  _z -= s;
+  _x = static_cast<T>(static_cast<double>(_x) - static_cast<double>(s));
+  _y = static_cast<T>(static_cast<double>(_y) - static_cast<double>(s));
+  _z = static_cast<T>(static_cast<double>(_z) - static_cast<double>(s));
   return *this;
 }
 
@@ -413,9 +413,9 @@ inline Vector3D<T>& Vector3D<T>::operator -=(int s)
 template <typename T>
 inline Vector3D<T>& Vector3D<T>::operator *=(int s)
 {
-  _x *= s;
-  _y *= s;
-  _z *= s;
+  _x = static_cast<T>(static_cast<double>(_x) * static_cast<double>(s));
+  _y = static_cast<T>(static_cast<double>(_y) * static_cast<double>(s));
+  _z = static_cast<T>(static_cast<double>(_z) * static_cast<double>(s));
   return *this;
 }
 
@@ -423,9 +423,9 @@ inline Vector3D<T>& Vector3D<T>::operator *=(int s)
 template <typename T>
 inline Vector3D<T>& Vector3D<T>::operator /=(int s)
 {
-  _x /= s;
-  _y /= s;
-  _z /= s;
+  _x = static_cast<T>(static_cast<double>(_x) / static_cast<double>(s));
+  _y = static_cast<T>(static_cast<double>(_y) / static_cast<double>(s));
+  _z = static_cast<T>(static_cast<double>(_z) / static_cast<double>(s));
   return *this;
 }
 
@@ -494,9 +494,9 @@ inline Vector3D<T> operator *(int s, const Vector3D<T> &v)
 template <typename T>
 inline Vector3D<T>& Vector3D<T>::operator =(double s)
 {
-  _x = s;
-  _y = s;
-  _z = s;
+  _x = static_cast<T>(s);
+  _y = static_cast<T>(s);
+  _z = static_cast<T>(s);
   return *this;
 }
 
@@ -504,9 +504,9 @@ inline Vector3D<T>& Vector3D<T>::operator =(double s)
 template <typename T>
 inline Vector3D<T>& Vector3D<T>::operator +=(double s)
 {
-  _x += s;
-  _y += s;
-  _z += s;
+  _x = static_cast<T>(static_cast<double>(_x) + s);
+  _y = static_cast<T>(static_cast<double>(_y) + s);
+  _z = static_cast<T>(static_cast<double>(_z) + s);
   return *this;
 }
 
@@ -514,9 +514,9 @@ inline Vector3D<T>& Vector3D<T>::operator +=(double s)
 template <typename T>
 inline Vector3D<T>& Vector3D<T>::operator -=(double s)
 {
-  _x -= s;
-  _y -= s;
-  _z -= s;
+  _x = static_cast<T>(static_cast<double>(_x) - s);
+  _y = static_cast<T>(static_cast<double>(_y) - s);
+  _z = static_cast<T>(static_cast<double>(_z) - s);
   return *this;
 }
 
@@ -524,9 +524,9 @@ inline Vector3D<T>& Vector3D<T>::operator -=(double s)
 template <typename T>
 inline Vector3D<T>& Vector3D<T>::operator *=(double s)
 {
-  _x *= s;
-  _y *= s;
-  _z *= s;
+  _x = static_cast<T>(static_cast<double>(_x) * s);
+  _y = static_cast<T>(static_cast<double>(_y) * s);
+  _z = static_cast<T>(static_cast<double>(_z) * s);
   return *this;
 }
 
@@ -534,9 +534,9 @@ inline Vector3D<T>& Vector3D<T>::operator *=(double s)
 template <typename T>
 inline Vector3D<T>& Vector3D<T>::operator /=(double s)
 {
-  _x /= s;
-  _y /= s;
-  _z /= s;
+  _x = static_cast<T>(static_cast<double>(_x) / s);
+  _y = static_cast<T>(static_cast<double>(_y) / s);
+  _z = static_cast<T>(static_cast<double>(_z) / s);
   return *this;
 }
 
@@ -612,9 +612,9 @@ inline Vector3D<T> Vector3D<T>::operator -() const
 template <typename T1> template <typename T2>
 inline Vector3D<T1> &Vector3D<T1>::operator =(const Vector3D<T2> &v)
 {
-  _x = v._x;
-  _y = v._y;
-  _z = v._z;
+  _x = static_cast<T1>(v._x);
+  _y = static_cast<T1>(v._y);
+  _z = static_cast<T1>(v._z);
   return *this;
 }
 
@@ -622,9 +622,9 @@ inline Vector3D<T1> &Vector3D<T1>::operator =(const Vector3D<T2> &v)
 template <typename T1> template <typename T2>
 inline Vector3D<T1> &Vector3D<T1>::operator +=(const Vector3D<T2>& v)
 {
-  _x += v._x;
-  _y += v._y;
-  _z += v._z;
+  _x = static_cast<T1>(static_cast<double>(_x) + static_cast<double>(v._x));
+  _y = static_cast<T1>(static_cast<double>(_y) + static_cast<double>(v._y));
+  _z = static_cast<T1>(static_cast<double>(_z) + static_cast<double>(v._z));
   return *this;
 }
 
@@ -632,9 +632,9 @@ inline Vector3D<T1> &Vector3D<T1>::operator +=(const Vector3D<T2>& v)
 template <typename T1> template <typename T2>
 inline Vector3D<T1> &Vector3D<T1>::operator -=(const Vector3D<T2> &v)
 {
-  _x -= v._x;
-  _y -= v._y;
-  _z -= v._z;
+  _x = static_cast<T1>(static_cast<double>(_x) - static_cast<double>(v._x));
+  _y = static_cast<T1>(static_cast<double>(_y) - static_cast<double>(v._y));
+  _z = static_cast<T1>(static_cast<double>(_z) - static_cast<double>(v._z));
   return *this;
 }
 
@@ -642,9 +642,9 @@ inline Vector3D<T1> &Vector3D<T1>::operator -=(const Vector3D<T2> &v)
 template <typename T1> template <typename T2>
 inline Vector3D<T1> &Vector3D<T1>::operator *=(const Vector3D<T2> &v)
 {
-  _x *= v._x;
-  _y *= v._y;
-  _z *= v._z;
+  _x = static_cast<T1>(static_cast<double>(_x) * static_cast<double>(v._x));
+  _y = static_cast<T1>(static_cast<double>(_y) * static_cast<double>(v._y));
+  _z = static_cast<T1>(static_cast<double>(_z) * static_cast<double>(v._z));
   return *this;
 }
 
@@ -652,9 +652,9 @@ inline Vector3D<T1> &Vector3D<T1>::operator *=(const Vector3D<T2> &v)
 template <typename T1> template <typename T2>
 inline Vector3D<T1> &Vector3D<T1>::operator /=(const Vector3D<T2> &v)
 {
-  _x /= v._x;
-  _y /= v._y;
-  _z /= v._z;
+  _x = static_cast<T1>(static_cast<double>(_x) / static_cast<double>(v._x));
+  _y = static_cast<T1>(static_cast<double>(_y) / static_cast<double>(v._y));
+  _z = static_cast<T1>(static_cast<double>(_z) / static_cast<double>(v._z));
   return *this;
 }
 

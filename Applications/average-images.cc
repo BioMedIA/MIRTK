@@ -326,9 +326,9 @@ int main(int argc, char **argv)
     bool dof = inv || (strcmp(argv[nposarg], "-dof")   == 0);
     if (!img && !dof) {
       if (argv[nposarg][0] == '-') break;
-      int l = strlen(argv[nposarg]);
-      dof = ((l > 4 && strcmp(&argv[nposarg][l-4], ".dof")    == 0) ||
-             (l > 7 && strcmp(&argv[nposarg][l-7], ".dof.gz") == 0));
+      size_t l = strlen(argv[nposarg]);
+      dof = ((l > 4u && strcmp(&argv[nposarg][l-4u], ".dof")    == 0) ||
+             (l > 7u && strcmp(&argv[nposarg][l-7u], ".dof.gz") == 0));
     } else {
       ++nposarg;
       if (nposarg == argc) {
@@ -465,21 +465,21 @@ int main(int argc, char **argv)
 
   // Set desired output voxel size
   if (dx > .0) {
-    fov._x  = ceil(fov._x * fov._dx / dx);
+    fov._x  = iceil(fov._x * fov._dx / dx);
     fov._dx = dx;
   }
   if (dy > .0) {
-    fov._y  = ceil(fov._y * fov._dy / dy);
+    fov._y  = iceil(fov._y * fov._dy / dy);
     fov._dy = dy;
   }
   if (dz > .0) {
-    fov._z  = ceil(fov._z * fov._dz / dz);
+    fov._z  = iceil(fov._z * fov._dz / dz);
     fov._dz = dz;
   }
 
   // Compute average image
   OutputImage average(fov);
-  average = padding;
+  average = static_cast<OutputType>(padding);
   average.PutBackgroundValueAsDouble(padding);
   for (int n = 0; n < nimages; ++n) {
     if (sequence.IsEmpty()) {

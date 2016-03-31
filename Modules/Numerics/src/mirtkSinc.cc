@@ -26,7 +26,7 @@ namespace mirtk {
 
 // -----------------------------------------------------------------------------
 template <class TReal>
-TReal *Sinc<TReal>::LookupTable = 0;
+MIRTK_Numerics_EXPORT TReal *Sinc<TReal>::LookupTable = 0;
 
 // -----------------------------------------------------------------------------
 template <class TReal>
@@ -41,7 +41,7 @@ void Sinc<TReal>::Initialize()
     // Fill remaining fields (symmetric, so we only use positive distances)
     TReal alpha;
     for (int i = 1; i < N; ++i) {
-      alpha          = pi * TReal(i) / LookupTableSize;
+      alpha          = TReal((pi * i) / LookupTableSize);
       LookupTable[i] = TReal(0.5) * (TReal(1) + cos(alpha/Radius)) * sin(alpha) / alpha;
     }
   }

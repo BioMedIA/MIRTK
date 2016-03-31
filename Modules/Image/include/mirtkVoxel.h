@@ -188,8 +188,8 @@ struct voxel_limits
 // -----------------------------------------------------------------------------
 template <> struct voxel_limits<char>
 {
-  static char   min_value() throw() { return static_cast<char  >(0x80); }
-  static char   max_value() throw() { return static_cast<char  >(0x7f); }
+  static char   min_value() throw() { return numeric_limits<char>::lowest(); }
+  static char   max_value() throw() { return numeric_limits<char>::max(); }
   static double min()       throw() { return static_cast<double>(min_value()); }
   static double max()       throw() { return static_cast<double>(max_value()); }
 };
@@ -197,17 +197,17 @@ template <> struct voxel_limits<char>
 // -----------------------------------------------------------------------------
 template <> struct voxel_limits<unsigned char>
 {
-  static unsigned char min_value() throw() { return static_cast<unsigned char>(0u); }
-  static unsigned char max_value() throw() { return static_cast<unsigned char>(0xffu); }
-  static double        min()       throw() { return static_cast<double       >(min_value()); }
-  static double        max()       throw() { return static_cast<double       >(max_value()); }
+  static unsigned char min_value() throw() { return numeric_limits<unsigned char>::lowest(); }
+  static unsigned char max_value() throw() { return numeric_limits<unsigned char>::max(); }
+  static double        min()       throw() { return static_cast<double>(min_value()); }
+  static double        max()       throw() { return static_cast<double>(max_value()); }
 };
 
 // -----------------------------------------------------------------------------
 template <> struct voxel_limits<short>
 {
-  static short  min_value() throw() { return static_cast<short >(0x8000); }
-  static short  max_value() throw() { return static_cast<short >(0x7fff); }
+  static short  min_value() throw() { return numeric_limits<short>::lowest(); }
+  static short  max_value() throw() { return numeric_limits<short>::max(); }
   static double min()       throw() { return static_cast<double>(min_value()); }
   static double max()       throw() { return static_cast<double>(max_value()); }
 };
@@ -215,16 +215,16 @@ template <> struct voxel_limits<short>
 // -----------------------------------------------------------------------------
 template <> struct voxel_limits<unsigned short>
 {
-  static unsigned short min_value() throw() { return static_cast<unsigned short>(0u); }
-  static unsigned short max_value() throw() { return static_cast<unsigned short>(0xffffu); }
-  static double         min()       throw() { return static_cast<double        >(min_value()); }
-  static double         max()       throw() { return static_cast<double        >(max_value()); }
+  static unsigned short min_value() throw() { return numeric_limits<unsigned short>::lowest(); }
+  static unsigned short max_value() throw() { return numeric_limits<unsigned short>::max(); }
+  static double         min()       throw() { return static_cast<double>(min_value()); }
+  static double         max()       throw() { return static_cast<double>(max_value()); }
 };
 
 // -----------------------------------------------------------------------------
 template <> struct voxel_limits<int> {
-  static int    min_value() throw() { return static_cast<int   >(~(~0u >> 1)); }
-  static int    max_value() throw() { return static_cast<int   >(  ~0u >> 1);  }
+  static int    min_value() throw() { return numeric_limits<int>::lowest(); }
+  static int    max_value() throw() { return numeric_limits<int>::max();  }
   static double min()       throw() { return static_cast<double>(min_value()); }
   static double max()       throw() { return static_cast<double>(max_value()); }
 };
@@ -232,8 +232,8 @@ template <> struct voxel_limits<int> {
 // -----------------------------------------------------------------------------
 template <> struct voxel_limits<unsigned int>
 {
-  static unsigned int min_value() throw() { return static_cast<unsigned int>(0u); }
-  static unsigned int max_value() throw() { return static_cast<unsigned int>( ~0u >> 1); }
+  static unsigned int min_value() throw() { return numeric_limits<unsigned int>::lowest(); }
+  static unsigned int max_value() throw() { return numeric_limits<unsigned int>::max(); }
   static double       min()       throw() { return static_cast<double      >(min_value()); }
   static double       max()       throw() { return static_cast<double      >(max_value()); }
 };
@@ -241,8 +241,8 @@ template <> struct voxel_limits<unsigned int>
 // -----------------------------------------------------------------------------
 template <> struct voxel_limits<float>
 {
-  static float  min_value() throw() { return static_cast<float >(-1.0e+38f); }
-  static float  max_value() throw() { return static_cast<float >( 1.0e+38f); }
+  static float  min_value() throw() { return numeric_limits<float>::lowest(); }
+  static float  max_value() throw() { return numeric_limits<float>::max(); }
   static double min()       throw() { return static_cast<double>(min_value()); }
   static double max()       throw() { return static_cast<double>(max_value()); }
 };
@@ -250,8 +250,8 @@ template <> struct voxel_limits<float>
 // -----------------------------------------------------------------------------
 template <> struct voxel_limits<double>
 {
-  static double min_value() throw() { return static_cast<double>(-1.0e+299); }
-  static double max_value() throw() { return static_cast<double>( 1.0e+299); }
+  static double min_value() throw() { return numeric_limits<double>::lowest(); }
+  static double max_value() throw() { return numeric_limits<double>::max(); }
   static double min()       throw() { return static_cast<double>(min_value()); }
   static double max()       throw() { return static_cast<double>(max_value()); }
 };
@@ -343,7 +343,7 @@ template <> struct voxel_limits<double3x3>
   static double3x3 min_value() throw() { return make_double3x3(voxel_limits<double>::min_value()); }
   static double3x3 max_value() throw() { return make_double3x3(voxel_limits<double>::max_value()); }
   static double min() throw() { return voxel_limits<double>::min(); }
-   static double max() throw() { return voxel_limits<double>::max(); }
+  static double max() throw() { return voxel_limits<double>::max(); }
 };
 
 // -----------------------------------------------------------------------------
@@ -396,10 +396,10 @@ template <> struct voxel_limits<Vector4D<double> >
 // interpolators. Treat voxel type as if it was a scalar type here.
 template <> struct voxel_limits<Vector>
 {
-  static Vector min_value() throw() { return Vector(min()); }
-  static Vector max_value() throw() { return Vector(max()); }
-  static double min()       throw() { return static_cast<double>(-1.0e+299); }
-  static double max()       throw() { return static_cast<double>( 1.0e+299); }
+  static Vector min_value() throw() { return Vector(1, min()); }
+  static Vector max_value() throw() { return Vector(1, max()); }
+  static double min()       throw() { return numeric_limits<double>::lowest(); }
+  static double max()       throw() { return numeric_limits<double>::max(); }
 };
 
 // =============================================================================

@@ -711,7 +711,7 @@ ImageAttributes OrthogonalFieldOfView(const ImageAttributes &attr)
 ImageAttributes OverallFieldOfView(const Array<ImageAttributes> &attr)
 {
   ImageAttributes out;
-  const int N = attr.size();
+  const int N = static_cast<int>(attr.size());
   if (N == 0) return out;
   if (N == 1) return attr[0];
   // Set output resolution

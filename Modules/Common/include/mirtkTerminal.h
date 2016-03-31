@@ -20,11 +20,13 @@
 #ifndef MIRTK_Terminal_H
 #define MIRTK_Terminal_H
 
+#include <mirtkCommonExport.h>
+
 #include <mirtkConfig.h> // WINDOWS
 #include <mirtkStream.h>
 
 #include <cstdio>
-#if !WINDOWS
+#ifndef WINDOWS
 #  include <unistd.h>
 #endif
 
@@ -37,7 +39,7 @@ namespace mirtk {
 // =============================================================================
 
 /// Whether to use color output to STDOUT
-extern bool stdout_color;
+MIRTK_Common_EXPORT extern bool stdout_color;
 
 // =============================================================================
 // Command help
@@ -59,7 +61,7 @@ void PrintTerminalOptions(ostream &);
 // -----------------------------------------------------------------------------
 inline bool StdOutIsRedirected()
 {
-#if WINDOWS
+#ifdef WINDOWS
   return false;
 #else
  return !isatty(fileno(stdout));
@@ -72,42 +74,42 @@ inline bool StdOutIsRedirected()
 
 // -----------------------------------------------------------------------------
 /// Color escape sequences
-extern const char *xreset;
+MIRTK_Common_EXPORT extern const char *xreset;
 
-extern const char *xblack;
-extern const char *xred;
-extern const char *xgreen;
-extern const char *xyellow;
-extern const char *xblue;
-extern const char *xmagenta;
-extern const char *xcyan;
-extern const char *xwhite;
+MIRTK_Common_EXPORT extern const char *xblack;
+MIRTK_Common_EXPORT extern const char *xred;
+MIRTK_Common_EXPORT extern const char *xgreen;
+MIRTK_Common_EXPORT extern const char *xyellow;
+MIRTK_Common_EXPORT extern const char *xblue;
+MIRTK_Common_EXPORT extern const char *xmagenta;
+MIRTK_Common_EXPORT extern const char *xcyan;
+MIRTK_Common_EXPORT extern const char *xwhite;
 
-extern const char *xbrightblack;
-extern const char *xbrightred;
-extern const char *xbrightgreen;
-extern const char *xbrightyellow;
-extern const char *xbrightblue;
-extern const char *xbrightmagenta;
-extern const char *xbrightcyan;
-extern const char *xbrightwhite;
+MIRTK_Common_EXPORT extern const char *xbrightblack;
+MIRTK_Common_EXPORT extern const char *xbrightred;
+MIRTK_Common_EXPORT extern const char *xbrightgreen;
+MIRTK_Common_EXPORT extern const char *xbrightyellow;
+MIRTK_Common_EXPORT extern const char *xbrightblue;
+MIRTK_Common_EXPORT extern const char *xbrightmagenta;
+MIRTK_Common_EXPORT extern const char *xbrightcyan;
+MIRTK_Common_EXPORT extern const char *xbrightwhite;
 
-extern const char *xboldblack;
-extern const char *xboldred;
-extern const char *xboldgreen;
-extern const char *xboldyellow;
-extern const char *xboldblue;
-extern const char *xboldmagenta;
-extern const char *xboldcyan;
-extern const char *xboldwhite;
-extern const char *xboldbrightblack;
-extern const char *xboldbrightred;
-extern const char *xboldbrightgreen;
-extern const char *xboldbrightyellow;
-extern const char *xboldbrightblue;
-extern const char *xboldbrightmagenta;
-extern const char *xboldbrightcyan;
-extern const char *xboldbrightwhite;
+MIRTK_Common_EXPORT extern const char *xboldblack;
+MIRTK_Common_EXPORT extern const char *xboldred;
+MIRTK_Common_EXPORT extern const char *xboldgreen;
+MIRTK_Common_EXPORT extern const char *xboldyellow;
+MIRTK_Common_EXPORT extern const char *xboldblue;
+MIRTK_Common_EXPORT extern const char *xboldmagenta;
+MIRTK_Common_EXPORT extern const char *xboldcyan;
+MIRTK_Common_EXPORT extern const char *xboldwhite;
+MIRTK_Common_EXPORT extern const char *xboldbrightblack;
+MIRTK_Common_EXPORT extern const char *xboldbrightred;
+MIRTK_Common_EXPORT extern const char *xboldbrightgreen;
+MIRTK_Common_EXPORT extern const char *xboldbrightyellow;
+MIRTK_Common_EXPORT extern const char *xboldbrightblue;
+MIRTK_Common_EXPORT extern const char *xboldbrightmagenta;
+MIRTK_Common_EXPORT extern const char *xboldbrightcyan;
+MIRTK_Common_EXPORT extern const char *xboldbrightwhite;
 
 
 } // namespace mirtk

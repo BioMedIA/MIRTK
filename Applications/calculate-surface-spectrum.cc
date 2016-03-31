@@ -151,6 +151,7 @@ int ComputeJointEigenmodes(vtkPolyData *target, const Array<int> &target_sample,
                            const PointCorrespondence *corr, int k,
                            Matrix &modes, Vector &freq)
 {
+  using SpectralDecomposition::SparseMatrix;
   // Set intra-mesh affinity weights
   const int m = target->GetNumberOfPoints();
   const int n = source->GetNumberOfPoints();

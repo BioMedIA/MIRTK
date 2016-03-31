@@ -107,7 +107,7 @@ struct VoxelCaster<TIn, float2>
 {
   static float2 Convert(const TIn &value)
   {
-    return make_float2(value);
+    return make_float2(static_cast<float>(value));
   }
 };
 
@@ -149,7 +149,7 @@ struct VoxelCaster<TIn, float3>
 {
   static float3 Convert(const TIn &value)
   {
-    return make_float3(value);
+    return make_float3(static_cast<float>(value));
   }
 };
 
@@ -191,7 +191,7 @@ struct VoxelCaster<TIn, float4>
 {
   static float4 Convert(const TIn &value)
   {
-    return make_float4(value);
+    return make_float4(static_cast<float>(value));
   }
 };
 
@@ -233,7 +233,7 @@ struct VoxelCaster<TIn, double1>
 {
   static double1 Convert(const TIn &value)
   {
-    return make_double1(value);
+    return make_double1(static_cast<double>(value));
   }
 };
 
@@ -315,7 +315,7 @@ struct VoxelCaster<TIn, double3>
 {
   static double3 Convert(const TIn &value)
   {
-    return make_double3(value);
+    return make_double3(static_cast<double>(value));
   }
 };
 
@@ -357,7 +357,7 @@ struct VoxelCaster<TIn, double4>
 {
   static double4 Convert(const TIn &value)
   {
-    return make_double4(value);
+    return make_double4(static_cast<double>(value));
   }
 };
 
@@ -640,14 +640,34 @@ struct VoxelCaster<double4, Vector>
 
 // -----------------------------------------------------------------------------
 template <class TOut>
+struct VoxelCaster<int, Vector3D<TOut> >
+{
+  static Vector3D<TOut> Convert(const int &value)
+  {
+    return Vector3D<TOut>(VoxelCaster<int, TOut>::Convert(value));
+  }
+};
+
+// -----------------------------------------------------------------------------
+template <class TOut>
+struct VoxelCaster<double, Vector3D<TOut> >
+{
+  static Vector3D<TOut> Convert(const double &value)
+  {
+    return Vector3D<TOut>(VoxelCaster<double, TOut>::Convert(value));
+  }
+};
+
+// -----------------------------------------------------------------------------
+template <class TOut>
 struct VoxelCaster<Vector, Vector3D<TOut> >
 {
   static Vector3D<TOut> Convert(const Vector &value)
   {
     if (value.Rows() == 3) {
-      return Vector3D<TOut>(VoxelCaster<TOut, double>::Convert(value(0)),
-                            VoxelCaster<TOut, double>::Convert(value(1)),
-                            VoxelCaster<TOut, double>::Convert(value(2)));
+      return Vector3D<TOut>(VoxelCaster<double, TOut>::Convert(value(0)),
+                            VoxelCaster<double, TOut>::Convert(value(1)),
+                            VoxelCaster<double, TOut>::Convert(value(2)));
     }
     cerr << "Can only cast vector with exactly three elements to a 3D vector!" << endl;
     cerr << "Set breakpoint in " << __FILE__ << ":" << __LINE__ << " to debug." << endl;
@@ -662,10 +682,10 @@ struct VoxelCaster<Vector, Vector4D<TOut> >
   static Vector4D<TOut> Convert(const Vector &value)
   {
     if (value.Rows() == 4) {
-      return Vector4D<TOut>(VoxelCaster<TOut, double>::Convert(value(0)),
-                            VoxelCaster<TOut, double>::Convert(value(1)),
-                            VoxelCaster<TOut, double>::Convert(value(2)),
-                            VoxelCaster<TOut, double>::Convert(value(3)));
+      return Vector4D<TOut>(VoxelCaster<double, TOut>::Convert(value(0)),
+                            VoxelCaster<double, TOut>::Convert(value(1)),
+                            VoxelCaster<double, TOut>::Convert(value(2)),
+                            VoxelCaster<double, TOut>::Convert(value(3)));
     }
     cerr << "Can only cast vector with exactly four elements to a 4D vector!" << endl;
     cerr << "Set breakpoint in " << __FILE__ << ":" << __LINE__ << " to debug." << endl;
@@ -674,7 +694,7 @@ struct VoxelCaster<Vector, Vector4D<TOut> >
 };
 
 // -----------------------------------------------------------------------------
-template <class TOut, class TIn>
+template <class TIn, class TOut>
 struct VoxelCaster<Vector3D<TIn>, TOut>
 {
   static TOut Convert(const Vector3D<TIn> &)
@@ -686,14 +706,14 @@ struct VoxelCaster<Vector3D<TIn>, TOut>
 };
 
 // -----------------------------------------------------------------------------
-template <class TOut, class TIn>
+template <class TIn, class TOut>
 struct VoxelCaster<Vector3D<TIn>, Vector3D<TOut> >
 {
   static Vector3D<TOut> Convert(const Vector3D<TIn> &value)
   {
-    return Vector3D<TOut>(VoxelCaster<TOut, TIn>::Convert(value._x),
-                          VoxelCaster<TOut, TIn>::Convert(value._y),
-                          VoxelCaster<TOut, TIn>::Convert(value._z));
+    return Vector3D<TOut>(VoxelCaster<TIn, TOut>::Convert(value._x),
+                          VoxelCaster<TIn, TOut>::Convert(value._y),
+                          VoxelCaster<TIn, TOut>::Convert(value._z));
   }
 };
 
@@ -720,7 +740,27 @@ struct VoxelCaster<Vector3D<TIn>, Vector>
 };
 
 // -----------------------------------------------------------------------------
-template <class TOut, class TIn>
+template <class TOut>
+struct VoxelCaster<int, Vector4D<TOut> >
+{
+  static Vector4D<TOut> Convert(const int &value)
+  {
+    return Vector4D<TOut>(VoxelCaster<int, TOut>::Convert(value));
+  }
+};
+
+// -----------------------------------------------------------------------------
+template <class TOut>
+struct VoxelCaster<double, Vector4D<TOut> >
+{
+  static Vector4D<TOut> Convert(const double &value)
+  {
+    return Vector4D<TOut>(VoxelCaster<double, TOut>::Convert(value));
+  }
+};
+
+// -----------------------------------------------------------------------------
+template <class TIn, class TOut>
 struct VoxelCaster<Vector4D<TIn>, TOut>
 {
   static TOut Convert(const Vector4D<TIn> &)
@@ -732,15 +772,15 @@ struct VoxelCaster<Vector4D<TIn>, TOut>
 };
 
 // -----------------------------------------------------------------------------
-template <class TOut, class TIn>
+template <class TIn, class TOut>
 struct VoxelCaster<Vector4D<TIn>, Vector4D<TOut> >
 {
   static Vector4D<TOut> Convert(const Vector4D<TIn> &value)
   {
-    return Vector4D<TOut>(VoxelCaster<TOut, TIn>::Convert(value._x),
-                          VoxelCaster<TOut, TIn>::Convert(value._y),
-                          VoxelCaster<TOut, TIn>::Convert(value._z),
-                          VoxelCaster<TOut, TIn>::Convert(value._t));
+    return Vector4D<TOut>(VoxelCaster<TIn, TOut>::Convert(value._x),
+                          VoxelCaster<TIn, TOut>::Convert(value._y),
+                          VoxelCaster<TIn, TOut>::Convert(value._z),
+                          VoxelCaster<TIn, TOut>::Convert(value._t));
   }
 };
 
@@ -876,7 +916,7 @@ struct VoxelCaster<TIn, float3x3>
 {
   static float3x3 Convert(const TIn &value)
   {
-    return make_float3x3(value);
+    return make_float3x3(static_cast<float>(value));
   }
 };
 
@@ -886,7 +926,7 @@ struct VoxelCaster<TIn, double3x3>
 {
   static double3x3 Convert(const TIn &value)
   {
-    return make_double3x3(value);
+    return make_double3x3(static_cast<double>(value));
   }
 };
 
@@ -898,25 +938,25 @@ struct VoxelCaster<Vector, float3x3>
   {
     float3x3 m;
     if (v.Rows() == 9) {
-      m.a.x = v(0);
-      m.a.y = v(1);
-      m.a.z = v(2);
-      m.b.x = v(3);
-      m.b.y = v(4);
-      m.b.z = v(5);
-      m.c.x = v(6);
-      m.c.y = v(7);
-      m.c.z = v(8);
+      m.a.x = VoxelCaster<double, float>::Convert(v(0));
+      m.a.y = VoxelCaster<double, float>::Convert(v(1));
+      m.a.z = VoxelCaster<double, float>::Convert(v(2));
+      m.b.x = VoxelCaster<double, float>::Convert(v(3));
+      m.b.y = VoxelCaster<double, float>::Convert(v(4));
+      m.b.z = VoxelCaster<double, float>::Convert(v(5));
+      m.c.x = VoxelCaster<double, float>::Convert(v(6));
+      m.c.y = VoxelCaster<double, float>::Convert(v(7));
+      m.c.z = VoxelCaster<double, float>::Convert(v(8));
     } else if (v.Rows() == 6) {
-      m.a.x = v(0);
-      m.a.y = v(1);
-      m.a.z = v(2);
+      m.a.x = VoxelCaster<double, float>::Convert(v(0));
+      m.a.y = VoxelCaster<double, float>::Convert(v(1));
+      m.a.z = VoxelCaster<double, float>::Convert(v(2));
       m.b.x = m.a.y;
-      m.b.y = v(3);
-      m.b.z = v(4);
+      m.b.y = VoxelCaster<double, float>::Convert(v(3));
+      m.b.z = VoxelCaster<double, float>::Convert(v(4));
       m.c.x = m.a.z;
       m.c.y = m.b.z;
-      m.c.z = v(5);
+      m.c.z = VoxelCaster<double, float>::Convert(v(5));
     } else {
       cerr << "Can only cast vector of size 6 or 9 to a 3x3 matrix!" << endl;
       cerr << "Set breakpoint in " << __FILE__ << ":" << __LINE__ << " to debug." << endl;

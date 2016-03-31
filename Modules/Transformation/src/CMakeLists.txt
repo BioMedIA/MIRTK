@@ -120,4 +120,12 @@ set(DEPENDS
   LibImage
 )
 
+if (VTK_FOUND)
+  list(APPEND DEPENDS vtkCommonCore vtkCommonDataModel)
+endif ()
+
+if (TARGET TBB::tbb)
+  list(APPEND DEPENDS TBB::tbb)
+endif ()
+
 mirtk_add_library(AUTO_REGISTER)

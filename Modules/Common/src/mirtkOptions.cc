@@ -26,6 +26,8 @@
 #include <mirtkParallel.h>  // PrintParallelOptions
 #include <mirtkProfiling.h> // PrintProfilingOptions
 
+#include <mirtkCommonExport.h>
+
 
 namespace mirtk {
 
@@ -35,20 +37,20 @@ namespace mirtk {
 // =============================================================================
 
 // Default: No verbose output messages
-int verbose = 0;
+MIRTK_Common_EXPORT int verbose = 0;
 
 // Default: No debug output
-int debug = 0;
+MIRTK_Common_EXPORT int debug = 0;
 
 // =============================================================================
 // Help
 // =============================================================================
 
-int         _posargc                = 0;
-int         _numposarg              = -1;
-bool        _discard_parsed_posargs = false;
-bool        _discard_parsed_options = false;
-const char *_option                 = NULL;
+MIRTK_Common_EXPORT int         _posargc                = 0;
+MIRTK_Common_EXPORT int         _numposarg              = -1;
+MIRTK_Common_EXPORT bool        _discard_parsed_posargs = false;
+MIRTK_Common_EXPORT bool        _discard_parsed_options = false;
+MIRTK_Common_EXPORT const char *_option                 = NULL;
 
 // -----------------------------------------------------------------------------
 bool IsStandardOption(const char *arg)

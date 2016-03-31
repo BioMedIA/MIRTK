@@ -19,6 +19,8 @@
 #ifndef MIRTK_Matrix3x3_H
 #define MIRTK_Matrix3x3_H
 
+#include <mirtkNumericsExport.h>
+
 #include <mirtkVector3.h>
 
 
@@ -127,24 +129,18 @@ public:
   // The matrix must be orthonormal.  The decomposition is yaw*pitch*roll
   // where yaw is rotation about the Up vector, pitch is rotation about the
   // Right axis, and roll is rotation about the Direction axis.
-  bool ToEulerAnglesXYZ (float& rfYAngle, float& rfPAngle,
-                         float& rfRAngle) const;
-  bool ToEulerAnglesXZY (float& rfYAngle, float& rfPAngle,
-                         float& rfRAngle) const;
-  bool ToEulerAnglesYXZ (float& rfYAngle, float& rfPAngle,
-                         float& rfRAngle) const;
-  bool ToEulerAnglesYZX (float& rfYAngle, float& rfPAngle,
-                         float& rfRAngle) const;
-  bool ToEulerAnglesZXY (float& rfYAngle, float& rfPAngle,
-                         float& rfRAngle) const;
-  bool ToEulerAnglesZYX (float& rfYAngle, float& rfPAngle,
-                         float& rfRAngle) const;
-  void FromEulerAnglesXYZ (float fYAngle, float fPAngle, float fRAngle);
-  void FromEulerAnglesXZY (float fYAngle, float fPAngle, float fRAngle);
-  void FromEulerAnglesYXZ (float fYAngle, float fPAngle, float fRAngle);
-  void FromEulerAnglesYZX (float fYAngle, float fPAngle, float fRAngle);
-  void FromEulerAnglesZXY (float fYAngle, float fPAngle, float fRAngle);
-  void FromEulerAnglesZYX (float fYAngle, float fPAngle, float fRAngle);
+  bool ToEulerAnglesXYZ (double& rfYAngle, double& rfPAngle, double& rfRAngle) const;
+  bool ToEulerAnglesXZY (double& rfYAngle, double& rfPAngle, double& rfRAngle) const;
+  bool ToEulerAnglesYXZ (double& rfYAngle, double& rfPAngle, double& rfRAngle) const;
+  bool ToEulerAnglesYZX (double& rfYAngle, double& rfPAngle, double& rfRAngle) const;
+  bool ToEulerAnglesZXY (double& rfYAngle, double& rfPAngle, double& rfRAngle) const;
+  bool ToEulerAnglesZYX (double& rfYAngle, double& rfPAngle, double& rfRAngle) const;
+  void FromEulerAnglesXYZ (double fYAngle, double fPAngle, double fRAngle);
+  void FromEulerAnglesXZY (double fYAngle, double fPAngle, double fRAngle);
+  void FromEulerAnglesYXZ (double fYAngle, double fPAngle, double fRAngle);
+  void FromEulerAnglesYZX (double fYAngle, double fPAngle, double fRAngle);
+  void FromEulerAnglesZXY (double fYAngle, double fPAngle, double fRAngle);
+  void FromEulerAnglesZYX (double fYAngle, double fPAngle, double fRAngle);
 
   // eigensolver, matrix must be symmetric
   void EigenSolveSymmetric (double afEigenvalue[3],
@@ -153,17 +149,17 @@ public:
   static void TensorProduct (const Vector3& rkU, const Vector3& rkV,
                              Matrix3x3& rkProduct);
 
-  static const double EPSILON;
-  static const Matrix3x3 ZERO;
-  static const Matrix3x3 IDENTITY;
+  MIRTK_Numerics_EXPORT static const double EPSILON;
+  MIRTK_Numerics_EXPORT static const Matrix3x3 ZERO;
+  MIRTK_Numerics_EXPORT static const Matrix3x3 IDENTITY;
 
   // support for eigensolver
   void Tridiagonal(double afDiag[3], double afSubDiag[3]);
   bool QLAlgorithm(double afDiag[3], double afSubDiag[3]);
 
   // support for singular value decomposition
-  static const double ms_fSvdEpsilon;
-  static const int ms_iSvdMaxIterations;
+  MIRTK_Numerics_EXPORT static const double ms_fSvdEpsilon;
+  MIRTK_Numerics_EXPORT static const int ms_iSvdMaxIterations;
   static void Bidiagonalize (Matrix3x3& kA, Matrix3x3& kL,
                              Matrix3x3& kR);
   static void GolubKahanStep (Matrix3x3& kA, Matrix3x3& kL,

@@ -677,14 +677,14 @@ public:
       x = i, y = j, z = 0;
       _Output->ImageToWorld(x, y, z);
       // Apply current displacement
-      dx = _Output->Get(i, j, 0, 0);
-      dy = _Output->Get(i, j, 0, 1);
+      dx = _Output->GetAsDouble(i, j, 0, 0);
+      dy = _Output->GetAsDouble(i, j, 0, 1);
       x += dx, y += dy;
       // Calculate displacement
       _Transformation->Displacement(_M, _N, x, y, z, _SourceTime, _TargetTime);
       // Update displacement
-      _Output->Put(i, j, 0, 0, x + dx);
-      _Output->Put(i, j, 0, 1, y + dy);
+      _Output->PutAsDouble(i, j, 0, 0, x + dx);
+      _Output->PutAsDouble(i, j, 0, 1, y + dy);
     }
   }
 
@@ -702,16 +702,16 @@ public:
       x = i, y = j, z = k;
       _Output->ImageToWorld(x, y, z);
       // Apply current displacement
-      dx = _Output->Get(i, j, k, 0);
-      dy = _Output->Get(i, j, k, 1);
-      dz = _Output->Get(i, j, k, 2);
+      dx = _Output->GetAsDouble(i, j, k, 0);
+      dy = _Output->GetAsDouble(i, j, k, 1);
+      dz = _Output->GetAsDouble(i, j, k, 2);
       x += dx, y += dy, z += dz;
       // Calculate displacement
       _Transformation->Displacement(_M, _N, x, y, z, _SourceTime, _TargetTime);
       // Update displacement
-      _Output->Put(i, j, k, 0, x + dx);
-      _Output->Put(i, j, k, 1, y + dy);
-      _Output->Put(i, j, k, 2, z + dz);
+      _Output->PutAsDouble(i, j, k, 0, x + dx);
+      _Output->PutAsDouble(i, j, k, 1, y + dy);
+      _Output->PutAsDouble(i, j, k, 2, z + dz);
     }
   }
 
@@ -775,16 +775,16 @@ public:
       x = i, y = j, z = 0;
       _Output->ImageToWorld(x, y, z);
       // Apply current displacement
-      dx = _Output->Get(i, j, 0, 0);
-      dy = _Output->Get(i, j, 0, 1);
+      dx = _Output->GetAsDouble(i, j, 0, 0);
+      dy = _Output->GetAsDouble(i, j, 0, 1);
       x += dx, y += dy;
       // Calculate inverse displacement
       if (!_Transformation->InverseDisplacement(_M, _N, x, y, z, _SourceTime, _TargetTime)) {
         ++_NumberOfSingularPoints;
       }
       // Update displacement
-      _Output->Put(i, j, 0, 0, x + dx);
-      _Output->Put(i, j, 0, 1, y + dy);
+      _Output->PutAsDouble(i, j, 0, 0, x + dx);
+      _Output->PutAsDouble(i, j, 0, 1, y + dy);
     }
   }
 
@@ -802,18 +802,18 @@ public:
       x = i, y = j, z = k;
       _Output->ImageToWorld(x, y, z);
       // Apply current displacement
-      dx = _Output->Get(i, j, k, 0);
-      dy = _Output->Get(i, j, k, 1);
-      dz = _Output->Get(i, j, k, 2);
+      dx = _Output->GetAsDouble(i, j, k, 0);
+      dy = _Output->GetAsDouble(i, j, k, 1);
+      dz = _Output->GetAsDouble(i, j, k, 2);
       x += dx, y += dy, z += dz;
       // Calculate inverse displacement
       if (!_Transformation->InverseDisplacement(_M, _N, x, y, z, _SourceTime, _TargetTime)) {
         ++_NumberOfSingularPoints;
       }
       // Update displacement
-      _Output->Put(i, j, k, 0, x + dx);
-      _Output->Put(i, j, k, 1, y + dy);
-      _Output->Put(i, j, k, 2, z + dz);
+      _Output->PutAsDouble(i, j, k, 0, x + dx);
+      _Output->PutAsDouble(i, j, k, 1, y + dy);
+      _Output->PutAsDouble(i, j, k, 2, z + dz);
     }
   }
 

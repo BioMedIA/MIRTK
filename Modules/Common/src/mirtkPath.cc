@@ -27,7 +27,7 @@ namespace mirtk {
 
 
 // -----------------------------------------------------------------------------
-#if WINDOWS
+#ifdef WINDOWS
 const char PATHSEP = '\\';
 #else
 const char PATHSEP = '/';
@@ -42,7 +42,7 @@ string Extension(const char *path, ExtensionMode mode)
   // Split file path, note that first part is the file name itself and that
   // an empty initial part is caused by the leading '.' of hidden files on Unix
   Array<string> parts = Split(path, ".");
-#if WINDOWS
+#ifdef WINDOWS
   const bool hidden = false;
 #else
   const bool hidden = (s[0] == '.');

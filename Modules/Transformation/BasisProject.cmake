@@ -58,7 +58,7 @@ basis_project (
     Boost-1.48 # {math_c99} used, but headers only
     #<dependency>
   OPTIONAL_DEPENDS
-    TBB
+    TBB{tbb}
     VTK-7|6{vtkCommonCore,vtkCommonDataModel}
     #<optional-dependency>
   TEST_DEPENDS

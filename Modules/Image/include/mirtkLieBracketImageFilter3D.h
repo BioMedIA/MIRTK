@@ -265,9 +265,9 @@ public:
     for (int j = r.rows ().begin(); j != r.rows ().end(); ++j)
     for (int i = r.cols ().begin(); i != r.cols ().end(); ++i) {
       _LieBracketFilter->Run(vec, i, j, k);
-      _Output->Put(i, j, k, 0, vec[0]);
-      _Output->Put(i, j, k, 1, vec[1]);
-      _Output->Put(i, j, k, 2, vec[2]);
+      _Output->PutAsDouble(i, j, k, 0, vec[0]);
+      _Output->PutAsDouble(i, j, k, 1, vec[1]);
+      _Output->PutAsDouble(i, j, k, 2, vec[2]);
     }
   }
 };

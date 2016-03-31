@@ -28,6 +28,8 @@
 #include <mirtkSparseMatrix.h>
 #include <mirtkParallel.h>
 
+#include <mirtkPointSetExport.h>
+
 #include <vtkSmartPointer.h>
 #include <vtkPolyData.h>
 #include <vtkPointData.h>
@@ -47,7 +49,7 @@ namespace SpectralDecomposition {
 typedef GenericSparseMatrix<double>  SparseMatrix;
 typedef Array<Pair<int, double> >    FeatureWeights;
 
-extern const double EPSILON;
+const double EPSILON = 1e-6;
 
 // =============================================================================
 // Bipartite graph matching / Optimal assignment problem

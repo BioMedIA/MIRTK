@@ -258,7 +258,7 @@ void GenericImage<VoxelType>::Initialize(const ImageAttributes &a, int n, VoxelT
 template <class VoxelType>
 void GenericImage<VoxelType>::Initialize(const ImageAttributes &attr, int n)
 {
-  this->Initialize(attr, n, NULL);
+  this->Initialize(attr, n, nullptr);
 }
 
 // -----------------------------------------------------------------------------
@@ -767,45 +767,53 @@ template <> GenericImage<double3x3> &GenericImage<double3x3>::operator/=(const G
 
 // -----------------------------------------------------------------------------
 template <class VoxelType>
-GenericImage<VoxelType>& GenericImage<VoxelType>::operator+=(ScalarType scalar)
+GenericImage<VoxelType>& GenericImage<VoxelType>::operator+=(double scalar)
 {
   VoxelType *ptr = this->Data();
   for (int idx = 0; idx < _NumberOfVoxels; ++idx) {
-    if (IsForeground(idx)) ptr[idx] += scalar;
+    if (IsForeground(idx)) {
+      ptr[idx] = voxel_cast<VoxelType>(voxel_cast<double>(ptr[idx]) + scalar);
+    }
   }
   return *this;
 }
 
 // -----------------------------------------------------------------------------
 template <class VoxelType>
-GenericImage<VoxelType>& GenericImage<VoxelType>::operator-=(ScalarType scalar)
+GenericImage<VoxelType>& GenericImage<VoxelType>::operator-=(double scalar)
 {
   VoxelType *ptr = this->Data();
   for (int idx = 0; idx < _NumberOfVoxels; ++idx) {
-    if (IsForeground(idx)) ptr[idx] -= scalar;
+    if (IsForeground(idx)) {
+      ptr[idx] = voxel_cast<VoxelType>(voxel_cast<double>(ptr[idx]) - scalar);
+    }
   }
   return *this;
 }
 
 // -----------------------------------------------------------------------------
 template <class VoxelType>
-GenericImage<VoxelType>& GenericImage<VoxelType>::operator*=(ScalarType scalar)
+GenericImage<VoxelType>& GenericImage<VoxelType>::operator*=(double scalar)
 {
   VoxelType *ptr = this->Data();
   for (int idx = 0; idx < _NumberOfVoxels; ++idx) {
-    if (IsForeground(idx)) ptr[idx] *= scalar;
+    if (IsForeground(idx)) {
+      ptr[idx] = voxel_cast<VoxelType>(voxel_cast<double>(ptr[idx]) * scalar);
+    }
   }
   return *this;
 }
 
 // -----------------------------------------------------------------------------
 template <class VoxelType>
-GenericImage<VoxelType>& GenericImage<VoxelType>::operator/=(ScalarType scalar)
+GenericImage<VoxelType>& GenericImage<VoxelType>::operator/=(double scalar)
 {
-  if (scalar) {
+  if (scalar != .0) {
     VoxelType *ptr = this->Data();
     for (int idx = 0; idx < _NumberOfVoxels; ++idx) {
-      if (IsForeground(idx)) ptr[idx] /= scalar;
+      if (IsForeground(idx)) {
+        ptr[idx] = voxel_cast<VoxelType>(voxel_cast<double>(ptr[idx]) / scalar);
+      }
     }
   } else {
     cerr << "GenericImage<VoxelType>::operator/=: Division by zero" << endl;
@@ -851,7 +859,7 @@ GenericImage<VoxelType> GenericImage<VoxelType>::operator/(const GenericImage &i
 
 // -----------------------------------------------------------------------------
 template <class VoxelType>
-GenericImage<VoxelType> GenericImage<VoxelType>::operator+(ScalarType scalar) const
+GenericImage<VoxelType> GenericImage<VoxelType>::operator+(double scalar) const
 {
   GenericImage<VoxelType> tmp(*this);
   tmp += scalar;
@@ -860,7 +868,7 @@ GenericImage<VoxelType> GenericImage<VoxelType>::operator+(ScalarType scalar) co
 
 // -----------------------------------------------------------------------------
 template <class VoxelType>
-GenericImage<VoxelType> GenericImage<VoxelType>::operator-(ScalarType scalar) const
+GenericImage<VoxelType> GenericImage<VoxelType>::operator-(double scalar) const
 {
   GenericImage<VoxelType> tmp(*this);
   tmp -= scalar;
@@ -869,7 +877,7 @@ GenericImage<VoxelType> GenericImage<VoxelType>::operator-(ScalarType scalar) co
 
 // -----------------------------------------------------------------------------
 template <class VoxelType>
-GenericImage<VoxelType> GenericImage<VoxelType>::operator*(ScalarType scalar) const
+GenericImage<VoxelType> GenericImage<VoxelType>::operator*(double scalar) const
 {
   GenericImage<VoxelType> tmp(*this);
   tmp *= scalar;
@@ -878,7 +886,7 @@ GenericImage<VoxelType> GenericImage<VoxelType>::operator*(ScalarType scalar) co
 
 // -----------------------------------------------------------------------------
 template <class VoxelType>
-GenericImage<VoxelType> GenericImage<VoxelType>::operator/(ScalarType scalar) const
+GenericImage<VoxelType> GenericImage<VoxelType>::operator/(double scalar) const
 {
   GenericImage<VoxelType> tmp(*this);
   tmp /= scalar;
@@ -1128,18 +1136,20 @@ GenericImage<VoxelType>::GetAverage(int toggle) const
       if (IsForeground(i) && (*ptr) > zero) n++;
       ++ptr;
     }
+    const RealType norm = voxel_cast<RealType>(1.0 / n);
     ptr = this->Data();
     for (int i = 0; i < _NumberOfVoxels; i++) {
       if (IsForeground(i) && (*ptr) > zero) {
-        avg += voxel_cast<RealType>(*ptr) / static_cast<double>(n);
+        avg += norm * voxel_cast<RealType>(*ptr);
       }
       ++ptr;
     }
   } else {
+    const RealType norm = voxel_cast<RealType>(1.0 / _NumberOfVoxels);
     ptr = this->Data();
     for (int i = 0; i < _NumberOfVoxels; i++) {
       if (IsForeground(i)) {
-        avg += voxel_cast<RealType>(*ptr) / static_cast<double>(_NumberOfVoxels);
+        avg += norm * voxel_cast<RealType>(*ptr);
       }
       ++ptr;
     }
@@ -1177,18 +1187,20 @@ GenericImage<VoxelType>::GetSD(int toggle) const
       if (IsForeground(i) && (*ptr) > zero) n++;
       ++ptr;
     }
+    const RealType norm = voxel_cast<RealType>(1.0 / n);
     ptr = this->Data();
     for (int i = 0; i < _NumberOfVoxels; i++) {
       if (IsForeground(i) && (*ptr) > zero) {
-        std += pow(voxel_cast<RealType>(*ptr) - avg, 2) / static_cast<double>(n);
+        std += norm * pow(voxel_cast<RealType>(*ptr) - avg, 2);
       }
       ++ptr;
     }
   } else {
+    const RealType norm = voxel_cast<RealType>(1.0 / _NumberOfVoxels);
     ptr = this->Data();
     for (int i = 0; i < _NumberOfVoxels; i++) {
       if (IsForeground(i)) {
-        std += pow(voxel_cast<RealType>(*ptr) - avg, 2) / static_cast<double>(_NumberOfVoxels);
+        std += norm * pow(voxel_cast<RealType>(*ptr) - avg, 2);
       }
       ++ptr;
     }
@@ -1714,12 +1726,6 @@ void GenericImage<VoxelType>::ImageToVTK(vtkStructuredPoints *vtk) const
     for (int l = 0; l < _attr._t; ++l, ++ptr2) *ptr2 = ptr1[l * nvox];
   }
 }
-template <>
-void GenericImage<Matrix3x3>::ImageToVTK(vtkStructuredPoints *) const
-{
-  cerr << "GenericImage<Matrix3x3>::VTKToImage: Not implemented" << endl;
-  exit(1);
-}
 
 // -----------------------------------------------------------------------------
 template <class Type>
@@ -1755,25 +1761,11 @@ void GenericImage<VoxelType>::Read(const char *fname)
       exit(1);
   }
   // Apply rescaling function
-  if (reader->Slope() != .0) {
-    switch (this->GetScalarType()) {
-      case MIRTK_VOXEL_FLOAT: {
-        *this *= static_cast<float>(reader->Slope());
-        *this += static_cast<float>(reader->Intercept());
-        break;
-      }
-      case MIRTK_VOXEL_DOUBLE: {
-        *this *= static_cast<double>(reader->Slope());
-        *this += static_cast<double>(reader->Intercept());
-        break;
-      }
-      default: {
-        if (reader->Slope() != 1.0 || reader->Intercept() != .0) {
-          cerr << this->NameOfClass() << "::Read: WARNING:"
-              " Ignoring slope and intercept, use real data type instead" << endl;
-        }
-      }
-    }
+  if (reader->Slope() != .0 && reader->Slope() != 1.0) {
+    *this *= reader->Slope();
+  }
+  if (reader->Intercept() != .0) {
+    *this += reader->Intercept();
   }
 }
 

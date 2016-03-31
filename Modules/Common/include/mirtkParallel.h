@@ -20,11 +20,18 @@
 #ifndef MIRTK_Parallel_H
 #define MIRTK_Parallel_H
 
+#include <mirtkCommonExport.h>
+
 #include <mirtkStream.h>
 
 #include <memory>
 
 #ifdef HAVE_TBB
+// TBB includes windows header which defines min/max macros otherwise
+#  ifndef NOMINMAX
+#    define NOMINMAX
+#    define MIRTK_UNDEF_NOMINMAX
+#  endif
 #  include <tbb/task_scheduler_init.h>
 #  include <tbb/blocked_range.h>
 #  include <tbb/blocked_range2d.h>
@@ -33,6 +40,10 @@
 #  include <tbb/parallel_reduce.h>
 #  include <tbb/concurrent_queue.h>
 #  include <tbb/mutex.h>
+#  ifdef MIRTK_UNDEF_NOMINMAX
+#    undef MIRTK_UNDEF_NOMINMAX
+#    undef NOMINMAX
+#  endif
 #endif
 
 
@@ -44,13 +55,13 @@ namespace mirtk {
 // =============================================================================
 
 /// Enable/disable GPU acceleration
-extern bool use_gpu;
+MIRTK_Common_EXPORT extern bool use_gpu;
 
 /// Debugging level of GPU code
-extern int debug_gpu;
+MIRTK_Common_EXPORT extern int debug_gpu;
 
 /// Debugging level of TBB code
-extern int tbb_debug;
+MIRTK_Common_EXPORT extern int tbb_debug;
 
 // =============================================================================
 // Command help
@@ -100,7 +111,7 @@ using tbb::split;
 // instance is created and the -threads argument passed on to its initialize
 // method by ParseParallelOption. There should be no task scheduler created/
 // terminated in any of the IRTK libraries functions and classes.
-extern std::unique_ptr<task_scheduler_init> tbb_scheduler;
+MIRTK_Common_EXPORT extern std::unique_ptr<task_scheduler_init> tbb_scheduler;
 
 
 // -----------------------------------------------------------------------------
@@ -126,56 +137,57 @@ public:
 template <typename T>
 class blocked_range
 {
-  int _lbound;
-  int _ubound;
+  T _lbound;
+  T _ubound;
 public:
-  blocked_range(int l, int u, int = 1) : _lbound(l), _ubound(u) {}
-  int begin() const { return _lbound; }
-  int end()   const { return _ubound; }
+  blocked_range(T l, T u)         : _lbound(l), _ubound(u) {}
+  blocked_range(T l, T u, size_t) : _lbound(l), _ubound(u) {}
+  T begin() const { return _lbound; }
+  T end()   const { return _ubound; }
 };
 
 /// Two-dimensional range
 template <typename T>
 class blocked_range2d
 {
-  blocked_range<int> _rows;
-  blocked_range<int> _cols;
+  blocked_range<T> _rows;
+  blocked_range<T> _cols;
 
 public:
 
-  blocked_range2d(int rl, int ru,
-                  int cl, int cu)
+  blocked_range2d(T rl, T ru,
+                  T cl, T cu)
   :
     _rows (rl, ru),
     _cols (cl, cu)
   {
   }
 
-  blocked_range2d(int rl, int ru, int,
-                  int cl, int cu, int)
+  blocked_range2d(T rl, T ru, size_t,
+                  T cl, T cu, size_t)
   :
     _rows (rl, ru),
     _cols (cl, cu)
   {
   }
 
-  const blocked_range<int> &rows() const { return _rows; }
-  const blocked_range<int> &cols() const { return _cols; }
+  const blocked_range<T> &rows() const { return _rows; }
+  const blocked_range<T> &cols() const { return _cols; }
 };
 
 /// Three-dimensional range
 template <typename T>
 class blocked_range3d
 {
-  blocked_range<int> _pages;
-  blocked_range<int> _rows;
-  blocked_range<int> _cols;
+  blocked_range<T> _pages;
+  blocked_range<T> _rows;
+  blocked_range<T> _cols;
 
 public:
 
-  blocked_range3d(int pl, int pu,
-                  int rl, int ru,
-                  int cl, int cu)
+  blocked_range3d(T pl, T pu,
+                  T rl, T ru,
+                  T cl, T cu)
   :
     _pages(pl, pu),
     _rows (rl, ru),
@@ -183,9 +195,9 @@ public:
   {
   }
 
-  blocked_range3d(int pl, int pu, int,
-                  int rl, int ru, int,
-                  int cl, int cu, int)
+  blocked_range3d(T pl, T pu, size_t,
+                  T rl, T ru, size_t,
+                  T cl, T cu, size_t)
   :
     _pages(pl, pu),
     _rows (rl, ru),
@@ -193,9 +205,9 @@ public:
   {
   }
 
-  const blocked_range<int> &pages() const { return _pages; }
-  const blocked_range<int> &rows() const { return _rows; }
-  const blocked_range<int> &cols() const { return _cols; }
+  const blocked_range<T> &pages() const { return _pages; }
+  const blocked_range<T> &rows() const { return _rows; }
+  const blocked_range<T> &cols() const { return _cols; }
 };
 
 /// parallel_for dummy template function which executes the body serially

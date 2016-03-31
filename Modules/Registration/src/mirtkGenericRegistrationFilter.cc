@@ -19,6 +19,8 @@
 
 #include <mirtkGenericRegistrationFilter.h>
 
+#include <mirtkConfig.h> // WINDOWS
+
 #include <mirtkArray.h>
 #include <mirtkUtils.h>
 #include <mirtkMath.h>
@@ -232,7 +234,7 @@ BinaryImage *CropMask(const BinaryImage *input)
     input ->WorldToImage(x, y, z);
     const int i1 = iround(x), j1 = iround(y), k1 = iround(z);
     if (input->IsInside(i1, j1, k1)) {
-      (*value) = input->GetAsDouble(i1, j1, k1);
+      (*value) = input->Get(i1, j1, k1);
     }
     ++value;
   }
@@ -580,14 +582,14 @@ public:
       _FFD->BoundingBox(cp, x1, y1, z1, x2, y2, z2);
       // Check if control point is in vicinity of foreground mask
       if (_Mask) {
-        if (fg == -1) fg = false;
+        if (fg == -1) fg = 0;
         if (_FFD->BoundingBox(_Mask, cp, i1, j1, k1, l1, i2, j2, k2, l2)) {
           for (int l = l1; l <= l2; ++l)
           for (int k = k1; k <= k2; ++k)
           for (int j = j1; j <= j2; ++j)
           for (int i = i1; i <= i2; ++i) {
             if (_Mask->Get(i, j, k, l)) {
-              fg = true;
+              fg = 1;
               j = j2, k = k2, l = l2; // Break out of all loops
               break;
             }
@@ -595,16 +597,16 @@ public:
         }
       }
       // Check if any non-padded input image voxel is influenced by control point
-      for (int n = 0; fg != true && n < _NumberOfImages; ++n) {
+      for (int n = 0; fg != 1 && n < _NumberOfImages; ++n) {
         if (_IsTargetImage[n]) {
-          if (fg == -1) fg = false;
+          if (fg == -1) fg = 0;
           if (_FFD->BoundingBox(&_Image[n], cp, i1, j1, k1, l1, i2, j2, k2, l2)) {
             for (int l = l1; l <= l2; ++l)
             for (int k = k1; k <= k2; ++k)
             for (int j = j1; j <= j2; ++j)
             for (int i = i1; i <= i2; ++i) {
               if (_Image[n].IsForeground(i, j, k, l)) {
-                fg = true;
+                fg = 1;
                 j = j2, k = k2, l = l2; // Break out of all loops
                 break;
               }
@@ -614,13 +616,13 @@ public:
       }
       // Check if any point is influenced by control point
       #if MIRTK_Registration_WITH_PointSet
-        for (int n = 0; fg != true && n < _NumberOfPointSets; ++n) {
+        for (int n = 0; fg != 1 && n < _NumberOfPointSets; ++n) {
           if (_IsMovingPointSet[n]) {
             double b[6];
             _PointSetInput[n]->GetBounds(b);
             fg = (x1 <= b[1] && x2 >= b[0] &&
                   y1 <= b[3] && y2 >= b[2] &&
-                  z1 <= b[5] && z2 >= b[4]);
+                  z1 <= b[5] && z2 >= b[4]) ? 1 : 0;
           }
         }
       #endif // MIRTK_Registration_WITH_PointSet
@@ -1000,8 +1002,8 @@ static bool read_next(istream &in, char *buffer, int n, char *&name, char *&valu
   do {
     if (!in) return false;
     in.getline(buffer, n);
-    const int len = strlen(buffer);
-    if (len > 0 && buffer[len-1] == '\r') buffer[len-1] = '\0';
+    const size_t len = strlen(buffer);
+    if (len > 0u && buffer[len-1] == '\r') buffer[len-1] = '\0';
     ++no;
     // discard leading whitespace characters
     name = buffer;
@@ -1018,7 +1020,7 @@ static bool read_next(istream &in, char *buffer, int n, char *&name, char *&valu
   } while (name[0] == '\0' || name[0] == '\n' || name[0] == '\r');
   // parse configuration section header
   if (name[0] == '[') {
-    const int len = strlen(name);
+    const size_t len = strlen(name);
     if (name[len-1] != ']') return false;
     // discard [ and leading whitespace characters
     name[0] = '\0';
@@ -1075,11 +1077,11 @@ bool GenericRegistrationFilter::Read(istream &from, bool echo)
           }
         } else {
           // section name ending with '...' indicates common prefix of following parameters
-          int len = strlen(value);
-          if (len > 3 && strcmp(value + len - 3, "...") == 0) {
-            value[len - 3] = '\0';
+          const size_t len = strlen(value);
+          if (len > 3u && strcmp(value + len - 3u, "...") == 0) {
+            value[len - 3u] = '\0';
             prefix  = c;
-            prefix += value + 1;
+            prefix += value + 1u;
           }
         }
       } else if (strcmp(name, "Level") == 0 || strcmp(name, "Resolution level") == 0) {
@@ -1164,9 +1166,15 @@ bool GenericRegistrationFilter::Set(const char *name, const char *value, int lev
   // Transformation model
   } else if (strcmp(name, "Transformation model") == 0) {
     _TransformationModel.clear();
-    char *str = strdup(value);
-    char *val = strtok(str, " \t,+");
-    while (val) {
+    #ifdef WINDOWS
+      char *str = _strdup(value);
+      char *nxt = nullptr;
+      char *val = strtok_s(str, " \t,+", &nxt);
+    #else // WINDOWS
+      char *str = strdup(value);
+      char *val = strtok(str, " \t,+");
+    #endif // WINDOWS
+    while (val != nullptr) {
       enum TransformationModel model;
       if (FromString(val, model)) {
         _TransformationModel.push_back(model);
@@ -1175,7 +1183,11 @@ bool GenericRegistrationFilter::Set(const char *name, const char *value, int lev
         free(str);
         return false;
       }
-      val = strtok(NULL, " \t,+");
+      #ifdef WINDOWS
+        val = strtok_s(nullptr, " \t,+", &nxt);
+      #else // WINDOWS
+        val = strtok(nullptr, " \t,+");
+      #endif // WINDOWS
     }
     free(str);
     return true;
@@ -1228,7 +1240,11 @@ bool GenericRegistrationFilter::Set(const char *name, const char *value, int lev
   // Image resolution
   } else if (strncmp(name, "Resolution", 10) == 0) {
     double dx = .0, dy = .0, dz = .0;
-    int n = sscanf(value, "%lf %lf %lf", &dx, &dy, &dz);
+    #ifdef WINDOWS
+      int n = sscanf_s(value, "%lf %lf %lf", &dx, &dy, &dz);
+    #else
+      int n = sscanf(value, "%lf %lf %lf", &dx, &dy, &dz);
+    #endif
     if (n == 0) return false;
     if (n == 1) dz = dy = dx;
     n = 0; // used for image index next
@@ -1524,7 +1540,7 @@ ParameterList GenericRegistrationFilter::Parameter(int level) const
     Insert(params, "Downsample images with padding",        _DownsampleWithPadding);
     Insert(params, "Crop/pad images",                       _CropPadImages);
     if (_CropPadFFD != -1) {
-      Insert(params, "Crop/pad FFD lattice", static_cast<bool>(_CropPadFFD));
+      Insert(params, "Crop/pad FFD lattice", _CropPadFFD != 0 ? true : false);
     }
     Insert(params, "Adaptive surface remeshing", _AdaptiveRemeshing);
     if (!_EnergyFormula.empty()) Insert(params, "Energy function", _EnergyFormula);
@@ -2194,7 +2210,7 @@ void GenericRegistrationFilter::Run()
   MIRTK_DEBUG_TIMING(1, "initialization of registration");
 
   // For each transformation model (usually increasing number of DoFs)...
-  Iteration model(0, _TransformationModel.size());
+  Iteration model(0, static_cast<int>(_TransformationModel.size()));
   while (!model.End()) {
     _CurrentModel = _TransformationModel[model.Iter()];
 
@@ -2267,7 +2283,7 @@ void GenericRegistrationFilter::InitializePyramid()
   // Compute centers of foreground mass (if needed)
   bool centering = false;
   for (int l = 1; !centering && l <= _NumberOfLevels; ++l) {
-    centering = _Centering[l];
+    centering = (_Centering[l] != 0 ? true : false);
   }
   if (centering) {
     centering = (NumberOfImages() > 0);
@@ -3499,7 +3515,7 @@ void GenericRegistrationFilter::SetInputOf(RegisteredImage *output, const struct
       _DisplacementInfo.resize(_DisplacementInfo.size() + 1);
       i = _DisplacementInfo.end() - 1;
       i->_InputTime      = t;
-      i->_DispIndex      = _DisplacementField.size();
+      i->_DispIndex      = static_cast<int>(_DisplacementField.size());
       i->_Domain         = domain;
       i->_Transformation = output->Transformation();
       _DisplacementField.push_back(new DisplacementImageType(domain, 3));
@@ -3582,7 +3598,7 @@ RegisteredPointSet *GenericRegistrationFilter::OutputPointSet(int n, double t, T
         _DisplacementInfo.resize(_DisplacementInfo.size() + 1);
         i = _DisplacementInfo.end() - 1;
         i->_InputTime      = output->InputTime();
-        i->_DispIndex      = _DisplacementField.size();
+        i->_DispIndex      = static_cast<int>(_DisplacementField.size());
         i->_Domain         = output->Domain();
         i->_Transformation = output->Transformation();
         _DisplacementField.push_back(new DisplacementImageType(output->Domain(), 3));

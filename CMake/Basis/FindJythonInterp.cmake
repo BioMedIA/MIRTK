@@ -1,6 +1,6 @@
 # ============================================================================
 # Copyright (c) 2011-2012 University of Pennsylvania
-# Copyright (c) 2013-2014 Andreas Schuh
+# Copyright (c) 2013-2016 Andreas Schuh
 # All rights reserved.
 #
 # See COPYING file for license information or visit
@@ -14,7 +14,7 @@
 # @par Output variables:
 # <table border="0">
 #   <tr>
-#     @tp @b JythonInterp_FOUND @endtp
+#     @tp @b JYTHONINTERP_FOUND @endtp
 #     <td>Whether the Jython executable was found.</td>
 #   </tr>
 #   <tr>
@@ -42,10 +42,34 @@
 # @ingroup CMakeFindModules
 ##############################################################################
 
-# find jython executable
-find_program (JYTHON_EXECUTABLE NAMES jython)
+# ROOT
+if (JYTHON_ROOT)
+  set(_JythonInterp_ROOT ${JYTHON_ROOT})
+else ()
+  file(TO_CMAKE_PATH "$ENV{JYTHON_ROOT}" _JythonInterp_ROOT)
+endif ()
 
-# determine jython version string
+# HINTS
+set(_JythonInterp_HINTS)
+if (_JythonInterp_ROOT)
+  list(APPEND _JythonInterp_HINTS "${_JythonInterp_ROOT}/bin")
+endif ()
+
+# PATHS
+set(_JythonInterp_PATHS
+  /opt/local/bin
+  /usr/local/bin
+  /usr/bin
+)
+
+# find jython executable
+find_program(JYTHON_EXECUTABLE
+  NAMES jython
+  HINTS ${_JythonInterp_HINTS}
+  PATHS ${_JythonInterp_PATHS}
+)
+
+# determine jython version
 if (JYTHON_EXECUTABLE)
   execute_process (COMMAND "${JYTHON_EXECUTABLE}" -c "import sys; sys.stdout.write(';'.join([str(x) for x in sys.version_info[:3]]))"
                    OUTPUT_VARIABLE _JYTHON_VERSION
@@ -86,19 +110,17 @@ if (JYTHON_EXECUTABLE)
   unset (_JYTHON_VERSION_RESULT)
 endif ()
 
-# handle the QUIETLY and REQUIRED arguments and set Jython_FOUND to TRUE if
-# all listed variables are TRUE
-include (FindPackageHandleStandardArgs)
-FIND_PACKAGE_HANDLE_STANDARD_ARGS (JythonInterp REQUIRED_VARS JYTHON_EXECUTABLE VERSION_VAR JYTHON_VERSION_STRING)
+# handle QUIET, REQUIRED, and [EXACT] VERSION arguments and set JYTHONINTERP_FOUND
+include(FindPackageHandleStandardArgs)
+find_package_handle_standard_args(
+  JythonInterp
+  REQUIRED_VARS
+    JYTHON_EXECUTABLE
+  VERSION_VAR
+    JYTHON_VERSION_STRING
+)
 
-if (DEFINED JYTHONINTERP_FOUND)
-  set (JythonInterp_FOUND "${JYTHONINTERP_FOUND}")
-elseif (NOT DEFINED JythonInterp_FOUND)
-  set (JythonInterp_FOUND FALSE)
-endif ()
-
-if (JYTHON_EXECUTABLE)
-  string (REGEX REPLACE "/jython[^/]*$" "" JythonInterp_DIR "${JYTHON_EXECUTABLE}")
-  string (REGEX REPLACE "/[bB]in$"      "" JythonInterp_DIR "${JythonInterp_DIR}")
-endif ()
-mark_as_advanced (JYTHON_EXECUTABLE)
+# unset local auxiliary variables
+unset(_JythonInterp_ROOT)
+unset(_JythonInterp_HINTS)
+unset(_JythonInterp_PATHS)

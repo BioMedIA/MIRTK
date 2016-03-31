@@ -27,12 +27,14 @@
 #include <mirtkHomogeneousTransformation.h>
 #include <mirtkGenericRegistrationFilter.h>
 
+#include <mirtkCommonExport.h>
+
 
 namespace mirtk {
 
 
 // Global "debug_time" flag (cf. mirtkProfiling.cc)
-extern int debug_time;
+MIRTK_Common_EXPORT extern int debug_time;
 
 
 // =============================================================================

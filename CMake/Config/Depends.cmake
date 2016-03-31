@@ -54,11 +54,15 @@
 
 # By default, require these optional dependencies such that the library
 # features which depend on these external libraries are available
-set(WITH_ZLIB_DEFAULT ON)
+if (UNIX)
+  set(WITH_ZLIB_DEFAULT ON)
+endif ()
 
 # By default, use included Eigen header files
 if (Eigen3_INCLUDE_DIR)
   set(Eigen3_DIR "${Eigen3_INCLUDE_DIR}")
+elseif (EIGEN3_INCLUDE_DIR)
+  set(Eigen3_DIR "${EIGEN3_INCLUDE_DIR}")
 endif ()
 if (NOT Eigen3_DIR AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/Eigen/signature_of_eigen3_matrix_library")
   set(Eigen3_DIR "${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/Eigen")
@@ -99,10 +103,17 @@ if (BUILD_APPLICATIONS)
       REQUIRED
     )
     if (WITH_FLANN)
-      basis_find_package(FLANN)
+      basis_find_package(FLANN COMPONENTS cpp_static)
     endif ()
     if (WITH_MATLAB)
       basis_find_package(MATLAB{mwmclmcrrt})
     endif ()
+  elseif (WITH_VTK AND MODULE_Image)
+    basis_find_package(
+      "VTK-7|6{
+        vtkCommonCore,
+        vtkCommonDataModel
+      }"
+    )
   endif ()
 endif ()

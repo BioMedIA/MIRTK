@@ -18,9 +18,8 @@
 
 #include <mirtkEuclideanDistanceTransform.h>
 
-#include <cmath>
-#include <cstdlib>
-#include <cstdio>
+#include <mirtkMath.h>
+#include <mirtkStream.h>
 
 #define EDT_MAX_IMAGE_DIMENSION 26754
 #define EDT_MAX_DISTANCE_SQUARED 2147329548
@@ -68,6 +67,8 @@ EuclideanDistanceTransform<VoxelType>
 template <class VoxelType>
 void EuclideanDistanceTransform<VoxelType>::edtComputeEDT_2D(char *img, long *edt, long nX, long nY)
 {
+  const long max_dist2 = long(EDT_MAX_DISTANCE_SQUARED);
+
   char *c;
   long i, j, nXY, d, *p, *q, *f;
 
@@ -92,31 +93,31 @@ void EuclideanDistanceTransform<VoxelType>::edtComputeEDT_2D(char *img, long *ed
   for (j = 0; j < nY; j++) {
     /* forward pass */
     p = edt + j * nX;
-    d = EDT_MAX_DISTANCE_SQUARED;
+    d = max_dist2;
     for (i = 0; i < nX; i++, p++) {
       /* set d = 0 when we encounter a feature voxel */
       if (*p) {
         *p = d = 0;
       }
       /* increment distance ... */
-      else if (d != EDT_MAX_DISTANCE_SQUARED) {
+      else if (d != max_dist2) {
         *p = ++d;
       }
       /* ... unless we haven't encountered a feature voxel yet */
       else {
-        *p = EDT_MAX_DISTANCE_SQUARED;
+        *p = max_dist2;
       }
     }
     /* reverse pass */
-    if (*(--p) != EDT_MAX_DISTANCE_SQUARED) {
-      d = EDT_MAX_DISTANCE_SQUARED;
+    if (*(--p) != max_dist2) {
+      d = max_dist2;
       for (i = nX - 1; i >= 0; i--, p--) {
         /* set d = 0 when we encounter a feature voxel */
         if (*p == 0) {
           d = 0;
         }
         /* increment distance after encountering a feature voxel */
-        else if (d != EDT_MAX_DISTANCE_SQUARED) {
+        else if (d != max_dist2) {
           /* compare forward and reverse distances */
           if (++d < *p) {
             *p = d;
@@ -221,6 +222,8 @@ void EuclideanDistanceTransform<VoxelType>::edtComputeEDT_3D(char *img, long *ed
 template <class VoxelType>
 int EuclideanDistanceTransform<VoxelType>::edtVornoiEDT(long *f, long n)
 {
+  const VoxelType max_dist2 = VoxelType(EDT_MAX_DISTANCE_SQUARED);
+
   long i, l, a, b, c, v, n_S, lhs, rhs;
   static int firstCall = 1;
   static long *g, *h, size_gh = 0;
@@ -259,7 +262,7 @@ int EuclideanDistanceTransform<VoxelType>::edtVornoiEDT(long *f, long n)
   /* note we use 0 indexing in this program whereas paper uses 1 indexing */
   for (i = 0, l = -1; i < n; i++) {
     /* line 4 */
-    if (f[i] != EDT_MAX_DISTANCE_SQUARED) {
+    if (f[i] != max_dist2) {
       /* line 5 */
       if (l < 1) {
         /* line 6 */
@@ -329,6 +332,8 @@ int EuclideanDistanceTransform<VoxelType>::edtVornoiEDT(long *f, long n)
 template <class VoxelType>
 int EuclideanDistanceTransform<VoxelType>::edtVornoiEDT_anisotropic(VoxelType *f, long n, double w)
 {
+  const VoxelType max_dist2 = VoxelType(EDT_MAX_DISTANCE_SQUARED_ANISOTROPIC);
+
   long i, l, n_S;
   float a, b, c, v, lhs, rhs;
   static int firstCall = 1;
@@ -369,12 +374,12 @@ int EuclideanDistanceTransform<VoxelType>::edtVornoiEDT_anisotropic(VoxelType *f
   /* note we use 0 indexing in this program whereas paper uses 1 indexing */
   for (i = 0, l = -1; i < n; i++) {
     /* line 4 */
-    if (f[i] != EDT_MAX_DISTANCE_SQUARED_ANISOTROPIC) {
+    if (f[i] != max_dist2) {
       /* line 5 */
       if (l < 1) {
         /* line 6 */
-        g[++l] = f[i];
-        h[l] = w * i;
+        g[++l] = static_cast<float>(f[i]);
+        h[l] = static_cast<float>(w * i);
       }
       /* line 7 */
       else {
@@ -383,10 +388,10 @@ int EuclideanDistanceTransform<VoxelType>::edtVornoiEDT_anisotropic(VoxelType *f
           /* compute removeEDT() in line 8 */
           v = h[l];
           a = v - h[l-1];
-          b = w * i - v;
+          b = static_cast<float>(w * i) - v;
           c = a + b;
           /* compute Eq. 2 */
-          if ((c*g[l] - b*g[l-1] - a*f[i] - a*b*c) > 0) {
+          if ((c*g[l] - b*g[l-1] - a*static_cast<float>(f[i]) - a*b*c) > .0f) {
             /* line 9 */
             l--;
           } else {
@@ -394,8 +399,8 @@ int EuclideanDistanceTransform<VoxelType>::edtVornoiEDT_anisotropic(VoxelType *f
           }
         }
         /* line 11 */
-        g[++l] = f[i];
-        h[l] = w * i;
+        g[++l] = static_cast<float>(f[i]);
+        h[l] = static_cast<float>(w * i);
       }
     }
   }
@@ -411,10 +416,10 @@ int EuclideanDistanceTransform<VoxelType>::edtVornoiEDT_anisotropic(VoxelType *f
     /* we reduce number of arithmetic operations by taking advantage of */
     /* similarities in successive computations instead of treating them as */
     /* independent ones */
-    a = h[l] - w * i;
+    a = h[l] - static_cast<float>(w * i);
     lhs = g[l] + a * a;
     while (l < n_S - 1) {
-      a = h[l+1] - w * i;
+      a = h[l+1] - static_cast<float>(w * i);
       rhs = g[l+1] + a * a;
       if (lhs > rhs) {
         /* line 21 */
@@ -427,7 +432,7 @@ int EuclideanDistanceTransform<VoxelType>::edtVornoiEDT_anisotropic(VoxelType *f
     /* line 23 */
     /* we put distance into the 1D array that was passed; */
     /* must copy into EDT in calling procedure */
-    f[i] = lhs;
+    f[i] = static_cast<VoxelType>(lhs);
   }
   /* line 25 */
   /* return 1 if we queried diagram, 0 if we returned because n_S = 0 */
@@ -443,6 +448,8 @@ template <class VoxelType>
 void EuclideanDistanceTransform<VoxelType>
 ::edtComputeEDT_2D_anisotropic(const VoxelType *img, VoxelType *edt, long nX, long nY, double wX, double wY)
 {
+  const VoxelType max_dist2 = VoxelType(EDT_MAX_DISTANCE_SQUARED_ANISOTROPIC);
+
   const VoxelType *c;
   VoxelType d, *p, *q, *f;
 
@@ -465,28 +472,28 @@ void EuclideanDistanceTransform<VoxelType>
   for (long j = 0; j < nY; j++) {
     /* forward pass */
     p = edt + j * nX;
-    d = EDT_MAX_DISTANCE_SQUARED_ANISOTROPIC;
+    d = max_dist2;
     for (long i = 0; i < nX; i++, p++) {
       /* set d = 0 when we encounter a feature voxel */
       if (*p) {
         *p = d = 0;
       /* increment distance ... */
-      } else if (d != EDT_MAX_DISTANCE_SQUARED_ANISOTROPIC) {
+      } else if (d != max_dist2) {
         *p = ++d;
       /* ... unless we haven't encountered a feature voxel yet */
       } else {
-        *p = EDT_MAX_DISTANCE_SQUARED_ANISOTROPIC;
+        *p = max_dist2;
       }
     }
     /* reverse pass */
-    if (*(--p) != EDT_MAX_DISTANCE_SQUARED_ANISOTROPIC) {
-      d = EDT_MAX_DISTANCE_SQUARED_ANISOTROPIC;
+    if (*(--p) != max_dist2) {
+      d = max_dist2;
       for (long i = nX - 1; i >= 0; i--, p--) {
         /* set d = 0 when we encounter a feature voxel */
         if (*p == 0) {
           d = 0;
         /* increment distance after encountering a feature voxel */
-        } else if (d != EDT_MAX_DISTANCE_SQUARED_ANISOTROPIC) {
+        } else if (d != max_dist2) {
           /* compare forward and reverse distances */
           if (++d < *p) {
             *p = d;
@@ -494,7 +501,7 @@ void EuclideanDistanceTransform<VoxelType>
         }
         /* square distance */
         /* (we use squared distance in rest of algorithm) */
-        *p *= wX;
+        *p *= static_cast<VoxelType>(wX);
         *p *= *p;
       }
     }
@@ -583,7 +590,7 @@ void EuclideanDistanceTransform<VoxelType>
       p = edt + i;
       q = f;
       for (k = 0; k < nZ; k++, p += nXY, q++) {
-	*p = *q;
+        *p = *q;
       }
     }
   }
@@ -646,7 +653,7 @@ void EuclideanDistanceTransform<VoxelType>::Radial()
 
   if (this->_distanceTransformMode == DT_3D) {
     // Calculate 3D Radial transform
-	  min = EDT_MAX_DISTANCE_SQUARED;
+	  min = double(EDT_MAX_DISTANCE_SQUARED);
 	  for(x=0;x<nx;x++){
 		  for(y=0;y<ny;y++){
 			  for(z=0;z<nz;z++){
@@ -665,7 +672,7 @@ void EuclideanDistanceTransform<VoxelType>::Radial()
   } else {
 	  // Calculate 2D Radial transform	  
 	  for(z=0;z<nz;z++){
-		  min = EDT_MAX_DISTANCE_SQUARED;
+		  min = double(EDT_MAX_DISTANCE_SQUARED);
 		  for(y=0;y<ny;y++){
 			  for(x=0;x<nz;x++){
 				if(this->_Input->GetAsDouble(x,y,z) < min)
@@ -698,7 +705,7 @@ void EuclideanDistanceTransform<VoxelType>::TRadial()
 
   if (this->_distanceTransformMode == DT_3D) {
     // Calculate 3D Radial transform
-	  min = EDT_MAX_DISTANCE_SQUARED;
+	  min = double(EDT_MAX_DISTANCE_SQUARED);
 	  for(x=0;x<nx;x++){
 		  for(y=0;y<ny;y++){
 			  for(z=0;z<nz;z++){
@@ -718,7 +725,7 @@ void EuclideanDistanceTransform<VoxelType>::TRadial()
   } else {
 	  // Calculate 2D Radial transform	  
 	  for(z=0;z<nz;z++){
-		  min = EDT_MAX_DISTANCE_SQUARED;
+		  min = double(EDT_MAX_DISTANCE_SQUARED);
 		  for(y=0;y<ny;y++){
 			  for(x=0;x<nz;x++){
 				if(this->_Input->GetAsDouble(x,y,z) < min)

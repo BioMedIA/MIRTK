@@ -124,7 +124,7 @@ template <class TImage>
 void GenericCubicBSplineInterpolateImageFunction<TImage>
 ::BoundingInterval(double x, int &i, int &I) const
 {
-  i = static_cast<int>(floor(x)), I = i + 3;
+  i = ifloor(x), I = i + 3;
 }
 
 // =============================================================================
@@ -137,23 +137,23 @@ inline typename GenericCubicBSplineInterpolateImageFunction<TImage>::VoxelType
 GenericCubicBSplineInterpolateImageFunction<TImage>
 ::Get2D(double x, double y, double z, double t) const
 {
-  int i = static_cast<int>(floor(x));
-  int j = static_cast<int>(floor(y));
-  int k = static_cast<int>(round(z));
-  int l = static_cast<int>(round(t));
+  int i = ifloor(x);
+  int j = ifloor(y);
+  int k = iround(z);
+  int l = iround(t);
 
   if (k < 0 || k >= _Coefficient.Z() ||
       l < 0 || l >= _Coefficient.T()) {
     return voxel_cast<VoxelType>(this->DefaultValue());
   }
 
-  Real wx[4]; Kernel::Weights(x - i, wx);
-  Real wy[4]; Kernel::Weights(y - j, wy);
+  Real wx[4]; Kernel::Weights(Real(x - i), wx);
+  Real wy[4]; Kernel::Weights(Real(y - j), wy);
 
   --i, --j;
 
   RealType val = voxel_cast<RealType>(0);
-  Real     nrm = .0, w;
+  Real     nrm(0), w;
 
   int ia, jb;
   for (int b = 0; b <= 3; ++b) {
@@ -182,23 +182,23 @@ inline typename GenericCubicBSplineInterpolateImageFunction<TImage>::VoxelType
 GenericCubicBSplineInterpolateImageFunction<TImage>
 ::GetWithPadding2D(double x, double y, double z, double t) const
 {
-  int i = static_cast<int>(floor(x));
-  int j = static_cast<int>(floor(y));
-  int k = static_cast<int>(round(z));
-  int l = static_cast<int>(round(t));
+  int i = ifloor(x);
+  int j = ifloor(y);
+  int k = iround(z);
+  int l = iround(t);
 
   if (k < 0 || k >= _Coefficient.Z() ||
       l < 0 || l >= _Coefficient.T()) {
     return voxel_cast<VoxelType>(this->DefaultValue());
   }
 
-  Real wx[4]; Kernel::Weights(x - i, wx);
-  Real wy[4]; Kernel::Weights(y - j, wy);
+  Real wx[4]; Kernel::Weights(Real(x - i), wx);
+  Real wy[4]; Kernel::Weights(Real(y - j), wy);
 
   --i, --j;
 
   RealType val = voxel_cast<RealType>(0);
-  Real     fgw = .0, bgw = .0, w;
+  Real     fgw(0), bgw(0), w;
 
   int ia, jb;
   for (int b = 0; b <= 3; ++b) {
@@ -230,13 +230,13 @@ GenericCubicBSplineInterpolateImageFunction<TImage>
   typedef typename TCoefficient::VoxelType VoxelType;
   typedef typename TCoefficient::RealType  RealType;
 
-  int i = static_cast<int>(floor(x));
-  int j = static_cast<int>(floor(y));
-  int k = static_cast<int>(round(z));
-  int l = static_cast<int>(round(t));
+  int i = ifloor(x);
+  int j = ifloor(y);
+  int k = iround(z);
+  int l = iround(t);
 
-  Real wx[4]; Kernel::Weights(x - i, wx);
-  Real wy[4]; Kernel::Weights(y - j, wy);
+  Real wx[4]; Kernel::Weights(Real(x - i), wx);
+  Real wy[4]; Kernel::Weights(Real(y - j), wy);
 
   --i, --j;
 
@@ -245,10 +245,10 @@ GenericCubicBSplineInterpolateImageFunction<TImage>
   int jb;
   for (int b = 0; b <= 3; ++b) {
     jb   = j + b;
-    val += wx[0] * wy[b] * coeff->Get(i,   jb, k, l);
-    val += wx[1] * wy[b] * coeff->Get(i+1, jb, k, l);
-    val += wx[2] * wy[b] * coeff->Get(i+2, jb, k, l);
-    val += wx[3] * wy[b] * coeff->Get(i+3, jb, k, l);
+    val += wx[0] * wy[b] * voxel_cast<RealType>(coeff->Get(i,   jb, k, l));
+    val += wx[1] * wy[b] * voxel_cast<RealType>(coeff->Get(i+1, jb, k, l));
+    val += wx[2] * wy[b] * voxel_cast<RealType>(coeff->Get(i+2, jb, k, l));
+    val += wx[3] * wy[b] * voxel_cast<RealType>(coeff->Get(i+3, jb, k, l));
   }
 
   return voxel_cast<VoxelType>(val);
@@ -264,18 +264,18 @@ GenericCubicBSplineInterpolateImageFunction<TImage>
   typedef typename TCoefficient::VoxelType VoxelType;
   typedef typename TCoefficient::RealType  RealType;
 
-  int i = static_cast<int>(floor(x));
-  int j = static_cast<int>(floor(y));
-  int k = static_cast<int>(round(z));
-  int l = static_cast<int>(round(t));
+  int i = ifloor(x);
+  int j = ifloor(y);
+  int k = iround(z);
+  int l = iround(t);
 
-  Real wx[4]; Kernel::Weights(x - i, wx);
-  Real wy[4]; Kernel::Weights(y - j, wy);
+  Real wx[4]; Kernel::Weights(Real(x - i), wx);
+  Real wy[4]; Kernel::Weights(Real(y - j), wy);
 
   --i, --j;
 
   RealType val = voxel_cast<RealType>(0);
-  Real     fgw = .0, bgw = .0, w;
+  Real     fgw(0), bgw(0), w;
 
   int ia, jb;
   for (int b = 0; b <= 3; ++b) {
@@ -284,7 +284,7 @@ GenericCubicBSplineInterpolateImageFunction<TImage>
       ia = i + a;
       w  = wx[0] * wy[b];
       if (input->IsForeground(ia, jb, k, l)) {
-        val += w * coeff->Get(ia, jb, k, l);
+        val += w * voxel_cast<RealType>(coeff->Get(ia, jb, k, l));
         fgw += w;
       } else {
         bgw += w;
@@ -304,23 +304,23 @@ inline typename GenericCubicBSplineInterpolateImageFunction<TImage>::VoxelType
 GenericCubicBSplineInterpolateImageFunction<TImage>
 ::Get3D(double x, double y, double z, double t) const
 {
-  int i = static_cast<int>(floor(x));
-  int j = static_cast<int>(floor(y));
-  int k = static_cast<int>(floor(z));
-  int l = static_cast<int>(round(t));
+  int i = ifloor(x);
+  int j = ifloor(y);
+  int k = ifloor(z);
+  int l = iround(t);
 
   if (l < 0 || l >= _Coefficient.T()) {
     return voxel_cast<VoxelType>(this->DefaultValue());
   }
 
-  Real wx[4]; Kernel::Weights(x - i, wx);
-  Real wy[4]; Kernel::Weights(y - j, wy);
-  Real wz[4]; Kernel::Weights(z - k, wz);
+  Real wx[4]; Kernel::Weights(Real(x - i), wx);
+  Real wy[4]; Kernel::Weights(Real(y - j), wy);
+  Real wz[4]; Kernel::Weights(Real(z - k), wz);
 
   --i, --j, --k;
 
   RealType val = voxel_cast<RealType>(0);
-  Real     nrm = .0, wyz, w;
+  Real     nrm(0), wyz, w;
 
   int ia, jb, kc;
   for (int c = 0; c <= 3; ++c) {
@@ -355,23 +355,23 @@ inline typename GenericCubicBSplineInterpolateImageFunction<TImage>::VoxelType
 GenericCubicBSplineInterpolateImageFunction<TImage>
 ::GetWithPadding3D(double x, double y, double z, double t) const
 {
-  int i = static_cast<int>(floor(x));
-  int j = static_cast<int>(floor(y));
-  int k = static_cast<int>(floor(z));
-  int l = static_cast<int>(round(t));
+  int i = ifloor(x);
+  int j = ifloor(y);
+  int k = ifloor(z);
+  int l = iround(t);
 
   if (l < 0 || l >= _Coefficient.T()) {
     return voxel_cast<VoxelType>(this->DefaultValue());
   }
 
-  Real wx[4]; Kernel::Weights(x - i, wx);
-  Real wy[4]; Kernel::Weights(y - j, wy);
-  Real wz[4]; Kernel::Weights(z - k, wz);
+  Real wx[4]; Kernel::Weights(Real(x - i), wx);
+  Real wy[4]; Kernel::Weights(Real(y - j), wy);
+  Real wz[4]; Kernel::Weights(Real(z - k), wz);
 
   --i, --j, --k;
 
   RealType val = voxel_cast<RealType>(0);
-  Real     fgw = .0, bgw = .0, wyz, w;
+  Real     fgw(0), bgw(0), wyz, w;
 
   int ia, jb, kc;
   for (int c = 0; c <= 3; ++c) {
@@ -407,30 +407,30 @@ GenericCubicBSplineInterpolateImageFunction<TImage>
   typedef typename TCoefficient::VoxelType VoxelType;
   typedef typename TCoefficient::RealType  RealType;
 
-  int i = static_cast<int>(floor(x));
-  int j = static_cast<int>(floor(y));
-  int k = static_cast<int>(floor(z));
-  int l = static_cast<int>(round(t));
+  int i = ifloor(x);
+  int j = ifloor(y);
+  int k = ifloor(z);
+  int l = iround(t);
 
-  Real wx[4]; Kernel::Weights(x - i, wx);
-  Real wy[4]; Kernel::Weights(y - j, wy);
-  Real wz[4]; Kernel::Weights(z - k, wz);
+  Real wx[4]; Kernel::Weights(Real(x - i), wx);
+  Real wy[4]; Kernel::Weights(Real(y - j), wy);
+  Real wz[4]; Kernel::Weights(Real(z - k), wz);
 
   --i, --j, --k;
 
   RealType val = voxel_cast<RealType>(0);
 
-  int    jb, kc;
-  double wyz;
+  int  jb, kc;
+  Real wyz;
   for (int c = 0; c <= 3; ++c) {
     kc = k + c;
     for (int b = 0; b <= 3; ++b) {
       jb   = j + b;
       wyz  = wy[b] * wz[c];
-      val += wx[0] * wyz * coeff->Get(i,   jb, kc, l);
-      val += wx[1] * wyz * coeff->Get(i+1, jb, kc, l);
-      val += wx[2] * wyz * coeff->Get(i+2, jb, kc, l);
-      val += wx[3] * wyz * coeff->Get(i+3, jb, kc, l);
+      val += wx[0] * wyz * voxel_cast<RealType>(coeff->Get(i,   jb, kc, l));
+      val += wx[1] * wyz * voxel_cast<RealType>(coeff->Get(i+1, jb, kc, l));
+      val += wx[2] * wyz * voxel_cast<RealType>(coeff->Get(i+2, jb, kc, l));
+      val += wx[3] * wyz * voxel_cast<RealType>(coeff->Get(i+3, jb, kc, l));
     }
   }
 
@@ -447,19 +447,19 @@ GenericCubicBSplineInterpolateImageFunction<TImage>
   typedef typename TCoefficient::VoxelType VoxelType;
   typedef typename TCoefficient::RealType  RealType;
 
-  int i = static_cast<int>(floor(x));
-  int j = static_cast<int>(floor(y));
-  int k = static_cast<int>(floor(z));
-  int l = static_cast<int>(round(t));
+  int i = ifloor(x);
+  int j = ifloor(y);
+  int k = ifloor(z);
+  int l = iround(t);
 
-  Real wx[4]; Kernel::Weights(x - i, wx);
-  Real wy[4]; Kernel::Weights(y - j, wy);
-  Real wz[4]; Kernel::Weights(z - k, wz);
+  Real wx[4]; Kernel::Weights(Real(x - i), wx);
+  Real wy[4]; Kernel::Weights(Real(y - j), wy);
+  Real wz[4]; Kernel::Weights(Real(z - k), wz);
 
   --i, --j, --k;
 
   RealType val = voxel_cast<RealType>(0);
-  Real     fgw = .0, bgw = .0, wyz, w;
+  Real     fgw(0), bgw(0), wyz, w;
 
   int ia, jb, kc;
   for (int c = 0; c <= 3; ++c) {
@@ -471,7 +471,7 @@ GenericCubicBSplineInterpolateImageFunction<TImage>
         ia = i + a;
         w  = wx[0] * wyz;
         if (input->IsForeground(ia, jb, kc, l)) {
-          val += w * coeff->Get(ia, jb, kc, l);
+          val += w * voxel_cast<RealType>(coeff->Get(ia, jb, kc, l));
           fgw += w;
         } else {
           bgw += w;
@@ -492,20 +492,20 @@ inline typename GenericCubicBSplineInterpolateImageFunction<TImage>::VoxelType
 GenericCubicBSplineInterpolateImageFunction<TImage>
 ::Get4D(double x, double y, double z, double t) const
 {
-  int i = static_cast<int>(floor(x));
-  int j = static_cast<int>(floor(y));
-  int k = static_cast<int>(floor(z));
-  int l = static_cast<int>(floor(t));
+  int i = ifloor(x);
+  int j = ifloor(y);
+  int k = ifloor(z);
+  int l = ifloor(t);
 
-  Real wx[4]; Kernel::Weights(x - i, wx);
-  Real wy[4]; Kernel::Weights(y - j, wy);
-  Real wz[4]; Kernel::Weights(z - k, wz);
-  Real wt[4]; Kernel::Weights(t - l, wt);
+  Real wx[4]; Kernel::Weights(Real(x - i), wx);
+  Real wy[4]; Kernel::Weights(Real(y - j), wy);
+  Real wz[4]; Kernel::Weights(Real(z - k), wz);
+  Real wt[4]; Kernel::Weights(Real(t - l), wt);
 
   --i, --j, --k, --l;
 
   RealType val = voxel_cast<RealType>(0);
-  Real     nrm = .0, wzt, wyzt, w;
+  Real     nrm(0), wzt, wyzt, w;
 
   int ia, jb, kc, ld;
   for (int d = 0; d <= 3; ++d) {
@@ -546,20 +546,20 @@ inline typename GenericCubicBSplineInterpolateImageFunction<TImage>::VoxelType
 GenericCubicBSplineInterpolateImageFunction<TImage>
 ::GetWithPadding4D(double x, double y, double z, double t) const
 {
-  int i = static_cast<int>(floor(x));
-  int j = static_cast<int>(floor(y));
-  int k = static_cast<int>(floor(z));
-  int l = static_cast<int>(floor(t));
+  int i = ifloor(x);
+  int j = ifloor(y);
+  int k = ifloor(z);
+  int l = ifloor(t);
 
-  Real wx[4]; Kernel::Weights(x - i, wx);
-  Real wy[4]; Kernel::Weights(y - j, wy);
-  Real wz[4]; Kernel::Weights(z - k, wz);
-  Real wt[4]; Kernel::Weights(t - l, wt);
+  Real wx[4]; Kernel::Weights(Real(x - i), wx);
+  Real wy[4]; Kernel::Weights(Real(y - j), wy);
+  Real wz[4]; Kernel::Weights(Real(z - k), wz);
+  Real wt[4]; Kernel::Weights(Real(t - l), wt);
 
   --i, --j, --k, --l;
 
   RealType val = voxel_cast<RealType>(0);
-  Real     fgw = .0, bgw = .0, wzt, wyzt, w;
+  Real     fgw(0), bgw(0), wzt, wyzt, w;
 
   int ia, jb, kc, ld;
   for (int d = 0; d <= 3; ++d) {
@@ -599,22 +599,22 @@ GenericCubicBSplineInterpolateImageFunction<TImage>
   typedef typename TCoefficient::VoxelType VoxelType;
   typedef typename TCoefficient::RealType  RealType;
 
-  int i = static_cast<int>(floor(x));
-  int j = static_cast<int>(floor(y));
-  int k = static_cast<int>(floor(z));
-  int l = static_cast<int>(floor(t));
+  int i = ifloor(x);
+  int j = ifloor(y);
+  int k = ifloor(z);
+  int l = ifloor(t);
 
-  Real wx[4]; Kernel::Weights(x - i, wx);
-  Real wy[4]; Kernel::Weights(y - j, wy);
-  Real wz[4]; Kernel::Weights(z - k, wz);
-  Real wt[4]; Kernel::Weights(t - l, wt);
+  Real wx[4]; Kernel::Weights(Real(x - i), wx);
+  Real wy[4]; Kernel::Weights(Real(y - j), wy);
+  Real wz[4]; Kernel::Weights(Real(z - k), wz);
+  Real wt[4]; Kernel::Weights(Real(t - l), wt);
 
   --i, --j, --k, --l;
 
   RealType val = voxel_cast<RealType>(0);
 
-  int    jb, kc, ld;
-  double wzt, wyzt;
+  int  jb, kc, ld;
+  Real wzt, wyzt;
   for (int d = 0; d <= 3; ++d) {
     ld = l + d;
     for (int c = 0; c <= 3; ++c) {
@@ -623,10 +623,10 @@ GenericCubicBSplineInterpolateImageFunction<TImage>
       for (int b = 0; b <= 3; ++b) {
         jb   = j + b;
         wyzt = wy[b] * wzt;
-        val += wx[0] * wyzt * coeff->Get(i,   jb, kc, ld);
-        val += wx[1] * wyzt * coeff->Get(i+1, jb, kc, ld);
-        val += wx[2] * wyzt * coeff->Get(i+2, jb, kc, ld);
-        val += wx[3] * wyzt * coeff->Get(i+3, jb, kc, ld);
+        val += wx[0] * wyzt * voxel_cast<RealType>(coeff->Get(i,   jb, kc, ld));
+        val += wx[1] * wyzt * voxel_cast<RealType>(coeff->Get(i+1, jb, kc, ld));
+        val += wx[2] * wyzt * voxel_cast<RealType>(coeff->Get(i+2, jb, kc, ld));
+        val += wx[3] * wyzt * voxel_cast<RealType>(coeff->Get(i+3, jb, kc, ld));
       }
     }
   }
@@ -641,20 +641,20 @@ GenericCubicBSplineInterpolateImageFunction<TImage>
 ::GetWithPadding4D(const TOtherImage *input, const TCoefficient *coeff,
                    double x, double y, double z, double t) const
 {
-  int i = static_cast<int>(floor(x));
-  int j = static_cast<int>(floor(y));
-  int k = static_cast<int>(floor(z));
-  int l = static_cast<int>(floor(t));
+  int i = ifloor(x);
+  int j = ifloor(y);
+  int k = ifloor(z);
+  int l = ifloor(t);
 
-  Real wx[4]; Kernel::Weights(x - i, wx);
-  Real wy[4]; Kernel::Weights(y - j, wy);
-  Real wz[4]; Kernel::Weights(z - k, wz);
-  Real wt[4]; Kernel::Weights(t - l, wt);
+  Real wx[4]; Kernel::Weights(Real(x - i), wx);
+  Real wy[4]; Kernel::Weights(Real(y - j), wy);
+  Real wz[4]; Kernel::Weights(Real(z - k), wz);
+  Real wt[4]; Kernel::Weights(Real(t - l), wt);
 
   --i, --j, --k, --l;
 
   RealType val = voxel_cast<RealType>(0);
-  Real     fgw = .0, bgw = .0, wzt, wyzt, w;
+  Real     fgw(0), bgw(0), wzt, wyzt, w;
 
   int ia, jb, kc, ld;
   for (int d = 0; d <= 3; ++d) {
@@ -669,7 +669,7 @@ GenericCubicBSplineInterpolateImageFunction<TImage>
           ia = i + a;
           w  = wx[0] * wyzt;
           if (input->IsForeground(ia, jb, kc, ld)) {
-            val += w * coeff->Get(ia, jb, kc, ld);
+            val += w * voxel_cast<RealType>(coeff->Get(ia, jb, kc, ld));
             fgw += w;
           } else {
             bgw += w;
@@ -744,13 +744,13 @@ inline typename GenericCubicBSplineInterpolateImageFunction<TImage>::VoxelType
 GenericCubicBSplineInterpolateImageFunction<TImage>
 ::GetInside2D(double x, double y, double z, double t) const
 {
-  int i = static_cast<int>(floor(x));
-  int j = static_cast<int>(floor(y));
-  int k = static_cast<int>(round(z));
-  int l = static_cast<int>(round(t));
+  int i = ifloor(x);
+  int j = ifloor(y);
+  int k = iround(z);
+  int l = iround(t);
 
-  Real wx[4]; Kernel::Weights(x - i, wx);
-  Real wy[4]; Kernel::Weights(y - j, wy);
+  Real wx[4]; Kernel::Weights(Real(x - i), wx);
+  Real wy[4]; Kernel::Weights(Real(y - j), wy);
 
   --i, --j;
 
@@ -758,10 +758,10 @@ GenericCubicBSplineInterpolateImageFunction<TImage>
   const RealType *coeff = _Coefficient.Data(i, j, k, l);
 
   for (int b = 0; b <= 3; ++b, coeff += _s2) {
-    val += wx[0] * wy[b] * (*coeff++);
-    val += wx[1] * wy[b] * (*coeff++);
-    val += wx[2] * wy[b] * (*coeff++);
-    val += wx[3] * wy[b] * (*coeff++);
+    val += wx[0] * wy[b] * (*coeff), ++coeff;
+    val += wx[1] * wy[b] * (*coeff), ++coeff;
+    val += wx[2] * wy[b] * (*coeff), ++coeff;
+    val += wx[3] * wy[b] * (*coeff), ++coeff;
   }
 
   return voxel_cast<VoxelType>(val);
@@ -773,14 +773,14 @@ inline typename GenericCubicBSplineInterpolateImageFunction<TImage>::VoxelType
 GenericCubicBSplineInterpolateImageFunction<TImage>
 ::GetInside3D(double x, double y, double z, double t) const
 {
-  int i = static_cast<int>(floor(x));
-  int j = static_cast<int>(floor(y));
-  int k = static_cast<int>(floor(z));
-  int l = static_cast<int>(round(t));
+  int i = ifloor(x);
+  int j = ifloor(y);
+  int k = ifloor(z);
+  int l = iround(t);
 
-  Real wx[4]; Kernel::Weights(x - i, wx);
-  Real wy[4]; Kernel::Weights(y - j, wy);
-  Real wz[4]; Kernel::Weights(z - k, wz);
+  Real wx[4]; Kernel::Weights(Real(x - i), wx);
+  Real wy[4]; Kernel::Weights(Real(y - j), wy);
+  Real wz[4]; Kernel::Weights(Real(z - k), wz);
 
   --i, --j, --k;
 
@@ -791,10 +791,10 @@ GenericCubicBSplineInterpolateImageFunction<TImage>
   for (int c = 0; c <= 3; ++c, coeff += _s3) {
     for (int b = 0; b <= 3; ++b, coeff += _s2) {
       wyz  = wy[b] * wz[c];
-      val += wx[0] * wyz * (*coeff++);
-      val += wx[1] * wyz * (*coeff++);
-      val += wx[2] * wyz * (*coeff++);
-      val += wx[3] * wyz * (*coeff++);
+      val += wx[0] * wyz * (*coeff), ++coeff;
+      val += wx[1] * wyz * (*coeff), ++coeff;
+      val += wx[2] * wyz * (*coeff), ++coeff;
+      val += wx[3] * wyz * (*coeff), ++coeff;
     }
   }
 
@@ -807,15 +807,15 @@ inline typename GenericCubicBSplineInterpolateImageFunction<TImage>::VoxelType
 GenericCubicBSplineInterpolateImageFunction<TImage>
 ::GetInside4D(double x, double y, double z, double t) const
 {
-  int i = static_cast<int>(floor(x));
-  int j = static_cast<int>(floor(y));
-  int k = static_cast<int>(floor(z));
-  int l = static_cast<int>(floor(t));
+  int i = ifloor(x);
+  int j = ifloor(y);
+  int k = ifloor(z);
+  int l = ifloor(t);
 
-  Real wx[4]; Kernel::Weights(x - i, wx);
-  Real wy[4]; Kernel::Weights(y - j, wy);
-  Real wz[4]; Kernel::Weights(z - k, wz);
-  Real wt[4]; Kernel::Weights(t - l, wt);
+  Real wx[4]; Kernel::Weights(Real(x - i), wx);
+  Real wy[4]; Kernel::Weights(Real(y - j), wy);
+  Real wz[4]; Kernel::Weights(Real(z - k), wz);
+  Real wt[4]; Kernel::Weights(Real(t - l), wt);
 
   --i, --j, --k, --l;
 
@@ -828,10 +828,10 @@ GenericCubicBSplineInterpolateImageFunction<TImage>
       wzt = wz[c] * wt[d];
       for (int b = 0; b <= 3; ++b, coeff += _s2) {
         wyzt = wy[b] * wzt;
-        val += wx[0] * wyzt * (*coeff++);
-        val += wx[1] * wyzt * (*coeff++);
-        val += wx[2] * wyzt * (*coeff++);
-        val += wx[3] * wyzt * (*coeff++);
+        val += wx[0] * wyzt * (*coeff), ++coeff;
+        val += wx[1] * wyzt * (*coeff), ++coeff;
+        val += wx[2] * wyzt * (*coeff), ++coeff;
+        val += wx[3] * wyzt * (*coeff), ++coeff;
       }
     }
   }
@@ -860,7 +860,7 @@ GenericCubicBSplineInterpolateImageFunction<TImage>
 ::GetOutside(double x, double y, double z, double t) const
 {
   if (_InfiniteCoefficient) {
-    return Get(_InfiniteCoefficient, x, y, z, t);
+    return voxel_cast<VoxelType>(Get(_InfiniteCoefficient, x, y, z, t));
   } else {
     return Get(x, y, z, t);
   }
@@ -873,9 +873,9 @@ GenericCubicBSplineInterpolateImageFunction<TImage>
 ::GetWithPaddingInside(double x, double y, double z, double t) const
 {
   switch (this->NumberOfDimensions()) {
-    case 3:  return GetWithPadding3D(this->Input(), &_Coefficient, x, y, z, t);
-    case 2:  return GetWithPadding2D(this->Input(), &_Coefficient, x, y, z, t);
-    default: return GetWithPadding4D(this->Input(), &_Coefficient, x, y, z, t);
+    case 3:  return voxel_cast<VoxelType>(GetWithPadding3D(this->Input(), &_Coefficient, x, y, z, t));
+    case 2:  return voxel_cast<VoxelType>(GetWithPadding2D(this->Input(), &_Coefficient, x, y, z, t));
+    default: return voxel_cast<VoxelType>(GetWithPadding4D(this->Input(), &_Coefficient, x, y, z, t));
   }
 }
 
@@ -886,7 +886,7 @@ GenericCubicBSplineInterpolateImageFunction<TImage>
 ::GetWithPaddingOutside(double x, double y, double z, double t) const
 {
   if (this->Extrapolator() && _InfiniteCoefficient) {
-    return GetWithPadding(this->Extrapolator(), _InfiniteCoefficient, x, y, z, t);
+    return voxel_cast<VoxelType>(GetWithPadding(this->Extrapolator(), _InfiniteCoefficient, x, y, z, t));
   } else {
     return GetWithPadding(x, y, z, t);
   }

@@ -86,8 +86,12 @@ set(DEPENDS
   ${VTK_LIBRARIES}
 )
 
+if (TARGET TBB::tbb)
+  list(APPEND DEPENDS TBB::tbb)
+endif ()
+
 if (FLANN_FOUND)
-  list(APPEND DEPENDS ${FLANN_LIBRARY})
+  list(APPEND DEPENDS ${FLANN_CPP_LIBRARY})
 endif ()
 
 mirtk_add_library()

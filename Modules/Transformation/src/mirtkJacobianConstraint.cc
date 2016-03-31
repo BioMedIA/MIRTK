@@ -25,12 +25,14 @@
 #include <mirtkFreeFormTransformation.h>
 #include <mirtkMultiLevelTransformation.h>
 
+#include <mirtkCommonExport.h> 
+
 
 namespace mirtk {
 
 
 // global "debug" flag (cf. mirtkOptions.cc)
-extern int debug;
+MIRTK_Common_EXPORT extern int debug;
 
 
 // =============================================================================

@@ -187,10 +187,10 @@ public:
         if (sum > 0) {
           output->PutAsDouble(i, j, k, l, val / sum);
         } else {
-          output->Put(i, j, k, l, _PaddingValue);
+          output->PutAsDouble(i, j, k, l, _PaddingValue);
         }
       } else {
-        output->Put(i, j, k, l, _PaddingValue);
+        output->PutAsDouble(i, j, k, l, _PaddingValue);
       }
     }
   }

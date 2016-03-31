@@ -81,7 +81,7 @@ float ReadFloat(ifstream &in)
     string++;
   } while ((*string == ' ') || (*string == '\t'));
 
-  data = atof(string);
+  data = static_cast<float>(atof(string));
   delete[] s;
   return (data);
 }

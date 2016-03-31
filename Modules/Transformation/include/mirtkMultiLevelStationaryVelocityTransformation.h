@@ -517,7 +517,7 @@ void MultiLevelStationaryVelocityTransformation
   // Exponentiate velocity field
   exp.UpperIntegrationLimit(T);
   exp.NumberOfSteps(NumberOfStepsForIntervalLength(T));
-  exp.MaxScaledVelocity(MaxScaledVelocity());
+  exp.MaxScaledVelocity(static_cast<VoxelType>(MaxScaledVelocity()));
   exp.Upsample(false); // better, but too expensive
   exp.Input(0, &v);    // velocity field to be exponentiated
   exp.Input(1, &d);    // input displacement field (may be zero)

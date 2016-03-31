@@ -770,7 +770,7 @@ void MarkSmallRegions(vtkPolyData *surface, int min_region_size, const char *sca
   for (LabelIter label = label_set.begin(); label != label_set.end(); ++label) {
     MarkUnvisited(cellIds, regions, labels, *label);
     while ((cellId = NextSeed(cellIds, regions)) != -1) {
-      regionSz.push_back(GrowRegion(surface, regions, regionSz.size(), cellId));
+      regionSz.push_back(GrowRegion(surface, regions, static_cast<LabelType>(regionSz.size()), cellId));
     }
     for (size_t i = 0; i < regionSz.size(); ++i) {
       if (regionSz[i] < static_cast<vtkIdType>(min_region_size)) {

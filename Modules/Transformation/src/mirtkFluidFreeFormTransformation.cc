@@ -168,7 +168,7 @@ double FluidFreeFormTransformation
   while (lvl < NumberOfLevels()) {
     ffd = GetLocalTransformation(lvl);
     if (LocalTransformationIsActive(lvl)) {
-      error = ffd->Approximate(wx, wy, wz, t, dx, dy, dz, niter, max_error);
+      error = ffd->Approximate(wx, wy, wz, t, dx, dy, dz, no, niter, max_error);
       if (error <= max_error) break;
       ffd->Transform(no, wx, wy, wz, t);
     } else {

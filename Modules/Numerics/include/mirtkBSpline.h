@@ -24,6 +24,8 @@
 #include <mirtkMath.h>
 #include <mirtkStream.h>
 
+#include <mirtkNumericsExport.h>
+
 
 namespace mirtk {
 
@@ -99,16 +101,16 @@ public:
   static int VariableToIndex(TReal);
 
   /// Lookup table of B-spline function values
-  static TReal WeightLookupTable[LookupTableSize];
+  MIRTK_Numerics_EXPORT static TReal WeightLookupTable[LookupTableSize];
 
   /// Lookup table of B-spline basis function values
-  static TReal LookupTable[LookupTableSize][4];
+  MIRTK_Numerics_EXPORT static TReal LookupTable[LookupTableSize][4];
 
   /// Lookup table of B-spline basis function 1st derivative values
-  static TReal LookupTable_I[LookupTableSize][4];
+  MIRTK_Numerics_EXPORT static TReal LookupTable_I[LookupTableSize][4];
 
   /// Lookup table of B-spline basis function 2nd derivative values
-  static TReal LookupTable_II[LookupTableSize][4];
+  MIRTK_Numerics_EXPORT static TReal LookupTable_II[LookupTableSize][4];
 
   // ---------------------------------------------------------------------------
   // B-spline basis functions
@@ -206,18 +208,26 @@ public:
 protected:
 
   /// Flag which indicates whether the lookup tables are initialized
-  static bool _initialized;
+  MIRTK_Numerics_EXPORT static bool _initialized;
 };
 
 // -----------------------------------------------------------------------------
 // Weights often used by B-spline transformations for evaluation of derivatives
 // at lattice points only where B-spline parameter t is zero
 template <class TReal>
-const TReal BSpline<TReal>::LatticeWeights   [4] = { 1.0/6.0,  2.0/3.0, 1.0/6.0, 0.0};
+const TReal BSpline<TReal>::LatticeWeights[4] = {
+  TReal(1.0/6.0),  TReal(2.0/3.0), TReal(1.0/6.0), TReal(0.0)
+};
+
 template <class TReal>
-const TReal BSpline<TReal>::LatticeWeights_I [4] = {-0.5,      0.0,     0.5,     0.0};
+const TReal BSpline<TReal>::LatticeWeights_I [4] = {
+  TReal(-0.5), TReal(0.0), TReal(0.5), TReal(0.0)
+};
+
 template <class TReal>
-const TReal BSpline<TReal>::LatticeWeights_II[4] = { 1.0,     -2.0,     1.0,     0.0};
+const TReal BSpline<TReal>::LatticeWeights_II[4] = {
+  TReal(1.0), TReal(-2.0), TReal(1.0), TReal(0.0)
+};
 
 // -----------------------------------------------------------------------------
 typedef BSpline<double> BSplineFunction;
@@ -243,7 +253,7 @@ inline void BSpline<TReal>::Weights(TReal t, TReal value[4])
 template <class TReal>
 inline TReal BSpline<TReal>::Weight(TReal t)
 {
-  TReal value = 0.0;
+  double value = 0.0;
   t = fabs(t);
   if (t < 2.0) {
     if (t < 1.0) {
@@ -253,7 +263,7 @@ inline TReal BSpline<TReal>::Weight(TReal t)
       value = -t*t*t/6.0;
     }
   }
-  return value;
+  return static_cast<TReal>(value);
 }
 
 // -----------------------------------------------------------------------------
@@ -272,7 +282,7 @@ inline TReal BSpline<TReal>::B(int i, TReal t)
     case 1:  return B1(t);
     case 2:  return B2(t);
     case 3:  return B3(t);
-    default: return 0.0;
+    default: return TReal(0);
   }
 }
 
@@ -280,36 +290,36 @@ inline TReal BSpline<TReal>::B(int i, TReal t)
 template <class TReal>
 inline TReal BSpline<TReal>::B0(TReal t)
 {
-  return (1.0-t)*(1.0-t)*(1.0-t)/6.0;
+  return static_cast<TReal>((1.0-t)*(1.0-t)*(1.0-t)/6.0);
 }
 
 // -----------------------------------------------------------------------------
 template <class TReal>
 inline TReal BSpline<TReal>::B1(TReal t)
 {
-  return (3.0*t*t*t - 6.0*t*t + 4.0)/6.0;
+  return static_cast<TReal>((3.0*t*t*t - 6.0*t*t + 4.0)/6.0);
 }
 
 // -----------------------------------------------------------------------------
 template <class TReal>
 inline TReal BSpline<TReal>::B2(TReal t)
 {
-  return (-3.0*t*t*t + 3.0*t*t + 3.0*t + 1.0)/6.0;
+  return static_cast<TReal>((-3.0*t*t*t + 3.0*t*t + 3.0*t + 1.0)/6.0);
 }
 
 // -----------------------------------------------------------------------------
 template <class TReal>
 inline TReal BSpline<TReal>::B3(TReal t)
 {
-  return (t*t*t)/6.0;
+  return static_cast<TReal>((t*t*t)/6.0);
 }
 
 // -----------------------------------------------------------------------------
 template <class TReal>
 inline TReal BSpline<TReal>::B_I(TReal t)
 {
-  TReal y     = fabs(t);
-  TReal value = 0.0;
+  double y     = abs(t);
+  double value = 0.0;
   if (y < 2.0) {
     if (y < 1.0) {
       value = (1.5 * y - 2.0) * t;
@@ -319,7 +329,7 @@ inline TReal BSpline<TReal>::B_I(TReal t)
       if (t < 0.0) value = -value;
     }
   }
-  return value;
+  return static_cast<TReal>(value);
 }
 
 // -----------------------------------------------------------------------------
@@ -331,7 +341,7 @@ inline TReal BSpline<TReal>::B_I(int i, TReal t)
     case 1:  return B1_I(t);
     case 2:  return B2_I(t);
     case 3:  return B3_I(t);
-    default: return 0.0;
+    default: return TReal(0);
   }
 }
 
@@ -339,35 +349,35 @@ inline TReal BSpline<TReal>::B_I(int i, TReal t)
 template <class TReal>
 inline TReal BSpline<TReal>::B0_I(TReal t)
 {
-  return -(1.0-t)*(1.0-t)/2.0;
+  return static_cast<TReal>(-(1.0-t)*(1.0-t)/2.0);
 }
 
 // -----------------------------------------------------------------------------
 template <class TReal>
 inline TReal BSpline<TReal>::B1_I(TReal t)
 {
-  return (9.0*t*t - 12.0*t)/6.0;
+  return static_cast<TReal>((9.0*t*t - 12.0*t)/6.0);
 }
 
 // -----------------------------------------------------------------------------
 template <class TReal>
 inline TReal BSpline<TReal>::B2_I(TReal t)
 {
-  return (-9.0*t*t + 6.0*t + 3.0)/6.0;
+  return static_cast<TReal>((-9.0*t*t + 6.0*t + 3.0)/6.0);
 }
 
 // -----------------------------------------------------------------------------
 template <class TReal>
 inline TReal BSpline<TReal>::B3_I(TReal t)
 {
-  return (t*t)/2.0;
+  return static_cast<TReal>((t*t)/2.0);
 }
 
 // -----------------------------------------------------------------------------
 template <class TReal>
 inline TReal BSpline<TReal>::B_II(TReal t)
 {
-  TReal value = 0.0;
+  double value = 0.0;
   t = fabs(t);
   if (t < 2.0) {
     if (t < 1.0) {
@@ -376,7 +386,7 @@ inline TReal BSpline<TReal>::B_II(TReal t)
       value = -t + 2.0;
     }
   }
-  return value;
+  return static_cast<TReal>(value);
 }
 
 // -----------------------------------------------------------------------------
@@ -388,7 +398,7 @@ inline TReal BSpline<TReal>::B_II(int i, TReal t)
     case 1:  return B1_II(t);
     case 2:  return B2_II(t);
     case 3:  return B3_II(t);
-    default: return 0.0;
+    default: return TReal(0);
   }
 }
 
@@ -396,21 +406,21 @@ inline TReal BSpline<TReal>::B_II(int i, TReal t)
 template <class TReal>
 inline TReal BSpline<TReal>::B0_II(TReal t)
 {
-  return 1.0 - t;
+  return static_cast<TReal>(1.0 - t);
 }
 
 // -----------------------------------------------------------------------------
 template <class TReal>
 inline TReal BSpline<TReal>::B1_II(TReal t)
 {
-  return 3.0*t - 2.0;
+  return static_cast<TReal>(3.0*t - 2.0);
 }
 
 // -----------------------------------------------------------------------------
 template <class TReal>
 inline TReal BSpline<TReal>::B2_II(TReal t)
 {
-  return -3.0*t + 1.0;
+  return static_cast<TReal>(-3.0*t + 1.0);
 }
 
 // -----------------------------------------------------------------------------
@@ -424,14 +434,15 @@ inline TReal BSpline<TReal>::B3_II(TReal t)
 template <class TReal>
 inline TReal BSpline<TReal>::B_III(TReal t)
 {
-  TReal y     = fabs(t);
-  TReal value = 0.0;
+  TReal y = fabs(t), value;
   if (y < 2.0) {
     if (y < 1.0) {
-      value = copysign(3.0,  t);
+      value = copysign(TReal(3.0),  t);
     } else {
-      value = copysign(1.0, -t);
+      value = copysign(TReal(1.0), -t);
     }
+  } else {
+    value = TReal(0);
   }
   return value;
 }
@@ -445,7 +456,7 @@ inline TReal BSpline<TReal>::B_III(int i, TReal t)
     case 1:  return B1_III(t);
     case 2:  return B2_III(t);
     case 3:  return B3_III(t);
-    default: return 0.0;
+    default: return TReal(0);
   }
 }
 
@@ -453,28 +464,28 @@ inline TReal BSpline<TReal>::B_III(int i, TReal t)
 template <class TReal>
 inline TReal BSpline<TReal>::B0_III(TReal)
 {
-  return -1.0;
+  return TReal(-1.0);
 }
 
 // -----------------------------------------------------------------------------
 template <class TReal>
 inline TReal BSpline<TReal>::B1_III(TReal)
 {
-  return 3.0;
+  return TReal(3.0);
 }
 
 // -----------------------------------------------------------------------------
 template <class TReal>
 inline TReal BSpline<TReal>::B2_III(TReal)
 {
-  return -3.0;
+  return TReal(-3.0);
 }
 
 // -----------------------------------------------------------------------------
 template <class TReal>
 inline TReal BSpline<TReal>::B3_III(TReal)
 {
-  return 1.0;
+  return TReal(1.0);
 }
 
 // -----------------------------------------------------------------------------
@@ -486,7 +497,7 @@ inline TReal BSpline<TReal>::B_nI(int n, TReal t)
     case 1:  return B_I  (t);
     case 2:  return B_II (t);
     case 3:  return B_III(t);
-    default: return 0.0;
+    default: return TReal(0);
   }
 }
 
@@ -499,7 +510,7 @@ inline TReal BSpline<TReal>::B_nI(int i, int n, TReal t)
     case 1:  return B_I  (i, t);
     case 2:  return B_II (i, t);
     case 3:  return B_III(i, t);
-    default: return 0.0;
+    default: return TReal(0);
   }
 }
 
@@ -512,7 +523,7 @@ inline TReal BSpline<TReal>::B0_nI(int n, TReal t)
     case 1:  return B0_I  (t);
     case 2:  return B0_II (t);
     case 3:  return B0_III(t);
-    default: return 0.0;
+    default: return TReal(0);
   }
 }
 
@@ -525,7 +536,7 @@ inline TReal BSpline<TReal>::B1_nI(int n, TReal t)
     case 1:  return B1_I  (t);
     case 2:  return B1_II (t);
     case 3:  return B1_III(t);
-    default: return 0.0;
+    default: return TReal(0);
   }
 }
 
@@ -538,7 +549,7 @@ inline TReal BSpline<TReal>::B2_nI(int n, TReal t)
     case 1:  return B2_I  (t);
     case 2:  return B2_II (t);
     case 3:  return B2_III(t);
-    default: return 0.0;
+    default: return TReal(0);
   }
 }
 
@@ -551,7 +562,7 @@ inline TReal BSpline<TReal>::B3_nI(int n, TReal t)
     case 1:  return B3_I  (t);
     case 2:  return B3_II (t);
     case 3:  return B3_III(t);
-    default: return 0.0;
+    default: return TReal(0);
   }
 }
 
@@ -578,7 +589,7 @@ inline int BSpline<TReal>::VariableToIndex(TReal t)
 {
   if      (t <  .0) return 0;
   else if (t > 1.0) return LookupTableSize-1;
-  else              return round(t * static_cast<TReal>(LookupTableSize-1));
+  else              return iround(t * static_cast<TReal>(LookupTableSize-1));
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -613,92 +624,92 @@ inline void ComputeBSplineIndicesAndWeights(double x, double y, int spline_degre
     case 2:
       /* x */
       w = x - static_cast<double>(xIndex[1]);
-      xWeight[1] = 3.0 / 4.0 - w * w;
-      xWeight[2] = (1.0 / 2.0) * (w - xWeight[1] + 1.0);
-      xWeight[0] = 1.0 - xWeight[1] - xWeight[2];
+      xWeight[1] = TReal(3.0 / 4.0 - w * w);
+      xWeight[2] = TReal((1.0 / 2.0) * (w - xWeight[1] + 1.0));
+      xWeight[0] = TReal(1.0 - xWeight[1] - xWeight[2]);
       /* y */
       w = y - static_cast<double>(yIndex[1]);
-      yWeight[1] = 3.0 / 4.0 - w * w;
-      yWeight[2] = (1.0 / 2.0) * (w - yWeight[1] + 1.0);
-      yWeight[0] = 1.0 - yWeight[1] - yWeight[2];
+      yWeight[1] = TReal(3.0 / 4.0 - w * w);
+      yWeight[2] = TReal((1.0 / 2.0) * (w - yWeight[1] + 1.0));
+      yWeight[0] = TReal(1.0 - yWeight[1] - yWeight[2]);
       break;
     case 3:
       /* x */
       w = x - static_cast<double>(xIndex[1]);
-      xWeight[3] = (1.0 / 6.0) * w * w * w;
-      xWeight[0] = (1.0 / 6.0) + (1.0 / 2.0) * w * (w - 1.0) - xWeight[3];
-      xWeight[2] = w + xWeight[0] - 2.0 * xWeight[3];
-      xWeight[1] = 1.0 - xWeight[0] - xWeight[2] - xWeight[3];
+      xWeight[3] = TReal((1.0 / 6.0) * w * w * w);
+      xWeight[0] = TReal((1.0 / 6.0) + (1.0 / 2.0) * w * (w - 1.0) - xWeight[3]);
+      xWeight[2] = TReal(w + xWeight[0] - 2.0 * xWeight[3]);
+      xWeight[1] = TReal(1.0 - xWeight[0] - xWeight[2] - xWeight[3]);
       /* y */
       w = y - static_cast<double>(yIndex[1]);
-      yWeight[3] = (1.0 / 6.0) * w * w * w;
-      yWeight[0] = (1.0 / 6.0) + (1.0 / 2.0) * w * (w - 1.0) - yWeight[3];
-      yWeight[2] = w + yWeight[0] - 2.0 * yWeight[3];
-      yWeight[1] = 1.0 - yWeight[0] - yWeight[2] - yWeight[3];
+      yWeight[3] = TReal((1.0 / 6.0) * w * w * w);
+      yWeight[0] = TReal((1.0 / 6.0) + (1.0 / 2.0) * w * (w - 1.0) - yWeight[3]);
+      yWeight[2] = TReal(w + yWeight[0] - 2.0 * yWeight[3]);
+      yWeight[1] = TReal(1.0 - yWeight[0] - yWeight[2] - yWeight[3]);
       break;
     case 4:
       /* x */
       w = x - static_cast<double>(xIndex[2]);
       w2 = w * w;
       t = (1.0 / 6.0) * w2;
-      xWeight[0] = 1.0 / 2.0 - w;
+      xWeight[0] = TReal(1.0 / 2.0 - w);
       xWeight[0] *= xWeight[0];
-      xWeight[0] *= (1.0 / 24.0) * xWeight[0];
+      xWeight[0] *= TReal(1.0 / 24.0) * xWeight[0];
       t0 = w * (t - 11.0 / 24.0);
       t1 = 19.0 / 96.0 + w2 * (1.0 / 4.0 - t);
-      xWeight[1] = t1 + t0;
-      xWeight[3] = t1 - t0;
-      xWeight[4] = xWeight[0] + t0 + (1.0 / 2.0) * w;
-      xWeight[2] = 1.0 - xWeight[0] - xWeight[1] - xWeight[3] - xWeight[4];
+      xWeight[1] = TReal(t1 + t0);
+      xWeight[3] = TReal(t1 - t0);
+      xWeight[4] = TReal(xWeight[0] + t0 + (1.0 / 2.0) * w);
+      xWeight[2] = TReal(1.0 - xWeight[0] - xWeight[1] - xWeight[3] - xWeight[4]);
       /* y */
       w = y - static_cast<double>(yIndex[2]);
       w2 = w * w;
       t = (1.0 / 6.0) * w2;
-      yWeight[0] = 1.0 / 2.0 - w;
+      yWeight[0] = TReal(1.0 / 2.0 - w);
       yWeight[0] *= yWeight[0];
-      yWeight[0] *= (1.0 / 24.0) * yWeight[0];
+      yWeight[0] *= TReal(1.0 / 24.0) * yWeight[0];
       t0 = w * (t - 11.0 / 24.0);
       t1 = 19.0 / 96.0 + w2 * (1.0 / 4.0 - t);
-      yWeight[1] = t1 + t0;
-      yWeight[3] = t1 - t0;
-      yWeight[4] = yWeight[0] + t0 + (1.0 / 2.0) * w;
-      yWeight[2] = 1.0 - yWeight[0] - yWeight[1] - yWeight[3] - yWeight[4];
+      yWeight[1] = TReal(t1 + t0);
+      yWeight[3] = TReal(t1 - t0);
+      yWeight[4] = TReal(yWeight[0] + t0 + (1.0 / 2.0) * w);
+      yWeight[2] = TReal(1.0 - yWeight[0] - yWeight[1] - yWeight[3] - yWeight[4]);
       break;
     case 5:
       /* x */
       w = x - static_cast<double>(xIndex[2]);
       w2 = w * w;
-      xWeight[5] = (1.0 / 120.0) * w * w2 * w2;
+      xWeight[5] = TReal((1.0 / 120.0) * w * w2 * w2);
       w2 -= w;
       w4 = w2 * w2;
       w -= 1.0 / 2.0;
       t = w2 * (w2 - 3.0);
-      xWeight[0] = (1.0 / 24.0) * (1.0 / 5.0 + w2 + w4) - xWeight[5];
+      xWeight[0] = TReal((1.0 / 24.0) * (1.0 / 5.0 + w2 + w4) - xWeight[5]);
       t0 = (1.0 / 24.0) * (w2 * (w2 - 5.0) + 46.0 / 5.0);
       t1 = (-1.0 / 12.0) * w * (t + 4.0);
-      xWeight[2] = t0 + t1;
-      xWeight[3] = t0 - t1;
+      xWeight[2] = TReal(t0 + t1);
+      xWeight[3] = TReal(t0 - t1);
       t0 = (1.0 / 16.0) * (9.0 / 5.0 - t);
       t1 = (1.0 / 24.0) * w * (w4 - w2 - 5.0);
-      xWeight[1] = t0 + t1;
-      xWeight[4] = t0 - t1;
+      xWeight[1] = TReal(t0 + t1);
+      xWeight[4] = TReal(t0 - t1);
       /* y */
       w = y - static_cast<double>(yIndex[2]);
       w2 = w * w;
-      yWeight[5] = (1.0 / 120.0) * w * w2 * w2;
+      yWeight[5] = TReal((1.0 / 120.0) * w * w2 * w2);
       w2 -= w;
       w4 = w2 * w2;
       w -= 1.0 / 2.0;
       t = w2 * (w2 - 3.0);
-      yWeight[0] = (1.0 / 24.0) * (1.0 / 5.0 + w2 + w4) - yWeight[5];
+      yWeight[0] = TReal((1.0 / 24.0) * (1.0 / 5.0 + w2 + w4) - yWeight[5]);
       t0 = (1.0 / 24.0) * (w2 * (w2 - 5.0) + 46.0 / 5.0);
       t1 = (-1.0 / 12.0) * w * (t + 4.0);
-      yWeight[2] = t0 + t1;
-      yWeight[3] = t0 - t1;
+      yWeight[2] = TReal(t0 + t1);
+      yWeight[3] = TReal(t0 - t1);
       t0 = (1.0 / 16.0) * (9.0 / 5.0 - t);
       t1 = (1.0 / 24.0) * w * (w4 - w2 - 5.0);
-      yWeight[1] = t0 + t1;
-      yWeight[4] = t0 - t1;
+      yWeight[1] = TReal(t0 + t1);
+      yWeight[4] = TReal(t0 - t1);
       break;
     default:
       cerr << "ComputeBSplineIndicesAndWeights: Unsupported B-spline degree: " << spline_degree << endl;
@@ -743,133 +754,133 @@ inline void ComputeBSplineIndicesAndWeights(double x, double y, double z, int sp
     case 2:
       /* x */
       w = x - static_cast<double>(xIndex[1]);
-      xWeight[1] = 3.0 / 4.0 - w * w;
-      xWeight[2] = (1.0 / 2.0) * (w - xWeight[1] + 1.0);
-      xWeight[0] = 1.0 - xWeight[1] - xWeight[2];
+      xWeight[1] = TReal(3.0 / 4.0 - w * w);
+      xWeight[2] = TReal((1.0 / 2.0) * (w - xWeight[1] + 1.0));
+      xWeight[0] = TReal(1.0 - xWeight[1] - xWeight[2]);
       /* y */
       w = y - static_cast<double>(yIndex[1]);
-      yWeight[1] = 3.0 / 4.0 - w * w;
-      yWeight[2] = (1.0 / 2.0) * (w - yWeight[1] + 1.0);
-      yWeight[0] = 1.0 - yWeight[1] - yWeight[2];
+      yWeight[1] = TReal(3.0 / 4.0 - w * w);
+      yWeight[2] = TReal((1.0 / 2.0) * (w - yWeight[1] + 1.0));
+      yWeight[0] = TReal(1.0 - yWeight[1] - yWeight[2]);
       /* z */
       w = z - static_cast<double>(zIndex[1]);
-      zWeight[1] = 3.0 / 4.0 - w * w;
-      zWeight[2] = (1.0 / 2.0) * (w - zWeight[1] + 1.0);
-      zWeight[0] = 1.0 - zWeight[1] - zWeight[2];
+      zWeight[1] = TReal(3.0 / 4.0 - w * w);
+      zWeight[2] = TReal((1.0 / 2.0) * (w - zWeight[1] + 1.0));
+      zWeight[0] = TReal(1.0 - zWeight[1] - zWeight[2]);
       break;
     case 3:
       /* x */
       w = x - static_cast<double>(xIndex[1]);
-      xWeight[3] = (1.0 / 6.0) * w * w * w;
-      xWeight[0] = (1.0 / 6.0) + (1.0 / 2.0) * w * (w - 1.0) - xWeight[3];
-      xWeight[2] = w + xWeight[0] - 2.0 * xWeight[3];
-      xWeight[1] = 1.0 - xWeight[0] - xWeight[2] - xWeight[3];
+      xWeight[3] = TReal((1.0 / 6.0) * w * w * w);
+      xWeight[0] = TReal((1.0 / 6.0) + (1.0 / 2.0) * w * (w - 1.0) - xWeight[3]);
+      xWeight[2] = TReal(w + xWeight[0] - 2.0 * xWeight[3]);
+      xWeight[1] = TReal(1.0 - xWeight[0] - xWeight[2] - xWeight[3]);
       /* y */
       w = y - static_cast<double>(yIndex[1]);
-      yWeight[3] = (1.0 / 6.0) * w * w * w;
-      yWeight[0] = (1.0 / 6.0) + (1.0 / 2.0) * w * (w - 1.0) - yWeight[3];
-      yWeight[2] = w + yWeight[0] - 2.0 * yWeight[3];
-      yWeight[1] = 1.0 - yWeight[0] - yWeight[2] - yWeight[3];
+      yWeight[3] = TReal((1.0 / 6.0) * w * w * w);
+      yWeight[0] = TReal((1.0 / 6.0) + (1.0 / 2.0) * w * (w - 1.0) - yWeight[3]);
+      yWeight[2] = TReal(w + yWeight[0] - 2.0 * yWeight[3]);
+      yWeight[1] = TReal(1.0 - yWeight[0] - yWeight[2] - yWeight[3]);
       /* z */
       w = z - static_cast<double>(zIndex[1]);
-      zWeight[3] = (1.0 / 6.0) * w * w * w;
-      zWeight[0] = (1.0 / 6.0) + (1.0 / 2.0) * w * (w - 1.0) - zWeight[3];
-      zWeight[2] = w + zWeight[0] - 2.0 * zWeight[3];
-      zWeight[1] = 1.0 - zWeight[0] - zWeight[2] - zWeight[3];
+      zWeight[3] = TReal((1.0 / 6.0) * w * w * w);
+      zWeight[0] = TReal((1.0 / 6.0) + (1.0 / 2.0) * w * (w - 1.0) - zWeight[3]);
+      zWeight[2] = TReal(w + zWeight[0] - 2.0 * zWeight[3]);
+      zWeight[1] = TReal(1.0 - zWeight[0] - zWeight[2] - zWeight[3]);
       break;
     case 4:
       /* x */
       w = x - static_cast<double>(xIndex[2]);
       w2 = w * w;
       t = (1.0 / 6.0) * w2;
-      xWeight[0] = 1.0 / 2.0 - w;
+      xWeight[0] = TReal(1.0 / 2.0 - w);
       xWeight[0] *= xWeight[0];
-      xWeight[0] *= (1.0 / 24.0) * xWeight[0];
+      xWeight[0] *= TReal(1.0 / 24.0) * xWeight[0];
       t0 = w * (t - 11.0 / 24.0);
       t1 = 19.0 / 96.0 + w2 * (1.0 / 4.0 - t);
-      xWeight[1] = t1 + t0;
-      xWeight[3] = t1 - t0;
-      xWeight[4] = xWeight[0] + t0 + (1.0 / 2.0) * w;
-      xWeight[2] = 1.0 - xWeight[0] - xWeight[1] - xWeight[3] - xWeight[4];
+      xWeight[1] = TReal(t1 + t0);
+      xWeight[3] = TReal(t1 - t0);
+      xWeight[4] = TReal(xWeight[0] + t0 + (1.0 / 2.0) * w);
+      xWeight[2] = TReal(1.0 - xWeight[0] - xWeight[1] - xWeight[3] - xWeight[4]);
       /* y */
       w = y - static_cast<double>(yIndex[2]);
       w2 = w * w;
       t = (1.0 / 6.0) * w2;
-      yWeight[0] = 1.0 / 2.0 - w;
+      yWeight[0] = TReal(1.0 / 2.0 - w);
       yWeight[0] *= yWeight[0];
-      yWeight[0] *= (1.0 / 24.0) * yWeight[0];
+      yWeight[0] *= TReal(1.0 / 24.0) * yWeight[0];
       t0 = w * (t - 11.0 / 24.0);
       t1 = 19.0 / 96.0 + w2 * (1.0 / 4.0 - t);
-      yWeight[1] = t1 + t0;
-      yWeight[3] = t1 - t0;
-      yWeight[4] = yWeight[0] + t0 + (1.0 / 2.0) * w;
-      yWeight[2] = 1.0 - yWeight[0] - yWeight[1] - yWeight[3] - yWeight[4];
+      yWeight[1] = TReal(t1 + t0);
+      yWeight[3] = TReal(t1 - t0);
+      yWeight[4] = TReal(yWeight[0] + t0 + (1.0 / 2.0) * w);
+      yWeight[2] = TReal(1.0 - yWeight[0] - yWeight[1] - yWeight[3] - yWeight[4]);
       /* z */
       w = z - static_cast<double>(zIndex[2]);
       w2 = w * w;
       t = (1.0 / 6.0) * w2;
-      zWeight[0] = 1.0 / 2.0 - w;
+      zWeight[0] = TReal(1.0 / 2.0 - w);
       zWeight[0] *= zWeight[0];
-      zWeight[0] *= (1.0 / 24.0) * zWeight[0];
+      zWeight[0] *= TReal(1.0 / 24.0) * zWeight[0];
       t0 = w * (t - 11.0 / 24.0);
       t1 = 19.0 / 96.0 + w2 * (1.0 / 4.0 - t);
-      zWeight[1] = t1 + t0;
-      zWeight[3] = t1 - t0;
-      zWeight[4] = zWeight[0] + t0 + (1.0 / 2.0) * w;
-      zWeight[2] = 1.0 - zWeight[0] - zWeight[1] - zWeight[3] - zWeight[4];
+      zWeight[1] = TReal(t1 + t0);
+      zWeight[3] = TReal(t1 - t0);
+      zWeight[4] = TReal(zWeight[0] + t0 + (1.0 / 2.0) * w);
+      zWeight[2] = TReal(1.0 - zWeight[0] - zWeight[1] - zWeight[3] - zWeight[4]);
       break;
     case 5:
       /* x */
       w = x - static_cast<double>(xIndex[2]);
       w2 = w * w;
-      xWeight[5] = (1.0 / 120.0) * w * w2 * w2;
+      xWeight[5] = TReal((1.0 / 120.0) * w * w2 * w2);
       w2 -= w;
       w4 = w2 * w2;
       w -= 1.0 / 2.0;
       t = w2 * (w2 - 3.0);
-      xWeight[0] = (1.0 / 24.0) * (1.0 / 5.0 + w2 + w4) - xWeight[5];
+      xWeight[0] = TReal((1.0 / 24.0) * (1.0 / 5.0 + w2 + w4) - xWeight[5]);
       t0 = (1.0 / 24.0) * (w2 * (w2 - 5.0) + 46.0 / 5.0);
       t1 = (-1.0 / 12.0) * w * (t + 4.0);
-      xWeight[2] = t0 + t1;
-      xWeight[3] = t0 - t1;
+      xWeight[2] = TReal(t0 + t1);
+      xWeight[3] = TReal(t0 - t1);
       t0 = (1.0 / 16.0) * (9.0 / 5.0 - t);
       t1 = (1.0 / 24.0) * w * (w4 - w2 - 5.0);
-      xWeight[1] = t0 + t1;
-      xWeight[4] = t0 - t1;
+      xWeight[1] = TReal(t0 + t1);
+      xWeight[4] = TReal(t0 - t1);
       /* y */
       w = y - static_cast<double>(yIndex[2]);
       w2 = w * w;
-      yWeight[5] = (1.0 / 120.0) * w * w2 * w2;
+      yWeight[5] = TReal((1.0 / 120.0) * w * w2 * w2);
       w2 -= w;
       w4 = w2 * w2;
       w -= 1.0 / 2.0;
       t = w2 * (w2 - 3.0);
-      yWeight[0] = (1.0 / 24.0) * (1.0 / 5.0 + w2 + w4) - yWeight[5];
+      yWeight[0] = TReal((1.0 / 24.0) * (1.0 / 5.0 + w2 + w4) - yWeight[5]);
       t0 = (1.0 / 24.0) * (w2 * (w2 - 5.0) + 46.0 / 5.0);
       t1 = (-1.0 / 12.0) * w * (t + 4.0);
-      yWeight[2] = t0 + t1;
-      yWeight[3] = t0 - t1;
+      yWeight[2] = TReal(t0 + t1);
+      yWeight[3] = TReal(t0 - t1);
       t0 = (1.0 / 16.0) * (9.0 / 5.0 - t);
       t1 = (1.0 / 24.0) * w * (w4 - w2 - 5.0);
-      yWeight[1] = t0 + t1;
-      yWeight[4] = t0 - t1;
+      yWeight[1] = TReal(t0 + t1);
+      yWeight[4] = TReal(t0 - t1);
       /* z */
       w = z - static_cast<double>(zIndex[2]);
       w2 = w * w;
-      zWeight[5] = (1.0 / 120.0) * w * w2 * w2;
+      zWeight[5] = TReal((1.0 / 120.0) * w * w2 * w2);
       w2 -= w;
       w4 = w2 * w2;
       w -= 1.0 / 2.0;
       t = w2 * (w2 - 3.0);
-      zWeight[0] = (1.0 / 24.0) * (1.0 / 5.0 + w2 + w4) - zWeight[5];
+      zWeight[0] = TReal((1.0 / 24.0) * (1.0 / 5.0 + w2 + w4) - zWeight[5]);
       t0 = (1.0 / 24.0) * (w2 * (w2 - 5.0) + 46.0 / 5.0);
       t1 = (-1.0 / 12.0) * w * (t + 4.0);
-      zWeight[2] = t0 + t1;
-      zWeight[3] = t0 - t1;
+      zWeight[2] = TReal(t0 + t1);
+      zWeight[3] = TReal(t0 - t1);
       t0 = (1.0 / 16.0) * (9.0 / 5.0 - t);
       t1 = (1.0 / 24.0) * w * (w4 - w2 - 5.0);
-      zWeight[1] = t0 + t1;
-      zWeight[4] = t0 - t1;
+      zWeight[1] = TReal(t0 + t1);
+      zWeight[4] = TReal(t0 - t1);
       break;
     default:
       cerr << "ComputeBSplineIndicesAndWeights: Unsupported B-spline degree: " << spline_degree << endl;
@@ -888,10 +899,10 @@ inline void ComputeBSplineIndicesAndWeights(double x, double y, double z, double
   int i, j, k, l, m;
 
   if (spline_degree & 1) {
-    i = static_cast<int>(floor(x)) - spline_degree / 2;
-    j = static_cast<int>(floor(y)) - spline_degree / 2;
-    k = static_cast<int>(floor(z)) - spline_degree / 2;
-    l = static_cast<int>(floor(t)) - spline_degree / 2;
+    i = ifloor(x) - spline_degree / 2;
+    j = ifloor(y) - spline_degree / 2;
+    k = ifloor(z) - spline_degree / 2;
+    l = ifloor(t) - spline_degree / 2;
     for (m = 0; m <= spline_degree; m++) {
       xIndex[m] = i++;
       yIndex[m] = j++;
@@ -899,10 +910,10 @@ inline void ComputeBSplineIndicesAndWeights(double x, double y, double z, double
       tIndex[m] = l++;
     }
   } else {
-    i = static_cast<int>(floor(x + 0.5)) - spline_degree / 2;
-    j = static_cast<int>(floor(y + 0.5)) - spline_degree / 2;
-    k = static_cast<int>(floor(z + 0.5)) - spline_degree / 2;
-    l = static_cast<int>(floor(t + 0.5)) - spline_degree / 2;
+    i = ifloor(x + .5) - spline_degree / 2;
+    j = ifloor(y + .5) - spline_degree / 2;
+    k = ifloor(z + .5) - spline_degree / 2;
+    l = ifloor(t + .5) - spline_degree / 2;
     for (m = 0; m <= spline_degree; m++) {
       xIndex[m] = i++;
       yIndex[m] = j++;
@@ -918,174 +929,174 @@ inline void ComputeBSplineIndicesAndWeights(double x, double y, double z, double
     case 2:
       /* x */
       w = x - static_cast<double>(xIndex[1]);
-      xWeight[1] = 3.0 / 4.0 - w * w;
-      xWeight[2] = (1.0 / 2.0) * (w - xWeight[1] + 1.0);
-      xWeight[0] = 1.0 - xWeight[1] - xWeight[2];
+      xWeight[1] = TReal(3.0 / 4.0 - w * w);
+      xWeight[2] = TReal((1.0 / 2.0) * (w - xWeight[1] + 1.0));
+      xWeight[0] = TReal(1.0 - xWeight[1] - xWeight[2]);
       /* y */
       w = y - static_cast<double>(yIndex[1]);
-      yWeight[1] = 3.0 / 4.0 - w * w;
-      yWeight[2] = (1.0 / 2.0) * (w - yWeight[1] + 1.0);
-      yWeight[0] = 1.0 - yWeight[1] - yWeight[2];
+      yWeight[1] = TReal(3.0 / 4.0 - w * w);
+      yWeight[2] = TReal((1.0 / 2.0) * (w - yWeight[1] + 1.0));
+      yWeight[0] = TReal(1.0 - yWeight[1] - yWeight[2]);
       /* z */
       w = z - static_cast<double>(zIndex[1]);
-      zWeight[1] = 3.0 / 4.0 - w * w;
-      zWeight[2] = (1.0 / 2.0) * (w - zWeight[1] + 1.0);
-      zWeight[0] = 1.0 - zWeight[1] - zWeight[2];
+      zWeight[1] = TReal(3.0 / 4.0 - w * w);
+      zWeight[2] = TReal((1.0 / 2.0) * (w - zWeight[1] + 1.0));
+      zWeight[0] = TReal(1.0 - zWeight[1] - zWeight[2]);
       /* t */
       w = t - static_cast<double>(tIndex[1]);
-      tWeight[1] = 3.0 / 4.0 - w * w;
-      tWeight[2] = (1.0 / 2.0) * (w - tWeight[1] + 1.0);
-      tWeight[0] = 1.0 - tWeight[1] - tWeight[2];
+      tWeight[1] = TReal(3.0 / 4.0 - w * w);
+      tWeight[2] = TReal((1.0 / 2.0) * (w - tWeight[1] + 1.0));
+      tWeight[0] = TReal(1.0 - tWeight[1] - tWeight[2]);
       break;
     case 3:
       /* x */
       w = x - static_cast<double>(xIndex[1]);
-      xWeight[3] = (1.0 / 6.0) * w * w * w;
-      xWeight[0] = (1.0 / 6.0) + (1.0 / 2.0) * w * (w - 1.0) - xWeight[3];
-      xWeight[2] = w + xWeight[0] - 2.0 * xWeight[3];
-      xWeight[1] = 1.0 - xWeight[0] - xWeight[2] - xWeight[3];
+      xWeight[3] = TReal((1.0 / 6.0) * w * w * w);
+      xWeight[0] = TReal((1.0 / 6.0) + (1.0 / 2.0) * w * (w - 1.0) - xWeight[3]);
+      xWeight[2] = TReal(w + xWeight[0] - 2.0 * xWeight[3]);
+      xWeight[1] = TReal(1.0 - xWeight[0] - xWeight[2] - xWeight[3]);
       /* y */
       w = y - static_cast<double>(yIndex[1]);
-      yWeight[3] = (1.0 / 6.0) * w * w * w;
-      yWeight[0] = (1.0 / 6.0) + (1.0 / 2.0) * w * (w - 1.0) - yWeight[3];
-      yWeight[2] = w + yWeight[0] - 2.0 * yWeight[3];
-      yWeight[1] = 1.0 - yWeight[0] - yWeight[2] - yWeight[3];
+      yWeight[3] = TReal((1.0 / 6.0) * w * w * w);
+      yWeight[0] = TReal((1.0 / 6.0) + (1.0 / 2.0) * w * (w - 1.0) - yWeight[3]);
+      yWeight[2] = TReal(w + yWeight[0] - 2.0 * yWeight[3]);
+      yWeight[1] = TReal(1.0 - yWeight[0] - yWeight[2] - yWeight[3]);
       /* z */
       w = z - static_cast<double>(zIndex[1]);
-      zWeight[3] = (1.0 / 6.0) * w * w * w;
-      zWeight[0] = (1.0 / 6.0) + (1.0 / 2.0) * w * (w - 1.0) - zWeight[3];
-      zWeight[2] = w + zWeight[0] - 2.0 * zWeight[3];
-      zWeight[1] = 1.0 - zWeight[0] - zWeight[2] - zWeight[3];
+      zWeight[3] = TReal((1.0 / 6.0) * w * w * w);
+      zWeight[0] = TReal((1.0 / 6.0) + (1.0 / 2.0) * w * (w - 1.0) - zWeight[3]);
+      zWeight[2] = TReal(w + zWeight[0] - 2.0 * zWeight[3]);
+      zWeight[1] = TReal(1.0 - zWeight[0] - zWeight[2] - zWeight[3]);
       /* t */
       w = t - static_cast<double>(tIndex[1]);
-      tWeight[3] = (1.0 / 6.0) * w * w * w;
-      tWeight[0] = (1.0 / 6.0) + (1.0 / 2.0) * w * (w - 1.0) - tWeight[3];
-      tWeight[2] = w + tWeight[0] - 2.0 * tWeight[3];
-      tWeight[1] = 1.0 - tWeight[0] - tWeight[2] - tWeight[3];
+      tWeight[3] = TReal((1.0 / 6.0) * w * w * w);
+      tWeight[0] = TReal((1.0 / 6.0) + (1.0 / 2.0) * w * (w - 1.0) - tWeight[3]);
+      tWeight[2] = TReal(w + tWeight[0] - 2.0 * tWeight[3]);
+      tWeight[1] = TReal(1.0 - tWeight[0] - tWeight[2] - tWeight[3]);
       break;
     case 4:
       /* x */
       w = x - static_cast<double>(xIndex[2]);
       w2 = w * w;
       t = (1.0 / 6.0) * w2;
-      xWeight[0] = 1.0 / 2.0 - w;
+      xWeight[0] = TReal(1.0 / 2.0 - w);
       xWeight[0] *= xWeight[0];
-      xWeight[0] *= (1.0 / 24.0) * xWeight[0];
+      xWeight[0] *= TReal(1.0 / 24.0) * xWeight[0];
       t0 = w * (t - 11.0 / 24.0);
       t1 = 19.0 / 96.0 + w2 * (1.0 / 4.0 - t);
-      xWeight[1] = t1 + t0;
-      xWeight[3] = t1 - t0;
-      xWeight[4] = xWeight[0] + t0 + (1.0 / 2.0) * w;
-      xWeight[2] = 1.0 - xWeight[0] - xWeight[1] - xWeight[3] - xWeight[4];
+      xWeight[1] = TReal(t1 + t0);
+      xWeight[3] = TReal(t1 - t0);
+      xWeight[4] = TReal(xWeight[0] + t0 + (1.0 / 2.0) * w);
+      xWeight[2] = TReal(1.0 - xWeight[0] - xWeight[1] - xWeight[3] - xWeight[4]);
       /* y */
       w = y - static_cast<double>(yIndex[2]);
       w2 = w * w;
       t = (1.0 / 6.0) * w2;
-      yWeight[0] = 1.0 / 2.0 - w;
+      yWeight[0] = TReal(1.0 / 2.0 - w);
       yWeight[0] *= yWeight[0];
-      yWeight[0] *= (1.0 / 24.0) * yWeight[0];
+      yWeight[0] *= TReal(1.0 / 24.0) * yWeight[0];
       t0 = w * (t - 11.0 / 24.0);
       t1 = 19.0 / 96.0 + w2 * (1.0 / 4.0 - t);
-      yWeight[1] = t1 + t0;
-      yWeight[3] = t1 - t0;
-      yWeight[4] = yWeight[0] + t0 + (1.0 / 2.0) * w;
-      yWeight[2] = 1.0 - yWeight[0] - yWeight[1] - yWeight[3] - yWeight[4];
+      yWeight[1] = TReal(t1 + t0);
+      yWeight[3] = TReal(t1 - t0);
+      yWeight[4] = TReal(yWeight[0] + t0 + (1.0 / 2.0) * w);
+      yWeight[2] = TReal(1.0 - yWeight[0] - yWeight[1] - yWeight[3] - yWeight[4]);
       /* z */
       w = z - static_cast<double>(zIndex[2]);
       w2 = w * w;
       t = (1.0 / 6.0) * w2;
-      zWeight[0] = 1.0 / 2.0 - w;
+      zWeight[0] = TReal(1.0 / 2.0 - w);
       zWeight[0] *= zWeight[0];
-      zWeight[0] *= (1.0 / 24.0) * zWeight[0];
+      zWeight[0] *= TReal(1.0 / 24.0) * zWeight[0];
       t0 = w * (t - 11.0 / 24.0);
       t1 = 19.0 / 96.0 + w2 * (1.0 / 4.0 - t);
-      zWeight[1] = t1 + t0;
-      zWeight[3] = t1 - t0;
-      zWeight[4] = zWeight[0] + t0 + (1.0 / 2.0) * w;
-      zWeight[2] = 1.0 - zWeight[0] - zWeight[1] - zWeight[3] - zWeight[4];
+      zWeight[1] = TReal(t1 + t0);
+      zWeight[3] = TReal(t1 - t0);
+      zWeight[4] = TReal(zWeight[0] + t0 + (1.0 / 2.0) * w);
+      zWeight[2] = TReal(1.0 - zWeight[0] - zWeight[1] - zWeight[3] - zWeight[4]);
       /* t */
       w = t - static_cast<double>(tIndex[2]);
       w2 = w * w;
       t = (1.0 / 6.0) * w2;
-      tWeight[0] = 1.0 / 2.0 - w;
+      tWeight[0] = TReal(1.0 / 2.0 - w);
       tWeight[0] *= tWeight[0];
-      tWeight[0] *= (1.0 / 24.0) * tWeight[0];
+      tWeight[0] *= TReal(1.0 / 24.0) * tWeight[0];
       t0 = w * (t - 11.0 / 24.0);
       t1 = 19.0 / 96.0 + w2 * (1.0 / 4.0 - t);
-      tWeight[1] = t1 + t0;
-      tWeight[3] = t1 - t0;
-      tWeight[4] = tWeight[0] + t0 + (1.0 / 2.0) * w;
-      tWeight[2] = 1.0 - tWeight[0] - tWeight[1] - tWeight[3] - tWeight[4];
+      tWeight[1] = TReal(t1 + t0);
+      tWeight[3] = TReal(t1 - t0);
+      tWeight[4] = TReal(tWeight[0] + t0 + (1.0 / 2.0) * w);
+      tWeight[2] = TReal(1.0 - tWeight[0] - tWeight[1] - tWeight[3] - tWeight[4]);
       break;
     case 5:
       /* x */
       w = x - static_cast<double>(xIndex[2]);
       w2 = w * w;
-      xWeight[5] = (1.0 / 120.0) * w * w2 * w2;
+      xWeight[5] = TReal((1.0 / 120.0) * w * w2 * w2);
       w2 -= w;
       w4 = w2 * w2;
       w -= 1.0 / 2.0;
       t = w2 * (w2 - 3.0);
-      xWeight[0] = (1.0 / 24.0) * (1.0 / 5.0 + w2 + w4) - xWeight[5];
+      xWeight[0] = TReal((1.0 / 24.0) * (1.0 / 5.0 + w2 + w4) - xWeight[5]);
       t0 = (1.0 / 24.0) * (w2 * (w2 - 5.0) + 46.0 / 5.0);
       t1 = (-1.0 / 12.0) * w * (t + 4.0);
-      xWeight[2] = t0 + t1;
-      xWeight[3] = t0 - t1;
+      xWeight[2] = TReal(t0 + t1);
+      xWeight[3] = TReal(t0 - t1);
       t0 = (1.0 / 16.0) * (9.0 / 5.0 - t);
       t1 = (1.0 / 24.0) * w * (w4 - w2 - 5.0);
-      xWeight[1] = t0 + t1;
-      xWeight[4] = t0 - t1;
+      xWeight[1] = TReal(t0 + t1);
+      xWeight[4] = TReal(t0 - t1);
       /* y */
       w = y - static_cast<double>(yIndex[2]);
       w2 = w * w;
-      yWeight[5] = (1.0 / 120.0) * w * w2 * w2;
+      yWeight[5] = TReal((1.0 / 120.0) * w * w2 * w2);
       w2 -= w;
       w4 = w2 * w2;
       w -= 1.0 / 2.0;
       t = w2 * (w2 - 3.0);
-      yWeight[0] = (1.0 / 24.0) * (1.0 / 5.0 + w2 + w4) - yWeight[5];
+      yWeight[0] = TReal((1.0 / 24.0) * (1.0 / 5.0 + w2 + w4) - yWeight[5]);
       t0 = (1.0 / 24.0) * (w2 * (w2 - 5.0) + 46.0 / 5.0);
       t1 = (-1.0 / 12.0) * w * (t + 4.0);
-      yWeight[2] = t0 + t1;
-      yWeight[3] = t0 - t1;
+      yWeight[2] = TReal(t0 + t1);
+      yWeight[3] = TReal(t0 - t1);
       t0 = (1.0 / 16.0) * (9.0 / 5.0 - t);
       t1 = (1.0 / 24.0) * w * (w4 - w2 - 5.0);
-      yWeight[1] = t0 + t1;
-      yWeight[4] = t0 - t1;
+      yWeight[1] = TReal(t0 + t1);
+      yWeight[4] = TReal(t0 - t1);
       /* z */
       w = z - static_cast<double>(zIndex[2]);
       w2 = w * w;
-      zWeight[5] = (1.0 / 120.0) * w * w2 * w2;
+      zWeight[5] = TReal((1.0 / 120.0) * w * w2 * w2);
       w2 -= w;
       w4 = w2 * w2;
       w -= 1.0 / 2.0;
       t = w2 * (w2 - 3.0);
-      zWeight[0] = (1.0 / 24.0) * (1.0 / 5.0 + w2 + w4) - zWeight[5];
+      zWeight[0] = TReal((1.0 / 24.0) * (1.0 / 5.0 + w2 + w4) - zWeight[5]);
       t0 = (1.0 / 24.0) * (w2 * (w2 - 5.0) + 46.0 / 5.0);
       t1 = (-1.0 / 12.0) * w * (t + 4.0);
-      zWeight[2] = t0 + t1;
-      zWeight[3] = t0 - t1;
+      zWeight[2] = TReal(t0 + t1);
+      zWeight[3] = TReal(t0 - t1);
       t0 = (1.0 / 16.0) * (9.0 / 5.0 - t);
       t1 = (1.0 / 24.0) * w * (w4 - w2 - 5.0);
-      zWeight[1] = t0 + t1;
-      zWeight[4] = t0 - t1;
+      zWeight[1] = TReal(t0 + t1);
+      zWeight[4] = TReal(t0 - t1);
       /* t */
       w = t - static_cast<double>(tIndex[2]);
       w2 = w * w;
-      tWeight[5] = (1.0 / 120.0) * w * w2 * w2;
+      tWeight[5] = TReal((1.0 / 120.0) * w * w2 * w2);
       w2 -= w;
       w4 = w2 * w2;
       w -= 1.0 / 2.0;
       t = w2 * (w2 - 3.0);
-      tWeight[0] = (1.0 / 24.0) * (1.0 / 5.0 + w2 + w4) - tWeight[5];
+      tWeight[0] = TReal((1.0 / 24.0) * (1.0 / 5.0 + w2 + w4) - tWeight[5]);
       t0 = (1.0 / 24.0) * (w2 * (w2 - 5.0) + 46.0 / 5.0);
       t1 = (-1.0 / 12.0) * w * (t + 4.0);
-      tWeight[2] = t0 + t1;
-      tWeight[3] = t0 - t1;
+      tWeight[2] = TReal(t0 + t1);
+      tWeight[3] = TReal(t0 - t1);
       t0 = (1.0 / 16.0) * (9.0 / 5.0 - t);
       t1 = (1.0 / 24.0) * w * (w4 - w2 - 5.0);
-      tWeight[1] = t0 + t1;
-      tWeight[4] = t0 - t1;
+      tWeight[1] = TReal(t0 + t1);
+      tWeight[4] = TReal(t0 - t1);
       break;
     default:
       cerr << "ComputeBSplineIndicesAndWeights: Unsupported B-spline degree: " << spline_degree << endl;

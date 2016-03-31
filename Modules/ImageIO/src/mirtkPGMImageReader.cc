@@ -17,6 +17,8 @@
  * limitations under the License.
  */
 
+#include <mirtkConfig.h> // WINDOWS
+
 #include <mirtkPGMImageReader.h>
 #include "mirtkPGM.h"
 
@@ -54,11 +56,12 @@ bool PGMImageReader::CanRead(const char *fname) const
 // -----------------------------------------------------------------------------
 void PGMImageReader::ReadHeader()
 {
-  char buffer[256];
+  const long bufsz = 256l;
+  char buffer[bufsz];
 
   // Read header, skip comments
   do {
-    this->ReadAsString(buffer, 255);
+    this->ReadAsString(buffer, bufsz-1l);
   } while (buffer[0] == '#');
 
   // Check header
@@ -69,15 +72,19 @@ void PGMImageReader::ReadHeader()
 
   // Read voxel dimensions, skip comments
   do {
-    this->ReadAsString(buffer, 255);
+    this->ReadAsString(buffer, bufsz-1l);
   } while (buffer[0] == '#');
 
   // Parse voxel dimensions
+#ifdef WINDOWS
+  sscanf_s(buffer, "%d %d", &_Attributes._x, &_Attributes._y);
+#else
   sscanf(buffer, "%d %d", &_Attributes._x, &_Attributes._y);
+#endif
 
   // Ignore maximum greyvalue, skip comments
   do {
-    this->ReadAsString(buffer, 255);
+    this->ReadAsString(buffer, bufsz - 1l);
   } while (buffer[0] == '#');
 
   // PGM files support only 2D images, so set z and t to 1

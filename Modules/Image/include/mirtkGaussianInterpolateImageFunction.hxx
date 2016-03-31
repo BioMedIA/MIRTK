@@ -83,8 +83,7 @@ void GenericGaussianInterpolateImageFunction<TImage>
 ::BoundingInterval(double x, int &i, int &I) const
 {
   double r = max(_RadiusX, max(_RadiusY, max(_RadiusZ, _RadiusT)));
-  i = static_cast<int>(floor(x - r));
-  I = static_cast<int>(floor(x + r));
+  i = ifloor(x - r), I = ifloor(x + r);
 }
 
 // -----------------------------------------------------------------------------
@@ -93,10 +92,8 @@ void GenericGaussianInterpolateImageFunction<TImage>
 ::BoundingBox(double x, double y, int &i1, int &i2,
                                   int &j1, int &j2) const
 {
-  i1 = static_cast<int>(floor(x - _RadiusX));
-  i2 = static_cast<int>(floor(x + _RadiusX));
-  j1 = static_cast<int>(floor(y - _RadiusY));
-  j2 = static_cast<int>(floor(y + _RadiusY));
+  i1 = ifloor(x - _RadiusX), i2 = ifloor(x + _RadiusX);
+  j1 = ifloor(y - _RadiusY), j2 = ifloor(y + _RadiusY);
 }
 
 // -----------------------------------------------------------------------------
@@ -105,12 +102,9 @@ void GenericGaussianInterpolateImageFunction<TImage>
 ::BoundingBox(double x, double y, double z, int &i1, int &i2, int &k1,
                                             int &j1, int &j2, int &k2) const
 {
-  i1 = static_cast<int>(floor(x - _RadiusX));
-  i2 = static_cast<int>(floor(x + _RadiusX));
-  j1 = static_cast<int>(floor(y - _RadiusY));
-  j2 = static_cast<int>(floor(y + _RadiusY));
-  k1 = static_cast<int>(floor(z - _RadiusZ));
-  k2 = static_cast<int>(floor(z + _RadiusZ));
+  i1 = ifloor(x - _RadiusX), i2 = ifloor(x + _RadiusX);
+  j1 = ifloor(y - _RadiusY), j2 = ifloor(y + _RadiusY);
+  k1 = ifloor(z - _RadiusZ), k2 = ifloor(z + _RadiusZ);
 }
 
 // -----------------------------------------------------------------------------
@@ -120,14 +114,10 @@ void GenericGaussianInterpolateImageFunction<TImage>
               int &i1, int &i2, int &k1, int &l1,
               int &j1, int &j2, int &k2, int &l2) const
 {
-  i1 = static_cast<int>(floor(x - _RadiusX));
-  i2 = static_cast<int>(floor(x + _RadiusX));
-  j1 = static_cast<int>(floor(y - _RadiusY));
-  j2 = static_cast<int>(floor(y + _RadiusY));
-  k1 = static_cast<int>(floor(z - _RadiusZ));
-  k2 = static_cast<int>(floor(z + _RadiusZ));
-  l1 = static_cast<int>(floor(t - _RadiusT));
-  l2 = static_cast<int>(floor(t + _RadiusT));
+  i1 = ifloor(x - _RadiusX), i2 = ifloor(x + _RadiusX);
+  j1 = ifloor(y - _RadiusY), j2 = ifloor(y + _RadiusY);
+  k1 = ifloor(z - _RadiusZ), k2 = ifloor(z + _RadiusZ);
+  l1 = ifloor(t - _RadiusT), l2 = ifloor(t + _RadiusT);
 }
 
 // =============================================================================
@@ -140,32 +130,32 @@ inline typename GenericGaussianInterpolateImageFunction<TImage>::VoxelType
 GenericGaussianInterpolateImageFunction<TImage>
 ::Get2D(double x, double y, double z, double t) const
 {
-  const int k = static_cast<int>(round(z));
-  const int l = static_cast<int>(round(t));
+  const int k = iround(z);
+  const int l = iround(t);
 
   if (k < 0 || k >= this->Input()->Z() ||
       l < 0 || l >= this->Input()->T()) {
     return voxel_cast<VoxelType>(this->DefaultValue());
   }
 
-  const int i1 = static_cast<int>(floor(x - _RadiusX));
-  const int j1 = static_cast<int>(floor(y - _RadiusY));
-  const int i2 = static_cast<int>(floor(x + _RadiusX));
-  const int j2 = static_cast<int>(floor(y + _RadiusY));
+  const int i1 = ifloor(x - _RadiusX);
+  const int j1 = ifloor(y - _RadiusY);
+  const int i2 = ifloor(x + _RadiusX);
+  const int j2 = ifloor(y + _RadiusY);
 
   // Create Gaussian interpolation kernel
   ScalarGaussian kernel(_Sigma/_dx, _Sigma/_dy, .0, x, y, .0);
 
   // Perform Gaussian interpolation
   RealType val = voxel_cast<RealType>(0);
-  Real     nrm = .0, w;
+  Real     nrm(0), w;
 
   for (int j = j1; j <= j2; ++j) {
     if (0 <= j && j < this->Input()->Y()) {
       for (int i = i1; i <= i2; ++i) {
         if (0 <= i && i < this->Input()->X()) {
-          w   = kernel.Evaluate(i, j);
-          val += w * static_cast<RealType>(this->Input()->Get(i, j, k, l));
+          w   = static_cast<Real>(kernel.Evaluate(i, j));
+          val += w * voxel_cast<RealType>(this->Input()->Get(i, j, k, l));
           nrm += w;
         }
       }
@@ -184,31 +174,31 @@ inline typename GenericGaussianInterpolateImageFunction<TImage>::VoxelType
 GenericGaussianInterpolateImageFunction<TImage>
 ::GetWithPadding2D(double x, double y, double z, double t) const
 {
-  const int k  = static_cast<int>(round(z));
-  const int l  = static_cast<int>(round(t));
+  const int k = iround(z);
+  const int l = iround(t);
 
   if (k < 0 || k >= this->Input()->Z() ||
       l < 0 || l >= this->Input()->T()) {
     return voxel_cast<VoxelType>(this->DefaultValue());
   }
 
-  const int i1 = static_cast<int>(floor(x - _RadiusX));
-  const int j1 = static_cast<int>(floor(y - _RadiusY));
-  const int i2 = static_cast<int>(floor(x + _RadiusX));
-  const int j2 = static_cast<int>(floor(y + _RadiusY));
+  const int i1 = ifloor(x - _RadiusX);
+  const int j1 = ifloor(y - _RadiusY);
+  const int i2 = ifloor(x + _RadiusX);
+  const int j2 = ifloor(y + _RadiusY);
 
   // Create Gaussian interpolation kernel
   ScalarGaussian kernel(_Sigma/_dx, _Sigma/_dy, .0, x, y, .0);
 
   // Perform Gaussian interpolation
   RealType val = voxel_cast<RealType>(0);
-  Real     fgw = .0, bgw = .0, w;
+  Real     fgw(0), bgw(0), w;
 
   for (int j = j1; j <= j2; ++j) {
     for (int i = i1; i <= i2; ++i) {
-      w = kernel.Evaluate(i, j);
+      w = static_cast<Real>(kernel.Evaluate(i, j));
       if (this->Input()->IsInsideForeground(i, j, k, l)) {
-        val += w * static_cast<RealType>(this->Input()->Get(i, j, k, l));
+        val += w * voxel_cast<RealType>(this->Input()->Get(i, j, k, l));
         fgw += w;
       } else {
         bgw += w;
@@ -231,25 +221,25 @@ GenericGaussianInterpolateImageFunction<TImage>
   typedef typename TOtherImage::VoxelType VoxelType;
   typedef typename TOtherImage::RealType  RealType;
 
-  const int k  = static_cast<int>(round(z));
-  const int l  = static_cast<int>(round(t));
+  const int k = iround(z);
+  const int l = iround(t);
 
-  const int i1 = static_cast<int>(floor(x - _RadiusX));
-  const int j1 = static_cast<int>(floor(y - _RadiusY));
-  const int i2 = static_cast<int>(floor(x + _RadiusX));
-  const int j2 = static_cast<int>(floor(y + _RadiusY));
+  const int i1 = ifloor(x - _RadiusX);
+  const int j1 = ifloor(y - _RadiusY);
+  const int i2 = ifloor(x + _RadiusX);
+  const int j2 = ifloor(y + _RadiusY);
 
   // Create Gaussian interpolation kernel
   ScalarGaussian kernel(_Sigma/_dx, _Sigma/_dy, .0, x, y, .0);
 
   // Perform Gaussian interpolation
   RealType val = voxel_cast<RealType>(0);
-  Real     nrm = .0, w;
+  Real     nrm(0), w;
 
   for (int j = j1; j <= j2; ++j) {
     for (int i = i1; i <= i2; ++i) {
-      w   = kernel.Evaluate(i, j);
-      val += w * static_cast<RealType>(input->Get(i, j, k, l));
+      w   = static_cast<Real>(kernel.Evaluate(i, j));
+      val += w * voxel_cast<RealType>(input->Get(i, j, k, l));
       nrm += w;
     }
   }
@@ -269,26 +259,26 @@ GenericGaussianInterpolateImageFunction<TImage>
   typedef typename TOtherImage::VoxelType VoxelType;
   typedef typename TOtherImage::RealType  RealType;
 
-  const int k  = static_cast<int>(round(z));
-  const int l  = static_cast<int>(round(t));
+  const int k = iround(z);
+  const int l = iround(t);
 
-  const int i1 = static_cast<int>(floor(x - _RadiusX));
-  const int j1 = static_cast<int>(floor(y - _RadiusY));
-  const int i2 = static_cast<int>(floor(x + _RadiusX));
-  const int j2 = static_cast<int>(floor(y + _RadiusY));
+  const int i1 = ifloor(x - _RadiusX);
+  const int j1 = ifloor(y - _RadiusY);
+  const int i2 = ifloor(x + _RadiusX);
+  const int j2 = ifloor(y + _RadiusY);
 
   // Create Gaussian interpolation kernel
   ScalarGaussian kernel(_Sigma/_dx, _Sigma/_dy, .0, x, y, .0);
 
   // Perform Gaussian interpolation
   RealType val = voxel_cast<RealType>(0);
-  Real     fgw = .0, bgw = .0, w;
+  Real     fgw(0), bgw(0), w;
 
   for (int j = j1; j <= j2; ++j) {
     for (int i = i1; i <= i2; ++i) {
-      w = kernel.Evaluate(i, j);
+      w = static_cast<Real>(kernel.Evaluate(i, j));
       if (input->IsForeground(i, j, k, l)) {
-        val += w * static_cast<RealType>(input->Get(i, j, k, l));
+        val += w * voxel_cast<RealType>(input->Get(i, j, k, l));
         fgw += w;
       } else {
         bgw += w;
@@ -308,25 +298,25 @@ inline typename GenericGaussianInterpolateImageFunction<TImage>::VoxelType
 GenericGaussianInterpolateImageFunction<TImage>
 ::Get3D(double x, double y, double z, double t) const
 {
-  const int l = static_cast<int>(round(t));
+  const int l = iround(t);
 
   if (l < 0 || l >= this->Input()->T()) {
     return voxel_cast<VoxelType>(this->DefaultValue());
   }
 
-  const int i1 = static_cast<int>(floor(x - _RadiusX));
-  const int j1 = static_cast<int>(floor(y - _RadiusY));
-  const int k1 = static_cast<int>(floor(z - _RadiusZ));
-  const int i2 = static_cast<int>(floor(x + _RadiusX));
-  const int j2 = static_cast<int>(floor(y + _RadiusY));
-  const int k2 = static_cast<int>(floor(z + _RadiusZ));
+  const int i1 = ifloor(x - _RadiusX);
+  const int j1 = ifloor(y - _RadiusY);
+  const int k1 = ifloor(z - _RadiusZ);
+  const int i2 = ifloor(x + _RadiusX);
+  const int j2 = ifloor(y + _RadiusY);
+  const int k2 = ifloor(z + _RadiusZ);
 
   // Create Gaussian interpolation kernel
   ScalarGaussian kernel(_Sigma/_dx, _Sigma/_dy, _Sigma/_dz, x, y, z);
 
   // Perform Gaussian interpolation
   RealType val = voxel_cast<RealType>(0);
-  Real     nrm = .0, w;
+  Real     nrm(0), w;
 
   for (int k = k1; k <= k2; ++k) {
     if (0 <= k && k < this->Input()->Z()) {
@@ -334,8 +324,8 @@ GenericGaussianInterpolateImageFunction<TImage>
         if (0 <= j && j < this->Input()->Y()) {
           for (int i = i1; i <= i2; ++i) {
             if (0 <= i && i < this->Input()->X()) {
-              w   = kernel.Evaluate(i, j, k);
-              val += w * static_cast<RealType>(this->Input()->Get(i, j, k, l));
+              w   = static_cast<Real>(kernel.Evaluate(i, j, k));
+              val += w * voxel_cast<RealType>(this->Input()->Get(i, j, k, l));
               nrm += w;
             }
           }
@@ -356,32 +346,32 @@ inline typename GenericGaussianInterpolateImageFunction<TImage>::VoxelType
 GenericGaussianInterpolateImageFunction<TImage>
 ::GetWithPadding3D(double x, double y, double z, double t) const
 {
-  const int l = static_cast<int>(round(t));
+  const int l = iround(t);
 
   if (l < 0 || l >= this->Input()->T()) {
     return voxel_cast<VoxelType>(this->DefaultValue());
   }
 
-  const int i1 = static_cast<int>(floor(x - _RadiusX));
-  const int j1 = static_cast<int>(floor(y - _RadiusY));
-  const int k1 = static_cast<int>(floor(z - _RadiusZ));
-  const int i2 = static_cast<int>(floor(x + _RadiusX));
-  const int j2 = static_cast<int>(floor(y + _RadiusY));
-  const int k2 = static_cast<int>(floor(z + _RadiusZ));
+  const int i1 = ifloor(x - _RadiusX);
+  const int j1 = ifloor(y - _RadiusY);
+  const int k1 = ifloor(z - _RadiusZ);
+  const int i2 = ifloor(x + _RadiusX);
+  const int j2 = ifloor(y + _RadiusY);
+  const int k2 = ifloor(z + _RadiusZ);
 
   // Create Gaussian interpolation kernel
   ScalarGaussian kernel(_Sigma/_dx, _Sigma/_dy, _Sigma/_dz, x, y, z);
 
   // Perform Gaussian interpolation
   RealType val = voxel_cast<RealType>(0);
-  Real     fgw = .0, bgw = .0, w;
+  Real     fgw(0), bgw(0), w;
 
   for (int k = k1; k <= k2; ++k) {
     for (int j = j1; j <= j2; ++j) {
       for (int i = i1; i <= i2; ++i) {
-        w = kernel.Evaluate(i, j, k);
+        w = static_cast<Real>(kernel.Evaluate(i, j, k));
         if (this->Input()->IsInsideForeground(i, j, k, l)) {
-          val += w * static_cast<RealType>(this->Input()->Get(i, j, k, l));
+          val += w * voxel_cast<RealType>(this->Input()->Get(i, j, k, l));
           fgw += w;
         } else {
           bgw += w;
@@ -405,27 +395,27 @@ GenericGaussianInterpolateImageFunction<TImage>
   typedef typename TOtherImage::VoxelType VoxelType;
   typedef typename TOtherImage::RealType  RealType;
 
-  const int l  = static_cast<int>(round(t));
+  const int l = iround(t);
 
-  const int i1 = static_cast<int>(floor(x - _RadiusX));
-  const int j1 = static_cast<int>(floor(y - _RadiusY));
-  const int k1 = static_cast<int>(floor(z - _RadiusZ));
-  const int i2 = static_cast<int>(floor(x + _RadiusX));
-  const int j2 = static_cast<int>(floor(y + _RadiusY));
-  const int k2 = static_cast<int>(floor(z + _RadiusZ));
+  const int i1 = ifloor(x - _RadiusX);
+  const int j1 = ifloor(y - _RadiusY);
+  const int k1 = ifloor(z - _RadiusZ);
+  const int i2 = ifloor(x + _RadiusX);
+  const int j2 = ifloor(y + _RadiusY);
+  const int k2 = ifloor(z + _RadiusZ);
 
   // Create Gaussian interpolation kernel
   ScalarGaussian kernel(_Sigma/_dx, _Sigma/_dy, _Sigma/_dz, x, y, z);
 
   // Perform Gaussian interpolation
   RealType val = voxel_cast<RealType>(0);
-  Real     nrm = .0, w;
+  Real     nrm(0), w;
 
   for (int k = k1; k <= k2; ++k) {
     for (int j = j1; j <= j2; ++j) {
       for (int i = i1; i <= i2; ++i) {
-        w   = kernel.Evaluate(i, j, k);
-        val += w * static_cast<RealType>(input->Get(i, j, k, l));
+        w   = static_cast<Real>(kernel.Evaluate(i, j, k));
+        val += w * voxel_cast<RealType>(input->Get(i, j, k, l));
         nrm += w;
       }
     }
@@ -446,28 +436,28 @@ GenericGaussianInterpolateImageFunction<TImage>
   typedef typename TOtherImage::VoxelType VoxelType;
   typedef typename TOtherImage::RealType  RealType;
 
-  const int l  = static_cast<int>(round(t));
+  const int l = iround(t);
 
-  const int i1 = static_cast<int>(floor(x - _RadiusX));
-  const int j1 = static_cast<int>(floor(y - _RadiusY));
-  const int k1 = static_cast<int>(floor(z - _RadiusZ));
-  const int i2 = static_cast<int>(floor(x + _RadiusX));
-  const int j2 = static_cast<int>(floor(y + _RadiusY));
-  const int k2 = static_cast<int>(floor(z + _RadiusZ));
+  const int i1 = ifloor(x - _RadiusX);
+  const int j1 = ifloor(y - _RadiusY);
+  const int k1 = ifloor(z - _RadiusZ);
+  const int i2 = ifloor(x + _RadiusX);
+  const int j2 = ifloor(y + _RadiusY);
+  const int k2 = ifloor(z + _RadiusZ);
 
   // Create Gaussian interpolation kernel
   ScalarGaussian kernel(_Sigma/_dx, _Sigma/_dy, _Sigma/_dz, x, y, z);
 
   // Perform Gaussian interpolation
   RealType val = voxel_cast<RealType>(0);
-  Real     fgw = .0, bgw = .0, w;
+  Real     fgw(0), bgw(0), w;
 
   for (int k = k1; k <= k2; ++k) {
     for (int j = j1; j <= j2; ++j) {
       for (int i = i1; i <= i2; ++i) {
-        w = kernel.Evaluate(i, j, k);
+        w = static_cast<Real>(kernel.Evaluate(i, j, k));
         if (input->IsForeground(i, j, k, l)) {
-          val += w * static_cast<RealType>(input->Get(i, j, k, l));
+          val += w * voxel_cast<RealType>(input->Get(i, j, k, l));
           fgw += w;
         } else {
           bgw += w;
@@ -488,21 +478,21 @@ inline typename GenericGaussianInterpolateImageFunction<TImage>::VoxelType
 GenericGaussianInterpolateImageFunction<TImage>
 ::Get4D(double x, double y, double z, double t) const
 {
-  const int i1 = static_cast<int>(floor(x - _RadiusX));
-  const int j1 = static_cast<int>(floor(y - _RadiusY));
-  const int k1 = static_cast<int>(floor(z - _RadiusZ));
-  const int l1 = static_cast<int>(floor(t - _RadiusT));
-  const int i2 = static_cast<int>(floor(x + _RadiusX));
-  const int j2 = static_cast<int>(floor(y + _RadiusY));
-  const int k2 = static_cast<int>(floor(z + _RadiusZ));
-  const int l2 = static_cast<int>(floor(t + _RadiusT));
+  const int i1 = ifloor(x - _RadiusX);
+  const int j1 = ifloor(y - _RadiusY);
+  const int k1 = ifloor(z - _RadiusZ);
+  const int l1 = ifloor(t - _RadiusT);
+  const int i2 = ifloor(x + _RadiusX);
+  const int j2 = ifloor(y + _RadiusY);
+  const int k2 = ifloor(z + _RadiusZ);
+  const int l2 = ifloor(t + _RadiusT);
 
   // Create Gaussian interpolation kernel
   ScalarGaussian kernel(_Sigma/_dx, _Sigma/_dy, _Sigma/_dz, _Sigma/_dt, x, y, z, t);
 
   // Perform Gaussian interpolation
   RealType val = voxel_cast<RealType>(0);
-  Real     nrm = .0, w;
+  Real     nrm(0), w;
 
   for (int l = l1; l <= l2; ++l) {
     if (0 <= l && l < this->Input()->T()) {
@@ -512,8 +502,8 @@ GenericGaussianInterpolateImageFunction<TImage>
             if (0 <= j && j < this->Input()->Y()) {
               for (int i = i1; i <= i2; ++i) {
                 if (0 <= i && i < this->Input()->X()) {
-                  w   = kernel.Evaluate(i, j, k, l);
-                  val += w * static_cast<RealType>(this->Input()->Get(i, j, k, l));
+                  w   = static_cast<Real>(kernel.Evaluate(i, j, k, l));
+                  val += w * voxel_cast<RealType>(this->Input()->Get(i, j, k, l));
                   nrm += w;
                 }
               }
@@ -536,29 +526,29 @@ inline typename GenericGaussianInterpolateImageFunction<TImage>::VoxelType
 GenericGaussianInterpolateImageFunction<TImage>
 ::GetWithPadding4D(double x, double y, double z, double t) const
 {
-  const int i1 = static_cast<int>(floor(x - _RadiusX));
-  const int j1 = static_cast<int>(floor(y - _RadiusY));
-  const int k1 = static_cast<int>(floor(z - _RadiusZ));
-  const int l1 = static_cast<int>(floor(t - _RadiusT));
-  const int i2 = static_cast<int>(floor(x + _RadiusX));
-  const int j2 = static_cast<int>(floor(y + _RadiusY));
-  const int k2 = static_cast<int>(floor(z + _RadiusZ));
-  const int l2 = static_cast<int>(floor(t + _RadiusT));
+  const int i1 = ifloor(x - _RadiusX);
+  const int j1 = ifloor(y - _RadiusY);
+  const int k1 = ifloor(z - _RadiusZ);
+  const int l1 = ifloor(t - _RadiusT);
+  const int i2 = ifloor(x + _RadiusX);
+  const int j2 = ifloor(y + _RadiusY);
+  const int k2 = ifloor(z + _RadiusZ);
+  const int l2 = ifloor(t + _RadiusT);
 
   // Create Gaussian interpolation kernel
   ScalarGaussian kernel(_Sigma/_dx, _Sigma/_dy, _Sigma/_dz, _Sigma/_dt, x, y, z, t);
 
   // Perform Gaussian interpolation
   RealType val = voxel_cast<RealType>(0);
-  Real     fgw = .0, bgw = .0, w;
+  Real     fgw(0), bgw(0), w;
 
   for (int l = l1; l <= l2; ++l) {
     for (int k = k1; k <= k2; ++k) {
       for (int j = j1; j <= j2; ++j) {
         for (int i = i1; i <= i2; ++i) {
-          w = kernel.Evaluate(i, j, k, l);
+          w = static_cast<Real>(kernel.Evaluate(i, j, k, l));
           if (this->Input()->IsInsideForeground(i, j, k, l)) {
-            val += w * static_cast<RealType>(this->Input()->Get(i, j, k, l));
+            val += w * voxel_cast<RealType>(this->Input()->Get(i, j, k, l));
             fgw += w;
           } else {
             bgw += w;
@@ -583,29 +573,29 @@ GenericGaussianInterpolateImageFunction<TImage>
   typedef typename TOtherImage::VoxelType VoxelType;
   typedef typename TOtherImage::RealType  RealType;
 
-  const int i1 = static_cast<int>(floor(x - _RadiusX));
-  const int j1 = static_cast<int>(floor(y - _RadiusY));
-  const int k1 = static_cast<int>(floor(z - _RadiusZ));
-  const int l1 = static_cast<int>(floor(t - _RadiusT));
+  const int i1 = ifloor(x - _RadiusX);
+  const int j1 = ifloor(y - _RadiusY);
+  const int k1 = ifloor(z - _RadiusZ);
+  const int l1 = ifloor(t - _RadiusT);
 
-  const int i2 = static_cast<int>(floor(x + _RadiusX));
-  const int j2 = static_cast<int>(floor(y + _RadiusY));
-  const int k2 = static_cast<int>(floor(z + _RadiusZ));
-  const int l2 = static_cast<int>(floor(t + _RadiusT));
+  const int i2 = ifloor(x + _RadiusX);
+  const int j2 = ifloor(y + _RadiusY);
+  const int k2 = ifloor(z + _RadiusZ);
+  const int l2 = ifloor(t + _RadiusT);
 
   // Create Gaussian interpolation kernel
   ScalarGaussian kernel(_Sigma/_dx, _Sigma/_dy, _Sigma/_dz, _Sigma/_dt, x, y, z, t);
 
   // Perform Gaussian interpolation
   RealType val = voxel_cast<RealType>(0);
-  Real     nrm = .0, w;
+  Real     nrm(0), w;
 
   for (int l = l1; l <= l2; ++l) {
     for (int k = k1; k <= k2; ++k) {
       for (int j = j1; j <= j2; ++j) {
         for (int i = i1; i <= i2; ++i) {
-          w   = kernel.Evaluate(i, j, k, l);
-          val += w * static_cast<RealType>(input->Get(i, j, k, l));
+          w   = static_cast<Real>(kernel.Evaluate(i, j, k, l));
+          val += w * voxel_cast<RealType>(input->Get(i, j, k, l));
           nrm += w;
         }
       }
@@ -627,30 +617,30 @@ GenericGaussianInterpolateImageFunction<TImage>
   typedef typename TOtherImage::VoxelType VoxelType;
   typedef typename TOtherImage::RealType  RealType;
 
-  const int i1 = static_cast<int>(floor(x - _RadiusX));
-  const int j1 = static_cast<int>(floor(y - _RadiusY));
-  const int k1 = static_cast<int>(floor(z - _RadiusZ));
-  const int l1 = static_cast<int>(floor(t - _RadiusT));
+  const int i1 = ifloor(x - _RadiusX);
+  const int j1 = ifloor(y - _RadiusY);
+  const int k1 = ifloor(z - _RadiusZ);
+  const int l1 = ifloor(t - _RadiusT);
 
-  const int i2 = static_cast<int>(floor(x + _RadiusX));
-  const int j2 = static_cast<int>(floor(y + _RadiusY));
-  const int k2 = static_cast<int>(floor(z + _RadiusZ));
-  const int l2 = static_cast<int>(floor(t + _RadiusT));
+  const int i2 = ifloor(x + _RadiusX);
+  const int j2 = ifloor(y + _RadiusY);
+  const int k2 = ifloor(z + _RadiusZ);
+  const int l2 = ifloor(t + _RadiusT);
 
   // Create Gaussian interpolation kernel
   ScalarGaussian kernel(_Sigma/_dx, _Sigma/_dy, _Sigma/_dz, _Sigma/_dt, x, y, z, t);
 
   // Perform Gaussian interpolation
   RealType val = voxel_cast<RealType>(0);
-  Real     fgw = .0, bgw = .0, w;
+  Real     fgw(0), bgw(0), w;
 
   for (int l = l1; l <= l2; ++l) {
     for (int k = k1; k <= k2; ++k) {
       for (int j = j1; j <= j2; ++j) {
         for (int i = i1; i <= i2; ++i) {
-          w = kernel.Evaluate(i, j, k, l);
+          w = static_cast<Real>(kernel.Evaluate(i, j, k, l));
           if (input->IsForeground(i, j, k, l)) {
-            val += w * static_cast<RealType>(input->Get(i, j, k, l));
+            val += w * voxel_cast<RealType>(input->Get(i, j, k, l));
             fgw += w;
           } else {
             bgw += w;

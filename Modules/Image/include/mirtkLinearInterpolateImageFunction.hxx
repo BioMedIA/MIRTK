@@ -121,12 +121,12 @@ GenericLinearInterpolateImageFunction<TImage>
   }
 
   Real wx[2], wy[2];
-  wx[1] = x - i; wx[0] = 1.0 - wx[1];
-  wy[1] = y - j; wy[0] = 1.0 - wy[1];
+  wx[1] = Real(x - i); wx[0] = Real(1) - wx[1];
+  wy[1] = Real(y - j); wy[0] = Real(1) - wy[1];
 
   RealType val = voxel_cast<RealType>(0);
-  Real     nrm = .0, w;
-
+  Real     nrm(0), w;
+  
   int ia, jb;
   for (int b = 0; b <= 1; ++b) {
     jb = j + b;
@@ -165,11 +165,11 @@ GenericLinearInterpolateImageFunction<TImage>
   }
 
   Real wx[2], wy[2];
-  wx[1] = x - i; wx[0] = 1.0 - wx[1];
-  wy[1] = y - j; wy[0] = 1.0 - wy[1];
+  wx[1] = Real(x - i); wx[0] = Real(1) - wx[1];
+  wy[1] = Real(y - j); wy[0] = Real(1) - wy[1];
 
   RealType val = voxel_cast<RealType>(0);
-  Real     fgw = .0, bgw = .0, w;
+  Real     fgw(0), bgw(0), w;
 
   int ia, jb;
   for (int b = 0; b <= 1; ++b) {
@@ -205,10 +205,10 @@ GenericLinearInterpolateImageFunction<TImage>
   const int I = i + 1;
   const int J = j + 1;
 
-  const Real A = x - i;
-  const Real B = y - j;
-  const Real a = 1.0 - A;
-  const Real b = 1.0 - B;
+  const Real A = Real(x - i);
+  const Real B = Real(y - j);
+  const Real a = Real(1) - A;
+  const Real b = Real(1) - B;
 
   typename TOtherImage::RealType val;
   val = (b * (a * input->Get(i, j, k, l) + A * input->Get(I, j, k, l))  +
@@ -236,11 +236,11 @@ GenericLinearInterpolateImageFunction<TImage>
   }
 
   Real wx[2], wy[2];
-  wx[1] = x - i; wx[0] = 1.0 - wx[1];
-  wy[1] = y - j; wy[0] = 1.0 - wy[1];
+  wx[1] = Real(x - i); wx[0] = Real(1) - wx[1];
+  wy[1] = Real(y - j); wy[0] = Real(1) - wy[1];
 
   RealType val = voxel_cast<RealType>(0);
-  Real     fgw = .0, bgw = .0, w;
+  Real     fgw(0), bgw(0), w;
 
   int ia, jb;
   for (int b = 0; b <= 1; ++b) {
@@ -279,12 +279,12 @@ GenericLinearInterpolateImageFunction<TImage>
   }
 
   Real wx[2], wy[2], wz[2];
-  wx[1] = x - i; wx[0] = 1.0 - wx[1];
-  wy[1] = y - j; wy[0] = 1.0 - wy[1];
-  wz[1] = z - k; wz[0] = 1.0 - wz[1];
+  wx[1] = Real(x - i); wx[0] = Real(1) - wx[1];
+  wy[1] = Real(y - j); wy[0] = Real(1) - wy[1];
+  wz[1] = Real(z - k); wz[0] = Real(1) - wz[1];
 
   RealType val = voxel_cast<RealType>(0);
-  Real     nrm = .0, w;
+  Real     nrm(0), w;
 
   int ia, jb, kc;
   for (int c = 0; c <= 1; ++c) {
@@ -328,12 +328,12 @@ GenericLinearInterpolateImageFunction<TImage>
   }
 
   Real wx[2], wy[2], wz[2];
-  wx[1] = x - i; wx[0] = 1.0 - wx[1];
-  wy[1] = y - j; wy[0] = 1.0 - wy[1];
-  wz[1] = z - k; wz[0] = 1.0 - wz[1];
+  wx[1] = Real(x - i); wx[0] = Real(1) - wx[1];
+  wy[1] = Real(y - j); wy[0] = Real(1) - wy[1];
+  wz[1] = Real(z - k); wz[0] = Real(1) - wz[1];
 
   RealType val = voxel_cast<RealType>(0);
-  Real     fgw = .0, bgw = .0, w;
+  Real     fgw(0), bgw(0), w;
 
   int ia, jb, kc;
   for (int c = 0; c <= 1; ++c) {
@@ -373,12 +373,12 @@ GenericLinearInterpolateImageFunction<TImage>
   const int J = j + 1;
   const int K = k + 1;
 
-  const Real A = x - i;
-  const Real B = y - j;
-  const Real C = z - k;
-  const Real a = 1.0 - A;
-  const Real b = 1.0 - B;
-  const Real c = 1.0 - C;
+  const Real A = Real(x - i);
+  const Real B = Real(y - j);
+  const Real C = Real(z - k);
+  const Real a = Real(1) - A;
+  const Real b = Real(1) - B;
+  const Real c = Real(1) - C;
 
   typename TOtherImage::RealType val;
   val = (c * (b * (a * input->Get(i, j, k, l) + A * input->Get(I, j, k, l))  +
@@ -407,12 +407,12 @@ GenericLinearInterpolateImageFunction<TImage>
   }
 
   Real wx[2], wy[2], wz[2];
-  wx[1] = x - i; wx[0] = 1.0 - wx[1];
-  wy[1] = y - j; wy[0] = 1.0 - wy[1];
-  wz[1] = z - k; wz[0] = 1.0 - wz[1];
+  wx[1] = Real(x - i); wx[0] = Real(1) - wx[1];
+  wy[1] = Real(y - j); wy[0] = Real(1) - wy[1];
+  wz[1] = Real(z - k); wz[0] = Real(1) - wz[1];
 
   RealType val = voxel_cast<RealType>(0);
-  Real     fgw = .0, bgw = .0, wyz, w;
+  Real     fgw(0), bgw(0), wyz, w;
 
   int ia, jb, kc;
   for (int c = 0; c <= 1; ++c) {
@@ -451,13 +451,13 @@ GenericLinearInterpolateImageFunction<TImage>
   const int l = static_cast<int>(floor(t));
 
   Real wx[2], wy[2], wz[2], wt[2];
-  wx[1] = x - i; wx[0] = 1.0 - wx[1];
-  wy[1] = y - j; wy[0] = 1.0 - wy[1];
-  wz[1] = z - k; wz[0] = 1.0 - wz[1];
-  wt[1] = t - l; wt[0] = 1.0 - wt[1];
+  wx[1] = Real(x - i); wx[0] = Real(1) - wx[1];
+  wy[1] = Real(y - j); wy[0] = Real(1) - wy[1];
+  wz[1] = Real(z - k); wz[0] = Real(1) - wz[1];
+  wt[1] = Real(t - l); wt[0] = Real(1) - wt[1];
 
   RealType val = voxel_cast<RealType>(0);
-  Real     nrm = .0, w;
+  Real     nrm(0), w;
 
   int ia, jb, kc, ld;
   for (int d = 0; d <= 1; ++d) {
@@ -502,13 +502,13 @@ GenericLinearInterpolateImageFunction<TImage>
   const int l = static_cast<int>(floor(t));
 
   Real wx[2], wy[2], wz[2], wt[2];
-  wx[1] = x - i; wx[0] = 1.0 - wx[1];
-  wy[1] = y - j; wy[0] = 1.0 - wy[1];
-  wz[1] = z - k; wz[0] = 1.0 - wz[1];
-  wt[1] = t - l; wt[0] = 1.0 - wt[1];
+  wx[1] = Real(x - i); wx[0] = Real(1) - wx[1];
+  wy[1] = Real(y - j); wy[0] = Real(1) - wy[1];
+  wz[1] = Real(z - k); wz[0] = Real(1) - wz[1];
+  wt[1] = Real(t - l); wt[0] = Real(1) - wt[1];
 
   RealType val = voxel_cast<RealType>(0);
-  Real     fgw = .0, bgw = .0, w;
+  Real     fgw(0), bgw(0), w;
 
   int ia, jb, kc, ld;
   for (int d = 0; d <= 1; ++d) {
@@ -552,14 +552,14 @@ GenericLinearInterpolateImageFunction<TImage>
   const int K = k + 1;
   const int L = l + 1;
 
-  const Real A = x - i;
-  const Real B = y - j;
-  const Real C = z - k;
-  const Real D = t - l;
-  const Real a = 1.0 - A;
-  const Real b = 1.0 - B;
-  const Real c = 1.0 - C;
-  const Real d = 1.0 - D;
+  const Real A = Real(x - i);
+  const Real B = Real(y - j);
+  const Real C = Real(z - k);
+  const Real D = Real(t - l);
+  const Real a = Real(1) - A;
+  const Real b = Real(1) - B;
+  const Real c = Real(1) - C;
+  const Real d = Real(1) - D;
 
   typename TOtherImage::RealType val;
   val = (d * (c * (b * (a * input->Get(i, j, k, l) + A * input->Get(I, j, k, l))   +
@@ -588,13 +588,13 @@ GenericLinearInterpolateImageFunction<TImage>
   const int l = static_cast<int>(floor(t));
 
   Real wx[2], wy[2], wz[2], wt[2];
-  wx[1] = x - i; wx[0] = 1.0 - wx[1];
-  wy[1] = y - j; wy[0] = 1.0 - wy[1];
-  wz[1] = z - k; wz[0] = 1.0 - wz[1];
-  wt[1] = t - l; wt[0] = 1.0 - wt[1];
+  wx[1] = Real(x - i); wx[0] = Real(1) - wx[1];
+  wy[1] = Real(y - j); wy[0] = Real(1) - wy[1];
+  wz[1] = Real(z - k); wz[0] = Real(1) - wz[1];
+  wt[1] = Real(t - l); wt[0] = Real(1) - wt[1];
 
   RealType val = voxel_cast<RealType>(0);
-  Real     fgw = .0, bgw = .0, wzt, wyzt, w;
+  Real     fgw(0), bgw(0), wzt, wyzt, w;
 
   int ia, jb, kc, ld;
   for (int d = 0; d <= 1; ++d) {
@@ -688,15 +688,15 @@ GenericLinearInterpolateImageFunction<TImage>
   const int k = static_cast<int>(round(z));
   const int l = static_cast<int>(round(t));
 
-  const Real A = x - i;
-  const Real B = y - j;
-  const Real a = 1.0 - A;
-  const Real b = 1.0 - B;
+  const Real A = Real(x - i);
+  const Real B = Real(y - j);
+  const Real a = Real(1) - A;
+  const Real b = Real(1) - B;
 
   const VoxelType *img;
   img = reinterpret_cast<const VoxelType *>(this->Input()->GetDataPointer(i, j, k, l));
-  return (b * (a * img[_Offset[0]] + A * img[_Offset[1]]) +
-          B * (a * img[_Offset[2]] + A * img[_Offset[3]]));
+  return voxel_cast<VoxelType>(b * (a * img[_Offset[0]] + A * img[_Offset[1]]) +
+                               B * (a * img[_Offset[2]] + A * img[_Offset[3]]));
 }
 
 // -----------------------------------------------------------------------------
@@ -710,19 +710,19 @@ GenericLinearInterpolateImageFunction<TImage>
   const int k = static_cast<int>(z);
   const int l = static_cast<int>(round(t));
 
-  const Real A = x - i;
-  const Real B = y - j;
-  const Real C = z - k;
-  const Real a = 1.0 - A;
-  const Real b = 1.0 - B;
-  const Real c = 1.0 - C;
+  const Real A = Real(x - i);
+  const Real B = Real(y - j);
+  const Real C = Real(z - k);
+  const Real a = Real(1) - A;
+  const Real b = Real(1) - B;
+  const Real c = Real(1) - C;
 
   const VoxelType *img;
   img = reinterpret_cast<const VoxelType *>(this->Input()->GetDataPointer(i, j, k, l));
-  return (c * (b * (a * img[_Offset[0]] + A * img[_Offset[1]])  +
-               B * (a * img[_Offset[2]] + A * img[_Offset[3]])) +
-          C * (b * (a * img[_Offset[4]] + A * img[_Offset[5]])  +
-               B * (a * img[_Offset[6]] + A * img[_Offset[7]])));
+  return voxel_cast<VoxelType>(c * (b * (a * img[_Offset[0]] + A * img[_Offset[1]])  +
+                                    B * (a * img[_Offset[2]] + A * img[_Offset[3]])) +
+                               C * (b * (a * img[_Offset[4]] + A * img[_Offset[5]])  +
+                                    B * (a * img[_Offset[6]] + A * img[_Offset[7]])));
 }
 
 // -----------------------------------------------------------------------------
@@ -736,25 +736,25 @@ GenericLinearInterpolateImageFunction<TImage>
   const int k = static_cast<int>(z);
   const int l = static_cast<int>(t);
 
-  const Real A = x - i;
-  const Real B = y - j;
-  const Real C = z - k;
-  const Real D = t - l;
-  const Real a = 1.0 - A;
-  const Real b = 1.0 - B;
-  const Real c = 1.0 - C;
-  const Real d = 1.0 - D;
+  const Real A = Real(x - i);
+  const Real B = Real(y - j);
+  const Real C = Real(z - k);
+  const Real D = Real(t - l);
+  const Real a = Real(1) - A;
+  const Real b = Real(1) - B;
+  const Real c = Real(1) - C;
+  const Real d = Real(1) - D;
 
   const VoxelType *img;
   img = reinterpret_cast<const VoxelType *>(this->Input()->GetDataPointer(i, j, k, l));
-  return (d * (c * (b * (a * img[_Offset[ 0]] + A * img[_Offset[ 1]])   +
-                    B * (a * img[_Offset[ 2]] + A * img[_Offset[ 3]]))  +
-               C * (b * (a * img[_Offset[ 4]] + A * img[_Offset[ 5]])   +
-                    B * (a * img[_Offset[ 6]] + A * img[_Offset[ 7]]))) +
-          D * (c * (b * (a * img[_Offset[ 8]] + A * img[_Offset[ 9]])   +
-                    B * (a * img[_Offset[10]] + A * img[_Offset[11]]))  +
-               C * (b * (a * img[_Offset[12]] + A * img[_Offset[13]])   +
-                    B * (a * img[_Offset[14]] + A * img[_Offset[15]]))));
+  return voxel_cast<VoxelType>(d * (c * (b * (a * img[_Offset[ 0]] + A * img[_Offset[ 1]])   +
+                                         B * (a * img[_Offset[ 2]] + A * img[_Offset[ 3]]))  +
+                                    C * (b * (a * img[_Offset[ 4]] + A * img[_Offset[ 5]])   +
+                                         B * (a * img[_Offset[ 6]] + A * img[_Offset[ 7]]))) +
+                               D * (c * (b * (a * img[_Offset[ 8]] + A * img[_Offset[ 9]])   +
+                                         B * (a * img[_Offset[10]] + A * img[_Offset[11]]))  +
+                                    C * (b * (a * img[_Offset[12]] + A * img[_Offset[13]])   +
+                                         B * (a * img[_Offset[14]] + A * img[_Offset[15]]))));
 }
 
 // -----------------------------------------------------------------------------

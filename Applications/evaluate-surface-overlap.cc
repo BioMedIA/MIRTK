@@ -17,6 +17,13 @@
  * limitations under the License.
  */
 
+#if defined(HAVE_FLANN) && defined(_MSC_VER)
+  #pragma warning(disable: 4267) // conversion from 'size_t'
+  #ifndef _SCL_SECURE_NO_WARNINGS
+    #define _SCL_SECURE_NO_WARNINGS
+  #endif
+#endif
+
 #include <mirtkCommon.h>
 #include <mirtkOptions.h>
 
@@ -38,8 +45,14 @@
   // argument is of floating point type" caused by use of abs function
   // in kdtree_index.h of FLANN. Using std::abs fixes the issue.
   using std::abs;
+  // Disable MSVC warnings
+  #if defined(_MSC_VER)
+    #pragma warning(push)
+    #pragma warning(disable: 4267) // conversion from 'size_t'
+    #pragma warning(disable: 4291) // no matching operator delete found
+    #pragma warning(disable: 4996) // _CRT_SECURE_NO_WARNINGS
   // Disable "Unused typedef 'ElementType'" in flann/ground_truth.h
-  #if defined(__GNUG__)
+  #elif defined(__GNUG__)
     #pragma GCC diagnostic push
     #pragma GCC diagnostic ignored "-Wunused-local-typedefs"
   #elif defined __clang__
@@ -49,7 +62,9 @@
   // Include FLANN
   #include <flann/flann.hpp>
   // Enable warnings again
-  #if defined(__GNUG__)
+  #if defined(_MSC_VER)
+    #pragma warning(pop)
+  #elif defined(__GNUG__)
     #pragma GCC diagnostic pop
   #elif defined __clang__
     #pragma clang diagnostic pop

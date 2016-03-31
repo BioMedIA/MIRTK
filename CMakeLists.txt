@@ -40,6 +40,11 @@ include(BasisSettings)
 include(BasisTools)
 include(mirtkTools)
 
+# Reset global properties used to collect information about MIRTK commands
+# and the LD_LIBRARY_PATH of external libraries required by these
+set_property(GLOBAL PROPERTY MIRTK_COMMANDS     "")
+set_property(GLOBAL PROPERTY MIRTK_LIBRARY_PATH "")
+
 # ----------------------------------------------------------------------------
 # Configure build system
 
@@ -60,7 +65,7 @@ endif ()
 # Note: Added as first application because mirtk_add_executable adds a
 #       dependency on this target for each command to generate the documentation
 #       when BUILD_DOCUMENTATION is ON.
-if (BUILD_APPLICATIONS)
+if (BUILD_APPLICATIONS AND TARGET mirtk)
   basis_add_executable(help-rst "${PROJECT_TOOLS_DIR}/help-rst.py" LIBEXEC)
   basis_set_target_properties(help-rst PROPERTIES
     OUTPUT_DIRECTORY "${BINARY_LIBEXEC_DIR}/mirtk"

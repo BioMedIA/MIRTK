@@ -249,7 +249,7 @@ int main(int argc, char **argv)
   GenericImage<float> output(attr);
   const int nvox = output.NumberOfVoxels();
   int ntuple = 0;
-  int ntotal = dofin_name.size() / dofs.size();
+  int ntotal = static_cast<int>(dofin_name.size() / dofs.size());
 
   size_t i, j;
   double x2, y2, z2, d;

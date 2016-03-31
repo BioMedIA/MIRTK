@@ -23,15 +23,15 @@ namespace mirtk {
 
 
 // Lookup table of B-spline function values
-template <class TReal> TReal BSpline<TReal>::WeightLookupTable[BSpline<TReal>::LookupTableSize];
+template <class TReal> MIRTK_Numerics_EXPORT TReal BSpline<TReal>::WeightLookupTable[BSpline<TReal>::LookupTableSize];
 
 // Lookup table of B-spline basis function values
-template <class TReal> TReal BSpline<TReal>::LookupTable   [BSpline<TReal>::LookupTableSize][4];
-template <class TReal> TReal BSpline<TReal>::LookupTable_I [BSpline<TReal>::LookupTableSize][4];
-template <class TReal> TReal BSpline<TReal>::LookupTable_II[BSpline<TReal>::LookupTableSize][4];
+template <class TReal> MIRTK_Numerics_EXPORT TReal BSpline<TReal>::LookupTable   [BSpline<TReal>::LookupTableSize][4];
+template <class TReal> MIRTK_Numerics_EXPORT TReal BSpline<TReal>::LookupTable_I [BSpline<TReal>::LookupTableSize][4];
+template <class TReal> MIRTK_Numerics_EXPORT TReal BSpline<TReal>::LookupTable_II[BSpline<TReal>::LookupTableSize][4];
 
 // Wether lookup tables of B-spline kernel were initialized
-template <class TReal> bool BSpline<TReal>::_initialized = false;
+template <class TReal> MIRTK_Numerics_EXPORT bool BSpline<TReal>::_initialized = false;
 
 // Explicit template instantiations
 template class BSpline<float>;

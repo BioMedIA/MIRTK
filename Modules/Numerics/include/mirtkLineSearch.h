@@ -137,9 +137,7 @@ public:
     }                                                                          \
     /** Line search strategy implemented by this line search */                \
     virtual mirtk::LineSearchStrategy Strategy() const { return strategy; }    \
-  private:                                                                     \
-  /* require developer to end macro with a semicolon */                        \
-  static void _mirtkLineSearchMacro_needs_trailing_semicolon()
+  private:
 
 ////////////////////////////////////////////////////////////////////////////////
 // Inline definitions

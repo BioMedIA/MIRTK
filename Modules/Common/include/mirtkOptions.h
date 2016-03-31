@@ -27,6 +27,8 @@
 #include <mirtkProfiling.h>
 #include <mirtkTerminal.h>
 
+#include <mirtkCommonExport.h>
+
 
 /*
    \file  mirtkOptions.h
@@ -95,12 +97,12 @@ namespace mirtk {
 // =============================================================================
 
 /// Verbosity of output messages
-extern int verbose;
+MIRTK_Common_EXPORT extern int verbose;
 
 /// Debug level, e.g., amount of intermediate data to write to disk
 /// This flag can be combined with verbose after parsing the command options.
 /// For example, "if (debug) verbose = 100;", or treated separately.
-extern int debug;
+MIRTK_Common_EXPORT extern int debug;
 
 // =============================================================================
 // Standard options
@@ -267,11 +269,11 @@ void PrintCommonOptions(ostream &);
 // Private global variables/functions used by command-line parsing macros
 // =============================================================================
 
-extern int         _posargc;                // Number of required positional arguments
-extern int         _numposarg;              // Number of positional arguments
-extern bool        _discard_parsed_posargs; // Whether to discard or keep parsed positional arguments
-extern bool        _discard_parsed_options; // Whether to discard or keep parsed options
-extern const char *_option;                 // Current option being parsed
+MIRTK_Common_EXPORT extern int         _posargc;                // Number of required positional arguments
+MIRTK_Common_EXPORT extern int         _numposarg;              // Number of positional arguments
+MIRTK_Common_EXPORT extern bool        _discard_parsed_posargs; // Whether to discard or keep parsed positional arguments
+MIRTK_Common_EXPORT extern bool        _discard_parsed_options; // Whether to discard or keep parsed options
+MIRTK_Common_EXPORT extern const char *_option;                 // Current option being parsed
 
 int _GetNumberOfPositionalArguments(int, char *[]);
 

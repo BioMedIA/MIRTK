@@ -226,17 +226,17 @@ void NiftiImageReader::ReadHeader()
     mat_44.m[2][2] =  abs(_Nifti->nim->pixdim[3]);
 
     // off diagonal is zero
-    mat_44.m[0][1] = mat_44.m[0][2] = 0.0;
-    mat_44.m[1][0] = mat_44.m[1][2] = 0.0;
-    mat_44.m[2][0] = mat_44.m[2][1] = 0.0;
+    mat_44.m[0][1] = mat_44.m[0][2] = .0f;
+    mat_44.m[1][0] = mat_44.m[1][2] = .0f;
+    mat_44.m[2][0] = mat_44.m[2][1] = .0f;
 
     // Apart from (inverted) offset in last column for origin to become (0,0,0) below
-    mat_44.m[0][3] =  _Attributes._dx * (_Nifti->nim->dim[1] - 1) / 2.0;
-    mat_44.m[1][3] = -_Attributes._dy * (_Nifti->nim->dim[2] - 1) / 2.0;
-    mat_44.m[2][3] = -_Attributes._dz * (_Nifti->nim->dim[3] - 1) / 2.0;
+    mat_44.m[0][3] =   static_cast<float>(_Attributes._dx * (_Nifti->nim->dim[1] - 1)) / 2.0f;
+    mat_44.m[1][3] = - static_cast<float>(_Attributes._dy * (_Nifti->nim->dim[2] - 1)) / 2.0f;
+    mat_44.m[2][3] = - static_cast<float>(_Attributes._dz * (_Nifti->nim->dim[3] - 1)) / 2.0f;
 
     // last row is always [ 0 0 0 1 ]
-    mat_44.m[3][0] = mat_44.m[3][1] = mat_44.m[3][2] = 0.0; mat_44.m[3][3 ]= 1.0 ;
+    mat_44.m[3][0] = mat_44.m[3][1] = mat_44.m[3][2] = .0f, mat_44.m[3][3 ]= 1.0f;
 
     // Invert
     mat_inv_44 = nifti_mat44_inverse(mat_44);
@@ -254,30 +254,30 @@ void NiftiImageReader::ReadHeader()
   // Set axis orientation, including zaxis.
   // Need to preserve sign of axis, hence use absolute pixel sizes for descaling.
   for (int i = 0; i < 3; i++) {
-    _Attributes._xaxis[i] = mat_44.m[i][0] / _Attributes._dx;
-    _Attributes._yaxis[i] = mat_44.m[i][1] / _Attributes._dy;
-    _Attributes._zaxis[i] = mat_44.m[i][2] / _Attributes._dz;
+    _Attributes._xaxis[i] = static_cast<double>(mat_44.m[i][0]) / _Attributes._dx;
+    _Attributes._yaxis[i] = static_cast<double>(mat_44.m[i][1]) / _Attributes._dy;
+    _Attributes._zaxis[i] = static_cast<double>(mat_44.m[i][2]) / _Attributes._dz;
   }
 
   // Convert between nifti and  coordinate systems
   // See https://www.fmrib.ox.ac.uk/ibim/uploads/coordtransforms.pdf
   Matrix D(4, 4), D_inv(4, 4), M(4, 4), R;
   for (int j = 0; j < 4; j++) {
-    M(j, j) = 1;
+    M(j, j) = 1.0;
     for (int i = 0; i < 4; i++) {
-      D(i, j)     = mat_44.m[i][j];
-      D_inv(i, j) = mat_inv_44.m[i][j];
+      D(i, j)     = static_cast<double>(mat_44    .m[i][j]);
+      D_inv(i, j) = static_cast<double>(mat_inv_44.m[i][j]);
     }
   }
   for (int i = 0; i < 3; i++) {
-    M(i, 3) = (_Nifti->nim->dim[i+1] - 1) / 2.0;
+    M(i, 3) = static_cast<double>(_Nifti->nim->dim[i+1] - 1) / 2.0;
   }
   R = D * M * D_inv;
 
   // Set image origin by adding q/sform offset to third column of R:
-  _Attributes._xorigin = R(0, 3) + mat_44.m[0][3];
-  _Attributes._yorigin = R(1, 3) + mat_44.m[1][3];
-  _Attributes._zorigin = R(2, 3) + mat_44.m[2][3];
+  _Attributes._xorigin = R(0, 3) + static_cast<double>(mat_44.m[0][3]);
+  _Attributes._yorigin = R(1, 3) + static_cast<double>(mat_44.m[1][3]);
+  _Attributes._zorigin = R(2, 3) + static_cast<double>(mat_44.m[2][3]);
 
   // Set temporal origin
   _Attributes._torigin = _Nifti->nim->toffset;
@@ -384,7 +384,7 @@ void NiftiImageReader::Print() const
     cout << "default transformation.\n";
   }
 
-  if (mat.Det() < 0.0) {
+  if (mat.Det() < .0) {
     cout << "Order is radiological\n";
   } else {
     cout << "Order is neurological\n";

@@ -230,8 +230,8 @@ public:
     for (int j = r.rows().begin(); j != r.rows().end(); ++j)
     for (int i = r.cols().begin(); i != r.cols().end(); ++i) {
       _LieBracketFilter->Run(vec, i, j);
-      _Output->Put(i, j, 0, 0, vec[0]);
-      _Output->Put(i, j, 0, 1, vec[1]);
+      _Output->PutAsDouble(i, j, 0, 0, vec[0]);
+      _Output->PutAsDouble(i, j, 0, 1, vec[1]);
     }
   }
 };

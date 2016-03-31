@@ -218,9 +218,17 @@ set(SOURCES
   mirtkVoxel.cc
 )
 
-set(DEPENDS LibCommon LibNumerics)
-if (TBB_FOUND)
-  list(APPEND DEPENDS ${TBB_LIBRARIES})
+set(DEPENDS
+  LibCommon
+  LibNumerics
+)
+
+if (TARGET TBB::tbb)
+  list(APPEND DEPENDS TBB::tbb)
+endif ()
+
+if (VTK_FOUND)
+  list(APPEND DEPENDS ${VTK_LIBRARIES})
 endif ()
 
 # ------------------------------------------------------------------------------
@@ -238,7 +246,6 @@ set(FOREACHVOXELFUNCTIONS
 )
 
 foreach(f IN LISTS FOREACHVOXELFUNCTIONS)
-  find_package(PythonInterp REQUIRED)
   string(REGEX REPLACE "ForEach|VoxelFunction" "" arity "${f}")
   string(TOLOWER "${arity}" arity)
   add_custom_command(

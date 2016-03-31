@@ -37,6 +37,19 @@
 #endif
 
 #include <mirtkEigen.h>
+
+#ifdef _MSC_VER
+#  pragma warning(push)
+#  pragma warning(disable: 4244) // eigen\src/QR/FullPivHouseholderQR.h(125):
+ // warning C4244: 'argument':
+ // conversion from '__int64' to 'int',
+ // possible loss of data
+#endif
+#include <Eigen/QR> // included by Eigen/SVD
+#ifdef _MSC_VER
+#  pragma warning(pop)
+#endif
+
 #include <Eigen/LU>
 #include <Eigen/SVD>
 #include <Eigen/Eigenvalues>
@@ -1586,7 +1599,7 @@ Matrix ApproximateAffineMatrix(const PointSet &target, const PointSet &source, c
   typedef Eigen::Matrix<double, 4, 3>              Matrix4x3;
   typedef Eigen::Matrix<double, 4, 1>              Vector4;
   typedef Eigen::FullPivHouseholderQR<Matrix4x4>   DenseSolver;
-
+ 
   // Convert point sets to matrices and apply landmark weights
   Matrix4xN q(4, no);
   Matrix3xN p(3, no);

@@ -59,7 +59,7 @@ TData InitialCausalCoefficient(TData c[], int n, TReal z, TReal tol)
   } else {
     const TReal iz  = TReal(1) / z;
     TReal       zn  = z;
-    TReal       z2n = pow(z, static_cast<TReal>(n - 1));
+    TReal       z2n = pow(z, TReal(n - 1));
     sum  = c[0] + z2n * c[n - 1];
     z2n *= z2n * iz;
     for (int i = 1; i <= n - 2; ++i) {
@@ -129,18 +129,16 @@ struct ConvertToInterpolationCoefficientsXFunc : public ConvertToInterpolationCo
 
   void operator()(const blocked_range3d<int> &re) const
   {
-    TData *data = new TData[this->_image.GetX()];
-    for (int l = re.pages().begin(); l != re.pages().end(); ++l) {
-      for (int k = re.rows().begin(); k != re.rows().end(); ++k) {
-        for (int j = re.cols().begin(); j != re.cols().end(); ++j) {
-          for (int i = 0; i < this->_image.GetX(); ++i) {
-            data[i] = this->_image(i, j, k, l);
-          }
-          this->Process(data, this->_image.GetX());
-          for (int i = 0; i < this->_image.GetX(); ++i) {
-            this->_image(i, j, k, l) = data[i];
-          }
-        }
+    TData *data = new TData[this->_image.X()];
+    for (int l = re.pages().begin(); l != re.pages().end(); ++l)
+    for (int k = re.rows ().begin(); k != re.rows ().end(); ++k)
+    for (int j = re.cols ().begin(); j != re.cols ().end(); ++j) {
+      for (int i = 0; i < this->_image.X(); ++i) {
+        data[i] = this->_image(i, j, k, l);
+      }
+      this->Process(data, this->_image.X());
+      for (int i = 0; i < this->_image.X(); ++i) {
+        this->_image(i, j, k, l) = data[i];
       }
     }
     delete[] data;
@@ -148,16 +146,16 @@ struct ConvertToInterpolationCoefficientsXFunc : public ConvertToInterpolationCo
 
   void operator()(int l = -1)
   {
-    int L = this->_image.GetT();
-    if (0 <= l && l < this->_image.GetT()) L = l+1;
-    else                                   l = 0;
-    blocked_range3d<int> re(l, L, 0, this->_image.GetZ(), 0, this->_image.GetY());
+    int L = this->_image.T();
+    if (0 <= l && l < this->_image.T()) L = l+1;
+    else                                l = 0;
+    blocked_range3d<int> re(l, L, 0, this->_image.Z(), 0, this->_image.Y());
     parallel_for(re, *this);
   }
 
   void operator()(int k, int l)
   {
-    blocked_range3d<int> re(l, l+1, k, k+1, 0, this->_image.GetY());
+    blocked_range3d<int> re(l, l+1, k, k+1, 0, this->_image.Y());
     parallel_for(re, *this);
   }
 };
@@ -173,18 +171,16 @@ struct ConvertToInterpolationCoefficientsYFunc : public ConvertToInterpolationCo
 
   void operator()(const blocked_range3d<int> &re) const
   {
-    TData *data = new TData[this->_image.GetY()];
-    for (int l = re.pages().begin(); l != re.pages().end(); ++l) {
-      for (int k = re.rows().begin(); k != re.rows().end(); ++k) {
-        for (int i = re.cols().begin(); i != re.cols().end(); ++i) {
-          for (int j = 0; j < this->_image.GetY(); ++j) {
-            data[j] = this->_image(i, j, k, l);
-          }
-          this->Process(data, this->_image.GetY());
-          for (int j = 0; j < this->_image.GetY(); ++j) {
-            this->_image(i, j, k, l) = data[j];
-          }
-        }
+    TData *data = new TData[this->_image.Y()];
+    for (int l = re.pages().begin(); l != re.pages().end(); ++l)
+    for (int k = re.rows ().begin(); k != re.rows ().end(); ++k)
+    for (int i = re.cols ().begin(); i != re.cols ().end(); ++i) {
+      for (int j = 0; j < this->_image.Y(); ++j) {
+        data[j] = this->_image(i, j, k, l);
+      }
+      this->Process(data, this->_image.Y());
+      for (int j = 0; j < this->_image.Y(); ++j) {
+        this->_image(i, j, k, l) = data[j];
       }
     }
     delete[] data;
@@ -192,16 +188,16 @@ struct ConvertToInterpolationCoefficientsYFunc : public ConvertToInterpolationCo
 
   void operator()(int l = -1)
   {
-    int L = this->_image.GetT();
-    if (0 <= l && l < this->_image.GetT()) L = l+1;
-    else                                   l = 0;
-    blocked_range3d<int> re(l, L, 0, this->_image.GetZ(), 0, this->_image.GetX());
+    int L = this->_image.T();
+    if (0 <= l && l < this->_image.T()) L = l+1;
+    else                                l = 0;
+    blocked_range3d<int> re(l, L, 0, this->_image.Z(), 0, this->_image.X());
     parallel_for(re, *this);
   }
 
   void operator()(int k, int l)
   {
-    blocked_range3d<int> re(l, l+1, k, k+1, 0, this->_image.GetX());
+    blocked_range3d<int> re(l, l+1, k, k+1, 0, this->_image.X());
     parallel_for(re, *this);
   }
 };
@@ -217,18 +213,16 @@ struct ConvertToInterpolationCoefficientsZFunc : public ConvertToInterpolationCo
 
   void operator()(const blocked_range3d<int> &re) const
   {
-    TData *data = new TData[this->_image.GetZ()];
-    for (int l = re.pages().begin(); l != re.pages().end(); ++l) {
-      for (int j = re.rows().begin(); j != re.rows().end(); ++j) {
-        for (int i = re.cols().begin(); i != re.cols().end(); ++i) {
-          for (int k = 0; k < this->_image.GetZ(); ++k) {
-            data[k] = this->_image(i, j, k, l);
-          }
-          this->Process(data, this->_image.GetZ());
-          for (int k = 0; k < this->_image.GetZ(); ++k) {
-            this->_image(i, j, k, l) = data[k];
-          }
-        }
+    TData *data = new TData[this->_image.Z()];
+    for (int l = re.pages().begin(); l != re.pages().end(); ++l)
+    for (int j = re.rows ().begin(); j != re.rows ().end(); ++j)
+    for (int i = re.cols ().begin(); i != re.cols ().end(); ++i) {
+      for (int k = 0; k < this->_image.Z(); ++k) {
+        data[k] = this->_image(i, j, k, l);
+      }
+      this->Process(data, this->_image.Z());
+      for (int k = 0; k < this->_image.Z(); ++k) {
+        this->_image(i, j, k, l) = data[k];
       }
     }
     delete[] data;
@@ -236,10 +230,10 @@ struct ConvertToInterpolationCoefficientsZFunc : public ConvertToInterpolationCo
 
   void operator()(int l = -1)
   {
-    int L = this->_image.GetT();
-    if (0 <= l && l < this->_image.GetT()) L = l+1;
-    else                                   l = 0;
-    blocked_range3d<int> re(l, L, 0, this->_image.GetY(), 0, this->_image.GetX());
+    int L = this->_image.T();
+    if (0 <= l && l < this->_image.T()) L = l+1;
+    else                                l = 0;
+    blocked_range3d<int> re(l, L, 0, this->_image.Y(), 0, this->_image.X());
     parallel_for(re, *this);
   }
 };
@@ -255,18 +249,16 @@ struct ConvertToInterpolationCoefficientsTFunc : public ConvertToInterpolationCo
 
   void operator()(const blocked_range3d<int> &re) const
   {
-    TData *data = new TData[this->_image.GetT()];
-    for (int k = re.pages().begin(); k != re.pages().end(); ++k) {
-      for (int j = re.rows().begin(); j != re.rows().end(); ++j) {
-        for (int i = re.cols().begin(); i != re.cols().end(); ++i) {
-          for (int l = 0; l < this->_image.GetT(); ++l) {
-            data[l] = this->_image(i, j, k, l);
-          }
-          this->Process(data, this->_image.GetT());
-          for (int l = 0; l < this->_image.GetT(); ++l) {
-            this->_image(i, j, k, l) = data[l];
-          }
-        }
+    TData *data = new TData[this->_image.T()];
+    for (int k = re.pages().begin(); k != re.pages().end(); ++k)
+    for (int j = re.rows ().begin(); j != re.rows ().end(); ++j)
+    for (int i = re.cols ().begin(); i != re.cols ().end(); ++i) {
+      for (int l = 0; l < this->_image.T(); ++l) {
+        data[l] = this->_image(i, j, k, l);
+      }
+      this->Process(data, this->_image.T());
+      for (int l = 0; l < this->_image.T(); ++l) {
+        this->_image(i, j, k, l) = data[l];
       }
     }
     delete[] data;
@@ -274,7 +266,7 @@ struct ConvertToInterpolationCoefficientsTFunc : public ConvertToInterpolationCo
 
   void operator()()
   {
-    blocked_range3d<int> re(0, this->_image.GetZ(), 0, this->_image.GetY(), 0, this->_image.GetX());
+    blocked_range3d<int> re(0, this->_image.Z(), 0, this->_image.Y(), 0, this->_image.X());
     parallel_for(re, *this);
   }
 };
@@ -318,7 +310,7 @@ void ConvertToInterpolationCoefficients(GenericImage<TData> &image, const TReal 
   ConvertToInterpolationCoefficientsX(image, z, npoles);
   ConvertToInterpolationCoefficientsY(image, z, npoles);
   ConvertToInterpolationCoefficientsZ(image, z, npoles);
-  if (image.GetTSize() && image.GetT() > 1) {
+  if (image.TSize() != .0 && image.T() > 1) {
     ConvertToInterpolationCoefficientsT(image, z, npoles);
   }
 }
@@ -388,21 +380,21 @@ void SplinePoles(int degree, TReal pole[2], int &npoles)
   switch (degree) {
     case 2:
       npoles = 1;
-      pole[0] = sqrt(8.0) - 3.0;
+      pole[0] = TReal(sqrt(8.0) - 3.0);
       break;
     case 3:
       npoles = 1;
-      pole[0] = sqrt(3.0) - 2.0;
+      pole[0] = TReal(sqrt(3.0) - 2.0);
       break;
     case 4:
       npoles = 2;
-      pole[0] = sqrt(664.0 - sqrt(438976.0)) + sqrt(304.0) - 19.0;
-      pole[1] = sqrt(664.0 + sqrt(438976.0)) - sqrt(304.0) - 19.0;
+      pole[0] = TReal(sqrt(664.0 - sqrt(438976.0)) + sqrt(304.0) - 19.0);
+      pole[1] = TReal(sqrt(664.0 + sqrt(438976.0)) - sqrt(304.0) - 19.0);
       break;
     case 5:
       npoles = 2;
-      pole[0] = sqrt(135.0 / 2.0 - sqrt(17745.0 / 4.0)) + sqrt(105.0 / 4.0) - 13.0 / 2.0;
-      pole[1] = sqrt(135.0 / 2.0 + sqrt(17745.0 / 4.0)) - sqrt(105.0 / 4.0) - 13.0 / 2.0;
+      pole[0] = TReal(sqrt(135.0 / 2.0 - sqrt(17745.0 / 4.0)) + sqrt(105.0 / 4.0) - 13.0 / 2.0);
+      pole[1] = TReal(sqrt(135.0 / 2.0 + sqrt(17745.0 / 4.0)) - sqrt(105.0 / 4.0) - 13.0 / 2.0);
       break;
     default:
       cerr << "SplinePoles: Unsupported spline degree: " << degree << endl;

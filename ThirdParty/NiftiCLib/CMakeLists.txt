@@ -15,12 +15,22 @@ basis_add_library(nifticlib STATIC
   niftilib/nifti1_io.h
   niftilib/nifti1_io.c
 )
+basis_get_target_uid(target_uid nifticlib)
 
-if (ZLIB_FOUND)
-  target_link_libraries(nifticlib ${ZLIB_LIBRARIES})
+if (MSVC)
+  # disable all function not secure warnings
+  target_compile_definitions(${target_uid} PRIVATE _CRT_SECURE_NO_WARNINGS)
+  # disable all conversion from double to float loss of data warnings
+  target_compile_options(${target_uid} PRIVATE /wd4244)
+  # disable all conversion from size_t to int loss of data and sign warnings
+  target_compile_options(${target_uid} PRIVATE /wd4267)
 endif ()
 
-set_target_properties(nifticlib PROPERTIES
+if (ZLIB_FOUND)
+  target_link_libraries(${target_uid} ${ZLIB_LIBRARIES})
+endif ()
+
+set_target_properties(${target_uid} PROPERTIES
   ARCHIVE_OUTPUT_NAME       MIRTKnifticlib
   POSITION_INDEPENDENT_CODE ${BUILD_SHARED_LIBS}
 )

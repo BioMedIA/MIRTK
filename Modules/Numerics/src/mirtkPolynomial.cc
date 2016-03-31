@@ -189,7 +189,7 @@ double Polynomial::Fit(const Matrix &x, const Vector &y)
   // Build design matrix
   Eigen::MatrixXd A(n, NumberOfActiveTerms());
   Eigen::VectorXd b = VectorToEigen(y);
-  Vector scale(A.cols());
+  Vector scale(static_cast<int>(A.cols()));
   double t;
 
   A.setOnes(), scale = 1.0;

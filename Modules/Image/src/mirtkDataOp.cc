@@ -24,6 +24,7 @@
 #include <mirtkBaseImage.h>
 #include <mirtkImageAttributes.h>
 
+#include <mirtkImageConfig.h>
 #if MIRTK_Image_WITH_VTK
   #include <vtkSmartPointer.h>
   #include <vtkDataSetReader.h>

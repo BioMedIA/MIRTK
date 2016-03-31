@@ -75,8 +75,8 @@ basis_project (
     }"
     #<dependency>
   OPTIONAL_DEPENDS
-    FLANN
-    TBB
+    FLANN{cpp_static}
+    TBB{tbb}
     #<optional-dependency>
   TEST_DEPENDS
     GTest

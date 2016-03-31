@@ -80,7 +80,7 @@ template <class TImage>
 void GenericLinearImageGradientFunction<TImage>
 ::BoundingInterval(double x, int &i, int &I) const
 {
-  i = static_cast<int>(floor(x - .5)), I = i + 2;
+  i = ifloor(x - .5), I = i + 2;
 }
 
 // =============================================================================

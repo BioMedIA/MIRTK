@@ -20,6 +20,8 @@
 #ifndef MIRTK_Math_H
 #define MIRTK_Math_H
 
+#include <mirtkCommonExport.h>
+
 #include <mirtkConfig.h>
 #include <mirtkStream.h>
 #include <mirtkCutilMath.h>
@@ -39,19 +41,19 @@ namespace mirtk {
 // =============================================================================
 
 /// Constant value of \f$ \pi \f$
-extern const double pi;
+MIRTK_Common_EXPORT extern const double pi;
 
 /// Constant value of \f$ 2\pi \f$
-extern const double two_pi;
+MIRTK_Common_EXPORT extern const double two_pi;
 
 /// Constant value of \f$ \pi / 2 \f$
-extern const double pi_half;
+MIRTK_Common_EXPORT extern const double pi_half;
 
 /// Radians per degree, i.e., \f$ \pi / 180 \f$
-extern const double rad_per_deg;
+MIRTK_Common_EXPORT extern const double rad_per_deg;
 
 /// Degree per radian, i.e., \f$ 180 / \pi \f$
-extern const double deg_per_rad;
+MIRTK_Common_EXPORT extern const double deg_per_rad;
 
 // =============================================================================
 // C/C++ library functions
@@ -81,8 +83,8 @@ using std::copysign;
 /// Check if floating point value is not a number (NaN)
 MIRTKCU_API inline bool IsNaN(double x)
 {
-#if WINDOWS
-  return _isnan(x);
+#ifdef WINDOWS
+  return (_isnan(x) != 0);
 #else
   return ::isnan(x);
 #endif
@@ -92,7 +94,7 @@ MIRTKCU_API inline bool IsNaN(double x)
 /// Check if floating point value represents infinity
 MIRTKCU_API inline bool IsInf(double x)
 {
-#if WINDOWS
+#ifdef WINDOWS
   return !_finite(x);
 #else
   return ::isinf(x);
