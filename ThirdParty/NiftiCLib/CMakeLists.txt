@@ -32,5 +32,6 @@ endif ()
 
 set_target_properties(${target_uid} PROPERTIES
   ARCHIVE_OUTPUT_NAME       MIRTKnifticlib
+  DEBUG_POSTFIX             D
   POSITION_INDEPENDENT_CODE ${BUILD_SHARED_LIBS}
 )

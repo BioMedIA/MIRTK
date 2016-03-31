@@ -63,14 +63,21 @@ function(mirtk_add_library)
       SOVERSION     "${PROJECT_SOVERSION}"
       OUTPUT_NAME   "${PROJECT_PACKAGE_NAME}${PROJECT_NAME}"
       DEFINE_SYMBOL "MIRTK_${PROJECT_NAME}_EXPORTS"
+      DEBUG_POSTFIX D
   )
   target_include_directories(${target_uid}
     PUBLIC $<BUILD_INTERFACE:${PROJECT_INCLUDE_DIR}>
            $<INSTALL_INTERFACE:${INSTALL_INCLUDE_DIR}>
     PRIVATE ${PROJECT_CODE_DIR}
   )
-  if (TARGET_AUTO_REGISTER AND BUILD_SHARED_LIBS)
-    target_compile_definitions(${target_uid} PRIVATE MIRTK_AUTO_REGISTER)
+  if (BUILD_SHARED_LIBS)
+    if (TARGET_AUTO_REGISTER)
+      target_compile_definitions(${target_uid} PRIVATE MIRTK_AUTO_REGISTER)
+    endif ()
+  else ()
+    if (WIN32)
+      set_target_properties(${target_uid} PROPERTIES SUFFIX "_s.lib")
+    endif ()
   endif ()
   # VTK 7.0.0 adds its CMake modules directory to CMAKE_MODULE_PATH
   # and this directory contains a GenerateExportHeader.cmake module

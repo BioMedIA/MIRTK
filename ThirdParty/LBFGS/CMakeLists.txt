@@ -10,5 +10,6 @@ basis_add_library(lbfgs STATIC
 
 set_target_properties(lbfgs PROPERTIES
   ARCHIVE_OUTPUT_NAME       MIRTKlbfgs
+  DEBUG_POSTFIX             D
   POSITION_INDEPENDENT_CODE ${BUILD_SHARED_LIBS}
 )
