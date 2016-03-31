@@ -54,7 +54,7 @@ macro (find_package)
   list (APPEND _BASIS_FIND_LIBRARY_SUFFIXES "{${CMAKE_FIND_LIBRARY_SUFFIXES}}")
   list (APPEND _BASIS_FIND_EXECUTABLE_SUFFIX "${CMAKE_FIND_EXECUTABLE_SUFFIX}")
   _find_package(${ARGV})
-  # map obsolete <PKG>_* variables to case-sensitive <Pkg>_*
+  # map common uppercase <PKG>_* variables to case-preserving <Pkg>_*
   string (TOUPPER "${ARGV0}" _FP_ARGV0_U)
   foreach (_FP_VAR IN ITEMS FOUND DIR USE_FILE
                             VERSION VERSION_STRING
@@ -63,7 +63,7 @@ macro (find_package)
                             INCLUDE_DIR INCLUDE_DIRS INCLUDE_PATH
                             LIBRARY_DIR LIBRARY_DIRS LIBRARY_PATH
                             EXECUTABLE COMPILER CONVERTER)
-    if (NOT DEFINED ${ARGV0}_${_FP_VAR} AND DEFINED ${_FP_ARGV0_U}_${_FP_VAR})
+    if (NOT ${ARGV0}_${_FP_VAR} AND DEFINED ${_FP_ARGV0_U}_${_FP_VAR})
       set (${ARGV0}_${_FP_VAR} "${${_FP_ARGV0_U}_${_FP_VAR}}")
     endif ()
   endforeach ()
