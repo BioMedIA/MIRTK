@@ -45,36 +45,37 @@ include(mirtkTools)
 set_property(GLOBAL PROPERTY MIRTK_COMMANDS     "")
 set_property(GLOBAL PROPERTY MIRTK_LIBRARY_PATH "")
 
+if (WIN32)
+  set(COMMANDS_SUBDIR Tools)
+else ()
+  set(COMMANDS_SUBDIR tools)
+endif ()
+set_property(GLOBAL PROPERTY MIRTK_COMMANDS_SUBDIR ${COMMANDS_SUBDIR})
+
 # ----------------------------------------------------------------------------
 # Configure build system
 
 # Initialize project
 mirtk_project_begin()
 
-# Main "mirtk" script
+# Main "mirtk" executable
 #
 # This wrapper script sets up the environment and executes the specified
 # subcommand. Do not use mirtk_add_executable which is only used for
-# commands that are executed by this wrapper script.
+# commands that are executed by this wrapper script. It is added here
+# because help-rst depends on it and the help-rst target must be defined
+# before mirtk_add_executable can be used when BUILD_DOCUMENTATION=ON.
 if (BUILD_APPLICATIONS)
-  basis_add_executable("${PROJECT_TOOLS_DIR}/mirtk.py")
+  basis_add_executable(mirtk "${PROJECT_TOOLS_DIR}/mirtk.py")
 endif ()
 
 # Add auxiliary command used to (re-)format help output
-#
-# Note: Added as first application because mirtk_add_executable adds a
-#       dependency on this target for each command to generate the documentation
-#       when BUILD_DOCUMENTATION is ON.
 if (BUILD_APPLICATIONS AND TARGET mirtk)
   basis_add_executable(help-rst "${PROJECT_TOOLS_DIR}/help-rst.py" LIBEXEC)
   basis_set_target_properties(help-rst PROPERTIES
-    OUTPUT_DIRECTORY "${BINARY_LIBEXEC_DIR}/mirtk"
+    OUTPUT_DIRECTORY  "${BINARY_LIBEXEC_DIR}/${COMMANDS_SUBDIR}"
+    INSTALL_DIRECTORY "${INSTALL_LIBEXEC_DIR}/${COMMANDS_SUBDIR}"
   )
-  if (NOT INSTALL_LIBEXEC_DIR MATCHES "/mirtk/*$")
-    basis_set_target_properties(help-rst PROPERTIES
-      INSTALL_DIRECTORY "${INSTALL_LIBEXEC_DIR}/mirtk"
-    )
-  endif ()
   basis_add_dependencies(help-rst mirtk)
 endif ()
 
@@ -89,7 +90,7 @@ foreach (SUBDIR IN LISTS PROJECT_SUBDIRS)
   basis_add_subdirectory(${SUBDIR})
 endforeach ()
 
-# Set MIRTK_LIBRARY_PATH for "mirtk" script
+# Set MIRTK_LIBRARY_PATH for "mirtk.py" module
 get_property(ldpath GLOBAL PROPERTY MIRTK_LIBRARY_PATH)
 list(REMOVE_DUPLICATES ldpath)
 if (UNIX)
@@ -100,9 +101,11 @@ if (UNIX)
   list(REMOVE_ITEM ldpath "/usr/local/lib")
   list(REMOVE_ITEM ldpath "/opt/local/lib")
 endif ()
-basis_set_target_properties(mirtk PROPERTIES
+basis_set_target_properties(mirtk_py PROPERTIES
   SCRIPT_DEFINITIONS
-    "basis_list_to_delimited_string(MIRTK_LIBRARY_PATH_CONFIG \"', '\" NOAUTOQUOTE \"${ldpath}\")"
+    "basis_list_to_delimited_string(MIRTK_LIBRARY_PATH_CONFIG \"', '\" NOAUTOQUOTE \"${ldpath}\")
+     basis_set_script_path(LIBEXEC_DIR \"${BINARY_LIBEXEC_DIR}/${COMMANDS_SUBDIR}\"
+                                       \"${INSTALL_LIBEXEC_DIR}/${COMMANDS_SUBDIR}\")"
 )
 unset(ldpath)
 

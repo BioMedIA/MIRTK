@@ -52,6 +52,10 @@ mirtk_add_executable(info
 )
 
 # ----------------------------------------------------------------------------
+# "mirtk" Python module for execution of commands from pipeline scripts
+basis_add_library(mirtk_py "__init__.py")
+
+# ----------------------------------------------------------------------------
 # Image tools
 if (MODULE_Image)
 

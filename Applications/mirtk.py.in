@@ -24,50 +24,7 @@
 import os
 import sys
 import socket
-import subprocess
-
-# ============================================================================
-# environment
-# ============================================================================
-
-_config      = '@__CONFIG__@'
-_libexec_dir = os.path.realpath(os.path.join(__dir__, '@LIBEXEC_DIR@'))
-_paths       = [__dir__]
-_ldpaths     = []
-
-if _config:
-    if not _libexec_dir.endswith('/mirtk'):
-        _ldpaths.append(os.path.join(_libexec_dir, 'mirtk', _config))
-    _ldpaths.append(os.path.join(_libexec_dir, _config))
-if not _libexec_dir.endswith('/mirtk'):
-    _ldpaths.append(os.path.join(_libexec_dir, 'mirtk'))
-_ldpaths.append(_libexec_dir)
-
-_paths.extend(_ldpaths)
-
-_libexec_ext = ['']
-if sys.platform.startswith('win'):
-    _libexec_ext.extend(['.exe', '.cmd', '.bat'])
-
-def _add_external_library_paths():
-    for d in ['@MIRTK_LIBRARY_PATH_CONFIG@']:
-        if d != '': _ldpaths.append(d)
-_add_external_library_paths()
-
-if sys.platform.startswith('linux'):
-    _paths.extend(os.environ.get('PATH', '').split(':'))
-    os.environ['PATH'] = ':'.join(_paths)
-    _ldpaths.extend(os.environ.get('LD_LIBRARY_PATH', '').split(':'))
-    os.environ['LD_LIBRARY_PATH'] = ':'.join(_ldpaths)
-elif sys.platform.startswith('darwin'):
-    _paths.extend(os.environ.get('PATH', '').split(':'))
-    os.environ['PATH'] = ':'.join(_paths)
-    _ldpaths.extend(os.environ.get('DYLD_LIBRARY_PATH', '').split(':'))
-    os.environ['DYLD_LIBRARY_PATH'] = ':'.join(_ldpaths)
-elif sys.platform.startswith('win'):
-    _paths.extend(_ldpaths)
-    _paths.extend(os.environ.get('PATH', '').split(';'))
-    os.environ['PATH'] = ';'.join(_paths)
+import mirtk
 
 # ============================================================================
 # help
@@ -93,41 +50,6 @@ Optional arguments:
   --help, -h      Print help and exit
   --verbose, -v   Print command-line of MIRTK command.
 """.format(os.path.basename(__file__)))
-
-# ============================================================================
-# execute command
-# ============================================================================
-
-# ----------------------------------------------------------------------------
-def call(argv):
-    """Execute MIRTK command."""
-    fpath = None
-    fbase = _libexec_dir
-    if os.path.basename(fbase) != 'mirtk':
-        fbase = os.path.join(fbase, 'mirtk')
-    for ext in _libexec_ext:
-        fpath = os.path.join(fbase, _config, argv[0] + ext)
-        if os.path.isfile(fpath): break
-        else: fpath = None
-    if not fpath:
-        for ext in _libexec_ext:
-            fpath = os.path.join(fbase, argv[0] + ext)
-            if os.path.isfile(fpath): break
-            else: fpath = None
-        if not fpath:
-            sys.stderr.write('Error: Missing execuable for command: ' + argv[0])
-            return 1
-    if not os.access(fpath, os.X_OK):
-        sys.stderr.write('Error: Insufficient permissions to execute command: ' + fpath)
-        return 1
-    argv[0] = fpath
-    if verbose > 0:
-        args = []
-        for arg in argv:
-            if ' ' in arg: arg = '"' + arg + '"'
-            args.append(arg)
-        print(' '.join(args))
-    return subprocess.call(argv)
 
 # ============================================================================
 # main
@@ -159,15 +81,16 @@ if __name__ == '__main__':
     if len(argv) == 0:
         print_help()
         sys.exit(1)
+    mirtk.putenvs()
     if argv[0] == 'help':
         if len(argv) == 1:
             print_help()
         else:
             for cmd in argv[1:]:
-                if call([cmd, '-h']) != 0:
+                if mirtk.call([cmd, '-h'], verbose=verbose) != 0:
                     sys.exit(1)
         sys.exit(0)
     else:
         if verbose > 1:
             print('\nHost: ' + socket.gethostname() + '\n')
-        sys.exit(call(argv))
+        sys.exit(mirtk.call(argv, verbose=verbose))
