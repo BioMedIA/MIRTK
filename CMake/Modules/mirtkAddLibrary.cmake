@@ -63,6 +63,7 @@ function(mirtk_add_library)
       SOVERSION     "${PROJECT_SOVERSION}"
       OUTPUT_NAME   "${PROJECT_PACKAGE_NAME}${PROJECT_NAME}"
       DEFINE_SYMBOL "MIRTK_${PROJECT_NAME}_EXPORTS"
+      DEBUG_POSTFIX D
   )
   target_include_directories(${target_uid}
     PUBLIC $<BUILD_INTERFACE:${PROJECT_INCLUDE_DIR}>
