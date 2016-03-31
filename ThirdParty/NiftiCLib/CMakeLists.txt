@@ -1,3 +1,14 @@
+cmake_minimum_required(VERSION 2.8.12)
+
+set(VERSION_ARG)
+if (POLICY CMP0048)
+  cmake_policy(SET CMP0048 NEW)
+  set(VERSION_ARG VERSION 2.0.0)
+endif ()
+
+project(NiftiCLib ${VERSION_ARG})
+set(PROJECT_SOVERSION ${PROJECT_VERSION_MAJOR})
+
 basis_find_package(ZLIB)
 if (ZLIB_FOUND)
   basis_use_package(ZLIB)
