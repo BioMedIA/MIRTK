@@ -20,7 +20,7 @@
 #include <mirtkCommon.h>
 #include <mirtkOptions.h>
 
-#include <mirtkImageIOConfig.h>
+#include <mirtkIOConfig.h>
 #include <mirtkPointSamples.h>
 
 #include <mirtkTransformation.h>
@@ -248,7 +248,7 @@ BSplineSVFFD(const AffineTransformation &dof, ImageAttributes attr, double sx, d
 // -----------------------------------------------------------------------------
 int main(int argc, char **argv)
 {
-  InitializeImageIOLibrary();
+  InitializeIOLibrary();
  
   EXPECTS_POSARGS(1);
 

@@ -20,15 +20,15 @@
 #include <mirtkCommon.h>
 #include <mirtkOptions.h>
 
-#include <mirtkImageIOConfig.h>
+#include <mirtkIOConfig.h>
 #include <mirtkGenericImage.h>
 #include <mirtkVoxelFunction.h>
 #include <mirtkTransformations.h>
 
-#if MIRTK_ImageIO_WITH_NIfTI
+#if MIRTK_IO_WITH_NIfTI
 #  include <mirtkNiftiImageInfo.h>
 #  include <mirtkNiftiImageReader.h>
-#endif // MIRTK_ImageIO_WITH_NIfTI
+#endif // MIRTK_IO_WITH_NIfTI
 
 
 using namespace mirtk;
@@ -75,13 +75,13 @@ void PrintHelp(const char *name)
   cout << "  f3d_disp_vel_field     Nifty Reg reg_f3d output image displacement field as stationary velocity field.\n";
   cout << "  f3d_spline_vel_grid    Nifty Reg reg_f3d output control point velocity field.\n";
   cout << "  =====================  =================================================================================\n";
-#if !MIRTK_ImageIO_WITH_NIfTI
+#if !MIRTK_IO_WITH_NIfTI
   cout << "\n";
-  cout << "  Cannot convert from/to the following formats because the ImageIO module is missing NIfTI support:\n";
+  cout << "  Cannot convert from/to the following formats because the I/O module is missing NIfTI support:\n";
   cout << "\n";
   cout << "    f3d*, fnirt\n";
   cout << "\n";
-#endif // !MIRTK_ImageIO_WITH_NIfTI
+#endif // !MIRTK_IO_WITH_NIfTI
   cout << "\n";
   cout << "Arguments:\n";
   cout << "  input    Input transformation file.\n";
@@ -546,7 +546,7 @@ Transformation *ReadF3D(const char *fname, const char *dofin_name = NULL,
                         int xyz_units = 0, int steps = 0,
                         F3DTransformationType type = F3D_TYPE_UNKNOWN)
 {
-  #if MIRTK_ImageIO_WITH_NIfTI
+  #if MIRTK_IO_WITH_NIfTI
     if (NiftiImageReader::CheckHeader(fname)) {
       FatalError("Input file is not a F3D output NIfTI image file!");
     }
@@ -627,10 +627,10 @@ Transformation *ReadF3D(const char *fname, const char *dofin_name = NULL,
     }
 
     return mffd.release();
-  #else // MIRTK_ImageIO_WITH_NIfTI
+  #else // MIRTK_IO_WITH_NIfTI
     Warning("Cannot read F3D output file without NIfTI module");
     return NULL;
-  #endif // MIRTK_ImageIO_WITH_NIfTI
+  #endif // MIRTK_IO_WITH_NIfTI
 }
 
 // =============================================================================
@@ -1235,7 +1235,7 @@ int main(int argc, char *argv[])
   double      dx = .0, dy = .0, dz = .0;
   double      ts = .0;
 
-  #if MIRTK_ImageIO_WITH_NIfTI
+  #if MIRTK_IO_WITH_NIfTI
     xyz_units = NIFTI_UNITS_MM;
   #endif 
 
@@ -1257,11 +1257,11 @@ int main(int argc, char *argv[])
     else if (OPTION("-dy")) PARSE_ARGUMENT(dy);
     else if (OPTION("-dz")) PARSE_ARGUMENT(dz);
     else if (OPTION("-xyz_units")) {
-      #if MIRTK_ImageIO_WITH_NIfTI
+      #if MIRTK_IO_WITH_NIfTI
         PARSE_ARGUMENT(xyz_units);
       #else
         ARGUMENT; // unused, but needs to be parsed
-      #endif // MIRTK_ImageIO_WITH_NIfTI
+      #endif // MIRTK_IO_WITH_NIfTI
     }
     else HANDLE_STANDARD_OR_UNKNOWN_OPTION();
   }
@@ -1282,12 +1282,12 @@ int main(int argc, char *argv[])
   // Read target/source attributes
   ImageAttributes target_attr, source_attr;
   if (target_name) {
-    InitializeImageIOLibrary();
+    InitializeIOLibrary();
     BinaryImage target(target_name);
     target_attr = target.Attributes();
   }
   if (source_name) {
-    InitializeImageIOLibrary();
+    InitializeIOLibrary();
     BinaryImage source(source_name);
     source_attr = source.Attributes();
   }

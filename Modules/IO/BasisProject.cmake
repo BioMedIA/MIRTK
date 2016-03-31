@@ -42,10 +42,10 @@ basis_project (
 
   # ----------------------------------------------------------------------------
   # meta-data
-  NAME        "ImageIO"
+  NAME        "IO"
   PACKAGE     "MIRTK"
   AUTHORS     "Andreas Schuh"
-  DESCRIPTION "Image I/O library of the Medical Image Registration ToolKit."
+  DESCRIPTION "I/O library of the Medical Image Registration ToolKit."
   COPYRIGHT   "2013-2015 Imperial College London, Andreas Schuh"
   LICENSE     "Apache License Version 2.0"
   CONTACT     "Andreas Schuh <andreas.schuh.84@gmail.com>"

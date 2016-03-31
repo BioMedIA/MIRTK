@@ -20,7 +20,7 @@
 #include <mirtkCommon.h>
 #include <mirtkOptions.h>
 
-#include <mirtkImageIOConfig.h>
+#include <mirtkIOConfig.h>
 #include <mirtkConnectedComponents.h>
 
 using namespace mirtk;
@@ -110,7 +110,7 @@ int main(int argc, char *argv[])
     else HANDLE_STANDARD_OR_UNKNOWN_OPTION();
   }
 
-  InitializeImageIOLibrary();
+  InitializeIOLibrary();
  
   GreyImage labels(input_name);
   GreyImage components;

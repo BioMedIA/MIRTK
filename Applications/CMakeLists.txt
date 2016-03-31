@@ -47,7 +47,7 @@ endif ()
 
 # Generic file info tool
 mirtk_add_executable(info
-  DEPENDS  LibCommon LibNumerics LibImage LibImageIO
+  DEPENDS  LibCommon LibNumerics LibImage LibIO
   OPTIONAL LibTransformation LibPointSet ${VTK_LIBRARIES}
 )
 
@@ -56,7 +56,7 @@ mirtk_add_executable(info
 if (MODULE_Image)
 
   macro(add_image_command cmd)
-    mirtk_add_executable(${cmd} DEPENDS LibCommon LibNumerics LibImage LibImageIO ${ARGN})
+    mirtk_add_executable(${cmd} DEPENDS LibCommon LibNumerics LibImage LibIO ${ARGN})
   endmacro()
 
   add_image_command(average-images OPTIONAL LibTransformation)
@@ -94,7 +94,7 @@ if (MODULE_Registration)
     mirtk_add_executable(${cmd} DEPENDS LibCommon LibNumerics LibImage LibTransformation LibRegistration ${ARGN})
   endmacro()
 
-  add_registration_command(register LibImageIO OPTIONAL LibLBFGS LibPointSet LibDeformable)
+  add_registration_command(register LibIO OPTIONAL LibLBFGS LibPointSet LibDeformable)
 
 endif ()
 
@@ -112,7 +112,7 @@ if (MODULE_Transformation)
   if (MODULE_Image)
 
     macro(add_image_transformation_command cmd)
-      add_transformation_command(${cmd} LibImageIO ${ARGN})
+      add_transformation_command(${cmd} LibIO ${ARGN})
     endmacro()
 
     add_image_transformation_command(average-dofs)
@@ -154,7 +154,7 @@ if (MODULE_PointSet)
   if (MODULE_Image)
 
     macro(add_image_pointset_command cmd)
-      add_pointset_command(${cmd} LibImageIO ${ARGN})
+      add_pointset_command(${cmd} LibIO ${ARGN})
     endmacro()
 
     add_image_pointset_command(convert-pointset)

@@ -21,7 +21,7 @@
 #include <mirtkOptions.h>
 
 #include <mirtkImageConfig.h>
-#include <mirtkImageIOConfig.h>
+#include <mirtkIOConfig.h>
 
 #include <mirtkDataOp.h>
 #include <mirtkDataStatistics.h>
@@ -186,7 +186,7 @@ void PrintHelp(const char *name)
 // -----------------------------------------------------------------------------
 int main(int argc, char **argv)
 {
-  InitializeImageIOLibrary();
+  InitializeIOLibrary();
 
   // Initial data values
   REQUIRES_POSARGS(1);

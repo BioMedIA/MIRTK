@@ -20,7 +20,7 @@
 #include <mirtkCommon.h>
 #include <mirtkOptions.h>
 
-#include <mirtkImageIOConfig.h>
+#include <mirtkIOConfig.h>
 #include <mirtkGenericImage.h>
 #include <mirtkTransformation.h>
 #include <mirtkHomogeneousTransformation.h>
@@ -103,7 +103,7 @@ int main(int argc, char *argv[])
 
   ImageAttributes domain;
   if (target_name) {
-    InitializeImageIOLibrary();
+    InitializeIOLibrary();
     BinaryImage target(target_name);
     domain = target.Attributes();
   } else if (ffd) {

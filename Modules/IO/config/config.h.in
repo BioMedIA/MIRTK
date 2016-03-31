@@ -17,25 +17,25 @@
  * limitations under the License.
  */
 
-#ifndef MIRTK_ImageIOConfig_H
-#define MIRTK_ImageIOConfig_H
+#ifndef MIRTK_IOConfig_H
+#define MIRTK_IOConfig_H
 
 
-/// Whether MIRTK ImageIO module was built with NIfTI support
-#define MIRTK_ImageIO_WITH_NIfTI @WITH_NIfTI_CONFIG@
+/// Whether MIRTK IO module was built with NIfTI support
+#define MIRTK_IO_WITH_NIfTI @WITH_NIfTI_CONFIG@
 
-/// Whether MIRTK ImageIO module was built with PNG support
-#define MIRTK_ImageIO_WITH_PNG @WITH_PNG_CONFIG@
+/// Whether MIRTK IO module was built with PNG support
+#define MIRTK_IO_WITH_PNG @WITH_PNG_CONFIG@
 
 
 namespace mirtk {
 
 
-/// Initialize MIRTK ImageIO library
-void InitializeImageIOLibrary();
+/// Initialize MIRTK IO library
+void InitializeIOLibrary();
 
 
 } // namespace mirtk
 
 
-#endif // MIRTK_ImageIOConfig_H
+#endif // MIRTK_IOConfig_H

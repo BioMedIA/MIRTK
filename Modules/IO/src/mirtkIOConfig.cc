@@ -17,7 +17,7 @@
  * limitations under the License.
  */
 
-#include <mirtkImageIOConfig.h>
+#include <mirtkIOConfig.h>
 
 #if !defined(MIRTK_AUTO_REGISTER)
   #include <mirtkImageReaderFactory.h>
@@ -27,7 +27,7 @@
   #include <mirtkPGMImageReader.h>
   #include <mirtkPGMImageWriter.h>
   #include <mirtkPNGImageWriter.h>
-  #if MIRTK_ImageIO_WITH_NIfTI
+  #if MIRTK_IO_WITH_NIfTI
     #include <mirtkNiftiImageReader.h>
     #include <mirtkNiftiImageWriter.h>
   #endif
@@ -44,7 +44,7 @@ static void RegisterImageReaders()
   #ifndef MIRTK_AUTO_REGISTER
     mirtkRegisterImageReaderMacro(GIPLImageReader);
     mirtkRegisterImageReaderMacro(PGMImageReader);
-    #if MIRTK_ImageIO_WITH_NIfTI
+    #if MIRTK_IO_WITH_NIfTI
       mirtkRegisterImageReaderMacro(NiftiImageReader);
     #endif
   #endif
@@ -56,17 +56,17 @@ static void RegisterImageWriters()
   #ifndef MIRTK_AUTO_REGISTER
     mirtkRegisterImageWriterMacro(GIPLImageWriter);
     mirtkRegisterImageWriterMacro(PGMImageWriter);
-    #if MIRTK_ImageIO_WITH_PNG
+    #if MIRTK_IO_WITH_PNG
       mirtkRegisterImageWriterMacro(PNGImageWriter);
     #endif
-    #if MIRTK_ImageIO_WITH_NIfTI
+    #if MIRTK_IO_WITH_NIfTI
       mirtkRegisterImageWriterMacro(NiftiImageWriter);
     #endif
   #endif
 }
 
 // -----------------------------------------------------------------------------
-void InitializeImageIOLibrary()
+void InitializeIOLibrary()
 {
   static bool initialized = false;
   if (!initialized) {

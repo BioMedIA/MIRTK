@@ -20,7 +20,7 @@
 #include <mirtkCommon.h>
 #include <mirtkOptions.h>
 
-#include <mirtkImageIOConfig.h>
+#include <mirtkIOConfig.h>
 
 #include <mirtkGenericImage.h>
 #include <mirtkLieBracketImageFilter.h>
@@ -65,7 +65,7 @@ int main(int argc, char **argv)
   // Print help or version and exit if requested
   HANDLE_HELP_OR_VERSION();
 
-  InitializeImageIOLibrary();
+  InitializeIOLibrary();
 
   // Parse positional arguments
   const char *x_fname = NULL;
