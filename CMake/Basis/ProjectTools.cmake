@@ -2473,8 +2473,10 @@ macro (basis_project_end)
     # add missing build commands for custom targets
     basis_finalize_targets ()
     # add build target for missing __init__.py files of Python package
-    if (PythonInterp_FOUND OR JythonInterp_FOUND)
-      basis_add_init_py_target ()
+    if (BASIS_PYTHON_TEMPLATES_DIR)
+      if (PythonInterp_FOUND OR JythonInterp_FOUND)
+        basis_add_init_py_target ()
+      endif ()
     endif ()
   endif ()
 

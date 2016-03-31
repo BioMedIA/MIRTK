@@ -3209,6 +3209,10 @@ endfunction ()
 # ----------------------------------------------------------------------------
 # @brief Add target to build/install __init__.py files.
 function (basis_add_init_py_target)
+  if (NOT BASIS_PYTHON_TEMPLATES_DIR)
+    message (WARNING "BASIS_PYTHON_TEMPLATES_DIR not set, skipping basis_add_init_py_target")
+    return ()
+  endif ()
   # constants
   set (BUILD_DIR "${PROJECT_BINARY_DIR}/CMakeFiles/_initpy.dir")
   basis_sanitize_for_regex (BINARY_PYTHON_LIBRARY_DIR_RE  "${BINARY_PYTHON_LIBRARY_DIR}")
