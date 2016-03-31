@@ -49,7 +49,6 @@ function(mirtk_add_library)
     endif ()
     list(APPEND headers "${hdr}")
   endforeach ()
-  set(OUTPUT_NAME "${PROJECT_PACKAGE_NAME}${PROJECT_NAME}")
   basis_add_library(${target_name} ${TARGET_SOURCES} ${headers})
   basis_get_target_uid(target_uid ${target_name})
   if (TARGET_NAME_VAR)
@@ -60,11 +59,10 @@ function(mirtk_add_library)
   endif ()
   set_target_properties(
     ${target_uid} PROPERTIES
-      VERSION             "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}"
-      SOVERSION           "${PROJECT_SOVERSION}"
-      ARCHIVE_OUTPUT_NAME "${OUTPUT_NAME}"
-      LIBRARY_OUTPUT_NAME "${OUTPUT_NAME}"
-      DEFINE_SYMBOL       "MIRTK_${PROJECT_NAME}_EXPORTS"
+      VERSION       "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}"
+      SOVERSION     "${PROJECT_SOVERSION}"
+      OUTPUT_NAME   "${PROJECT_PACKAGE_NAME}${PROJECT_NAME}"
+      DEFINE_SYMBOL "MIRTK_${PROJECT_NAME}_EXPORTS"
   )
   target_include_directories(${target_uid}
     PUBLIC $<BUILD_INTERFACE:${PROJECT_INCLUDE_DIR}>
