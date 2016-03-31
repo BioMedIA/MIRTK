@@ -21,7 +21,7 @@
 #include <mirtkCommon.h>
 #include <mirtkOptions.h>
 
-#include <mirtkImageIOConfig.h>
+#include <mirtkIOConfig.h>
 
 #include <mirtkPointSetUtils.h>
 #include <mirtkImplicitSurfaceUtils.h>
@@ -114,7 +114,7 @@ int main(int argc, char **argv)
     else HANDLE_COMMON_OR_UNKNOWN_OPTION();
   }
 
-  InitializeImageIOLibrary();
+  InitializeIOLibrary();
   DistanceImage image(input_name);
   if (image.Z() == 1 || image.T() > 1) {
     FatalError("Input image must be three-dimensional!");

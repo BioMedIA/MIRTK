@@ -20,7 +20,7 @@
 #include <mirtkCommon.h>
 #include <mirtkOptions.h>
 
-#include <mirtkImageIOConfig.h>
+#include <mirtkIOConfig.h>
 #include <mirtkGenericImage.h>
 #include <mirtkTransformation.h>
 #include <mirtkFreeFormTransformation3D.h>
@@ -205,12 +205,12 @@ int main(int argc, char **argv)
   WorldCoordsImage i2w;
 
   if (mask_name) {
-    InitializeImageIOLibrary();
+    InitializeIOLibrary();
     mask.Read(mask_name);
     attr = mask.Attributes();
   }
   if (target_name) {
-    InitializeImageIOLibrary();
+    InitializeIOLibrary();
     target.Read(target_name);
     if (!IsInf(padding_value)) target.PutBackgroundValueAsDouble(padding_value, true);
     attr = target.Attributes();
@@ -286,7 +286,7 @@ int main(int argc, char **argv)
 
   // Write voxel-wise error map
   if (output_name) {
-    InitializeImageIOLibrary();
+    InitializeIOLibrary();
     output.Write(output_name);
   }
 

@@ -20,7 +20,7 @@
 #include <mirtkCommon.h>
 #include <mirtkOptions.h>
 
-#include <mirtkImageIOConfig.h>
+#include <mirtkIOConfig.h>
 
 #include <mirtkGenericImage.h>
 #include <mirtkVoxelFunction.h>
@@ -239,7 +239,7 @@ int main(int argc, char **argv)
   }
 
   // Read image
-  InitializeImageIOLibrary();
+  InitializeIOLibrary();
   RealImage image(image_name);
 
   // Blur image

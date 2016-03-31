@@ -41,6 +41,6 @@ basis_set_config_option(WITH_PNG_CONFIG   "${PNG_FOUND}")
 
 configure_file(
   "${PROJECT_CONFIG_DIR}/config.h.in"
-  "${BINARY_INCLUDE_DIR}/mirtkImageIOConfig.h"
+  "${BINARY_INCLUDE_DIR}/mirtkIOConfig.h"
   @ONLY
 )

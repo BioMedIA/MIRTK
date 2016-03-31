@@ -22,7 +22,7 @@
 #include <mirtkOptions.h>
 
 #include <mirtkVtk.h>
-#include <mirtkImageIOConfig.h>
+#include <mirtkIOConfig.h>
 #include <mirtkGenericImage.h>
 #include <mirtkPointSetUtils.h>
 #include <mirtkTransformation.h>
@@ -94,7 +94,7 @@ int main(int argc, char **argv)
   }
 
   // Initialize image I/O library
-  InitializeImageIOLibrary();
+  InitializeIOLibrary();
 
   vtkSmartPointer<vtkPointSet> pointset;
   PointSet                     points;

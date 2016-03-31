@@ -20,7 +20,7 @@
 #include <mirtkCommon.h>
 #include <mirtkOptions.h>
 
-#include <mirtkImageIOConfig.h>
+#include <mirtkIOConfig.h>
 #include <mirtkGenericImage.h>
 #include <mirtkImageFunction.h>
 #include <mirtkHistogram1D.h>
@@ -152,7 +152,7 @@ int main(int argc, char **argv)
   }
 
   // Read target image
-  InitializeImageIOLibrary();
+  InitializeIOLibrary();
   GreyImage target(target_name);
   const ImageAttributes target_attributes = target.Attributes();
 

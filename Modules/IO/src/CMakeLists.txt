@@ -1,5 +1,5 @@
 # ============================================================================
-# Medical Image Registration ToolKit (MIRTK) LBFGS Library
+# Medical Image Registration ToolKit (MIRTK)
 #
 # Copyright 2013-2015 Imperial College London
 # Copyright 2013-2015 Andreas Schuh
@@ -25,11 +25,11 @@
 
 ##############################################################################
 # @file  CMakeLists.txt
-# @brief Build configuration of MIRTK ImageIO library.
+# @brief Build configuration of MIRTK IO library.
 ##############################################################################
 
 set(HEADERS
-  ${BINARY_INCLUDE_DIR}/mirtkImageIOConfig.h
+  ${BINARY_INCLUDE_DIR}/mirtkIOConfig.h
   mirtkGIPLImageReader.h
   mirtkGIPLImageWriter.h
   mirtkPGMImageReader.h
@@ -40,7 +40,7 @@ set(SOURCES
   mirtkGIPL.h
   mirtkGIPLImageReader.cc
   mirtkGIPLImageWriter.cc
-  mirtkImageIOConfig.cc
+  mirtkIOConfig.cc
   mirtkPGM.h
   mirtkPGMImageReader.cc
   mirtkPGMImageWriter.cc

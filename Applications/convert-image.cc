@@ -21,7 +21,7 @@
 #include <mirtkCommon.h>
 #include <mirtkOptions.h>
 
-#include <mirtkImageIOConfig.h>
+#include <mirtkIOConfig.h>
 #include <mirtkGenericImage.h>
 
 using namespace mirtk;
@@ -83,7 +83,7 @@ int main(int argc, char *argv[])
   }
 
   // Read image
-  InitializeImageIOLibrary();
+  InitializeIOLibrary();
   unique_ptr<BaseImage> input(BaseImage::New(input_name));
   if (voxel_type == MIRTK_VOXEL_UNKNOWN) {
     voxel_type = input->GetDataType();

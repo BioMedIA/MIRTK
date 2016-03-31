@@ -21,7 +21,7 @@
 #include <mirtkCommon.h>
 #include <mirtkOptions.h>
 
-#include <mirtkImageIOConfig.h>
+#include <mirtkIOConfig.h>
 #include <mirtkBaseImage.h>
 
 using namespace mirtk;
@@ -122,7 +122,7 @@ int main(int argc, char *argv[])
   const int n = static_cast<int>(input_names.size());
   if (n < 2) FatalError("Not enough input images given!");
 
-  InitializeImageIOLibrary();
+  InitializeIOLibrary();
  
   // Get attributes of first input image
   unique_ptr<BaseImage> ref(BaseImage::New(input_names[0]));

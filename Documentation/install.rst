@@ -42,8 +42,8 @@ Eigen_                3.0      System or Git submodule  |Numerics|, |VolumetricM
 ARPACK_ / UMFPACK_    any      System                   No module                                      |Numerics|
 VTK_                  6.0      System                   |PointSet|, |Deformable|, |VolumetricMapping|  |Common|, |Image|, |Registration|
 libpng_               any      System                   No module                                      |Image|
-NiftiCLib_            any      System or Source code    No module                                      |ImageIO|
-libLBFGS_             any      Source code              No module                                      |ImageIO|
+NiftiCLib_            any      System or Source code    No module                                      |IO|
+libLBFGS_             any      Source code              No module                                      |IO|
 ====================  =======  =======================  =============================================  ==================
 
 Only libraries marked as "Included as" **System** alone which are required by the modules
@@ -64,7 +64,7 @@ Module               Requires module(s)                                         
 |Common|             No other module
 |Numerics|           |Common|
 |Image|              |Common|, |Numerics|
-|ImageIO|            |Image|
+|IO|                 |Image|
 |Transformation|     |Common|, |Numerics|, |Image|
 |PointSet|           |Common|, |Numerics|, |Image|, |Transformation|
 |Registration|       |Common|, |Numerics|, |Image|, |Transformation|               |PointSet|, |Deformable|
@@ -74,7 +74,7 @@ Module               Requires module(s)                                         
 
 .. note::
 
-   Notice that the |ImageIO| module is required only by the :doc:`commands` which read/write images.
+   Notice that the |IO| module is required only by the :doc:`commands` which read/write images or point sets.
 
    For a complete list of module dependencies, see the BasisProject.cmake file and in
    some cases also the config/Depends.cmake file if present in the respective module directory.

@@ -21,7 +21,7 @@
 #include <mirtkCommon.h>
 #include <mirtkOptions.h>
 
-#include <mirtkImageIOConfig.h>
+#include <mirtkIOConfig.h>
 
 #include <mirtkTransformations.h>
 #include <mirtkGaussianBlurring.h>
@@ -192,7 +192,7 @@ bool isRelativePath(const string &path)
 // ---------------------------------------------------------------------------
 int main(int argc, char **argv)
 {
-  InitializeImageIOLibrary();
+  InitializeIOLibrary();
 
   REQUIRES_POSARGS(1);
 

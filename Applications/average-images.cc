@@ -20,7 +20,7 @@
 #include <mirtkCommon.h>
 #include <mirtkOptions.h>
 
-#include <mirtkImageIOConfig.h>
+#include <mirtkIOConfig.h>
 
 #include <mirtkMatrix.h>
 #include <mirtkGenericImage.h>
@@ -309,7 +309,7 @@ int main(int argc, char **argv)
     Array<bool>     imdof_invert;
   #endif // HAVE_MIRTK_Transformation
 
-  InitializeImageIOLibrary();
+  InitializeIOLibrary();
 
   // ---------------------------------------------------------------------------
   // Command-line parsing

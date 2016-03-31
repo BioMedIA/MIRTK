@@ -11,7 +11,7 @@ Modules
    modules/common
    modules/numerics
    modules/image
-   modules/imageio
+   modules/io
    modules/pointset
    modules/transformation
    modules/registration
@@ -54,12 +54,12 @@ Image
 :doc:`[more] <modules/image>`
 
 
-Image I/O
----------
+I/O
+---
 
-.. include:: modules/_descriptions/imageio.rst
+.. include:: modules/_descriptions/io.rst
 
-:doc:`[more] <modules/imageio>`
+:doc:`[more] <modules/io>`
 
 
 Point Set

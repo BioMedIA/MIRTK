@@ -79,7 +79,7 @@ basis_project (
     Common
     Numerics
     Image
-    ImageIO
+    IO
     Transformation
     Registration
 

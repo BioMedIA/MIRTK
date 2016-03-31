@@ -21,7 +21,7 @@
 #include <mirtkOptions.h>
 
 #include <mirtkNumericsConfig.h>
-#include <mirtkImageIOConfig.h>
+#include <mirtkIOConfig.h>
 #include <mirtkTransformationConfig.h>
 #include <mirtkRegistrationConfig.h>
 #if MIRTK_Registration_WITH_Deformable
@@ -559,7 +559,7 @@ int main(int argc, char **argv)
 {
   // Initialize libraries / object factories
   InitializeNumericsLibrary();
-  InitializeImageIOLibrary();
+  InitializeIOLibrary();
   InitializeTransformationLibrary();
   InitializeRegistrationLibrary();
   #if MIRTK_Registration_WITH_Deformable

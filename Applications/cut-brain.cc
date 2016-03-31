@@ -20,7 +20,7 @@
 #include <mirtkCommon.h>
 #include <mirtkOptions.h>
 
-#include <mirtkImageIOConfig.h>
+#include <mirtkIOConfig.h>
 
 #include <mirtkVector3.h>
 #include <mirtkMatrix3x3.h>
@@ -245,7 +245,7 @@ int main(int argc, char *argv[])
   }
 
   // Read input image
-  InitializeImageIOLibrary();
+  InitializeIOLibrary();
   unique_ptr<BaseImage> image(BaseImage::New(image_name));
 
   // Compute parameters of cutting plane
