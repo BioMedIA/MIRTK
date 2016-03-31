@@ -17,18 +17,18 @@
  * limitations under the License.
  */
 
-#include <mirtkImplicitSurfaceUtils.h>
+#include "mirtk/ImplicitSurfaceUtils.h"
 
-#include <mirtkVtk.h>
-#include <mirtkMath.h>
-#include <mirtkGaussianBlurring.h>
-#include <mirtkResampling.h>
-#include <mirtkLinearInterpolateImageFunction.h>
+#include "mirtk/Vtk.h"
+#include "mirtk/Math.h"
+#include "mirtk/GaussianBlurring.h"
+#include "mirtk/Resampling.h"
+#include "mirtk/LinearInterpolateImageFunction.h"
 
-#include <vtkPolyData.h>
-#include <vtkPointData.h>
-#include <vtkMarchingCubes.h>
-#include <vtkStructuredPoints.h>
+#include "vtkPolyData.h"
+#include "vtkPointData.h"
+#include "vtkMarchingCubes.h"
+#include "vtkStructuredPoints.h"
 
 #include <algorithm>
 

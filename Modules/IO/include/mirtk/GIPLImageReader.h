@@ -20,7 +20,7 @@
 #ifndef MIRTK_GIPLImageReader_H
 #define MIRTK_GIPLImageReader_H
 
-#include <mirtkImageReader.h>
+#include "mirtk/ImageReader.h"
 
 
 namespace mirtk {

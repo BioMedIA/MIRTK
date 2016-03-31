@@ -17,13 +17,13 @@
  * limitations under the License.
  */
 
-#include <mirtkSparseMatrix.h>
+#include "mirtk/SparseMatrix.h"
 
 #if MIRTK_Numerics_WITH_eigs
-#  include <mirtkArpack.h>
-#  include <mirtkUmfpack.h>
-#  include <boost/random/mersenne_twister.hpp>
-#  include <boost/random/uniform_01.hpp>
+#  include "mirtk/Arpack.h"
+#  include "mirtk/Umfpack.h"
+#  include "boost/random/mersenne_twister.hpp"
+#  include "boost/random/uniform_01.hpp"
 #endif // MIRTK_Numerics_WITH_eigs
 
 #include <algorithm>

@@ -20,7 +20,7 @@
 #ifndef MIRTK_FreeFormTransformationIntegrationMethod_H
 #define MIRTK_FreeFormTransformationIntegrationMethod_H
 
-#include <mirtkString.h>
+#include "mirtk/String.h"
 
 
 namespace mirtk {

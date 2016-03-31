@@ -20,7 +20,7 @@
 #ifndef MIRTK_ObjectiveFunction_H
 #define MIRTK_ObjectiveFunction_H
 
-#include <mirtkObservable.h>
+#include "mirtk/Observable.h"
 
 
 namespace mirtk {

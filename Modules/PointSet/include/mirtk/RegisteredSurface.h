@@ -20,10 +20,10 @@
 #ifndef MIRTK_RegisteredSurface_H
 #define MIRTK_RegisteredSurface_H
 
-#include <mirtkRegisteredPointSet.h>
+#include "mirtk/RegisteredPointSet.h"
 
-#include <vtkPolyData.h>
-#include <vtkCellArray.h>
+#include "vtkPolyData.h"
+#include "vtkCellArray.h"
 
 
 namespace mirtk {

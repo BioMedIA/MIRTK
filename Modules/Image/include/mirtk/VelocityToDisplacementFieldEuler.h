@@ -20,7 +20,7 @@
 #ifndef MIRTK_VelocityToDisplacementFieldEuler_H
 #define MIRTK_VelocityToDisplacementFieldEuler_H
 
-#include <mirtkVelocityToDisplacementField.h>
+#include "mirtk/VelocityToDisplacementField.h"
 
 
 namespace mirtk {

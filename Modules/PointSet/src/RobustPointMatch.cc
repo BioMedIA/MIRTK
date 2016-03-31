@@ -17,22 +17,22 @@
  * limitations under the License.
  */
 
-#include <mirtkRobustPointMatch.h>
+#include "mirtk/RobustPointMatch.h"
 
-#include <mirtkMath.h>
-#include <mirtkMemory.h>
-#include <mirtkPair.h>
-#include <mirtkArray.h>
-#include <mirtkParallel.h>
-#include <mirtkProfiling.h>
-#include <mirtkPointLocator.h>
-#include <mirtkSparseMatrix.h>
-#include <mirtkVtkMath.h>
+#include "mirtk/Math.h"
+#include "mirtk/Memory.h"
+#include "mirtk/Pair.h"
+#include "mirtk/Array.h"
+#include "mirtk/Parallel.h"
+#include "mirtk/Profiling.h"
+#include "mirtk/PointLocator.h"
+#include "mirtk/SparseMatrix.h"
+#include "mirtk/VtkMath.h"
 
-#include <vtkSmartPointer.h>
-#include <vtkIdList.h>
-#include <vtkPointSet.h>
-#include <vtkOctreePointLocator.h>
+#include "vtkSmartPointer.h"
+#include "vtkIdList.h"
+#include "vtkPointSet.h"
+#include "vtkOctreePointLocator.h"
 
 
 namespace mirtk {

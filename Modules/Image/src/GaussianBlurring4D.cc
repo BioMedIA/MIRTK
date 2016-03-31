@@ -18,7 +18,7 @@
  * limitations under the License.
  */
 
-#include <mirtkGaussianBlurring4D.h>
+#include "mirtk/GaussianBlurring4D.h"
 
 
 namespace mirtk {

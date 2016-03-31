@@ -17,14 +17,14 @@
  * limitations under the License.
  */
 
-#include <mirtkNumericsConfig.h>
-#include <mirtkObjectFactory.h>
+#include "mirtk/NumericsConfig.h"
+#include "mirtk/ObjectFactory.h"
 
 #ifndef MIRTK_AUTO_REGISTER
-  #include <mirtkGradientDescent.h>
-  #include <mirtkConjugateGradientDescent.h>
+  #include "mirtk/GradientDescent.h"
+  #include "mirtk/ConjugateGradientDescent.h"
   #if MIRTK_Numerics_WITH_LBFGS
-    #include <mirtkLimitedMemoryBFGSDescent.h>
+    #include "mirtk/LimitedMemoryBFGSDescent.h"
   #endif
 #endif
 

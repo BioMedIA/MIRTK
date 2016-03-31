@@ -20,8 +20,8 @@
 #ifndef MIRTK_NiftiImageInfo_H
 #define MIRTK_NiftiImageInfo_H
 
-#include <mirtkString.h>
-#include <mirtkMatrix.h>
+#include "mirtk/String.h"
+#include "mirtk/Matrix.h"
 
 
 namespace mirtk {

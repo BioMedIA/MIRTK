@@ -17,18 +17,18 @@
  * limitations under the License.
  */
 
-#include <mirtkPointSetDistance.h>
+#include "mirtk/PointSetDistance.h"
 
-#include <mirtkArray.h>
-#include <mirtkMemory.h>
-#include <mirtkVector3D.h>
-#include <mirtkPointSetUtils.h>
+#include "mirtk/Array.h"
+#include "mirtk/Memory.h"
+#include "mirtk/Vector3D.h"
+#include "mirtk/PointSetUtils.h"
 
-#include <vtkSmartPointer.h>
-#include <vtkFloatArray.h>
-#include <vtkCellArray.h>
-#include <vtkVertex.h>
-#include <vtkPointData.h>
+#include "vtkSmartPointer.h"
+#include "vtkFloatArray.h"
+#include "vtkCellArray.h"
+#include "vtkVertex.h"
+#include "vtkPointData.h"
 
 #include <cstdio>
 

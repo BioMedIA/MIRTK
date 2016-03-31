@@ -20,11 +20,11 @@
 #ifndef MIRTK_FuzzyCorrespondence_H
 #define MIRTK_FuzzyCorrespondence_H
 
-#include <mirtkPointCorrespondence.h>
+#include "mirtk/PointCorrespondence.h"
 
-#include <mirtkArray.h>
-#include <mirtkPointSet.h>
-#include <mirtkSparseMatrix.h>
+#include "mirtk/Array.h"
+#include "mirtk/PointSet.h"
+#include "mirtk/SparseMatrix.h"
 
 
 namespace mirtk {

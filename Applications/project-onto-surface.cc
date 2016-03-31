@@ -17,44 +17,44 @@
  * limitations under the License.
  */
 
-#include <mirtkCommon.h>
-#include <mirtkOptions.h>
+#include "mirtk/Common.h"
+#include "mirtk/Options.h"
 
-#include <mirtkVector.h>
-#include <mirtkMatrix.h>
-#include <mirtkGenericImage.h>
-#include <mirtkPointSetUtils.h>
-#include <mirtkNearestNeighborInterpolateImageFunction.h>
-#include <mirtkLinearInterpolateImageFunction.h>
-#include <mirtkEuclideanDistanceTransform.h>
+#include "mirtk/Vector.h"
+#include "mirtk/Matrix.h"
+#include "mirtk/GenericImage.h"
+#include "mirtk/PointSetUtils.h"
+#include "mirtk/NearestNeighborInterpolateImageFunction.h"
+#include "mirtk/LinearInterpolateImageFunction.h"
+#include "mirtk/EuclideanDistanceTransform.h"
 
-#include <vtkGenericCell.h>
-#include <vtkPolyData.h>
-#include <vtkShortArray.h>
-#include <vtkFloatArray.h>
-#include <vtkPointData.h>
-#include <vtkCellData.h>
-#include <vtkCellArray.h>
-#include <vtkLine.h>
-#include <vtkFeatureEdges.h>
-#include <vtkTriangleFilter.h>
-#include <vtkCleanPolyData.h>
-#include <vtkPolyDataNormals.h>
-#include <vtkSmoothPolyDataFilter.h>
-#include <vtkPolyDataConnectivityFilter.h>
-#include <vtkCellLocator.h>
-#include <vtkOBBTree.h>
-#include <vtkModifiedBSPTree.h>
+#include "vtkGenericCell.h"
+#include "vtkPolyData.h"
+#include "vtkShortArray.h"
+#include "vtkFloatArray.h"
+#include "vtkPointData.h"
+#include "vtkCellData.h"
+#include "vtkCellArray.h"
+#include "vtkLine.h"
+#include "vtkFeatureEdges.h"
+#include "vtkTriangleFilter.h"
+#include "vtkCleanPolyData.h"
+#include "vtkPolyDataNormals.h"
+#include "vtkSmoothPolyDataFilter.h"
+#include "vtkPolyDataConnectivityFilter.h"
+#include "vtkCellLocator.h"
+#include "vtkOBBTree.h"
+#include "vtkModifiedBSPTree.h"
 
-#include <vtkPolyDataReader.h>
-#include <vtkXMLPolyDataReader.h>
-#include <vtkOBJReader.h>
-#include <vtkSTLReader.h>
-#include <vtkSTLWriter.h>
-#include <vtkPLYReader.h>
-#include <vtkPLYWriter.h>
-#include <vtkXMLPolyDataWriter.h>
-#include <vtkPolyDataWriter.h>
+#include "vtkPolyDataReader.h"
+#include "vtkXMLPolyDataReader.h"
+#include "vtkOBJReader.h"
+#include "vtkSTLReader.h"
+#include "vtkSTLWriter.h"
+#include "vtkPLYReader.h"
+#include "vtkPLYWriter.h"
+#include "vtkXMLPolyDataWriter.h"
+#include "vtkPolyDataWriter.h"
 
 using namespace mirtk;
 

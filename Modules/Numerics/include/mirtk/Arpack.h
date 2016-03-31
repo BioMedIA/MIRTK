@@ -18,7 +18,7 @@
  */
 
 /**
- * \file  mirtkArpack.h
+ * \file  mirtk/Arpack.h
  * \brief Interface to ARPACK FORTRAN routines.
  *
  * \attention Include this header in internal files such as .cc translation units only!

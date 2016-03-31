@@ -17,7 +17,7 @@
  * limitations under the License.
  */
 
-#include <mirtkFreeFormTransformationRungeKutta.h>
+#include "FreeFormTransformationRungeKutta.h"
 
 
 #define BT_R(...) {__VA_ARGS__}

@@ -18,10 +18,10 @@
  * limitations under the License.
  */
 
-#include <mirtkFreeFormTransformation4D.h>
+#include "mirtk/FreeFormTransformation4D.h"
 
-#include <mirtkParallel.h>
-#include <mirtkProfiling.h>
+#include "mirtk/Parallel.h"
+#include "mirtk/Profiling.h"
 
 
 namespace mirtk {

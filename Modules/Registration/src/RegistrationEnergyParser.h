@@ -17,9 +17,9 @@
  * limitations under the License.
  */
 
-#include <mirtkString.h>
-#include <mirtkStream.h>
-#include <mirtkArray.h>
+#include "mirtk/String.h"
+#include "mirtk/Stream.h"
+#include "mirtk/Array.h"
 
 
 namespace mirtk {

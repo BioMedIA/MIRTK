@@ -20,7 +20,7 @@
 #ifndef MIRTK_Indent_H
 #define MIRTK_Indent_H
 
-#include <mirtkStream.h>
+#include "mirtk/Stream.h"
 
 
 namespace mirtk {

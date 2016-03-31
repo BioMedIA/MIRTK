@@ -17,29 +17,29 @@
  * limitations under the License.
  */
 
-#include <mirtkSurfaceCollisions.h>
+#include "mirtk/SurfaceCollisions.h"
 
-#include <mirtkAssert.h>
-#include <mirtkMath.h>
-#include <mirtkTriangle.h>
-#include <mirtkPointSetUtils.h>
-#include <mirtkPointLocator.h>
-#include <mirtkParallel.h>
-#include <mirtkProfiling.h>
-#include <mirtkVtkMath.h>
+#include "mirtk/Assert.h"
+#include "mirtk/Math.h"
+#include "mirtk/Triangle.h"
+#include "mirtk/PointSetUtils.h"
+#include "mirtk/PointLocator.h"
+#include "mirtk/Parallel.h"
+#include "mirtk/Profiling.h"
+#include "mirtk/VtkMath.h"
 
-#include <vtkPlane.h>
-#include <vtkTriangle.h>
+#include "vtkPlane.h"
+#include "vtkTriangle.h"
 
-#include <vtkPolyData.h>
-#include <vtkCellData.h>
-#include <vtkDataArray.h>
-#include <vtkFloatArray.h>
-#include <vtkUnsignedCharArray.h>
+#include "vtkPolyData.h"
+#include "vtkCellData.h"
+#include "vtkDataArray.h"
+#include "vtkFloatArray.h"
+#include "vtkUnsignedCharArray.h"
 
-#include <vtkAbstractPointLocator.h>
-#include <vtkOctreePointLocator.h>
-#include <vtkIntersectionPolyDataFilter.h>
+#include "vtkAbstractPointLocator.h"
+#include "vtkOctreePointLocator.h"
+#include "vtkIntersectionPolyDataFilter.h"
 
 
 namespace mirtk {

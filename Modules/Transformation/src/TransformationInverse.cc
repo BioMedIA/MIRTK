@@ -16,16 +16,16 @@
  * limitations under the License.
  */
 
-#include <mirtkTransformation.h>
-#include <mirtkMultiLevelTransformation.h>
-#include <mirtkMatrix.h>
+#include "mirtk/Transformation.h"
+#include "mirtk/MultiLevelTransformation.h"
+#include "mirtk/Matrix.h"
 
-#include <boost/cstdint.hpp>
-#include <boost/config/no_tr1/cmath.hpp>
-#include <boost/math/tools/tuple.hpp>
-#include <boost/numeric/ublas/lu.hpp>
-#include <boost/numeric/ublas/matrix.hpp>
-#include <boost/numeric/ublas/vector.hpp>
+#include "boost/cstdint.hpp"
+#include "boost/config/no_tr1/cmath.hpp"
+#include "boost/math/tools/tuple.hpp"
+#include "boost/numeric/ublas/lu.hpp"
+#include "boost/numeric/ublas/matrix.hpp"
+#include "boost/numeric/ublas/vector.hpp"
 
 #include <algorithm>
 

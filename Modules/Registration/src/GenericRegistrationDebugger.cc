@@ -17,35 +17,35 @@
  * limitations under the License.
  */
 
-#include <mirtkGenericRegistrationDebugger.h>
+#include "mirtk/GenericRegistrationDebugger.h"
 
-#include <mirtkConfig.h> // WINDOWS
-#include <mirtkEvent.h>
-#include <mirtkPoint.h>
-#include <mirtkMatrix.h>
-#include <mirtkGenericImage.h>
-#include <mirtkGenericRegistrationFilter.h>
-#include <mirtkHomogeneousTransformation.h>
-#include <mirtkFreeFormTransformation.h>
-#include <mirtkMultiLevelTransformation.h>
-#include <mirtkImageSimilarity.h>
+#include "mirtk/Config.h" // WINDOWS
+#include "mirtk/Event.h"
+#include "mirtk/Point.h"
+#include "mirtk/Matrix.h"
+#include "mirtk/GenericImage.h"
+#include "mirtk/GenericRegistrationFilter.h"
+#include "mirtk/HomogeneousTransformation.h"
+#include "mirtk/FreeFormTransformation.h"
+#include "mirtk/MultiLevelTransformation.h"
+#include "mirtk/ImageSimilarity.h"
 
 #ifdef HAVE_VTK
-#  include <mirtkVtk.h>
-#  include <vtkPoints.h>
-#  include <vtkPointData.h>
-#  include <vtkShortArray.h>
-#  include <vtkFloatArray.h>
-#  include <vtkStructuredGrid.h>
-#  include <vtkXMLStructuredGridWriter.h>
+#  include "mirtk/Vtk.h"
+#  include "vtkPoints.h"
+#  include "vtkPointData.h"
+#  include "vtkShortArray.h"
+#  include "vtkFloatArray.h"
+#  include "vtkStructuredGrid.h"
+#  include "vtkXMLStructuredGridWriter.h"
 #endif // HAVE_VTK
 
 #ifdef HAVE_MIRTK_PointSet
-#  include <vtkPointSet.h>
-#  include <mirtkPointSetUtils.h>
+#  include "vtkPointSet.h"
+#  include "mirtk/PointSetUtils.h"
 #endif // HAVE_MIRTK_PointSet
 
-#include <mirtkCommonExport.h>
+#include "mirtk/CommonExport.h"
 
 #include <cstdio>
 
@@ -53,7 +53,7 @@
 namespace mirtk {
 
 
-// global "debug" flag (cf. mirtkOptions.cc)
+// global "debug" flag (cf. mirtk/Options.h)
 MIRTK_Common_EXPORT extern int debug;
 
 

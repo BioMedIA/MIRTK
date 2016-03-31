@@ -20,7 +20,7 @@
 #ifndef MIRTK_CSplineInterpolateImageFunction4D_H
 #define MIRTK_CSplineInterpolateImageFunction4D_H
 
-#include <mirtkCSplineInterpolateImageFunction.h>
+#include "mirtk/CSplineInterpolateImageFunction.h"
 
 
 namespace mirtk {

@@ -20,7 +20,7 @@
 #ifndef MIRTK_ResamplingWithPadding_H
 #define MIRTK_ResamplingWithPadding_H
 
-#include <mirtkResampling.h>
+#include "mirtk/Resampling.h"
 
 
 namespace mirtk {

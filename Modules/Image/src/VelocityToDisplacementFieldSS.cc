@@ -17,14 +17,14 @@
  * limitations under the License.
  */
 
-#include <mirtkVelocityToDisplacementFieldSS.h>
+#include "mirtk/VelocityToDisplacementFieldSS.h"
 
-#include <mirtkMath.h>
-#include <mirtkMemory.h>
-#include <mirtkResampling.h>
-#include <mirtkGaussianPyramidFilter.h>
-#include <mirtkBinaryVoxelFunction.h>
-#include <mirtkInterpolateImageFunction.h>
+#include "mirtk/Math.h"
+#include "mirtk/Memory.h"
+#include "mirtk/Resampling.h"
+#include "mirtk/GaussianPyramidFilter.h"
+#include "mirtk/BinaryVoxelFunction.h"
+#include "mirtk/InterpolateImageFunction.h"
 
 
 namespace mirtk {

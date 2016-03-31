@@ -17,53 +17,53 @@
  * limitations under the License.
  */
 
-#include <mirtkGenericRegistrationFilter.h>
+#include "mirtk/GenericRegistrationFilter.h"
 
-#include <mirtkConfig.h> // WINDOWS
+#include "mirtk/Config.h" // WINDOWS
 
-#include <mirtkArray.h>
-#include <mirtkUtils.h>
-#include <mirtkMath.h>
-#include <mirtkMemory.h>
-#include <mirtkVersion.h>
-#include <mirtkMatrix.h>
-#include <mirtkParallel.h>
-#include <mirtkProfiling.h>
-#include <mirtkVector3D.h>
-#include <mirtkVoxelFunction.h>
+#include "mirtk/Array.h"
+#include "mirtk/Utils.h"
+#include "mirtk/Math.h"
+#include "mirtk/Memory.h"
+#include "mirtk/Version.h"
+#include "mirtk/Matrix.h"
+#include "mirtk/Parallel.h"
+#include "mirtk/Profiling.h"
+#include "mirtk/Vector3D.h"
+#include "mirtk/VoxelFunction.h"
 
-#include <mirtkDownsampling.h>
-#include <mirtkResampling.h>
-#include <mirtkResamplingWithPadding.h>
-#include <mirtkGaussianBlurring.h>
-#include <mirtkGaussianBlurringWithPadding.h>
-#include <mirtkGaussianPyramidFilter.h>
-#include <mirtkLinearInterpolateImageFunction.h>
-#include <mirtkNearestNeighborInterpolateImageFunction.h>
+#include "mirtk/Downsampling.h"
+#include "mirtk/Resampling.h"
+#include "mirtk/ResamplingWithPadding.h"
+#include "mirtk/GaussianBlurring.h"
+#include "mirtk/GaussianBlurringWithPadding.h"
+#include "mirtk/GaussianPyramidFilter.h"
+#include "mirtk/LinearInterpolateImageFunction.h"
+#include "mirtk/NearestNeighborInterpolateImageFunction.h"
 
-#include <mirtkInverseAffineTransformation.h>
-#include <mirtkPartialAffineTransformation.h>
-#include <mirtkPartialBSplineFreeFormTransformationSV.h>
-#include <mirtkFreeFormTransformation.h>
-#include <mirtkFluidFreeFormTransformation.h>
-#include <mirtkMultiLevelFreeFormTransformation.h>
-#include <mirtkMultiLevelStationaryVelocityTransformation.h>
-#include <mirtkPartialMultiLevelStationaryVelocityTransformation.h>
+#include "mirtk/InverseAffineTransformation.h"
+#include "mirtk/PartialAffineTransformation.h"
+#include "mirtk/PartialBSplineFreeFormTransformationSV.h"
+#include "mirtk/FreeFormTransformation.h"
+#include "mirtk/FluidFreeFormTransformation.h"
+#include "mirtk/MultiLevelFreeFormTransformation.h"
+#include "mirtk/MultiLevelStationaryVelocityTransformation.h"
+#include "mirtk/PartialMultiLevelStationaryVelocityTransformation.h"
 
-#include <mirtkImageSimilarity.h>
-#include <mirtkTransformationConstraint.h>
+#include "mirtk/ImageSimilarity.h"
+#include "mirtk/TransformationConstraint.h"
 
 #if MIRTK_Registration_WITH_PointSet
-#  include <mirtkRegisteredPointSet.h>
-#  include <mirtkPointSetUtils.h>
-#  include <mirtkPointSetDistance.h>
-#  include <mirtkPolyDataRemeshing.h>
+#  include "mirtk/RegisteredPointSet.h"
+#  include "mirtk/PointSetUtils.h"
+#  include "mirtk/PointSetDistance.h"
+#  include "mirtk/PolyDataRemeshing.h"
 #  if MIRTK_Registration_WITH_Deformable
-#    include <mirtkInternalForce.h>
+#    include "mirtk/InternalForce.h"
 #  endif
 #endif
 
-#include "mirtkRegistrationEnergyParser.h"
+#include "RegistrationEnergyParser.h"
 
 
 namespace mirtk {

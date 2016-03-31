@@ -18,8 +18,8 @@
  * limitations under the License.
  */
 
-#include <mirtkScalarGaussian.h>
-#include <mirtkMath.h>
+#include "mirtk/ScalarGaussian.h"
+#include "mirtk/Math.h"
 
 
 namespace mirtk {

@@ -17,18 +17,18 @@
  * limitations under the License.
  */
 
-#include <mirtkAssert.h>
-#include <mirtkVector3D.h>
-#include <mirtkVoxel.h>
-#include <mirtkBaseImage.h>
-#include <mirtkGenericImage.h>
-#include <mirtkVoxelFunction.h>
-#include <mirtkInterpolateImageFunction.h>
-#include <mirtkLieBracketImageFilter.h>
-#include <mirtkDifferenceOfCompositionLieBracketImageFilter3D.h>
-#include <mirtkParallel.h>
-#include <mirtkProfiling.h>
-#include <mirtkMemory.h>
+#include "mirtk/Assert.h"
+#include "mirtk/Vector3D.h"
+#include "mirtk/Voxel.h"
+#include "mirtk/BaseImage.h"
+#include "mirtk/GenericImage.h"
+#include "mirtk/VoxelFunction.h"
+#include "mirtk/InterpolateImageFunction.h"
+#include "mirtk/LieBracketImageFilter.h"
+#include "mirtk/DifferenceOfCompositionLieBracketImageFilter3D.h"
+#include "mirtk/Parallel.h"
+#include "mirtk/Profiling.h"
+#include "mirtk/Memory.h"
 
 
 namespace mirtk {

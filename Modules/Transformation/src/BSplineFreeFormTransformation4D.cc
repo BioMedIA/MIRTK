@@ -18,14 +18,14 @@
  * limitations under the License.
  */
 
-#include <mirtkBSplineFreeFormTransformation4D.h>
+#include "mirtk/BSplineFreeFormTransformation4D.h"
 
-#include <mirtkMath.h>
-#include <mirtkMemory.h>
-#include <mirtkParallel.h>
-#include <mirtkProfiling.h>
+#include "mirtk/Math.h"
+#include "mirtk/Memory.h"
+#include "mirtk/Parallel.h"
+#include "mirtk/Profiling.h"
 
-#include <mirtkImageToInterpolationCoefficients.h>
+#include "mirtk/ImageToInterpolationCoefficients.h"
 
 
 namespace mirtk {

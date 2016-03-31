@@ -20,10 +20,10 @@
 #ifndef MIRTK_Sinc_H
 #define MIRTK_Sinc_H
 
-#include <mirtkConfig.h>
-#include <mirtkMath.h>
+#include "mirtk/Config.h"
+#include "mirtk/Math.h"
 
-#include <mirtkNumericsExport.h>
+#include "mirtk/NumericsExport.h"
 
 
 namespace mirtk {

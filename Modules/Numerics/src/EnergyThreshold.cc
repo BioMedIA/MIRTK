@@ -17,9 +17,9 @@
  * limitations under the License.
  */
 
-#include <mirtkEnergyThreshold.h>
+#include "mirtk/EnergyThreshold.h"
 
-#include <mirtkMath.h>
+#include "mirtk/Math.h"
 
 
 namespace mirtk {

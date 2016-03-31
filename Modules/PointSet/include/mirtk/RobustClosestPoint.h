@@ -20,7 +20,7 @@
 #ifndef MIRTK_RobustClosestPoint_H
 #define MIRTK_RobustClosestPoint_H
 
-#include <mirtkFuzzyCorrespondence.h>
+#include "mirtk/FuzzyCorrespondence.h"
 
 
 namespace mirtk {

@@ -17,13 +17,13 @@
  * limitations under the License.
  */
 
-#include <mirtkCommon.h>
-#include <mirtkOptions.h>
+#include "mirtk/Common.h"
+#include "mirtk/Options.h"
 
-#include <mirtkIOConfig.h>
+#include "mirtk/IOConfig.h"
 
-#include <mirtkGenericImage.h>
-#include <mirtkLieBracketImageFilter.h>
+#include "mirtk/GenericImage.h"
+#include "mirtk/LieBracketImageFilter.h"
 
 using namespace mirtk;
 

@@ -18,17 +18,17 @@
  * limitations under the License.
  */
 
-#include <mirtkFreeFormTransformation3D.h>
+#include "mirtk/FreeFormTransformation3D.h"
 
-#include <mirtkParallel.h>
-#include <mirtkProfiling.h>
+#include "mirtk/Parallel.h"
+#include "mirtk/Profiling.h"
 
 #ifdef HAVE_VTK
-#  include <vtkSmartPointer.h>
-#  include <vtkPoints.h>
-#  include <vtkPolyData.h>
-#  include <vtkIdTypeArray.h>
-#  include <vtkOctreePointLocator.h>
+#  include "vtkSmartPointer.h"
+#  include "vtkPoints.h"
+#  include "vtkPolyData.h"
+#  include "vtkIdTypeArray.h"
+#  include "vtkOctreePointLocator.h"
 #endif
 
 

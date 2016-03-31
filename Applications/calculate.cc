@@ -17,19 +17,19 @@
  * limitations under the License.
  */
 
-#include <mirtkCommon.h>
-#include <mirtkOptions.h>
+#include "mirtk/Common.h"
+#include "mirtk/Options.h"
 
-#include <mirtkImageConfig.h>
-#include <mirtkIOConfig.h>
+#include "mirtk/ImageConfig.h"
+#include "mirtk/IOConfig.h"
 
-#include <mirtkDataOp.h>
-#include <mirtkDataStatistics.h>
-#include <mirtkDataFunctions.h>
+#include "mirtk/DataOp.h"
+#include "mirtk/DataStatistics.h"
+#include "mirtk/DataFunctions.h"
 
 #if MIRTK_Image_WITH_VTK
-#  include <vtkDataSet.h>
-#  include <vtkSmartPointer.h>
+#  include "vtkDataSet.h"
+#  include "vtkSmartPointer.h"
 #endif
 
 using namespace mirtk;

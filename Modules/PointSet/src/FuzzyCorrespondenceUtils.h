@@ -17,7 +17,7 @@
  * limitations under the License.
  */
 
-#include <mirtkFuzzyCorrespondence.h>
+#include "mirtk/FuzzyCorrespondence.h"
 
 
 namespace mirtk { namespace FuzzyCorrespondenceUtils {

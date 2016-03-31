@@ -33,10 +33,10 @@
 #ifndef MIRTK_Initialization_H
 #define MIRTK_Initialization_H
 
-#include <mirtkObjectFactory.h>
+#include "mirtk/ObjectFactory.h"
 
 #ifndef NDEBUG
-#  include <mirtkStream.h>
+#  include "mirtk/Stream.h"
 #endif
 
 
@@ -45,10 +45,10 @@
 // =============================================================================
 
 #if defined(HAVE_MIRTK_Numerics) && !defined(MIRTK_AUTO_REGISTER)
-  #include <mirtkGradientDescent.h>
-  #include <mirtkConjugateGradientDescent.h>
+  #include "mirtk/GradientDescent.h"
+  #include "mirtk/ConjugateGradientDescent.h"
   #ifdef HAVE_MIRTK_ThirdPartyLBFGS
-    #include <mirtkLimitedMemoryBFGSDescent.h>
+    #include "mirtk/LimitedMemoryBFGSDescent.h"
   #endif
 #endif
 
@@ -79,18 +79,18 @@ void RegisterOptimizers()
 // =============================================================================
 
 #if defined(HAVE_MIRTK_Image) && !defined(MIRTK_AUTO_REGISTER)
-  #include <mirtkImageReaderFactory.h>
-  #include <mirtkImageWriterFactory.h>
-  #include <mirtkGIPLImageReader.h>
-  #include <mirtkGIPLImageWriter.h>
-  #include <mirtkPGMImageReader.h>
-  #include <mirtkPGMImageWriter.h>
+  #include "mirtk/ImageReaderFactory.h"
+  #include "mirtk/ImageWriterFactory.h"
+  #include "mirtk/GIPLImageReader.h"
+  #include "mirtk/GIPLImageWriter.h"
+  #include "mirtk/PGMImageReader.h"
+  #include "mirtk/PGMImageWriter.h"
   #ifdef HAVE_PNG
-    #include <mirtkPNGImageWriter.h>
+    #include "mirtk/PNGImageWriter.h"
   #endif
   #ifdef HAVE_MIRTK_ThirdPartyNIfTI
-    #include <mirtkNiftiImageReader.h>
-    #include <mirtkNiftiImageWriter.h>
+    #include "mirtk/NiftiImageReader.h"
+    #include "mirtk/NiftiImageWriter.h"
   #endif
 #endif
 
@@ -139,12 +139,12 @@ void RegisterImageWriters()
 // =============================================================================
 
 #if defined(HAVE_MIRTK_Image) && defined(HAVE_MIRTK_Registration) && !defined(MIRTK_AUTO_REGISTER)
-  #include <mirtkSumOfSquaredIntensityDifferences.h>
-  #include <mirtkMutualImageInformation.h>
-  #include <mirtkNormalizedMutualImageInformation.h>
-  #include <mirtkIntensityCrossCorrelation.h>
-  #include <mirtkNormalizedIntensityCrossCorrelation.h>
-  #include <mirtkCosineOfNormalizedGradientField.h>
+  #include "mirtk/SumOfSquaredIntensityDifferences.h"
+  #include "mirtk/MutualImageInformation.h"
+  #include "mirtk/NormalizedMutualImageInformation.h"
+  #include "mirtk/IntensityCrossCorrelation.h"
+  #include "mirtk/NormalizedIntensityCrossCorrelation.h"
+  #include "mirtk/CosineOfNormalizedGradientField.h"
 #endif
 
 
@@ -175,9 +175,9 @@ void RegisterImageSimilarities()
 // =============================================================================
 
 #if defined(HAVE_MIRTK_PointSet) && defined(HAVE_MIRTK_Registration) && !defined(MIRTK_AUTO_REGISTER)
-  #include <mirtkCurrentsDistance.h>
-  #include <mirtkPointCorrespondenceDistance.h>
-  #include <mirtkFiducialRegistrationError.h>
+  #include "mirtk/CurrentsDistance.h"
+  #include "mirtk/PointCorrespondenceDistance.h"
+  #include "mirtk/FiducialRegistrationError.h"
 #endif
 
 namespace mirtk {
@@ -203,12 +203,12 @@ void RegisterPointSetDistances()
 // =============================================================================
 
 #if defined(HAVE_MIRTK_Transformation) && !defined(MIRTK_AUTO_REGISTER)
-  #include <mirtkSmoothnessConstraint.h>
-  #include <mirtkLogJacobianConstraint.h>
-  #include <mirtkMinJacobianConstraint.h>
-  #include <mirtkTopologyPreservationConstraint.h>
-  #include <mirtkVolumePreservationConstraint.h>
-  #include <mirtkSparsityConstraint.h>
+  #include "mirtk/SmoothnessConstraint.h"
+  #include "mirtk/LogJacobianConstraint.h"
+  #include "mirtk/MinJacobianConstraint.h"
+  #include "mirtk/TopologyPreservationConstraint.h"
+  #include "mirtk/VolumePreservationConstraint.h"
+  #include "mirtk/SparsityConstraint.h"
 #endif
 
 
@@ -239,9 +239,9 @@ void RegisterTransformationConstraints()
 // =============================================================================
 
 #if defined(HAVE_MIRTK_Image) && defined(HAVE_MIRTK_PointSet) && defined(HAVE_MIRTK_Deformable) && !defined(MIRTK_AUTO_REGISTER)
-  #include <mirtkBalloonForce.h>
-  #include <mirtkImageEdgeForce.h>
-  #include <mirtkImplicitSurfaceDistance.h>
+  #include "mirtk/BalloonForce.h"
+  #include "mirtk/ImageEdgeForce.h"
+  #include "mirtk/ImplicitSurfaceDistance.h"
 #endif
 
 
@@ -269,12 +269,12 @@ void RegisterExternalForces()
 // =============================================================================
 
 #if defined(HAVE_MIRTK_PointSet) && defined(HAVE_MIRTK_Deformable) && !defined(MIRTK_AUTO_REGISTER)
-  #include <mirtkCurvatureConstraint.h>
-  #include <mirtkInflationForce.h>
-  #include <mirtkMetricDistortion.h>
-  #include <mirtkNonSelfIntersectionConstraint.h>
-  #include <mirtkRepulsiveForce.h>
-  #include <mirtkStretchingForce.h>
+  #include "mirtk/CurvatureConstraint.h"
+  #include "mirtk/InflationForce.h"
+  #include "mirtk/MetricDistortion.h"
+  #include "mirtk/NonSelfIntersectionConstraint.h"
+  #include "mirtk/RepulsiveForce.h"
+  #include "mirtk/StretchingForce.h"
 #endif
 
 

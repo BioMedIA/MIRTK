@@ -17,9 +17,9 @@
  * limitations under the License.
  */
 
-#include <mirtkScalarFunctionToImage.h>
+#include "mirtk/ScalarFunctionToImage.h"
 
-#include <mirtkMath.h>
+#include "mirtk/Math.h"
 
 
 namespace mirtk {

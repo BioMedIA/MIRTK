@@ -17,21 +17,21 @@
  * limitations under the License.
  */
 
-#include <mirtkJacobianConstraint.h>
+#include "mirtk/JacobianConstraint.h"
 
-#include <mirtkMemory.h>
-#include <mirtkMatrix.h>
-#include <mirtkParallel.h>
-#include <mirtkFreeFormTransformation.h>
-#include <mirtkMultiLevelTransformation.h>
+#include "mirtk/Memory.h"
+#include "mirtk/Matrix.h"
+#include "mirtk/Parallel.h"
+#include "mirtk/FreeFormTransformation.h"
+#include "mirtk/MultiLevelTransformation.h"
 
-#include <mirtkCommonExport.h> 
+#include "mirtk/CommonExport.h" 
 
 
 namespace mirtk {
 
 
-// global "debug" flag (cf. mirtkOptions.cc)
+// global "debug" flag (cf. mirtk/Options.h)
 MIRTK_Common_EXPORT extern int debug;
 
 

@@ -20,10 +20,10 @@
 #ifndef MIRTK_PolyDataFilter_H
 #define MIRTK_PolyDataFilter_H
 
-#include <mirtkObject.h>
+#include "mirtk/Object.h"
 
-#include <vtkSmartPointer.h>
-#include <vtkPolyData.h>
+#include "vtkSmartPointer.h"
+#include "vtkPolyData.h"
 
 
 namespace mirtk {

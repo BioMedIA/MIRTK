@@ -20,22 +20,22 @@
 #ifndef MIRTK_SparseMatrix_H
 #define MIRTK_SparseMatrix_H
 
-#include <mirtkConfig.h>
-#include <mirtkObject.h>
+#include "mirtk/Config.h"
+#include "mirtk/Object.h"
 
-#include <mirtkAssert.h>
-#include <mirtkMemory.h>
-#include <mirtkVector.h>
-#include <mirtkMatrix.h>
-#include <mirtkMath.h>
-#include <mirtkPair.h>
-#include <mirtkArray.h>
-#include <mirtkAlgorithm.h>
-#include <mirtkProfiling.h>
+#include "mirtk/Assert.h"
+#include "mirtk/Memory.h"
+#include "mirtk/Vector.h"
+#include "mirtk/Matrix.h"
+#include "mirtk/Math.h"
+#include "mirtk/Pair.h"
+#include "mirtk/Array.h"
+#include "mirtk/Algorithm.h"
+#include "mirtk/Profiling.h"
 
-#include <mirtkNumericsConfig.h>
+#include "mirtk/NumericsConfig.h"
 #if MIRTK_Numerics_WITH_MATLAB && defined(HAVE_MATLAB)
-#  include <mirtkMatlab.h>
+#  include "mirtk/Matlab.h"
 #endif
 
 #include <iterator> // distance

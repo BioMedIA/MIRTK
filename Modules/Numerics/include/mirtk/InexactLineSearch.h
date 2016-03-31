@@ -20,7 +20,7 @@
 #ifndef MIRTK_InexactLineSearch_H
 #define MIRTK_InexactLineSearch_H
 
-#include <mirtkLineSearch.h>
+#include "mirtk/LineSearch.h"
 
 
 namespace mirtk {

@@ -20,10 +20,10 @@
 #ifndef MIRTK_BinaryVoxelFunction_H
 #define MIRTK_BinaryVoxelFunction_H
 
-#include <mirtkVoxelFunction.h>
+#include "mirtk/VoxelFunction.h"
 
-#include <mirtkNeighborhoodOffsets.h>
-#include <mirtkInterpolateImageFunction.h>
+#include "mirtk/NeighborhoodOffsets.h"
+#include "mirtk/InterpolateImageFunction.h"
 
 
 /**

@@ -20,8 +20,8 @@
 #ifndef MIRTK_LinearInterpolateImageFunction2D_HXX
 #define MIRTK_LinearInterpolateImageFunction2D_HXX
 
-#include <mirtkLinearInterpolateImageFunction2D.h>
-#include <mirtkLinearInterpolateImageFunction.hxx>
+#include "mirtk/LinearInterpolateImageFunction2D.h"
+#include "mirtk/LinearInterpolateImageFunction.hxx"
 
 
 namespace mirtk {

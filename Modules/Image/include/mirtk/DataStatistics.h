@@ -20,13 +20,13 @@
 #ifndef MIRTK_DataStatistics_H
 #define MIRTK_DataStatistics_H
 
-#include <mirtkDataOp.h>
+#include "mirtk/DataOp.h"
 
-#include <mirtkMath.h>
-#include <mirtkString.h>
-#include <mirtkStream.h>
-#include <mirtkArray.h>
-#include <mirtkAlgorithm.h> // partial_sort
+#include "mirtk/Math.h"
+#include "mirtk/String.h"
+#include "mirtk/Stream.h"
+#include "mirtk/Array.h"
+#include "mirtk/Algorithm.h" // partial_sort
 
 
 namespace mirtk { namespace data { namespace statistic {

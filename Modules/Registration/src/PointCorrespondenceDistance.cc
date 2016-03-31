@@ -17,24 +17,24 @@
  * limitations under the License.
  */
 
-#include <mirtkPointCorrespondenceDistance.h>
+#include "mirtk/PointCorrespondenceDistance.h"
 
-#include <mirtkAssert.h>
-#include <mirtkMemory.h>
-#include <mirtkArray.h>
-#include <mirtkPoint.h>
-#include <mirtkParallel.h>
-#include <mirtkEventDelegate.h>
-#include <mirtkRegisteredPointSet.h>
-#include <mirtkRadialErrorFunction.h>
-#include <mirtkPointSetUtils.h>
-#include <mirtkObjectFactory.h>
+#include "mirtk/Assert.h"
+#include "mirtk/Memory.h"
+#include "mirtk/Array.h"
+#include "mirtk/Point.h"
+#include "mirtk/Parallel.h"
+#include "mirtk/EventDelegate.h"
+#include "mirtk/RegisteredPointSet.h"
+#include "mirtk/RadialErrorFunction.h"
+#include "mirtk/PointSetUtils.h"
+#include "mirtk/ObjectFactory.h"
 
-#include <vtkSmartPointer.h>
-#include <vtkCharArray.h>
-#include <vtkFloatArray.h>
-#include <vtkCellArray.h>
-#include <vtkPoints.h>
+#include "vtkSmartPointer.h"
+#include "vtkCharArray.h"
+#include "vtkFloatArray.h"
+#include "vtkCellArray.h"
+#include "vtkPoints.h"
 
 
 namespace mirtk {

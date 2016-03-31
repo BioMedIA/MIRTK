@@ -21,25 +21,25 @@
 #define MIRTK_Numerics_H
 
 // Scalar functions
-#include <mirtkScalarFunction.h>
-#include <mirtkScalarGaussian.h>
+#include "mirtk/ScalarFunction.h"
+#include "mirtk/ScalarGaussian.h"
 
 // Vectors and matrices
-#include <mirtkVector.h>
-#include <mirtkVector3.h>
-#include <mirtkVector3D.h>
-#include <mirtkVector4D.h>
-#include <mirtkMatrix.h>
-#include <mirtkMatrix3x3.h>
-#include <mirtkSparseMatrix.h>
+#include "mirtk/Vector.h"
+#include "mirtk/Vector3.h"
+#include "mirtk/Vector3D.h"
+#include "mirtk/Vector4D.h"
+#include "mirtk/Matrix.h"
+#include "mirtk/Matrix3x3.h"
+#include "mirtk/SparseMatrix.h"
 
 // Points and point sets
-#include <mirtkPoint.h>
-#include <mirtkPointSet.h>
-#include <mirtkPointSamples.h>
+#include "mirtk/Point.h"
+#include "mirtk/PointSet.h"
+#include "mirtk/PointSamples.h"
 
 // Regression models
-#include <mirtkPolynomial.h>
+#include "mirtk/Polynomial.h"
 
 
 #endif // MIRTK_Numerics_H

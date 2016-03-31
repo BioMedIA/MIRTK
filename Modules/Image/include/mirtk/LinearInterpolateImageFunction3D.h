@@ -20,8 +20,8 @@
 #ifndef MIRTK_LinearInterpolateImageFunction3D_H
 #define MIRTK_LinearInterpolateImageFunction3D_H
 
-#include <mirtkLinearInterpolateImageFunction.h>
-#include <mirtkBaseImage.h>
+#include "mirtk/LinearInterpolateImageFunction.h"
+#include "mirtk/BaseImage.h"
 
 
 namespace mirtk {

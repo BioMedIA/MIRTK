@@ -20,20 +20,20 @@
 #ifndef MIRTK_RegisteredPointSet_H
 #define MIRTK_RegisteredPointSet_H
 
-#include <mirtkObject.h>
+#include "mirtk/Object.h"
 
-#include <mirtkArray.h>
-#include <mirtkPointSet.h>
-#include <mirtkTransformation.h>
-#include <mirtkEdgeTable.h>
-#include <mirtkEdgeConnectivity.h>
+#include "mirtk/Array.h"
+#include "mirtk/PointSet.h"
+#include "mirtk/Transformation.h"
+#include "mirtk/EdgeTable.h"
+#include "mirtk/EdgeConnectivity.h"
 
-#include <vtkSmartPointer.h>
-#include <vtkPointSet.h>
-#include <vtkPolyData.h>
-#include <vtkAbstractPointLocator.h>
-#include <vtkAbstractCellLocator.h>
-#include <vtkIdTypeArray.h>
+#include "vtkSmartPointer.h"
+#include "vtkPointSet.h"
+#include "vtkPolyData.h"
+#include "vtkAbstractPointLocator.h"
+#include "vtkAbstractCellLocator.h"
+#include "vtkIdTypeArray.h"
 
 
 namespace mirtk {

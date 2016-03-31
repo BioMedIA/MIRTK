@@ -17,17 +17,17 @@
  * limitations under the License.
  */
 
-#include <mirtkGenericRegistrationLogger.h>
+#include "mirtk/GenericRegistrationLogger.h"
 
-#include <mirtkMath.h>
-#include <mirtkEvent.h>
-#include <mirtkMatrix.h>
-#include <mirtkTerminal.h>
-#include <mirtkEnergyTerm.h>
-#include <mirtkHomogeneousTransformation.h>
-#include <mirtkGenericRegistrationFilter.h>
+#include "mirtk/Math.h"
+#include "mirtk/Event.h"
+#include "mirtk/Matrix.h"
+#include "mirtk/Terminal.h"
+#include "mirtk/EnergyTerm.h"
+#include "mirtk/HomogeneousTransformation.h"
+#include "mirtk/GenericRegistrationFilter.h"
 
-#include <mirtkCommonExport.h>
+#include "mirtk/CommonExport.h"
 
 
 namespace mirtk {

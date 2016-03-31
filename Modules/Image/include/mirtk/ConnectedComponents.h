@@ -20,11 +20,11 @@
 #ifndef MIRTK_ConnectedComponents_H
 #define MIRTK_ConnectedComponents_H
 
-#include <mirtkImageToImage.h>
+#include "mirtk/ImageToImage.h"
 
-#include <mirtkArray.h>
-#include <mirtkOrderedSet.h>
-#include <mirtkNeighborhoodOffsets.h>
+#include "mirtk/Array.h"
+#include "mirtk/OrderedSet.h"
+#include "mirtk/NeighborhoodOffsets.h"
 
 
 namespace mirtk {

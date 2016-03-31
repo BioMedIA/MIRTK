@@ -34,7 +34,7 @@
 #  define MSB_FIRST 2
 #endif
 
-#include <mirtkMatrix.h>
+#include "mirtk/Matrix.h"
 
 
 namespace mirtk {

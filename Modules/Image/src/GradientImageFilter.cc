@@ -18,11 +18,11 @@
  * limitations under the License.
  */
 
-#include <mirtkGradientImageFilter.h>
+#include "mirtk/GradientImageFilter.h"
 
-#include <mirtkMath.h>
-#include <mirtkParallel.h>
-#include <mirtkVoxelFunction.h>
+#include "mirtk/Math.h"
+#include "mirtk/Parallel.h"
+#include "mirtk/VoxelFunction.h"
 
 #include <limits>
 #include <utility>

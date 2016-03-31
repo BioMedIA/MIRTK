@@ -17,8 +17,8 @@
  * limitations under the License.
  */
 
-#include <mirtkStoppingCriterion.h>
-#include <mirtkLocalOptimizer.h>
+#include "mirtk/StoppingCriterion.h"
+#include "mirtk/LocalOptimizer.h"
 
 
 namespace mirtk {

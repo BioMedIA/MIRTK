@@ -17,15 +17,15 @@
  * limitations under the License.
  */
 
-#include <mirtkRadialErrorFunction.h>
+#include "mirtk/RadialErrorFunction.h"
 
-#include <mirtkString.h>
+#include "mirtk/String.h"
 
-#include <mirtkDistanceErrorFunction.h>
-#include <mirtkSquaredErrorFunction.h>
-#include <mirtkGaussianErrorFunction.h>
-#include <mirtkCharbonnierErrorFunction.h>
-#include <mirtkPeronaMalikErrorFunction.h>
+#include "mirtk/DistanceErrorFunction.h"
+#include "mirtk/SquaredErrorFunction.h"
+#include "mirtk/GaussianErrorFunction.h"
+#include "mirtk/CharbonnierErrorFunction.h"
+#include "mirtk/PeronaMalikErrorFunction.h"
 
 
 namespace mirtk {

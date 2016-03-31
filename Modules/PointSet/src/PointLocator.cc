@@ -24,22 +24,22 @@
   #endif
 #endif
 
-#include <mirtkPointLocator.h>
+#include "mirtk/PointLocator.h"
 
-#include <mirtkAssert.h>
-#include <mirtkArray.h>
-#include <mirtkArrayHeap.h>
-#include <mirtkPair.h>
-#include <mirtkAllocate.h>
-#include <mirtkDeallocate.h>
-#include <mirtkParallel.h>
+#include "mirtk/Assert.h"
+#include "mirtk/Array.h"
+#include "mirtk/ArrayHeap.h"
+#include "mirtk/Pair.h"
+#include "mirtk/Allocate.h"
+#include "mirtk/Deallocate.h"
+#include "mirtk/Parallel.h"
 
-#include <vtkSmartPointer.h>
-#include <vtkPoints.h>
-#include <vtkPointSet.h>
-#include <vtkPolyData.h>
-#include <vtkIdList.h>
-#include <vtkOctreePointLocator.h>
+#include "vtkSmartPointer.h"
+#include "vtkPoints.h"
+#include "vtkPointSet.h"
+#include "vtkPolyData.h"
+#include "vtkIdList.h"
+#include "vtkOctreePointLocator.h"
 
 
 #ifdef HAVE_FLANN
@@ -62,7 +62,7 @@
     #pragma clang diagnostic ignored "-Wunused-local-typedefs"
   #endif
   // Include FLANN
-  #include <flann/flann.hpp>
+  #include "flann/flann.hpp"
   // Enable warnings again
   #if defined(_MSC_VER)
     #pragma warning(pop)

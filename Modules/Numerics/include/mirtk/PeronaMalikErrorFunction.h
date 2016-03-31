@@ -20,8 +20,8 @@
 #ifndef MIRTK_PeronaMalikErrorFunction_H
 #define MIRTK_PeronaMalikErrorFunction_H
 
-#include <mirtkRadialErrorFunction.h>
-#include <mirtkMath.h>
+#include "mirtk/RadialErrorFunction.h"
+#include "mirtk/Math.h"
 
 
 namespace mirtk {

@@ -17,12 +17,12 @@
  * limitations under the License.
  */
 
-#include <mirtkBrentLineSearch.h>
+#include "mirtk/BrentLineSearch.h"
 
-#include <mirtkMath.h>
-#include <mirtkMemory.h>
-#include <mirtkString.h>
-#include <mirtkProfiling.h>
+#include "mirtk/Math.h"
+#include "mirtk/Memory.h"
+#include "mirtk/String.h"
+#include "mirtk/Profiling.h"
 
 #include <algorithm>
 

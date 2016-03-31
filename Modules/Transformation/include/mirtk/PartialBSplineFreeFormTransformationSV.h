@@ -20,8 +20,8 @@
 #ifndef MIRTK_PartialBSplineFreeFormTransformationSV_H
 #define MIRTK_PartialBSplineFreeFormTransformationSV_H
 
-#include <mirtkTransformation.h>
-#include <mirtkBSplineFreeFormTransformationSV.h>
+#include "mirtk/Transformation.h"
+#include "mirtk/BSplineFreeFormTransformationSV.h"
 
 
 namespace mirtk {

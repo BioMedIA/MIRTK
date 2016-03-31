@@ -20,22 +20,22 @@
 #ifndef MIRTK_SpectralDecomposition_H
 #define MIRTK_SpectralDecomposition_H
 
-#include <mirtkPair.h>
-#include <mirtkArray.h>
-#include <mirtkPointSet.h>
-#include <mirtkVector.h>
-#include <mirtkMatrix.h>
-#include <mirtkSparseMatrix.h>
-#include <mirtkParallel.h>
+#include "mirtk/Pair.h"
+#include "mirtk/Array.h"
+#include "mirtk/PointSet.h"
+#include "mirtk/Vector.h"
+#include "mirtk/Matrix.h"
+#include "mirtk/SparseMatrix.h"
+#include "mirtk/Parallel.h"
 
-#include <mirtkPointSetExport.h>
+#include "mirtk/PointSetExport.h"
 
-#include <vtkSmartPointer.h>
-#include <vtkPolyData.h>
-#include <vtkPointData.h>
-#include <vtkDataArray.h>
-#include <vtkIdList.h>
-#include <vtkAbstractPointLocator.h>
+#include "vtkSmartPointer.h"
+#include "vtkPolyData.h"
+#include "vtkPointData.h"
+#include "vtkDataArray.h"
+#include "vtkIdList.h"
+#include "vtkAbstractPointLocator.h"
 
 
 namespace mirtk {

@@ -18,12 +18,12 @@
  * limitations under the License.
  */
 
-#include <mirtkFreeFormTransformation.h>
+#include "mirtk/FreeFormTransformation.h"
 
-#include <mirtkMath.h>
-#include <mirtkMemory.h>
-#include <mirtkParallel.h>
-#include <mirtkProfiling.h>
+#include "mirtk/Math.h"
+#include "mirtk/Memory.h"
+#include "mirtk/Parallel.h"
+#include "mirtk/Profiling.h"
 
 
 namespace mirtk {

@@ -20,7 +20,7 @@
 #ifndef MIRTK_FastLinearImageGradientFunction2D_H
 #define MIRTK_FastLinearImageGradientFunction2D_H
 
-#include <mirtkFastLinearImageGradientFunction.h>
+#include "mirtk/FastLinearImageGradientFunction.h"
 
 
 namespace mirtk {

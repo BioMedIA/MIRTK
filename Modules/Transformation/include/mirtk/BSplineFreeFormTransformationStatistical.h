@@ -20,11 +20,11 @@
 #ifndef MIRTK_BSplineFreeFormTransformationStatistical_H
 #define MIRTK_BSplineFreeFormTransformationStatistical_H
 
-#include <mirtkBSplineFreeFormTransformation3D.h>
+#include "mirtk/BSplineFreeFormTransformation3D.h"
 
-#include <mirtkMatrix.h>
-#include <mirtkVector.h>
-#include <mirtkVector3D.h>
+#include "mirtk/Matrix.h"
+#include "mirtk/Vector.h"
+#include "mirtk/Vector3D.h"
 
 #include <string>
 

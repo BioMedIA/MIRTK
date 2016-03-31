@@ -20,10 +20,10 @@
 #ifndef MIRTK_VelocityToDisplacementField_H
 #define MIRTK_VelocityToDisplacementField_H
 
-#include <mirtkImageToImage.h>
+#include "mirtk/ImageToImage.h"
 
-#include <mirtkInterpolationMode.h>
-#include <mirtkExtrapolationMode.h>
+#include "mirtk/InterpolationMode.h"
+#include "mirtk/ExtrapolationMode.h"
 
 
 namespace mirtk {

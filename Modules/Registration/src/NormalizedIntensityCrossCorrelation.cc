@@ -17,22 +17,22 @@
  * limitations under the License.
  */
 
-#include <mirtkNormalizedIntensityCrossCorrelation.h>
+#include "mirtk/NormalizedIntensityCrossCorrelation.h"
 
-#include <mirtkConfig.h> // WINDOWS
-#include <mirtkMath.h>
-#include <mirtkMemory.h>
-#include <mirtkParallel.h>
-#include <mirtkProfiling.h>
-#include <mirtkVector3D.h>
-#include <mirtkVoxelCast.h>
-#include <mirtkVoxelFunction.h>
-#include <mirtkBinaryVoxelFunction.h>
-#include <mirtkScalarFunctionToImage.h>
-#include <mirtkConvolutionFunction.h>
-#include <mirtkGenericImageIterator.h>
-#include <mirtkScalarGaussian.h>
-#include <mirtkObjectFactory.h>
+#include "mirtk/Config.h" // WINDOWS
+#include "mirtk/Math.h"
+#include "mirtk/Memory.h"
+#include "mirtk/Parallel.h"
+#include "mirtk/Profiling.h"
+#include "mirtk/Vector3D.h"
+#include "mirtk/VoxelCast.h"
+#include "mirtk/VoxelFunction.h"
+#include "mirtk/BinaryVoxelFunction.h"
+#include "mirtk/ScalarFunctionToImage.h"
+#include "mirtk/ConvolutionFunction.h"
+#include "mirtk/GenericImageIterator.h"
+#include "mirtk/ScalarGaussian.h"
+#include "mirtk/ObjectFactory.h"
 
 // FIXME: Keeping a copy of the intermediate image margins which temporarily
 //        have to be modified by the Include function does produce incorrect

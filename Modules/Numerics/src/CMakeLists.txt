@@ -23,85 +23,86 @@
 ##############################################################################
 
 set(HEADERS
-  ${BINARY_INCLUDE_DIR}/mirtkNumericsConfig.h
-  mirtkAdaptiveLineSearch.h
-  mirtkArith.h
-  mirtkBrentLineSearch.h
-  mirtkBSpline.h
-  mirtkCharbonnierErrorFunction.h
-  mirtkConjugateGradientDescent.h
-  mirtkDistanceErrorFunction.h
-  mirtkEnergyThreshold.h
-  mirtkGaussianErrorFunction.h
-  mirtkGradientDescent.h
-  mirtkInexactLineSearch.h
-  mirtkLineSearch.h
-  mirtkLocalOptimizer.h
-  mirtkMatrix.h
-  mirtkMatrix3x3.h
-  mirtkMaxStepLineSearch.h
-  mirtkNumerics.h
-  mirtkObjectiveFunction.h
-  mirtkOptimizationMethod.h
-  mirtkPeronaMalikErrorFunction.h
-  mirtkPlane.h
-  mirtkPoint.h
-  mirtkPointSamples.h
-  mirtkPointSet.h
-  mirtkPolynomial.h
-  mirtkRadialErrorFunction.h
-  mirtkScalarFunction.h
-  mirtkScalarGaussian.h
-  mirtkSinc.h
-  mirtkSparseMatrix.h
-  mirtkSquaredErrorFunction.h
-  mirtkStoppingCriterion.h
-  mirtkVector.h
-  mirtkVector3.h
-  mirtkVector3D.h
-  mirtkVector4D.h
+  ${BINARY_INCLUDE_DIR}/mirtk/NumericsConfig.h
+  ${BINARY_INCLUDE_DIR}/mirtk/NumericsExport.h
+  AdaptiveLineSearch.h
+  Arith.h
+  BrentLineSearch.h
+  BSpline.h
+  CharbonnierErrorFunction.h
+  ConjugateGradientDescent.h
+  DistanceErrorFunction.h
+  EnergyThreshold.h
+  GaussianErrorFunction.h
+  GradientDescent.h
+  InexactLineSearch.h
+  LineSearch.h
+  LocalOptimizer.h
+  Matrix.h
+  Matrix3x3.h
+  MaxStepLineSearch.h
+  Numerics.h
+  ObjectiveFunction.h
+  OptimizationMethod.h
+  PeronaMalikErrorFunction.h
+  Plane.h
+  Point.h
+  PointSamples.h
+  PointSet.h
+  Polynomial.h
+  RadialErrorFunction.h
+  ScalarFunction.h
+  ScalarGaussian.h
+  Sinc.h
+  SparseMatrix.h
+  SquaredErrorFunction.h
+  StoppingCriterion.h
+  Vector.h
+  Vector3.h
+  Vector3D.h
+  Vector4D.h
   # private headers -- TODO: Exclude from installation
-  mirtkArpack.h
-  mirtkUmfpack.h
-  mirtkEigen.h
+  Arpack.h
+  Umfpack.h
+  Eigen.h
 )
 
 set(SOURCES
-  mirtkAdaptiveLineSearch.cc
-  mirtkArith.cc
-  mirtkBrentLineSearch.cc
-  mirtkBSpline.cc
-  mirtkConjugateGradientDescent.cc
-  mirtkEnergyThreshold.cc
-  mirtkGradientDescent.cc
-  mirtkInexactLineSearch.cc
-  mirtkLineSearch.cc
-  mirtkLocalOptimizer.cc
-  mirtkMatrix.cc
-  mirtkMatrix3x3.cc
-  mirtkMaxStepLineSearch.cc
-  mirtkNumericsConfig.cc
-  mirtkPlane.cc
-  mirtkPoint.cc
-  mirtkPointSamples.cc
-  mirtkPointSet.cc
-  mirtkPolynomial.cc
-  mirtkRadialErrorFunction.cc
-  mirtkScalarGaussian.cc
-  mirtkSinc.cc
-  mirtkSparseMatrix.cc
-  mirtkStoppingCriterion.cc
-  mirtkVector.cc
-  mirtkVector3.cc
-  mirtkVector3D.cc
-  mirtkVector4D.cc
+  AdaptiveLineSearch.cc
+  Arith.cc
+  BrentLineSearch.cc
+  BSpline.cc
+  ConjugateGradientDescent.cc
+  EnergyThreshold.cc
+  GradientDescent.cc
+  InexactLineSearch.cc
+  LineSearch.cc
+  LocalOptimizer.cc
+  Matrix.cc
+  Matrix3x3.cc
+  MaxStepLineSearch.cc
+  NumericsConfig.cc
+  Plane.cc
+  Point.cc
+  PointSamples.cc
+  PointSet.cc
+  Polynomial.cc
+  RadialErrorFunction.cc
+  ScalarGaussian.cc
+  Sinc.cc
+  SparseMatrix.cc
+  StoppingCriterion.cc
+  Vector.cc
+  Vector3.cc
+  Vector3D.cc
+  Vector4D.cc
 )
 
 set(DEPENDS LibCommon)
 
 if (LBFGS_FOUND)
-  list(APPEND HEADERS mirtkLimitedMemoryBFGSDescent.h)
-  list(APPEND SOURCES mirtkLimitedMemoryBFGSDescent.cc)
+  list(APPEND HEADERS LimitedMemoryBFGSDescent.h)
+  list(APPEND SOURCES LimitedMemoryBFGSDescent.cc)
   list(APPEND DEPENDS ${LBFGS_LIBRARIES})
 endif ()
 

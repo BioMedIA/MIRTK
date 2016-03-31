@@ -20,11 +20,11 @@
 #ifndef MIRTK_LinearInterpolateImageFunction_HXX
 #define MIRTK_LinearInterpolateImageFunction_HXX
 
-#include <mirtkLinearInterpolateImageFunction.h>
-#include <mirtkInterpolateImageFunction.hxx>
+#include "mirtk/LinearInterpolateImageFunction.h"
+#include "mirtk/InterpolateImageFunction.hxx"
 
-#include <mirtkMath.h>
-#include <mirtkVoxelCast.h>
+#include "mirtk/Math.h"
+#include "mirtk/VoxelCast.h"
 
 
 namespace mirtk {

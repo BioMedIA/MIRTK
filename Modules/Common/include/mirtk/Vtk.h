@@ -20,13 +20,13 @@
 #ifndef MIRTK_Vtk_H
 #define MIRTK_Vtk_H
 
-#include <mirtkString.h>
+#include "mirtk/String.h"
 
-#include <vtkConfigure.h>
-#include <vtkNew.h>
-#include <vtkSmartPointer.h>
-#include <vtkDataArray.h>
-#include <vtkDataSetAttributes.h>
+#include "vtkConfigure.h"
+#include "vtkNew.h"
+#include "vtkSmartPointer.h"
+#include "vtkDataArray.h"
+#include "vtkDataSetAttributes.h"
 
 
 namespace mirtk {

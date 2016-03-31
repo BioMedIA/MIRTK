@@ -20,8 +20,8 @@
 #ifndef MIRTK_DistanceErrorFunction_H
 #define MIRTK_DistanceErrorFunction_H
 
-#include <mirtkRadialErrorFunction.h>
-#include <mirtkMath.h>
+#include "mirtk/RadialErrorFunction.h"
+#include "mirtk/Math.h"
 
 
 namespace mirtk {

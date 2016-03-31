@@ -17,16 +17,16 @@
  * limitations under the License.
  */
 
-#include <mirtkGradientFieldSimilarity.h>
+#include "mirtk/GradientFieldSimilarity.h"
 
-#include <mirtkMemory.h>
-#include <mirtkParallel.h>
-#include <mirtkGenericImage.h>
-#include <mirtkVoxelFunction.h>
-#include <mirtkMatrix.h>
+#include "mirtk/Memory.h"
+#include "mirtk/Parallel.h"
+#include "mirtk/GenericImage.h"
+#include "mirtk/VoxelFunction.h"
+#include "mirtk/Matrix.h"
 
-#include <mirtkFreeFormTransformation.h>
-#include <mirtkMultiLevelFreeFormTransformation.h>
+#include "mirtk/FreeFormTransformation.h"
+#include "mirtk/MultiLevelFreeFormTransformation.h"
 
 
 namespace mirtk {

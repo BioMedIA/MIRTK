@@ -97,8 +97,8 @@ f.write('#ifndef MIRTK_' + source_name[5:] + '_H\n')
 f.write('#define MIRTK_' + source_name[5:] + '_H\n')
 # include statements
 f.write("""
-#include <mirtkStream.h>
-#include <mirtkVoxelFunction.h>
+#include "mirtk/Stream.h"
+#include "mirtk/VoxelFunction.h"
 
 
 namespace mirtk {

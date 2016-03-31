@@ -20,7 +20,7 @@
 #define _USE_MATH_DEFINES
 #include <cmath>
 
-#include <mirtkMath.h>
+#include "mirtk/Math.h"
 
 
 namespace mirtk {

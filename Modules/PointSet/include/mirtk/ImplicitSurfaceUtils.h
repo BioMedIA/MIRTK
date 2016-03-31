@@ -20,23 +20,23 @@
 #ifndef MIRTK_ImplicitSurfaceUtils_H
 #define MIRTK_ImplicitSurfaceUtils_H
 
-#include <mirtkAssert.h>
-#include <mirtkMath.h>
-#include <mirtkArray.h>
-#include <mirtkAlgorithm.h>
-#include <mirtkGenericImage.h>
-#include <mirtkRegisteredImage.h>
-#include <mirtkInterpolateImageFunction.h>
-#include <mirtkImageGradientFunction.h>
-#include <mirtkPointSamples.h>
-#include <mirtkPointSetUtils.h>
+#include "mirtk/Assert.h"
+#include "mirtk/Math.h"
+#include "mirtk/Array.h"
+#include "mirtk/Algorithm.h"
+#include "mirtk/GenericImage.h"
+#include "mirtk/RegisteredImage.h"
+#include "mirtk/InterpolateImageFunction.h"
+#include "mirtk/ImageGradientFunction.h"
+#include "mirtk/PointSamples.h"
+#include "mirtk/PointSetUtils.h"
 
 // Include inline definitions of image interpolation functions
-#include <mirtkLinearInterpolateImageFunction.hxx>
-#include <mirtkFastLinearImageGradientFunction.hxx>
+#include "mirtk/LinearInterpolateImageFunction.hxx"
+#include "mirtk/FastLinearImageGradientFunction.hxx"
 
-#include <vtkSmartPointer.h>
-#include <vtkPolyData.h>
+#include "vtkSmartPointer.h"
+#include "vtkPolyData.h"
 
 
 namespace mirtk {

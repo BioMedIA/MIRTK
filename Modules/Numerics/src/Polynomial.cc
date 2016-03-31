@@ -17,13 +17,13 @@
  * limitations under the License.
  */
 
-#include <mirtkPolynomial.h>
+#include "mirtk/Polynomial.h"
 
-#include <mirtkAssert.h>
-#include <mirtkMath.h>
-#include <mirtkEigen.h>
+#include "mirtk/Assert.h"
+#include "mirtk/Math.h"
+#include "mirtk/Eigen.h"
 
-#include <Eigen/QR>
+#include "Eigen/QR"
 
 
 namespace mirtk {

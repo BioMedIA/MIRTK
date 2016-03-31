@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include <mirtkNeighborhoodOffsets.h>
+#include "mirtk/NeighborhoodOffsets.h"
 
 
 namespace mirtk {

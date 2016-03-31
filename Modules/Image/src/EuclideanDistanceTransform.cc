@@ -16,10 +16,10 @@
  * limitations under the License.
  */
 
-#include <mirtkEuclideanDistanceTransform.h>
+#include "mirtk/EuclideanDistanceTransform.h"
 
-#include <mirtkMath.h>
-#include <mirtkStream.h>
+#include "mirtk/Math.h"
+#include "mirtk/Stream.h"
 
 #define EDT_MAX_IMAGE_DIMENSION 26754
 #define EDT_MAX_DISTANCE_SQUARED 2147329548

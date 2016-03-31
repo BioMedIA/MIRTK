@@ -20,7 +20,7 @@
 #ifndef MIRTK_LogJacobianConstraint_H
 #define MIRTK_LogJacobianConstraint_H
 
-#include <mirtkJacobianConstraint.h>
+#include "mirtk/JacobianConstraint.h"
 
 
 namespace mirtk {

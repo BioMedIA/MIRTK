@@ -21,7 +21,7 @@
 #define MIRTK_NumericsTest_H
 
 #include <cmath>
-#include <gtest/gtest.h>
+#include "gtest/gtest.h"
 
 
 namespace testing { namespace mirtk {

@@ -20,33 +20,33 @@
 #ifndef MIRTK_GenericRegistrationFilter_H
 #define MIRTK_GenericRegistrationFilter_H
 
-#include <mirtkRegistrationFilter.h>
+#include "mirtk/RegistrationFilter.h"
 
-#include <mirtkMath.h>
-#include <mirtkPoint.h>
-#include <mirtkVector3D.h>
-#include <mirtkEventDelegate.h>
+#include "mirtk/Math.h"
+#include "mirtk/Point.h"
+#include "mirtk/Vector3D.h"
+#include "mirtk/EventDelegate.h"
 
-#include <mirtkBaseImage.h>
-#include <mirtkGenericImage.h>
-#include <mirtkRegisteredImage.h>
-#include <mirtkInterpolationMode.h>
-#include <mirtkExtrapolationMode.h>
+#include "mirtk/BaseImage.h"
+#include "mirtk/GenericImage.h"
+#include "mirtk/RegisteredImage.h"
+#include "mirtk/InterpolationMode.h"
+#include "mirtk/ExtrapolationMode.h"
 
-#include <mirtkSimilarityMeasure.h>
-#include <mirtkPointSetDistanceMeasure.h>
-#include <mirtkConstraintMeasure.h>
+#include "mirtk/SimilarityMeasure.h"
+#include "mirtk/PointSetDistanceMeasure.h"
+#include "mirtk/ConstraintMeasure.h"
 
-#include <mirtkLocalOptimizer.h>
-#include <mirtkRegistrationEnergy.h>
+#include "mirtk/LocalOptimizer.h"
+#include "mirtk/RegistrationEnergy.h"
 
-#include <mirtkTransformation.h>
-#include <mirtkTransformationModel.h>
+#include "mirtk/Transformation.h"
+#include "mirtk/TransformationModel.h"
 
-#include <mirtkRegistrationConfig.h>
+#include "mirtk/RegistrationConfig.h"
 #if MIRTK_Registration_WITH_PointSet
-#  include <vtkSmartPointer.h>
-#  include <vtkPointSet.h>
+#  include "vtkSmartPointer.h"
+#  include "vtkPointSet.h"
 #else
 class vtkPointSet;
 #endif

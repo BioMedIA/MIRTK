@@ -17,7 +17,7 @@
  * limitations under the License.
  */
 
-#include <mirtkNiftiImageInfo.h>
+#include "mirtk/NiftiImageInfo.h"
 
 
 // =============================================================================

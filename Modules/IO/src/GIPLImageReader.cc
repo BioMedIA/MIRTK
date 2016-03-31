@@ -17,10 +17,10 @@
  * limitations under the License.
  */
 
-#include <mirtkGIPLImageReader.h>
-#include "mirtkGIPL.h"
+#include "GIPL.h"
 
-#include <mirtkImageReaderFactory.h>
+#include "mirtk/GIPLImageReader.h"
+#include "mirtk/ImageReaderFactory.h"
 
 
 namespace mirtk {

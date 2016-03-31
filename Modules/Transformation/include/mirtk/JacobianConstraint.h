@@ -20,9 +20,9 @@
 #ifndef MIRTK_JacobianConstraint_H
 #define MIRTK_JacobianConstraint_H
 
-#include <mirtkTransformationConstraint.h>
+#include "mirtk/TransformationConstraint.h"
 
-#include <mirtkMatrix.h>
+#include "mirtk/Matrix.h"
 
 
 namespace mirtk {

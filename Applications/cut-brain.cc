@@ -17,15 +17,15 @@
  * limitations under the License.
  */
 
-#include <mirtkCommon.h>
-#include <mirtkOptions.h>
+#include "mirtk/Common.h"
+#include "mirtk/Options.h"
 
-#include <mirtkIOConfig.h>
+#include "mirtk/IOConfig.h"
 
-#include <mirtkVector3.h>
-#include <mirtkMatrix3x3.h>
-#include <mirtkPointSet.h>
-#include <mirtkGenericImage.h>
+#include "mirtk/Vector3.h"
+#include "mirtk/Matrix3x3.h"
+#include "mirtk/PointSet.h"
+#include "mirtk/GenericImage.h"
 
 using namespace mirtk;
 

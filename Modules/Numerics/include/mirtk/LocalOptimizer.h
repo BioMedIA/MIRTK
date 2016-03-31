@@ -20,12 +20,12 @@
 #ifndef MIRTK_LocalOptimizer_H
 #define MIRTK_LocalOptimizer_H
 
-#include <mirtkObservable.h>
+#include "mirtk/Observable.h"
 
-#include <mirtkMath.h>
-#include <mirtkArray.h>
-#include <mirtkOptimizationMethod.h>
-#include <mirtkObjectiveFunction.h>
+#include "mirtk/Math.h"
+#include "mirtk/Array.h"
+#include "mirtk/OptimizationMethod.h"
+#include "mirtk/ObjectiveFunction.h"
 
 
 namespace mirtk {

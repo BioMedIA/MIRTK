@@ -25,7 +25,7 @@
 #ifndef MIRTK_ArrayHeap_H
 #define MIRTK_ArrayHeap_H
 
-#include <mirtkArray.h>
+#include "mirtk/Array.h"
 #include <algorithm>
 
 

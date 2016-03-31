@@ -20,14 +20,14 @@
 #ifndef MIRTK_PointCorrespondenceDistance_H
 #define MIRTK_PointCorrespondenceDistance_H
 
-#include <mirtkPointSetDistance.h>
+#include "mirtk/PointSetDistance.h"
 
-#include <mirtkArray.h>
-#include <mirtkEventDelegate.h>
-#include <mirtkPointCorrespondence.h>
-#include <mirtkRadialErrorFunction.h>
+#include "mirtk/Array.h"
+#include "mirtk/EventDelegate.h"
+#include "mirtk/PointCorrespondence.h"
+#include "mirtk/RadialErrorFunction.h"
 
-#include <mirtkTestProd.h>
+#include "mirtk/TestProd.h"
 
 
 namespace mirtk {

@@ -21,8 +21,8 @@
 #ifndef MIRTK_ScalarGaussian_H
 #define MIRTK_ScalarGaussian_H
 
-#include <mirtkScalarFunction.h>
-#include <mirtkVector4D.h>
+#include "mirtk/ScalarFunction.h"
+#include "mirtk/Vector4D.h"
 
 
 namespace mirtk {

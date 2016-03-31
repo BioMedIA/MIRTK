@@ -17,15 +17,15 @@
  * limitations under the License.
  */
 
-#include <mirtkGenericImage.h>
-#include <mirtkTransformation.h>
-#include <mirtkNoise.h>
-#include <mirtkGaussianBlurring.h>
-#include <mirtkGaussianBlurring2D.h>
-#include <mirtkConvolutionWithGaussianDerivative.h>
-#include <mirtkConvolutionWithGaussianDerivative2.h>
-#include <mirtkDisplacementToVelocityField.h>
-#include <mirtkVelocityToDisplacementFieldEuler.h>
+#include "mirtk/GenericImage.h"
+#include "mirtk/Transformation.h"
+#include "mirtk/Noise.h"
+#include "mirtk/GaussianBlurring.h"
+#include "mirtk/GaussianBlurring2D.h"
+#include "mirtk/ConvolutionWithGaussianDerivative.h"
+#include "mirtk/ConvolutionWithGaussianDerivative2.h"
+#include "mirtk/DisplacementToVelocityField.h"
+#include "mirtk/VelocityToDisplacementFieldEuler.h"
 
 #include <cmath>
 #include <cstring>

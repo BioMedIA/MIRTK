@@ -21,7 +21,7 @@
 #ifndef MIRTK_Resampling_H
 #define MIRTK_Resampling_H
 
-#include <mirtkImageToImage.h>
+#include "mirtk/ImageToImage.h"
 
 
 namespace mirtk {

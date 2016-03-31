@@ -21,8 +21,8 @@
 #define MIRTK_Cfstream_H
 
 
-#include <mirtkCifstream.h>
-#include <mirtkCofstream.h>
+#include "mirtk/Cifstream.h"
+#include "mirtk/Cofstream.h"
 
 
 #endif // MIRTK_Cfstream_H

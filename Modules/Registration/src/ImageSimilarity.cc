@@ -17,17 +17,17 @@
  * limitations under the License.
  */
 
-#include <mirtkImageSimilarity.h>
+#include "mirtk/ImageSimilarity.h"
 
-#include <mirtkAssert.h>
-#include <mirtkMath.h>
-#include <mirtkMemory.h>
-#include <mirtkParallel.h>
-#include <mirtkProfiling.h>
-#include <mirtkVoxelFunction.h>
-#include <mirtkMultiLevelTransformation.h>
+#include "mirtk/Assert.h"
+#include "mirtk/Math.h"
+#include "mirtk/Memory.h"
+#include "mirtk/Parallel.h"
+#include "mirtk/Profiling.h"
+#include "mirtk/VoxelFunction.h"
+#include "mirtk/MultiLevelTransformation.h"
 
-#include <mirtkNormalizedMutualImageInformation.h>
+#include "mirtk/NormalizedMutualImageInformation.h"
 
 namespace mirtk {
 

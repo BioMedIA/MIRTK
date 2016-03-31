@@ -20,7 +20,7 @@
 #ifndef MIRTK_LinearFreeFormTransformationTD_H
 #define MIRTK_LinearFreeFormTransformationTD_H
 
-#include <mirtkLinearFreeFormTransformation4D.h>
+#include "mirtk/LinearFreeFormTransformation4D.h"
 
 #include <cmath>
 

@@ -17,10 +17,10 @@
  * limitations under the License.
  */
 
-#include <mirtkInexactLineSearch.h>
+#include "mirtk/InexactLineSearch.h"
 
-#include <mirtkMemory.h>
-#include <mirtkString.h>
+#include "mirtk/Memory.h"
+#include "mirtk/String.h"
 
 
 namespace mirtk {

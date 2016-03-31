@@ -20,8 +20,8 @@
 #ifndef MIRTK_StoppingCriterion_H
 #define MIRTK_StoppingCriterion_H
 
-#include <mirtkObject.h>
-#include <mirtkObjectiveFunction.h>
+#include "mirtk/Object.h"
+#include "mirtk/ObjectiveFunction.h"
 
 
 namespace mirtk {

@@ -34,8 +34,8 @@
 #  include <algorithm>
 #endif
 
-#include <mirtkConfig.h> // MIRTKCU_API
-#include <mirtkCudaRuntime.h>
+#include "mirtk/Config.h" // MIRTKCU_API
+#include "mirtk/CudaRuntime.h"
 
 
 namespace mirtk {

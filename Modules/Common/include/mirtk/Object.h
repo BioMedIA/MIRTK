@@ -20,10 +20,10 @@
 #ifndef MIRTK_Object_H
 #define MIRTK_Object_H
 
-#include <mirtkString.h>
-#include <mirtkStream.h>
-#include <mirtkPair.h>
-#include <mirtkArray.h>
+#include "mirtk/String.h"
+#include "mirtk/Stream.h"
+#include "mirtk/Pair.h"
+#include "mirtk/Array.h"
 
 
 namespace mirtk {

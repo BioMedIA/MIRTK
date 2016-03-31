@@ -17,18 +17,18 @@
  * limitations under the License.
  */
 
-#include <mirtkHistogram1D.h>
+#include "mirtk/Histogram1D.h"
 
-#include <mirtkMath.h>
-#include <mirtkMemory.h>
+#include "mirtk/Math.h"
+#include "mirtk/Memory.h"
 
-#include <mirtkCommonExport.h>
+#include "mirtk/CommonExport.h"
 
 
 namespace mirtk {
 
 
-// Global "debug" flag (cf. mirtkOptions.cc)
+// Global "debug" flag (cf. mirtk/Options.h)
 MIRTK_Common_EXPORT extern int debug;
 
 

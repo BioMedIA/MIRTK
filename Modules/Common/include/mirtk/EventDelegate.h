@@ -20,10 +20,10 @@
 #ifndef MIRTK_EventDelegate_H
 #define MIRTK_EventDelegate_H
 
-#include <mirtkObserver.h>
+#include "mirtk/Observer.h"
 
-#include <mirtkFastDelegate.h>
-#include <mirtkUnorderedMap.h>
+#include "mirtk/FastDelegate.h"
+#include "mirtk/UnorderedMap.h"
 
 
 namespace mirtk {

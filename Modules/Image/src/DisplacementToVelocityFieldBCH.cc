@@ -17,14 +17,14 @@
  * limitations under the License.
  */
 
-#include <mirtkDisplacementToVelocityFieldBCH.h>
+#include "mirtk/DisplacementToVelocityFieldBCH.h"
 
-#include <mirtkDeallocate.h>
-#include <mirtkImageFunction.h>
-#include <mirtkGaussianBlurring2D.h>
-#include <mirtkLieBracketImageFilter.h>
-#include <mirtkVelocityToDisplacementFieldSS.h>
-#include <mirtkNaryVoxelFunction.h>
+#include "mirtk/Deallocate.h"
+#include "mirtk/ImageFunction.h"
+#include "mirtk/GaussianBlurring2D.h"
+#include "mirtk/LieBracketImageFilter.h"
+#include "mirtk/VelocityToDisplacementFieldSS.h"
+#include "mirtk/NaryVoxelFunction.h"
 
 
 namespace mirtk {

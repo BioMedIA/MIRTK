@@ -17,39 +17,39 @@
  * limitations under the License.
  */
 
-#include <mirtkCommon.h>
-#include <mirtkOptions.h>
+#include "mirtk/Common.h"
+#include "mirtk/Options.h"
 
-#include <mirtkNumericsConfig.h>
-#include <mirtkIOConfig.h>
-#include <mirtkTransformationConfig.h>
-#include <mirtkRegistrationConfig.h>
+#include "mirtk/NumericsConfig.h"
+#include "mirtk/IOConfig.h"
+#include "mirtk/TransformationConfig.h"
+#include "mirtk/RegistrationConfig.h"
 #if MIRTK_Registration_WITH_Deformable
-#  include <mirtkDeformableConfig.h>
+#  include "mirtk/DeformableConfig.h"
 #endif
 
-#include <mirtkGenericImage.h>
-#include <mirtkGenericRegistrationFilter.h>
-#include <mirtkGenericRegistrationLogger.h>
-#include <mirtkGenericRegistrationDebugger.h>
+#include "mirtk/GenericImage.h"
+#include "mirtk/GenericRegistrationFilter.h"
+#include "mirtk/GenericRegistrationLogger.h"
+#include "mirtk/GenericRegistrationDebugger.h"
 
-#include <mirtkTransformation.h>
-#include <mirtkHomogeneousTransformation.h>
-#include <mirtkRigidTransformation.h>
-#include <mirtkSimilarityTransformation.h>
-#include <mirtkAffineTransformation.h>
+#include "mirtk/Transformation.h"
+#include "mirtk/HomogeneousTransformation.h"
+#include "mirtk/RigidTransformation.h"
+#include "mirtk/SimilarityTransformation.h"
+#include "mirtk/AffineTransformation.h"
 
 #if MIRTK_Registration_WITH_PointSet
-#  include <mirtkPointSetUtils.h>
-#  include <vtkSmartPointer.h>
-#  include <vtkPolyData.h>
-#  include <vtkOBJReader.h>
-#  include <vtkPLYReader.h>
-#  include <vtkSTLReader.h>
-#  include <vtkDataSetReader.h>
-#  include <vtkXMLPolyDataReader.h>
-#  include <vtkTriangleFilter.h>
-#  include <vtkDataSetSurfaceFilter.h>
+#  include "mirtk/PointSetUtils.h"
+#  include "vtkSmartPointer.h"
+#  include "vtkPolyData.h"
+#  include "vtkOBJReader.h"
+#  include "vtkPLYReader.h"
+#  include "vtkSTLReader.h"
+#  include "vtkDataSetReader.h"
+#  include "vtkXMLPolyDataReader.h"
+#  include "vtkTriangleFilter.h"
+#  include "vtkDataSetSurfaceFilter.h"
 #endif
 
 using namespace mirtk;

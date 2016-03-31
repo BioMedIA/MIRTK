@@ -30,8 +30,8 @@
 #ifndef MIRTK_ForEachQuaternaryVoxelFunction_H
 #define MIRTK_ForEachQuaternaryVoxelFunction_H
 
-#include <mirtkStream.h>
-#include <mirtkVoxelFunction.h>
+#include "mirtk/Stream.h"
+#include "mirtk/VoxelFunction.h"
 
 
 namespace mirtk {

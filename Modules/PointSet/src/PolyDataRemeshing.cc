@@ -17,31 +17,31 @@
  * limitations under the License.
  */
 
-#include <mirtkPolyDataRemeshing.h>
+#include "mirtk/PolyDataRemeshing.h"
 
-#include <mirtkConfig.h> // WINDOWS
-#include <mirtkVtk.h>
-#include <mirtkAssert.h>
-#include <mirtkMath.h>
-#include <mirtkProfiling.h>
-#include <mirtkPolyDataSmoothing.h>
-#include <mirtkPointSetUtils.h>
-#include <mirtkDataStatistics.h>
-#include <mirtkTransformation.h>
-#include <mirtkVtkMath.h>
+#include "mirtk/Config.h" // WINDOWS
+#include "mirtk/Vtk.h"
+#include "mirtk/Assert.h"
+#include "mirtk/Math.h"
+#include "mirtk/Profiling.h"
+#include "mirtk/PolyDataSmoothing.h"
+#include "mirtk/PointSetUtils.h"
+#include "mirtk/DataStatistics.h"
+#include "mirtk/Transformation.h"
+#include "mirtk/VtkMath.h"
 
-#include <vtkIdList.h>
-#include <vtkCell.h>
-#include <vtkCellArray.h>
-#include <vtkTriangle.h>
-#include <vtkPointData.h>
-#include <vtkCellData.h>
-#include <vtkCleanPolyData.h>
-#include <vtkPolyDataNormals.h>
-#include <vtkMergePoints.h>
-#include <vtkPriorityQueue.h>
-#include <vtkFloatArray.h>
-#include <vtkCellDataToPointData.h>
+#include "vtkIdList.h"
+#include "vtkCell.h"
+#include "vtkCellArray.h"
+#include "vtkTriangle.h"
+#include "vtkPointData.h"
+#include "vtkCellData.h"
+#include "vtkCleanPolyData.h"
+#include "vtkPolyDataNormals.h"
+#include "vtkMergePoints.h"
+#include "vtkPriorityQueue.h"
+#include "vtkFloatArray.h"
+#include "vtkCellDataToPointData.h"
 
 
 namespace mirtk {

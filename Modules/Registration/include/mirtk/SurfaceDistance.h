@@ -20,9 +20,9 @@
 #ifndef MIRTK_SurfaceDistance_H
 #define MIRTK_SurfaceDistance_H
 
-#include <mirtkPointSetDistance.h>
+#include "mirtk/PointSetDistance.h"
 
-#include <mirtkArray.h>
+#include "mirtk/Array.h"
 
 
 namespace mirtk {

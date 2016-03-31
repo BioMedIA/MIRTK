@@ -20,7 +20,7 @@
 #ifndef MIRTK_TopologyPreservationConstraint_H
 #define MIRTK_TopologyPreservationConstraint_H
 
-#include <mirtkTransformationConstraint.h>
+#include "mirtk/TransformationConstraint.h"
 
 
 namespace mirtk {

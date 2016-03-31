@@ -20,11 +20,11 @@
 #ifndef MIRTK_Polyhedron_H
 #define MIRTK_Polyhedron_H
 
-#include <mirtkObject.h>
-#include <mirtkPoint.h>
+#include "mirtk/Object.h"
+#include "mirtk/Point.h"
 
-#include <vtkSmartPointer.h>
-#include <vtkPolyData.h>
+#include "vtkSmartPointer.h"
+#include "vtkPolyData.h"
 
 
 namespace mirtk {

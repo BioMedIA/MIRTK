@@ -20,9 +20,9 @@
 #ifndef MIRTK_Path_H
 #define MIRTK_Path_H
 
-#include <mirtkCommonExport.h>
+#include "mirtk/CommonExport.h"
 
-#include <mirtkString.h>
+#include "mirtk/String.h"
 
 
 namespace mirtk {

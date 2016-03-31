@@ -17,16 +17,16 @@
  * limitations under the License.
  */
 
-#include <mirtkEdgeTable.h>
+#include "mirtk/EdgeTable.h"
 
-#include <mirtkAssert.h>
-#include <mirtkMemory.h>
-#include <mirtkPair.h>
-#include <mirtkAlgorithm.h> // sort
+#include "mirtk/Assert.h"
+#include "mirtk/Memory.h"
+#include "mirtk/Pair.h"
+#include "mirtk/Algorithm.h" // sort
 
-#include <vtkSmartPointer.h>
-#include <vtkGenericCell.h>
-#include <vtkDataSet.h>
+#include "vtkSmartPointer.h"
+#include "vtkGenericCell.h"
+#include "vtkDataSet.h"
 
 
 namespace mirtk {

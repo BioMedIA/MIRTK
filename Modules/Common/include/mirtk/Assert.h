@@ -20,7 +20,7 @@
 #ifndef MIRTK_Assert_H
 #define MIRTK_Assert_H
 
-#include <mirtkStream.h>
+#include "mirtk/Stream.h"
 
 
 // -----------------------------------------------------------------------------

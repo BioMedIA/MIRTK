@@ -20,8 +20,8 @@
 #ifndef MIRTK_ImageWriter_H
 #define MIRTK_ImageWriter_H
 
-#include <mirtkCofstream.h>
-#include <mirtkBaseImage.h>
+#include "mirtk/Cofstream.h"
+#include "mirtk/BaseImage.h"
 
 
 namespace mirtk {

@@ -20,15 +20,15 @@
 #ifndef MIRTK_PointCorrespondence_H
 #define MIRTK_PointCorrespondence_H
 
-#include <mirtkObservable.h>
+#include "mirtk/Observable.h"
 
-#include <mirtkArray.h>
-#include <mirtkPoint.h>
-#include <mirtkPointLocator.h>
-#include <mirtkRegisteredPointSet.h>
+#include "mirtk/Array.h"
+#include "mirtk/Point.h"
+#include "mirtk/PointLocator.h"
+#include "mirtk/RegisteredPointSet.h"
 
-#include <vtkSmartPointer.h>
-#include <vtkPointSet.h>
+#include "vtkSmartPointer.h"
+#include "vtkPointSet.h"
 
 
 namespace mirtk {

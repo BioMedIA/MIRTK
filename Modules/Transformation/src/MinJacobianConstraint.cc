@@ -17,15 +17,15 @@
  * limitations under the License.
  */
 
-#include <mirtkMinJacobianConstraint.h>
+#include "mirtk/MinJacobianConstraint.h"
 
-#include <mirtkMath.h>
-#include <mirtkMatrix.h>
-#include <mirtkParallel.h>
-#include <mirtkProfiling.h>
-#include <mirtkFreeFormTransformation.h>
-#include <mirtkBSplineFreeFormTransformation3D.h>
-#include <mirtkObjectFactory.h>
+#include "mirtk/Math.h"
+#include "mirtk/Matrix.h"
+#include "mirtk/Parallel.h"
+#include "mirtk/Profiling.h"
+#include "mirtk/FreeFormTransformation.h"
+#include "mirtk/BSplineFreeFormTransformation3D.h"
+#include "mirtk/ObjectFactory.h"
 
 
 namespace mirtk {

@@ -21,21 +21,21 @@
 #ifndef MIRTK_Transformation_H
 #define MIRTK_Transformation_H
 
-#include <mirtkTransformationConfig.h> // for client code
+#include "mirtk/TransformationConfig.h" // for client code
 
-#include <mirtkObservable.h>
+#include "mirtk/Observable.h"
 
-#include <mirtkStatus.h>
-#include <mirtkBSpline.h>
-#include <mirtkCfstream.h>
-#include <mirtkIndent.h>
-#include <mirtkPointSet.h>
-#include <mirtkMatrix.h>
-#include <mirtkVector3D.h>
-#include <mirtkGenericImage.h>
+#include "mirtk/Status.h"
+#include "mirtk/BSpline.h"
+#include "mirtk/Cfstream.h"
+#include "mirtk/Indent.h"
+#include "mirtk/PointSet.h"
+#include "mirtk/Matrix.h"
+#include "mirtk/Vector3D.h"
+#include "mirtk/GenericImage.h"
 
-#include <mirtkTransformationType.h>
-#include <mirtkTransformationJacobian.h>
+#include "mirtk/TransformationType.h"
+#include "mirtk/TransformationJacobian.h"
 
 
 namespace mirtk {

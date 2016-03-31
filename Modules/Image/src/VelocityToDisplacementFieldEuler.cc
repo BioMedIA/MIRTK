@@ -17,10 +17,10 @@
  * limitations under the License.
  */
 
-#include <mirtkVelocityToDisplacementFieldEuler.h>
+#include "mirtk/VelocityToDisplacementFieldEuler.h"
 
-#include <mirtkParallel.h>
-#include <mirtkNaryVoxelFunction.h>
+#include "mirtk/Parallel.h"
+#include "mirtk/NaryVoxelFunction.h"
 
 
 namespace mirtk {

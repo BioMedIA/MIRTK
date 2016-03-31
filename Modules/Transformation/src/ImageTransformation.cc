@@ -18,14 +18,14 @@
  * limitations under the License.
  */
 
-#include <mirtkImageTransformation.h>
+#include "mirtk/ImageTransformation.h"
 
-#include <mirtkMemory.h>
-#include <mirtkParallel.h>
-#include <mirtkProfiling.h>
+#include "mirtk/Memory.h"
+#include "mirtk/Parallel.h"
+#include "mirtk/Profiling.h"
 
-#include <mirtkHomogeneousTransformation.h>
-#include <mirtkHomogeneousTransformationIterator.h>
+#include "mirtk/HomogeneousTransformation.h"
+#include "mirtk/HomogeneousTransformationIterator.h"
 
 
 namespace mirtk {

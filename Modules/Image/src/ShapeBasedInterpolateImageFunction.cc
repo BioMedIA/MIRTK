@@ -17,19 +17,21 @@
  * limitations under the License.
  */
  
-#include <mirtkShapeBasedInterpolateImageFunction.h>
+#include "mirtk/ShapeBasedInterpolateImageFunction.h"
 
-#include <mirtkMath.h>
-#include <mirtkResampling.h>
-#include <mirtkEuclideanDistanceTransform.h>
-#include <mirtkLinearInterpolateImageFunction.hxx>
+#include "mirtk/Math.h"
+#include "mirtk/Resampling.h"
+#include "mirtk/EuclideanDistanceTransform.h"
+#include "mirtk/LinearInterpolateImageFunction.hxx"
 
-#include <mirtkCommonExport.h>
+#include "mirtk/CommonExport.h"
 
 
 namespace mirtk {
 
-MIRTK_Common_EXPORT extern int verbose; // cf. mirtkOptions.cc
+
+// Global "verbose" flag (cf. mirtk/Options.h)
+MIRTK_Common_EXPORT extern int verbose;
 
 
 // =============================================================================

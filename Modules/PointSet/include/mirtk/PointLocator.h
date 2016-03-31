@@ -20,16 +20,16 @@
 #ifndef MIRTK_PointLocator_H
 #define MIRTK_PointLocator_H
 
-#include <mirtkObject.h>
+#include "mirtk/Object.h"
 
-#include <mirtkArray.h>
-#include <mirtkPoint.h>
-#include <mirtkMemory.h>
+#include "mirtk/Array.h"
+#include "mirtk/Point.h"
+#include "mirtk/Memory.h"
 
-#include <vtkSmartPointer.h>
-#include <vtkPointSet.h>
-#include <vtkPointData.h>
-#include <vtkDataArray.h>
+#include "vtkSmartPointer.h"
+#include "vtkPointSet.h"
+#include "vtkPointData.h"
+#include "vtkDataArray.h"
 
 
 // Forward declaration of implementation using VTK point locator

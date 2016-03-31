@@ -20,11 +20,11 @@
 #ifndef MIRTK_ExtrapolateImageFunction_H
 #define MIRTK_ExtrapolateImageFunction_H
 
-#include <mirtkExtrapolationMode.h>
-#include <mirtkVector.h>
-#include <mirtkVoxelCast.h>
-#include <mirtkBaseImage.h>
-#include <mirtkImageFunction.h>
+#include "mirtk/ExtrapolationMode.h"
+#include "mirtk/Vector.h"
+#include "mirtk/VoxelCast.h"
+#include "mirtk/BaseImage.h"
+#include "mirtk/ImageFunction.h"
 
 
 namespace mirtk {
@@ -713,11 +713,11 @@ IndexExtrapolateImageFunction<TImage>::Get(int i, int j, int k, int l) const
 // Extrapolation functions
 ////////////////////////////////////////////////////////////////////////////////
 
-#include <mirtkConstExtrapolateImageFunction.h>
-#include <mirtkConstExtrapolateImageFunctionWithPeriodicTime.h>
-#include <mirtkNearestNeighborExtrapolateImageFunction.h>
-#include <mirtkRepeatExtrapolateImageFunction.h>
-#include <mirtkMirrorExtrapolateImageFunction.h>
+#include "mirtk/ConstExtrapolateImageFunction.h"
+#include "mirtk/ConstExtrapolateImageFunctionWithPeriodicTime.h"
+#include "mirtk/NearestNeighborExtrapolateImageFunction.h"
+#include "mirtk/RepeatExtrapolateImageFunction.h"
+#include "mirtk/MirrorExtrapolateImageFunction.h"
 
 ////////////////////////////////////////////////////////////////////////////////
 // Instantiation

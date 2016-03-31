@@ -20,9 +20,9 @@
 #ifndef MIRTK_NaryVoxelFunction_H
 #define MIRTK_NaryVoxelFunction_H
 
-#include <mirtkVoxelFunction.h>
-#include <mirtkBaseImage.h>
-#include <mirtkInterpolateImageFunction.h>
+#include "mirtk/VoxelFunction.h"
+#include "mirtk/BaseImage.h"
+#include "mirtk/InterpolateImageFunction.h"
 
 
 namespace mirtk {

@@ -21,7 +21,7 @@
 #ifndef MIRTK_RigidTransformation_H
 #define MIRTK_RigidTransformation_H
 
-#include <mirtkHomogeneousTransformation.h>
+#include "mirtk/HomogeneousTransformation.h"
 
 
 namespace mirtk {

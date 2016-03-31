@@ -20,11 +20,11 @@
 #ifndef MIRTK_ImageRegion_H
 #define MIRTK_ImageRegion_H
 
-#include <mirtkVoxel.h>
-#include <mirtkParallel.h>
-#include <mirtkVector4D.h>
-#include <mirtkGenericImage.h>
-#include <mirtkStream.h>
+#include "mirtk/Voxel.h"
+#include "mirtk/Parallel.h"
+#include "mirtk/Vector4D.h"
+#include "mirtk/GenericImage.h"
+#include "mirtk/Stream.h"
 
 
 namespace mirtk {

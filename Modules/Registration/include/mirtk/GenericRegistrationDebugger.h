@@ -20,9 +20,9 @@
 #ifndef MIRTK_GenericRegistrationDebugger_H
 #define MIRTK_GenericRegistrationDebugger_H
 
-#include <mirtkObserver.h>
+#include "mirtk/Observer.h"
 
-#include <mirtkArray.h>
+#include "mirtk/Array.h"
 
 
 namespace mirtk {

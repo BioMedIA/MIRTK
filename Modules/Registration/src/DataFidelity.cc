@@ -17,7 +17,7 @@
  * limitations under the License.
  */
 
-#include <mirtkDataFidelity.h>
+#include "mirtk/DataFidelity.h"
 
 
 namespace mirtk {

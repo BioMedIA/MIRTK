@@ -20,12 +20,12 @@
 #ifndef MIRTK_SincInterpolateImageFunction_HXX
 #define MIRTK_SincInterpolateImageFunction_HXX
 
-#include <mirtkSincInterpolateImageFunction.h>
-#include <mirtkInterpolateImageFunction.hxx>
+#include "mirtk/SincInterpolateImageFunction.h"
+#include "mirtk/InterpolateImageFunction.hxx"
 
-#include <mirtkMath.h>
-#include <mirtkSinc.h>
-#include <mirtkVoxelCast.h>
+#include "mirtk/Math.h"
+#include "mirtk/Sinc.h"
+#include "mirtk/VoxelCast.h"
 
 
 namespace mirtk {

@@ -20,9 +20,9 @@
 #ifndef MIRTK_HomogeneousTransformationIterator_H
 #define MIRTK_HomogeneousTransformationIterator_H
 
-#include <mirtkPoint.h>
-#include <mirtkBaseImage.h>
-#include <mirtkHomogeneousTransformation.h>
+#include "mirtk/Point.h"
+#include "mirtk/BaseImage.h"
+#include "mirtk/HomogeneousTransformation.h"
 
 #include <cstdlib>
 #include <iostream>

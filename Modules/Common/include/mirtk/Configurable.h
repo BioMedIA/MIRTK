@@ -20,9 +20,9 @@
 #ifndef MIRTK_Configurable_H
 #define MIRTK_Configurable_H
 
-#include <mirtkObservable.h>
+#include "mirtk/Observable.h"
 
-#include <mirtkArray.h>
+#include "mirtk/Array.h"
 
 
 namespace mirtk {

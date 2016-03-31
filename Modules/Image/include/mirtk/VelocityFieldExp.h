@@ -20,8 +20,8 @@
 #ifndef MIRTK_VelocityFieldExp_H
 #define MIRTK_VelocityFieldExp_H
 
-#include <mirtkGenericImage.h>
-#include <mirtkVelocityToDisplacementFieldSS.h>
+#include "mirtk/GenericImage.h"
+#include "mirtk/VelocityToDisplacementFieldSS.h"
 
 
 namespace mirtk {

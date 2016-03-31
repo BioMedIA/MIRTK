@@ -17,32 +17,32 @@
  * limitations under the License.
  */
 
-#include <mirtkRegisteredPointSet.h>
+#include "mirtk/RegisteredPointSet.h"
 
-#include <mirtkVtk.h>
-#include <mirtkAssert.h>
-#include <mirtkMath.h>
-#include <mirtkArray.h>
-#include <mirtkMemory.h>
-#include <mirtkParallel.h>
-#include <mirtkPointSet.h>
-#include <mirtkPointSetUtils.h>
+#include "mirtk/Vtk.h"
+#include "mirtk/Assert.h"
+#include "mirtk/Math.h"
+#include "mirtk/Array.h"
+#include "mirtk/Memory.h"
+#include "mirtk/Parallel.h"
+#include "mirtk/PointSet.h"
+#include "mirtk/PointSetUtils.h"
 
-#include <mirtkLinearInterpolateImageFunction.hxx>
+#include "mirtk/LinearInterpolateImageFunction.hxx"
 
-#include <vtkSmartPointer.h>
-#include <vtkPointData.h>
-#include <vtkCellData.h>
-#include <vtkDataArray.h>
-#include <vtkIdTypeArray.h>
-#include <vtkFloatArray.h>
-#include <vtkPoints.h>
-#include <vtkPolyData.h>
-#include <vtkStructuredGrid.h>
-#include <vtkUnstructuredGrid.h>
-#include <vtkPolyDataNormals.h>
-#include <vtkPointLocator.h>
-#include <vtkCellLocator.h>
+#include "vtkSmartPointer.h"
+#include "vtkPointData.h"
+#include "vtkCellData.h"
+#include "vtkDataArray.h"
+#include "vtkIdTypeArray.h"
+#include "vtkFloatArray.h"
+#include "vtkPoints.h"
+#include "vtkPolyData.h"
+#include "vtkStructuredGrid.h"
+#include "vtkUnstructuredGrid.h"
+#include "vtkPolyDataNormals.h"
+#include "vtkPointLocator.h"
+#include "vtkCellLocator.h"
 
 
 namespace mirtk {

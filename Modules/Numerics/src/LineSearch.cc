@@ -17,13 +17,13 @@
  * limitations under the License.
  */
 
-#include <mirtkLineSearch.h>
+#include "mirtk/LineSearch.h"
 
-#include <mirtkString.h>
+#include "mirtk/String.h"
 
-#include <mirtkMaxStepLineSearch.h>
-#include <mirtkAdaptiveLineSearch.h>
-#include <mirtkBrentLineSearch.h>
+#include "mirtk/MaxStepLineSearch.h"
+#include "mirtk/AdaptiveLineSearch.h"
+#include "mirtk/BrentLineSearch.h"
 
 #include <limits>
 

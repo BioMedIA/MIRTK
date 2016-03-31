@@ -17,9 +17,9 @@
  * limitations under the License.
  */
 
-#include <mirtkMaxStepLineSearch.h>
+#include "mirtk/MaxStepLineSearch.h"
 
-#include <mirtkEvent.h>
+#include "mirtk/Event.h"
 
 
 namespace mirtk {

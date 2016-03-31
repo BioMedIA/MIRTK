@@ -20,9 +20,9 @@
 #ifndef MIRTK_DataFunctions_H
 #define MIRTK_DataFunctions_H
 
-#include <mirtkDataOp.h>
-#include <mirtkDataStatistics.h>
-#include <mirtkParallel.h>
+#include "mirtk/DataOp.h"
+#include "mirtk/DataStatistics.h"
+#include "mirtk/Parallel.h"
 
 
 namespace mirtk { namespace data { namespace op {

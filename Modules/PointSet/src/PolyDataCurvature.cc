@@ -17,29 +17,29 @@
  * limitations under the License.
  */
 
-#include <mirtkPolyDataCurvature.h>
+#include "mirtk/PolyDataCurvature.h"
 
-#include <mirtkVtk.h>
-#include <mirtkMath.h>
-#include <mirtkMemory.h>
-#include <mirtkMatrix3x3.h>
-#include <mirtkEdgeTable.h>
-#include <mirtkPolyDataSmoothing.h>
-#include <mirtkParallel.h>
-#include <mirtkProfiling.h>
-#include <mirtkPointSetUtils.h>
-#include <mirtkVtkMath.h>
+#include "mirtk/Vtk.h"
+#include "mirtk/Math.h"
+#include "mirtk/Memory.h"
+#include "mirtk/Matrix3x3.h"
+#include "mirtk/EdgeTable.h"
+#include "mirtk/PolyDataSmoothing.h"
+#include "mirtk/Parallel.h"
+#include "mirtk/Profiling.h"
+#include "mirtk/PointSetUtils.h"
+#include "mirtk/VtkMath.h"
 
-#include <vtkPointData.h>
-#include <vtkCellData.h>
-#include <vtkFloatArray.h>
-#include <vtkDoubleArray.h>
-#include <vtkPolyDataNormals.h>
-#include <vtkCurvatures.h>
-#include <vtkIdList.h>
+#include "vtkPointData.h"
+#include "vtkCellData.h"
+#include "vtkFloatArray.h"
+#include "vtkDoubleArray.h"
+#include "vtkPolyDataNormals.h"
+#include "vtkCurvatures.h"
+#include "vtkIdList.h"
 
-#include <Eigen/Dense>
-#include <Eigen/Eigenvalues>
+#include "Eigen/Dense"
+#include "Eigen/Eigenvalues"
 
 
 namespace mirtk {

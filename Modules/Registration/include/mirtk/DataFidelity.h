@@ -20,7 +20,7 @@
 #ifndef MIRTK_DataFiedelity_H
 #define MIRTK_DataFiedelity_H
 
-#include <mirtkEnergyTerm.h>
+#include "mirtk/EnergyTerm.h"
 
 
 namespace mirtk {

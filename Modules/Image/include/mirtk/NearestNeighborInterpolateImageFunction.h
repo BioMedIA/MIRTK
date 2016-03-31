@@ -20,7 +20,7 @@
 #ifndef MIRTK_NearestNeighorInterpolateImageFunction_H
 #define MIRTK_NearestNeighorInterpolateImageFunction_H
 
-#include <mirtkInterpolateImageFunction.h>
+#include "mirtk/InterpolateImageFunction.h"
 
 
 namespace mirtk {

@@ -20,9 +20,9 @@
 #ifndef MIRTK_EdgeConnectivity_H
 #define MIRTK_EdgeConnectivity_H
 
-#include <mirtkSparseMatrix.h>
+#include "mirtk/SparseMatrix.h"
 
-#include <vtkDataSet.h>
+#include "vtkDataSet.h"
 
 
 namespace mirtk {

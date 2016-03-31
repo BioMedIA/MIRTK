@@ -20,10 +20,10 @@
 #ifndef MIRTK_RepeatExtrapolateImageFunction_H
 #define MIRTK_RepeatExtrapolateImageFunction_H
 
-#include <mirtkExtrapolateImageFunction.h>
+#include "mirtk/ExtrapolateImageFunction.h"
 
-#include <mirtkMath.h>
-#include <mirtkBaseImage.h>
+#include "mirtk/Math.h"
+#include "mirtk/BaseImage.h"
 
 
 namespace mirtk {

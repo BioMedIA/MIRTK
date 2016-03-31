@@ -17,10 +17,10 @@
  * limitations under the License.
  */
 
-#include <mirtkConfig.h> // WINDOWS
-#include <mirtkTerminal.h>
-#include <mirtkOptions.h>
-#include <mirtkStream.h>
+#include "mirtk/Config.h" // WINDOWS
+#include "mirtk/Terminal.h"
+#include "mirtk/Options.h"
+#include "mirtk/Stream.h"
 
 
 namespace mirtk {

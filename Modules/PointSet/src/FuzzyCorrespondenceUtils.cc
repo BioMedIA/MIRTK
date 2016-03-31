@@ -17,10 +17,10 @@
  * limitations under the License.
  */
 
-#include "mirtkFuzzyCorrespondenceUtils.h"
+#include "FuzzyCorrespondenceUtils.h"
 
-#include <mirtkParallel.h>
-#include <mirtkProfiling.h>
+#include "mirtk/Parallel.h"
+#include "mirtk/Profiling.h"
 
 
 namespace mirtk { namespace FuzzyCorrespondenceUtils {

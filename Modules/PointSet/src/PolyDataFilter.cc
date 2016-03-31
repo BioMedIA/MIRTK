@@ -17,13 +17,13 @@
  * limitations under the License.
  */
 
-#include <mirtkPolyDataFilter.h>
+#include "mirtk/PolyDataFilter.h"
 
-#include <mirtkProfiling.h>
-#include <mirtkEdgeTable.h>
+#include "mirtk/Profiling.h"
+#include "mirtk/EdgeTable.h"
 
-#include <vtkSmartPointer.h>
-#include <vtkPolyData.h>
+#include "vtkSmartPointer.h"
+#include "vtkPolyData.h"
 
 
 namespace mirtk {

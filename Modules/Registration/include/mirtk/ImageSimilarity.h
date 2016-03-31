@@ -20,11 +20,11 @@
 #ifndef MIRTK_ImageSimilarity_H
 #define MIRTK_ImageSimilarity_H
 
-#include <mirtkDataFidelity.h>
-#include <mirtkSimilarityMeasure.h>
-#include <mirtkParallel.h>
-#include <mirtkFreeFormTransformation.h>
-#include <mirtkRegisteredImage.h>
+#include "mirtk/DataFidelity.h"
+#include "mirtk/SimilarityMeasure.h"
+#include "mirtk/Parallel.h"
+#include "mirtk/FreeFormTransformation.h"
+#include "mirtk/RegisteredImage.h"
 
 
 namespace mirtk {

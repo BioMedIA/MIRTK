@@ -17,9 +17,9 @@
  * limitations under the License.
  */
 
-#include <mirtkVolumePreservationConstraint.h>
+#include "mirtk/VolumePreservationConstraint.h"
 
-#include <mirtkObjectFactory.h>
+#include "mirtk/ObjectFactory.h"
 
 
 namespace mirtk {

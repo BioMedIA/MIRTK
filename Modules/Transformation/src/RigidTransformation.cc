@@ -18,11 +18,11 @@
  * limitations under the License.
  */
 
-#include <mirtkRigidTransformation.h>
+#include "mirtk/RigidTransformation.h"
 
-#include <mirtkMath.h>
-#include <mirtkMatrix.h>
-#include <mirtkVector.h>
+#include "mirtk/Math.h"
+#include "mirtk/Matrix.h"
+#include "mirtk/Vector.h"
 
 
 namespace mirtk {

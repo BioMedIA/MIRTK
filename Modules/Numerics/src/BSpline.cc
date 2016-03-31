@@ -17,7 +17,7 @@
  * limitations under the License.
  */
 
-#include <mirtkBSpline.h>
+#include "mirtk/BSpline.h"
 
 namespace mirtk {
 

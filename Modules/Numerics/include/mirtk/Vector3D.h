@@ -20,8 +20,8 @@
 #ifndef MIRTK_Vector3D_H
 #define MIRTK_Vector3D_H
 
-#include <mirtkMath.h>
-#include <mirtkPoint.h>
+#include "mirtk/Math.h"
+#include "mirtk/Point.h"
 
 
 namespace mirtk {

@@ -20,7 +20,7 @@
 #ifndef MIRTK_InterpolationMode_H
 #define MIRTK_InterpolationMode_H
 
-#include <mirtkString.h>
+#include "mirtk/String.h"
 
 
 namespace mirtk {

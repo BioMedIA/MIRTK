@@ -17,8 +17,8 @@
  * limitations under the License.
  */
 
-#include <mirtkObserver.h>
-#include <mirtkObservable.h>
+#include "mirtk/Observer.h"
+#include "mirtk/Observable.h"
 
 
 namespace mirtk {

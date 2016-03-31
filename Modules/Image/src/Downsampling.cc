@@ -17,13 +17,13 @@
  * limitations under the License.
  */
 
-#include <mirtkDownsampling.h>
-#include <mirtkGenericImage.h>
-#include <mirtkUnaryVoxelFunction.h>
-#include <mirtkConvolutionFunction.h>
-#include <mirtkScalarFunction.h>
-#include <mirtkScalarFunctionToImage.h>
-#include <mirtkProfiling.h>
+#include "mirtk/Downsampling.h"
+#include "mirtk/GenericImage.h"
+#include "mirtk/UnaryVoxelFunction.h"
+#include "mirtk/ConvolutionFunction.h"
+#include "mirtk/ScalarFunction.h"
+#include "mirtk/ScalarFunctionToImage.h"
+#include "mirtk/Profiling.h"
 
 
 namespace mirtk {

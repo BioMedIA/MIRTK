@@ -18,7 +18,7 @@
  * limitations under the License.
  */
 
-#include <mirtkVoxel.h>
+#include "mirtk/Voxel.h"
 
 
 namespace mirtk {

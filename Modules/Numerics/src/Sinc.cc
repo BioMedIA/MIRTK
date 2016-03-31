@@ -17,8 +17,8 @@
  * limitations under the License.
  */
 
-#include <mirtkSinc.h>
-#include <mirtkMath.h>
+#include "mirtk/Sinc.h"
+#include "mirtk/Math.h"
 
 
 namespace mirtk {

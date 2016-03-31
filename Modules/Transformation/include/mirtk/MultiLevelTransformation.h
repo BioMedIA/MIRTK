@@ -21,10 +21,10 @@
 #ifndef MIRTK_MultiLevelTransformation_H
 #define MIRTK_MultiLevelTransformation_H
 
-#include <mirtkTransformation.h>
-#include <mirtkRigidTransformation.h>
-#include <mirtkAffineTransformation.h>
-#include <mirtkFreeFormTransformation.h>
+#include "mirtk/Transformation.h"
+#include "mirtk/RigidTransformation.h"
+#include "mirtk/AffineTransformation.h"
+#include "mirtk/FreeFormTransformation.h"
 
 #include <cstdlib>
 #include <iostream>

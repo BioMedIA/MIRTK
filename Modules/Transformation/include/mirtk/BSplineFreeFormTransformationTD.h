@@ -20,8 +20,8 @@
 #ifndef MIRTK_BSplineFreeFormTransformationTD_H
 #define MIRTK_BSplineFreeFormTransformationTD_H
 
-#include <mirtkBSplineFreeFormTransformation4D.h>
-#include <mirtkFFDIntegrationMethod.h>
+#include "mirtk/BSplineFreeFormTransformation4D.h"
+#include "mirtk/FFDIntegrationMethod.h"
 
 
 namespace mirtk {

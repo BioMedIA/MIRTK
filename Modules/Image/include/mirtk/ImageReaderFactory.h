@@ -20,9 +20,9 @@
 #ifndef MIRTK_ImageReaderFactory_H
 #define MIRTK_ImageReaderFactory_H
 
-#include <mirtkObjectFactory.h> // New<BaseType, ObjectType>()
-#include <mirtkImageReader.h>
-#include <mirtkList.h>
+#include "mirtk/ObjectFactory.h" // New<BaseType, ObjectType>()
+#include "mirtk/ImageReader.h"
+#include "mirtk/List.h"
 
 
 namespace mirtk {

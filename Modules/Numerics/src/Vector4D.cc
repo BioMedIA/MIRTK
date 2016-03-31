@@ -17,7 +17,7 @@
  * limitations under the License.
  */
 
-#include <mirtkVector4D.h>
+#include "mirtk/Vector4D.h"
 
 namespace mirtk {
 

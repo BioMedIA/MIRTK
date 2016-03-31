@@ -26,10 +26,10 @@
 // ============================================================================
 
 // Enumeration of integration methods
-#include <mirtkFFDIntegrationMethod.h>
+#include "mirtk/FFDIntegrationMethod.h"
 
 // Runge-Kutta integration methods
-#include <mirtkFreeFormTransformationRungeKutta.h>
+#include "FreeFormTransformationRungeKutta.h"
 
 // ============================================================================
 // Auxiliary macros

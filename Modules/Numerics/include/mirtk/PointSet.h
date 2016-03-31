@@ -21,15 +21,15 @@
 #ifndef MIRTK_PointSet_H
 #define MIRTK_PointSet_H
 
-#include <mirtkObject.h>
+#include "mirtk/Object.h"
 
-#include <mirtkMemory.h>
-#include <mirtkCfstream.h>
-#include <mirtkPoint.h>
-#include <mirtkArray.h>
-#include <mirtkOrderedSet.h>
+#include "mirtk/Memory.h"
+#include "mirtk/Cfstream.h"
+#include "mirtk/Point.h"
+#include "mirtk/Array.h"
+#include "mirtk/OrderedSet.h"
 
-#include <mirtkNumericsExport.h>
+#include "mirtk/NumericsExport.h"
 
 
 // Forward declaration of VTK type

@@ -16,10 +16,10 @@
  * limitations under the License.
  */
 
-#include <mirtkVector3.h>
+#include "mirtk/Vector3.h"
 
-#include <mirtkMath.h>
-#include <mirtkStream.h>
+#include "mirtk/Math.h"
+#include "mirtk/Stream.h"
 
 
 namespace mirtk {

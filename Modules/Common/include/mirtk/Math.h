@@ -20,11 +20,11 @@
 #ifndef MIRTK_Math_H
 #define MIRTK_Math_H
 
-#include <mirtkCommonExport.h>
+#include "mirtk/CommonExport.h"
 
-#include <mirtkConfig.h>
-#include <mirtkStream.h>
-#include <mirtkCutilMath.h>
+#include "mirtk/Config.h"
+#include "mirtk/Stream.h"
+#include "mirtk/CutilMath.h"
 
 #include <cmath>
 #include <cfloat>

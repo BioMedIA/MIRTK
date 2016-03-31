@@ -25,10 +25,10 @@
 #ifndef MIRTK_FreeFormTransformationRungeKutta_H
 #define MIRTK_FreeFormTransformationRungeKutta_H
 
-#include <mirtkMath.h>
-#include <mirtkMatrix.h>
-#include <mirtkVector3D.h>
-#include <mirtkTransformationJacobian.h>
+#include "mirtk/Math.h"
+#include "mirtk/Matrix.h"
+#include "mirtk/Vector3D.h"
+#include "mirtk/TransformationJacobian.h"
 
 
 namespace mirtk {

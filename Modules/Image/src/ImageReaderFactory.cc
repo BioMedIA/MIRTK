@@ -17,9 +17,9 @@
  * limitations under the License.
  */
 
-#include <mirtkImageReaderFactory.h>
+#include "mirtk/ImageReaderFactory.h"
 
-#include <mirtkAssert.h>
+#include "mirtk/Assert.h"
 
 
 namespace mirtk {

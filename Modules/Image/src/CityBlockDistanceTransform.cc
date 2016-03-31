@@ -17,10 +17,10 @@
  * limitations under the License.
  */
 
-#include <mirtkCityBlockDistanceTransform.h>
+#include "mirtk/CityBlockDistanceTransform.h"
 
-#include <mirtkArray.h>
-#include <mirtkBaseImage.h>
+#include "mirtk/Array.h"
+#include "mirtk/BaseImage.h"
 
 
 namespace mirtk {

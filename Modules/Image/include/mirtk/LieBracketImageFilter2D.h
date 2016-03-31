@@ -20,11 +20,11 @@
 #ifndef MIRTK_LieBracketImageFilter2D_H
 #define MIRTK_LieBracketImageFilter2D_H
 
-#include <mirtkLieBracketImageFilter.h>
+#include "mirtk/LieBracketImageFilter.h"
 
-#include <mirtkMatrix.h>
-#include <mirtkParallel.h>
-#include <mirtkProfiling.h>
+#include "mirtk/Matrix.h"
+#include "mirtk/Parallel.h"
+#include "mirtk/Profiling.h"
 
 
 namespace mirtk {

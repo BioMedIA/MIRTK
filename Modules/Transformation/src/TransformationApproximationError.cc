@@ -17,15 +17,15 @@
  * limitations under the License.
  */
 
-#include <mirtkTransformationApproximationError.h>
+#include "mirtk/TransformationApproximationError.h"
 
-#include <mirtkMath.h>
-#include <mirtkMemory.h>
-#include <mirtkPointSet.h>
-#include <mirtkVector3D.h>
-#include <mirtkParallel.h>
-#include <mirtkTransformation.h>
-#include <mirtkOrderedSet.h>
+#include "mirtk/Math.h"
+#include "mirtk/Memory.h"
+#include "mirtk/PointSet.h"
+#include "mirtk/Vector3D.h"
+#include "mirtk/Parallel.h"
+#include "mirtk/Transformation.h"
+#include "mirtk/OrderedSet.h"
 
 
 namespace mirtk {

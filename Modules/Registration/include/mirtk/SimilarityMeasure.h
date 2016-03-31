@@ -20,7 +20,7 @@
 #ifndef MIRTK_SimilarityMeasure_H
 #define MIRTK_SimilarityMeasure_H
 
-#include <mirtkEnergyMeasure.h>
+#include "mirtk/EnergyMeasure.h"
 
 
 namespace mirtk {

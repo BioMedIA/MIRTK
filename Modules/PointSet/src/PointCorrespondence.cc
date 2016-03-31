@@ -17,49 +17,49 @@
  * limitations under the License.
  */
 
-#include <mirtkPointCorrespondence.h>
+#include "mirtk/PointCorrespondence.h"
 
-#include <mirtkVtk.h>
-#include <mirtkMath.h>
-#include <mirtkPair.h>
-#include <mirtkArray.h>
-#include <mirtkAlgorithm.h>
-#include <mirtkVector.h>
-#include <mirtkMatrix.h>
-#include <mirtkSparseMatrix.h>
-#include <mirtkParallel.h>
-#include <mirtkProfiling.h>
-#include <mirtkTransformation.h>
-#include <mirtkSpectralDecomposition.h>
-#include <mirtkPointSetUtils.h>
+#include "mirtk/Vtk.h"
+#include "mirtk/Math.h"
+#include "mirtk/Pair.h"
+#include "mirtk/Array.h"
+#include "mirtk/Algorithm.h"
+#include "mirtk/Vector.h"
+#include "mirtk/Matrix.h"
+#include "mirtk/SparseMatrix.h"
+#include "mirtk/Parallel.h"
+#include "mirtk/Profiling.h"
+#include "mirtk/Transformation.h"
+#include "mirtk/SpectralDecomposition.h"
+#include "mirtk/PointSetUtils.h"
 
-#include <mirtkCommonExport.h>
+#include "mirtk/CommonExport.h"
 
-#include <vtkSmartPointer.h>
-#include <vtkDataArray.h>
-#include <vtkPointData.h>
-#include <vtkOctreePointLocator.h>
-#include <vtkPMaskPoints.h>
-#include <vtkFloatArray.h>
-#include <vtkCharArray.h>
-#include <vtkPolyData.h>
-#include <vtkPolyDataNormals.h>
-#include <vtkWindowedSincPolyDataFilter.h>
+#include "vtkSmartPointer.h"
+#include "vtkDataArray.h"
+#include "vtkPointData.h"
+#include "vtkOctreePointLocator.h"
+#include "vtkPMaskPoints.h"
+#include "vtkFloatArray.h"
+#include "vtkCharArray.h"
+#include "vtkPolyData.h"
+#include "vtkPolyDataNormals.h"
+#include "vtkWindowedSincPolyDataFilter.h"
 
-#include <mirtkFiducialMatch.h>
-#include <mirtkClosestPoint.h>
-#include <mirtkClosestPointLabel.h>
-#include <mirtkClosestCell.h>
-#include <mirtkSpectralMatch.h>
-#include <mirtkRobustClosestPoint.h>
-#include <mirtkRobustPointMatch.h>
+#include "mirtk/FiducialMatch.h"
+#include "mirtk/ClosestPoint.h"
+#include "mirtk/ClosestPointLabel.h"
+#include "mirtk/ClosestCell.h"
+#include "mirtk/SpectralMatch.h"
+#include "mirtk/RobustClosestPoint.h"
+#include "mirtk/RobustPointMatch.h"
 
 
 namespace mirtk {
 
 
-// Global debug level
-MIRTK_Common_EXPORT extern int debug; // cf. mirtkOptions.h
+// Global debug level (cf. mirtk/Options.h)
+MIRTK_Common_EXPORT extern int debug;
 
 
 // =============================================================================

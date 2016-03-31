@@ -18,25 +18,25 @@
  * limitations under the License.
  */
 
-#include <mirtkMatrix.h>
+#include "mirtk/Matrix.h"
 
-#include <mirtkAssert.h>
-#include <mirtkArray.h>
-#include <mirtkMemory.h>
-#include <mirtkMath.h>
-#include <mirtkVector.h>
-#include <mirtkVector3D.h>
-#include <mirtkIndent.h>
-#include <mirtkPointSet.h>
-#include <mirtkString.h>
-#include <mirtkStream.h>
+#include "mirtk/Assert.h"
+#include "mirtk/Array.h"
+#include "mirtk/Memory.h"
+#include "mirtk/Math.h"
+#include "mirtk/Vector.h"
+#include "mirtk/Vector3D.h"
+#include "mirtk/Indent.h"
+#include "mirtk/PointSet.h"
+#include "mirtk/String.h"
+#include "mirtk/Stream.h"
 
-#include <mirtkNumericsConfig.h>
+#include "mirtk/NumericsConfig.h"
 #if MIRTK_Numerics_WITH_MATLAB
-#  include <mirtkMatlab.h>
+#  include "mirtk/Matlab.h"
 #endif
 
-#include <mirtkEigen.h>
+#include "mirtk/Eigen.h"
 
 #ifdef _MSC_VER
 #  pragma warning(push)
@@ -45,14 +45,14 @@
  // conversion from '__int64' to 'int',
  // possible loss of data
 #endif
-#include <Eigen/QR> // included by Eigen/SVD
+#include "Eigen/QR" // included by Eigen/SVD
 #ifdef _MSC_VER
 #  pragma warning(pop)
 #endif
 
-#include <Eigen/LU>
-#include <Eigen/SVD>
-#include <Eigen/Eigenvalues>
+#include "Eigen/LU"
+#include "Eigen/SVD"
+#include "Eigen/Eigenvalues"
 
 
 namespace mirtk {

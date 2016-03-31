@@ -18,7 +18,7 @@
  * limitations under the License.
  */
 
-#include <mirtkGaussianBlurringWithPadding2D.h>
+#include "mirtk/GaussianBlurringWithPadding2D.h"
 
 
 namespace mirtk {

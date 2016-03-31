@@ -17,18 +17,18 @@
  * limitations under the License.
  */
 
-#include <mirtkCommon.h>
-#include <mirtkOptions.h>
+#include "mirtk/Common.h"
+#include "mirtk/Options.h"
 
-#include <mirtkTransformation.h>
-#include <mirtkFFDIntegrationMethod.h>
-#include <mirtkBSplineFreeFormTransformationSV.h>
-#include <mirtkBSplineFreeFormTransformationTD.h>
-#include <mirtkLinearFreeFormTransformationTD.h>
-#include <mirtkHomogeneousTransformation.h>
-#include <mirtkFreeFormTransformation.h>
-#include <mirtkMultiLevelTransformation.h>
-#include <mirtkMultiLevelFreeFormTransformation.h>
+#include "mirtk/Transformation.h"
+#include "mirtk/FFDIntegrationMethod.h"
+#include "mirtk/BSplineFreeFormTransformationSV.h"
+#include "mirtk/BSplineFreeFormTransformationTD.h"
+#include "mirtk/LinearFreeFormTransformationTD.h"
+#include "mirtk/HomogeneousTransformation.h"
+#include "mirtk/FreeFormTransformation.h"
+#include "mirtk/MultiLevelTransformation.h"
+#include "mirtk/MultiLevelFreeFormTransformation.h"
 
 using namespace mirtk;
 

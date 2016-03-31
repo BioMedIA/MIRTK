@@ -20,7 +20,7 @@
 #ifndef MIRTK_PointSamples_H
 #define MIRTK_PointSamples_H
 
-#include <mirtkPointSet.h>
+#include "mirtk/PointSet.h"
 
 
 namespace mirtk {

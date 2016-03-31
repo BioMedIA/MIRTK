@@ -17,11 +17,12 @@
  * limitations under the License.
  */
 
-#include <mirtkPGMImageWriter.h>
-#include "mirtkPGM.h"
+#include "PGM.h"
 
-#include <mirtkMath.h>
-#include <mirtkImageWriterFactory.h>
+#include "mirtk/PGMImageWriter.h"
+#include "mirtk/ImageWriterFactory.h"
+
+#include "mirtk/Math.h"
 
 #include <cstdio>
 

@@ -17,11 +17,11 @@
  * limitations under the License.
  */
 
-#include <mirtkCofstream.h>
+#include "mirtk/Cofstream.h"
 
-#include <mirtkConfig.h>       // WINDOWS
-#include <mirtkCommonConfig.h> // MIRTK_Common_BIG_ENDIAN, MIRTK_Common_WITH_ZLIB
-#include <mirtkMemory.h>       // swap16, swap32
+#include "mirtk/Config.h"       // WINDOWS
+#include "mirtk/CommonConfig.h" // MIRTK_Common_BIG_ENDIAN, MIRTK_Common_WITH_ZLIB
+#include "mirtk/Memory.h"       // swap16, swap32
 
 #if MIRTK_Common_WITH_ZLIB
 #  include <zlib.h>

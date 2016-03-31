@@ -21,13 +21,13 @@
 #ifndef MIRTK_Matrix_H
 #define MIRTK_Matrix_H
 
-#include <mirtkObject.h>
+#include "mirtk/Object.h"
 
-#include <mirtkMath.h>
-#include <mirtkArray.h>
-#include <mirtkPair.h>
-#include <mirtkIndent.h>
-#include <mirtkCfstream.h>
+#include "mirtk/Math.h"
+#include "mirtk/Array.h"
+#include "mirtk/Pair.h"
+#include "mirtk/Indent.h"
+#include "mirtk/Cfstream.h"
 
 
 namespace mirtk {
@@ -480,7 +480,7 @@ public:
 // Inline definitions
 ////////////////////////////////////////////////////////////////////////////////
 
-#include <mirtkPoint.h>
+#include "mirtk/Point.h"
 
 
 namespace mirtk {

@@ -18,15 +18,15 @@
  */
 
 // TODO: Compare transformed image to expected result
-#include <gtest/gtest.h>
+#include "gtest/gtest.h"
 
-#include <mirtkRegisteredImage.h>
+#include "mirtk/RegisteredImage.h"
 
-#include <mirtkProfiling.h>
-#include <mirtkGenericImage.h>
-#include <mirtkRigidTransformation.h>
-#include <mirtkBSplineFreeFormTransformation3D.h>
-#include <mirtkMultiLevelFreeFormTransformation.h>
+#include "mirtk/Profiling.h"
+#include "mirtk/GenericImage.h"
+#include "mirtk/RigidTransformation.h"
+#include "mirtk/BSplineFreeFormTransformation3D.h"
+#include "mirtk/MultiLevelFreeFormTransformation.h"
 
 namespace mirtk {
 

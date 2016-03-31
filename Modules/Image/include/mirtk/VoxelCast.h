@@ -20,8 +20,8 @@
 #ifndef MIRTK_VoxelCast_H
 #define MIRTK_VoxelCast_H
 
-#include <mirtkVoxel.h>
-#include <mirtkStream.h>
+#include "mirtk/Voxel.h"
+#include "mirtk/Stream.h"
 
 
 // Overloading the C++ conversion operators for vector types would be possible

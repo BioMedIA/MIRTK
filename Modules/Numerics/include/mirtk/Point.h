@@ -20,8 +20,8 @@
 #ifndef MIRTK_Point_H
 #define MIRTK_Point_H
 
-#include <mirtkObject.h>
-#include <mirtkMath.h>
+#include "mirtk/Object.h"
+#include "mirtk/Math.h"
 
 
 namespace mirtk {
@@ -226,8 +226,8 @@ public:
 
 } // namespace mirtk
 
-#include <mirtkVector.h>
-#include <mirtkMatrix.h>
+#include "mirtk/Vector.h"
+#include "mirtk/Matrix.h"
 
 namespace mirtk {
 

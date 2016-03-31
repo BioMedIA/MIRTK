@@ -17,19 +17,19 @@
  * limitations under the License.
  */
 
-#include <mirtkCommon.h>
-#include <mirtkOptions.h>
+#include "mirtk/Common.h"
+#include "mirtk/Options.h"
 
-#include <mirtkIOConfig.h>
+#include "mirtk/IOConfig.h"
 
-#include <mirtkGenericImage.h>
-#include <mirtkVoxelFunction.h>
-#include <mirtkResampling.h>
-#include <mirtkGaussianBlurring.h>
-#include <mirtkGradientImageFilter.h>
-#include <mirtkConvolutionFunction.h>
+#include "mirtk/GenericImage.h"
+#include "mirtk/VoxelFunction.h"
+#include "mirtk/Resampling.h"
+#include "mirtk/GaussianBlurring.h"
+#include "mirtk/GradientImageFilter.h"
+#include "mirtk/ConvolutionFunction.h"
 
-#include <mirtkLinearInterpolateImageFunction.hxx>
+#include "mirtk/LinearInterpolateImageFunction.hxx"
 
 using namespace mirtk;
 

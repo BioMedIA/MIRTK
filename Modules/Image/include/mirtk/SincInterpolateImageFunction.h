@@ -20,8 +20,8 @@
 #ifndef MIRTK_SincInterpolateImageFunction_H
 #define MIRTK_SincInterpolateImageFunction_H
 
-#include <mirtkInterpolateImageFunction.h>
-#include <mirtkBaseImage.h>
+#include "mirtk/InterpolateImageFunction.h"
+#include "mirtk/BaseImage.h"
 
 
 namespace mirtk {

@@ -17,19 +17,19 @@
  * limitations under the License.
  */
 
-#include <mirtkIOConfig.h>
+#include "mirtk/IOConfig.h"
 
 #if !defined(MIRTK_AUTO_REGISTER)
-  #include <mirtkImageReaderFactory.h>
-  #include <mirtkImageWriterFactory.h>
-  #include <mirtkGIPLImageReader.h>
-  #include <mirtkGIPLImageWriter.h>
-  #include <mirtkPGMImageReader.h>
-  #include <mirtkPGMImageWriter.h>
-  #include <mirtkPNGImageWriter.h>
+  #include "mirtk/ImageReaderFactory.h"
+  #include "mirtk/ImageWriterFactory.h"
+  #include "mirtk/GIPLImageReader.h"
+  #include "mirtk/GIPLImageWriter.h"
+  #include "mirtk/PGMImageReader.h"
+  #include "mirtk/PGMImageWriter.h"
+  #include "mirtk/PNGImageWriter.h"
   #if MIRTK_IO_WITH_NIfTI
-    #include <mirtkNiftiImageReader.h>
-    #include <mirtkNiftiImageWriter.h>
+    #include "mirtk/NiftiImageReader.h"
+    #include "mirtk/NiftiImageWriter.h"
   #endif
 #endif
 

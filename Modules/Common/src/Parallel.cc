@@ -17,11 +17,11 @@
  * limitations under the License.
  */
 
-#include <mirtkParallel.h>
+#include "mirtk/Parallel.h"
 
-#include <mirtkString.h>
-#include <mirtkStream.h>
-#include <mirtkOptions.h>
+#include "mirtk/String.h"
+#include "mirtk/Stream.h"
+#include "mirtk/Options.h"
 
 #include <memory>
 

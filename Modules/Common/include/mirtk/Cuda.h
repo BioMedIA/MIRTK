@@ -21,7 +21,7 @@
 #define MIRTK_Cuda_H
 
 
-#include <mirtkConfig.h> // MIRTKCU_API
+#include "mirtk/Config.h" // MIRTKCU_API
 
 #ifdef HAVE_CUDA
 #  include <cuda.h>

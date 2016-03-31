@@ -17,10 +17,10 @@
  * limitations under the License.
  */
 
-#include <mirtkFiducialMatch.h>
+#include "mirtk/FiducialMatch.h"
 
-#include <mirtkPoint.h>
-#include <mirtkArray.h>
+#include "mirtk/Point.h"
+#include "mirtk/Array.h"
 
 
 namespace mirtk {

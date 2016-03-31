@@ -17,27 +17,27 @@
  * limitations under the License.
  */
 
-#include <mirtkSpectralDecomposition.h>
+#include "mirtk/SpectralDecomposition.h"
 
-#include <mirtkAssert.h>
-#include <mirtkMath.h>
-#include <mirtkArray.h>
-#include <mirtkAlgorithm.h>
-#include <mirtkMemory.h>
-#include <mirtkParallel.h>
-#include <mirtkProfiling.h>
-#include <mirtkMatrix.h>
-#include <mirtkSparseMatrix.h>
-#include <mirtkVector.h>
-#include <mirtkPointSet.h>
-#include <mirtkEdgeTable.h>
+#include "mirtk/Assert.h"
+#include "mirtk/Math.h"
+#include "mirtk/Array.h"
+#include "mirtk/Algorithm.h"
+#include "mirtk/Memory.h"
+#include "mirtk/Parallel.h"
+#include "mirtk/Profiling.h"
+#include "mirtk/Matrix.h"
+#include "mirtk/SparseMatrix.h"
+#include "mirtk/Vector.h"
+#include "mirtk/PointSet.h"
+#include "mirtk/EdgeTable.h"
 
-#include <vtkSmartPointer.h>
-#include <vtkFloatArray.h>
-#include <vtkCellArray.h>
-#include <vtkOctreePointLocator.h>
-#include <vtkPoints.h>
-#include <vtkPolyData.h>
+#include "vtkSmartPointer.h"
+#include "vtkFloatArray.h"
+#include "vtkCellArray.h"
+#include "vtkOctreePointLocator.h"
+#include "vtkPoints.h"
+#include "vtkPolyData.h"
 
 #include <random>
 

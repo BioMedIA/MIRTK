@@ -20,9 +20,9 @@
 #ifndef MIRTK_ImageReader_H
 #define MIRTK_ImageReader_H
 
-#include <mirtkCifstream.h>
-#include <mirtkImageAttributes.h>
-#include <mirtkBaseImage.h>
+#include "mirtk/Cifstream.h"
+#include "mirtk/ImageAttributes.h"
+#include "mirtk/BaseImage.h"
 
 
 namespace mirtk {

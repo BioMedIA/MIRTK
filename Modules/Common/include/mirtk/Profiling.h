@@ -20,9 +20,9 @@
 #ifndef MIRTK_Profiling_H
 #define MIRTK_Profiling_H
 
-#include <mirtkCommonExport.h>
+#include "mirtk/CommonExport.h"
 
-#include <mirtkStream.h>
+#include "mirtk/Stream.h"
 
 #include <ctime>
 #ifdef HAVE_TBB

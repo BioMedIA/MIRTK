@@ -20,8 +20,8 @@
 #ifndef MIRTK_FastCubicBSplineInterpolateImageFunction4D_HXX
 #define MIRTK_FastCubicBSplineInterpolateImageFunction4D_HXX
 
-#include <mirtkFastCubicBSplineInterpolateImageFunction4D.h>
-#include <mirtkFastCubicBSplineInterpolateImageFunction.hxx>
+#include "mirtk/FastCubicBSplineInterpolateImageFunction4D.h"
+#include "mirtk/FastCubicBSplineInterpolateImageFunction.hxx"
 
 
 namespace mirtk {

@@ -17,8 +17,8 @@
  */
 
 
-#include <mirtkMath.h>
-#include <mirtkArith.h>
+#include "mirtk/Math.h"
+#include "mirtk/Arith.h"
 
 using namespace std;
 

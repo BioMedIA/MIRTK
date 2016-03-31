@@ -17,10 +17,10 @@
  * limitations under the License.
  */
 
-#include <mirtkHessianImageFilter.h>
+#include "mirtk/HessianImageFilter.h"
 
-#include <mirtkMatrix.h>
-#include <mirtkImageAttributes.h>
+#include "mirtk/Matrix.h"
+#include "mirtk/ImageAttributes.h"
 
 
 namespace mirtk {

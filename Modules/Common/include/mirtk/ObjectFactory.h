@@ -20,16 +20,16 @@
 #ifndef MIRTK_ObjectFactory_H
 #define MIRTK_ObjectFactory_H
 
-#include <mirtkUnorderedMap.h>
-#include <mirtkStream.h>
+#include "mirtk/UnorderedMap.h"
+#include "mirtk/Stream.h"
 
-#include <mirtkCommonExport.h>
+#include "mirtk/CommonExport.h"
 
 
 namespace mirtk {
 
 
-// Global "debug" flag (cf. mirtkOptions.cc)
+// Global "debug" flag (cf. mirtk/Options.h)
 MIRTK_Common_EXPORT extern int debug;
 
 

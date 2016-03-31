@@ -17,7 +17,7 @@
  * limitations under the License.
  */
 
-#include <mirtkImageGradientFunction.hxx>
+#include "mirtk/ImageGradientFunction.hxx"
 
 
 namespace mirtk {
@@ -198,16 +198,16 @@ void ImageGradientFunction::Initialize(bool)
 ////////////////////////////////////////////////////////////////////////////////
 
 // ND
-#include <mirtkLinearImageGradientFunction.hxx>
-#include <mirtkFastLinearImageGradientFunction.hxx>
+#include "mirtk/LinearImageGradientFunction.hxx"
+#include "mirtk/FastLinearImageGradientFunction.hxx"
 
 // 2D
-#include <mirtkLinearImageGradientFunction2D.hxx>
-#include <mirtkFastLinearImageGradientFunction2D.hxx>
+#include "mirtk/LinearImageGradientFunction2D.hxx"
+#include "mirtk/FastLinearImageGradientFunction2D.hxx"
 
 // 3D
-#include <mirtkLinearImageGradientFunction3D.hxx>
-#include <mirtkFastLinearImageGradientFunction3D.hxx>
+#include "mirtk/LinearImageGradientFunction3D.hxx"
+#include "mirtk/FastLinearImageGradientFunction3D.hxx"
 
 
 namespace mirtk {

@@ -20,7 +20,7 @@
 #ifndef MIRTK_Allocate_H
 #define MIRTK_Allocate_H
 
-#include <mirtkStream.h>
+#include "mirtk/Stream.h"
 
 
 namespace mirtk {

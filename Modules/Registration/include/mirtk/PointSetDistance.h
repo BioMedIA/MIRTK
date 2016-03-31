@@ -20,12 +20,12 @@
 #ifndef MIRTK_PointSetDistance_H
 #define MIRTK_PointSetDistance_H
 
-#include <mirtkDataFidelity.h>
+#include "mirtk/DataFidelity.h"
 
-#include <mirtkArray.h>
-#include <mirtkVector3D.h>
-#include <mirtkPointSetDistanceMeasure.h>
-#include <mirtkRegisteredPointSet.h>
+#include "mirtk/Array.h"
+#include "mirtk/Vector3D.h"
+#include "mirtk/PointSetDistanceMeasure.h"
+#include "mirtk/RegisteredPointSet.h"
 
 
 namespace mirtk {

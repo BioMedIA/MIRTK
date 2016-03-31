@@ -17,14 +17,15 @@
  * limitations under the License.
  */
 
-#include <mirtkNiftiImageReader.h>
-#include "mirtkNiftiImage.h"
+#include "NiftiImage.h"
 
-#include <mirtkArray.h>
-#include <mirtkVoxel.h>
-#include <mirtkPath.h>
-#include <mirtkMatrix.h>
-#include <mirtkImageReaderFactory.h>
+#include "mirtk/NiftiImageReader.h"
+#include "mirtk/ImageReaderFactory.h"
+
+#include "mirtk/Array.h"
+#include "mirtk/Voxel.h"
+#include "mirtk/Path.h"
+#include "mirtk/Matrix.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>

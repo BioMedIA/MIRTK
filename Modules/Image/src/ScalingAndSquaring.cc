@@ -17,16 +17,16 @@
  * limitations under the License.
  */
 
-#include <mirtkScalingAndSquaring.h>
+#include "mirtk/ScalingAndSquaring.h"
 
-#include <mirtkMath.h>
-#include <mirtkVoxelFunction.h>
-#include <mirtkInterpolateImageFunction.hxx>
-#include <mirtkGaussianBlurring.h>
-#include <mirtkMatrix.h>
-#include <mirtkParallel.h>
-#include <mirtkProfiling.h>
-#include <mirtkDeallocate.h>
+#include "mirtk/Math.h"
+#include "mirtk/VoxelFunction.h"
+#include "mirtk/InterpolateImageFunction.hxx"
+#include "mirtk/GaussianBlurring.h"
+#include "mirtk/Matrix.h"
+#include "mirtk/Parallel.h"
+#include "mirtk/Profiling.h"
+#include "mirtk/Deallocate.h"
 
 #include <algorithm>
 

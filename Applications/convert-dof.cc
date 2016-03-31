@@ -17,17 +17,17 @@
  * limitations under the License.
  */
 
-#include <mirtkCommon.h>
-#include <mirtkOptions.h>
+#include "mirtk/Common.h"
+#include "mirtk/Options.h"
 
-#include <mirtkIOConfig.h>
-#include <mirtkGenericImage.h>
-#include <mirtkVoxelFunction.h>
-#include <mirtkTransformations.h>
+#include "mirtk/IOConfig.h"
+#include "mirtk/GenericImage.h"
+#include "mirtk/VoxelFunction.h"
+#include "mirtk/Transformations.h"
 
 #if MIRTK_IO_WITH_NIfTI
-#  include <mirtkNiftiImageInfo.h>
-#  include <mirtkNiftiImageReader.h>
+#  include "mirtk/NiftiImageInfo.h"
+#  include "mirtk/NiftiImageReader.h"
 #endif // MIRTK_IO_WITH_NIfTI
 
 

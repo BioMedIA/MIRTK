@@ -20,18 +20,18 @@
 #ifndef MIRTK_Options_H
 #define MIRTK_Options_H
 
-#include <mirtkPath.h>
-#include <mirtkStream.h>
+#include "mirtk/Path.h"
+#include "mirtk/Stream.h"
 
-#include <mirtkParallel.h>
-#include <mirtkProfiling.h>
-#include <mirtkTerminal.h>
+#include "mirtk/Parallel.h"
+#include "mirtk/Profiling.h"
+#include "mirtk/Terminal.h"
 
-#include <mirtkCommonExport.h>
+#include "mirtk/CommonExport.h"
 
 
 /*
-   \file  mirtkOptions.h
+   \file  mirtk/Options.h
    \brief Simple command-line parsing library.
 
    The macros defined by this module should reduce the number of lines of code

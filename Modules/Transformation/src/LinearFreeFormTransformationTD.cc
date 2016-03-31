@@ -17,11 +17,11 @@
  * limitations under the License.
  */
 
-#include <mirtkLinearFreeFormTransformationTD.h>
+#include "mirtk/LinearFreeFormTransformationTD.h"
 
-#include <mirtkMath.h>
-#include <mirtkBSplineFreeFormTransformationTD.h>
-#include <mirtkDisplacementToVelocityFieldBCH.h>
+#include "mirtk/Math.h"
+#include "mirtk/BSplineFreeFormTransformationTD.h"
+#include "mirtk/DisplacementToVelocityFieldBCH.h"
 
 
 namespace mirtk {

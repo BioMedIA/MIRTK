@@ -22,39 +22,39 @@
 
 
 // Homogeneous transformations
-#include <mirtkHomogeneousTransformation.h>
-#include <mirtkRigidTransformation.h>
-#include <mirtkSimilarityTransformation.h>
-#include <mirtkAffineTransformation.h>
+#include "mirtk/HomogeneousTransformation.h"
+#include "mirtk/RigidTransformation.h"
+#include "mirtk/SimilarityTransformation.h"
+#include "mirtk/AffineTransformation.h"
 
 // Free-form transformations
-#include <mirtkFreeFormTransformation.h>
-#include <mirtkFreeFormTransformation3D.h>
-#include <mirtkFreeFormTransformation4D.h>
+#include "mirtk/FreeFormTransformation.h"
+#include "mirtk/FreeFormTransformation3D.h"
+#include "mirtk/FreeFormTransformation4D.h"
 
-#include <mirtkBSplineFreeFormTransformation3D.h>
-#include <mirtkBSplineFreeFormTransformation4D.h>
-#include <mirtkBSplineFreeFormTransformationSV.h>
-#include <mirtkBSplineFreeFormTransformationTD.h>
-#include <mirtkBSplineFreeFormTransformationStatistical.h>
-#include <mirtkLinearFreeFormTransformation3D.h>
-#include <mirtkLinearFreeFormTransformation4D.h>
-#include <mirtkLinearFreeFormTransformationTD.h>
+#include "mirtk/BSplineFreeFormTransformation3D.h"
+#include "mirtk/BSplineFreeFormTransformation4D.h"
+#include "mirtk/BSplineFreeFormTransformationSV.h"
+#include "mirtk/BSplineFreeFormTransformationTD.h"
+#include "mirtk/BSplineFreeFormTransformationStatistical.h"
+#include "mirtk/LinearFreeFormTransformation3D.h"
+#include "mirtk/LinearFreeFormTransformation4D.h"
+#include "mirtk/LinearFreeFormTransformationTD.h"
 
 // Composite transformations
-#include <mirtkMultiLevelTransformation.h>
-#include <mirtkMultiLevelFreeFormTransformation.h>
-#include <mirtkMultiLevelStationaryVelocityTransformation.h>
-#include <mirtkFluidFreeFormTransformation.h>
+#include "mirtk/MultiLevelTransformation.h"
+#include "mirtk/MultiLevelFreeFormTransformation.h"
+#include "mirtk/MultiLevelStationaryVelocityTransformation.h"
+#include "mirtk/FluidFreeFormTransformation.h"
 
 // Decorators (i.e., wrappers)
-#include <mirtkInverseAffineTransformation.h>
-#include <mirtkPartialAffineTransformation.h>
-#include <mirtkPartialBSplineFreeFormTransformationSV.h>
-#include <mirtkPartialMultiLevelStationaryVelocityTransformation.h>
+#include "mirtk/InverseAffineTransformation.h"
+#include "mirtk/PartialAffineTransformation.h"
+#include "mirtk/PartialBSplineFreeFormTransformationSV.h"
+#include "mirtk/PartialMultiLevelStationaryVelocityTransformation.h"
 
 // Image transformation filters
-#include <mirtkImageTransformation.h>
+#include "mirtk/ImageTransformation.h"
 
 
 #endif // MIRTK_Transformations_H

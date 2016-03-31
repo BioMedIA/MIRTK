@@ -20,7 +20,7 @@
 #ifndef MIRTK_SparsityConstraint_H
 #define MIRTK_SparsityConstraint_H
 
-#include <mirtkTransformationConstraint.h>
+#include "mirtk/TransformationConstraint.h"
 
 
 namespace mirtk {

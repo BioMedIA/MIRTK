@@ -20,7 +20,7 @@
 #ifndef MIRTK_FiducialRegistrationError_H
 #define MIRTK_FiducialRegistrationError_H
 
-#include <mirtkPointCorrespondenceDistance.h>
+#include "mirtk/PointCorrespondenceDistance.h"
 
 
 namespace mirtk {

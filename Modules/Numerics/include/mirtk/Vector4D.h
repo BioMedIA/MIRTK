@@ -20,8 +20,8 @@
 #ifndef MIRTK_Vector4D_H
 #define MIRTK_Vector4D_H
 
-#include <mirtkMath.h>
-#include <mirtkStream.h>
+#include "mirtk/Math.h"
+#include "mirtk/Stream.h"
 
 
 namespace mirtk {

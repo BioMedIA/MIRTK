@@ -20,11 +20,11 @@
 #ifndef MIRTK_ImageWriterFactory_H
 #define MIRTK_ImageWriterFactory_H
 
-#include <mirtkObjectFactory.h> // New<BaseType, ObjectType>()
-#include <mirtkImageWriter.h>
+#include "mirtk/ObjectFactory.h" // New<BaseType, ObjectType>()
+#include "mirtk/ImageWriter.h"
 
-#include <mirtkArray.h>
-#include <mirtkUnorderedMap.h>
+#include "mirtk/Array.h"
+#include "mirtk/UnorderedMap.h"
 
 
 

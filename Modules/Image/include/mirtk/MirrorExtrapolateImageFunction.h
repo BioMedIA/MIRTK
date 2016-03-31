@@ -20,8 +20,8 @@
 #ifndef MIRTK_MirrorExtrapolateImageFunction_H
 #define MIRTK_MirrorExtrapolateImageFunction_H
 
-#include <mirtkExtrapolateImageFunction.h>
-#include <mirtkBaseImage.h>
+#include "mirtk/ExtrapolateImageFunction.h"
+#include "mirtk/BaseImage.h"
 
 
 namespace mirtk {

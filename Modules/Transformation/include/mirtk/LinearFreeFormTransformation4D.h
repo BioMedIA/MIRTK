@@ -21,8 +21,8 @@
 #ifndef MIRTK_LinearFreeFormTransformation4D_H
 #define MIRTK_LinearFreeFormTransformation4D_H
 
-#include <mirtkFreeFormTransformation4D.h>
-#include <mirtkLinearInterpolateImageFunction4D.h>
+#include "mirtk/FreeFormTransformation4D.h"
+#include "mirtk/LinearInterpolateImageFunction4D.h"
 
 #include <cmath>
 

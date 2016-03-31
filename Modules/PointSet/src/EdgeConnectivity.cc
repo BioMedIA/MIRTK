@@ -17,19 +17,19 @@
  * limitations under the License.
  */
 
-#include <mirtkEdgeConnectivity.h>
+#include "mirtk/EdgeConnectivity.h"
 
-#include <mirtkPair.h>
-#include <mirtkUnorderedSet.h>
-#include <mirtkMemory.h>
-#include <mirtkEdgeTable.h>
-#include <mirtkParallel.h>
-#include <mirtkProfiling.h>
-#include <mirtkAlgorithm.h> // sort
-#include <mirtkVtkMath.h>
+#include "mirtk/Pair.h"
+#include "mirtk/UnorderedSet.h"
+#include "mirtk/Memory.h"
+#include "mirtk/EdgeTable.h"
+#include "mirtk/Parallel.h"
+#include "mirtk/Profiling.h"
+#include "mirtk/Algorithm.h" // sort
+#include "mirtk/VtkMath.h"
 
-#include <vtkSmartPointer.h>
-#include <vtkGenericCell.h>
+#include "vtkSmartPointer.h"
+#include "vtkGenericCell.h"
 
 
 namespace mirtk {

@@ -26,7 +26,7 @@
 #ifndef MIRTK_LimitedMemoryBFGSDescent_H
 #define MIRTK_LimitedMemoryBFGSDescent_H
 
-#include <mirtkLocalOptimizer.h>
+#include "mirtk/LocalOptimizer.h"
 
 
 namespace mirtk {

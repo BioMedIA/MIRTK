@@ -17,11 +17,11 @@
  * limitations under the License.
  */
 
-#include <mirtkEnergyTerm.h>
+#include "mirtk/EnergyTerm.h"
 
-#include <mirtkMath.h>
-#include <mirtkObjectFactory.h>
-#include <mirtkAlgorithm.h> // transform
+#include "mirtk/Math.h"
+#include "mirtk/ObjectFactory.h"
+#include "mirtk/Algorithm.h" // transform
 
 
 namespace mirtk {

@@ -20,10 +20,10 @@
 #ifndef MIRTK_Terminal_H
 #define MIRTK_Terminal_H
 
-#include <mirtkCommonExport.h>
+#include "mirtk/CommonExport.h"
 
-#include <mirtkConfig.h> // WINDOWS
-#include <mirtkStream.h>
+#include "mirtk/Config.h" // WINDOWS
+#include "mirtk/Stream.h"
 
 #include <cstdio>
 #ifndef WINDOWS

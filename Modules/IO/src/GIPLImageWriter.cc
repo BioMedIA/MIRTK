@@ -17,10 +17,10 @@
  * limitations under the License.
  */
 
-#include <mirtkGIPLImageWriter.h>
-#include "mirtkGIPL.h"
+#include "GIPL.h"
 
-#include <mirtkImageWriterFactory.h>
+#include "mirtk/GIPLImageWriter.h"
+#include "mirtk/ImageWriterFactory.h"
 
 
 namespace mirtk {

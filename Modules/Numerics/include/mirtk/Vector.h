@@ -20,13 +20,13 @@
 #ifndef MIRTK_Vector_H
 #define MIRTK_Vector_H
 
-#include <mirtkObject.h>
+#include "mirtk/Object.h"
 
-#include <mirtkMath.h>
-#include <mirtkIndent.h>
-#include <mirtkCfstream.h>
-#include <mirtkMemory.h>
-#include <mirtkArray.h>
+#include "mirtk/Math.h"
+#include "mirtk/Indent.h"
+#include "mirtk/Cfstream.h"
+#include "mirtk/Memory.h"
+#include "mirtk/Array.h"
 
 
 namespace mirtk {
@@ -274,8 +274,8 @@ public:
 
 } // namespace mirtk
 
-#include <mirtkVector3D.h>
-#include <mirtkVector4D.h>
+#include "mirtk/Vector3D.h"
+#include "mirtk/Vector4D.h"
 
 namespace mirtk {
 

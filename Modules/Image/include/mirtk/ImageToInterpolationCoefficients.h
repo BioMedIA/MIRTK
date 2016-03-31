@@ -20,11 +20,11 @@
 #ifndef MIRTK_ImageToInterpolationCoefficients_H
 #define MIRTK_ImageToInterpolationCoefficients_H
 
-#include <mirtkMath.h>
-#include <mirtkVoxel.h>
-#include <mirtkGenericImage.h>
-#include <mirtkParallel.h>
-#include <mirtkStream.h>
+#include "mirtk/Math.h"
+#include "mirtk/Voxel.h"
+#include "mirtk/GenericImage.h"
+#include "mirtk/Parallel.h"
+#include "mirtk/Stream.h"
 
 
 namespace mirtk {

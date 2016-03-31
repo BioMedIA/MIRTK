@@ -17,11 +17,11 @@
  * limitations under the License.
  */
 
-#include <mirtkImageWriterFactory.h>
+#include "mirtk/ImageWriterFactory.h"
 
-#include <mirtkAssert.h>
-#include <mirtkPath.h>
-#include <mirtkArray.h>
+#include "mirtk/Assert.h"
+#include "mirtk/Path.h"
+#include "mirtk/Array.h"
 
 
 namespace mirtk {

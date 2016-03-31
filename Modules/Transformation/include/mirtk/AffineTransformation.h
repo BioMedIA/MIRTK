@@ -21,9 +21,9 @@
 #ifndef MIRTK_AffineTransformation_H
 #define MIRTK_AffineTransformation_H
 
-#include <mirtkSimilarityTransformation.h>
+#include "mirtk/SimilarityTransformation.h"
 
-#include <mirtkMatrix.h>
+#include "mirtk/Matrix.h"
 
 #include <cstdlib>
 #include <iostream>

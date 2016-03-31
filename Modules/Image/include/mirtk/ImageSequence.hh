@@ -20,8 +20,8 @@
 #ifndef MIRTK_ImageSequence_HH
 #define MIRTK_ImageSequence_HH
 
-#include <mirtkImageSequence.h>
-#include <mirtkStream.h>
+#include "mirtk/ImageSequence.h"
+#include "mirtk/Stream.h"
 
 
 namespace mirtk {

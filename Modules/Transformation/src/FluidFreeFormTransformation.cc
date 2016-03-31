@@ -18,9 +18,9 @@
  * limitations under the License.
  */
 
-#include <mirtkFluidFreeFormTransformation.h>
+#include "mirtk/FluidFreeFormTransformation.h"
 
-#include <mirtkMemory.h>
+#include "mirtk/Memory.h"
 
 
 namespace mirtk {

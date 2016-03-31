@@ -20,7 +20,7 @@
 #ifndef MIRTK_MaxStepLineSearch_H
 #define MIRTK_MaxStepLineSearch_H
 
-#include <mirtkInexactLineSearch.h>
+#include "mirtk/InexactLineSearch.h"
 
 
 namespace mirtk {

@@ -20,9 +20,9 @@
 #ifndef MIRTK_GenericImageIterator_H
 #define MIRTK_GenericImageIterator_H
 
-#include <mirtkImageIterator.h>
-#include <mirtkConstImageIterator.h>
-#include <mirtkImageAttributes.h>
+#include "mirtk/ImageIterator.h"
+#include "mirtk/ConstImageIterator.h"
+#include "mirtk/ImageAttributes.h"
 
 
 namespace mirtk {

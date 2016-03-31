@@ -20,8 +20,8 @@
 #ifndef MIRTK_SincInterpolateImageFunction3D_HXX
 #define MIRTK_SincInterpolateImageFunction3D_HXX
 
-#include <mirtkSincInterpolateImageFunction3D.h>
-#include <mirtkSincInterpolateImageFunction.hxx>
+#include "mirtk/SincInterpolateImageFunction3D.h"
+#include "mirtk/SincInterpolateImageFunction.hxx"
 
 namespace mirtk {
 

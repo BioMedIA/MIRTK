@@ -17,10 +17,10 @@
  * limitations under the License.
  */
 
-#include <mirtkPlane.h>
+#include "mirtk/Plane.h"
 
-#include <mirtkVector.h>
-#include <mirtkMatrix.h>
+#include "mirtk/Vector.h"
+#include "mirtk/Matrix.h"
 
 
 namespace mirtk {

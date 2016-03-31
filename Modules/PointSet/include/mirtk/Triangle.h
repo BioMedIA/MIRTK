@@ -20,13 +20,13 @@
 #ifndef MIRTK_Triangle_H
 #define MIRTK_Triangle_H
 
-#include <mirtkMemory.h>
-#include <mirtkMath.h>
-#include <mirtkVtkMath.h> // vtkMath.h otherwise included by vtkTriangle.h
+#include "mirtk/Memory.h"
+#include "mirtk/Math.h"
+#include "mirtk/VtkMath.h" // vtkMath.h otherwise included by vtkTriangle.h
 
-#include <vtkLine.h>
-#include <vtkPlane.h>
-#include <vtkTriangle.h>
+#include "vtkLine.h"
+#include "vtkPlane.h"
+#include "vtkTriangle.h"
 
 
 namespace mirtk {

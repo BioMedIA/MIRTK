@@ -17,27 +17,27 @@
  * limitations under the License.
  */
 
-#include <mirtkCommon.h>
-#include <mirtkOptions.h>
+#include "mirtk/Common.h"
+#include "mirtk/Options.h"
 
-#include <mirtkPointSetUtils.h>
-#include <mirtkMatlab.h>
+#include "mirtk/PointSetUtils.h"
+#include "mirtk/Matlab.h"
 
-#include <vtkSmartPointer.h>
-#include <vtkPolyData.h>
-#include <vtkDataSetAttributes.h>
-#include <vtkPointData.h>
-#include <vtkDataArray.h>
-#include <vtkCharArray.h>
-#include <vtkUnsignedCharArray.h>
-#include <vtkShortArray.h>
-#include <vtkUnsignedShortArray.h>
-#include <vtkIntArray.h>
-#include <vtkUnsignedIntArray.h>
-#include <vtkLongArray.h>
-#include <vtkUnsignedLongArray.h>
-#include <vtkFloatArray.h>
-#include <vtkDoubleArray.h>
+#include "vtkSmartPointer.h"
+#include "vtkPolyData.h"
+#include "vtkDataSetAttributes.h"
+#include "vtkPointData.h"
+#include "vtkDataArray.h"
+#include "vtkCharArray.h"
+#include "vtkUnsignedCharArray.h"
+#include "vtkShortArray.h"
+#include "vtkUnsignedShortArray.h"
+#include "vtkIntArray.h"
+#include "vtkUnsignedIntArray.h"
+#include "vtkLongArray.h"
+#include "vtkUnsignedLongArray.h"
+#include "vtkFloatArray.h"
+#include "vtkDoubleArray.h"
 
 using namespace mirtk;
 

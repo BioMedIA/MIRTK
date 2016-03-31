@@ -17,8 +17,8 @@
  * limitations under the License.
  */
 
-#include <mirtkVersion.h>
-#include <mirtkVersionInfo.h>
+#include "mirtk/Version.h"
+#include "mirtk/VersionInfo.h"
 
 
 namespace mirtk {

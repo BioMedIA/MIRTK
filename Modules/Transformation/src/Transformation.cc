@@ -18,21 +18,21 @@
  * limitations under the License.
  */
 
-#include <mirtkTransformation.h>
+#include "mirtk/Transformation.h"
 
-#include <mirtkMath.h>
-#include <mirtkMemory.h>
-#include <mirtkParallel.h>
-#include <mirtkProfiling.h>
+#include "mirtk/Math.h"
+#include "mirtk/Memory.h"
+#include "mirtk/Parallel.h"
+#include "mirtk/Profiling.h"
+#include "mirtk/VoxelFunction.h"
 
-#include <mirtkTransformationUtils.h>
-#include <mirtkVoxelFunction.h>
+#include "mirtk/AdaptiveLineSearch.h"
+#include "mirtk/ConjugateGradientDescent.h"
+#include "mirtk/TransformationApproximationError.h"
 
-#include <mirtkAdaptiveLineSearch.h>
-#include <mirtkConjugateGradientDescent.h>
-#include <mirtkTransformationApproximationError.h>
+#include "mirtk/Transformations.h"
 
-#include <mirtkTransformations.h>
+#include "TransformationUtils.h"
 
 
 namespace mirtk {

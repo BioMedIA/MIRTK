@@ -17,7 +17,7 @@
  * limitations under the License.
  */
 
-#include <mirtkPartialMultiLevelStationaryVelocityTransformation.h>
+#include "mirtk/PartialMultiLevelStationaryVelocityTransformation.h"
 
 
 namespace mirtk {

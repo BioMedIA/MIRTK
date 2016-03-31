@@ -17,21 +17,21 @@
  * limitations under the License.
  */
 
-#include <mirtkCommon.h>
-#include <mirtkOptions.h>
+#include "mirtk/Common.h"
+#include "mirtk/Options.h"
 
-#include <mirtkPointSetUtils.h>
-#include <mirtkVtkMath.h>
+#include "mirtk/PointSetUtils.h"
+#include "mirtk/VtkMath.h"
 
-#include <vtkPointSet.h>
-#include <vtkPolyData.h>
-#include <vtkPointData.h>
-#include <vtkFloatArray.h>
-#include <vtkCellLocator.h>
-#include <vtkPolyDataNormals.h>
-#include <vtkModifiedBSPTree.h>
-#include <vtkKdTreePointLocator.h>
-#include <vtkDataReader.h> // VTK_ASCII, VTK_BINARY defines
+#include "vtkPointSet.h"
+#include "vtkPolyData.h"
+#include "vtkPointData.h"
+#include "vtkFloatArray.h"
+#include "vtkCellLocator.h"
+#include "vtkPolyDataNormals.h"
+#include "vtkModifiedBSPTree.h"
+#include "vtkKdTreePointLocator.h"
+#include "vtkDataReader.h" // VTK_ASCII, VTK_BINARY defines
 
 using namespace mirtk;
 

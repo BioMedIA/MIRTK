@@ -20,10 +20,10 @@
 #ifndef MIRTK_ConstExtrapolateImageFunction_H
 #define MIRTK_ConstExtrapolateImageFunction_H
 
-#include <mirtkExtrapolateImageFunction.h>
+#include "mirtk/ExtrapolateImageFunction.h"
 
-#include <mirtkVoxelCast.h>
-#include <mirtkBaseImage.h>
+#include "mirtk/VoxelCast.h"
+#include "mirtk/BaseImage.h"
 
 
 namespace mirtk {

@@ -17,10 +17,10 @@
  * limitations under the License.
  */
 
-#include <gtest/gtest.h>
+#include "gtest/gtest.h"
 
-#include <mirtkGenericImage.h>
-#include <mirtkUnaryVoxelFunction.h>
+#include "mirtk/GenericImage.h"
+#include "mirtk/UnaryVoxelFunction.h"
 
 using namespace mirtk;
 using namespace mirtk::ForEachVoxelDomain;

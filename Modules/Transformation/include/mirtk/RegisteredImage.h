@@ -20,14 +20,14 @@
 #ifndef MIRTK_RegisteredImage_H
 #define MIRTK_RegisteredImage_H
 
-#include <mirtkGenericImage.h>
+#include "mirtk/GenericImage.h"
 
-#include <mirtkParallel.h>
-#include <mirtkTransformation.h>
-#include <mirtkInterpolationMode.h>
-#include <mirtkExtrapolationMode.h>
+#include "mirtk/Parallel.h"
+#include "mirtk/Transformation.h"
+#include "mirtk/InterpolationMode.h"
+#include "mirtk/ExtrapolationMode.h"
 
-#include <mirtkTestProd.h>
+#include "mirtk/TestProd.h"
 
 
 namespace mirtk {

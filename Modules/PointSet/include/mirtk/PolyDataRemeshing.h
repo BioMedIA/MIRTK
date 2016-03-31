@@ -20,11 +20,11 @@
 #ifndef MIRTK_PolyDataRemeshing_H
 #define MIRTK_PolyDataRemeshing_H
 
-#include <mirtkPolyDataFilter.h>
+#include "mirtk/PolyDataFilter.h"
 
-#include <mirtkPoint.h>
+#include "mirtk/Point.h"
 
-#include <vtkPriorityQueue.h>
+#include "vtkPriorityQueue.h"
 
 class vtkCellArray;
 class vtkIdList;

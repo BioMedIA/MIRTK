@@ -20,9 +20,9 @@
 #ifndef MIRTK_ImageSequence_H
 #define MIRTK_ImageSequence_H
 
-#include <mirtkObject.h>
-#include <mirtkBaseImage.h>
-#include <mirtkArray.h>
+#include "mirtk/Object.h"
+#include "mirtk/BaseImage.h"
+#include "mirtk/Array.h"
 
 
 namespace mirtk {
@@ -465,7 +465,7 @@ private:
 
 
 // Inline definitions
-#include <mirtkImageSequence.hh>
+#include "mirtk/ImageSequence.hh"
 
 
 #endif // MIRTK_ImageSequence_H

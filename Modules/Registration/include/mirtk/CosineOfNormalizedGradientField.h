@@ -20,7 +20,7 @@
 #ifndef MIRTK_CosineOfNormalizedGradientField_H
 #define MIRTK_CosineOfNormalizedGradientField_H
 
-#include <mirtkNormalizedGradientFieldSimilarity.h>
+#include "mirtk/NormalizedGradientFieldSimilarity.h"
 
 
 namespace mirtk {

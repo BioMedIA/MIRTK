@@ -21,12 +21,12 @@
 #ifndef MIRTK_GaussianInterpolateImageFunction_HXX
 #define MIRTK_GaussianInterpolateImageFunction_HXX
 
-#include <mirtkGaussianInterpolateImageFunction.h>
-#include <mirtkInterpolateImageFunction.hxx>
+#include "mirtk/GaussianInterpolateImageFunction.h"
+#include "mirtk/InterpolateImageFunction.hxx"
 
-#include <mirtkMath.h>
-#include <mirtkVoxelCast.h>
-#include <mirtkScalarGaussian.h>
+#include "mirtk/Math.h"
+#include "mirtk/VoxelCast.h"
+#include "mirtk/ScalarGaussian.h"
 
 
 namespace mirtk {

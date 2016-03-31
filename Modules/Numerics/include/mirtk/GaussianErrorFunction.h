@@ -20,7 +20,7 @@
 #ifndef MIRTK_GaussianErrorFunction_H
 #define MIRTK_GaussianErrorFunction_H
 
-#include <mirtkRadialErrorFunction.h>
+#include "mirtk/RadialErrorFunction.h"
 
 
 namespace mirtk {

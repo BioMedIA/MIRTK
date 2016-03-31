@@ -20,14 +20,14 @@
 #ifndef MIRTK_SurfaceCollisions_H
 #define MIRTK_SurfaceCollisions_H
 
-#include <mirtkObject.h>
+#include "mirtk/Object.h"
 
-#include <mirtkMath.h>
-#include <mirtkArray.h>
-#include <mirtkOrderedSet.h>
-#include <mirtkMemory.h>
+#include "mirtk/Math.h"
+#include "mirtk/Array.h"
+#include "mirtk/OrderedSet.h"
+#include "mirtk/Memory.h"
 
-#include <vtkSmartPointer.h>
+#include "vtkSmartPointer.h"
 
 class vtkPolyData;
 class vtkDataArray;

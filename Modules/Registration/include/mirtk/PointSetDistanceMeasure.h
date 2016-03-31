@@ -20,7 +20,7 @@
 #ifndef MIRTK_PointSetDistanceMeasure_H
 #define MIRTK_PointSetDistanceMeasure_H
 
-#include <mirtkEnergyMeasure.h>
+#include "mirtk/EnergyMeasure.h"
 
 
 namespace mirtk {

@@ -17,11 +17,11 @@
  * limitations under the License.
  */
 
-#include <mirtkResamplingWithPadding.h>
+#include "mirtk/ResamplingWithPadding.h"
 
-#include <mirtkMath.h>
-#include <mirtkParallel.h>
-#include <mirtkProfiling.h>
+#include "mirtk/Math.h"
+#include "mirtk/Parallel.h"
+#include "mirtk/Profiling.h"
 
 
 namespace mirtk {

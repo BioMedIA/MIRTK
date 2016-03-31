@@ -17,10 +17,10 @@
  * limitations under the License.
  */
 
-#include <mirtkSimilarityTransformation.h>
+#include "mirtk/SimilarityTransformation.h"
 
-#include <mirtkMath.h>
-#include <mirtkAffineTransformation.h>
+#include "mirtk/Math.h"
+#include "mirtk/AffineTransformation.h"
 
 
 namespace mirtk {

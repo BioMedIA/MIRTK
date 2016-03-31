@@ -17,21 +17,21 @@
  * limitations under the License.
  */
 
-#include <mirtkBSplineFreeFormTransformationSV.h>
+#include "mirtk/BSplineFreeFormTransformationSV.h"
 
-#include <mirtkMath.h>
-#include <mirtkMemory.h>
-#include <mirtkProfiling.h>
-#include <mirtkScalingAndSquaring.h>
-#include <mirtkDisplacementToVelocityFieldBCH.h>
-#include <mirtkVelocityToDisplacementFieldSS.h>
-#include <mirtkLieBracketImageFilter.h>
-#include <mirtkVoxelFunction.h>
-#include <mirtkNaryVoxelFunction.h>
-#include <mirtkImageToInterpolationCoefficients.h>
-#include <mirtkHomogeneousTransformation.h>
+#include "mirtk/Math.h"
+#include "mirtk/Memory.h"
+#include "mirtk/Profiling.h"
+#include "mirtk/ScalingAndSquaring.h"
+#include "mirtk/DisplacementToVelocityFieldBCH.h"
+#include "mirtk/VelocityToDisplacementFieldSS.h"
+#include "mirtk/LieBracketImageFilter.h"
+#include "mirtk/VoxelFunction.h"
+#include "mirtk/NaryVoxelFunction.h"
+#include "mirtk/ImageToInterpolationCoefficients.h"
+#include "mirtk/HomogeneousTransformation.h"
 
-#include "mirtkFreeFormTransformationIntegration.h"
+#include "FreeFormTransformationIntegration.h"
 
 
 namespace mirtk {

@@ -17,7 +17,7 @@
  * limitations under the License.
  */
 
-#include <mirtkVector3D.h>
+#include "mirtk/Vector3D.h"
 
 namespace mirtk {
 

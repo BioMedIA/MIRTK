@@ -18,11 +18,12 @@
  * limitations under the License.
  */
 
-#include <mirtkNiftiImageWriter.h>
+#include "NiftiImage.h"
 
-#include <mirtkVoxel.h>
-#include <mirtkImageWriterFactory.h>
-#include "mirtkNiftiImage.h"
+#include "mirtk/NiftiImageWriter.h"
+#include "mirtk/ImageWriterFactory.h"
+
+#include "mirtk/Voxel.h"
 
 
 namespace mirtk {

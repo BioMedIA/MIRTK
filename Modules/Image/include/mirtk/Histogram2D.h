@@ -20,9 +20,9 @@
 #ifndef MIRTK_Histogram2D_H
 #define MIRTK_Histogram2D_H
 
-#include <mirtkMath.h>
-#include <mirtkObject.h>
-#include <mirtkHistogram1D.h>
+#include "mirtk/Math.h"
+#include "mirtk/Object.h"
+#include "mirtk/Histogram1D.h"
 
 
 namespace mirtk {

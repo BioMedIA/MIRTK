@@ -19,9 +19,9 @@
 #ifndef MIRTK_HashImage_H
 #define MIRTK_HashImage_H
 
-#include <mirtkBaseImage.h> 
-#include <mirtkVoxelCast.h>
-#include <mirtkUnorderedMap.h>
+#include "mirtk/BaseImage.h" 
+#include "mirtk/VoxelCast.h"
+#include "mirtk/UnorderedMap.h"
 
 namespace mirtk {
 
@@ -756,6 +756,6 @@ typedef HashImage<RealPixel> HashRealImage;
 
 } // namespace mirtk
 
-#include <mirtkHashImage.hxx>
+#include "mirtk/HashImage.hxx"
 
 #endif // MIRTK_HashImage_H

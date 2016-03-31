@@ -17,9 +17,9 @@
  * limitations under the License.
  */
 
-#include <mirtkInterpolateImageFunction.hxx>
+#include "mirtk/InterpolateImageFunction.hxx"
 
-#include <mirtkGenericImage.h>
+#include "mirtk/GenericImage.h"
 
 
 namespace mirtk {
@@ -231,41 +231,41 @@ void InterpolateImageFunction::Initialize(bool)
 ////////////////////////////////////////////////////////////////////////////////
 
 // ND
-#include <mirtkNearestNeighborInterpolateImageFunction.hxx>
-#include <mirtkLinearInterpolateImageFunction.hxx>
-#include <mirtkBSplineInterpolateImageFunction.hxx>
-#include <mirtkCubicBSplineInterpolateImageFunction.hxx>
-#include <mirtkFastCubicBSplineInterpolateImageFunction.hxx>
-#include <mirtkCSplineInterpolateImageFunction.hxx>
-#include <mirtkGaussianInterpolateImageFunction.hxx>
-#include <mirtkSincInterpolateImageFunction.hxx>
+#include "mirtk/NearestNeighborInterpolateImageFunction.hxx"
+#include "mirtk/LinearInterpolateImageFunction.hxx"
+#include "mirtk/BSplineInterpolateImageFunction.hxx"
+#include "mirtk/CubicBSplineInterpolateImageFunction.hxx"
+#include "mirtk/FastCubicBSplineInterpolateImageFunction.hxx"
+#include "mirtk/CSplineInterpolateImageFunction.hxx"
+#include "mirtk/GaussianInterpolateImageFunction.hxx"
+#include "mirtk/SincInterpolateImageFunction.hxx"
 
 // 2D
-#include <mirtkLinearInterpolateImageFunction2D.hxx>
-#include <mirtkBSplineInterpolateImageFunction2D.hxx>
-#include <mirtkCubicBSplineInterpolateImageFunction2D.hxx>
-#include <mirtkFastCubicBSplineInterpolateImageFunction2D.hxx>
-#include <mirtkCSplineInterpolateImageFunction2D.hxx>
-#include <mirtkGaussianInterpolateImageFunction2D.hxx>
-#include <mirtkSincInterpolateImageFunction2D.hxx>
+#include "mirtk/LinearInterpolateImageFunction2D.hxx"
+#include "mirtk/BSplineInterpolateImageFunction2D.hxx"
+#include "mirtk/CubicBSplineInterpolateImageFunction2D.hxx"
+#include "mirtk/FastCubicBSplineInterpolateImageFunction2D.hxx"
+#include "mirtk/CSplineInterpolateImageFunction2D.hxx"
+#include "mirtk/GaussianInterpolateImageFunction2D.hxx"
+#include "mirtk/SincInterpolateImageFunction2D.hxx"
 
 // 3D
-#include <mirtkLinearInterpolateImageFunction3D.hxx>
-#include <mirtkBSplineInterpolateImageFunction3D.hxx>
-#include <mirtkCubicBSplineInterpolateImageFunction3D.hxx>
-#include <mirtkFastCubicBSplineInterpolateImageFunction3D.hxx>
-#include <mirtkCSplineInterpolateImageFunction3D.hxx>
-#include <mirtkGaussianInterpolateImageFunction3D.hxx>
-#include <mirtkSincInterpolateImageFunction3D.hxx>
+#include "mirtk/LinearInterpolateImageFunction3D.hxx"
+#include "mirtk/BSplineInterpolateImageFunction3D.hxx"
+#include "mirtk/CubicBSplineInterpolateImageFunction3D.hxx"
+#include "mirtk/FastCubicBSplineInterpolateImageFunction3D.hxx"
+#include "mirtk/CSplineInterpolateImageFunction3D.hxx"
+#include "mirtk/GaussianInterpolateImageFunction3D.hxx"
+#include "mirtk/SincInterpolateImageFunction3D.hxx"
 
 // 4D
-#include <mirtkLinearInterpolateImageFunction4D.hxx>
-#include <mirtkBSplineInterpolateImageFunction4D.hxx>
-#include <mirtkCubicBSplineInterpolateImageFunction4D.hxx>
-#include <mirtkFastCubicBSplineInterpolateImageFunction4D.hxx>
-#include <mirtkCSplineInterpolateImageFunction4D.hxx>
-#include <mirtkGaussianInterpolateImageFunction4D.hxx>
-#include <mirtkSincInterpolateImageFunction4D.hxx>
+#include "mirtk/LinearInterpolateImageFunction4D.hxx"
+#include "mirtk/BSplineInterpolateImageFunction4D.hxx"
+#include "mirtk/CubicBSplineInterpolateImageFunction4D.hxx"
+#include "mirtk/FastCubicBSplineInterpolateImageFunction4D.hxx"
+#include "mirtk/CSplineInterpolateImageFunction4D.hxx"
+#include "mirtk/GaussianInterpolateImageFunction4D.hxx"
+#include "mirtk/SincInterpolateImageFunction4D.hxx"
 
 
 namespace mirtk {

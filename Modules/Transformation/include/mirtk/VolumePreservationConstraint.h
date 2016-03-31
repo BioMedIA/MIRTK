@@ -20,9 +20,9 @@
 #ifndef MIRTK_VolumePreservationConstraint_H
 #define MIRTK_VolumePreservationConstraint_H
 
-#include <mirtkLogJacobianConstraint.h>
+#include "mirtk/LogJacobianConstraint.h"
 
-#include <mirtkMatrix.h>
+#include "mirtk/Matrix.h"
 
 
 namespace mirtk {

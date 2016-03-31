@@ -18,12 +18,12 @@
  * limitations under the License.
  */
 
-#include <mirtkBSplineFreeFormTransformation3D.h>
+#include "mirtk/BSplineFreeFormTransformation3D.h"
 
-#include <mirtkMath.h>
-#include <mirtkMemory.h>
-#include <mirtkProfiling.h>
-#include <mirtkImageToInterpolationCoefficients.h>
+#include "mirtk/Math.h"
+#include "mirtk/Memory.h"
+#include "mirtk/Profiling.h"
+#include "mirtk/ImageToInterpolationCoefficients.h"
 
 
 namespace mirtk {

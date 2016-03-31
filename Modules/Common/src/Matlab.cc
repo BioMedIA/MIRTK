@@ -19,7 +19,7 @@
 
 #include <iostream>
 
-#include <mirtkMatlab.h>
+#include "mirtk/Matlab.h"
 
 
 namespace mirtk {

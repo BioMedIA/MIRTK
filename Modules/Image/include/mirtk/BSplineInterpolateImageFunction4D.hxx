@@ -20,8 +20,8 @@
 #ifndef MIRTK_BSplineInterpolateImageFunction4D_HXX
 #define MIRTK_BSplineInterpolateImageFunction4D_HXX
 
-#include <mirtkBSplineInterpolateImageFunction4D.h>
-#include <mirtkBSplineInterpolateImageFunction.hxx>
+#include "mirtk/BSplineInterpolateImageFunction4D.h"
+#include "mirtk/BSplineInterpolateImageFunction.hxx"
 
 
 namespace mirtk {

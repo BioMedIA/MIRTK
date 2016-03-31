@@ -21,9 +21,9 @@
 #ifndef MIRTK_NiftiImageWriter_H
 #define MIRTK_NiftiImageWriter_H
 
-#include <mirtkImageWriter.h>
+#include "mirtk/ImageWriter.h"
 
-#include <mirtkArray.h>
+#include "mirtk/Array.h"
 
 
 namespace mirtk {

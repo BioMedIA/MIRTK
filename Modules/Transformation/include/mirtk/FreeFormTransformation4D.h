@@ -21,7 +21,7 @@
 #ifndef MIRTK_FreeFormTransformation4D_H
 #define MIRTK_FreeFormTransformation4D_H
 
-#include <mirtkFreeFormTransformation.h>
+#include "mirtk/FreeFormTransformation.h"
 
 #include <cstdlib>
 #include <iostream>

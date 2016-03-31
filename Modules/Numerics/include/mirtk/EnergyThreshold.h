@@ -20,7 +20,7 @@
 #ifndef MIRTK_EnergyThreshold_H
 #define MIRTK_EnergyThreshold_H
 
-#include <mirtkStoppingCriterion.h>
+#include "mirtk/StoppingCriterion.h"
 
 
 namespace mirtk {

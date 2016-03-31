@@ -30,8 +30,8 @@
 #ifndef MIRTK_ForEachSenaryVoxelFunction_H
 #define MIRTK_ForEachSenaryVoxelFunction_H
 
-#include <mirtkStream.h>
-#include <mirtkVoxelFunction.h>
+#include "mirtk/Stream.h"
+#include "mirtk/VoxelFunction.h"
 
 
 namespace mirtk {

@@ -17,7 +17,7 @@
  * limitations under the License.
  */
 
-#include <mirtkVelocityToDisplacementField.h>
+#include "mirtk/VelocityToDisplacementField.h"
 
 
 namespace mirtk {

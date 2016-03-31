@@ -16,8 +16,8 @@
  * limitations under the License.
  */
 
-#include <mirtkDilation.h>
-#include <mirtkBinaryVoxelFunction.h>
+#include "mirtk/Dilation.h"
+#include "mirtk/BinaryVoxelFunction.h"
 
 
 namespace mirtk {

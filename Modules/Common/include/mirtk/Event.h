@@ -20,7 +20,7 @@
 #ifndef MIRTK_Event_H
 #define MIRTK_Event_H
 
-#include <mirtkStream.h>
+#include "mirtk/Stream.h"
 
 #include <functional>
 

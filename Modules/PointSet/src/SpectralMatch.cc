@@ -17,17 +17,17 @@
  * limitations under the License.
  */
 
-#include <mirtkSpectralMatch.h>
+#include "mirtk/SpectralMatch.h"
 
-#include <mirtkMath.h>
-#include <mirtkArray.h>
-#include <mirtkMemory.h>
-#include <mirtkParallel.h>
-#include <mirtkProfiling.h>
-#include <mirtkEdgeTable.h>
-#include <mirtkPointSet.h>
+#include "mirtk/Math.h"
+#include "mirtk/Array.h"
+#include "mirtk/Memory.h"
+#include "mirtk/Parallel.h"
+#include "mirtk/Profiling.h"
+#include "mirtk/EdgeTable.h"
+#include "mirtk/PointSet.h"
 
-#include <vtkPointSet.h>
+#include "vtkPointSet.h"
 
 
 namespace mirtk {

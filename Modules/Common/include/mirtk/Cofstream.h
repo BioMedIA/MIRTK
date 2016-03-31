@@ -20,10 +20,10 @@
 #ifndef MIRTK_Cofstream_H
 #define MIRTK_Cofstream_H
 
-#include <mirtkCommonConfig.h>
-#include <mirtkCommonExport.h>
+#include "mirtk/CommonConfig.h"
+#include "mirtk/CommonExport.h"
 
-#include <mirtkObject.h>
+#include "mirtk/Object.h"
 
 
 namespace mirtk {

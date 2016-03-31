@@ -17,10 +17,10 @@
  * limitations under the License.
  */
 
-#include <mirtkFiducialRegistrationError.h>
+#include "mirtk/FiducialRegistrationError.h"
 
-#include <mirtkFiducialMatch.h>
-#include <mirtkObjectFactory.h>
+#include "mirtk/FiducialMatch.h"
+#include "mirtk/ObjectFactory.h"
 
 
 namespace mirtk {

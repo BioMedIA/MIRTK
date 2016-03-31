@@ -18,26 +18,26 @@
  * limitations under the License.
  */
 
-#include <mirtkPointSet.h>
+#include "mirtk/PointSet.h"
 
-#include <mirtkMath.h>
-#include <mirtkPath.h>
+#include "mirtk/Math.h"
+#include "mirtk/Path.h"
 
-#include <mirtkNumericsConfig.h>
+#include "mirtk/NumericsConfig.h"
 #if MIRTK_Numerics_WITH_VTK
-#  include <mirtkVtk.h>
-#  include <vtkSmartPointer.h>
-#  include <vtkPoints.h>
-#  include <vtkCellArray.h>
-#  include <vtkPointSet.h>
-#  include <vtkPointData.h>
-#  include <vtkPolyDataReader.h>
-#  include <vtkXMLGenericDataObjectReader.h>
-#  include <vtkOBJReader.h>
-#  include <vtkPLYReader.h>
-#  include <vtkSTLReader.h>
-#  include <vtkPolyDataWriter.h>
-#  include <vtkXMLPolyDataWriter.h>
+#  include "mirtk/Vtk.h"
+#  include "vtkSmartPointer.h"
+#  include "vtkPoints.h"
+#  include "vtkCellArray.h"
+#  include "vtkPointSet.h"
+#  include "vtkPointData.h"
+#  include "vtkPolyDataReader.h"
+#  include "vtkXMLGenericDataObjectReader.h"
+#  include "vtkOBJReader.h"
+#  include "vtkPLYReader.h"
+#  include "vtkSTLReader.h"
+#  include "vtkPolyDataWriter.h"
+#  include "vtkXMLPolyDataWriter.h"
 #endif
 
 

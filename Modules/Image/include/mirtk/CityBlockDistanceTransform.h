@@ -20,9 +20,9 @@
 #ifndef MIRTK_CityBlockDistanceTransform_H
 #define MIRTK_CityBlockDistanceTransform_H
 
-#include <mirtkImageToImage.h>
+#include "mirtk/ImageToImage.h"
 
-#include <mirtkNeighborhoodOffsets.h>
+#include "mirtk/NeighborhoodOffsets.h"
 
 
 namespace mirtk {

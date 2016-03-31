@@ -20,8 +20,8 @@
 #ifndef MIRTK_CubicBSplineInterpolateImageFunction3D_HXX
 #define MIRTK_CubicBSplineInterpolateImageFunction3D_HXX
 
-#include <mirtkCubicBSplineInterpolateImageFunction3D.h>
-#include <mirtkCubicBSplineInterpolateImageFunction.hxx>
+#include "mirtk/CubicBSplineInterpolateImageFunction3D.h"
+#include "mirtk/CubicBSplineInterpolateImageFunction.hxx"
 
 
 namespace mirtk {

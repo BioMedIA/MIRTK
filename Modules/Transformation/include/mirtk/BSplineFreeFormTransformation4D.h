@@ -21,10 +21,10 @@
 #ifndef MIRTK_BSplineFreeFormTransformation4D_H
 #define MIRTK_BSplineFreeFormTransformation4D_H
 
-#include <mirtkFreeFormTransformation4D.h>
+#include "mirtk/FreeFormTransformation4D.h"
 
-#include <mirtkFastCubicBSplineInterpolateImageFunction4D.h>
-#include <mirtkTransformationJacobian.h>
+#include "mirtk/FastCubicBSplineInterpolateImageFunction4D.h"
+#include "mirtk/TransformationJacobian.h"
 
 
 namespace mirtk {

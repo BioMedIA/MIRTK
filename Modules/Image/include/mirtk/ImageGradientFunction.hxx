@@ -20,7 +20,7 @@
 #ifndef MIRTK_ImageGradientFunction_HXX
 #define MIRTK_ImageGradientFunction_HXX
 
-#include <mirtkImageGradientFunction.h>
+#include "mirtk/ImageGradientFunction.h"
 
 
 namespace mirtk {
@@ -138,13 +138,13 @@ inline void GenericImageGradientFunction<TImage>
 #ifndef MIRTK_ImageGradientFunctionNew_HXX
 #define MIRTK_ImageGradientFunctionNew_HXX
 
-#include <mirtkLinearImageGradientFunction.h>
-#include <mirtkLinearImageGradientFunction2D.h>
-#include <mirtkLinearImageGradientFunction3D.h>
+#include "mirtk/LinearImageGradientFunction.h"
+#include "mirtk/LinearImageGradientFunction2D.h"
+#include "mirtk/LinearImageGradientFunction3D.h"
 
-#include <mirtkFastLinearImageGradientFunction.h>
-#include <mirtkFastLinearImageGradientFunction2D.h>
-#include <mirtkFastLinearImageGradientFunction3D.h>
+#include "mirtk/FastLinearImageGradientFunction.h"
+#include "mirtk/FastLinearImageGradientFunction2D.h"
+#include "mirtk/FastLinearImageGradientFunction3D.h"
 
 
 namespace mirtk {

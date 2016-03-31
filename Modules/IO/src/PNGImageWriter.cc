@@ -17,12 +17,12 @@
  * limitations under the License.
  */
 
-#include <mirtkConfig.h>
+#include "mirtk/Config.h"
 
-#include <mirtkPNGImageWriter.h>
-#include <png.h>
+#include "mirtk/PNGImageWriter.h"
+#include "png.h"
 
-#include <mirtkImageWriterFactory.h>
+#include "mirtk/ImageWriterFactory.h"
 
 
 namespace mirtk {

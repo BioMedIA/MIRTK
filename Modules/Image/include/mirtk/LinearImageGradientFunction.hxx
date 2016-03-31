@@ -20,10 +20,10 @@
 #ifndef MIRTK_LinearImageGradientFunction_HXX
 #define MIRTK_LinearImageGradientFunction_HXX
 
-#include <mirtkMath.h>
-#include <mirtkLinearImageGradientFunction.h>
-#include <mirtkImageGradientFunction.hxx>
-#include <mirtkLinearInterpolateImageFunction.hxx>
+#include "mirtk/Math.h"
+#include "mirtk/LinearImageGradientFunction.h"
+#include "mirtk/ImageGradientFunction.hxx"
+#include "mirtk/LinearInterpolateImageFunction.hxx"
 
 
 namespace mirtk {

@@ -20,10 +20,10 @@
 #ifndef MIRTK_VoxelFunction_H
 #define MIRTK_VoxelFunction_H
 
-#include <mirtkImageAttributes.h>
-#include <mirtkVoxelDomain.h>
-#include <mirtkParallel.h>
-#include <mirtkStream.h>
+#include "mirtk/ImageAttributes.h"
+#include "mirtk/VoxelDomain.h"
+#include "mirtk/Parallel.h"
+#include "mirtk/Stream.h"
 
 
 namespace mirtk {
@@ -328,15 +328,15 @@ struct NOP : public VoxelFunction
 // ForEachVoxel template functions for various number of image arguments
 // =============================================================================
 
-#include <mirtkForEachUnaryVoxelFunction.h>
-#include <mirtkForEachBinaryVoxelFunction.h>
-#include <mirtkForEachTernaryVoxelFunction.h>
-#include <mirtkForEachQuaternaryVoxelFunction.h>
-#include <mirtkForEachQuinaryVoxelFunction.h>
-#include <mirtkForEachSenaryVoxelFunction.h>
-#include <mirtkForEachSeptenaryVoxelFunction.h>
-#include <mirtkForEachOctaryVoxelFunction.h>
-#include <mirtkForEachNonaryVoxelFunction.h>
+#include "mirtk/ForEachUnaryVoxelFunction.h"
+#include "mirtk/ForEachBinaryVoxelFunction.h"
+#include "mirtk/ForEachTernaryVoxelFunction.h"
+#include "mirtk/ForEachQuaternaryVoxelFunction.h"
+#include "mirtk/ForEachQuinaryVoxelFunction.h"
+#include "mirtk/ForEachSenaryVoxelFunction.h"
+#include "mirtk/ForEachSeptenaryVoxelFunction.h"
+#include "mirtk/ForEachOctaryVoxelFunction.h"
+#include "mirtk/ForEachNonaryVoxelFunction.h"
 
 
 #endif // MIRTK_VoxelFunction_H

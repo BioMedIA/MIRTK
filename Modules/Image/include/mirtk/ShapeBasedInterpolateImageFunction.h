@@ -20,12 +20,12 @@
 #ifndef MIRTK_ShapeBasedInterpolateImageFunction_H
 #define MIRTK_ShapeBasedInterpolateImageFunction_H
 
-#include <mirtkInterpolateImageFunction.h>
+#include "mirtk/InterpolateImageFunction.h"
 
-#include <mirtkMath.h>
-#include <mirtkGenericImage.h>
-#include <mirtkLinearInterpolateImageFunction.h>
-#include <mirtkNearestNeighborInterpolateImageFunction.h>
+#include "mirtk/Math.h"
+#include "mirtk/GenericImage.h"
+#include "mirtk/LinearInterpolateImageFunction.h"
+#include "mirtk/NearestNeighborInterpolateImageFunction.h"
 
 
 namespace mirtk {

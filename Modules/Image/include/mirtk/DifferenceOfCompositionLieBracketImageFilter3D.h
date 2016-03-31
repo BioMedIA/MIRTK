@@ -20,8 +20,8 @@
 #ifndef MIRTK_DifferenceOfCompositionLieBracketImageFilter3D_H
 #define MIRTK_DifferenceOfCompositionLieBracketImageFilter3D_H
 
-#include <mirtkLieBracketImageFilter.h>
-#include <mirtkInterpolateImageFunction.h>
+#include "mirtk/LieBracketImageFilter.h"
+#include "mirtk/InterpolateImageFunction.h"
 
 
 namespace mirtk {

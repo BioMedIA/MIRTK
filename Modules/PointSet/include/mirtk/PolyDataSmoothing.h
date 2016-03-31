@@ -20,9 +20,9 @@
 #ifndef MIRTK_PolyDataSmoothing_H
 #define MIRTK_PolyDataSmoothing_H
 
-#include <mirtkPolyDataFilter.h>
+#include "mirtk/PolyDataFilter.h"
 
-#include <mirtkArray.h>
+#include "mirtk/Array.h"
 
 class vtkDataArray;
 

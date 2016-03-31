@@ -21,9 +21,9 @@
 #ifndef MIRTK_FreeFormTransformation3D_H
 #define MIRTK_FreeFormTransformation3D_H
 
-#include <mirtkFreeFormTransformation.h>
+#include "mirtk/FreeFormTransformation.h"
 
-#include <mirtkImageAttributes.h>
+#include "mirtk/ImageAttributes.h"
 
 
 namespace mirtk {

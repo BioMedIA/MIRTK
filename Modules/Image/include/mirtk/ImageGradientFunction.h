@@ -20,12 +20,12 @@
 #ifndef MIRTK_ImageGradientFunction_H
 #define MIRTK_ImageGradientFunction_H
 
-#include <mirtkMatrix.h>
-#include <mirtkVector3D.h>
-#include <mirtkBaseImage.h>
-#include <mirtkInterpolationMode.h>
-#include <mirtkExtrapolationMode.h>
-#include <mirtkExtrapolateImageFunction.h>
+#include "mirtk/Matrix.h"
+#include "mirtk/Vector3D.h"
+#include "mirtk/BaseImage.h"
+#include "mirtk/InterpolationMode.h"
+#include "mirtk/ExtrapolationMode.h"
+#include "mirtk/ExtrapolateImageFunction.h"
 
 
 namespace mirtk {

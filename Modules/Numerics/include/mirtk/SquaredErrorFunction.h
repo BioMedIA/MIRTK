@@ -20,7 +20,7 @@
 #ifndef MIRTK_SquaredErrorFunction_H
 #define MIRTK_SquaredErrorFunction_H
 
-#include <mirtkRadialErrorFunction.h>
+#include "mirtk/RadialErrorFunction.h"
 
 
 namespace mirtk {

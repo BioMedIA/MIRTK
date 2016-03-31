@@ -20,9 +20,9 @@
 #ifndef MIRTK_TransformationModel_H
 #define MIRTK_TransformationModel_H
 
-#include <mirtkString.h>
-#include <mirtkArray.h>
-#include <mirtkTransformationType.h>
+#include "mirtk/String.h"
+#include "mirtk/Array.h"
+#include "mirtk/TransformationType.h"
 
 
 namespace mirtk {

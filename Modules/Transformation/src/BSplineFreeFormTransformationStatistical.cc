@@ -17,12 +17,12 @@
  * limitations under the License.
  */
 
-#include <mirtkBSplineFreeFormTransformationStatistical.h>
+#include "mirtk/BSplineFreeFormTransformationStatistical.h"
 
-#include <mirtkMemory.h>
-#include <mirtkVector3D.h>
-#include <mirtkParallel.h>
-#include <mirtkProfiling.h>
+#include "mirtk/Memory.h"
+#include "mirtk/Vector3D.h"
+#include "mirtk/Parallel.h"
+#include "mirtk/Profiling.h"
 
 
 namespace mirtk {

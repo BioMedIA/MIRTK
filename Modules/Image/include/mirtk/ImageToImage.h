@@ -20,8 +20,8 @@
 #ifndef MIRTK_ImageToImage_H
 #define MIRTK_ImageToImage_H
 
-#include <mirtkObject.h>
-#include <mirtkGenericImage.h>
+#include "mirtk/Object.h"
+#include "mirtk/GenericImage.h"
 
 
 namespace mirtk {

@@ -20,7 +20,7 @@
 #ifndef MIRTK_SmoothnessConstraint_H
 #define MIRTK_SmoothnessConstraint_H
 
-#include <mirtkTransformationConstraint.h>
+#include "mirtk/TransformationConstraint.h"
 
 
 namespace mirtk {

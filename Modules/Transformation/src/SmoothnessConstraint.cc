@@ -17,13 +17,13 @@
  * limitations under the License.
  */
 
-#include <mirtkSmoothnessConstraint.h>
+#include "mirtk/SmoothnessConstraint.h"
 
-#include <mirtkString.h>
-#include <mirtkMemory.h>
-#include <mirtkFreeFormTransformation.h>
-#include <mirtkMultiLevelTransformation.h>
-#include <mirtkObjectFactory.h>
+#include "mirtk/String.h"
+#include "mirtk/Memory.h"
+#include "mirtk/FreeFormTransformation.h"
+#include "mirtk/MultiLevelTransformation.h"
+#include "mirtk/ObjectFactory.h"
 
 
 namespace mirtk {

@@ -17,15 +17,15 @@
  * limitations under the License.
  */
 
-#include <mirtkRobustClosestPoint.h>
+#include "mirtk/RobustClosestPoint.h"
 
-#include <mirtkMath.h>
-#include <mirtkArray.h>
-#include <mirtkPair.h>
-#include <mirtkRegisteredPointSet.h>
-#include <mirtkPointLocator.h>
-#include <mirtkSparseMatrix.h>
-#include <mirtkProfiling.h>
+#include "mirtk/Math.h"
+#include "mirtk/Array.h"
+#include "mirtk/Pair.h"
+#include "mirtk/RegisteredPointSet.h"
+#include "mirtk/PointLocator.h"
+#include "mirtk/SparseMatrix.h"
+#include "mirtk/Profiling.h"
 
 
 namespace mirtk {

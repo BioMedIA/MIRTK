@@ -20,13 +20,13 @@
 #ifndef MIRTK_RegistrationEnergy_H
 #define MIRTK_RegistrationEnergy_H
 
-#include <mirtkObjectiveFunction.h>
+#include "mirtk/ObjectiveFunction.h"
 
-#include <mirtkArray.h>
-#include <mirtkEnergyTerm.h>
-#include <mirtkFastDelegate.h>
-#include <mirtkEventDelegate.h>
-#include <mirtkTransformation.h>
+#include "mirtk/Array.h"
+#include "mirtk/EnergyTerm.h"
+#include "mirtk/FastDelegate.h"
+#include "mirtk/EventDelegate.h"
+#include "mirtk/Transformation.h"
 
 
 namespace mirtk {

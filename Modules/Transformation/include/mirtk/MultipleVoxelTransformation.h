@@ -20,10 +20,10 @@
 #ifndef MIRTK_MultipleVoxelTransformation_H
 #define MIRTK_MultipleVoxelTransformation_H
 
-#include <mirtkFloat.h>
-#include <mirtkGenericImage.h>
-#include <mirtkVoxelFunction.h>
-#include <mirtkInterpolateImageFunction.h>
+#include "mirtk/Float.h"
+#include "mirtk/GenericImage.h"
+#include "mirtk/VoxelFunction.h"
+#include "mirtk/InterpolateImageFunction.h"
 
 #include <cstdlib>
 #include <limits>

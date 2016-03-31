@@ -17,11 +17,11 @@
  * limitations under the License.
  */
 
-#include <mirtkImageReader.h>
-#include <mirtkImageReaderFactory.h>
+#include "mirtk/ImageReader.h"
+#include "mirtk/ImageReaderFactory.h"
 
-#include <mirtkVoxel.h>
-#include <mirtkGenericImage.h>
+#include "mirtk/Voxel.h"
+#include "mirtk/GenericImage.h"
 
 
 namespace mirtk {

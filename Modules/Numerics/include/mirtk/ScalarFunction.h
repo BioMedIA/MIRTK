@@ -20,7 +20,7 @@
 #ifndef MIRTK_ScalarFunction_H
 #define MIRTK_ScalarFunction_H
 
-#include <mirtkObject.h>
+#include "mirtk/Object.h"
 
 
 namespace mirtk {

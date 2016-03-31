@@ -21,7 +21,7 @@
 #ifndef MIRTK_GaussianBlurring2D_H
 #define MIRTK_GaussianBlurring2D_H
 
-#include <mirtkGaussianBlurring.h>
+#include "mirtk/GaussianBlurring.h"
 
 
 namespace mirtk {

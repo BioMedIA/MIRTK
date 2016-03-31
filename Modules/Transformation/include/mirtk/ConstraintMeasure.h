@@ -20,7 +20,7 @@
 #ifndef MIRTK_ConstraintMeasure_H
 #define MIRTK_ConstraintMeasure_H
 
-#include <mirtkEnergyMeasure.h>
+#include "mirtk/EnergyMeasure.h"
 
 
 namespace mirtk {

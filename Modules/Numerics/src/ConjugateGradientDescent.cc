@@ -17,11 +17,11 @@
  * limitations under the License.
  */
 
-#include <mirtkConjugateGradientDescent.h>
+#include "mirtk/ConjugateGradientDescent.h"
 
-#include <mirtkMath.h>
-#include <mirtkMemory.h>
-#include <mirtkObjectFactory.h>
+#include "mirtk/Math.h"
+#include "mirtk/Memory.h"
+#include "mirtk/ObjectFactory.h"
 
 
 namespace mirtk {

@@ -21,8 +21,8 @@
 #ifndef MIRTK_LinearFreeFormTransformation3D_H
 #define MIRTK_LinearFreeFormTransformation3D_H
 
-#include <mirtkFreeFormTransformation3D.h>
-#include <mirtkLinearInterpolateImageFunction.h>
+#include "mirtk/FreeFormTransformation3D.h"
+#include "mirtk/LinearInterpolateImageFunction.h"
 
 #include <cmath>
 

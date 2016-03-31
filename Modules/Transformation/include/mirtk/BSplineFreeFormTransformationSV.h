@@ -20,12 +20,12 @@
 #ifndef MIRTK_BSplineFreeFormTransformationSV_H
 #define MIRTK_BSplineFreeFormTransformationSV_H
 
-#include <mirtkBSplineFreeFormTransformation3D.h>
+#include "mirtk/BSplineFreeFormTransformation3D.h"
 
-#include <mirtkMath.h>
-#include <mirtkImageFunction.h>
-#include <mirtkVoxelFunction.h>
-#include <mirtkFFDIntegrationMethod.h>
+#include "mirtk/Math.h"
+#include "mirtk/ImageFunction.h"
+#include "mirtk/VoxelFunction.h"
+#include "mirtk/FFDIntegrationMethod.h"
 
 
 namespace mirtk {

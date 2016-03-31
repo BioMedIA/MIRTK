@@ -20,11 +20,11 @@
 #ifndef MIRTK_Observable_H
 #define MIRTK_Observable_H
 
-#include <mirtkObject.h>
+#include "mirtk/Object.h"
 
-#include <mirtkObserver.h>
-#include <mirtkOrderedSet.h>
-#include <mirtkEvent.h>
+#include "mirtk/Observer.h"
+#include "mirtk/OrderedSet.h"
+#include "mirtk/Event.h"
 
 
 namespace mirtk {

@@ -19,7 +19,7 @@
 #ifndef MIRTK_NeighborhoodOffsets_H
 #define MIRTK_NeighborhoodOffsets_H
 
-#include <mirtkBaseImage.h>
+#include "mirtk/BaseImage.h"
 
 
 namespace mirtk {

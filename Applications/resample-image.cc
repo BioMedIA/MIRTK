@@ -18,17 +18,17 @@
  * limitations under the License.
  */
 
-#include <mirtkCommon.h>
-#include <mirtkOptions.h>
+#include "mirtk/Common.h"
+#include "mirtk/Options.h"
 
-#include <mirtkIOConfig.h>
-#include <mirtkGenericImage.h>
-#include <mirtkInterpolateImageFunction.h>
-#include <mirtkResampling.h>
-#include <mirtkResamplingWithPadding.h>
-#include <mirtkGaussianInterpolateImageFunction.h>
-#include <mirtkGaussianInterpolateImageFunction2D.h>
-#include <mirtkConstExtrapolateImageFunction.h>
+#include "mirtk/IOConfig.h"
+#include "mirtk/GenericImage.h"
+#include "mirtk/InterpolateImageFunction.h"
+#include "mirtk/Resampling.h"
+#include "mirtk/ResamplingWithPadding.h"
+#include "mirtk/GaussianInterpolateImageFunction.h"
+#include "mirtk/GaussianInterpolateImageFunction2D.h"
+#include "mirtk/ConstExtrapolateImageFunction.h"
 
 using namespace mirtk;
 

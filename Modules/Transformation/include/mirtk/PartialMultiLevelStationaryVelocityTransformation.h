@@ -20,8 +20,8 @@
 #ifndef MIRTK_PartialMultiLevelStationaryVelocityTransformation_H
 #define MIRTK_PartialMultiLevelStationaryVelocityTransformation_H
 
-#include <mirtkMultiLevelTransformation.h>
-#include <mirtkMultiLevelStationaryVelocityTransformation.h>
+#include "mirtk/MultiLevelTransformation.h"
+#include "mirtk/MultiLevelStationaryVelocityTransformation.h"
 
 
 namespace mirtk {

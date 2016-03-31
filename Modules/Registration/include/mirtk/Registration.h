@@ -20,43 +20,43 @@
 #ifndef MIRTK_Registration_H
 #define MIRTK_Registration_H
 
-#include <mirtkRegistrationConfig.h>
+#include "mirtk/RegistrationConfig.h"
 
 // Base classes
-#include <mirtkDataFidelity.h>
-#include <mirtkImageSimilarity.h>
-#include <mirtkProbabilisticImageSimilarity.h>
-#include <mirtkGradientFieldSimilarity.h>
+#include "mirtk/DataFidelity.h"
+#include "mirtk/ImageSimilarity.h"
+#include "mirtk/ProbabilisticImageSimilarity.h"
+#include "mirtk/GradientFieldSimilarity.h"
 
 #if MIRTK_Registration_WITH_PointSet
-#  include <mirtkPointSetDistance.h>
-#  include <mirtkSurfaceDistance.h>
+#  include "mirtk/PointSetDistance.h"
+#  include "mirtk/SurfaceDistance.h"
 #endif // MIRTK_Registration_WITH_PointSet
 
 // Image (dis-)similarities
-#include <mirtkSimilarityMeasure.h>
-#include <mirtkCosineOfNormalizedGradientField.h>
-#include <mirtkIntensityCrossCorrelation.h>
-#include <mirtkMutualImageInformation.h>
-#include <mirtkNormalizedGradientFieldSimilarity.h>
-#include <mirtkNormalizedIntensityCrossCorrelation.h>
-#include <mirtkNormalizedMutualImageInformation.h>
-#include <mirtkSumOfSquaredIntensityDifferences.h>
+#include "mirtk/SimilarityMeasure.h"
+#include "mirtk/CosineOfNormalizedGradientField.h"
+#include "mirtk/IntensityCrossCorrelation.h"
+#include "mirtk/MutualImageInformation.h"
+#include "mirtk/NormalizedGradientFieldSimilarity.h"
+#include "mirtk/NormalizedIntensityCrossCorrelation.h"
+#include "mirtk/NormalizedMutualImageInformation.h"
+#include "mirtk/SumOfSquaredIntensityDifferences.h"
 
 // Point set distances
 #if MIRTK_Registration_WITH_PointSet
-#  include <mirtkPointSetDistanceMeasure.h>
-#  include <mirtkPointCorrespondenceDistance.h>
-#  include <mirtkFiducialRegistrationError.h>
-#  include <mirtkCurrentsDistance.h>
+#  include "mirtk/PointSetDistanceMeasure.h"
+#  include "mirtk/PointCorrespondenceDistance.h"
+#  include "mirtk/FiducialRegistrationError.h"
+#  include "mirtk/CurrentsDistance.h"
 #endif // MIRTK_Registration_WITH_PointSet
 
 // Generic registration filter
-#include <mirtkRegistrationEnergy.h>
-#include <mirtkRegistrationFilter.h>
-#include <mirtkGenericRegistrationFilter.h>
-#include <mirtkGenericRegistrationLogger.h>
-#include <mirtkGenericRegistrationDebugger.h>
+#include "mirtk/RegistrationEnergy.h"
+#include "mirtk/RegistrationFilter.h"
+#include "mirtk/GenericRegistrationFilter.h"
+#include "mirtk/GenericRegistrationLogger.h"
+#include "mirtk/GenericRegistrationDebugger.h"
 
 
 #endif // MIRTK_Registration_H

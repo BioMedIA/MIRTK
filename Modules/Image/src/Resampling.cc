@@ -18,11 +18,11 @@
  * limitations under the License.
  */
 
-#include <mirtkResampling.h>
+#include "mirtk/Resampling.h"
 
-#include <mirtkParallel.h>
-#include <mirtkProfiling.h>
-#include <mirtkInterpolateImageFunction.h>
+#include "mirtk/Parallel.h"
+#include "mirtk/Profiling.h"
+#include "mirtk/InterpolateImageFunction.h"
 
 
 namespace mirtk {

@@ -17,10 +17,10 @@
  * limitations under the License.
  */
 
-#include <mirtkPartialAffineTransformation.h>
+#include "mirtk/PartialAffineTransformation.h"
 
-#include <mirtkAssert.h>
-#include <mirtkMath.h>
+#include "mirtk/Assert.h"
+#include "mirtk/Math.h"
 
 
 namespace mirtk {

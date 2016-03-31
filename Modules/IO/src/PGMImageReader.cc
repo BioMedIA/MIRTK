@@ -17,12 +17,12 @@
  * limitations under the License.
  */
 
-#include <mirtkConfig.h> // WINDOWS
+#include "PGM.h"
 
-#include <mirtkPGMImageReader.h>
-#include "mirtkPGM.h"
+#include "mirtk/PGMImageReader.h"
+#include "mirtk/ImageReaderFactory.h"
 
-#include <mirtkImageReaderFactory.h>
+#include "mirtk/Config.h" // WINDOWS
 
 #include <cstdio>
 

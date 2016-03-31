@@ -20,13 +20,13 @@
 #ifndef MIRTK_BSplineInterpolateImageFunction_HXX
 #define MIRTK_BSplineInterpolateImageFunction_HXX
 
-#include <mirtkBSplineInterpolateImageFunction.h>
+#include "mirtk/BSplineInterpolateImageFunction.h"
 
-#include <mirtkMath.h>
-#include <mirtkBSpline.h>
-#include <mirtkInterpolateImageFunction.hxx>
-#include <mirtkImageToInterpolationCoefficients.h>
-#include <mirtkVoxelCast.h>
+#include "mirtk/Math.h"
+#include "mirtk/BSpline.h"
+#include "mirtk/InterpolateImageFunction.hxx"
+#include "mirtk/ImageToInterpolationCoefficients.h"
+#include "mirtk/VoxelCast.h"
 
 
 namespace mirtk {

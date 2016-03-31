@@ -17,25 +17,25 @@
  * limitations under the License.
  */
 
-#include <mirtkCommon.h>
-#include <mirtkOptions.h>
+#include "mirtk/Common.h"
+#include "mirtk/Options.h"
 
-#include <mirtkPointSetUtils.h>
-#include <mirtkPolyDataSmoothing.h>
-#include <mirtkVtkMath.h>
+#include "mirtk/PointSetUtils.h"
+#include "mirtk/PolyDataSmoothing.h"
+#include "mirtk/VtkMath.h"
 
-#include <vtkSmartPointer.h>
-#include <vtkPolyData.h>
-#include <vtkPointData.h>
-#include <vtkCellData.h>
-#include <vtkDataArray.h>
-#include <vtkFloatArray.h>
-#include <vtkPolyDataNormals.h>
-#include <vtkImplicitModeller.h>
-#include <vtkContourFilter.h>
-#include <vtkPolyDataConnectivityFilter.h>
-#include <vtkCellLocator.h>
-#include <vtkQuadricDecimation.h>
+#include "vtkSmartPointer.h"
+#include "vtkPolyData.h"
+#include "vtkPointData.h"
+#include "vtkCellData.h"
+#include "vtkDataArray.h"
+#include "vtkFloatArray.h"
+#include "vtkPolyDataNormals.h"
+#include "vtkImplicitModeller.h"
+#include "vtkContourFilter.h"
+#include "vtkPolyDataConnectivityFilter.h"
+#include "vtkCellLocator.h"
+#include "vtkQuadricDecimation.h"
 
 using namespace mirtk;
 

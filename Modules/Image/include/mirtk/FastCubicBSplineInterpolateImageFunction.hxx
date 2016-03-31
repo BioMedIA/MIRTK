@@ -20,16 +20,16 @@
 #ifndef MIRTK_FastCubicBSplineInterpolateImageFunction_HXX
 #define MIRTK_FastCubicBSplineInterpolateImageFunction_HXX
 
-#include <mirtkFastCubicBSplineInterpolateImageFunction.h>
+#include "mirtk/FastCubicBSplineInterpolateImageFunction.h"
 
-#include <mirtkMath.h>
-#include <mirtkBSpline.h>
-#include <mirtkMatrix.h>
-#include <mirtkVector3D.h> // get
-#include <mirtkVector4D.h> // get
+#include "mirtk/Math.h"
+#include "mirtk/BSpline.h"
+#include "mirtk/Matrix.h"
+#include "mirtk/Vector3D.h" // get
+#include "mirtk/Vector4D.h" // get
 
-#include <mirtkInterpolateImageFunction.hxx>
-#include <mirtkImageToInterpolationCoefficients.h>
+#include "mirtk/InterpolateImageFunction.hxx"
+#include "mirtk/ImageToInterpolationCoefficients.h"
 
 
 namespace mirtk {

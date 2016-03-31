@@ -18,18 +18,18 @@
  * limitations under the License.
  */
 
-#include <mirtkImageConfig.h>
+#include "mirtk/ImageConfig.h"
 
-#include <mirtkBaseImage.h>
+#include "mirtk/BaseImage.h"
 
-#include <mirtkMath.h>
-#include <mirtkMemory.h>
-#include <mirtkMatrix3x3.h>
+#include "mirtk/Math.h"
+#include "mirtk/Memory.h"
+#include "mirtk/Matrix3x3.h"
 
-#include <mirtkGenericImage.h>
-#include <mirtkImageReader.h>
+#include "mirtk/GenericImage.h"
+#include "mirtk/ImageReader.h"
 
-#include <mirtkGaussianBlurring.h> // GaussianBlurring::KernelSize
+#include "mirtk/GaussianBlurring.h" // GaussianBlurring::KernelSize
 
 
 namespace mirtk {

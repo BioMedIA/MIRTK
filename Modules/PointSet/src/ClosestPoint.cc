@@ -17,10 +17,10 @@
  * limitations under the License.
  */
 
-#include <mirtkClosestPoint.h>
+#include "mirtk/ClosestPoint.h"
 
-#include <mirtkMath.h>
-#include <mirtkArray.h>
+#include "mirtk/Math.h"
+#include "mirtk/Array.h"
 
 
 namespace mirtk {

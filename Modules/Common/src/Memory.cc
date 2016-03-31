@@ -17,7 +17,7 @@
  * limitations under the License.
  */
 
-#include <mirtkMemory.h>
+#include "mirtk/Memory.h"
 
 
 namespace mirtk {

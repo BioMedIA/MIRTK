@@ -19,9 +19,9 @@
 #ifndef MIRTK_Dilation_H
 #define MIRTK_Dilation_H
 
-#include <mirtkImageToImage.h>
+#include "mirtk/ImageToImage.h"
 
-#include <mirtkNeighborhoodOffsets.h>
+#include "mirtk/NeighborhoodOffsets.h"
 
 
 namespace mirtk {

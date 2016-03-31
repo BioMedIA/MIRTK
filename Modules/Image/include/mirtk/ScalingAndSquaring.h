@@ -20,10 +20,10 @@
 #ifndef MIRTK_ScalingAndSquaring_H
 #define MIRTK_ScalingAndSquaring_H
 
-#include <mirtkObject.h>
-#include <mirtkGenericImage.h>
-#include <mirtkInterpolateImageFunction.h>
-#include <mirtkFastCubicBSplineInterpolateImageFunction.h>
+#include "mirtk/Object.h"
+#include "mirtk/GenericImage.h"
+#include "mirtk/InterpolateImageFunction.h"
+#include "mirtk/FastCubicBSplineInterpolateImageFunction.h"
 
 
 namespace mirtk {

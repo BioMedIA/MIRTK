@@ -17,27 +17,27 @@
  * limitations under the License.
  */
 
-#include <mirtkClosestPointLabel.h>
+#include "mirtk/ClosestPointLabel.h"
 
-#include <mirtkMath.h>
-#include <mirtkArray.h>
-#include <mirtkQueue.h>
-#include <mirtkUnorderedMap.h>
-#include <mirtkUnorderedSet.h>
-#include <mirtkEdgeTable.h>
-#include <mirtkParallel.h>
-#include <mirtkProfiling.h>
-#include <mirtkPointSetUtils.h>
-#include <mirtkVtkMath.h>
+#include "mirtk/Math.h"
+#include "mirtk/Array.h"
+#include "mirtk/Queue.h"
+#include "mirtk/UnorderedMap.h"
+#include "mirtk/UnorderedSet.h"
+#include "mirtk/EdgeTable.h"
+#include "mirtk/Parallel.h"
+#include "mirtk/Profiling.h"
+#include "mirtk/PointSetUtils.h"
+#include "mirtk/VtkMath.h"
 
-#include <vtkSmartPointer.h>
-#include <vtkPointData.h>
-#include <vtkCellData.h>
-#include <vtkDataArray.h>
-#include <vtkIdTypeArray.h>
-#include <vtkFloatArray.h>
-#include <vtkIdList.h>
-#include <vtkOctreePointLocator.h>
+#include "vtkSmartPointer.h"
+#include "vtkPointData.h"
+#include "vtkCellData.h"
+#include "vtkDataArray.h"
+#include "vtkIdTypeArray.h"
+#include "vtkFloatArray.h"
+#include "vtkIdList.h"
+#include "vtkOctreePointLocator.h"
 
 
 namespace mirtk {

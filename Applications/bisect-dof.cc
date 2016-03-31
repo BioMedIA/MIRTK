@@ -17,11 +17,11 @@
  * limitations under the License.
  */
 
-#include <mirtkCommon.h>
-#include <mirtkOptions.h>
+#include "mirtk/Common.h"
+#include "mirtk/Options.h"
 
-#include <mirtkMatrix.h>
-#include <mirtkHomogeneousTransformation.h>
+#include "mirtk/Matrix.h"
+#include "mirtk/HomogeneousTransformation.h"
 
 using namespace mirtk;
 

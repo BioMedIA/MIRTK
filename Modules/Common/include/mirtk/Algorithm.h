@@ -20,7 +20,7 @@
 #ifndef MIRTK_Algorithm_H
 #define MIRTK_Algorithm_H
 
-#include <mirtkArray.h>
+#include "mirtk/Array.h"
 
 #include <algorithm>
 

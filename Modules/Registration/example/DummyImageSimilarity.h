@@ -20,7 +20,7 @@
 #ifndef MIRTK_DummyImageSimilarity_H
 #define MIRTK_DummyImageSimilarity_H
 
-#include <mirtkImageSimilarity.h>
+#include "mirtk/ImageSimilarity.h"
 
 
 namespace mirtk {

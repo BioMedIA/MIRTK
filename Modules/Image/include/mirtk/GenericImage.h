@@ -18,14 +18,14 @@
  * limitations under the License.
  */
 
-#include <mirtkBaseImage.h> // MUST be before include guard because of
+#include "mirtk/BaseImage.h" // MUST be before include guard because of
                             // cyclic dependency between BaseImage and
                             // GenericImage
 
 #ifndef MIRTK_GenericImage_H
 #define MIRTK_GenericImage_H
 
-#include <mirtkVoxelCast.h>
+#include "mirtk/VoxelCast.h"
 
 
 namespace mirtk {

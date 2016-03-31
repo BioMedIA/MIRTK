@@ -21,15 +21,15 @@
 #ifndef MIRTK_FreeFormTransformation_H
 #define MIRTK_FreeFormTransformation_H
 
-#include <mirtkTransformation.h>
+#include "mirtk/Transformation.h"
 
-#include <mirtkMath.h>
-#include <mirtkMemory.h>
-#include <mirtkVector3D.h>
-#include <mirtkInterpolateImageFunction.h>
-#include <mirtkExtrapolateImageFunction.h>
-#include <mirtkTransformationJacobian.h>
-#include <mirtkImageFunction.h>
+#include "mirtk/Math.h"
+#include "mirtk/Memory.h"
+#include "mirtk/Vector3D.h"
+#include "mirtk/InterpolateImageFunction.h"
+#include "mirtk/ExtrapolateImageFunction.h"
+#include "mirtk/TransformationJacobian.h"
+#include "mirtk/ImageFunction.h"
 
 
 namespace mirtk {

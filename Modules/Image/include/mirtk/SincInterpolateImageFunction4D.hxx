@@ -20,8 +20,8 @@
 #ifndef MIRTK_SincInterpolateImageFunction4D_HXX
 #define MIRTK_SincInterpolateImageFunction4D_HXX
 
-#include <mirtkSincInterpolateImageFunction4D.h>
-#include <mirtkSincInterpolateImageFunction.hxx>
+#include "mirtk/SincInterpolateImageFunction4D.h"
+#include "mirtk/SincInterpolateImageFunction.hxx"
 
 namespace mirtk {
 

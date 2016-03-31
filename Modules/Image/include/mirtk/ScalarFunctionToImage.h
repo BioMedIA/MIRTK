@@ -20,9 +20,9 @@
 #ifndef MIRTK_ScalarFunctionToImage_H
 #define MIRTK_ScalarFunctionToImage_H
 
-#include <mirtkObject.h>
-#include <mirtkGenericImage.h>
-#include <mirtkScalarFunction.h>
+#include "mirtk/Object.h"
+#include "mirtk/GenericImage.h"
+#include "mirtk/ScalarFunction.h"
 
 
 namespace mirtk {

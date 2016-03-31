@@ -20,11 +20,11 @@
 #ifndef MIRTK_CubicBSplineInterpolateImageFunction_HXX
 #define MIRTK_CubicBSplineInterpolateImageFunction_HXX
 
-#include <mirtkCubicBSplineInterpolateImageFunction.h>
+#include "mirtk/CubicBSplineInterpolateImageFunction.h"
 
-#include <mirtkMath.h>
-#include <mirtkInterpolateImageFunction.hxx>
-#include <mirtkImageToInterpolationCoefficients.h>
+#include "mirtk/Math.h"
+#include "mirtk/InterpolateImageFunction.hxx"
+#include "mirtk/ImageToInterpolationCoefficients.h"
 
 
 namespace mirtk {

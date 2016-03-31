@@ -20,9 +20,9 @@
 #ifndef MIRTK_GradientDescent_H
 #define MIRTK_GradientDescent_H
 
-#include <mirtkLocalOptimizer.h>
-#include <mirtkLineSearch.h>
-#include <mirtkEventDelegate.h>
+#include "mirtk/LocalOptimizer.h"
+#include "mirtk/LineSearch.h"
+#include "mirtk/EventDelegate.h"
 
 
 namespace mirtk {

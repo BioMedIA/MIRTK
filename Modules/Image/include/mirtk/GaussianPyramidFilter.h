@@ -20,8 +20,8 @@
 #ifndef MIRTK_GaussianPyramidFilter_H
 #define MIRTK_GaussianPyramidFilter_H
 
-#include <mirtkImageToImage.h>
-#include <mirtkImageFunction.h>
+#include "mirtk/ImageToImage.h"
+#include "mirtk/ImageFunction.h"
 
 
 namespace mirtk {

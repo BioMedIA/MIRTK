@@ -17,16 +17,16 @@
  * limitations under the License.
  */
 
-#include <mirtkOptions.h>
+#include "mirtk/Options.h"
 
-#include <mirtkString.h>
-#include <mirtkStream.h>
-#include <mirtkVersion.h>   // PrintVersion/PrintRevision
-#include <mirtkTerminal.h>  // PrintTerminalOptions
-#include <mirtkParallel.h>  // PrintParallelOptions
-#include <mirtkProfiling.h> // PrintProfilingOptions
+#include "mirtk/String.h"
+#include "mirtk/Stream.h"
+#include "mirtk/Version.h"   // PrintVersion/PrintRevision
+#include "mirtk/Terminal.h"  // PrintTerminalOptions
+#include "mirtk/Parallel.h"  // PrintParallelOptions
+#include "mirtk/Profiling.h" // PrintProfilingOptions
 
-#include <mirtkCommonExport.h>
+#include "mirtk/CommonExport.h"
 
 
 namespace mirtk {

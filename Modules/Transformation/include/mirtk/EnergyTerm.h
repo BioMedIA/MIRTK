@@ -20,11 +20,11 @@
 #ifndef MIRTK_EnergyTerm_H
 #define MIRTK_EnergyTerm_H
 
-#include <mirtkConfigurable.h>
+#include "mirtk/Configurable.h"
 
-#include <mirtkIndent.h>
-#include <mirtkEnergyMeasure.h>
-#include <mirtkTransformation.h>
+#include "mirtk/Indent.h"
+#include "mirtk/EnergyMeasure.h"
+#include "mirtk/Transformation.h"
 
 
 namespace mirtk {

@@ -20,12 +20,12 @@
 #ifndef MIRTK_NormalizedIntensityCrossCorrelation_H
 #define MIRTK_NormalizedIntensityCrossCorrelation_H
 
-#include <mirtkImageSimilarity.h>
+#include "mirtk/ImageSimilarity.h"
 
-#include <mirtkVoxel.h>
-#include <mirtkGenericImage.h>
-#include <mirtkVector3D.h>
-#include <mirtkParallel.h>
+#include "mirtk/Voxel.h"
+#include "mirtk/GenericImage.h"
+#include "mirtk/Vector3D.h"
+#include "mirtk/Parallel.h"
 
 
 namespace mirtk {

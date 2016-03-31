@@ -20,17 +20,17 @@
 #ifndef MIRTK_Polynomial_H
 #define MIRTK_Polynomial_H
 
-#include <mirtkObject.h>
+#include "mirtk/Object.h"
 
-#include <mirtkAssert.h>
-#include <mirtkArray.h>
-#include <mirtkStatus.h>
-#include <mirtkVector.h>
-#include <mirtkVector3.h>
-#include <mirtkMatrix.h>
-#include <mirtkMatrix3x3.h>
-#include <mirtkPointSet.h>
-#include <mirtkOrderedSet.h>
+#include "mirtk/Assert.h"
+#include "mirtk/Array.h"
+#include "mirtk/Status.h"
+#include "mirtk/Vector.h"
+#include "mirtk/Vector3.h"
+#include "mirtk/Matrix.h"
+#include "mirtk/Matrix3x3.h"
+#include "mirtk/PointSet.h"
+#include "mirtk/OrderedSet.h"
 
 
 namespace mirtk {

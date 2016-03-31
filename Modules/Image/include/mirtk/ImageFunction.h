@@ -20,8 +20,8 @@
 #ifndef MIRTK_ImageFunction_H
 #define MIRTK_ImageFunction_H
 
-#include <mirtkObject.h>
-#include <mirtkBaseImage.h>
+#include "mirtk/Object.h"
+#include "mirtk/BaseImage.h"
 
 
 namespace mirtk {

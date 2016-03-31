@@ -52,8 +52,8 @@ void swap64(char *, char *, long);
 // Allocate/Deallocate N-D arrays, Delete
 // =============================================================================
 
-#include <mirtkAllocate.h>
-#include <mirtkDeallocate.h>
+#include "mirtk/Allocate.h"
+#include "mirtk/Deallocate.h"
 
 
 #endif // MIRTK_Memory_H

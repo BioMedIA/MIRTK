@@ -20,7 +20,7 @@
 #ifndef MIRTK_GenericRegistrationLogger_H
 #define MIRTK_GenericRegistrationLogger_H
 
-#include <mirtkObserver.h>
+#include "mirtk/Observer.h"
 
 
 namespace mirtk {

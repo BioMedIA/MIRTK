@@ -17,15 +17,15 @@
  * limitations under the License.
  */
 
-#include <mirtkNormalizedMutualImageInformation.h>
+#include "mirtk/NormalizedMutualImageInformation.h"
 
-#include <mirtkMath.h>
-#include <mirtkMemory.h>
-#include <mirtkBSpline.h>
-#include <mirtkHistogram1D.h>
-#include <mirtkParallel.h>
-#include <mirtkProfiling.h>
-#include <mirtkObjectFactory.h>
+#include "mirtk/Math.h"
+#include "mirtk/Memory.h"
+#include "mirtk/BSpline.h"
+#include "mirtk/Histogram1D.h"
+#include "mirtk/Parallel.h"
+#include "mirtk/Profiling.h"
+#include "mirtk/ObjectFactory.h"
 
 
 namespace mirtk {

@@ -18,17 +18,17 @@
  * limitations under the License.
  */
 
-#include <mirtkImageAttributes.h>
+#include "mirtk/ImageAttributes.h"
 
-#include <mirtkMath.h>
-#include <mirtkArray.h>
-#include <mirtkMemory.h>
-#include <mirtkStream.h>
-#include <mirtkIndent.h>
-#include <mirtkVector.h>
-#include <mirtkVector3.h>
-#include <mirtkMatrix.h>
-#include <mirtkMatrix3x3.h>
+#include "mirtk/Math.h"
+#include "mirtk/Array.h"
+#include "mirtk/Memory.h"
+#include "mirtk/Stream.h"
+#include "mirtk/Indent.h"
+#include "mirtk/Vector.h"
+#include "mirtk/Vector3.h"
+#include "mirtk/Matrix.h"
+#include "mirtk/Matrix3x3.h"
 
 
 namespace mirtk {

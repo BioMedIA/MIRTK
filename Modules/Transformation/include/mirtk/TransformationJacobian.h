@@ -20,12 +20,12 @@
 #ifndef MIRTK_TransformationJacobian_H
 #define MIRTK_TransformationJacobian_H
 
-#include <mirtkObject.h>
+#include "mirtk/Object.h"
 
-#include <mirtkMath.h>
-#include <mirtkMatrix.h>
-#include <mirtkVector3D.h>
-#include <mirtkOrderedMap.h>
+#include "mirtk/Math.h"
+#include "mirtk/Matrix.h"
+#include "mirtk/Vector3D.h"
+#include "mirtk/OrderedMap.h"
 
 
 namespace mirtk {

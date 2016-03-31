@@ -20,9 +20,9 @@
 #ifndef MIRTK_TransformationUtils_H
 #define MIRTK_TransformationUtils_H
 
-#include <mirtkTransformation.h>
-#include <mirtkGenericImage.h>
-#include <mirtkParallel.h>
+#include "mirtk/Transformation.h"
+#include "mirtk/GenericImage.h"
+#include "mirtk/Parallel.h"
 
 
 namespace mirtk {

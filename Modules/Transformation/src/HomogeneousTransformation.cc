@@ -18,15 +18,15 @@
  * limitations under the License.
  */
 
-#include <mirtkHomogeneousTransformation.h>
+#include "mirtk/HomogeneousTransformation.h"
 
-#include <mirtkMath.h>
-#include <mirtkMemory.h>
-#include <mirtkPointSamples.h>
-#include <mirtkAdaptiveLineSearch.h>
-#include <mirtkConjugateGradientDescent.h>
-#include <mirtkTransformationApproximationError.h>
-#include <mirtkProfiling.h>
+#include "mirtk/Math.h"
+#include "mirtk/Memory.h"
+#include "mirtk/PointSamples.h"
+#include "mirtk/AdaptiveLineSearch.h"
+#include "mirtk/ConjugateGradientDescent.h"
+#include "mirtk/TransformationApproximationError.h"
+#include "mirtk/Profiling.h"
 
 
 namespace mirtk {

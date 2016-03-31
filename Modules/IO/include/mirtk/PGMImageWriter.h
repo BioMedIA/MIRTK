@@ -20,9 +20,9 @@
 #ifndef MIRTK_PGMImageWriter_H
 #define MIRTK_PGMImageWriter_H
 
-#include <mirtkImageWriter.h>
+#include "mirtk/ImageWriter.h"
 
-#include <mirtkArray.h>
+#include "mirtk/Array.h"
 
 
 namespace mirtk {

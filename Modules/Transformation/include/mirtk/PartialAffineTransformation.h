@@ -20,8 +20,8 @@
 #ifndef MIRTK_PartialAffineTransformation_H
 #define MIRTK_PartialAffineTransformation_H
 
-#include <mirtkAffineTransformation.h>
-#include <mirtkEventDelegate.h>
+#include "mirtk/AffineTransformation.h"
+#include "mirtk/EventDelegate.h"
 
 
 namespace mirtk {

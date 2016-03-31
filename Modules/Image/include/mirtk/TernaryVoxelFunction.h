@@ -20,7 +20,7 @@
 #ifndef MIRTK_TernaryVoxelFunction_H
 #define MIRTK_TernaryVoxelFunction_H
 
-#include <mirtkVoxelFunction.h>
+#include "mirtk/VoxelFunction.h"
 
 
 namespace mirtk {

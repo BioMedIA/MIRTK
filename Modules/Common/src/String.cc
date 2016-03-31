@@ -18,11 +18,11 @@
  * limitations under the License.
  */
 
-#include <mirtkString.h>
+#include "mirtk/String.h"
 
-#include <mirtkArray.h>
-#include <mirtkStream.h>
-#include <mirtkAlgorithm.h>
+#include "mirtk/Array.h"
+#include "mirtk/Stream.h"
+#include "mirtk/Algorithm.h"
 
 
 namespace mirtk {

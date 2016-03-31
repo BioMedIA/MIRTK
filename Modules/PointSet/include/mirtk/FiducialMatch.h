@@ -20,9 +20,9 @@
 #ifndef MIRTK_FiducialMatch_H
 #define MIRTK_FiducialMatch_H
 
-#include <mirtkPointCorrespondence.h>
+#include "mirtk/PointCorrespondence.h"
 
-#include <mirtkArray.h>
+#include "mirtk/Array.h"
 
 
 namespace mirtk {

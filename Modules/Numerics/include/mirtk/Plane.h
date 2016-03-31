@@ -20,11 +20,11 @@
 #ifndef MIRTK_Plane_H
 #define MIRTK_Plane_H
 
-#include <mirtkObject.h>
+#include "mirtk/Object.h"
 
-#include <mirtkVector3.h>
-#include <mirtkPoint.h>
-#include <mirtkPointSet.h>
+#include "mirtk/Vector3.h"
+#include "mirtk/Point.h"
+#include "mirtk/PointSet.h"
 
 
 namespace mirtk {

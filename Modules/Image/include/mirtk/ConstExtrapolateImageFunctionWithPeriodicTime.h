@@ -20,9 +20,9 @@
 #ifndef MIRTK_ConstExtrapolateImageFunctionWithPeriodicTime_H
 #define MIRTK_ConstExtrapolateImageFunctionWithPeriodicTime_H
 
-#include <mirtkBaseImage.h>
-#include <mirtkConstExtrapolateImageFunction.h>
-#include <mirtkRepeatExtrapolateImageFunction.h>
+#include "mirtk/BaseImage.h"
+#include "mirtk/ConstExtrapolateImageFunction.h"
+#include "mirtk/RepeatExtrapolateImageFunction.h"
 
 
 namespace mirtk {

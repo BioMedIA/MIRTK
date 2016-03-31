@@ -18,16 +18,16 @@
  * limitations under the License.
  */
 
-#include <mirtkGaussianBlurring.h>
+#include "mirtk/GaussianBlurring.h"
 
-#include <mirtkMath.h>
-#include <mirtkMemory.h>
-#include <mirtkGenericImage.h>
-#include <mirtkConvolutionFunction.h>
-#include <mirtkScalarFunctionToImage.h>
-#include <mirtkScalarGaussian.h>
-#include <mirtkProfiling.h>
-#include <mirtkDeallocate.h>
+#include "mirtk/Math.h"
+#include "mirtk/Memory.h"
+#include "mirtk/GenericImage.h"
+#include "mirtk/ConvolutionFunction.h"
+#include "mirtk/ScalarFunctionToImage.h"
+#include "mirtk/ScalarGaussian.h"
+#include "mirtk/Profiling.h"
+#include "mirtk/Deallocate.h"
 
 
 namespace mirtk {

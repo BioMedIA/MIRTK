@@ -21,10 +21,10 @@
 #ifndef MIRTK_ImageAttributes_H
 #define MIRTK_ImageAttributes_H
 
-#include <mirtkIndent.h>
-#include <mirtkMatrix.h>
-#include <mirtkPoint.h>
-#include <mirtkArray.h>
+#include "mirtk/Indent.h"
+#include "mirtk/Matrix.h"
+#include "mirtk/Point.h"
+#include "mirtk/Array.h"
 
 
 namespace mirtk {

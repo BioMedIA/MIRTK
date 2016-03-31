@@ -21,13 +21,13 @@
 #ifndef MIRTK_Voxel_H
 #define MIRTK_Voxel_H
 
-#include <mirtkMath.h>
-#include <mirtkVector3D.h>
-#include <mirtkVector4D.h>
-#include <mirtkString.h>
+#include "mirtk/Math.h"
+#include "mirtk/Vector3D.h"
+#include "mirtk/Vector4D.h"
+#include "mirtk/String.h"
 
 #ifdef HAVE_VTK 
-  #include <vtkType.h>
+  #include "vtkType.h"
 #endif
 
 

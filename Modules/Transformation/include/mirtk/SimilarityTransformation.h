@@ -20,7 +20,7 @@
 #ifndef MIRTK_SimilarityTransformation_H
 #define MIRTK_SimilarityTransformation_H
 
-#include <mirtkRigidTransformation.h>
+#include "mirtk/RigidTransformation.h"
 
 
 namespace mirtk {

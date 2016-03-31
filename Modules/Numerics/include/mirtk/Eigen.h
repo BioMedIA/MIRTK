@@ -28,10 +28,10 @@
 #ifndef MIRTK_Eigen_H
 #define MIRTK_Eigen_H
 
-#include <mirtkMatrix.h>
-#include <mirtkVector.h>
+#include "mirtk/Matrix.h"
+#include "mirtk/Vector.h"
 
-#include <Eigen/Core>
+#include "Eigen/Core"
 
 
 namespace mirtk {

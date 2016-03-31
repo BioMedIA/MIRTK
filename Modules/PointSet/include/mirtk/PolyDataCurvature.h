@@ -20,11 +20,11 @@
 #ifndef MIRTK_PolyDataCurvature_H
 #define MIRTK_PolyDataCurvature_H
 
-#include <mirtkPolyDataFilter.h>
+#include "mirtk/PolyDataFilter.h"
 
-#include <mirtkPointSetExport.h>
+#include "mirtk/PointSetExport.h"
 
-#include <vtkDataArray.h>
+#include "vtkDataArray.h"
 
 
 namespace mirtk {

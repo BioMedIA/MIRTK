@@ -17,20 +17,20 @@
  * limitations under the License.
  */
 
-#include <mirtkClosestCell.h>
+#include "mirtk/ClosestCell.h"
 
-#include <mirtkMath.h>
-#include <mirtkArray.h>
-#include <mirtkParallel.h>
-#include <mirtkPoint.h>
-#include <mirtkTransformation.h>
+#include "mirtk/Math.h"
+#include "mirtk/Array.h"
+#include "mirtk/Parallel.h"
+#include "mirtk/Point.h"
+#include "mirtk/Transformation.h"
 
-#include <vtkSmartPointer.h>
-#include <vtkAbstractCellLocator.h>
-#include <vtkCellLocator.h>
-#include <vtkCellTreeLocator.h>
-#include <vtkModifiedBSPTree.h>
-#include <vtkOBBTree.h>
+#include "vtkSmartPointer.h"
+#include "vtkAbstractCellLocator.h"
+#include "vtkCellLocator.h"
+#include "vtkCellTreeLocator.h"
+#include "vtkModifiedBSPTree.h"
+#include "vtkOBBTree.h"
 
 
 namespace mirtk {

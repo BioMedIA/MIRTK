@@ -21,10 +21,10 @@
 #ifndef MIRTK_BSplineFreeFormTransformation3D_H
 #define MIRTK_BSplineFreeFormTransformation3D_H
 
-#include <mirtkFreeFormTransformation3D.h>
+#include "mirtk/FreeFormTransformation3D.h"
 
-#include <mirtkFastCubicBSplineInterpolateImageFunction2D.h>
-#include <mirtkFastCubicBSplineInterpolateImageFunction3D.h>
+#include "mirtk/FastCubicBSplineInterpolateImageFunction2D.h"
+#include "mirtk/FastCubicBSplineInterpolateImageFunction3D.h"
 
 
 namespace mirtk {

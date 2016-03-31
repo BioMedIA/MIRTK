@@ -17,10 +17,10 @@
  * limitations under the License.
  */
 
-#include <mirtkTopologyPreservationConstraint.h>
+#include "mirtk/TopologyPreservationConstraint.h"
 
-#include <mirtkFreeFormTransformation.h>
-#include <mirtkObjectFactory.h>
+#include "mirtk/FreeFormTransformation.h"
+#include "mirtk/ObjectFactory.h"
 
 
 namespace mirtk {

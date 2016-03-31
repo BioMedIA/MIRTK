@@ -21,8 +21,8 @@
 #ifndef MIRTK_GaussianBlurring_H
 #define MIRTK_GaussianBlurring_H
 
-#include <mirtkGenericImage.h>
-#include <mirtkImageToImage.h>
+#include "mirtk/GenericImage.h"
+#include "mirtk/ImageToImage.h"
 
 
 namespace mirtk {

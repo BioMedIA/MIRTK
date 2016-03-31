@@ -21,8 +21,8 @@
 #ifndef MIRTK_GaussianInterpolateImageFunction3D_HXX
 #define MIRTK_GaussianInterpolateImageFunction3D_HXX
 
-#include <mirtkGaussianInterpolateImageFunction3D.h>
-#include <mirtkGaussianInterpolateImageFunction.hxx>
+#include "mirtk/GaussianInterpolateImageFunction3D.h"
+#include "mirtk/GaussianInterpolateImageFunction.hxx"
 
 
 namespace mirtk {

@@ -17,20 +17,20 @@
  * limitations under the License.
  */
 
-#include <mirtkRegistrationConfig.h>
-#include <mirtkObjectFactory.h>
+#include "mirtk/RegistrationConfig.h"
+#include "mirtk/ObjectFactory.h"
 
 #ifndef MIRTK_AUTO_REGISTER
-  #include <mirtkSumOfSquaredIntensityDifferences.h>
-  #include <mirtkMutualImageInformation.h>
-  #include <mirtkNormalizedMutualImageInformation.h>
-  #include <mirtkIntensityCrossCorrelation.h>
-  #include <mirtkNormalizedIntensityCrossCorrelation.h>
-  #include <mirtkCosineOfNormalizedGradientField.h>
+  #include "mirtk/SumOfSquaredIntensityDifferences.h"
+  #include "mirtk/MutualImageInformation.h"
+  #include "mirtk/NormalizedMutualImageInformation.h"
+  #include "mirtk/IntensityCrossCorrelation.h"
+  #include "mirtk/NormalizedIntensityCrossCorrelation.h"
+  #include "mirtk/CosineOfNormalizedGradientField.h"
   #if MIRTK_Registration_WITH_PointSet
-    #include <mirtkCurrentsDistance.h>
-    #include <mirtkPointCorrespondenceDistance.h>
-    #include <mirtkFiducialRegistrationError.h>
+    #include "mirtk/CurrentsDistance.h"
+    #include "mirtk/PointCorrespondenceDistance.h"
+    #include "mirtk/FiducialRegistrationError.h"
   #endif
 #endif
 

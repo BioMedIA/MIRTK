@@ -17,13 +17,13 @@
  * limitations under the License.
  */
 
-#include <mirtkLocalOptimizer.h>
-#include <mirtkStoppingCriterion.h>
+#include "mirtk/LocalOptimizer.h"
+#include "mirtk/StoppingCriterion.h"
 
-#include <mirtkMath.h>
-#include <mirtkArray.h>
-#include <mirtkMemory.h>
-#include <mirtkObjectFactory.h>
+#include "mirtk/Math.h"
+#include "mirtk/Array.h"
+#include "mirtk/Memory.h"
+#include "mirtk/ObjectFactory.h"
 
 
 namespace mirtk {

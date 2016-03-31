@@ -18,9 +18,9 @@
  * limitations under the License.
  */
 
-#include <mirtkAffineTransformation.h>
+#include "mirtk/AffineTransformation.h"
 
-#include <mirtkMath.h>
+#include "mirtk/Math.h"
 
 
 namespace mirtk {

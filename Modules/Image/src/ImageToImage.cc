@@ -17,11 +17,11 @@
  * limitations under the License.
  */
 
-#include <mirtkImageToImage.h>
+#include "mirtk/ImageToImage.h"
 
-#include <mirtkMemory.h>
-#include <mirtkParallel.h>
-#include <mirtkProfiling.h>
+#include "mirtk/Memory.h"
+#include "mirtk/Parallel.h"
+#include "mirtk/Profiling.h"
 
 
 namespace mirtk {

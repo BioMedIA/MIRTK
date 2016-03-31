@@ -20,11 +20,11 @@
 #ifndef MIRTK_TransformationApproximationError_H
 #define MIRTK_TransformationApproximationError_H
 
-#include <mirtkObjectiveFunction.h>
+#include "mirtk/ObjectiveFunction.h"
 
-#include <mirtkArray.h>
-#include <mirtkVector3D.h>
-#include <mirtkTransformation.h>
+#include "mirtk/Array.h"
+#include "mirtk/Vector3D.h"
+#include "mirtk/Transformation.h"
 
 
 namespace mirtk {

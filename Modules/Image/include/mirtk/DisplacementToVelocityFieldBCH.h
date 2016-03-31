@@ -20,9 +20,9 @@
 #ifndef MIRTK_DisplacementToVelocityFieldBCH_H
 #define MIRTK_DisplacementToVelocityFieldBCH_H
 
-#include <mirtkGenericImage.h>
-#include <mirtkDisplacementToVelocityField.h>
-#include <mirtkVelocityToDisplacementField.h>
+#include "mirtk/GenericImage.h"
+#include "mirtk/DisplacementToVelocityField.h"
+#include "mirtk/VelocityToDisplacementField.h"
 
 
 namespace mirtk {

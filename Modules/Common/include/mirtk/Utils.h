@@ -25,7 +25,7 @@
 #ifndef MIRTK_Utils_H
 #define MIRTK_Utils_H
 
-#include <mirtkOrderedSet.h>
+#include "mirtk/OrderedSet.h"
 
 
 namespace mirtk {

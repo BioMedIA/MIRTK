@@ -20,10 +20,10 @@
 #ifndef MIRTK_Version_H
 #define MIRTK_Version_H
 
-#include <mirtkCommonExport.h>
-#include <mirtkVersionInfo.h>
+#include "mirtk/CommonExport.h"
+#include "mirtk/VersionInfo.h"
 
-#include <mirtkObject.h>
+#include "mirtk/Object.h"
 
 
 namespace mirtk {

@@ -17,13 +17,13 @@
  * limitations under the License.
  */
 
-#include <mirtkPolyhedron.h>
+#include "mirtk/Polyhedron.h"
 
-#include <mirtkAssert.h>
-#include <mirtkParallel.h>
+#include "mirtk/Assert.h"
+#include "mirtk/Parallel.h"
 
-#include <vtkPolyData.h>
-#include <vtkCellArray.h>
+#include "vtkPolyData.h"
+#include "vtkCellArray.h"
 
 
 namespace mirtk {

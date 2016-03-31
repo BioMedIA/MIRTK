@@ -21,7 +21,7 @@
 #ifndef MIRTK_GradientImageFilter_H
 #define MIRTK_GradientImageFilter_H
 
-#include <mirtkImageToImage.h>
+#include "mirtk/ImageToImage.h"
 
 
 namespace mirtk {

@@ -17,7 +17,7 @@
  * limitations under the License.
  */
 
-#include <mirtkPartialBSplineFreeFormTransformationSV.h>
+#include "mirtk/PartialBSplineFreeFormTransformationSV.h"
 
 
 namespace mirtk {

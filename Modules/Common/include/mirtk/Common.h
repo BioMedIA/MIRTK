@@ -21,48 +21,48 @@
 #define MIRTK_Common_H
 
 // Configuration, preprocessor flags
-#include <mirtkConfig.h>
-#include <mirtkCommonConfig.h>
+#include "mirtk/Config.h"
+#include "mirtk/CommonConfig.h"
 
 // Standard containers
-#include <mirtkPair.h>
-#include <mirtkArray.h>
-#include <mirtkArrayHeap.h>
-#include <mirtkList.h>
-#include <mirtkOrderedSet.h>
-#include <mirtkOrderedMap.h>
-#include <mirtkUnorderedSet.h>
-#include <mirtkUnorderedMap.h>
-#include <mirtkPriorityQueue.h>
-#include <mirtkQueue.h>
-#include <mirtkStack.h>
+#include "mirtk/Pair.h"
+#include "mirtk/Array.h"
+#include "mirtk/ArrayHeap.h"
+#include "mirtk/List.h"
+#include "mirtk/OrderedSet.h"
+#include "mirtk/OrderedMap.h"
+#include "mirtk/UnorderedSet.h"
+#include "mirtk/UnorderedMap.h"
+#include "mirtk/PriorityQueue.h"
+#include "mirtk/Queue.h"
+#include "mirtk/Stack.h"
 
 // Standard functions/types
-#include <mirtkAssert.h>
-#include <mirtkMath.h>
-#include <mirtkMemory.h>
-#include <mirtkString.h>
-#include <mirtkPath.h>
-#include <mirtkVersion.h>
-#include <mirtkFastDelegate.h>
-#include <mirtkStatus.h>
-#include <mirtkAlgorithm.h>
-#include <mirtkRandom.h>
+#include "mirtk/Assert.h"
+#include "mirtk/Math.h"
+#include "mirtk/Memory.h"
+#include "mirtk/String.h"
+#include "mirtk/Path.h"
+#include "mirtk/Version.h"
+#include "mirtk/FastDelegate.h"
+#include "mirtk/Status.h"
+#include "mirtk/Algorithm.h"
+#include "mirtk/Random.h"
 
 // Base classes
-#include <mirtkObject.h>
-#include <mirtkObjectFactory.h>
+#include "mirtk/Object.h"
+#include "mirtk/ObjectFactory.h"
 
-#include <mirtkObserver.h>
-#include <mirtkObservable.h>
-#include <mirtkConfigurable.h>
+#include "mirtk/Observer.h"
+#include "mirtk/Observable.h"
+#include "mirtk/Configurable.h"
 
 // I/O
-#include <mirtkIndent.h>
-#include <mirtkCfstream.h>
+#include "mirtk/Indent.h"
+#include "mirtk/Cfstream.h"
 
 // Testing
-#include <mirtkTestProd.h>
+#include "mirtk/TestProd.h"
 
 
 #endif // MIRTK_Common_H

@@ -21,9 +21,9 @@
 #ifndef MIRTK_FluidFreeFormTransformation_H
 #define MIRTK_FluidFreeFormTransformation_H
 
-#include <mirtkMultiLevelTransformation.h>
+#include "mirtk/MultiLevelTransformation.h"
 
-#include <mirtkMemory.h> // swap
+#include "mirtk/Memory.h" // swap
 
 
 namespace mirtk {

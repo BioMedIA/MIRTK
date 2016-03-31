@@ -22,21 +22,21 @@
 
 
 // Image type
-#include <mirtkVoxel.h>
-#include <mirtkVoxelCast.h>
-#include <mirtkBaseImage.h>
-#include <mirtkGenericImage.h>
+#include "mirtk/Voxel.h"
+#include "mirtk/VoxelCast.h"
+#include "mirtk/BaseImage.h"
+#include "mirtk/GenericImage.h"
 
 // Image iterators
-#include <mirtkImageRegion.h>
-#include <mirtkConstImageIterator.h>
-#include <mirtkConstGenericImageIterator.h>
-#include <mirtkImageIterator.h>
-#include <mirtkGenericImageIterator.h>
+#include "mirtk/ImageRegion.h"
+#include "mirtk/ConstImageIterator.h"
+#include "mirtk/ConstGenericImageIterator.h"
+#include "mirtk/ImageIterator.h"
+#include "mirtk/GenericImageIterator.h"
 
 // Image interpolators
-#include <mirtkInterpolateImageFunction.h>
-#include <mirtkExtrapolateImageFunction.h>
+#include "mirtk/InterpolateImageFunction.h"
+#include "mirtk/ExtrapolateImageFunction.h"
 
 // TODO: Add missing header files
 

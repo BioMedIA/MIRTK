@@ -16,8 +16,8 @@
  * limitations under the License.
  */
 
-#include <mirtkErosion.h>
-#include <mirtkBinaryVoxelFunction.h>
+#include "mirtk/Erosion.h"
+#include "mirtk/BinaryVoxelFunction.h"
 
 
 namespace mirtk {

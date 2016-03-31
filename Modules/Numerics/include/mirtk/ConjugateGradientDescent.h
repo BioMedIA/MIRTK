@@ -20,8 +20,8 @@
 #ifndef MIRTK_ConjugateGradientDescent_H
 #define MIRTK_ConjugateGradientDescent_H
 
-#include <mirtkGradientDescent.h>
-#include <mirtkMath.h>
+#include "mirtk/GradientDescent.h"
+#include "mirtk/Math.h"
 
 
 namespace mirtk {

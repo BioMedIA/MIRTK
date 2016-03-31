@@ -17,9 +17,9 @@
  * limitations under the License.
  */
 
-#include <mirtkImageWriter.h>
+#include "mirtk/ImageWriter.h"
 
-#include <mirtkImageWriterFactory.h>
+#include "mirtk/ImageWriterFactory.h"
 
 
 namespace mirtk {

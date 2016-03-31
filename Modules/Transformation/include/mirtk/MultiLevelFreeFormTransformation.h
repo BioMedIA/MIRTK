@@ -21,7 +21,7 @@
 #ifndef MIRTK_MultiLevelFreeFormTransformation_H
 #define MIRTK_MultiLevelFreeFormTransformation_H
 
-#include <mirtkMultiLevelTransformation.h>
+#include "mirtk/MultiLevelTransformation.h"
 
 
 namespace mirtk {

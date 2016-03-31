@@ -20,7 +20,7 @@
 #ifndef MIRTK_EnergyMeasure_H
 #define MIRTK_EnergyMeasure_H
 
-#include <mirtkString.h>
+#include "mirtk/String.h"
 
 
 namespace mirtk {

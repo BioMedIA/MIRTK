@@ -23,13 +23,13 @@
 #  pragma warning(disable:4996)
 #endif
 
-#include <mirtkPointSamples.h>
+#include "mirtk/PointSamples.h"
 
-#include <mirtkMath.h>
-#include <mirtkMemory.h>
-#include <mirtkArray.h>
+#include "mirtk/Math.h"
+#include "mirtk/Memory.h"
+#include "mirtk/Array.h"
 
-#include <boost/random.hpp>
+#include "boost/random.hpp"
 
 
 namespace mirtk {

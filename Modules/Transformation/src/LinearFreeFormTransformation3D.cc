@@ -18,11 +18,11 @@
  * limitations under the License.
  */
 
-#include <mirtkLinearFreeFormTransformation3D.h>
+#include "mirtk/LinearFreeFormTransformation3D.h"
 
-#include <mirtkMath.h>
-#include <mirtkMemory.h>
-#include <mirtkBSplineFreeFormTransformation3D.h>
+#include "mirtk/Math.h"
+#include "mirtk/Memory.h"
+#include "mirtk/BSplineFreeFormTransformation3D.h"
 
 
 namespace mirtk {

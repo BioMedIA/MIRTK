@@ -17,9 +17,9 @@
  * limitations under the License.
  */
 
-#include <mirtkNormalizedGradientFieldSimilarity.h>
+#include "mirtk/NormalizedGradientFieldSimilarity.h"
 
-#include <mirtkMath.h>
+#include "mirtk/Math.h"
 
 
 namespace mirtk {

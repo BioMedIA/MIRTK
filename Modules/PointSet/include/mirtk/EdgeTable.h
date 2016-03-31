@@ -20,12 +20,12 @@
 #ifndef MIRTK_EdgeTable_H
 #define MIRTK_EdgeTable_H
 
-#include <mirtkSparseMatrix.h>
+#include "mirtk/SparseMatrix.h"
 
-#include <mirtkMemory.h>
-#include <mirtkParallel.h>
+#include "mirtk/Memory.h"
+#include "mirtk/Parallel.h"
 
-#include <vtkDataSet.h>
+#include "vtkDataSet.h"
 
 
 namespace mirtk {

@@ -20,11 +20,11 @@
 #ifndef MIRTK_LieBracketImageFilter_H
 #define MIRTK_LieBracketImageFilter_H
 
-#include <mirtkImageToImage.h>
+#include "mirtk/ImageToImage.h"
 
-#include <mirtkImageAttributes.h>
-#include <mirtkBaseImage.h>
-#include <mirtkGenericImage.h>
+#include "mirtk/ImageAttributes.h"
+#include "mirtk/BaseImage.h"
+#include "mirtk/GenericImage.h"
 
 
 namespace mirtk {
@@ -157,11 +157,11 @@ void LieBracketImageFilter<VoxelType>::Initialize()
 #ifndef MIRTK_LieBracketImageFilterNew_H
 #define MIRTK_LieBracketImageFilterNew_H
 
-#include <mirtkMemory.h>
-#include <mirtkGenericImage.h>
-#include <mirtkLieBracketImageFilter2D.h>
-#include <mirtkLieBracketImageFilter3D.h>
-#include <mirtkDifferenceOfCompositionLieBracketImageFilter3D.h>
+#include "mirtk/Memory.h"
+#include "mirtk/GenericImage.h"
+#include "mirtk/LieBracketImageFilter2D.h"
+#include "mirtk/LieBracketImageFilter3D.h"
+#include "mirtk/DifferenceOfCompositionLieBracketImageFilter3D.h"
 
 
 namespace mirtk {

@@ -22,7 +22,7 @@
 
 
 #if defined(HAVE_GTest) || defined(HAVE_GTEST)
-#  include <gtest/gtest_prod.h>
+#  include "gtest/gtest_prod.h"
 #elif !defined(FRIEND_TEST)
 #  define FRIEND_TEST(test_case_name, test_name) \
   static void FRIEND_TEST_##test_case_name##_##test_name()

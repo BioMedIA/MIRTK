@@ -20,7 +20,7 @@
 #ifndef MIRTK_SumOfSquaredIntensityDifferences_H
 #define MIRTK_SumOfSquaredIntensityDifferences_H
 
-#include <mirtkImageSimilarity.h>
+#include "mirtk/ImageSimilarity.h"
 
 
 namespace mirtk {

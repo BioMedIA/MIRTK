@@ -17,18 +17,18 @@
  * limitations under the License.
  */
 
-#include <mirtkCommon.h>
-#include <mirtkOptions.h>
+#include "mirtk/Common.h"
+#include "mirtk/Options.h"
 
-#include <mirtkPointSetUtils.h>
-#include <mirtkPolyDataCurvature.h>
-#include <mirtkPolyDataSmoothing.h>
+#include "mirtk/PointSetUtils.h"
+#include "mirtk/PolyDataCurvature.h"
+#include "mirtk/PolyDataSmoothing.h"
 
-#include <vtkSmartPointer.h>
-#include <vtkPolyData.h>
-#include <vtkPointData.h>
-#include <vtkDataArray.h>
-#include <vtkPolyDataNormals.h>
+#include "vtkSmartPointer.h"
+#include "vtkPolyData.h"
+#include "vtkPointData.h"
+#include "vtkDataArray.h"
+#include "vtkPolyDataNormals.h"
 
 using namespace mirtk;
 

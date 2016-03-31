@@ -17,9 +17,9 @@
  * limitations under the License.
  */
 
-#include <mirtkConfigurable.h>
+#include "mirtk/Configurable.h"
 
-#include <mirtkArray.h>
+#include "mirtk/Array.h"
 
 
 namespace mirtk {

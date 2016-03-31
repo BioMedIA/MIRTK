@@ -17,20 +17,20 @@
  * limitations under the License.
  */
 
-#include <mirtkCommon.h>
-#include <mirtkOptions.h>
+#include "mirtk/Common.h"
+#include "mirtk/Options.h"
 
-#include <mirtkIOConfig.h>
+#include "mirtk/IOConfig.h"
 
-#include <mirtkMatrix.h>
-#include <mirtkGenericImage.h>
-#include <mirtkVoxelFunction.h>
-#include <mirtkInterpolateImageFunction.h>
+#include "mirtk/Matrix.h"
+#include "mirtk/GenericImage.h"
+#include "mirtk/VoxelFunction.h"
+#include "mirtk/InterpolateImageFunction.h"
 
 #ifdef HAVE_MIRTK_Transformation
-#  include <mirtkTransformation.h>
-#  include <mirtkHomogeneousTransformation.h>
-#  include <mirtkFluidFreeFormTransformation.h>
+#  include "mirtk/Transformation.h"
+#  include "mirtk/HomogeneousTransformation.h"
+#  include "mirtk/FluidFreeFormTransformation.h"
 #endif
 
 using namespace mirtk;

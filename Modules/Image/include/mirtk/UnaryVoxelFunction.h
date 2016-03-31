@@ -20,14 +20,14 @@
 #ifndef MIRTK_UnaryVoxelFunction_H
 #define MIRTK_UnaryVoxelFunction_H
 
-#include <mirtkVoxelFunction.h>
+#include "mirtk/VoxelFunction.h"
 
-#include <mirtkAssert.h>
-#include <mirtkVoxel.h>
-#include <mirtkVoxelCast.h>
-#include <mirtkBaseImage.h>
-#include <mirtkGenericImage.h>
-#include <mirtkMath.h>
+#include "mirtk/Assert.h"
+#include "mirtk/Voxel.h"
+#include "mirtk/VoxelCast.h"
+#include "mirtk/BaseImage.h"
+#include "mirtk/GenericImage.h"
+#include "mirtk/Math.h"
 
 
 namespace mirtk {

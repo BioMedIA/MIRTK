@@ -20,9 +20,9 @@
 #ifndef MIRTK_InterpolateImageFunction_HXX
 #define MIRTK_InterpolateImageFunction_HXX
 
-#include <mirtkInterpolateImageFunction.h>
+#include "mirtk/InterpolateImageFunction.h"
 
-#include <mirtkVoxel.h>
+#include "mirtk/Voxel.h"
 
 
 namespace mirtk {
@@ -149,43 +149,43 @@ inline void GenericInterpolateImageFunction<TImage>
 #define MIRTK_InterpolateImageFunctionNew_HXX
 
 // ND
-#include <mirtkNearestNeighborInterpolateImageFunction.h>
-#include <mirtkLinearInterpolateImageFunction.h>
-#include <mirtkBSplineInterpolateImageFunction.h>
-#include <mirtkCubicBSplineInterpolateImageFunction.h>
-#include <mirtkFastCubicBSplineInterpolateImageFunction.h>
-#include <mirtkCSplineInterpolateImageFunction.h>
-#include <mirtkGaussianInterpolateImageFunction.h>
-#include <mirtkSincInterpolateImageFunction.h>
+#include "mirtk/NearestNeighborInterpolateImageFunction.h"
+#include "mirtk/LinearInterpolateImageFunction.h"
+#include "mirtk/BSplineInterpolateImageFunction.h"
+#include "mirtk/CubicBSplineInterpolateImageFunction.h"
+#include "mirtk/FastCubicBSplineInterpolateImageFunction.h"
+#include "mirtk/CSplineInterpolateImageFunction.h"
+#include "mirtk/GaussianInterpolateImageFunction.h"
+#include "mirtk/SincInterpolateImageFunction.h"
 
 // 2D
-#include <mirtkLinearInterpolateImageFunction2D.h>
-#include <mirtkBSplineInterpolateImageFunction2D.h>
-#include <mirtkCubicBSplineInterpolateImageFunction2D.h>
-#include <mirtkFastCubicBSplineInterpolateImageFunction2D.h>
-#include <mirtkCSplineInterpolateImageFunction2D.h>
-#include <mirtkGaussianInterpolateImageFunction2D.h>
-#include <mirtkSincInterpolateImageFunction2D.h>
+#include "mirtk/LinearInterpolateImageFunction2D.h"
+#include "mirtk/BSplineInterpolateImageFunction2D.h"
+#include "mirtk/CubicBSplineInterpolateImageFunction2D.h"
+#include "mirtk/FastCubicBSplineInterpolateImageFunction2D.h"
+#include "mirtk/CSplineInterpolateImageFunction2D.h"
+#include "mirtk/GaussianInterpolateImageFunction2D.h"
+#include "mirtk/SincInterpolateImageFunction2D.h"
 
 // 3D
-#include <mirtkLinearInterpolateImageFunction3D.h>
-#include <mirtkBSplineInterpolateImageFunction3D.h>
-#include <mirtkCubicBSplineInterpolateImageFunction3D.h>
-#include <mirtkFastCubicBSplineInterpolateImageFunction3D.h>
-#include <mirtkCSplineInterpolateImageFunction3D.h>
-#include <mirtkGaussianInterpolateImageFunction3D.h>
-#include <mirtkSincInterpolateImageFunction3D.h>
+#include "mirtk/LinearInterpolateImageFunction3D.h"
+#include "mirtk/BSplineInterpolateImageFunction3D.h"
+#include "mirtk/CubicBSplineInterpolateImageFunction3D.h"
+#include "mirtk/FastCubicBSplineInterpolateImageFunction3D.h"
+#include "mirtk/CSplineInterpolateImageFunction3D.h"
+#include "mirtk/GaussianInterpolateImageFunction3D.h"
+#include "mirtk/SincInterpolateImageFunction3D.h"
 
-#include <mirtkShapeBasedInterpolateImageFunction.h> // 3D scalar image only
+#include "mirtk/ShapeBasedInterpolateImageFunction.h" // 3D scalar image only
 
 // 4D
-#include <mirtkLinearInterpolateImageFunction4D.h>
-#include <mirtkBSplineInterpolateImageFunction4D.h>
-#include <mirtkCubicBSplineInterpolateImageFunction4D.h>
-#include <mirtkFastCubicBSplineInterpolateImageFunction4D.h>
-#include <mirtkCSplineInterpolateImageFunction4D.h>
-#include <mirtkGaussianInterpolateImageFunction4D.h>
-#include <mirtkSincInterpolateImageFunction4D.h>
+#include "mirtk/LinearInterpolateImageFunction4D.h"
+#include "mirtk/BSplineInterpolateImageFunction4D.h"
+#include "mirtk/CubicBSplineInterpolateImageFunction4D.h"
+#include "mirtk/FastCubicBSplineInterpolateImageFunction4D.h"
+#include "mirtk/CSplineInterpolateImageFunction4D.h"
+#include "mirtk/GaussianInterpolateImageFunction4D.h"
+#include "mirtk/SincInterpolateImageFunction4D.h"
 
 
 namespace mirtk {

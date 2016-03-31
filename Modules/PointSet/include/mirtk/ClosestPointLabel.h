@@ -20,12 +20,12 @@
 #ifndef MIRTK_ClosestPointLabel_H
 #define MIRTK_ClosestPointLabel_H
 
-#include <mirtkClosestPoint.h>
+#include "mirtk/ClosestPoint.h"
 
-#include <mirtkUnorderedMap.h>
+#include "mirtk/UnorderedMap.h"
 
-#include <vtkSmartPointer.h>
-#include <vtkIdTypeArray.h>
+#include "vtkSmartPointer.h"
+#include "vtkIdTypeArray.h"
 
 
 namespace mirtk {

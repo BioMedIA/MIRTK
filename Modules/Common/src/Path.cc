@@ -17,10 +17,10 @@
  * limitations under the License.
  */
 
-#include <mirtkPath.h>
-#include <mirtkConfig.h> // WINDOWS
-#include <mirtkArray.h>
-#include <mirtkAlgorithm.h>
+#include "mirtk/Path.h"
+#include "mirtk/Config.h" // WINDOWS
+#include "mirtk/Array.h"
+#include "mirtk/Algorithm.h"
 
 
 namespace mirtk {

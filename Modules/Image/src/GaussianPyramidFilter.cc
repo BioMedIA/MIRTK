@@ -17,12 +17,12 @@
  * limitations under the License.
  */
 
-#include <mirtkGaussianPyramidFilter.h>
+#include "mirtk/GaussianPyramidFilter.h"
 
-#include <mirtkGenericImage.h>
-#include <mirtkUnaryVoxelFunction.h>
-#include <mirtkConvolutionFunction.h>
-#include <mirtkProfiling.h>
+#include "mirtk/GenericImage.h"
+#include "mirtk/UnaryVoxelFunction.h"
+#include "mirtk/ConvolutionFunction.h"
+#include "mirtk/Profiling.h"
 
 #include <iostream>
 

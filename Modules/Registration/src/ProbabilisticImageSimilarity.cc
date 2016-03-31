@@ -17,12 +17,12 @@
  * limitations under the License.
  */
 
-#include <mirtkProbabilisticImageSimilarity.h>
+#include "mirtk/ProbabilisticImageSimilarity.h"
 
-#include <mirtkMath.h>
-#include <mirtkDeallocate.h>
-#include <mirtkParallel.h>
-#include <mirtkProfiling.h>
+#include "mirtk/Math.h"
+#include "mirtk/Deallocate.h"
+#include "mirtk/Parallel.h"
+#include "mirtk/Profiling.h"
 
 
 namespace mirtk {

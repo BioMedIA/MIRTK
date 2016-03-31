@@ -17,7 +17,7 @@
  * limitations under the License.
  */
 
-#include <mirtkImageFunction.h>
+#include "mirtk/ImageFunction.h"
 
 
 namespace mirtk {

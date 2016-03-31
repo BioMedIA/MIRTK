@@ -17,13 +17,13 @@
  * limitations under the License.
  */
 
-#include <mirtkExtrapolateImageFunction.h>
+#include "mirtk/ExtrapolateImageFunction.h"
 
-#include <mirtkConstExtrapolateImageFunction.h>
-#include <mirtkConstExtrapolateImageFunctionWithPeriodicTime.h>
-#include <mirtkNearestNeighborExtrapolateImageFunction.h>
-#include <mirtkRepeatExtrapolateImageFunction.h>
-#include <mirtkMirrorExtrapolateImageFunction.h>
+#include "mirtk/ConstExtrapolateImageFunction.h"
+#include "mirtk/ConstExtrapolateImageFunctionWithPeriodicTime.h"
+#include "mirtk/NearestNeighborExtrapolateImageFunction.h"
+#include "mirtk/RepeatExtrapolateImageFunction.h"
+#include "mirtk/MirrorExtrapolateImageFunction.h"
 
 
 namespace mirtk {

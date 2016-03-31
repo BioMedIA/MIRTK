@@ -20,9 +20,9 @@
 #ifndef MIRTK_CharbonnierErrorFunction_H
 #define MIRTK_CharbonnierErrorFunction_H
 
-#include <mirtkRadialErrorFunction.h>
+#include "mirtk/RadialErrorFunction.h"
 
-#include <mirtkMath.h>
+#include "mirtk/Math.h"
 
 
 namespace mirtk {

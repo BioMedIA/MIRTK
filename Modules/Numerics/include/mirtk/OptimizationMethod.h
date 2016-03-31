@@ -20,7 +20,7 @@
 #ifndef MIRTK_OptimizationMethod_H
 #define MIRTK_OptimizationMethod_H
 
-#include <mirtkString.h>
+#include "mirtk/String.h"
 
 #include <functional>
 

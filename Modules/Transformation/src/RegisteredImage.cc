@@ -17,25 +17,25 @@
  * limitations under the License.
  */
 
-#include <mirtkRegisteredImage.h>
+#include "mirtk/RegisteredImage.h"
 
-#include <mirtkAssert.h>
-#include <mirtkMath.h>
-#include <mirtkMemory.h>
-#include <mirtkParallel.h>
-#include <mirtkProfiling.h>
-#include <mirtkMultiLevelTransformation.h>
-#include <mirtkGaussianBlurring.h>
-#include <mirtkGaussianBlurringWithPadding.h>
-#include <mirtkGradientImageFilter.h>
-#include <mirtkHessianImageFilter.h>
-#include <mirtkVoxelFunction.h>
-#include <mirtkImageGradientFunction.h>
-#include <mirtkFluidFreeFormTransformation.h>
-#include <mirtkVector3D.h>
+#include "mirtk/Assert.h"
+#include "mirtk/Math.h"
+#include "mirtk/Memory.h"
+#include "mirtk/Parallel.h"
+#include "mirtk/Profiling.h"
+#include "mirtk/MultiLevelTransformation.h"
+#include "mirtk/GaussianBlurring.h"
+#include "mirtk/GaussianBlurringWithPadding.h"
+#include "mirtk/GradientImageFilter.h"
+#include "mirtk/HessianImageFilter.h"
+#include "mirtk/VoxelFunction.h"
+#include "mirtk/ImageGradientFunction.h"
+#include "mirtk/FluidFreeFormTransformation.h"
+#include "mirtk/Vector3D.h"
 
-#include <mirtkLinearInterpolateImageFunction.hxx>  // incl. inline definitions
-#include <mirtkFastLinearImageGradientFunction.hxx> // incl. inline definitions
+#include "mirtk/LinearInterpolateImageFunction.hxx"  // incl. inline definitions
+#include "mirtk/FastLinearImageGradientFunction.hxx" // incl. inline definitions
 
 
 namespace mirtk {

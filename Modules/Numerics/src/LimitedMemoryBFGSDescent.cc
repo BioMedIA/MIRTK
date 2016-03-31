@@ -23,11 +23,11 @@
  * THE SOFTWARE.
  */
 
-#include <mirtkLimitedMemoryBFGSDescent.h>
+#include "mirtk/LimitedMemoryBFGSDescent.h"
 
-#include <mirtkObjectFactory.h>
+#include "mirtk/ObjectFactory.h"
 
-#include <lbfgs.h>
+#include "lbfgs.h"
 
 
 namespace mirtk {

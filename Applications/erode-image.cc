@@ -18,11 +18,11 @@
  * limitations under the License.
  */
 
-#include <mirtkCommon.h>
-#include <mirtkOptions.h>
+#include "mirtk/Common.h"
+#include "mirtk/Options.h"
 
-#include <mirtkIOConfig.h>
-#include <mirtkErosion.h>
+#include "mirtk/IOConfig.h"
+#include "mirtk/Erosion.h"
 
 using namespace mirtk;
 

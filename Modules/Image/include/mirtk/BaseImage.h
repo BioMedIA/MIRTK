@@ -21,20 +21,20 @@
 #ifndef MIRTK_BaseImage_H
 #define MIRTK_BaseImage_H
 
-#include <mirtkObject.h>
-#include <mirtkVoxel.h>
-#include <mirtkPoint.h>
-#include <mirtkPointSet.h>
-#include <mirtkVector.h>
-#include <mirtkMatrix.h>
-#include <mirtkImageAttributes.h>
+#include "mirtk/Object.h"
+#include "mirtk/Voxel.h"
+#include "mirtk/Point.h"
+#include "mirtk/PointSet.h"
+#include "mirtk/Vector.h"
+#include "mirtk/Matrix.h"
+#include "mirtk/ImageAttributes.h"
 
 
 // When VTK support is enabled during the build of the Image module,
 // the vtable of the image classes contains additional entries compared to
 // a build without VTK! Therefore, MIRTK_Image_WITH_VTK must reflect whether
 // the interface includes those VTK support functions or not.
-#include <mirtkImageConfig.h>
+#include "mirtk/ImageConfig.h"
 #if MIRTK_Image_WITH_VTK
 class vtkStructuredPoints;
 #endif // MIRTK_Image_WITH_VTK
@@ -817,8 +817,8 @@ typedef BaseImage Image;
 // BinaryImage must be completely defined here already such that it can
 // be used in the inline definitions. The methods using the mask must be inline
 // in order for them to be efficient enough as they will be called for each voxel
-#include <mirtkGenericImage.h>
-#include <mirtkMath.h>
+#include "mirtk/GenericImage.h"
+#include "mirtk/Math.h"
 
 
 namespace mirtk {

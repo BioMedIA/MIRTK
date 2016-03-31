@@ -17,17 +17,17 @@
  * limitations under the License.
  */
 
-#include <mirtkVtk.h>
-#include <mirtkStream.h>
+#include "mirtk/Vtk.h"
+#include "mirtk/Stream.h"
 
-#include <vtkCharArray.h>
-#include <vtkUnsignedCharArray.h>
-#include <vtkShortArray.h>
-#include <vtkUnsignedShortArray.h>
-#include <vtkIntArray.h>
-#include <vtkUnsignedIntArray.h>
-#include <vtkFloatArray.h>
-#include <vtkDoubleArray.h>
+#include "vtkCharArray.h"
+#include "vtkUnsignedCharArray.h"
+#include "vtkShortArray.h"
+#include "vtkUnsignedShortArray.h"
+#include "vtkIntArray.h"
+#include "vtkUnsignedIntArray.h"
+#include "vtkFloatArray.h"
+#include "vtkDoubleArray.h"
 
 
 namespace mirtk {

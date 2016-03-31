@@ -17,11 +17,11 @@
  * limitations under the License.
  */
 
-#include <mirtkCosineOfNormalizedGradientField.h>
+#include "mirtk/CosineOfNormalizedGradientField.h"
 
-#include <mirtkMath.h>
-#include <mirtkVoxelFunction.h>
-#include <mirtkObjectFactory.h>
+#include "mirtk/Math.h"
+#include "mirtk/VoxelFunction.h"
+#include "mirtk/ObjectFactory.h"
 
 
 namespace mirtk {

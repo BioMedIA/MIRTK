@@ -19,7 +19,7 @@
 #ifndef MIRTK_EuclideanDistanceTransform_H
 #define MIRTK_EuclideanDistanceTransform_H
 
-#include <mirtkImageToImage.h>
+#include "mirtk/ImageToImage.h"
 
 
 namespace mirtk {

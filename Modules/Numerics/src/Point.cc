@@ -20,7 +20,7 @@
 #include <istream>
 #include <ostream>
 
-#include <mirtkPoint.h>
+#include "mirtk/Point.h"
 
 
 namespace mirtk {

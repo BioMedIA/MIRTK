@@ -17,27 +17,27 @@
  * limitations under the License.
  */
 
-#include <mirtkNumericsConfig.h>
+#include "mirtk/NumericsConfig.h"
 
-#include <mirtkFuzzyCorrespondence.h>
-#include "mirtkFuzzyCorrespondenceUtils.h"
+#include "mirtk/FuzzyCorrespondence.h"
+#include "FuzzyCorrespondenceUtils.h"
 
-#include <mirtkPoint.h>
-#include <mirtkArray.h>
-#include <mirtkParallel.h>
-#include <mirtkProfiling.h>
-#include <mirtkTransformation.h>
+#include "mirtk/Point.h"
+#include "mirtk/Array.h"
+#include "mirtk/Parallel.h"
+#include "mirtk/Profiling.h"
+#include "mirtk/Transformation.h"
 
-#include <vtkSmartPointer.h>
+#include "vtkSmartPointer.h"
 
-#include <boost/random.hpp>
-#include <boost/random/normal_distribution.hpp>
+#include "boost/random.hpp"
+#include "boost/random/normal_distribution.hpp"
 
 
 namespace mirtk {
 
 
-// global "debug" flag (cf. mirtkOptions.cc)
+// Global "debug" flag (cf. mirtk/Options.h)
 extern int debug;
 
 

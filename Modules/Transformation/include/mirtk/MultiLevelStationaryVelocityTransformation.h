@@ -20,15 +20,15 @@
 #ifndef MIRTK_MultiLevelStationaryVelocityTransformation_H
 #define MIRTK_MultiLevelStationaryVelocityTransformation_H
 
-#include <mirtkMultiLevelTransformation.h>
-#include <mirtkBSplineFreeFormTransformationSV.h>
+#include "mirtk/MultiLevelTransformation.h"
+#include "mirtk/BSplineFreeFormTransformationSV.h"
 
-#include <mirtkArray.h>
-#include <mirtkMatrix.h>
-#include <mirtkEventDelegate.h>
-#include <mirtkVelocityToDisplacementFieldSS.h>
-#include <mirtkVoxelFunction.h>
-#include <mirtkProfiling.h>
+#include "mirtk/Array.h"
+#include "mirtk/Matrix.h"
+#include "mirtk/EventDelegate.h"
+#include "mirtk/VelocityToDisplacementFieldSS.h"
+#include "mirtk/VoxelFunction.h"
+#include "mirtk/Profiling.h"
 
 
 namespace mirtk {

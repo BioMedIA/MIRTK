@@ -59,7 +59,7 @@ namespace mirtk {
  * mirtkMatlab.h and that it is recommended to include mirtkMatlab.h instead.
  *
  * @code
- * #include <mirtkMatlab.h>
+ * #include "mirtk/Matlab.h"
  *
  * int main(int argc, char *argv[]) {
  *   // Either load MCR libraries and environment only

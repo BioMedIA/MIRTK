@@ -17,7 +17,7 @@
  * limitations under the License.
  */
 
-#include <mirtkAdaptiveLineSearch.h>
+#include "mirtk/AdaptiveLineSearch.h"
 
 #include <algorithm>
 

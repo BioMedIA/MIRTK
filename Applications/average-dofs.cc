@@ -18,16 +18,16 @@
  * limitations under the License.
  */
 
-#include <mirtkCommon.h>
-#include <mirtkOptions.h>
+#include "mirtk/Common.h"
+#include "mirtk/Options.h"
 
-#include <mirtkIOConfig.h>
+#include "mirtk/IOConfig.h"
 
-#include <mirtkTransformations.h>
-#include <mirtkGaussianBlurring.h>
-#include <mirtkDisplacementToVelocityFieldBCH.h>
-#include <mirtkVelocityToDisplacementFieldSS.h>
-#include <mirtkImageToInterpolationCoefficients.h>
+#include "mirtk/Transformations.h"
+#include "mirtk/GaussianBlurring.h"
+#include "mirtk/DisplacementToVelocityFieldBCH.h"
+#include "mirtk/VelocityToDisplacementFieldSS.h"
+#include "mirtk/ImageToInterpolationCoefficients.h"
 
 using namespace mirtk;
 

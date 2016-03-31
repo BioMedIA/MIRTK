@@ -17,9 +17,9 @@
  * limitations under the License.
  */
 
-#include <mirtkMutualImageInformation.h>
+#include "mirtk/MutualImageInformation.h"
 
-#include <mirtkObjectFactory.h>
+#include "mirtk/ObjectFactory.h"
 
 
 namespace mirtk {

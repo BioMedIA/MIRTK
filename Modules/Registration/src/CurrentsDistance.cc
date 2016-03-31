@@ -17,28 +17,28 @@
  * limitations under the License.
  */
 
-#include <mirtkCurrentsDistance.h>
+#include "mirtk/CurrentsDistance.h"
 
-#include <mirtkMath.h>
-#include <mirtkMemory.h>
-#include <mirtkVector3D.h>
-#include <mirtkParallel.h>
-#include <mirtkProfiling.h>
-#include <mirtkObjectFactory.h>
-#include <mirtkVtkMath.h>
+#include "mirtk/Math.h"
+#include "mirtk/Memory.h"
+#include "mirtk/Vector3D.h"
+#include "mirtk/Parallel.h"
+#include "mirtk/Profiling.h"
+#include "mirtk/ObjectFactory.h"
+#include "mirtk/VtkMath.h"
 
-#include <vtkSmartPointer.h>
-#include <vtkPoints.h>
-#include <vtkCellArray.h>
-#include <vtkFloatArray.h>
-#include <vtkPolyData.h>
-#include <vtkPointData.h>
+#include "vtkSmartPointer.h"
+#include "vtkPoints.h"
+#include "vtkCellArray.h"
+#include "vtkFloatArray.h"
+#include "vtkPolyData.h"
+#include "vtkPointData.h"
 // Due to a bug in vtkKdTreePointLocator, calling BuildLocator
 // is not sufficient to make FindClosestPoint thread-safe as it does
 // not call vtkBSPIntersections::BuildRegionsList
 // (cf. http://www.vtk.org/Bug/view.php?id=15206 ).
 // Therefore, use Octree instead of Kd-tree in the meantime.
-#include <vtkOctreePointLocator.h>
+#include "vtkOctreePointLocator.h"
 
 
 namespace mirtk {

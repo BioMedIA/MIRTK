@@ -17,10 +17,10 @@
  * limitations under the License.
  */
 
-#include <mirtkRegisteredSurface.h>
-#include <mirtkTransformation.h>
+#include "mirtk/RegisteredSurface.h"
+#include "mirtk/Transformation.h"
 
-#include <vtkPolyData.h>
+#include "vtkPolyData.h"
 
 
 namespace mirtk {

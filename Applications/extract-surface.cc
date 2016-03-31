@@ -18,13 +18,13 @@
  * limitations under the License.
  */
 
-#include <mirtkCommon.h>
-#include <mirtkOptions.h>
+#include "mirtk/Common.h"
+#include "mirtk/Options.h"
 
-#include <mirtkIOConfig.h>
+#include "mirtk/IOConfig.h"
 
-#include <mirtkPointSetUtils.h>
-#include <mirtkImplicitSurfaceUtils.h>
+#include "mirtk/PointSetUtils.h"
+#include "mirtk/ImplicitSurfaceUtils.h"
 
 using namespace mirtk;
 using namespace mirtk::ImplicitSurfaceUtils;

@@ -17,17 +17,17 @@
  * limitations under the License.
  */
 
-#include <mirtkVector.h>
+#include "mirtk/Vector.h"
 
-#include <mirtkAssert.h>
-#include <mirtkMemory.h>
-#include <mirtkArray.h>
-#include <mirtkIndent.h>
-#include <mirtkCfstream.h>
+#include "mirtk/Assert.h"
+#include "mirtk/Memory.h"
+#include "mirtk/Array.h"
+#include "mirtk/Indent.h"
+#include "mirtk/Cfstream.h"
 
-#include <mirtkNumericsConfig.h>
+#include "mirtk/NumericsConfig.h"
 #if MIRTK_Numerics_WITH_MATLAB
-#  include <mirtkMatlab.h>
+#  include "mirtk/Matlab.h"
 #endif
 
 

@@ -20,7 +20,7 @@
 #ifndef MIRTK_MutualImageInformation_H
 #define MIRTK_MutualImageInformation_H
 
-#include <mirtkProbabilisticImageSimilarity.h>
+#include "mirtk/ProbabilisticImageSimilarity.h"
 
 
 namespace mirtk {

@@ -20,7 +20,7 @@
 #ifndef MIRTK_NiftiImageReader_H
 #define MIRTK_NiftiImageReader_H
 
-#include <mirtkImageReader.h>
+#include "mirtk/ImageReader.h"
 
 
 namespace mirtk {

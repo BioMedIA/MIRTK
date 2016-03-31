@@ -21,9 +21,9 @@
 #ifndef MIRTK_ImageTransformation_H
 #define MIRTK_ImageTransformation_H
 
-#include <mirtkTransformation.h>
-#include <mirtkGenericImage.h>
-#include <mirtkInterpolateImageFunction.h>
+#include "mirtk/Transformation.h"
+#include "mirtk/GenericImage.h"
+#include "mirtk/InterpolateImageFunction.h"
 
 
 namespace mirtk {

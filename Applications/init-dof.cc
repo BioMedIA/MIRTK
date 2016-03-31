@@ -17,31 +17,31 @@
  * limitations under the License.
  */
 
-#include <mirtkCommon.h>
-#include <mirtkOptions.h>
+#include "mirtk/Common.h"
+#include "mirtk/Options.h"
 
-#include <mirtkIOConfig.h>
-#include <mirtkPointSamples.h>
+#include "mirtk/IOConfig.h"
+#include "mirtk/PointSamples.h"
 
-#include <mirtkTransformation.h>
-#include <mirtkHomogeneousTransformation.h>
-#include <mirtkFreeFormTransformation.h>
-#include <mirtkFreeFormTransformation3D.h>
-#include <mirtkMultiLevelTransformation.h>
+#include "mirtk/Transformation.h"
+#include "mirtk/HomogeneousTransformation.h"
+#include "mirtk/FreeFormTransformation.h"
+#include "mirtk/FreeFormTransformation3D.h"
+#include "mirtk/MultiLevelTransformation.h"
 
-#include <mirtkRigidTransformation.h>
-#include <mirtkSimilarityTransformation.h>
-#include <mirtkAffineTransformation.h>
-#include <mirtkBSplineFreeFormTransformation3D.h>
-#include <mirtkBSplineFreeFormTransformationSV.h>
-#include <mirtkMultiLevelFreeFormTransformation.h>
+#include "mirtk/RigidTransformation.h"
+#include "mirtk/SimilarityTransformation.h"
+#include "mirtk/AffineTransformation.h"
+#include "mirtk/BSplineFreeFormTransformation3D.h"
+#include "mirtk/BSplineFreeFormTransformationSV.h"
+#include "mirtk/MultiLevelFreeFormTransformation.h"
 
 #ifdef HAVE_MIRTK_PointSet
-#  include <vtkSmartPointer.h>
-#  include <vtkPointSet.h>
-#  include <vtkPointData.h>
-#  include <vtkDataArray.h>
-#  include <mirtkPointSetUtils.h>
+#  include "vtkSmartPointer.h"
+#  include "vtkPointSet.h"
+#  include "vtkPointData.h"
+#  include "vtkDataArray.h"
+#  include "mirtk/PointSetUtils.h"
 #endif // HAVE_MIRTK_PointSet
 
 using namespace mirtk;

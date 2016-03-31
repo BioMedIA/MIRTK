@@ -20,7 +20,7 @@
 #ifndef MIRTK_String_H
 #define MIRTK_String_H
 
-#include <mirtkCommonExport.h>
+#include "mirtk/CommonExport.h"
 
 #include <cctype>
 #include <cstring>
@@ -29,7 +29,7 @@
 #include <iomanip>
 #include <limits>
 
-#include <mirtkArray.h>
+#include "mirtk/Array.h"
 
 
 namespace mirtk {

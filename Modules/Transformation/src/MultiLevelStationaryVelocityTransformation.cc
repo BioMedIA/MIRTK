@@ -17,13 +17,13 @@
  * limitations under the License.
  */
 
-#include <mirtkMultiLevelStationaryVelocityTransformation.h>
+#include "mirtk/MultiLevelStationaryVelocityTransformation.h"
 
-#include <mirtkEvent.h>
-#include <mirtkArray.h>
-#include <mirtkParallel.h>
-#include <mirtkProfiling.h>
-#include <mirtkImageToInterpolationCoefficients.h>
+#include "mirtk/Event.h"
+#include "mirtk/Array.h"
+#include "mirtk/Parallel.h"
+#include "mirtk/Profiling.h"
+#include "mirtk/ImageToInterpolationCoefficients.h"
 
 
 namespace mirtk {

@@ -18,15 +18,15 @@
  * limitations under the License.
  */
 
-#include <mirtkCommon.h>
-#include <mirtkOptions.h>
+#include "mirtk/Common.h"
+#include "mirtk/Options.h"
 
-#include <mirtkIOConfig.h>
-#include <mirtkResampling.h>
-#include <mirtkLinearInterpolateImageFunction.h>
+#include "mirtk/IOConfig.h"
+#include "mirtk/Resampling.h"
+#include "mirtk/LinearInterpolateImageFunction.h"
 
-#include <mirtkCityBlockDistanceTransform.h>
-#include <mirtkEuclideanDistanceTransform.h>
+#include "mirtk/CityBlockDistanceTransform.h"
+#include "mirtk/EuclideanDistanceTransform.h"
 
 using namespace mirtk;
 

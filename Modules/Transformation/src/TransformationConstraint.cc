@@ -17,7 +17,7 @@
  * limitations under the License.
  */
 
-#include <mirtkTransformationConstraint.h>
+#include "mirtk/TransformationConstraint.h"
 
 
 namespace mirtk {

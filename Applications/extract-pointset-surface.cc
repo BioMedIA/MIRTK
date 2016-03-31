@@ -17,34 +17,34 @@
  * limitations under the License.
  */
 
-#include <mirtkCommon.h>
-#include <mirtkOptions.h>
+#include "mirtk/Common.h"
+#include "mirtk/Options.h"
 
-#include <mirtkGenericImage.h>
-#include <mirtkPointSetUtils.h>
-#include <mirtkEdgeConnectivity.h>
-#include <mirtkSurfaceCollisions.h>
-#include <mirtkEuclideanDistanceTransform.h>
+#include "mirtk/GenericImage.h"
+#include "mirtk/PointSetUtils.h"
+#include "mirtk/EdgeConnectivity.h"
+#include "mirtk/SurfaceCollisions.h"
+#include "mirtk/EuclideanDistanceTransform.h"
 
-#include <mirtkInterpolateImageFunction.h>
-#include <mirtkLinearInterpolateImageFunction.hxx>
+#include "mirtk/InterpolateImageFunction.h"
+#include "mirtk/LinearInterpolateImageFunction.hxx"
 
-#include <vtkSmartPointer.h>
-#include <vtkPointSet.h>
-#include <vtkPolyData.h>
-#include <vtkImageData.h>
-#include <vtkImageStencilData.h>
-#include <vtkUnstructuredGrid.h>
-#include <vtkSphereSource.h>
-#include <vtkDelaunay2D.h>
-#include <vtkDelaunay3D.h>
-#include <vtkBooleanOperationPolyDataFilter.h>
-#include <vtkPolyDataConnectivityFilter.h>
-#include <vtkFillHolesFilter.h>
-#include <vtkPointLocator.h>
-#include <vtkPolyDataNormals.h>
-#include <vtkCleanPolyData.h>
-#include <vtkGenericCell.h>
+#include "vtkSmartPointer.h"
+#include "vtkPointSet.h"
+#include "vtkPolyData.h"
+#include "vtkImageData.h"
+#include "vtkImageStencilData.h"
+#include "vtkUnstructuredGrid.h"
+#include "vtkSphereSource.h"
+#include "vtkDelaunay2D.h"
+#include "vtkDelaunay3D.h"
+#include "vtkBooleanOperationPolyDataFilter.h"
+#include "vtkPolyDataConnectivityFilter.h"
+#include "vtkFillHolesFilter.h"
+#include "vtkPointLocator.h"
+#include "vtkPolyDataNormals.h"
+#include "vtkCleanPolyData.h"
+#include "vtkGenericCell.h"
 
 using namespace mirtk;
 

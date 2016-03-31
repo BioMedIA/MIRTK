@@ -20,8 +20,8 @@
 #ifndef MIRTK_FastLinearImageGradientFunction3D_H
 #define MIRTK_FastLinearImageGradientFunction3D_H
 
-#include <mirtkBaseImage.h>
-#include <mirtkFastLinearImageGradientFunction.h>
+#include "mirtk/BaseImage.h"
+#include "mirtk/FastLinearImageGradientFunction.h"
 
 
 namespace mirtk {

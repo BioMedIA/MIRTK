@@ -20,11 +20,11 @@
 #ifndef MIRTK_CurrentsDistance_H
 #define MIRTK_CurrentsDistance_H
 
-#include <mirtkPointSetDistance.h>
+#include "mirtk/PointSetDistance.h"
 
-#include <vtkSmartPointer.h>
-#include <vtkPointSet.h>
-#include <vtkPolyData.h>
+#include "vtkSmartPointer.h"
+#include "vtkPointSet.h"
+#include "vtkPolyData.h"
 
 
 namespace mirtk {

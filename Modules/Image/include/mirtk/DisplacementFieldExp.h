@@ -20,7 +20,7 @@
 #ifndef MIRTK_DisplacementFieldLog_H
 #define MIRTK_DisplacementFieldLog_H
 
-#include <mirtkDisplacementToVelocityFieldBCH.h>
+#include "mirtk/DisplacementToVelocityFieldBCH.h"
 
 
 namespace mirtk {

@@ -20,21 +20,21 @@
 #ifndef MIRTK_HashImage_HXX
 #define MIRTK_HashImage_HXX
 
-#include <mirtkImageConfig.h>
-#include <mirtkMath.h>
-#include <mirtkMemory.h>
-#include <mirtkPath.h>
-#include <mirtkMatrix3x3.h>
-#include <mirtkVoxelCast.h>
-#include <mirtkVector3D.h>
-#include <mirtkPoint.h>
+#include "mirtk/ImageConfig.h"
+#include "mirtk/Math.h"
+#include "mirtk/Memory.h"
+#include "mirtk/Path.h"
+#include "mirtk/Matrix3x3.h"
+#include "mirtk/VoxelCast.h"
+#include "mirtk/Vector3D.h"
+#include "mirtk/Point.h"
 
-#include <mirtkImageReader.h>
-#include <mirtkImageWriter.h>
+#include "mirtk/ImageReader.h"
+#include "mirtk/ImageWriter.h"
 
 
 #if MIRTK_Image_WITH_VTK
-#  include <vtkStructuredPoints.h>
+#  include "vtkStructuredPoints.h"
 #endif
 
 // Default output image file name extension used by HashImage::Write

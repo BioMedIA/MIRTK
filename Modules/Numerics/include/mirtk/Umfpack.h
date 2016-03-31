@@ -18,7 +18,7 @@
  */
 
 /**
- * \file  mirtkUmfpack.h
+ * \file  mirtk/Umfpack.h
  * \brief Interface to UMFPACK routines.
  *
  * \attention Include this header in internal files such as .cc translation units only!

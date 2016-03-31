@@ -20,11 +20,11 @@
 #ifndef MIRTK_TransformationConstraint_H
 #define MIRTK_TransformationConstraint_H
 
-#include <mirtkEnergyTerm.h>
-#include <mirtkConstraintMeasure.h>
-#include <mirtkImageAttributes.h>
-#include <mirtkFreeFormTransformation.h>
-#include <mirtkMultiLevelTransformation.h>
+#include "mirtk/EnergyTerm.h"
+#include "mirtk/ConstraintMeasure.h"
+#include "mirtk/ImageAttributes.h"
+#include "mirtk/FreeFormTransformation.h"
+#include "mirtk/MultiLevelTransformation.h"
 
 
 namespace mirtk {

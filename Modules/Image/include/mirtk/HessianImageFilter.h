@@ -20,7 +20,7 @@
 #ifndef MIRTK_HessianImageFilter_H
 #define MIRTK_HessianImageFilter_H
 
-#include <mirtkImageToImage.h>
+#include "mirtk/ImageToImage.h"
 
 
 namespace mirtk {

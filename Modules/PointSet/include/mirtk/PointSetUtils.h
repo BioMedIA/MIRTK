@@ -20,9 +20,9 @@
 #ifndef MIRTK_PointSetUtils_H
 #define MIRTK_PointSetUtils_H
 
-#include <mirtkMath.h>
-#include <mirtkVtk.h>
-#include <mirtkVtkMath.h>
+#include "mirtk/Math.h"
+#include "mirtk/Vtk.h"
+#include "mirtk/VtkMath.h"
 
 class vtkDataSet;
 class vtkDataSetAttributes;

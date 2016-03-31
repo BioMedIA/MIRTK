@@ -19,9 +19,9 @@
 #ifndef MIRTK_Matrix3x3_H
 #define MIRTK_Matrix3x3_H
 
-#include <mirtkNumericsExport.h>
+#include "mirtk/NumericsExport.h"
 
-#include <mirtkVector3.h>
+#include "mirtk/Vector3.h"
 
 
 namespace mirtk {

@@ -21,9 +21,9 @@
 #ifndef MIRTK_HomogeneousTransformation_H
 #define MIRTK_HomogeneousTransformation_H
 
-#include <mirtkTransformation.h>
+#include "mirtk/Transformation.h"
 
-#include <mirtkMatrix.h>
+#include "mirtk/Matrix.h"
 
 #include <cmath>
 

@@ -17,25 +17,25 @@
  * limitations under the License.
  */
 
-#include <mirtkDataOp.h>
+#include "mirtk/DataOp.h"
 
-#include <mirtkPath.h>
-#include <mirtkMemory.h>
-#include <mirtkBaseImage.h>
-#include <mirtkImageAttributes.h>
+#include "mirtk/Path.h"
+#include "mirtk/Memory.h"
+#include "mirtk/BaseImage.h"
+#include "mirtk/ImageAttributes.h"
 
-#include <mirtkImageConfig.h>
+#include "mirtk/ImageConfig.h"
 #if MIRTK_Image_WITH_VTK
-  #include <vtkSmartPointer.h>
-  #include <vtkDataSetReader.h>
-  #include <vtkDataSetWriter.h>
-  #include <vtkXMLGenericDataObjectReader.h>
-  #include <vtkXMLDataSetWriter.h>
-  #include <vtkImageData.h>
-  #include <vtkPointSet.h>
-  #include <vtkPointData.h>
-  #include <vtkFloatArray.h>
-  #include <mirtkVtk.h>
+  #include "vtkSmartPointer.h"
+  #include "vtkDataSetReader.h"
+  #include "vtkDataSetWriter.h"
+  #include "vtkXMLGenericDataObjectReader.h"
+  #include "vtkXMLDataSetWriter.h"
+  #include "vtkImageData.h"
+  #include "vtkPointSet.h"
+  #include "vtkPointData.h"
+  #include "vtkFloatArray.h"
+  #include "mirtk/Vtk.h"
 #endif
 
 

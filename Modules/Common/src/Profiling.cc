@@ -17,10 +17,10 @@
  * limitations under the License.
  */
 
-#include <mirtkProfiling.h>
+#include "mirtk/Profiling.h"
 
-#include <mirtkOptions.h>
-#include <mirtkStream.h>
+#include "mirtk/Options.h"
+#include "mirtk/Stream.h"
 
 
 namespace mirtk {

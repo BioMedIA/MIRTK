@@ -17,12 +17,12 @@
  * limitations under the License.
  */
 
-#include <mirtkConnectedComponents.h>
+#include "mirtk/ConnectedComponents.h"
 
-#include <mirtkAssert.h>
-#include <mirtkQueue.h>
-#include <mirtkOrderedSet.h>
-#include <mirtkAlgorithm.h>
+#include "mirtk/Assert.h"
+#include "mirtk/Queue.h"
+#include "mirtk/OrderedSet.h"
+#include "mirtk/Algorithm.h"
 
 
 namespace mirtk {

@@ -16,12 +16,12 @@
  * limitations under the License.
  */
 
-#include <mirtkMatrix3x3.h>
+#include "mirtk/Matrix3x3.h"
 
-#include <mirtkArith.h>
-#include <mirtkMath.h>
-#include <mirtkMemory.h>
-#include <mirtkVector3.h>
+#include "mirtk/Arith.h"
+#include "mirtk/Math.h"
+#include "mirtk/Memory.h"
+#include "mirtk/Vector3.h"
 
 
 namespace mirtk {

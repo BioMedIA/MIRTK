@@ -20,8 +20,8 @@
 #ifndef MIRTK_InverseAffineTransformation_H
 #define MIRTK_InverseAffineTransformation_H
 
-#include <mirtkAffineTransformation.h>
-#include <mirtkEventDelegate.h>
+#include "mirtk/AffineTransformation.h"
+#include "mirtk/EventDelegate.h"
 
 
 namespace mirtk {

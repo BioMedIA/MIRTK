@@ -17,17 +17,17 @@
  * limitations under the License.
  */
 
-#include <mirtkRegistrationEnergy.h>
+#include "mirtk/RegistrationEnergy.h"
 
-#include <mirtkMath.h>
-#include <mirtkMemory.h>
-#include <mirtkParallel.h>
-#include <mirtkProfiling.h>
+#include "mirtk/Math.h"
+#include "mirtk/Memory.h"
+#include "mirtk/Parallel.h"
+#include "mirtk/Profiling.h"
 
-#include <mirtkFreeFormTransformation.h>
-#include <mirtkMultiLevelTransformation.h>
+#include "mirtk/FreeFormTransformation.h"
+#include "mirtk/MultiLevelTransformation.h"
 
-#include <mirtkSparsityConstraint.h>
+#include "mirtk/SparsityConstraint.h"
 
 
 namespace mirtk {

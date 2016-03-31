@@ -17,10 +17,10 @@
  * limitations under the License.
  */
 
-#include <mirtkSparsityConstraint.h>
+#include "mirtk/SparsityConstraint.h"
 
-#include <mirtkMath.h>
-#include <mirtkObjectFactory.h>
+#include "mirtk/Math.h"
+#include "mirtk/ObjectFactory.h"
 
 
 namespace mirtk {

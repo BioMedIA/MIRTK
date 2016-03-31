@@ -17,10 +17,10 @@
  * limitations under the License.
  */
 
-#include <mirtkIntensityCrossCorrelation.h>
+#include "mirtk/IntensityCrossCorrelation.h"
 
-#include <mirtkMath.h>
-#include <mirtkObjectFactory.h>
+#include "mirtk/Math.h"
+#include "mirtk/ObjectFactory.h"
 
 
 namespace mirtk {

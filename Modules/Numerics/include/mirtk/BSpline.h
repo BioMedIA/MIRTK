@@ -20,11 +20,11 @@
 #ifndef MIRTK_BSpline_H
 #define MIRTK_BSpline_H
 
-#include <mirtkConfig.h>
-#include <mirtkMath.h>
-#include <mirtkStream.h>
+#include "mirtk/Config.h"
+#include "mirtk/Math.h"
+#include "mirtk/Stream.h"
 
-#include <mirtkNumericsExport.h>
+#include "mirtk/NumericsExport.h"
 
 
 namespace mirtk {

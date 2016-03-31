@@ -20,9 +20,9 @@
 #ifndef MIRTK_LineSearch_H
 #define MIRTK_LineSearch_H
 
-#include <mirtkLocalOptimizer.h>
+#include "mirtk/LocalOptimizer.h"
 
-#include <mirtkMath.h>
+#include "mirtk/Math.h"
 
 
 namespace mirtk {

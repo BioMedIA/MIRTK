@@ -20,7 +20,7 @@
 #ifndef MIRTK_IntensityCrossCorrelation_H
 #define MIRTK_IntensityCrossCorrelation_H
 
-#include <mirtkImageSimilarity.h>
+#include "mirtk/ImageSimilarity.h"
 
 
 namespace mirtk {

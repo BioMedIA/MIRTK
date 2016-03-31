@@ -17,23 +17,23 @@
  * limitations under the License.
  */
 
-#include <mirtkPolyDataSmoothing.h>
+#include "mirtk/PolyDataSmoothing.h"
 
-#include <mirtkMath.h>
-#include <mirtkEdgeTable.h>
-#include <mirtkMatrix3x3.h>
-#include <mirtkVector3.h>
-#include <mirtkPointSetUtils.h>
+#include "mirtk/Math.h"
+#include "mirtk/EdgeTable.h"
+#include "mirtk/Matrix3x3.h"
+#include "mirtk/Vector3.h"
+#include "mirtk/PointSetUtils.h"
 
-#include <mirtkVtk.h>
-#include <mirtkVtkMath.h>
+#include "mirtk/Vtk.h"
+#include "mirtk/VtkMath.h"
 
-#include <vtkPoints.h>
-#include <vtkIdList.h>
-#include <vtkCellArray.h>
-#include <vtkPointData.h>
-#include <vtkDataArray.h>
-#include <vtkPolyDataNormals.h>
+#include "vtkPoints.h"
+#include "vtkIdList.h"
+#include "vtkCellArray.h"
+#include "vtkPointData.h"
+#include "vtkDataArray.h"
+#include "vtkPolyDataNormals.h"
 
 
 namespace mirtk {

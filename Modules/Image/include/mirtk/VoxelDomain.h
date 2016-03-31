@@ -44,9 +44,9 @@ namespace mirtk {
  *
  * Example:
  * \code
- * #include <mirtkGenericImage.h>
- * #include <mirtkVoxelFunction.h>
- * #include <mirtkVoxelDomain.h>
+ * #include "mirtk/GenericImage.h"
+ * #include "mirtk/VoxelFunction.h"
+ * #include "mirtk/VoxelDomain.h"
  *
  * namespace mirtk {
  *

@@ -23,59 +23,60 @@
 ##############################################################################
 
 set(HEADERS
-  mirtkClosestCell.h
-  mirtkClosestPoint.h
-  mirtkClosestPointLabel.h
-  mirtkEdgeConnectivity.h
-  mirtkEdgeTable.h
-  mirtkFiducialMatch.h
-  mirtkFuzzyCorrespondence.h
-  mirtkImplicitSurfaceUtils.h
-  mirtkPointCorrespondence.h
-  mirtkPointLocator.h
-  mirtkPointSetUtils.h
-  mirtkPolyDataCurvature.h
-  mirtkPolyDataFilter.h
-  mirtkPolyDataRemeshing.h
-  mirtkPolyDataSmoothing.h
-  mirtkPolyhedron.h
-  mirtkRegisteredPointSet.h
-  mirtkRegisteredSurface.h
-  mirtkRobustClosestPoint.h
-  mirtkRobustPointMatch.h
-  mirtkSpectralDecomposition.h
-  mirtkSpectralMatch.h
-  mirtkSurfaceCollisions.h
-  mirtkTriangle.h
+  ${BINARY_INCLUDE_DIR}/mirtk/PointSetExport.h
+  ClosestCell.h
+  ClosestPoint.h
+  ClosestPointLabel.h
+  EdgeConnectivity.h
+  EdgeTable.h
+  FiducialMatch.h
+  FuzzyCorrespondence.h
+  ImplicitSurfaceUtils.h
+  PointCorrespondence.h
+  PointLocator.h
+  PointSetUtils.h
+  PolyDataCurvature.h
+  PolyDataFilter.h
+  PolyDataRemeshing.h
+  PolyDataSmoothing.h
+  Polyhedron.h
+  RegisteredPointSet.h
+  RegisteredSurface.h
+  RobustClosestPoint.h
+  RobustPointMatch.h
+  SpectralDecomposition.h
+  SpectralMatch.h
+  SurfaceCollisions.h
+  Triangle.h
 )
 
 set(SOURCES
   dfsurface.h
-  mirtkClosestCell.cc
-  mirtkClosestPoint.cc
-  mirtkClosestPointLabel.cc
-  mirtkEdgeConnectivity.cc
-  mirtkEdgeTable.cc
-  mirtkFiducialMatch.cc
-  mirtkFuzzyCorrespondence.cc
-  mirtkFuzzyCorrespondenceUtils.cc
-  mirtkFuzzyCorrespondenceUtils.h
-  mirtkImplicitSurfaceUtils.cc
-  mirtkPointCorrespondence.cc
-  mirtkPointLocator.cc
-  mirtkPointSetUtils.cc
-  mirtkPolyDataCurvature.cc
-  mirtkPolyDataFilter.cc
-  mirtkPolyDataRemeshing.cc
-  mirtkPolyDataSmoothing.cc
-  mirtkPolyhedron.cc
-  mirtkRegisteredPointSet.cc
-  mirtkRegisteredSurface.cc
-  mirtkRobustClosestPoint.cc
-  mirtkRobustPointMatch.cc
-  mirtkSpectralDecomposition.cc
-  mirtkSpectralMatch.cc
-  mirtkSurfaceCollisions.cc
+  ClosestCell.cc
+  ClosestPoint.cc
+  ClosestPointLabel.cc
+  EdgeConnectivity.cc
+  EdgeTable.cc
+  FiducialMatch.cc
+  FuzzyCorrespondence.cc
+  FuzzyCorrespondenceUtils.cc
+  FuzzyCorrespondenceUtils.h
+  ImplicitSurfaceUtils.cc
+  PointCorrespondence.cc
+  PointLocator.cc
+  PointSetUtils.cc
+  PolyDataCurvature.cc
+  PolyDataFilter.cc
+  PolyDataRemeshing.cc
+  PolyDataSmoothing.cc
+  Polyhedron.cc
+  RegisteredPointSet.cc
+  RegisteredSurface.cc
+  RobustClosestPoint.cc
+  RobustPointMatch.cc
+  SpectralDecomposition.cc
+  SpectralMatch.cc
+  SurfaceCollisions.cc
 )
 
 set(DEPENDS

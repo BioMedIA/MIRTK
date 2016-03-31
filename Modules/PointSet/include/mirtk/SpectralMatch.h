@@ -20,9 +20,9 @@
 #ifndef MIRTK_SpectralMatch_H
 #define MIRTK_SpectralMatch_H
 
-#include <mirtkPointCorrespondence.h>
+#include "mirtk/PointCorrespondence.h"
 
-#include <mirtkPointSet.h>
+#include "mirtk/PointSet.h"
 
 
 namespace mirtk {

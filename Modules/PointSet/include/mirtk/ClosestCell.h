@@ -20,10 +20,10 @@
 #ifndef MIRTK_ClosestCell_H
 #define MIRTK_ClosestCell_H
 
-#include <mirtkPointCorrespondence.h>
+#include "mirtk/PointCorrespondence.h"
 
-#include <mirtkArray.h>
-#include <mirtkPointSet.h>
+#include "mirtk/Array.h"
+#include "mirtk/PointSet.h"
 
 
 namespace mirtk {

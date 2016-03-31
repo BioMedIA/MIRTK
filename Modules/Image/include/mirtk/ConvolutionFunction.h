@@ -20,10 +20,10 @@
 #ifndef MIRTK_ConvolutionFunction_H
 #define MIRTK_ConvolutionFunction_H
 
-#include <mirtkVoxel.h>
-#include <mirtkVoxelFunction.h>
-#include <mirtkBaseImage.h>
-#include <mirtkGenericImage.h>
+#include "mirtk/Voxel.h"
+#include "mirtk/VoxelFunction.h"
+#include "mirtk/BaseImage.h"
+#include "mirtk/GenericImage.h"
 
 
 namespace mirtk {

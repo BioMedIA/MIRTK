@@ -18,13 +18,13 @@
  * limitations under the License.
  */
 
-#include <mirtkGaussianBlurringWithPadding.h>
+#include "mirtk/GaussianBlurringWithPadding.h"
 
-#include <mirtkMemory.h>
-#include <mirtkGenericImage.h>
-#include <mirtkProfiling.h>
-#include <mirtkParallel.h>
-#include <mirtkConvolutionFunction.h>
+#include "mirtk/Memory.h"
+#include "mirtk/GenericImage.h"
+#include "mirtk/Profiling.h"
+#include "mirtk/Parallel.h"
+#include "mirtk/ConvolutionFunction.h"
 
 
 namespace mirtk {

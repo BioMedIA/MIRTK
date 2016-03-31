@@ -20,9 +20,9 @@
 #ifndef MIRTK_Downsampling_H
 #define MIRTK_Downsampling_H
 
-#include <mirtkGenericImage.h>
-#include <mirtkImageToImage.h>
-#include <mirtkScalarFunction.h>
+#include "mirtk/GenericImage.h"
+#include "mirtk/ImageToImage.h"
+#include "mirtk/ScalarFunction.h"
 
 
 namespace mirtk {

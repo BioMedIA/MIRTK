@@ -20,10 +20,10 @@
 #ifndef MIRTK_ProbabilisticImageSimilarity_H
 #define MIRTK_ProbabilisticImageSimilarity_H
 
-#include <mirtkImageSimilarity.h>
+#include "mirtk/ImageSimilarity.h"
 
-#include <mirtkHistogram2D.h>
-#include <mirtkParallel.h>
+#include "mirtk/Histogram2D.h"
+#include "mirtk/Parallel.h"
 
 
 namespace mirtk {

@@ -20,9 +20,9 @@
 #ifndef MIRTK_Parallel_H
 #define MIRTK_Parallel_H
 
-#include <mirtkCommonExport.h>
+#include "mirtk/CommonExport.h"
 
-#include <mirtkStream.h>
+#include "mirtk/Stream.h"
 
 #include <memory>
 

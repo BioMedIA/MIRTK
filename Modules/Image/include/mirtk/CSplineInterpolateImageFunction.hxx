@@ -20,11 +20,11 @@
 #ifndef MIRTK_CSplineInterpolateImageFunction_HXX
 #define MIRTK_CSplineInterpolateImageFunction_HXX
 
-#include <mirtkCSplineInterpolateImageFunction.h>
+#include "mirtk/CSplineInterpolateImageFunction.h"
 
-#include <mirtkMath.h>
-#include <mirtkVoxelCast.h>
-#include <mirtkInterpolateImageFunction.hxx>
+#include "mirtk/Math.h"
+#include "mirtk/VoxelCast.h"
+#include "mirtk/InterpolateImageFunction.hxx"
 
 
 namespace mirtk {

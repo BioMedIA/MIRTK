@@ -18,11 +18,11 @@
  * limitations under the License.
  */
 
-#include <mirtkNiftiImage.h>
+#include "NiftiImage.h"
 
-#include <mirtkMath.h>
-#include <mirtkMemory.h>
-#include <mirtkMatrix.h>
+#include "mirtk/Math.h"
+#include "mirtk/Memory.h"
+#include "mirtk/Matrix.h"
 
 
 namespace mirtk {

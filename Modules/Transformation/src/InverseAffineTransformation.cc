@@ -17,10 +17,10 @@
  * limitations under the License.
  */
 
-#include <mirtkInverseAffineTransformation.h>
+#include "mirtk/InverseAffineTransformation.h"
 
-#include <mirtkMath.h>
-#include <mirtkMemory.h>
+#include "mirtk/Math.h"
+#include "mirtk/Memory.h"
 
 
 namespace mirtk {

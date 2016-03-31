@@ -20,16 +20,16 @@
 #ifndef MIRTK_InterpolateImageFunction_H
 #define MIRTK_InterpolateImageFunction_H
 
-#include <mirtkInterpolationMode.h>
-#include <mirtkPoint.h>
-#include <mirtkVector.h>
-#include <mirtkVoxel.h>
-#include <mirtkVoxelCast.h>
-#include <mirtkBaseImage.h>
-#include <mirtkImageFunction.h>
-#include <mirtkUnaryVoxelFunction.h>
+#include "mirtk/InterpolationMode.h"
+#include "mirtk/Point.h"
+#include "mirtk/Vector.h"
+#include "mirtk/Voxel.h"
+#include "mirtk/VoxelCast.h"
+#include "mirtk/BaseImage.h"
+#include "mirtk/ImageFunction.h"
+#include "mirtk/UnaryVoxelFunction.h"
 
-#include <mirtkExtrapolateImageFunction.h>
+#include "mirtk/ExtrapolateImageFunction.h"
 
 
 namespace mirtk {

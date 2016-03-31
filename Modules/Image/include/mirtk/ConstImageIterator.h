@@ -20,10 +20,10 @@
 #ifndef MIRTK_ConstImageIterator_H
 #define MIRTK_ConstImageIterator_H
 
-#include <mirtkVoxel.h>
-#include <mirtkVector4D.h>
-#include <mirtkImageAttributes.h>
-#include <mirtkBaseImage.h>
+#include "mirtk/Voxel.h"
+#include "mirtk/Vector4D.h"
+#include "mirtk/ImageAttributes.h"
+#include "mirtk/BaseImage.h"
 
 
 namespace mirtk {

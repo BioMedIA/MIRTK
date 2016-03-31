@@ -20,9 +20,9 @@
 #ifndef MIRTK_CubicBSplineInterpolateImageFunction_H
 #define MIRTK_CubicBSplineInterpolateImageFunction_H
 
-#include <mirtkBSpline.h>
-#include <mirtkBaseImage.h>
-#include <mirtkInterpolateImageFunction.h>
+#include "mirtk/BSpline.h"
+#include "mirtk/BaseImage.h"
+#include "mirtk/InterpolateImageFunction.h"
 
 
 namespace mirtk {
