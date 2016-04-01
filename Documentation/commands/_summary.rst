@@ -45,6 +45,7 @@
    /commands/extract-pointset-surface
    /commands/extract-surface
    /commands/flip-image
+   /commands/help-rst
    /commands/info
    /commands/init-dof
    /commands/invert-dof
@@ -106,6 +107,7 @@ Command                        Description
 |extract-pointset-surface|     |extract-pointset-surface-brief-description|
 |extract-surface|              |extract-surface-brief-description|
 |flip-image|                   |flip-image-brief-description|
+|help-rst|                     |help-rst-brief-description|
 |info|                         |info-brief-description|
 |init-dof|                     |init-dof-brief-description|
 |invert-dof|                   |invert-dof-brief-description|
@@ -165,6 +167,7 @@ Command                        Description
 .. |extract-pointset-surface|     replace:: :doc:`/commands/extract-pointset-surface`
 .. |extract-surface|              replace:: :doc:`/commands/extract-surface`
 .. |flip-image|                   replace:: :doc:`/commands/flip-image`
+.. |help-rst|                     replace:: :doc:`/commands/help-rst`
 .. |info|                         replace:: :doc:`/commands/info`
 .. |init-dof|                     replace:: :doc:`/commands/init-dof`
 .. |invert-dof|                   replace:: :doc:`/commands/invert-dof`
@@ -223,6 +226,7 @@ Command                        Description
 .. include:: /commands/_summaries/extract-pointset-surface.rst
 .. include:: /commands/_summaries/extract-surface.rst
 .. include:: /commands/_summaries/flip-image.rst
+.. include:: /commands/_summaries/help-rst.rst
 .. include:: /commands/_summaries/info.rst
 .. include:: /commands/_summaries/init-dof.rst
 .. include:: /commands/_summaries/invert-dof.rst

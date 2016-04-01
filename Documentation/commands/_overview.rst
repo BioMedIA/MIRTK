@@ -11,11 +11,11 @@
 |erode-image|                  |evaluate-distance|            |evaluate-distortion|          |evaluate-dof|                
 |evaluate-jacobian|            |evaluate-overlap|             |evaluate-surface-overlap|     |extract-connected-components|
 |extract-connected-points|     |extract-image-region|         |extract-pointset-surface|     |extract-surface|             
-|flip-image|                   |info|                         |init-dof|                     |invert-dof|                  
-|map|                          |match-points|                 |offset-surface|               |open-image|                  
-|project-onto-surface|         |reflect-image|                |register|                     |remesh|                      
-|resample-image|               |smooth-image|                 |smooth-surface|               |transform-image|             
-|transform-points|            
+|flip-image|                   |help-rst|                     |info|                         |init-dof|                    
+|invert-dof|                   |map|                          |match-points|                 |offset-surface|              
+|open-image|                   |project-onto-surface|         |reflect-image|                |register|                    
+|remesh|                       |resample-image|               |smooth-image|                 |smooth-surface|              
+|transform-image|              |transform-points|            
 ============================== ============================== ============================== ==============================
 
 .. |average-dofs| replace:: :doc:`commands/average-dofs`
@@ -59,6 +59,7 @@
 .. |extract-pointset-surface| replace:: :doc:`commands/extract-pointset-surface`
 .. |extract-surface| replace:: :doc:`commands/extract-surface`
 .. |flip-image| replace:: :doc:`commands/flip-image`
+.. |help-rst| replace:: :doc:`commands/help-rst`
 .. |info| replace:: :doc:`commands/info`
 .. |init-dof| replace:: :doc:`commands/init-dof`
 .. |invert-dof| replace:: :doc:`commands/invert-dof`
