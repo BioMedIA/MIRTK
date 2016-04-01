@@ -150,7 +150,8 @@ set (
     CODE_DIRS      # list of directories containing source code files, see also CODE_DIR
     TOOLS_DIRS     # list of directories containing source code files of applications, see also TOOLS_DIR
     MODULE_DIRS    # list of separate module directories, see also MODULES_DIR
-    SUBDIRS        # list of additional (generic) project subdirectories
+    OTHER_DIRS     # list of additional (generic) project subdirectories
+    SUBDIRS        # deprecated option name for OTHER_DIRS
 )
 
 ## @brief Names of project meta-data.

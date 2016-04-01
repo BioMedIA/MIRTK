@@ -422,6 +422,9 @@ macro (basis_project_check_metadata)
   list (GET PROJECT_INCLUDE_DIRS 0 PROJECT_INCLUDE_DIR)
   list (GET PROJECT_CODE_DIRS    0 PROJECT_CODE_DIR)
   list (GET PROJECT_TOOLS_DIRS   0 PROJECT_TOOLS_DIR)
+  # deprecated SUBDIRS argument -- use OTHER_DIRS instead
+  list (APPEND PROJECT_OTHER_DIRS ${PROJECT_SUBDIRS})
+  unset(PROJECT_SUBDIRS)
   # let basis_project_begin() know that basis_project() was called
   set (BASIS_basis_project_CALLED TRUE)
 endmacro ()
@@ -742,6 +745,10 @@ endmacro ()
 #     @tp @b TESTING_DIR path @endtp
 #     <td>The root diretory of the testing source tree containing test data and implementations. (default: test)</td>
 #   </tr>
+#   <tr>
+#     @tp @b OTHER_DIRS path... @endtp
+#     <td>List of other project directories with CMakeLists.txt files in them. (default: none)</td>
+#   </tr>
 # </table>
 #
 # @returns Sets the following non-cached CMake variables.
@@ -787,6 +794,7 @@ endmacro ()
 # @retval PROJECT_MODULE_DIRS             See @c MODULE_DIRS.
 # @retval PROJECT_MODULES_DIR             See @c MODULES_DIR.
 # @retval PROJECT_TESTING_DIR             See @c TESTING_DIR.
+# @retval PROJECT_OTHER_DIRS              See @c OTHER_DIRS.
 #
 # @retval PROJECT_HAS_APPLICATIONS Whether any of the PROJECT_TOOLS_DIRS has a CMakeLists.txt file.
 #
@@ -2375,41 +2383,34 @@ macro (basis_project_begin)
   # --------------------------------------------------------------------------
   # subdirectories
 
-  # add default project directories to list of subdirectories
-  # (in reverse order always at beginning of list)
-  if (EXISTS "${PROJECT_EXAMPLE_DIR}/CMakeLists.txt" AND BUILD_EXAMPLE)
-    list (INSERT PROJECT_SUBDIRS 0 "${PROJECT_EXAMPLE_DIR}")
-  endif ()
-  if (EXISTS "${PROJECT_TESTING_DIR}/CMakeLists.txt" AND BUILD_TESTING)
-    list (INSERT PROJECT_SUBDIRS 0 "${PROJECT_TESTING_DIR}")
-  endif ()
-  if (EXISTS "${PROJECT_DATA_DIR}/CMakeLists.txt")
-    list (INSERT PROJECT_SUBDIRS 0 "${PROJECT_DATA_DIR}")
-  endif ()
-  if (BUILD_APPLICATIONS)
-    set (_TOOLS_DIRS)
-    foreach (_TOOLS_DIR IN LISTS PROJECT_TOOLS_DIRS)
-      if (EXISTS "${_TOOLS_DIR}/CMakeLists.txt")
-        list (APPEND _TOOLS_DIRS "${_TOOLS_DIR}")
-      endif ()
-    endforeach ()
-    if (_TOOLS_DIRS)
-      list (INSERT PROJECT_SUBDIRS 0 "${_TOOLS_DIRS}")
-    endif ()
-    unset (_TOOLS_DIR)
-    unset (_TOOLS_DIRS)
-  endif ()
-  set (_CODE_DIRS)
-  foreach (_CODE_DIR IN LISTS PROJECT_CODE_DIRS)
-    if (EXISTS "${_CODE_DIR}/CMakeLists.txt")
-      list (APPEND _CODE_DIRS "${_CODE_DIR}")
+  set(PROJECT_SUBDIRS)
+  foreach (_SUBDIR IN LISTS PROJECT_CODE_DIRS)
+    if (EXISTS "${_SUBDIR}/CMakeLists.txt")
+      list (APPEND PROJECT_SUBDIRS "${_SUBDIR}")
     endif ()
   endforeach ()
-  if (_CODE_DIRS)
-    list (INSERT PROJECT_SUBDIRS 0 "${_CODE_DIRS}")
+  if (BUILD_APPLICATIONS)
+    foreach (_SUBDIR IN LISTS PROJECT_TOOLS_DIRS)
+      if (EXISTS "${_SUBDIR}/CMakeLists.txt")
+        list (APPEND PROJECT_SUBDIRS "${_SUBDIR}")
+      endif ()
+    endforeach ()
   endif ()
-  unset (_CODE_DIR)
-  unset (_CODE_DIRS)
+  if (EXISTS "${PROJECT_DATA_DIR}/CMakeLists.txt")
+    list (APPEND PROJECT_SUBDIRS "${PROJECT_DATA_DIR}")
+  endif ()
+  if (EXISTS "${PROJECT_TESTING_DIR}/CMakeLists.txt" AND BUILD_TESTING)
+    list (APPEND PROJECT_SUBDIRS "${PROJECT_TESTING_DIR}")
+  endif ()
+  if (EXISTS "${PROJECT_EXAMPLE_DIR}/CMakeLists.txt" AND BUILD_EXAMPLE)
+    list (APPEND PROJECT_SUBDIRS "${PROJECT_EXAMPLE_DIR}")
+  endif ()
+  foreach (_SUBDIR IN LISTS PROJECT_OTHER_DIRS)
+    if (EXISTS "${_SUBDIR}/CMakeLists.txt")
+      list (APPEND PROJECT_SUBDIRS "${_SUBDIR}")
+    endif ()
+  endforeach ()
+  unset(_SUBDIR)
 
   if (BASIS_DEBUG)
     basis_dump_variables ("${PROJECT_BINARY_DIR}/VariablesAfterInitialization.cmake")
