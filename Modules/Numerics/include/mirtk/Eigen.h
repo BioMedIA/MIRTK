@@ -19,7 +19,7 @@
  */
 
 /**
- * \file  mirtkEigen.h
+ * \file  mirtk/Eigen.h
  * \brief Interface to Eigen3 library.
  *
  * \attention Include this header in internal files such as .cc translation units only!

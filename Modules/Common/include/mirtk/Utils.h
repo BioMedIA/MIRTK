@@ -18,7 +18,7 @@
  */
 
 /**
- * \file  mirtkUtils.h
+ * \file  mirtk/Utils.h
  * \brief Collection of a few very basic functions.
  */
 
