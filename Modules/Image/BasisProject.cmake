@@ -54,12 +54,12 @@ basis_project (
   # ----------------------------------------------------------------------------
   # dependencies
   DEPENDS
-    PythonInterp # mirtkForEachVoxelFunction.py generator script
     MIRTK{Common,Numerics}
     #<dependency>
   OPTIONAL_DEPENDS
     TBB{tbb}
     VTK-7|6{vtkCommonCore,vtkCommonDataModel,vtkIOLegacy,vtkIOXML}
+    PythonInterp # ForEachVoxelFunction.py generator script
     #<optional-dependency>
   TEST_DEPENDS
     GTest

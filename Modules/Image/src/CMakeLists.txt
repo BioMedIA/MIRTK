@@ -235,39 +235,41 @@ endif ()
 
 # ------------------------------------------------------------------------------
 # ForEachVoxel*Function headers
-set(FOREACHVOXELFUNCTIONS
-  ForEachUnaryVoxelFunction
-  ForEachBinaryVoxelFunction
-  ForEachTernaryVoxelFunction
-  ForEachQuaternaryVoxelFunction
-  ForEachQuinaryVoxelFunction
-  ForEachSenaryVoxelFunction
-  ForEachSeptenaryVoxelFunction
-  ForEachOctaryVoxelFunction
-  ForEachNonaryVoxelFunction
-)
-
-foreach(f IN LISTS FOREACHVOXELFUNCTIONS)
-  string(REGEX REPLACE "ForEach|VoxelFunction" "" arity "${f}")
-  string(TOLOWER "${arity}" arity)
-  add_custom_command(
-    OUTPUT  "${PROJECT_INCLUDE_DIR}/mirtk/${f}.h"
-    COMMAND "${PYTHON_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/ForEachVoxelFunction.py"
-            ${arity} "${PROJECT_INCLUDE_DIR}/mirtk/${f}.h"
-    DEPENDS ForEachVoxelFunction.py
-    COMMENT "Generating source file mirtk/${f}.h"
+if (PythonInterp_FOUND)
+  set(FOREACHVOXELFUNCTIONS
+    ForEachUnaryVoxelFunction
+    ForEachBinaryVoxelFunction
+    ForEachTernaryVoxelFunction
+    ForEachQuaternaryVoxelFunction
+    ForEachQuinaryVoxelFunction
+    ForEachSenaryVoxelFunction
+    ForEachSeptenaryVoxelFunction
+    ForEachOctaryVoxelFunction
+    ForEachNonaryVoxelFunction
   )
-  add_custom_target(foreachvoxel_${arity} DEPENDS "${PROJECT_INCLUDE_DIR}/mirtk/${f}.h")
-  list(APPEND FOREACHVOXELDEPENDS foreachvoxel_${arity})
-  list(APPEND HEADERS ${f}.h)
-endforeach()
-
-add_custom_target(foreachvoxel
-  DEPENDS ${FOREACHVOXELDEPENDS}
-  SOURCES ForEachVoxelFunction.py
-)
-
-list(APPEND DEPENDS foreachvoxel)
+  
+  foreach(f IN LISTS FOREACHVOXELFUNCTIONS)
+    string(REGEX REPLACE "ForEach|VoxelFunction" "" arity "${f}")
+    string(TOLOWER "${arity}" arity)
+    add_custom_command(
+      OUTPUT  "${PROJECT_INCLUDE_DIR}/mirtk/${f}.h"
+      COMMAND "${PYTHON_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/ForEachVoxelFunction.py"
+              ${arity} "${PROJECT_INCLUDE_DIR}/mirtk/${f}.h"
+      DEPENDS ForEachVoxelFunction.py
+      COMMENT "Generating source file mirtk/${f}.h"
+    )
+    add_custom_target(foreachvoxel_${arity} DEPENDS "${PROJECT_INCLUDE_DIR}/mirtk/${f}.h")
+    list(APPEND FOREACHVOXELDEPENDS foreachvoxel_${arity})
+    list(APPEND HEADERS ${f}.h)
+  endforeach()
+  
+  add_custom_target(foreachvoxel
+    DEPENDS ${FOREACHVOXELDEPENDS}
+    SOURCES ForEachVoxelFunction.py
+  )
+  
+  list(APPEND DEPENDS foreachvoxel)
+endif ()
 
 # ------------------------------------------------------------------------------
 # Add library target
