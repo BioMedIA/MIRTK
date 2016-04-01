@@ -870,6 +870,79 @@ function (basis_installtree_asserts)
 endfunction ()
 
 # ----------------------------------------------------------------------------
+# @brief Obtain module info from BasisProject.cmake file
+#
+# Use function scope to avoid overwriting of this project's variables.
+function (basis_get_module_info MODULE_NAME F)
+  # clean path without // to fix issue with UNC paths on Windows
+  get_filename_component (F "${F}" ABSOLUTE)
+  # include BasisProject.cmake file
+  set (PROJECT_IS_MODULE TRUE)
+  get_filename_component (PROJECT_SOURCE_DIR "${F}" PATH)
+  set (BASIS_basis_project_CALLED FALSE)
+  include ("${F}")
+  # make sure that basis_project() was called
+  if (NOT BASIS_basis_project_CALLED)
+    message (FATAL_ERROR "basis_module_info(): Missing basis_project() command in ${F}!")
+  endif ()
+  # remember dependencies
+  foreach (V IN ITEMS DEPENDS OPTIONAL_DEPENDS TOOLS_DEPENDS OPTIONAL_TOOLS_DEPENDS TEST_DEPENDS OPTIONAL_TEST_DEPENDS)
+    set (${V})
+    foreach (D ${PROJECT_${V}})
+      basis_tokenize_dependency ("${D}" PKG VER CMPS)
+      if ("^${PKG}$" STREQUAL "^${TOPLEVEL_PROJECT_NAME}$")
+        list (APPEND ${V} ${CMPS})
+      else ()
+        list (APPEND ${V} "${PKG}")
+      endif ()
+    endforeach ()
+  endforeach ()
+  # do not use MODULE instead of PROJECT_NAME in this function as it is not
+  # set in the scope of this function but its parent scope only
+  set (${PROJECT_NAME}_DEPENDS                "${DEPENDS}"                PARENT_SCOPE)
+  set (${PROJECT_NAME}_OPTIONAL_DEPENDS       "${OPTIONAL_DEPENDS}"       PARENT_SCOPE)
+  set (${PROJECT_NAME}_TOOLS_DEPENDS          "${TOOLS_DEPENDS}"          PARENT_SCOPE)
+  set (${PROJECT_NAME}_OPTIONAL_TOOLS_DEPENDS "${OPTIONAL_TOOLS_DEPENDS}" PARENT_SCOPE)
+  set (${PROJECT_NAME}_TEST_DEPENDS           "${TEST_DEPENDS}"           PARENT_SCOPE)
+  set (${PROJECT_NAME}_OPTIONAL_TEST_DEPENDS  "${OPTIONAL_TEST_DEPENDS}"  PARENT_SCOPE)
+  set (${PROJECT_NAME}_DECLARED               TRUE                        PARENT_SCOPE)
+  set (${PROJECT_NAME}_MISSING                FALSE                       PARENT_SCOPE)
+  # remember source directories - used by basis_add_doxygen_doc()
+  set (${PROJECT_NAME}_INCLUDE_DIRS "${PROJECT_INCLUDE_DIRS}" PARENT_SCOPE)
+  set (${PROJECT_NAME}_CODE_DIRS    "${PROJECT_CODE_DIRS}"    PARENT_SCOPE)
+  # remember if module depends on Slicer - used by basis_find_packages()
+  if (PROJECT_IS_SLICER_MODULE)
+    foreach (_D IN LISTS BASIS_SLICER_METADATA_LIST)
+        if (DEFINED PROJECT_${_D})
+          set (${PROJECT_NAME}_${_D} "${PROJECT_${_D}}" PARENT_SCOPE)
+        endif ()
+    endforeach ()
+    set (${PROJECT_NAME}_IS_SLICER_MODULE TRUE PARENT_SCOPE)
+  else ()
+    set (${PROJECT_NAME}_IS_SLICER_MODULE FALSE PARENT_SCOPE)
+  endif ()
+  # whether to always exclude module from BUILD_ALL_MODULES
+  set (${PROJECT_NAME}_EXCLUDE_FROM_ALL "${PROJECT_EXCLUDE_FROM_ALL}" PARENT_SCOPE)
+  # module name
+  set (${MODULE_NAME} "${PROJECT_NAME}" PARENT_SCOPE)
+endfunction ()
+
+# ----------------------------------------------------------------------------
+## @brief Manually add project module to list of modules
+macro (basis_add_module_info MODULE_NAME F)
+  # clean path without // to fix issue with UNC paths on Windows
+  get_filename_component (F "${F}" ABSOLUTE)
+  basis_get_module_info (_MODULE ${F})
+  list (APPEND PROJECT_MODULES ${_MODULE})
+  get_filename_component (${_MODULE}_BASE ${F} PATH)
+  basis_get_relative_path (${_MODULE}_BASE_REL "${CMAKE_CURRENT_SOURCE_DIR}" "${${_MODULE}_BASE}")
+  set (MODULE_${_MODULE}_SOURCE_DIR "${${_MODULE}_BASE}")
+  set (MODULE_${_MODULE}_BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}/${${_MODULE}_BASE_REL}")
+  set (${MODULE_NAME} ${_MODULE})
+  unset(_MODULE)
+endmacro ()
+
+# ----------------------------------------------------------------------------
 ## @brief Initialize project modules.
 #
 # Most parts of this macro were copied from the ITK4 project
@@ -910,68 +983,10 @@ macro (basis_project_modules)
   endforeach ()
   unset (_PATH)
 
-  # use function scope to avoid overwriting of this project's variables
-  function (basis_module_info F)
-    set (PROJECT_IS_MODULE TRUE)
-    get_filename_component (PROJECT_SOURCE_DIR "${F}" PATH)
-    set (BASIS_basis_project_CALLED FALSE)
-    include ("${F}")
-    # make sure that basis_project() was called
-    if (NOT BASIS_basis_project_CALLED)
-      message (FATAL_ERROR "basis_module_info(): Missing basis_project() command in ${F}!")
-    endif ()
-    # remember dependencies
-    foreach (V IN ITEMS DEPENDS OPTIONAL_DEPENDS TOOLS_DEPENDS OPTIONAL_TOOLS_DEPENDS TEST_DEPENDS OPTIONAL_TEST_DEPENDS)
-      set (${V})
-      foreach (D ${PROJECT_${V}})
-        basis_tokenize_dependency ("${D}" PKG VER CMPS)
-        if ("^${PKG}$" STREQUAL "^${TOPLEVEL_PROJECT_NAME}$")
-          list (APPEND ${V} ${CMPS})
-        else ()
-          list (APPEND ${V} "${PKG}")
-        endif ()
-      endforeach ()
-    endforeach ()
-    # do not use MODULE instead of PROJECT_NAME in this function as it is not
-    # set in the scope of this function but its parent scope only
-    set (${PROJECT_NAME}_DEPENDS                "${DEPENDS}"                PARENT_SCOPE)
-    set (${PROJECT_NAME}_OPTIONAL_DEPENDS       "${OPTIONAL_DEPENDS}"       PARENT_SCOPE)
-    set (${PROJECT_NAME}_TOOLS_DEPENDS          "${TOOLS_DEPENDS}"          PARENT_SCOPE)
-    set (${PROJECT_NAME}_OPTIONAL_TOOLS_DEPENDS "${OPTIONAL_TOOLS_DEPENDS}" PARENT_SCOPE)
-    set (${PROJECT_NAME}_TEST_DEPENDS           "${TEST_DEPENDS}"           PARENT_SCOPE)
-    set (${PROJECT_NAME}_OPTIONAL_TEST_DEPENDS  "${OPTIONAL_TEST_DEPENDS}"  PARENT_SCOPE)
-    set (${PROJECT_NAME}_DECLARED               TRUE                        PARENT_SCOPE)
-    set (${PROJECT_NAME}_MISSING                FALSE                       PARENT_SCOPE)
-    # remember source directories - used by basis_add_doxygen_doc()
-    set (${PROJECT_NAME}_INCLUDE_DIRS "${PROJECT_INCLUDE_DIRS}" PARENT_SCOPE)
-    set (${PROJECT_NAME}_CODE_DIRS    "${PROJECT_CODE_DIRS}"    PARENT_SCOPE)
-    # remember if module depends on Slicer - used by basis_find_packages()
-    if (PROJECT_IS_SLICER_MODULE)
-      foreach (_D IN LISTS BASIS_SLICER_METADATA_LIST)
-          if (DEFINED PROJECT_${_D})
-            set (${PROJECT_NAME}_${_D} "${PROJECT_${_D}}" PARENT_SCOPE)
-          endif ()
-      endforeach ()
-      set (${PROJECT_NAME}_IS_SLICER_MODULE TRUE PARENT_SCOPE)
-    else ()
-      set (${PROJECT_NAME}_IS_SLICER_MODULE FALSE PARENT_SCOPE)
-    endif ()
-    # whether to always exclude module from BUILD_ALL_MODULES
-    set (${PROJECT_NAME}_EXCLUDE_FROM_ALL "${PROJECT_EXCLUDE_FROM_ALL}" PARENT_SCOPE)
-    # module name
-    set (MODULE "${PROJECT_NAME}" PARENT_SCOPE)
-  endfunction ()
-
   set (PROJECT_MODULES)
   foreach (F IN LISTS MODULE_INFO_FILES)
-    # clean path without // to fix issue with UNC paths on Windows
-    get_filename_component (F "${F}" ABSOLUTE)
-    basis_module_info (${F})
-    list (APPEND PROJECT_MODULES ${MODULE})
-    get_filename_component (${MODULE}_BASE ${F} PATH)
-    basis_get_relative_path (${MODULE}_BASE_REL "${CMAKE_CURRENT_SOURCE_DIR}" "${${MODULE}_BASE}")
-    set (MODULE_${MODULE}_SOURCE_DIR "${${MODULE}_BASE}")
-    set (MODULE_${MODULE}_BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}/${${MODULE}_BASE_REL}")
+    # import module info into current scope
+    basis_add_module_info (MODULE ${F})
     # help modules to find each other using basis_find_package()
     set (${MODULE}_DIR "${MODULE_${MODULE}_BINARY_DIR}")
     # only set EXCLUDE_<MODULE>_FROM_ALL when not specified on command-line using -D switch
@@ -2174,11 +2189,19 @@ endmacro ()
 ## @brief Add subdirectory or ignore it if it does not exist.
 macro (basis_add_subdirectory SUBDIR)
   get_filename_component(_SUBDIR "${SUBDIR}" ABSOLUTE)
-  if (IS_DIRECTORY "${_SUBDIR}")
-    add_subdirectory ("${_SUBDIR}")
+  if (EXISTS "${_SUBDIR}/CMakeLists.txt")
+    if (EXISTS "${_SUBDIR}/BasisProject.cmake")
+      basis_add_module_info (MODULE "${_SUBDIR}/BasisProject.cmake")
+      list(APPEND PROJECT_MODULES_ENABLED ${MODULE})
+      basis_add_module (${MODULE})
+      unset(MODULE)
+    else ()
+      add_subdirectory ("${_SUBDIR}")
+    endif ()
   elseif (BASIS_VERBOSE)
-    message (WARNING "Skipping non-existing subdirectory ${SUBDIR}.")
+    message (WARNING "Skipping subdirectory ${SUBDIR}.")
   endif ()
+  unset(_SUBDIR)
 endmacro ()
 
 # ----------------------------------------------------------------------------
