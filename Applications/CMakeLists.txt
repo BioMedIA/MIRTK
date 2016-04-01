@@ -41,7 +41,7 @@ if (UNIX)
 endif ()
 
 # Set script configuration of Python modules
-basis_set_target_properties(${PYTHON_LIBRARY_TARGET} PROPERTIES
+basis_set_target_properties(${BASIS_PYTHON_LIBRARY_TARGET} PROPERTIES
   SCRIPT_DEFINITIONS
     "basis_list_to_delimited_string(LDPATH \"', '\" NOAUTOQUOTE \"'${LDPATH}'\")
      basis_set_script_path(LIBEXEC_DIR \"${BINARY_LIBEXEC_DIR}/${MIRTK_TOOLS_SUBDIR}\" \"${MIRTK_TOOLS_DIR}\")"
