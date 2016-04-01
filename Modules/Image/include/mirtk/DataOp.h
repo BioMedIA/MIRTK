@@ -18,7 +18,7 @@
  */
 
 
-/// @file  mirtkDataOp.h
+/// @file  mirtk/DataOp.h
 /// @brief Defines base class and I/O functions for arbitrary 1D data sequences
 ///
 /// Functions to manipulate the data are defined in mirtkDataFunctions.h.

@@ -18,7 +18,7 @@
  */
 
 /**
- * \file  mirtkArrayHeap.h
+ * \file  mirtk/ArrayHeap.h
  * \brief Imports the STL functions for Array heap operations into the mirtk namespace.
  */
 
