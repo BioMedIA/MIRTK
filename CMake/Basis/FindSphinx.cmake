@@ -126,6 +126,13 @@ foreach (_Sphinx_TOOL IN LISTS Sphinx_FIND_COMPONENTS)
   list (APPEND _Sphinx_REQUIRED_VARS Sphinx-${_Sphinx_TOOL}_EXECUTABLE)
 endforeach ()
 
+# set main Sphinx_EXECUTABLE so basis_find_package can derive DEPENDS_Sphinx_DIR
+if (Sphinx-build_EXECUTABLE)
+  set (Sphinx_EXECUTABLE ${Sphinx-build_EXECUTABLE})
+else ()
+  set (Sphinx_EXECUTABLE ${Sphinx-apidoc_EXECUTABLE})
+endif ()
+
 # ----------------------------------------------------------------------------
 # determine Python executable used by Sphinx
 if (Sphinx-build_EXECUTABLE)
@@ -196,16 +203,6 @@ FIND_PACKAGE_HANDLE_STANDARD_ARGS (
   VERSION_VAR
     Sphinx_VERSION_STRING
 )
-
-# ----------------------------------------------------------------------------
-# set Sphinx_DIR
-if (Sphinx-build_EXECUTABLE)
-  get_filename_component (Sphinx_DIR "${Sphinx-build_EXECUTABLE}" PATH)
-  string (REGEX REPLACE "/bin/?" "" Sphinx_DIR "${Sphinx_DIR}")
-elseif (Sphinx-apidoc_EXECUTABLE)
-  get_filename_component (Sphinx_DIR "${Sphinx-apidoc_EXECUTABLE}" PATH)
-  string (REGEX REPLACE "/bin/?" "" Sphinx_DIR "${Sphinx_DIR}")
-endif ()
 
 unset (_Sphinx_VERSION)
 unset (_Sphinx_REQUIRED_VARS)
