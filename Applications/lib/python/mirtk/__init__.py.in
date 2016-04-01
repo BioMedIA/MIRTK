@@ -1,0 +1,52 @@
+##############################################################################
+# Medical Image Registration ToolKit (MIRTK)
+#
+# Copyright 2016 Imperial College London
+# Copyright 2016 Andreas Schuh
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+##############################################################################
+
+from __future__ import absolute_import
+
+# ==============================================================================
+# Set up environment for MIRTK command execution
+# ==============================================================================
+
+def _putenvs():
+    """Modify shared library search paths for MIRTK command execution."""
+    from mirtk.subprocess import config, libexec_dir
+    import os, sys
+    ldpaths = []
+    if config != '':
+        ldpaths.append(os.path.join(libexec_dir, config))
+    ldpaths.append(libexec_dir)
+    for p in [@LDPATH@]:
+        if p != '': ldpaths.append(p)
+    if sys.platform.startswith('linux'):
+        ldpaths.extend(os.environ.get('LD_LIBRARY_PATH', '').split(':'))
+        os.environ['LD_LIBRARY_PATH'] = ':'.join(ldpaths)
+    elif sys.platform.startswith('darwin'):
+        ldpaths.extend(os.environ.get('DYLD_LIBRARY_PATH', '').split(':'))
+        os.environ['DYLD_LIBRARY_PATH'] = ':'.join(ldpaths)
+    elif sys.platform.startswith('win'):
+        ldpaths.extend(os.environ.get('PATH', '').split(';'))
+        os.environ['PATH'] = ';'.join(ldpaths)
+_putenvs()
+del _putenvs
+
+# ==============================================================================
+# Import main functions
+# ==============================================================================
+
+from mirtk.subprocess import path, call, check_call, check_output

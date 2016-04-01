@@ -21,6 +21,14 @@ if (COMMAND mirtk_add_executable)
   return()
 endif ()
 
+# Name of subdirectory of MIRTK command executables.
+# This variable is also used by the Applications module and therefore global.
+if (WIN32)
+  set(MIRTK_TOOLS_SUBDIR "Tools")
+else ()
+  set(MIRTK_TOOLS_SUBDIR "tools")
+endif ()
+
 # ------------------------------------------------------------------------------
 ## Add build target for executable MIRTK command
 function(mirtk_add_executable target_name)
@@ -40,16 +48,12 @@ function(mirtk_add_executable target_name)
   endif ()
   # Add executable target
   set(LANGUAGE CXX)
-  get_property(SUBDIR GLOBAL PROPERTY MIRTK_COMMANDS_SUBDIR)
-  if (NOT SUBDIR)
-    if (WIN32)
-      set(SUBDIR Tools)
-    else ()
-      set(SUBDIR tools)
-    endif ()
+  set(BINARY_LIBEXEC_DIR  "${BINARY_LIBEXEC_DIR}/${MIRTK_TOOLS_SUBDIR}")
+  if (MIRTK_TOOLS_DIR)
+    set(INSTALL_LIBEXEC_DIR "${MIRTK_TOOLS_DIR}")
+  else ()
+    set(INSTALL_LIBEXEC_DIR "${INSTALL_LIBEXEC_DIR}/${MIRTK_TOOLS_SUBDIR}")
   endif ()
-  set(BINARY_LIBEXEC_DIR  "${BINARY_LIBEXEC_DIR}/${SUBDIR}")
-  set(INSTALL_LIBEXEC_DIR "${INSTALL_LIBEXEC_DIR}/${SUBDIR}")
   if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${target_name}.cc")
     basis_add_executable(${target_name}.cc ${TARGET_SOURCES} LIBEXEC)
   elseif (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${target_name}.cxx")
@@ -100,34 +104,5 @@ function(mirtk_add_executable target_name)
     )
     string(REGEX REPLACE "/+$" "" rpath "${rpath}")
     set_target_properties(${target_uid} PROPERTIES INSTALL_RPATH "${ORIGIN}/${rpath}")
-    # Add custom target to generate command documentation page
-    if (BUILD_DOCUMENTATION AND BUILD_DOCUMENTATION_SOURCES AND NOT "^${target_name}$" STREQUAL "^help-rst$")
-      basis_get_target_uid(help_rst_target help-rst)
-      if (TARGET ${help_rst_target})
-        basis_get_target_uid(mirtk_target mirtk)
-        basis_get_target_location(mirtk_path mirtk ABSOLUTE)
-        add_custom_target(${target_uid}-description
-          COMMAND "${mirtk_path}" help-rst "${target_name}" -generated -description -noheaders
-                  -output "${TOPLEVEL_PROJECT_DOC_DIR}/commands/_descriptions/${target_name}.rst"
-                  -output-brief-description "${TOPLEVEL_PROJECT_DOC_DIR}/commands/_summaries/${target_name}.rst"
-          DEPENDS ${mirtk_target} ${help_rst_target} ${target_uid}
-          COMMENT "Extracting command description from mirtk ${target_name} -help"
-        )
-        add_custom_target(${target_uid}-help
-          COMMAND "${mirtk_path}" help-rst "${target_name}" -generated -orphan
-                  "-include-description" "_descriptions/${target_name}.rst"
-                  -output "${TOPLEVEL_PROJECT_DOC_DIR}/commands/${target_name}.rst"
-          DEPENDS ${mirtk_target} ${help_rst_target} ${target_uid} ${target_uid}-description
-          COMMENT "Generating documentation page for command ${target_name}"
-        )
-        basis_get_target_uid(commands_help_target commands-help)
-        if (NOT TARGET ${commands_help_target})
-          add_custom_target(${commands_help_target})
-        endif ()
-        add_dependencies(${commands_help_target} ${target_uid}-help)
-      else ()
-        message(WARNING "Target help-rst missing! Skipping auto-generation of command documentation.")
-      endif ()
-    endif ()
   endif ()
 endfunction()
