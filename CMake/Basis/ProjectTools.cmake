@@ -1509,6 +1509,9 @@ function (basis_configure_script_libraries)
                            " Skipping source files matching one of the extensions [${${LANGUAGE}_EXT}].")
         elseif (SOURCE_LANGUAGE MATCHES "${LANGUAGE}")
           set (TARGET_NAME "${${LANGUAGE}_LIBRARY_TARGET}")
+          if (NOT TARGET_NAME)
+            message (FATAL_ERROR "Variable ${LANGUAGE}_LIBRARY_TARGET not set (cf. BasisSettings module)!")
+          endif ()
           basis_add_library (${TARGET_NAME} ${EXPRESSIONS} LANGUAGE ${LANGUAGE})
           basis_set_target_properties (
             ${TARGET_NAME}
