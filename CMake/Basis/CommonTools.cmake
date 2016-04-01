@@ -523,10 +523,9 @@ macro (basis_find_package PACKAGE)
         basis_update_value (DEPENDS_${PKG}_DIR "${_BFP_PREFIX}")
       endif ()
       # --------------------------------------------------------------------
-      # reset _?<PKG>[_-]* cache entries when DEPENDS_<PKG>_DIR has changed
+      # reset _?<PKG>[_-]* variables when DEPENDS_<PKG>_DIR has changed
       if (_DEPENDS_${PKG}_DIR AND DEPENDS_${PKG}_DIR)
         if (NOT "^${_DEPENDS_${PKG}_DIR}$" STREQUAL "^${DEPENDS_${PKG}_DIR}$")
-          set (${PKG}_FOUND FALSE) # need to start a new search
           get_cmake_property (_BFP_VARS VARIABLES)
           basis_sanitize_for_regex (PKG_RE     "${PKG}")
           basis_sanitize_for_regex (PKG_U_RE   "${PKG_U}")
@@ -537,7 +536,7 @@ macro (basis_find_package PACKAGE)
               if (_BFP_CACHED)
                 set_property (CACHE ${_BFP_VAR} PROPERTY VALUE "${_BFP_VAR}-NOTFOUND")
                 set_property (CACHE ${_BFP_VAR} PROPERTY TYPE  INTERNAL)
-              else ()
+              elseif (NOT _BFP_VAR MATCHES "^${PKG_RE}_FIND_")
                 unset (${_BFP_VAR})
               endif ()
             endif ()
