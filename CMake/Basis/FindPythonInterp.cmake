@@ -199,8 +199,4 @@ endif(PYTHON_EXECUTABLE)
 include(FindPackageHandleStandardArgs)
 FIND_PACKAGE_HANDLE_STANDARD_ARGS(PythonInterp REQUIRED_VARS PYTHON_EXECUTABLE VERSION_VAR PYTHON_VERSION_STRING)
 
-if (PYTHON_EXECUTABLE)
-  string (REGEX REPLACE "/+[Pp]ython[^/]*(\\.exe)?$" "" PythonInterp_DIR "${PYTHON_EXECUTABLE}")
-  string (REGEX REPLACE "/+[Bb]in$"                  "" PythonInterp_DIR "${PythonInterp_DIR}")
-endif ()
 mark_as_advanced(PYTHON_EXECUTABLE)
