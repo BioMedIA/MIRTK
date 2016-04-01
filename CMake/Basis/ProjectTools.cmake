@@ -2001,16 +2001,6 @@ macro (basis_find_packages)
   set (CMAKE_MODULE_PATH "${PROJECT_CONFIG_DIR}" ${CMAKE_MODULE_PATH})
 
   # --------------------------------------------------------------------------
-  # Depends.cmake
-
-  # This file is in particular of interest if a dependency is required if
-  # certain modules are enabled, but not others.
-
-  # Attention: This function is used before the Directories.cmake.in and
-  #            Settings.cmake.in files were configured and included.
-  include ("${PROJECT_CONFIG_DIR}/Depends.cmake" OPTIONAL)
-
-  # --------------------------------------------------------------------------
   # required dependencies
   foreach (P IN LISTS PROJECT_DEPENDS)
     basis_find_package ("${P}" REQUIRED)
@@ -2099,6 +2089,14 @@ macro (basis_find_packages)
   endif ()
 
   unset (P)
+
+  # --------------------------------------------------------------------------
+  # Depends.cmake
+  #
+  # This file is in particular of interest if an additional dependency is
+  # required or may optionally be used if certain modules are enabled or
+  # an optional dependency was found.
+  include ("${PROJECT_CONFIG_DIR}/Depends.cmake" OPTIONAL)
 
   set (BASIS_SET_TARGET_PROPERTIES_IMPORT FALSE) # see set_target_properties()
 endmacro ()
