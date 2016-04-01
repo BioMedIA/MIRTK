@@ -17,4 +17,9 @@
 # limitations under the License.
 # ============================================================================
 
+# Use Python for (re-)generation of ForEachVoxel function templates when
+# available without a WITH_PythonInterp user option. Just look for it and
+# use it if it is available on the system.
+set(USE_PythonInterp TRUE)
+
 mirtk_configure_module()

@@ -17,6 +17,10 @@
 # limitations under the License.
 # ============================================================================
 
+# Build and install Python modules and scripts when Python is available without
+# a WITH_PythonInterp user option. Just look for it and use it if available.
+set(USE_PythonInterp TRUE)
+
 # Initialize project
 mirtk_project_begin()
 

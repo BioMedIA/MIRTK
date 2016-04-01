@@ -72,5 +72,4 @@ basis_project (
     #<test-dependency>
   OPTIONAL_TEST_DEPENDS
     #<optional-test-dependency>
-
 )
