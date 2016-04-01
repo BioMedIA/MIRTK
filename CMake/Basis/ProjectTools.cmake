@@ -1425,7 +1425,7 @@ endfunction ()
 # This function configures ("builds") the library modules in the
 # @c PROJECT_LIBRARY_DIR that are written in a scripting language such as
 # Python or Perl. The names of the added library targets can be modified using
-# the <tt>&lt;LANG&gt;_LIBRARY_TARGET</tt> variables, which are set to their
+# the <tt>BASIS_&lt;LANG&gt;_LIBRARY_TARGET</tt> variables, which are set to their
 # default values in the @c BasisSettings.cmake file.
 function (basis_configure_script_libraries)
   # Python
@@ -1508,9 +1508,12 @@ function (basis_configure_script_libraries)
           message (WARNING "Failed to auto-detect scripting language of modules in ${LIB_DIR}!"
                            " Skipping source files matching one of the extensions [${${LANGUAGE}_EXT}].")
         elseif (SOURCE_LANGUAGE MATCHES "${LANGUAGE}")
-          set (TARGET_NAME "${${LANGUAGE}_LIBRARY_TARGET}")
+          if (DEFINED ${LANGUAGE}_LIBRARY_TARGET)
+            message (FATAL_ERROR "Variable ${LANGUAGE}_LIBRARY_TARGET is obsolete, use BASIS_${LANGUAGE}_LIBRARY_TARGET instead!")
+          endif ()
+          set (TARGET_NAME "${BASIS_${LANGUAGE}_LIBRARY_TARGET}")
           if (NOT TARGET_NAME)
-            message (FATAL_ERROR "Variable ${LANGUAGE}_LIBRARY_TARGET not set (cf. BasisSettings module)!")
+            message (FATAL_ERROR "Variable BASIS_${LANGUAGE}_LIBRARY_TARGET not set (cf. BasisSettings module)!")
           endif ()
           basis_add_library (${TARGET_NAME} ${EXPRESSIONS} LANGUAGE ${LANGUAGE})
           basis_set_target_properties (
