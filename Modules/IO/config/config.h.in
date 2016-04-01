@@ -27,6 +27,9 @@
 /// Whether MIRTK IO module was built with PNG support
 #define MIRTK_IO_WITH_PNG @WITH_PNG_CONFIG@
 
+/// Whether MIRTK IO module was built with ZLIB support
+#define MIRTK_IO_WITH_ZLIB @WITH_ZLIB_CONFIG@
+
 
 namespace mirtk {
 

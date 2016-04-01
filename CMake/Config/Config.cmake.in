@@ -130,6 +130,9 @@ unset(_INCLUDE_CMake_MODULES)
 # Common settings
 # ============================================================================
 
+## @brief Directory containing the MIRTK command executables
+set(MIRTK_TOOLS_DIR "@MIRTK_TOOLS_DIR_CONFIG@")
+
 ## @brief Whether to build shared libraries by default
 if (NOT DEFINED BUILD_SHARED_LIBS_DEFAULT)
   set(BUILD_SHARED_LIBS_DEFAULT @BUILD_SHARED_LIBS@)

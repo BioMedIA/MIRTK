@@ -81,7 +81,6 @@ if __name__ == '__main__':
     if len(argv) == 0:
         print_help()
         sys.exit(1)
-    mirtk.putenvs()
     if argv[0] == 'help':
         if len(argv) == 1:
             print_help()

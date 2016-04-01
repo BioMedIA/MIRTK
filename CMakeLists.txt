@@ -40,17 +40,41 @@ include(BasisSettings)
 include(BasisTools)
 include(mirtkTools)
 
-# Reset global properties used to collect information about MIRTK commands
-# and the LD_LIBRARY_PATH of external libraries required by these
-set_property(GLOBAL PROPERTY MIRTK_COMMANDS     "")
-set_property(GLOBAL PROPERTY MIRTK_LIBRARY_PATH "")
+# ----------------------------------------------------------------------------
+# Default settings
+#
+# These variables have to be set before (mirtk|basis)_project_begin.
+# See CMake/Config/Settings.cmake file for other settings.
 
-if (WIN32)
-  set(COMMANDS_SUBDIR Tools)
-else ()
-  set(COMMANDS_SUBDIR tools)
+# By default, require these optional dependencies such that the library
+# features which depend on these external libraries are available
+if (UNIX)
+  set(WITH_ZLIB_DEFAULT ON)
 endif ()
-set_property(GLOBAL PROPERTY MIRTK_COMMANDS_SUBDIR ${COMMANDS_SUBDIR})
+
+# ThirdParty/Eigen
+if (NOT Eigen3_DIR)
+  if (Eigen3_INCLUDE_DIR)
+    set(Eigen3_DIR "${Eigen3_INCLUDE_DIR}")
+  elseif (EIGEN3_INCLUDE_DIR)
+    set(Eigen3_DIR "${EIGEN3_INCLUDE_DIR}")
+  elseif (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/Eigen/signature_of_eigen3_matrix_library")
+    set(Eigen3_DIR "${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/Eigen")
+  endif ()
+endif ()
+
+# ThirdParty/Boost
+if (NOT Boost_DIR)
+  if (BOOST_INCLUDEDIR)
+    set(Boost_DIR "${BOOST_INCLUDEDIR}")
+  elseif (BOOST_ROOT)
+    set(Boost_DIR "${BOOST_ROOT}/include")
+  elseif (BOOSTROOT)
+    set(Boost_DIR "${BOOSTROOT}/include")
+  elseif (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/Boost/boost/version.hpp")
+    set(Boost_DIR "${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/Boost")
+  endif ()
+endif ()
 
 # ----------------------------------------------------------------------------
 # Configure build system
@@ -58,26 +82,10 @@ set_property(GLOBAL PROPERTY MIRTK_COMMANDS_SUBDIR ${COMMANDS_SUBDIR})
 # Initialize project
 mirtk_project_begin()
 
-# Main "mirtk" executable
-#
-# This wrapper script sets up the environment and executes the specified
-# subcommand. Do not use mirtk_add_executable which is only used for
-# commands that are executed by this wrapper script. It is added here
-# because help-rst depends on it and the help-rst target must be defined
-# before mirtk_add_executable can be used when BUILD_DOCUMENTATION=ON.
-if (BUILD_APPLICATIONS)
-  basis_add_executable(mirtk "${PROJECT_TOOLS_DIR}/mirtk.py")
-endif ()
-
-# Add auxiliary command used to (re-)format help output
-if (BUILD_APPLICATIONS AND TARGET mirtk)
-  basis_add_executable(help-rst "${PROJECT_TOOLS_DIR}/help-rst.py" LIBEXEC)
-  basis_set_target_properties(help-rst PROPERTIES
-    OUTPUT_DIRECTORY  "${BINARY_LIBEXEC_DIR}/${COMMANDS_SUBDIR}"
-    INSTALL_DIRECTORY "${INSTALL_LIBEXEC_DIR}/${COMMANDS_SUBDIR}"
-  )
-  basis_add_dependencies(help-rst mirtk)
-endif ()
+# Reset global properties used to collect information about MIRTK commands
+# and the LD_LIBRARY_PATH of external libraries required by these
+set_property(GLOBAL PROPERTY MIRTK_COMMANDS     "")
+set_property(GLOBAL PROPERTY MIRTK_LIBRARY_PATH "")
 
 # Process modules
 foreach (MODULE IN LISTS PROJECT_MODULES_ENABLED)
@@ -90,34 +98,5 @@ foreach (SUBDIR IN LISTS PROJECT_SUBDIRS)
   basis_add_subdirectory(${SUBDIR})
 endforeach ()
 
-# Set MIRTK_LIBRARY_PATH for "mirtk.py" module
-get_property(ldpath GLOBAL PROPERTY MIRTK_LIBRARY_PATH)
-list(REMOVE_DUPLICATES ldpath)
-if (UNIX)
-  list(REMOVE_ITEM ldpath "/lib")
-  list(REMOVE_ITEM ldpath "/lib64")
-  list(REMOVE_ITEM ldpath "/usr/lib")
-  list(REMOVE_ITEM ldpath "/usr/lib64")
-  list(REMOVE_ITEM ldpath "/usr/local/lib")
-  list(REMOVE_ITEM ldpath "/opt/local/lib")
-endif ()
-basis_set_target_properties(mirtk_py PROPERTIES
-  SCRIPT_DEFINITIONS
-    "basis_list_to_delimited_string(MIRTK_LIBRARY_PATH_CONFIG \"', '\" NOAUTOQUOTE \"${ldpath}\")
-     basis_set_script_path(LIBEXEC_DIR \"${BINARY_LIBEXEC_DIR}/${COMMANDS_SUBDIR}\"
-                                       \"${INSTALL_LIBEXEC_DIR}/${COMMANDS_SUBDIR}\")"
-)
-unset(ldpath)
-
-# Install CMake modules
-basis_add_subdirectory(CMake)
-
 # Finalize project
 mirtk_project_end()
-
-# ------------------------------------------------------------------------------
-# Generate auto-completion scripts
-if (BUILD_APPLICATIONS AND UNIX)
-  include(mirtkGenerateBashCompletions)
-  mirtk_generate_bash_completions()
-endif ()

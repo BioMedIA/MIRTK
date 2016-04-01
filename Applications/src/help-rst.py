@@ -32,32 +32,16 @@ import os
 import re
 import subprocess
 import sys
+import mirtk
 
 # ==============================================================================
 # Auxiliaries
 # ==============================================================================
 
 # ------------------------------------------------------------------------------
-def export_library_path(paths):
-    """Insert library paths in (DY)LD_LIBRARY_PATH environment."""
-    if os.uname()[0] == 'Darwin':
-        key = 'DYLD_LIBRARY_PATH'
-    else:
-        key = 'LD_LIBRARY_PATH'
-    paths = list(filter(bool, _LIBRARY_PATH))
-    user_path = os.environ.get(key, '')
-    if user_path: paths.append(user_path)
-    os.environ[key] = ':'.join(paths)
-
-# ------------------------------------------------------------------------------
-def is_executable(path):
-    """Check if a file exists and is executable."""
-    return os.path.isfile(path) and os.access(path, os.X_OK)
-
-# ------------------------------------------------------------------------------
 def get_help(command_name):
     """Get help output of command."""
-    return subprocess.check_output(['mirtk', command_name, '-h']).splitlines()
+    return mirtk.check_output([command_name, '-h']).splitlines()
 
 # ------------------------------------------------------------------------------
 def get_indent(line):

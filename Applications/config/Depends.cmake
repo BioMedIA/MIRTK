@@ -1,8 +1,8 @@
 # ==============================================================================
 # Medical Image Registration ToolKit (MIRTK)
 #
-# Copyright 2013-2015 Imperial College London
-# Copyright 2013-2015 Andreas Schuh
+# Copyright 2013-2016 Imperial College London
+# Copyright 2013-2016 Andreas Schuh
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -52,68 +52,48 @@
 # @ingroup BasisSettings
 ##############################################################################
 
-# By default, require these optional dependencies such that the library
-# features which depend on these external libraries are available
-if (UNIX)
-  set(WITH_ZLIB_DEFAULT ON)
-endif ()
-
-# By default, use included Eigen header files
-if (Eigen3_INCLUDE_DIR)
-  set(Eigen3_DIR "${Eigen3_INCLUDE_DIR}")
-elseif (EIGEN3_INCLUDE_DIR)
-  set(Eigen3_DIR "${EIGEN3_INCLUDE_DIR}")
-endif ()
-if (NOT Eigen3_DIR AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/Eigen/signature_of_eigen3_matrix_library")
-  set(Eigen3_DIR "${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/Eigen")
-endif ()
-
-# By default, use included subset of required Boost header files
-# (extracted using the bcp tool of Boost 1.60.0)
-if (BOOST_INCLUDEDIR)
-  set(Boost_DIR "${BOOST_INCLUDEDIR}")
-elseif (BOOST_ROOT)
-  set(Boost_DIR "${BOOST_ROOT}/include")
-elseif (BOOSTROOT)
-  set(Boost_DIR "${BOOSTROOT}/include")
-endif ()
-if (NOT Boost_DIR AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/Boost/boost/version.hpp")
-  set(Boost_DIR "${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/Boost")
-endif ()
-
-# ------------------------------------------------------------------------------
-# Additional dependencies of applications
-if (BUILD_APPLICATIONS)
-  if (MODULE_PointSet)
-    basis_find_package(
-      "VTK-7|6{
-        vtkCommonCore,
-        vtkCommonDataModel,
-        vtkFiltersCore,
-        vtkFiltersFlowPaths,
-        vtkFiltersGeometry,
-        vtkFiltersGeneral,
-        vtkFiltersHybrid,
-        vtkFiltersModeling,
-        vtkIOGeometry,
-        vtkIOLegacy,
-        vtkIOPLY,
-        vtkIOXML
-      }"
-      REQUIRED
-    )
-    if (WITH_FLANN)
-      basis_find_package(FLANN COMPONENTS cpp_static)
-    endif ()
-    if (WITH_MATLAB)
-      basis_find_package(MATLAB{mwmclmcrrt})
-    endif ()
-  elseif (WITH_VTK AND MODULE_Image)
-    basis_find_package(
-      "VTK-7|6{
-        vtkCommonCore,
-        vtkCommonDataModel
-      }"
-    )
+# ----------------------------------------------------------------------------
+# Dependencies of image commands
+if (MIRTK_Image_FOUND)
+  # command: calculate
+  if (MIRTK_Image_WITH_VTK)
+    basis_find_package(VTK 7|6 REQUIRED COMPONENTS vtkCommonCore vtkCommonDataModel)
   endif ()
+endif ()
+
+# ----------------------------------------------------------------------------
+# Dependencies of point set commands
+if (MIRTK_PointSet_FOUND)
+  # command: all point set commands, info
+  basis_find_package(VTK 7|6 REQUIRED
+    COMPONENTS
+      vtkCommonCore
+      vtkCommonDataModel
+      vtkFiltersCore
+      vtkFiltersFlowPaths
+      vtkFiltersGeometry
+      vtkFiltersGeneral
+      vtkFiltersHybrid
+      vtkFiltersModeling
+      vtkIOGeometry
+      vtkIOLegacy
+      vtkIOPLY
+      vtkIOXML
+  )
+  # command: evaluate-surface-overlap
+  basis_find_package(FLANN  COMPONENTS cpp_static)
+  # command: convert-pointset-to-mat, copy-pointset-attributes-from-mat
+  basis_find_package(MATLAB COMPONENTS mwmclmcrrt)
+endif ()
+
+# ----------------------------------------------------------------------------
+# Use optional dependencies
+if (VTK_FOUND)
+  basis_use_package(VTK)
+endif ()
+if (FLANN_FOUND)
+  basis_use_package(FLANN)
+endif ()
+if (MATLAB_FOUND)
+  basis_use_package(MATLAB)
 endif ()

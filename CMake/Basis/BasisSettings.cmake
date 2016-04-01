@@ -150,7 +150,8 @@ set (
     CODE_DIRS      # list of directories containing source code files, see also CODE_DIR
     TOOLS_DIRS     # list of directories containing source code files of applications, see also TOOLS_DIR
     MODULE_DIRS    # list of separate module directories, see also MODULES_DIR
-    SUBDIRS        # list of additional (generic) project subdirectories
+    OTHER_DIRS     # list of additional (generic) project subdirectories
+    SUBDIRS        # deprecated option name for OTHER_DIRS
 )
 
 ## @brief Names of project meta-data.
@@ -726,7 +727,7 @@ set (BASIS_NAMESPACE_DELIMITER_BASH .)
 #
 # @note The given target name is argument to the basis_add_library() command.
 #       Overwrite default value in Settings.cmake file of project if desired.
-set (PYTHON_LIBRARY_TARGET "pythonlib")
+set (BASIS_PYTHON_LIBRARY_TARGET "pythonlib")
 
 ## @brief Name of library target which builds Jython modules in @c PROJECT_LIBRARY_DIR.
 #
@@ -736,7 +737,7 @@ set (PYTHON_LIBRARY_TARGET "pythonlib")
 #
 # @note The given target name is argument to the basis_add_library() command.
 #       Overwrite default value in Settings.cmake file of project if desired.
-set (JYTHON_LIBRARY_TARGET "jythonlib")
+set (BASIS_JYTHON_LIBRARY_TARGET "jythonlib")
 
 ## @brief Name of library target which builds Perl modules in @c PROJECT_LIBRARY_DIR.
 #
@@ -746,7 +747,7 @@ set (JYTHON_LIBRARY_TARGET "jythonlib")
 #
 # @note The given target name is argument to the basis_add_library() command.
 #       Overwrite default value in Settings.cmake file of project if desired.
-set (PERL_LIBRARY_TARGET "perllib")
+set (BASIS_PERL_LIBRARY_TARGET "perllib")
 
 ## @brief Name of library target which builds MATLAB modules in @c PROJECT_LIBRARY_DIR.
 #
@@ -756,7 +757,7 @@ set (PERL_LIBRARY_TARGET "perllib")
 #
 # @note The given target name is argument to the basis_add_library() command.
 #       Overwrite default value in Settings.cmake file of project if desired.
-set (MATLAB_LIBRARY_TARGET "matlablib")
+set (BASIS_MATLAB_LIBRARY_TARGET "matlablib")
 
 ## @brief Name of library target which builds Bash modules in @c PROJECT_LIBRARY_DIR.
 #
@@ -766,7 +767,7 @@ set (MATLAB_LIBRARY_TARGET "matlablib")
 #
 # @note The given target name is argument to the basis_add_library() command.
 #       Overwrite default value in Settings.cmake file of project if desired.
-set (BASH_LIBRARY_TARGET "bashlib")
+set (BASIS_BASH_LIBRARY_TARGET "bashlib")
 
 # ============================================================================
 # documentation

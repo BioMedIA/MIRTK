@@ -77,6 +77,8 @@ endif ()
 # Installation directories
 if (WIN32)
   set(INSTALL_CMAKE_MODULES_DIR "${INSTALL_SHARE_DIR}/CMake")
+  set(MIRTK_TOOLS_DIR           "${INSTALL_LIBEXEC_DIR}/Tools")
 else ()
   set(INSTALL_CMAKE_MODULES_DIR "${INSTALL_SHARE_DIR}/cmake")
+  set(MIRTK_TOOLS_DIR           "${INSTALL_LIBEXEC_DIR}/tools")
 endif ()

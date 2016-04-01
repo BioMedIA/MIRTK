@@ -92,26 +92,68 @@ basis_add_doc (
 # ============================================================================
 
 if (BUILD_DOCUMENTATION_SOURCES)
+
+  # Get list of MIRTK command executable targets added by mirtk_add_executable
   get_property(COMMANDS GLOBAL PROPERTY MIRTK_COMMANDS)
+
+  # Remove commands which do not (yet) support the -h, -help options
   if (COMMANDS)
-    list(REMOVE_ITEM COMMANDS "help-rst" "convert-mris")
+    list(REMOVE_ITEM COMMANDS convert-mris)
   endif ()
+
   if (COMMANDS)
-    list(SORT COMMANDS)
-    basis_find_package(PythonInterp REQUIRED)
-    message(STATUS "Writing commands/_overview.rst...")
-    file(MAKE_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/commands")
-    execute_process(
-      COMMAND "${PYTHON_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tools/write-commands-overview.py" ${COMMANDS}
-      OUTPUT_FILE "${CMAKE_CURRENT_SOURCE_DIR}/commands/_overview.rst"
-    )
-    message(STATUS "Writing commands/_overview.rst... done")
-    message(STATUS "Writing commands/_summary.rst...")
-    execute_process(
-      COMMAND "${PYTHON_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tools/write-commands-summary.py" ${COMMANDS}
-      OUTPUT_FILE "${CMAKE_CURRENT_SOURCE_DIR}/commands/_summary.rst"
-    )
-    message(STATUS "Writing commands/_summary.rst... done")
+
+    # Check if required auxiliary tools are available
+    basis_get_target_uid(mirtk_target_uid    mirtk)
+    basis_get_target_uid(help_rst_target_uid help-rst)
+    if (TARGET ${mirtk_target_uid} AND TARGET ${help_rst_target_uid})
+      basis_get_target_location(mirtk_path ${mirtk_target_uid} ABSOLUTE)
+
+      # Phony target to generate all help pages
+      basis_get_target_uid(commands_help_target_uid commands-help)
+      add_custom_target(${commands_help_target_uid})
+
+      # Generate help page and brief description section for each command
+      foreach (target_name IN LISTS COMMANDS)
+        basis_get_target_uid(target_uid ${target_name})
+        add_custom_target(${target_uid}-description
+          COMMAND "${mirtk_path}" help-rst ${target_name} -generated -description -noheaders
+                  -output "${TOPLEVEL_PROJECT_DOC_DIR}/commands/_descriptions/${target_name}.rst"
+                  -output-brief-description "${TOPLEVEL_PROJECT_DOC_DIR}/commands/_summaries/${target_name}.rst"
+          DEPENDS ${mirtk_target_uid} ${help_rst_target_uid} ${target_uid}
+          COMMENT "Extracting command description from mirtk ${target_name} -help"
+        )
+        add_custom_target(${target_uid}-help
+          COMMAND "${mirtk_path}" help-rst ${target_name} -generated -orphan
+                  "-include-description" "_descriptions/${target_name}.rst"
+                  -output "${TOPLEVEL_PROJECT_DOC_DIR}/commands/${target_name}.rst"
+          DEPENDS ${mirtk_target_uid} ${help_rst_target_uid} ${target_uid} ${target_uid}-description
+          COMMENT "Generating documentation page for command ${target_name}"
+        )
+        add_dependencies(${commands_help_target_uid} ${target_uid}-help)
+      endforeach ()
+
+      # Write overview pages: commands.rst, commands-overview.rst
+      if (COMMANDS)
+        list(SORT COMMANDS)
+        message(STATUS "Writing commands/_overview.rst...")
+        file(MAKE_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/commands")
+        execute_process(
+          COMMAND "${PYTHON_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tools/write-commands-overview.py" ${COMMANDS}
+          OUTPUT_FILE "${CMAKE_CURRENT_SOURCE_DIR}/commands/_overview.rst"
+        )
+        message(STATUS "Writing commands/_overview.rst... done")
+        message(STATUS "Writing commands/_summary.rst...")
+        execute_process(
+          COMMAND "${PYTHON_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tools/write-commands-summary.py" ${COMMANDS}
+          OUTPUT_FILE "${CMAKE_CURRENT_SOURCE_DIR}/commands/_summary.rst"
+        )
+        message(STATUS "Writing commands/_summary.rst... done")
+      endif ()
+
+    else ()
+      message(WARNING "Target of mirtk or help-rst tool missing! Skipping auto-generation of command documentation.")
+    endif ()
   endif ()
 endif ()
 

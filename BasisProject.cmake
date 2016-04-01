@@ -68,6 +68,7 @@ basis_project (
   DOC_DIR     Documentation
   MODULES_DIR Modules
   TOOLS_DIR   Applications
+  OTHER_DIRS  CMake
 
   MODULE_DIRS
     Packages/Deformable
