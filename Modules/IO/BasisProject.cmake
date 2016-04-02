@@ -58,6 +58,13 @@ basis_project (
     #<dependency>
   OPTIONAL_DEPENDS
     PNG
+    "VTK-7|6{
+      vtkCommonCore,
+      vtkIOGeometry,
+      vtkIOLegacy,
+      vtkIOPLY,
+      vtkIOXML
+    }"
     ZLIB # for NiftiCLib
     #<optional-dependency>
   TEST_DEPENDS

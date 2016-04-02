@@ -20,14 +20,17 @@
 #include "mirtk/Common.h"
 #include "mirtk/Options.h"
 
-#include "mirtk/GenericImage.h"
+#include "mirtk/PointSetIO.h"
 #include "mirtk/PointSetUtils.h"
+#include "mirtk/GenericImage.h"
 #include "mirtk/EdgeConnectivity.h"
 #include "mirtk/SurfaceCollisions.h"
 #include "mirtk/EuclideanDistanceTransform.h"
 
 #include "mirtk/InterpolateImageFunction.h"
 #include "mirtk/LinearInterpolateImageFunction.hxx"
+
+#include "mirtk/Vtk.h"
 
 #include "vtkSmartPointer.h"
 #include "vtkPointSet.h"

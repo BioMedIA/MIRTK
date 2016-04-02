@@ -42,7 +42,7 @@
 
 #ifdef HAVE_MIRTK_PointSet
 #  include "vtkPointSet.h"
-#  include "mirtk/PointSetUtils.h"
+#  include "mirtk/PointSetIO.h"
 #endif // HAVE_MIRTK_PointSet
 
 #include "mirtk/CommonExport.h"

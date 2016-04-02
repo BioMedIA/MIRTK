@@ -32,8 +32,11 @@ endif ()
 # Generic file info tool
 if (MODULE_Image)
   mirtk_add_executable(info
-    DEPENDS  LibCommon LibNumerics LibIO LibImage
-    OPTIONAL LibTransformation LibPointSet ${VTK_LIBRARIES}
+    DEPENDS
+      LibCommon LibNumerics LibImage LibIO
+    OPTIONAL
+      LibTransformation LibPointSet
+      vtkCommonCore vtkCommonDataModel vtkFiltersCore vtkFiltersGeneral
   )
 endif ()
 
@@ -46,7 +49,7 @@ if (MODULE_Image)
   endmacro()
 
   add_image_command(average-images OPTIONAL LibTransformation)
-  add_image_command(calculate OPTIONAL ${VTK_LIBRARIES})
+  add_image_command(calculate OPTIONAL vtkCommonCore)
   add_image_command(calculate-distance-map)
   add_image_command(calculate-exponential-map)
   add_image_command(calculate-lie-bracket)
@@ -77,10 +80,10 @@ endif ()
 if (MODULE_Registration)
 
   macro(add_registration_command cmd)
-    mirtk_add_executable(${cmd} DEPENDS LibCommon LibNumerics LibImage LibTransformation LibRegistration ${ARGN})
+    mirtk_add_executable(${cmd} DEPENDS LibCommon LibNumerics LibImage LibIO LibTransformation LibRegistration ${ARGN})
   endmacro()
 
-  add_registration_command(register LibIO OPTIONAL LibLBFGS LibPointSet LibDeformable)
+  add_registration_command(register OPTIONAL LibLBFGS LibPointSet LibDeformable)
 
 endif ()
 
@@ -109,7 +112,7 @@ if (MODULE_Transformation)
     add_image_transformation_command(convert-dof2velo)
     add_image_transformation_command(evaluate-dof)
     add_image_transformation_command(evaluate-jacobian)
-    add_image_transformation_command(init-dof OPTIONAL LibPointSet)
+    add_image_transformation_command(init-dof OPTIONAL vtkCommonCore)
 
   endif ()
 endif ()
@@ -119,7 +122,7 @@ endif ()
 if (MODULE_PointSet)
 
   macro(add_pointset_command cmd)
-    mirtk_add_executable(${cmd} DEPENDS LibCommon LibNumerics LibImage LibPointSet ${VTK_LIBRARIES} ${ARGN})
+    mirtk_add_executable(${cmd} DEPENDS LibCommon LibNumerics LibImage LibPointSet LibIO ${VTK_LIBRARIES} ${ARGN})
   endmacro()
 
   add_pointset_command(calculate-surface-attributes)
@@ -129,7 +132,7 @@ if (MODULE_PointSet)
   add_pointset_command(delete-pointset-attributes)
   add_pointset_command(evaluate-distance)
   add_pointset_command(evaluate-distortion)
-  add_pointset_command(evaluate-surface-overlap ${FLANN_CPP_LIBRARY})
+  add_pointset_command(evaluate-surface-overlap OPTIONAL ${FLANN_CPP_LIBRARY})
   add_pointset_command(extract-connected-points)
   add_pointset_command(offset-surface)
   add_pointset_command(project-onto-surface)
@@ -143,16 +146,12 @@ if (MODULE_PointSet)
 
   if (MODULE_Image)
 
-    macro(add_image_pointset_command cmd)
-      add_pointset_command(${cmd} LibIO ${ARGN})
-    endmacro()
-
-    add_image_pointset_command(convert-pointset)
-    add_image_pointset_command(extract-pointset-surface)
-    add_image_pointset_command(extract-surface)
+    add_pointset_command(convert-pointset)
+    add_pointset_command(extract-pointset-surface)
+    add_pointset_command(extract-surface)
 
     if (MODULE_Transformation)
-      add_image_pointset_command(transform-points LibTransformation)
+      add_pointset_command(transform-points LibTransformation)
     endif ()
 
   endif ()

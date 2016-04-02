@@ -22,7 +22,7 @@
 #include "mirtk/Assert.h"
 #include "mirtk/Array.h"
 #include "mirtk/Vector3D.h"
-#include "mirtk/PointSetUtils.h"
+#include "mirtk/PointSetIO.h"
 
 #include "vtkSmartPointer.h"
 #include "vtkFloatArray.h"

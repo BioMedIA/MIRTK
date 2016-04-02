@@ -23,7 +23,7 @@
 
 #include "mirtk/IOConfig.h"
 
-#include "mirtk/PointSetUtils.h"
+#include "mirtk/PointSetIO.h"
 #include "mirtk/ImplicitSurfaceUtils.h"
 
 using namespace mirtk;

@@ -1,8 +1,8 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2013-2015 Imperial College London
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2013-2016 Imperial College London
+ * Copyright 2013-2016 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -44,61 +44,6 @@ class EdgeTable;
 
 template <typename> struct Vector3D;
 
-
-// =============================================================================
-// I/O
-// =============================================================================
-
-/// Default extension for given data set
-const char *DefaultExtension(vtkDataSet *);
-
-/// Read point set from file
-///
-/// @param[in]  fname File name.
-/// @param[out] ftype File type (VTK_ASCII or VTK_BINARY) of legacy VTK input file.
-///
-/// @return Point set read from file. The returned point set will have no points
-///         when the function failed to read the specified file.
-vtkSmartPointer<vtkPointSet> ReadPointSet(const char *fname, int *ftype = NULL, bool = true);
-
-/// Read polygonal dataset from file
-///
-/// @param[in]  fname File name.
-/// @param[out] ftype File type (VTK_ASCII or VTK_BINARY) of legacy VTK input file.
-///
-/// @return Polydata read from file. The returned polydata will have no points
-///         and cells when the function failed to read the specified file.
-vtkSmartPointer<vtkPolyData> ReadPolyData(const char *fname, int *ftype = NULL, bool = true);
-
-/// Write point set to file
-///
-/// @param fname    File name. The extension determines the output format.
-/// @param pointset Point set to write.
-/// @param compress Whether to use compression when writing to VTK XML format (.vtp).
-/// @param ascii    Whether to use ASCII format when writing to legacy VTK format (.vtk).
-bool WritePointSet(const char *fname, vtkPointSet *pointset, bool compress = true, bool ascii = false);
-
-/// Write polygonal dataset to file
-///
-/// @param fname    File name. The extension determines the output format.
-/// @param polydata Polydata to write.
-/// @param compress Whether to use compression when writing to VTK XML format (.vtp).
-/// @param ascii    Whether to use ASCII format when writing to legacy VTK format (.vtk).
-bool WritePolyData(const char *fname, vtkPolyData *polydata, bool compress = true, bool ascii = false);
-
-/// Write polygonal dataset to TetGen .poly file
-///
-/// @param fname    File name. The extension determines the output format.
-/// @param polydata Polydata to write.
-/// @param holes    Hole list.
-int WriteTetGenPoly(const char *fname, vtkPolyData *polydata, const PointSet *holes = NULL);
-
-/// Write polygonal dataset to TetGen .smesh file
-///
-/// @param fname    File name. The extension determines the output format.
-/// @param polydata Polydata to write.
-/// @param holes    Hole list.
-int WriteTetGenSMesh(const char *fname, vtkPolyData *polydata, const PointSet *holes = NULL);
 
 // =============================================================================
 // VTK / MIRTK type conversion

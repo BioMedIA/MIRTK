@@ -27,7 +27,7 @@
 #include "mirtk/EventDelegate.h"
 #include "mirtk/RegisteredPointSet.h"
 #include "mirtk/RadialErrorFunction.h"
-#include "mirtk/PointSetUtils.h"
+#include "mirtk/PointSetIO.h"
 #include "mirtk/ObjectFactory.h"
 
 #include "vtkSmartPointer.h"

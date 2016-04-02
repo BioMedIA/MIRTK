@@ -24,7 +24,7 @@
 #include "mirtk/PointCorrespondence.h"
 #include "mirtk/RegisteredPointSet.h"
 #include "mirtk/PointCorrespondence.h"
-#include "mirtk/PointSetUtils.h"
+#include "mirtk/PointSetIO.h"
 
 #include "vtkSmartPointer.h"
 #include "vtkPoints.h"

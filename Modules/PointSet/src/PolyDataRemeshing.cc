@@ -26,6 +26,7 @@
 #include "mirtk/Profiling.h"
 #include "mirtk/PolyDataSmoothing.h"
 #include "mirtk/PointSetUtils.h"
+#include "mirtk/PointSetIO.h"
 #include "mirtk/DataStatistics.h"
 #include "mirtk/Transformation.h"
 #include "mirtk/VtkMath.h"

@@ -26,9 +26,11 @@
 #include "mirtk/Options.h"
 
 #include "mirtk/EdgeTable.h"
-#include "mirtk/PointSetUtils.h"
+#include "mirtk/PointSetIO.h"
 #include "mirtk/PolyDataSmoothing.h"
 #include "mirtk/PolyDataCurvature.h"
+
+#include "mirtk/Vtk.h"
 #include "mirtk/VtkMath.h"
 
 #include "vtkSmartPointer.h"

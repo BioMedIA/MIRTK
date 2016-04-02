@@ -24,9 +24,8 @@
 #include "mirtk/Vtk.h"
 #include "mirtk/IOConfig.h"
 #include "mirtk/GenericImage.h"
-#include "mirtk/PointSetUtils.h"
+#include "mirtk/PointSetIO.h"
 #include "mirtk/Transformation.h"
-#include "mirtk/PointSetUtils.h"
 
 #include "vtkSmartPointer.h"
 #include "vtkDataSetReader.h"
