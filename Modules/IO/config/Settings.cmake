@@ -38,6 +38,7 @@
 
 basis_set_config_option(WITH_NIfTI_CONFIG "${NiftiCLib_FOUND}")
 basis_set_config_option(WITH_PNG_CONFIG   "${PNG_FOUND}")
+basis_set_config_option(WITH_VTK_CONFIG   "${VTK_FOUND}")
 basis_set_config_option(WITH_ZLIB_CONFIG  "${ZLIB_FOUND}")
 
 configure_file(

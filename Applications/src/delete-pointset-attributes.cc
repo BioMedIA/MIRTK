@@ -20,7 +20,7 @@
 #include "mirtk/Common.h"
 #include "mirtk/Options.h"
 
-#include "mirtk/PointSetUtils.h"
+#include "mirtk/PointSetIO.h"
 
 #include "vtkPointSet.h"
 #include "vtkPointData.h"

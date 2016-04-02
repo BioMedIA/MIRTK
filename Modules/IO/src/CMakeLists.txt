@@ -80,4 +80,10 @@ if (ZLIB_FOUND)
   list(APPEND DEPENDS ${ZLIB_LIBRARIES})
 endif ()
 
+if (VTK_FOUND)
+  list(APPEND HEADERS PointSetIO.h)
+  list(APPEND SOURCES PointSetIO.cc dfsurface.h)
+  list(APPEND DEPENDS ${VTK_LIBRARIES})
+endif ()
+
 mirtk_add_library(AUTO_REGISTER)

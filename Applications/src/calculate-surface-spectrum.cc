@@ -20,11 +20,13 @@
 #include "mirtk/Common.h"
 #include "mirtk/Options.h"
 
+#include "mirtk/PointSetIO.h"
 #include "mirtk/PointSetUtils.h"
 #include "mirtk/RegisteredSurface.h"
 #include "mirtk/PointCorrespondence.h"
 #include "mirtk/FuzzyCorrespondence.h"
 #include "mirtk/SpectralDecomposition.h"
+
 #include "mirtk/VtkMath.h"
 
 #include "vtkSmartPointer.h"

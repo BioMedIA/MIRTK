@@ -40,16 +40,9 @@
 #include "mirtk/AffineTransformation.h"
 
 #if MIRTK_Registration_WITH_PointSet
-#  include "mirtk/PointSetUtils.h"
+#  include "mirtk/PointSetIO.h"
 #  include "vtkSmartPointer.h"
 #  include "vtkPolyData.h"
-#  include "vtkOBJReader.h"
-#  include "vtkPLYReader.h"
-#  include "vtkSTLReader.h"
-#  include "vtkDataSetReader.h"
-#  include "vtkXMLPolyDataReader.h"
-#  include "vtkTriangleFilter.h"
-#  include "vtkDataSetSurfaceFilter.h"
 #endif
 
 using namespace mirtk;

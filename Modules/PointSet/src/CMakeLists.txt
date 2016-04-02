@@ -51,7 +51,6 @@ set(HEADERS
 )
 
 set(SOURCES
-  dfsurface.h
   ClosestCell.cc
   ClosestPoint.cc
   ClosestPointLabel.cc
@@ -84,6 +83,7 @@ set(DEPENDS
   LibNumerics
   LibImage
   LibTransformation
+  LibIO
   ${VTK_LIBRARIES}
 )
 

@@ -31,7 +31,7 @@
 #include "mirtk/Profiling.h"
 #include "mirtk/Transformation.h"
 #include "mirtk/SpectralDecomposition.h"
-#include "mirtk/PointSetUtils.h"
+#include "mirtk/PointSetIO.h"
 
 #include "mirtk/CommonExport.h"
 

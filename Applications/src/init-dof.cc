@@ -36,13 +36,13 @@
 #include "mirtk/BSplineFreeFormTransformationSV.h"
 #include "mirtk/MultiLevelFreeFormTransformation.h"
 
-#ifdef HAVE_MIRTK_PointSet
+#if defined(HAVE_VTK) && MIRTK_IO_WITH_VTK
 #  include "vtkSmartPointer.h"
 #  include "vtkPointSet.h"
 #  include "vtkPointData.h"
 #  include "vtkDataArray.h"
-#  include "mirtk/PointSetUtils.h"
-#endif // HAVE_MIRTK_PointSet
+#  include "mirtk/PointSetIO.h"
+#endif
 
 using namespace mirtk;
 
@@ -660,7 +660,7 @@ int main(int argc, char **argv)
       // Add point displacements read from VTK point set file
       } else {
 
-        #ifdef HAVE_MIRTK_PointSet
+        #if defined(HAVE_VTK) && MIRTK_IO_WITH_VTK
           vtkSmartPointer<vtkPointSet> pset = ReadPointSet(psets[i].target_name);
           bool pset_ok = true;
           if (pset->GetNumberOfPoints() == 0) {
@@ -696,10 +696,10 @@ int main(int argc, char **argv)
             dy[j] = v[1];
             dz[j] = v[2];
           }
-        #else // HAVE_MIRTK_PointSet
+        #else // MIRTK_IO_WITH_VTK
           cerr << EXECNAME << ": Link binary to PointSet module to be able to read displacements from VTK file!" << endl;
           exit(1);
-        #endif // HAVE_MIRTK_PointSet
+        #endif // MIRTK_IO_WITH_VTK
       }
     }
 

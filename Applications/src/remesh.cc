@@ -21,7 +21,7 @@
 #include "mirtk/Options.h"
 
 #include "mirtk/EdgeTable.h"
-#include "mirtk/PointSetUtils.h"
+#include "mirtk/PointSetIO.h"
 #include "mirtk/PolyDataRemeshing.h"
 #include "mirtk/VtkMath.h"
 

@@ -26,6 +26,7 @@
 #include "mirtk/Memory.h"
 #include "mirtk/Parallel.h"
 #include "mirtk/PointSet.h"
+#include "mirtk/PointSetIO.h"
 #include "mirtk/PointSetUtils.h"
 
 #include "mirtk/LinearInterpolateImageFunction.hxx"

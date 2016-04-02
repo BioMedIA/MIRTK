@@ -34,8 +34,11 @@
 #  include "mirtk/EdgeTable.h"
 #  include "mirtk/Triangle.h"
 #  include "mirtk/Polyhedron.h"
+#  include "mirtk/PointSetIO.h"
 #  include "mirtk/PointSetUtils.h"
 #  include "mirtk/DataStatistics.h"
+
+#  include "mirtk/Vtk.h"
 #  include "mirtk/VtkMath.h"
 
 #  include "vtkSmartPointer.h"

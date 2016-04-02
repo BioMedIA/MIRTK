@@ -23,6 +23,7 @@
 #include "mirtk/Point.h"
 #include "mirtk/PointSet.h"
 #include "mirtk/GenericImage.h"
+#include "mirtk/PointSetIO.h"
 #include "mirtk/PointSetUtils.h"
 #include "mirtk/EuclideanDistanceTransform.h"
 
