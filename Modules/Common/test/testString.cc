@@ -163,6 +163,16 @@ TEST(String, ParameterUnits)
     EXPECT_EQ(string("mm"), ParameterUnits("  Resolution    [MM]", &name));
     EXPECT_EQ("Resolution", name);
   }
+  {
+    string name;
+    EXPECT_EQ(string(""), ParameterUnits("Resolution", &name));
+    EXPECT_EQ("Resolution", name);
+  }
+  {
+    string name;
+    EXPECT_EQ(string(""), ParameterUnits("Resolution of image 1", &name));
+    EXPECT_EQ("Resolution of image 1", name);
+  }
   EXPECT_EQ(string("rel"), ParameterUnits("Resolution [relative]  \t"));
 }
 
@@ -181,6 +191,11 @@ TEST(String, ValueUnits)
     string value;
     EXPECT_EQ(string("mm"), ValueUnits("  1 2 3mm", &value));
     EXPECT_EQ(string("1 2 3"), value);
+  }
+  {
+    string value;
+    EXPECT_EQ(string("mm"), ValueUnits("  1.5mm", &value));
+    EXPECT_EQ(string("1.5"), value);
   }
   {
     string value;

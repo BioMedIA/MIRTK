@@ -18,7 +18,7 @@
 # ============================================================================
 
 macro(add_numerics_test class_name)
-  mirtk_add_test(${class_name} SOURCES mirtkNumericsTest.h DEPENDS LibNumerics)
+  mirtk_add_test(${class_name} SOURCES NumericsTest.h DEPENDS LibNumerics)
 endmacro ()
 
 

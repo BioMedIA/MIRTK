@@ -17,7 +17,7 @@
  * limitations under the License.
  */
 
-#include "mirtkNumericsTest.h"
+#include "NumericsTest.h"
 
 #include "mirtk/Matrix.h"
 using namespace mirtk;
