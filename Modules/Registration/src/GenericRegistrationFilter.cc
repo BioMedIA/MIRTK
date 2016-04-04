@@ -100,6 +100,20 @@ typedef GenericRegistrationFilter::ResampledImageList ResampledImageList;
 typedef GenericRegistrationFilter::VoxelType          VoxelType;
 
 // -----------------------------------------------------------------------------
+// Auxiliary unctions used by Set parameter function
+// -----------------------------------------------------------------------------
+
+// -----------------------------------------------------------------------------
+int ParseValues(const char *str, double *x, double *y, double *z)
+{
+#ifdef WINDOWS
+  return sscanf_s(str, "%lf %lf %lf", x, y, z);
+#else
+  return sscanf(str, "%lf %lf %lf", x, y, z);
+#endif
+}
+
+// -----------------------------------------------------------------------------
 // Functor types used by InitializePyramid
 // -----------------------------------------------------------------------------
 
@@ -1121,50 +1135,52 @@ bool GenericRegistrationFilter::Read(istream &from, bool echo)
 // Note: Only set the specified level, which can be the zero-th level in case of
 //       common settings for all levels. The settings for the remaining levels
 //       are filled in by GuessParameter.
-bool GenericRegistrationFilter::Set(const char *name, const char *value, int level)
+bool GenericRegistrationFilter::Set(const char *param, const char *value, int level)
 {
   if (level < 0 || level >= MAX_NO_RESOLUTIONS) {
-    cerr << "GenericRegistrationFilter::Set: Level index out-of-bounds" << endl;
+    cerr << this->NameOfType() << "::Set: Level index out-of-bounds" << endl;
     exit(1);
   }
 
+  string name, type = ParameterUnits(param, &name);
+
   // Version
-  if (strcmp(name, "Version") == 0) {
+  if (name == "Version") {
     if (!FromString(value, version) || version > current_version) return false;
     if (!version) version = current_version;
     return true;
 
   // Interpolation mode
-  } else if (strcmp(name, "Interpolation mode") == 0) {
+  } else if (name == "Interpolation mode") {
     return FromString(value, _InterpolationMode);
-  } else if (strcmp(name, "Extrapolation mode") == 0) {
+  } else if (name == "Extrapolation mode") {
     return FromString(value, _ExtrapolationMode);
-  } else if (strcmp(name, "Precompute image derivatives") == 0) {
+  } else if (name == "Precompute image derivatives") {
     return FromString(value, _PrecomputeDerivatives);
 
   // (Default) Similarity measure
-  } else if (strcmp(name, "Image (dis-)similarity measure") == 0 ||
-             strcmp(name, "Image dissimilarity measure")    == 0 ||
-             strcmp(name, "Image similarity measure")       == 0 ||
-             strcmp(name, "(Dis-)similarity measure")       == 0 ||
-             strcmp(name, "Dissimilarity measure")          == 0 ||
-             strcmp(name, "Similarity measure")             == 0 ||
-             strcmp(name, "SIM")                            == 0) {
+  } else if (name == "Image (dis-)similarity measure" ||
+             name == "Image dissimilarity measure" ||
+             name == "Image similarity measure" ||
+             name == "(Dis-)similarity measure" ||
+             name == "Dissimilarity measure" ||
+             name == "Similarity measure" ||
+             name == "SIM") {
     return FromString(value, _SimilarityMeasure);
 
   // (Default) Point set distance measure
-  } else if (strcmp(name, "Point set distance measure") == 0 ||
-             strcmp(name, "Polydata distance measure")  == 0 || // legacy
-             strcmp(name, "PDM")                        == 0) {
+  } else if (name == "Point set distance measure" ||
+             name == "Polydata distance measure" || // legacy
+             name == "PDM") {
     return FromString(value, _PointSetDistanceMeasure);
 
   // Whether to remesh surfaces adaptively
-  } else if (strcmp(name, "Adaptive remeshing")         == 0 ||
-             strcmp(name, "Adaptive surface remeshing") == 0) {
+  } else if (name == "Adaptive remeshing" ||
+             name == "Adaptive surface remeshing") {
     return FromString(value, _AdaptiveRemeshing);
 
   // Transformation model
-  } else if (strcmp(name, "Transformation model") == 0) {
+  } else if (name == "Transformation model") {
     _TransformationModel.clear();
     #ifdef WINDOWS
       char *str = _strdup(value);
@@ -1194,64 +1210,94 @@ bool GenericRegistrationFilter::Set(const char *name, const char *value, int lev
 
   // Restrict deformation along coordinate axis
   // Note: E.g., useful for EPI distortion correction
-  } else if (strcmp(name, "Allow deformation in X") == 0) {
+  } else if (name == "Allow deformation in X") {
     return FromString(value, _RegisterX);
-  } else if (strcmp(name, "Allow deformation in Y") == 0) {
+  } else if (name == "Allow deformation in Y") {
     return FromString(value, _RegisterY);
-  } else if (strcmp(name, "Allow deformation in Z") == 0) {
+  } else if (name == "Allow deformation in Z") {
     return FromString(value, _RegisterZ);
 
   // Multi-level transformation model
-  } else if (strcmp(name, "Multi-level transformation") == 0 ||
-             strcmp(name, "Multi level transformation") == 0 ||
-             strcmp(name, "Multilevel transformation")  == 0) {
+  } else if (name == "Multi-level transformation" ||
+             name == "Multi level transformation" ||
+             name == "Multilevel transformation") {
     return FromString(value, _MultiLevelMode);
 
   // Energy function
-  } else if (strcmp(name, "Energy function")     == 0 ||
-             strcmp(name, "Registration energy") == 0) {
+  } else if (name == "Energy function" ||
+             name == "Registration energy") {
     _EnergyFormula = value;
     return true;
 
-  } else if (strcmp(name, "Normalize weights of energy terms") == 0 ||
-             strcmp(name, "Normalise weights of energy terms") == 0) {
+  } else if (name == "Normalize weights of energy terms" ||
+             name == "Normalise weights of energy terms") {
     return FromString(value, _NormalizeWeights);
 
   // Optimization method
-  } else if (strcmp(name, "Optimization method") == 0 ||
-             strcmp(name, "Optimisation method") == 0) {
+  } else if (name == "Optimization method" ||
+             name == "Optimisation method") {
     return FromString(value, _OptimizationMethod);
 
   // Number of resolution levels
-  } else if (strcmp(name, "No. of levels")               == 0 ||
-             strcmp(name, "Number of levels")            == 0 ||
-             strcmp(name, "No. of resolution levels")    == 0 ||
-             strcmp(name, "Number of resolution levels") == 0) {
+  } else if (name == "No. of levels" ||
+             name == "Number of levels" ||
+             name == "No. of resolution levels" ||
+             name == "Number of resolution levels") {
     return FromString(value, _NumberOfLevels) && _NumberOfLevels >= 1;
 
   // Whether to use Gaussian resolution pyramid
-  } else if (strcmp(name, "Use Gaussian resolution pyramid") == 0 ||
-             strcmp(name, "Use Gaussian image resolution pyramid") == 0) {
+  } else if (name == "Use Gaussian resolution pyramid" ||
+             name == "Use Gaussian image resolution pyramid") {
     bool use_pyramid;
     if (!FromString(value, use_pyramid)) return false;
     _UseGaussianResolutionPyramid = use_pyramid;
     return true;
 
   // Image resolution
-  } else if (strncmp(name, "Resolution", 10) == 0) {
+  } else if (name.compare(0, 10, "Resolution", 10) == 0) {
+    // Make parameter and value units consistent or return false in case of mismatch
+    string number, units = ValueUnits(value, &number, type.c_str());
+    if      (units == "rel") units = "vox";
+    else if (units == "abs") units = "mm";
+    if (type.empty()) {
+      if (units.empty()) type = units = "signed";
+      else type = units;
+    } else {
+      if      (type == "rel") type = "vox";
+      else if (type == "abs") type = "mm";
+    }
+    if (type != units) {
+      cerr << "Mismatching units specification for value of paramter '" << name << "'!" << endl;
+      return false;
+    }
+    // Parse values
     double dx = .0, dy = .0, dz = .0;
-    #ifdef WINDOWS
-      int n = sscanf_s(value, "%lf %lf %lf", &dx, &dy, &dz);
-    #else
-      int n = sscanf(value, "%lf %lf %lf", &dx, &dy, &dz);
-    #endif
+    int n = ParseValues(number.c_str(), &dx, &dy, &dz);
     if (n == 0) return false;
     if (n == 1) dz = dy = dx;
+    // Convert to signed "units"
+    if (units != "signed") {
+      if (dx < .0 || dy < .0 || dz < .0) {
+        cerr << "Value of paramter '" << name << "' with units " << units << " must be positive!" << endl;
+        return false;
+      }
+      if (units == "vox") {
+        dx = - dx, dy = - dy, dz = - dz;
+      } else if (units == "%") {
+        dx = - 100.0 / dx;
+        dy = - 100.0 / dy;
+        dz = - 100.0 / dz;
+      } else if (units != "mm") {
+        cerr << "Units of parameter '" << name << "' must be either 'vox', 'mm', '%', or 'signed' (neg: 'vox', pos: 'mm')!" << endl;
+        return false;
+      }
+    }
+    // Assign parameter values
     n = 0; // used for image index next
-    if (strncmp(name, "Resolution of image ", 20) == 0) {
-      if (!FromString(name + 20, n) || n < 1) return false;
+    if (name.compare(10, 10, " of image ", 10) == 0) {
+      if (!FromString(name.substr(20), n) || n < 1) return false;
       if (_Resolution[level].size() < static_cast<size_t>(n)) {
-        _Resolution[level].resize(n, .0);
+        _Resolution[level].resize(n, numeric_limits<double>::quiet_NaN());
       }
       --n;
     } else {
@@ -1263,24 +1309,59 @@ bool GenericRegistrationFilter::Set(const char *name, const char *value, int lev
     return true;
 
   // Image blurring
-  } else if (strncmp(name, "Blurring", 8) == 0) {
+  } else if (name.compare(0, 8, "Blurring", 8) == 0) {
+    // Make parameter and value units consistent or return false in case of mismatch
+    string number, units = ValueUnits(value, &number, type.c_str());
+    if      (units == "rel") units = "vox";
+    else if (units == "abs") units = "mm";
+    if (type.empty()) {
+      if (units.empty()) type = units = "signed";
+      else type = units;
+    } else {
+      if      (type == "rel") type = "vox";
+      else if (type == "abs") type = "mm";
+    }
+    if (type != units) {
+      cerr << "Mismatching units specification for value of paramter '" << name << "'!" << endl;
+      return false;
+    }
+    // Parse values
+    double sigma = .0;
+    if (!FromString(number, sigma)) return false;
+    // Convert to signed "units"
+    if (units != "signed") {
+      if (sigma < .0) {
+        cerr << "Value of paramter '" << name << "' with units " << units << " must be positive!" << endl;
+        return false;
+      }
+      if (units == "vox") {
+        sigma = - sigma;
+      } else if (units == "%") {
+        sigma = - sigma / 100.0;
+      } else if (units != "mm") {
+        cerr << "Units of parameter '" << name << "' must be either 'vox', 'mm', '%', or 'signed' (neg: 'vox', pos: 'mm')!" << endl;
+        return false;
+      }
+    }
+    // Assign value
     int n = 0;
-    if (strncmp(name, "Blurring of image ", 18) == 0) {
-      if (!FromString(name + 18, n) || n < 1) return false;
+    if (name.compare(8, 10, " of image ", 10) == 0) {
+      if (!FromString(name.substr(18), n) || n < 1) return false;
       if (_Blurring[level].size() < static_cast<size_t>(n)) {
-        _Blurring[level].resize(n, -1.0);
+        _Blurring[level].resize(n, numeric_limits<double>::quiet_NaN());
       }
       --n;
     } else {
       _Blurring[level].resize(1);
     }
-    return FromString(value, _Blurring[level][n]) && _Blurring[level][n] >= .0;
+    _Blurring[level][n] = sigma;
+    return true;
 
   // Image background
-  } else if (strncmp(name, "Background value", 16) == 0) {
-    if (strncmp(name, "Background value of image ", 26) == 0) {
+  } else if (name.compare(0, 16, "Background value", 16) == 0) {
+    if (name.compare(16, 10, " of image ", 10) == 0) {
       int n = 0;
-      if (!FromString(name + 26, n) || n < 1) return false;
+      if (!FromString(name.substr(26), n) || n < 1) return false;
       if (_Background.size() < static_cast<size_t>(n)) {
         _Background.resize(n, numeric_limits<double>::quiet_NaN());
       }
@@ -1290,10 +1371,10 @@ bool GenericRegistrationFilter::Set(const char *name, const char *value, int lev
     }
 
   // Image padding
-  } else if (strncmp(name, "Padding value", 13) == 0) {
-    if (strncmp(name, "Padding value of image ", 23) == 0) {
+  } else if (name.compare(0, 13, "Padding value", 13) == 0) {
+    if (name.compare(13, 10, " of image ", 10) == 0) {
       int n = 0;
-      if (!FromString(name + 23, n) || n < 1) return false;
+      if (!FromString(name.substr(23), n) || n < 1) return false;
       if (_Padding.size() < static_cast<size_t>(n)) {
         _Padding.resize(n, numeric_limits<double>::quiet_NaN());
       }
@@ -1303,120 +1384,131 @@ bool GenericRegistrationFilter::Set(const char *name, const char *value, int lev
     }
 
   // Image centering
-  } else if (strcmp(name, "Foreground-centric global transformation") == 0) {
+  } else if (name == "Foreground-centric global transformation") {
     bool center;
     if (!FromString(value, center)) return false;
     _Centering[level] = center;
     return true;
 
   // Surface resolution
-  } else if (strncmp(name, "Edge length", 11) == 0) {
-    int n = 0;
-    if (strncmp(name, "Edge length of surface ", 23) == 0) {
-      if (!FromString(name + 23, n) || n < 1) return false;
-      if (_MinEdgeLength[level].size() < static_cast<size_t>(n)) {
-        _MinEdgeLength[level].resize(n, -1.0);
-      }
-      if (_MaxEdgeLength[level].size() < static_cast<size_t>(n)) {
-        _MaxEdgeLength[level].resize(n, -1.0);
-      }
-      --n;
-    } else {
-      _MinEdgeLength[level].resize(1);
-      _MaxEdgeLength[level].resize(1);
+  } else if (name.compare(0, 11, "Edge length", 11) == 0 ||
+             name.compare(0, 19, "Minimum edge length", 19) == 0 ||
+             name.compare(0, 19, "Maximum edge length", 19) == 0) {
+
+    const size_t nskip  = (name.compare(0, 11, "Edge length", 11) == 0 ? 11 : 19);
+    const bool   setmin = (name.compare(0, 3, "Min") == 0);
+    const bool   setmax = (name.compare(0, 3, "Max") == 0);
+
+    string number, units = ValueUnits(value, &number, type.c_str());
+    if (units.empty()) {
+      units = "mm";
+    } else if (units != type) {
+      cerr << "Mismatching units specification for value of parameter '" << name << "'!" << endl;
+      return false;
     }
+    if (units != "mm") {
+      cerr << "Value of parameter '" << name << "' must be in mm units!" << endl;
+      return false;
+    }
+
     double length;
-    if (!FromString(value, length)) return false;
-    _MinEdgeLength[level][n] = _MaxEdgeLength[level][n] = length;
-    return true;
-  } else if (strncmp(name, "Minimum edge length", 19) == 0) {
+    if (!FromString(number, length)) return false;
+    if (length < .0) {
+      cerr << "Value of parameter '" << name << "' must be positive!" << endl;
+      return false;
+    }
+
     int n = 0;
-    if (strncmp(name, "Minimum edge length of surface ", 32) == 0) {
-      if (!FromString(name + 23, n) || n < 1) return false;
-      if (_MinEdgeLength[level].size() < static_cast<size_t>(n)) {
+    if (name.compare(nskip, 12, " of surface ", 12) == 0) {
+      if (!FromString(name.substr(nskip + 12), n) || n < 1) return false;
+      if (setmin && _MinEdgeLength[level].size() < static_cast<size_t>(n)) {
         _MinEdgeLength[level].resize(n, -1.0);
       }
-      --n;
-    } else {
-      _MinEdgeLength[level].resize(1);
-    }
-    return FromString(value, _MinEdgeLength[level][n]);
-  } else if (strncmp(name, "Maximum edge length", 19) == 0) {
-    int n = 0;
-    if (strncmp(name, "Maximum edge length of surface ", 32) == 0) {
-      if (!FromString(name + 23, n) || n < 1) return false;
-      if (_MaxEdgeLength[level].size() < static_cast<size_t>(n)) {
+      if (setmax && _MaxEdgeLength[level].size() < static_cast<size_t>(n)) {
         _MaxEdgeLength[level].resize(n, -1.0);
       }
       --n;
     } else {
-      _MaxEdgeLength[level].resize(1);
+      if (setmin) _MinEdgeLength[level].resize(1);
+      if (setmax) _MaxEdgeLength[level].resize(1);
     }
-    return FromString(value, _MaxEdgeLength[level][n]);
+
+    if (setmin) _MinEdgeLength[level][n] = length;
+    if (setmax) _MaxEdgeLength[level][n] = length;
+    return true;
 
   // Merge global input transformation into FFD
-  } else if (strcmp(name, "Merge global and local transformation") == 0 ||
-             strcmp(name, "Merge global and local transformations") == 0) {
+  } else if (name == "Merge global and local transformation" ||
+             name == "Merge global and local transformations") {
     return FromString(value, _MergeGlobalAndLocalTransformation);
 
   // FFD control point spacing
-  } else if (strncmp(name, "Control point spacing in X", 26) == 0) {
-    if (!FromString(value, _MinControlPointSpacing[level][0]) || _MinControlPointSpacing[level][0] < .0) return false;
-    _MaxControlPointSpacing[level][0] = _MinControlPointSpacing[level][0];
-    return true;
-  } else if (strncmp(name, "Control point spacing in Y", 26) == 0) {
-    if (!FromString(value, _MinControlPointSpacing[level][1]) || _MinControlPointSpacing[level][1] < .0) return false;
-    _MaxControlPointSpacing[level][1] = _MinControlPointSpacing[level][1];
-    return true;
-  } else if (strncmp(name, "Control point spacing in Z", 26) == 0) {
-    if (!FromString(value, _MinControlPointSpacing[level][2]) || _MinControlPointSpacing[level][2] < .0) return false;
-    _MaxControlPointSpacing[level][2] = _MinControlPointSpacing[level][2];
-    return true;
-  } else if (strncmp(name, "Control point spacing in T", 26) == 0) {
-    if (!FromString(value, _MinControlPointSpacing[level][3]) || _MinControlPointSpacing[level][3] < .0) return false;
-    _MaxControlPointSpacing[level][3] = _MinControlPointSpacing[level][3];
-    return true;
-  } else if (strncmp(name, "Control point spacing", 21) == 0) {
-    double ds;
-    if (!FromString(value, ds) || ds < .0) return false;
-    // Set only spatial dimensions, temporal resolution usually differs
-    _MinControlPointSpacing[level][0] = _MaxControlPointSpacing[level][0] = ds;
-    _MinControlPointSpacing[level][1] = _MaxControlPointSpacing[level][1] = ds;
-    _MinControlPointSpacing[level][2] = _MaxControlPointSpacing[level][2] = ds;
-    return true;
-
-  } else if (strncmp(name, "Minimum control point spacing in X", 34) == 0) {
-    return FromString(value, _MinControlPointSpacing[level][0]) && _MinControlPointSpacing[level][0] >= .0;
-  } else if (strncmp(name, "Minimum control point spacing in Y", 34) == 0) {
-    return FromString(value, _MinControlPointSpacing[level][1]) && _MinControlPointSpacing[level][1] >= .0;
-  } else if (strncmp(name, "Minimum control point spacing in Z", 34) == 0) {
-    return FromString(value, _MinControlPointSpacing[level][2]) && _MinControlPointSpacing[level][2] >= .0;
-  } else if (strncmp(name, "Minimum control point spacing in T", 34) == 0) {
-    return FromString(value, _MinControlPointSpacing[level][3]) && _MinControlPointSpacing[level][3] >= .0;
-  } else if (strncmp(name, "Minimum control point spacing", 29) == 0) {
-    double ds;
-    if (!FromString(value, ds) || ds < .0) return false;
-    // Set only spatial dimensions, temporal resolution usually differs
-    for (int i = 0; i < 3; ++i) _MinControlPointSpacing[level][i] = ds;
-    return true;
-
-  } else if (strncmp(name, "Maximum control point spacing in X", 34) == 0) {
-    return FromString(value, _MaxControlPointSpacing[level][0]) && _MaxControlPointSpacing[level][0] >= .0;
-  } else if (strncmp(name, "Maximum control point spacing in Y", 34) == 0) {
-    return FromString(value, _MaxControlPointSpacing[level][1]) && _MaxControlPointSpacing[level][1] >= .0;
-  } else if (strncmp(name, "Maximum control point spacing in Z", 34) == 0) {
-    return FromString(value, _MaxControlPointSpacing[level][2]) && _MaxControlPointSpacing[level][2] >= .0;
-  } else if (strncmp(name, "Maximum control point spacing in T", 34) == 0) {
-    return FromString(value, _MaxControlPointSpacing[level][3]) && _MaxControlPointSpacing[level][3] >= .0;
-  } else if (strncmp(name, "Maximum control point spacing", 29) == 0) {
-    double ds;
-    if (!FromString(value, ds) || ds < .0) return false;
-    // Set only spatial dimensions, temporal resolution usually differs
-    for (int i = 0; i < 3; ++i) _MaxControlPointSpacing[level][i] = ds;
+  } else if (name.compare(0, 21, "Control point spacing")         == 0 ||
+             name.compare(0, 29, "Minimum control point spacing") == 0 ||
+             name.compare(0, 29, "Maximum control point spacing") == 0) {
+    string number, units = ValueUnits(value, &number, type.c_str());
+    if (units.empty()) {
+      units = "mm";
+    } else if (units != type) {
+      cerr << "Mismatching units specification for value of parameter '" << name << "'!" << endl;
+      return false;
+    }
+    if (units != "mm") {
+      cerr << "Value of parameter '" << name << "' must be in mm units!" << endl;
+      return false;
+    }
+    double ds = .0;
+    if (!FromString(number, ds)) return false;
+    if (ds < .0) {
+      cerr << "Value of parameter '" << name << "' must be positive!" << endl;
+      return false;
+    }
+    if        (name == "Control point spacing in X") {
+      _MaxControlPointSpacing[level][0] = _MinControlPointSpacing[level][0] = ds;
+    } else if (name == "Control point spacing in Y") {
+      _MaxControlPointSpacing[level][1] = _MinControlPointSpacing[level][1] = ds;
+    } else if (name == "Control point spacing in Z") {
+      _MaxControlPointSpacing[level][2] = _MinControlPointSpacing[level][2] = ds;
+    } else if (name == "Control point spacing in T") {
+      _MaxControlPointSpacing[level][3] = _MinControlPointSpacing[level][3] = ds;
+    } else if (name == "Control point spacing") {
+      // Set only spatial dimensions, temporal resolution usually differs
+      _MinControlPointSpacing[level][0] = _MaxControlPointSpacing[level][0] = ds;
+      _MinControlPointSpacing[level][1] = _MaxControlPointSpacing[level][1] = ds;
+      _MinControlPointSpacing[level][2] = _MaxControlPointSpacing[level][2] = ds;
+    } else if (name == "Minimum control point spacing in X") {
+      _MinControlPointSpacing[level][0] = ds;
+    } else if (name == "Minimum control point spacing in Y") {
+      _MinControlPointSpacing[level][1] = ds;
+    } else if (name == "Minimum control point spacing in Z") {
+      _MinControlPointSpacing[level][2] = ds;
+    } else if (name == "Minimum control point spacing in T") {
+      _MinControlPointSpacing[level][3] = ds;
+    } else if (name == "Minimum control point spacing") {
+      // Set only spatial dimensions, temporal resolution usually differs
+      _MinControlPointSpacing[level][0] = ds;
+      _MinControlPointSpacing[level][1] = ds;
+      _MinControlPointSpacing[level][2] = ds;
+    } else if (name == "Maximum control point spacing in X") {
+      _MaxControlPointSpacing[level][0] = ds;
+    } else if (name == "Maximum control point spacing in Y") {
+      _MaxControlPointSpacing[level][1] = ds;
+    } else if (name == "Maximum control point spacing in Z") {
+      _MaxControlPointSpacing[level][2] = ds;
+    } else if (name == "Maximum control point spacing in T") {
+      _MaxControlPointSpacing[level][3] = ds;
+    } else if (name == "Maximum control point spacing") {
+      // Set only spatial dimensions, temporal resolution usually differs
+      _MaxControlPointSpacing[level][0] = ds;
+      _MaxControlPointSpacing[level][1] = ds;
+      _MaxControlPointSpacing[level][2] = ds;
+    } else {
+      return false;
+    }
     return true;
 
   // FFD subdivision
-  } else if (strcmp(name, "Subdivision dimension") == 0) {
+  } else if (name == "Subdivision dimension") {
 
     int dim = 0;
     if (FromString(value, dim)) {
@@ -1476,17 +1568,17 @@ bool GenericRegistrationFilter::Set(const char *name, const char *value, int lev
     }
     return true;
 
-  } else if (strcmp(name, "Downsample images with padding") == 0) {
+  } else if (name == "Downsample images with padding") {
     return FromString(value, _DownsampleWithPadding);
 
-  } else if (strcmp(name, "Crop/pad images") == 0) {
+  } else if (name == "Crop/pad images") {
     bool do_crop_pad;
     if (!FromString(value, do_crop_pad)) return false;
     _CropPadImages = static_cast<int>(do_crop_pad);
     return true;
 
-  } else if (strcmp(name, "Crop/pad FFD lattice") == 0 ||
-             strcmp(name, "Crop/pad lattice")     == 0) {
+  } else if (name == "Crop/pad FFD lattice" ||
+             name == "Crop/pad lattice") {
     bool do_crop_pad;
     if (!FromString(value, do_crop_pad)) return false;
     _CropPadFFD = static_cast<int>(do_crop_pad);
@@ -1498,7 +1590,7 @@ bool GenericRegistrationFilter::Set(const char *name, const char *value, int lev
     //       before having them instantiated yet? Shall unknown parameters indeed
     //       simply be ignored? At least check once all modules are instantiated
     //       that at least one accepts each given parameter. -as12312
-    Insert(_Parameter[level], name, value);
+    Insert(_Parameter[level], param, value);
     return true;
   }
 
@@ -1857,6 +1949,7 @@ void GenericRegistrationFilter::GuessParameter()
   }
 
   // Initialize resolution pyramid
+  const double NaN = numeric_limits<double>::quiet_NaN();
   const int nimages = max(_NumberOfImages, (_Domain ? 1 : 0));
   for (int level = 0; level <= _NumberOfLevels; ++level) {
     if (_Centering[level] == -1) {
@@ -1865,59 +1958,78 @@ void GenericRegistrationFilter::GuessParameter()
     if (_Resolution[level].size() == 1) {
       _Resolution[level].resize(nimages, _Resolution[level][0]);
     } else {
-      _Resolution[level].resize(nimages);
+      _Resolution[level].resize(nimages, Vector3D<double>(NaN));
     }
     if (_Blurring[level].size() == 1) {
       _Blurring[level].resize(nimages, _Blurring[level][0]);
     } else {
-      _Blurring[level].resize(nimages, -1.0);
+      _Blurring[level].resize(nimages, NaN);
     }
   }
   if (_UseGaussianResolutionPyramid == -1) {
     _UseGaussianResolutionPyramid = true;
     for (int level = 1; level <= _NumberOfLevels; ++level)
     for (int n     = 0; n     <  nimages;         ++n    ) {
-      if (_Resolution[level][n]._x) _UseGaussianResolutionPyramid = false;
+      if ((!IsNaN(_Resolution[level][n]._x) && _Resolution[level][n]._x != .0) ||
+          (!IsNaN(_Resolution[level][n]._y) && _Resolution[level][n]._y != .0) ||
+          (!IsNaN(_Resolution[level][n]._z) && _Resolution[level][n]._x != .0)) {
+        _UseGaussianResolutionPyramid = false;
+      }
     }
   }
-  for (int level = 0; level <= _NumberOfLevels; ++level) {
-    for (int n = 0; n < nimages; ++n) {
-      const BaseImage * const image = (_Domain ? _Domain : _Input[n]);
-      // Set initial image resolution
-      if (level == 0) {
-        // Resolution
-        if (!_Resolution[0][n]._x) {
-          _Resolution[0][n]._x = image->GetXSize();
-          _Resolution[0][n]._y = image->GetYSize();
-          _Resolution[0][n]._z = image->GetZSize();
-        }
-        if (image->Z() == 1) _Resolution[0][n]._z = .0;
-      // Initialize lower resolution levels
+  for (int level = 0; level <= _NumberOfLevels; ++level)
+  for (int n     = 0; n     <  nimages;         ++n) {
+    const BaseImage * const image = (_Domain ? _Domain : _Input[n]);
+    // Set initial image resolution
+    if (level == 0) {
+      // Resolution
+      if (IsNaN(_Resolution[0][n]._x) || _Resolution[0][n]._x == .0) _Resolution[0][n]._x = -1.0;
+      if (IsNaN(_Resolution[0][n]._y) || _Resolution[0][n]._y == .0) _Resolution[0][n]._y = -1.0;
+      if (IsNaN(_Resolution[0][n]._z) || _Resolution[0][n]._z == .0) _Resolution[0][n]._z = -1.0;
+      if (_Resolution[0][n]._x < .0) _Resolution[0][n]._x = abs(_Resolution[0][n]._x) * image->XSize();
+      if (_Resolution[0][n]._y < .0) _Resolution[0][n]._y = abs(_Resolution[0][n]._y) * image->YSize();
+      if (_Resolution[0][n]._z < .0) _Resolution[0][n]._z = abs(_Resolution[0][n]._z) * image->ZSize();
+      if (image->Z() == 1) _Resolution[0][n]._z = .0;
+    // Initialize lower resolution levels
+    } else {
+      // Resolution
+      const double s = (level == 1 ? 1.0 : 2.0);
+      if (_UseGaussianResolutionPyramid) {
+        _Resolution[level][n]._x = s * _Resolution[level-1][n]._x;
+        _Resolution[level][n]._y = s * _Resolution[level-1][n]._y;
+        _Resolution[level][n]._z = s * _Resolution[level-1][n]._z;
       } else {
-        // Resolution
-        if (!_Resolution[level][n]._x || _UseGaussianResolutionPyramid) {
-          double s = (level == 1 ? 1.0 : 2.0);
+        if (IsNaN(_Resolution[level][n]._x) || _Resolution[level][n]._x == .0) {
           _Resolution[level][n]._x = s * _Resolution[level-1][n]._x;
+        }
+        if (IsNaN(_Resolution[level][n]._y) || _Resolution[level][n]._y == .0) {
           _Resolution[level][n]._y = s * _Resolution[level-1][n]._y;
+        }
+        if (IsNaN(_Resolution[level][n]._z) || _Resolution[level][n]._z == .0) {
           _Resolution[level][n]._z = s * _Resolution[level-1][n]._z;
         }
-        if (image->Z() == 1) _Resolution[level][n]._z = _Resolution[0][n]._z;
-        // Blurring
-        if (_Blurring[level][n] < .0) {
-          _Blurring[level][n] = _Blurring[0][n];
-          if (_Blurring[level][n] < .0) {
-            if (_UseGaussianResolutionPyramid ||
-                (fequal(_Resolution[level][n]._x, _Input[n]->GetXSize(), TOL) &&
-                 fequal(_Resolution[level][n]._y, _Input[n]->GetYSize(), TOL) &&
-                 fequal(_Resolution[level][n]._z, _Input[n]->GetZSize(), TOL))) {
-              _Blurring[level][n] = .0;
-            } else {
-              _Blurring[level][n] = 0.5 * max(max(_Resolution[level][n]._x,
-                                                            _Resolution[level][n]._y),
-                                                            _Resolution[level][n]._z);
-            }
+      }
+      if (image->Z() == 1) _Resolution[level][n]._z = _Resolution[0][n]._z;
+      // Blurring
+      const double ds = max(max(_Resolution[level][n]._x,
+                                _Resolution[level][n]._y),
+                                _Resolution[level][n]._z);
+      if (IsNaN(_Blurring[level][n])) {
+        if (IsNaN(_Blurring[0][n])) {
+          if (_UseGaussianResolutionPyramid ||
+              (fequal(_Resolution[level][n]._x, _Input[n]->XSize(), TOL) &&
+               fequal(_Resolution[level][n]._y, _Input[n]->YSize(), TOL) &&
+               fequal(_Resolution[level][n]._z, _Input[n]->ZSize(), TOL))) {
+            _Blurring[level][n] = .0;
+          } else {
+            _Blurring[level][n] = -.5;
           }
+        } else {
+          _Blurring[level][n] = _Blurring[0][n];
         }
+      }
+      if (_Blurring[level][n] < .0) {
+        _Blurring[level][n] = abs(_Blurring[level][n]) * ds;
       }
     }
   }
