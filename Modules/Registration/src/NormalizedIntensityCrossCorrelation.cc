@@ -82,27 +82,6 @@ int ParseValues(const char *str, const char *format, double *x, double *y, doubl
 }
 
 // -----------------------------------------------------------------------------
-NormalizedIntensityCrossCorrelation::Units ParseUnits(const char *value)
-{
-  // Start at end of string
-  const size_t len = strlen(value);
-  const char    *p = value + len;
-  // Skip trailing whitespaces
-  while (p != value && (*(p-1) == ' ' || *(p-1) == '\t')) --p;
-  // Skip lowercase letters
-  while (p != value && *(p-1) >= 'a' && *(p-1) <= 'z') --p;
-  // Check if value ends with unit specification
-  if (strcmp(p, "mm") == 0) {
-    return NormalizedIntensityCrossCorrelation::UNITS_MM;
-  }
-  if (strcmp(p, "vox") == 0 || strcmp(p, "voxel") == 0 || strcmp(p, "voxels") == 0)
-  {
-    return NormalizedIntensityCrossCorrelation::UNITS_Voxel;
-  }
-  return NormalizedIntensityCrossCorrelation::UNITS_Default;
-}
-
-// -----------------------------------------------------------------------------
 // Kernel: Gaussian
 // -----------------------------------------------------------------------------
 
