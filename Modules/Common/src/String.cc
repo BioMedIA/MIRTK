@@ -209,7 +209,11 @@ string ParameterUnits(const string &str, string *name, const char *dflt)
     }
   }
   if (name) {
-    *name = Trim(trimmed.substr(0u, trimmed.size() - units.size() - 2u));
+    if (units.empty()) {
+      *name = trimmed;
+    } else {
+      *name = Trim(trimmed.substr(0u, trimmed.size() - units.size() - 2u));
+    }
   }
   if (units.empty()) return dflt;
   return StandardUnits(units);
