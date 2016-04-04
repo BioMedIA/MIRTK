@@ -225,6 +225,7 @@ string ValueUnits(const string &str, string *value, const char *dflt)
     const string last = parts.back();
     const auto pos = last.find_first_of("0123456789");
     if (pos != string::npos) {
+      const auto pos = last.find_last_of("0123456789");
       parts.back() = last.substr(0u, pos + 1u);
       parts.push_back(last.substr(pos + 1u));
     }

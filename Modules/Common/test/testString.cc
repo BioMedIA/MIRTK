@@ -184,6 +184,11 @@ TEST(String, ValueUnits)
   }
   {
     string value;
+    EXPECT_EQ(string("mm"), ValueUnits("  1.5mm", &value));
+    EXPECT_EQ(string("1.5"), value);
+  }
+  {
+    string value;
     EXPECT_EQ(string("mm"), ValueUnits("  1 2 3  [mm]", &value));
     EXPECT_EQ(string("1 2 3"), value);
   }
