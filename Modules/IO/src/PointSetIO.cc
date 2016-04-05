@@ -1159,13 +1159,38 @@ vtkSmartPointer<vtkPolyData> ReadGIFTI(const char *fname, vtkPolyData *surface, 
       return polydata;
     }
   }
+  const vtkIdType npoints = points->GetNumberOfPoints();
+
+  // Check topology information
+  polys->InitTraversal();
+  vtkIdType npts, *pts;
+  while (polys->GetNextCell(npts, pts) != 0) {
+    if (npts != 3 || pts[0] >= npoints || pts[1] >= npoints || pts[2] >= npoints) {
+      if (errmsg) {
+        cerr << "Error: GIFTI topology array has invalid point index!" << endl;
+      }
+      return polydata;
+    }
+  }
 
   // Get node indices array
   vtkSmartPointer<vtkIdTypeArray> indices = GIFTINodeIndicesToVTK(gim, errmsg);
+  if (indices) {
+    for (vtkIdType i = 0; i < indices->GetNumberOfTuples(); ++i) {
+      const vtkIdType index = indices->GetComponent(i, 0);
+      if (index >= npoints) {
+        if (errmsg) {
+          cerr << "Error: Index of GIFTI node indices array element is out of range!" << endl;
+          cerr << "       - Number of points = " << npoints << endl;
+          cerr << "       - Node index       = " << index << endl;
+        }
+        return polydata;
+      }
+    }
+  }
 
   // Convert possibly sparse point data arrays
-  vtkSmartPointer<vtkPointData> pd;
-  pd = GIFTIPointDataToVTK(gim, points->GetNumberOfPoints(), indices, errmsg);
+  vtkSmartPointer<vtkPointData> pd = GIFTIPointDataToVTK(gim, npoints, indices, errmsg);
 
   // Copy file meta data to vtkPolyData information
   vtkInformation * const info = polydata->GetInformation();
@@ -1175,17 +1200,16 @@ vtkSmartPointer<vtkPolyData> ReadGIFTI(const char *fname, vtkPolyData *surface, 
   gifti_free_image(gim);
   gim = nullptr;
 
-  // Verify consistency of resulting polygonal dataset
-  bool ok = (points->GetNumberOfPoints() > 0);
-
+  // Check number of tuples of point data arrays
+  bool ok = true;
   if (pd) {
     for (int i = 0; i < pd->GetNumberOfArrays(); ++i) {
-      vtkDataArray *data = pd->GetArray(i);
-      if (data->GetNumberOfTuples() != points->GetNumberOfPoints()) {
-        cerr << "Error: First dimension of GIFTI array '" << pd->GetArray(i)->GetName()
-             << "' (index " << i << ") has mismatching size!" << endl;
-        cerr << "       - Number of points = " << points->GetNumberOfPoints() << endl;
-        cerr << "       - Number of tuples = " << data  ->GetNumberOfTuples() << endl;
+      vtkDataArray *array = pd->GetArray(i);
+      if (array->GetNumberOfTuples() != npoints) {
+        cerr << "Error: GIFTI array '" << array->GetName()
+             << "' at index " << i << " has mismatching size!" << endl;
+        cerr << "       - Number of points = " << npoints << endl;
+        cerr << "       - Number of tuples = " << array->GetNumberOfTuples() << endl;
         ok = false;
       }
     }
