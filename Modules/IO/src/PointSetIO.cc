@@ -54,7 +54,7 @@
 #include "vtkPLYWriter.h"
 #include "vtkSTLWriter.h"
 
-#include "dfsurface.h"
+#include "brainsuite/dfsurface.h"
 
 
 namespace mirtk {

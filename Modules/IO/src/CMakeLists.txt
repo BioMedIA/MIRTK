@@ -107,7 +107,7 @@ endif ()
 
 if (VTK_FOUND)
   list(APPEND HEADERS PointSetIO.h)
-  list(APPEND SOURCES PointSetIO.cc dfsurface.h)
+  list(APPEND SOURCES PointSetIO.cc brainsuite/dfsurface.h)
   list(APPEND DEPENDS ${VTK_LIBRARIES})
 endif ()
 
