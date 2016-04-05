@@ -53,7 +53,8 @@
 
 
 ## @brief Whether this library was built with NIfTI support
-basis_set_config(WITH_NIfTI @NiftiCLib_FOUND@)
+basis_set_config(WITH_NIFTI 1)
+basis_copy_config(WITH_NIfTI WITH_NIFTI)
 
 ## @brief Whether this library was built with PNG support
 basis_set_config(WITH_PNG @PNG_FOUND@)

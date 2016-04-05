@@ -1,5 +1,5 @@
-#ifndef _ZNZLIB_H_
-#define _ZNZLIB_H_
+#ifndef _MIRTK_ZNZLIB_H_
+#define _MIRTK_ZNZLIB_H_
 
 /*
 znzlib.h  (zipped or non-zipped library)
@@ -36,16 +36,10 @@ NB: seeks for writable files with compression are quite restricted
 */
 
 
-/*=================*/
-#ifdef  __cplusplus
-extern "C" {
-#endif
-/*=================*/
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdarg.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <cstdarg>
 
 /* include optional check for HAVE_FDOPEN here, from deleted config.h:
 
@@ -56,12 +50,15 @@ extern "C" {
 
 
 #ifdef HAVE_ZLIB
-#if defined(ITKZLIB)
-#include "itk_zlib.h"
-#else
-#include "zlib.h"
+#  if defined(ITKZLIB)
+#    include "itk_zlib.h"
+#  else
+#    include "zlib.h"
+#  endif
 #endif
-#endif
+
+
+namespace mirtk {
 
 
 struct znzptr {
@@ -114,10 +111,7 @@ int znzgetc(znzFile file);
 int znzprintf(znzFile stream, const char *format, ...);
 #endif
 
-/*=================*/
-#ifdef  __cplusplus
-}
-#endif
-/*=================*/
 
-#endif
+} // namespace mirtk
+
+#endif /* _MIRTK_ZNZLIB_H_ */ 

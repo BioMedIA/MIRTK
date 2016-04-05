@@ -1,8 +1,8 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2013-2015 Imperial College London
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2013-2016 Imperial College London
+ * Copyright 2013-2016 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,7 +22,8 @@
 
 
 /// Whether MIRTK IO module was built with NIfTI support
-#define MIRTK_IO_WITH_NIfTI @WITH_NIfTI_CONFIG@
+#define MIRTK_IO_WITH_NIFTI 1
+#define MIRTK_IO_WITH_NIfTI MIRTK_IO_WITH_NIFTI
 
 /// Whether MIRTK IO module was built with PNG support
 #define MIRTK_IO_WITH_PNG @WITH_PNG_CONFIG@

@@ -17,4 +17,7 @@
 # limitations under the License.
 # ============================================================================
 
+option(WITH_NiftiCLib "Require system installation of NIfTI C library" OFF)
+mark_as_advanced(WITH_NiftiCLib)
+
 mirtk_configure_module()

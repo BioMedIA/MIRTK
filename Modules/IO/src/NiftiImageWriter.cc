@@ -207,13 +207,14 @@ void NiftiImageWriter::Run()
   this->Initialize();
 
   // Set filename in _hdr
-  struct nifti_1_header nhdr = nifti_convert_nim2nhdr(_Nifti->nim);
+  struct nifti_2_header nhdr;
+  nifti_convert_nim2n2hdr(_Nifti->nim, &nhdr);
 
   void * const data = _Nifti->nim->data; // Keep copy of data pointer
-  _Nifti->nim->data = NULL;              // Free nifti_image, but not data
+  _Nifti->nim->data = nullptr;           // Free nifti_image, but not data
   nifti_image_free(_Nifti->nim);
 
-  _Nifti->nim               = nifti_convert_nhdr2nim(nhdr, _FileName.c_str()); // This sets fname and iname
+  _Nifti->nim               = nifti_convert_n2hdr2nim(nhdr, _FileName.c_str()); // This sets fname and iname
   _Nifti->nim->iname_offset = 352;       // Some nifti versions lose this on the way!
   _Nifti->nim->data         = data;      // Restore data pointer
 
@@ -230,7 +231,7 @@ void NiftiImageWriter::Finalize()
   if (_Nifti->nim->data != _Input->GetDataPointer()) {
     free(_Nifti->nim->data);
   }
-  _Nifti->nim->data = NULL;
+  _Nifti->nim->data = nullptr;
 }
 
 

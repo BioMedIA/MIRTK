@@ -1,9 +1,9 @@
-#define _NIFTI1_IO_C_
+#define _NIFTI2_IO_C_
 
-#include "nifti1_io.h"   /* typedefs, prototypes, macros, etc. */
+#include "nifti2_io.h"   /* typedefs, prototypes, macros, etc. */
 
 /*****===================================================================*****/
-/*****     Sample functions to deal with NIFTI-1 and ANALYZE files       *****/
+/*****     Sample functions to deal with NIFTI-1,2 and ANALYZE files     *****/
 /*****...................................................................*****/
 /*****            This code is released to the public domain.            *****/
 /*****...................................................................*****/
@@ -27,8 +27,11 @@
     <br>The library version can be viewed via "nifti_tool -nifti_ver".
  */
 
+namespace mirtk {
+
+
 /*! global history and version strings, for printing */
-static char * gni_history[] = 
+static char const * const gni1_history[] =
 {
   "----------------------------------------------------------------------\n"
   "history (of nifti library changes):\n"
@@ -336,22 +339,69 @@ static char * gni_history[] =
   "   - fixed znzread/write, noting example by M Adler\n"
   "   - changed nifti_swap_* routines/calls to take size_t (6)\n"
   "1.43 07 Jul 2010 [rickr]: fixed znzR/W to again return nmembers\n",
+  "1.44 19 Jul 2013 [rickr]: ITK compatibility updates from H Johnson\n",
   "----------------------------------------------------------------------\n"
 };
-static char gni_version[] = "nifti library version 1.43 (7 July, 2010)";
 
-/*! global nifti options structure - init with defaults */
-static nifti_global_options g_opts = { 
-        1, /* debug level                                         */
-        0, /* skip_blank_ext    - skip extender if no extensions  */
-        1  /* allow_upper_fext  - allow uppercase file extensions */
+/* rcr - todo
+
+   - nifti_tool -copy_sform SFORM_DSET.nii -infile ORIG.nii -prefix PP
+                -copy_orient SFORM_DSET.nii -infile ORIG.nii -prefix PP
+
+   - check converting nim 2 n2hdr
+   - update for n2 (and/or split from n1)
+      - is_nifti_file (maybe use nifti_header_version), nifti_hdr_looks_good
+   - extensions
+   - nifti_make_new_n1_header: check that dims are small enough (<2^15)
+   - nifti_convert_nim2nhdr: rename to nim2n1hdr and write nim2n2hdr
+     (maybe have nifti_convert_nim2nhdr wrap current version)
+   - nifti_set_iname_offset: n2 update via nifti_type
+   - track use of nifti_type
+   - nifti_image_write_hdr_img2: write nifti_2_header
+ */
+
+static char const * const gni2_history[] =
+{
+  "----------------------------------------------------------------------\n"
+  "history (of nifti-2 library changes):\n"
+  "\n",
+  "2.00 02 Jan, 2014 [rickr]\n"
+  "     Richard Reynolds of the National Institutes of Health, SSCC/DIRP/NIMH\n"
+  "   - initial version - change types to 64-bit based on new nifti_image\n",
+  "2.01 04 Apr, 2014 [rickr]\n"
+  "   - added functionality for both nifti-1 and -2 headers\n"
+  "     (read/display/swap/convert2nim/make_new_n?_hdr)\n"
+  "   - still needs much nifti-2 functionality\n",
+  "2.02 11 May, 2015 [rickr]\n"
+  "   - added to repository 28 Apr, 2015\n"
+  "   - nifti_read_header() now returns found header struct\n"
+  "2.03 23 Jul, 2015 [rickr]\n"
+  "   - possibly alter dimensions on CIFTI read\n"
+  "   - return N-1 headers in unknown version cases\n",
+  "2.04 05 Aug, 2015 [rickr]\n"
+  "   - have writing try NIFTI-2 if NIFTI-1 seesm insufficient\n"
 };
 
+static const char gni_version[]
+        = "nifti-2 library version 2.04 (5 August, 2015)";
+
+/*! global nifti options structure - init with defaults */
+/*  see 'option accessor functions'                     */
+static nifti_global_options g_opts = {
+        1, /* debug level                                         */
+        0, /* skip_blank_ext    - skip extender if no extensions  */
+        1, /* allow_upper_fext  - allow uppercase file extensions */
+        0, /* alter_cifti       - alter CIFTI dims to use nx,t,u,v*/
+};
+
+char nifti1_magic[4] = { 'n', '+', '1', '\0' };
+char nifti2_magic[8] = { 'n', '+', '2', '\0', '\r', '\n', '\032', '\n' };
+
 /*! global nifti types structure list (per type, ordered oldest to newest) */
-static nifti_type_ele nifti_type_list[] = {
+static const nifti_type_ele nifti_type_list[] = {
     /* type  nbyper  swapsize   name  */
-    {    0,     0,       0,   "DT_UNKNOWN"              }, 
-    {    0,     0,       0,   "DT_NONE"                 }, 
+    {    0,     0,       0,   "DT_UNKNOWN"              },
+    {    0,     0,       0,   "DT_NONE"                 },
     {    1,     0,       0,   "DT_BINARY"               },  /* not usable */
     {    2,     1,       0,   "DT_UNSIGNED_CHAR"        },
     {    2,     1,       0,   "DT_UINT8"                },
@@ -399,36 +449,40 @@ static nifti_type_ele nifti_type_list[] = {
 /* prototypes for internal functions - not part of exported library          */
 
 /* extension routines */
-static int  nifti_read_extensions( nifti_image *nim, znzFile fp, int remain );
+static int  nifti_read_extensions(nifti_image *nim, znzFile fp, int64_t remain);
 static int  nifti_read_next_extension( nifti1_extension * nex, nifti_image *nim,                                       int remain, znzFile fp );
 static int  nifti_check_extension(nifti_image *nim, int size,int code, int rem);
-static void update_nifti_image_for_brick_list(nifti_image * nim , int nbricks);
+static void update_nifti_image_for_brick_list(nifti_image * nim,
+                                              int64_t nbricks);
 static int  nifti_add_exten_to_list(nifti1_extension *  new_ext,
                                     nifti1_extension ** list, int new_length);
 static int  nifti_fill_extension(nifti1_extension * ext, const char * data,
                                  int len, int ecode);
+static void compute_strides(int64_t *strides,const int64_t *size,int nbyper);
 
 /* NBL routines */
-static int  nifti_load_NBL_bricks(nifti_image * nim , int * slist, int * sindex,                                  nifti_brick_list * NBL, znzFile fp );
-static int  nifti_alloc_NBL_mem(  nifti_image * nim, int nbricks,
+static int  nifti_load_NBL_bricks(nifti_image * nim , int64_t * slist,
+                       int64_t * sindex, nifti_brick_list * NBL, znzFile fp );
+static int  nifti_alloc_NBL_mem(  nifti_image * nim, int64_t nbricks,
                                   nifti_brick_list * nbl);
-static int  nifti_copynsort(int nbricks, const int *blist, int **slist,
-                            int **sindex);
+static int  nifti_copynsort(int64_t nbricks, const int64_t *blist,
+                            int64_t **slist, int64_t **sindex);
 static int  nifti_NBL_matches_nim(const nifti_image *nim,
                                   const nifti_brick_list *NBL);
 
 /* for nifti_read_collapsed_image: */
-static int  rci_read_data(nifti_image *nim, int *pivots, int *prods, int nprods,
-                  const int dims[], char *data, znzFile fp, size_t base_offset);
-static int  rci_alloc_mem(void ** data, int prods[8], int nprods, int nbyper );
-static int  make_pivot_list(nifti_image * nim, const int dims[], int pivots[],
-                            int prods[], int * nprods );
+static int  rci_read_data(nifti_image *nim, int *pivots, int64_t *prods,
+                          int nprods, const int64_t dims[], char *data,
+                          znzFile fp, int64_t base_offset);
+static int rci_alloc_mem(void **data, int64_t prods[8], int nprods, int nbyper);
+static int  make_pivot_list(nifti_image * nim, const int64_t dims[],
+                            int pivots[], int64_t prods[], int * nprods );
 
 /* misc */
 static int   compare_strlist   (const char * str, char ** strlist, int len);
 static int   fileext_compare   (const char * test_ext, const char * known_ext);
 static int   fileext_n_compare (const char * test_ext,
-                                const char * known_ext, int maxlen);
+                                const char * known_ext, size_t maxlen);
 static int   is_mixedcase      (const char * str);
 static int   is_uppercase      (const char * str);
 static int   make_lowercase    (char * str);
@@ -437,6 +491,9 @@ static int   need_nhdr_swap    (short dim0, int hdrsize);
 static int   print_hex_vals    (const char * data, int nbytes, FILE * fp);
 static int   unescape_string   (char *str);  /* string utility functions */
 static char *escapize_string   (const char *str);
+
+/* consider for export */
+static int  nifti_ext_type_index(nifti_image * nim, int ecode);
 
 /* internal I/O routines */
 static znzFile nifti_image_load_prep( nifti_image *nim );
@@ -449,11 +506,30 @@ static int     has_ascii_header(znzFile fp);
 /*----------------------------------------------------------------------*/
 /*! display the nifti library module history (via stdout)
 *//*--------------------------------------------------------------------*/
-void nifti_disp_lib_hist( void )
+void nifti_disp_lib_hist( int ver )
 {
-   int c, len = sizeof(gni_history)/sizeof(char *);
-   for( c = 0; c < len; c++ )
-       fputs(gni_history[c], stdout);
+   int c, len;
+
+   switch ( ver ) {
+      default: {
+         fprintf(stderr,"** disp_lib_list: bad ver %d\n", ver);
+         break;
+      }
+
+      case 0:
+      case 2: {
+         len = sizeof(gni2_history)/sizeof(char *);
+         for( c = 0; c < len; c++ )
+             fputs(gni2_history[c], stdout);
+         break;
+      }
+      case 1: {
+         len = sizeof(gni1_history)/sizeof(char *);
+         for( c = 0; c < len; c++ )
+             fputs(gni1_history[c], stdout);
+         break;
+      }
+   }
 }
 
 /*----------------------------------------------------------------------*/
@@ -469,7 +545,7 @@ void nifti_disp_lib_version( void )
 /*! nifti_image_read_bricks        - read nifti data as array of bricks
  *
  *                                   13 Dec 2004 [rickr]
- * 
+ *
  *  \param  hname    - filename of dataset to read (must be valid)
  *  \param  nbricks  - number of sub-bricks to read
  *                     (if blist is valid, nbricks must be > 0)
@@ -528,8 +604,8 @@ void nifti_disp_lib_version( void )
  * \sa nifti_image_load_bricks, nifti_free_NBL, valid_nifti_brick_list,
        nifti_image_read
 *//*----------------------------------------------------------------------*/
-nifti_image *nifti_image_read_bricks(const char * hname, int nbricks,
-                                     const int * blist, nifti_brick_list * NBL)
+nifti_image *nifti_image_read_bricks(const char * hname, int64_t nbricks,
+                                 const int64_t * blist, nifti_brick_list * NBL)
 {
    nifti_image * nim;
 
@@ -540,7 +616,7 @@ nifti_image *nifti_image_read_bricks(const char * hname, int nbricks,
    }
 
    if( blist && nbricks <= 0 ){
-      fprintf(stderr,"** nifti_image_read_bricks: bad nbricks, %d\n", nbricks);
+      fprintf(stderr,"** nifti_image_read_bricks: bad nbricks, %lld\n", nbricks);
       return NULL;
    }
 
@@ -567,15 +643,16 @@ nifti_image *nifti_image_read_bricks(const char * hname, int nbricks,
  * nt, nu, nv and nw is lost.  So put everything in t, and set
  * dim[0] = 4.
  *----------------------------------------------------------------------*/
-static void update_nifti_image_for_brick_list( nifti_image * nim , int nbricks )
+static void update_nifti_image_for_brick_list( nifti_image * nim ,
+                                               int64_t nbricks )
 {
-   int ndim;
+   int64_t ndim;
 
    if( g_opts.debug > 2 ){
-      fprintf(stderr,"+d updating image dimensions for %d bricks in list\n",
+      fprintf(stderr,"+d updating image dimensions for %lld bricks in list\n",
               nbricks);
-      fprintf(stderr,"   ndim = %d\n",nim->ndim);
-      fprintf(stderr,"   nx,ny,nz,nt,nu,nv,nw: (%d,%d,%d,%d,%d,%d,%d)\n",
+      fprintf(stderr,"   ndim = %lld\n",nim->ndim);
+      fprintf(stderr,"   nx,ny,nz,nt,nu,nv,nw: (%lld,%lld,%lld,%lld,%lld,%lld,%lld)\n",
               nim->nx, nim->ny, nim->nz, nim->nt, nim->nu, nim->nv, nim->nw);
    }
 
@@ -594,8 +671,8 @@ static void update_nifti_image_for_brick_list( nifti_image * nim , int nbricks )
        ;
 
    if( g_opts.debug > 2 ){
-      fprintf(stderr,"+d ndim = %d -> %d\n",nim->ndim, ndim);
-      fprintf(stderr," --> (%d,%d,%d,%d,%d,%d,%d)\n",
+      fprintf(stderr,"+d ndim = %lld -> %lld\n",nim->ndim, ndim);
+      fprintf(stderr," --> (%lld,%lld,%lld,%lld,%lld,%lld,%lld)\n",
               nim->nx, nim->ny, nim->nz, nim->nt, nim->nu, nim->nv, nim->nw);
    }
 
@@ -614,7 +691,8 @@ static void update_nifti_image_for_brick_list( nifti_image * nim , int nbricks )
 *//*--------------------------------------------------------------------*/
 int nifti_update_dims_from_array( nifti_image * nim )
 {
-   int c, ndim;
+   int     c;
+   int64_t ndim;
 
    if( !nim ){
       fprintf(stderr,"** update_dims: missing nim\n");
@@ -623,14 +701,14 @@ int nifti_update_dims_from_array( nifti_image * nim )
 
    if( g_opts.debug > 2 ){
       fprintf(stderr,"+d updating image dimensions given nim->dim:");
-      for( c = 0; c < 8; c++ ) fprintf(stderr," %d", nim->dim[c]);
+      for( c = 0; c < 8; c++ ) fprintf(stderr," %lld", nim->dim[c]);
       fputc('\n',stderr);
    }
 
    /* verify dim[0] first */
    if(nim->dim[0] < 1 || nim->dim[0] > 7){
       fprintf(stderr,"** invalid dim[0], dim[] = ");
-      for( c = 0; c < 8; c++ ) fprintf(stderr," %d", nim->dim[c]);
+      for( c = 0; c < 8; c++ ) fprintf(stderr," %lld", nim->dim[c]);
       fputc('\n',stderr);
       return 1;
    }
@@ -688,8 +766,8 @@ int nifti_update_dims_from_array( nifti_image * nim )
        ;
 
    if( g_opts.debug > 2 ){
-      fprintf(stderr,"+d ndim = %d -> %d\n",nim->ndim, ndim);
-      fprintf(stderr," --> (%d,%d,%d,%d,%d,%d,%d)\n",
+      fprintf(stderr,"+d ndim = %lld -> %lld\n",nim->ndim, ndim);
+      fprintf(stderr," --> (%lld,%lld,%lld,%lld,%lld,%lld,%lld)\n",
               nim->nx, nim->ny, nim->nz, nim->nt, nim->nu, nim->nv, nim->nw);
    }
 
@@ -708,7 +786,7 @@ int nifti_update_dims_from_array( nifti_image * nim )
  * \param    NBL      - pointer to struct where resulting data will be stored
  *
  * If blist is NULL, read all sub-bricks.
- * 
+ *
  * \return the number of loaded bricks (NBL->nbricks),
  *    0 on failure, < 0 on error
  *
@@ -716,10 +794,11 @@ int nifti_update_dims_from_array( nifti_image * nim )
  *       out of NBL, in which case the only pointer the calling function
  *       will want to free is NBL->bricks (not each NBL->bricks[i]).
 *//*--------------------------------------------------------------------*/
-int nifti_image_load_bricks( nifti_image * nim , int nbricks,
-                             const int * blist, nifti_brick_list * NBL )
+int nifti_image_load_bricks( nifti_image * nim , int64_t nbricks,
+                             const int64_t * blist, nifti_brick_list * NBL )
 {
-   int     * slist = NULL, * sindex = NULL, rv;
+   int64_t * slist = NULL, * sindex = NULL;
+   int       rv;
    znzFile   fp;
 
    /* we can have blist == NULL */
@@ -731,7 +810,7 @@ int nifti_image_load_bricks( nifti_image * nim , int nbricks,
 
    if( blist && nbricks <= 0 ){
       if( g_opts.debug > 1 )
-         fprintf(stderr,"-d load_bricks: received blist with nbricks = %d,"
+         fprintf(stderr,"-d load_bricks: received blist with nbricks = %lld,"
                         "ignoring blist\n", nbricks);
       blist = NULL; /* pretend nothing was passed */
    }
@@ -800,14 +879,13 @@ void nifti_free_NBL( nifti_brick_list * NBL )
  *
  * return 0 on success, -1 on failure
  *----------------------------------------------------------------------*/
-static int nifti_load_NBL_bricks( nifti_image * nim , int * slist, int * sindex,
-                                  nifti_brick_list * NBL, znzFile fp )
+static int nifti_load_NBL_bricks( nifti_image * nim , int64_t * slist,
+                        int64_t * sindex, nifti_brick_list * NBL, znzFile fp )
 {
-   size_t oposn, fposn;      /* orig and current file positions */
-   size_t rv;
-   long   test;
-   int    c;
-   int    prev, isrc, idest; /* previous and current sub-brick, and new index */
+   int64_t oposn, fposn;      /* orig and current file positions */
+   int64_t rv, test;
+   int64_t c;
+   int64_t prev, isrc, idest; /* previous/current sub-brick, and new index */
 
    test = znztell(fp);  /* store current file position */
    if( test < 0 ){
@@ -821,14 +899,14 @@ static int nifti_load_NBL_bricks( nifti_image * nim , int * slist, int * sindex,
       for( c = 0; c < NBL->nbricks; c++ ) {
          rv = nifti_read_buffer(fp, NBL->bricks[c], NBL->bsize, nim);
          if( rv != NBL->bsize ){
-            fprintf(stderr,"** load bricks: cannot read brick %d from '%s'\n",
+            fprintf(stderr,"** load bricks: cannot read brick %lld from '%s'\n",
                     c, nim->iname ? nim->iname : nim->fname);
             return -1;
          }
       }
       if( g_opts.debug > 1 )
-         fprintf(stderr,"+d read %d default %u-byte bricks from file %s\n",
-                 NBL->nbricks, (unsigned int)NBL->bsize,
+         fprintf(stderr,"+d read %lld default %lld-byte bricks from file %s\n",
+                 NBL->nbricks, NBL->bsize,
                  nim->iname ? nim->iname:nim->fname );
       return 0;
    }
@@ -849,8 +927,10 @@ static int nifti_load_NBL_bricks( nifti_image * nim , int * slist, int * sindex,
           /* if we are not looking at the correct sub-brick, scan forward */
           if( fposn != (oposn + isrc*NBL->bsize) ){
              fposn = oposn + isrc*NBL->bsize;
-             if( znzseek(fp, (long)fposn, SEEK_SET) < 0 ){
-                fprintf(stderr,"** failed to locate brick %d in file '%s'\n",
+             /* rcr - znz functions need to handle 64-bit cases, */
+             /* see setting _FILE_OFFSET_BITS                    */
+             if( znzseek(fp, fposn, SEEK_SET) < 0 ){
+                fprintf(stderr,"** failed to locate brick %lld in file '%s'\n",
                         isrc, nim->iname ? nim->iname : nim->fname);
                 return -1;
              }
@@ -859,11 +939,10 @@ static int nifti_load_NBL_bricks( nifti_image * nim , int * slist, int * sindex,
           /* only 10,000 lines later and we're actually reading something! */
           rv = nifti_read_buffer(fp, NBL->bricks[idest], NBL->bsize, nim);
           if( rv != NBL->bsize ){
-             fprintf(stderr,"** failed to read brick %d from file '%s'\n",
+             fprintf(stderr,"** failed to read brick %lld from file '%s'\n",
                      isrc, nim->iname ? nim->iname : nim->fname);
              if( g_opts.debug > 1 )
-                fprintf(stderr,"   (read %u of %u bytes)\n",
-                        (unsigned int)rv, (unsigned int)NBL->bsize);
+                fprintf(stderr,"   (read %lld of %lld bytes)\n", rv, NBL->bsize);
              return -1;
           }
           fposn += NBL->bsize;
@@ -885,10 +964,10 @@ static int nifti_load_NBL_bricks( nifti_image * nim , int * slist, int * sindex,
  *
  * return 0 on success, -1 on failure
  *----------------------------------------------------------------------*/
-static int nifti_alloc_NBL_mem(nifti_image * nim, int nbricks,
+static int nifti_alloc_NBL_mem(nifti_image * nim, int64_t nbricks,
                                nifti_brick_list * nbl)
 {
-   int c;
+   int64_t c;
 
    /* if nbricks is not specified, use the default */
    if( nbricks > 0 ) nbl->nbricks = nbricks;
@@ -898,19 +977,19 @@ static int nifti_alloc_NBL_mem(nifti_image * nim, int nbricks,
           nbl->nbricks *= nim->dim[c];
    }
 
-   nbl->bsize   = (size_t)nim->nx * nim->ny * nim->nz * nim->nbyper;/* bytes */
-   nbl->bricks  = (void **)malloc(nbl->nbricks * sizeof(void *));
+   nbl->bsize  = nim->nx * nim->ny * nim->nz * nim->nbyper; /* bytes */
+   nbl->bricks = (void **)malloc(nbl->nbricks * sizeof(void *));
 
    if( ! nbl->bricks ){
-      fprintf(stderr,"** NANM: failed to alloc %d void ptrs\n",nbricks);
+      fprintf(stderr,"** NANM: failed to alloc %lld void ptrs\n",nbricks);
       return -1;
    }
 
    for( c = 0; c < nbl->nbricks; c++ ){
       nbl->bricks[c] = (void *)malloc(nbl->bsize);
       if( ! nbl->bricks[c] ){
-         fprintf(stderr,"** NANM: failed to alloc %u bytes for brick %d\n",
-                 (unsigned int)nbl->bsize, c);
+         fprintf(stderr,"** NANM: failed to alloc %lld bytes for brick %lld\n",
+                 nbl->bsize, c);
          /* so free and clear everything before returning */
          while( c > 0 ){
             c--;
@@ -924,8 +1003,8 @@ static int nifti_alloc_NBL_mem(nifti_image * nim, int nbricks,
    }
 
    if( g_opts.debug > 2 )
-      fprintf(stderr,"+d NANM: alloc'd %d bricks of %u bytes for NBL\n",
-              nbl->nbricks, (unsigned int)nbl->bsize);
+      fprintf(stderr,"+d NANM: alloc'd %lld bricks of %lld bytes for NBL\n",
+              nbl->nbricks, nbl->bsize);
 
    return 0;
 }
@@ -938,30 +1017,32 @@ static int nifti_alloc_NBL_mem(nifti_image * nim, int nbricks,
  * 2. create an sindex list, and init with 0..nbricks-1
  * 3. do a slow insertion sort on the small slist, along with sindex list
  * 4. check results, just to be positive
- * 
+ *
  * So slist is sorted, and sindex hold original positions.
  *
  * return 0 on success, -1 on failure
  *----------------------------------------------------------------------*/
-static int nifti_copynsort(int nbricks, const int * blist, int ** slist,
-                           int ** sindex)
+static int nifti_copynsort(int64_t nbricks, const int64_t *blist,
+                           int64_t ** slist, int64_t ** sindex)
 {
-   int * stmp, * itmp;   /* for ease of typing/reading */
-   int   c1, c2, spos, tmp;
+   int64_t * stmp, * itmp;   /* for ease of typing/reading */
+   int64_t   c1, c2, spos, tmp;
 
-   *slist  = (int *)malloc(nbricks * sizeof(int));
-   *sindex = (int *)malloc(nbricks * sizeof(int));
+   *slist  = (int64_t *)malloc(nbricks * sizeof(int64_t));
+   *sindex = (int64_t *)malloc(nbricks * sizeof(int64_t));
 
    if( !*slist || !*sindex ){
-      fprintf(stderr,"** NCS: failed to alloc %d ints for sorting\n",nbricks);
+      fprintf(stderr,"** NCS: failed to alloc %lld ints for sorting\n",nbricks);
       if(*slist)  free(*slist);   /* maybe one succeeded */
       if(*sindex) free(*sindex);
       return -1;
    }
 
    /* init the lists */
-   memcpy(*slist, blist, nbricks*sizeof(int));
-   for( c1 = 0; c1 < nbricks; c1++ ) (*sindex)[c1] = c1;
+   for( c1 = 0; c1 < nbricks; c1++ ) {
+      (*slist)[c1] = blist[c1];
+      (*sindex)[c1] = c1;
+   }
 
    /* now actually sort slist */
    stmp = *slist;
@@ -986,11 +1067,11 @@ static int nifti_copynsort(int nbricks, const int * blist, int ** slist,
    if( g_opts.debug > 2 ){
       fprintf(stderr,  "+d sorted indexing list:\n");
       fprintf(stderr,  "  orig   : ");
-      for( c1 = 0; c1 < nbricks; c1++ ) fprintf(stderr,"  %d",blist[c1]);
+      for( c1 = 0; c1 < nbricks; c1++ ) fprintf(stderr,"  %lld",blist[c1]);
       fprintf(stderr,"\n  new    : ");
-      for( c1 = 0; c1 < nbricks; c1++ ) fprintf(stderr,"  %d",stmp[c1]);
+      for( c1 = 0; c1 < nbricks; c1++ ) fprintf(stderr,"  %lld",stmp[c1]);
       fprintf(stderr,"\n  indices: ");
-      for( c1 = 0; c1 < nbricks; c1++ ) fprintf(stderr,"  %d",itmp[c1]);
+      for( c1 = 0; c1 < nbricks; c1++ ) fprintf(stderr,"  %lld",itmp[c1]);
       fputc('\n', stderr);
    }
 
@@ -1022,10 +1103,10 @@ static int nifti_copynsort(int nbricks, const int * blist, int ** slist,
  *
  * \return 1 if valid, 0 if not
 *//*--------------------------------------------------------------------*/
-int valid_nifti_brick_list(nifti_image * nim , int nbricks,
-                           const int * blist, int disp_error)
+int valid_nifti_brick_list(nifti_image * nim , int64_t nbricks,
+                           const int64_t * blist, int disp_error)
 {
-   int c, nsubs;
+   int64_t c, nsubs;
 
    if( !nim ){
       if( disp_error || g_opts.debug > 0 )
@@ -1041,8 +1122,8 @@ int valid_nifti_brick_list(nifti_image * nim , int nbricks,
 
    if( nim->dim[0] < 3 ){
       if( disp_error || g_opts.debug > 1 )
-         fprintf(stderr,"** cannot read explict brick list from %d-D dataset\n",
-                 nim->dim[0]);
+        fprintf(stderr,"** cannot read explict brick list from %lld-D dataset\n",
+                nim->dim[0]);
       return 0;
    }
 
@@ -1051,7 +1132,7 @@ int valid_nifti_brick_list(nifti_image * nim , int nbricks,
       nsubs *= nim->dim[c];
 
    if( nsubs <= 0 ){
-      fprintf(stderr,"** VNBL warning: bad dim list (%d,%d,%d,%d)\n",
+      fprintf(stderr,"** VNBL warning: bad dim list (%lld,%lld,%lld,%lld)\n",
                      nim->dim[4], nim->dim[5], nim->dim[6], nim->dim[7]);
       return 0;
    }
@@ -1060,7 +1141,7 @@ int valid_nifti_brick_list(nifti_image * nim , int nbricks,
       if( (blist[c] < 0) || (blist[c] >= nsubs) ){
          if( disp_error || g_opts.debug > 1 )
             fprintf(stderr,
-               "** volume index %d (#%d) is out of range [0,%d]\n",
+               "** volume index %lld (#%lld) is out of range [0,%lld]\n",
                blist[c], c, nsubs-1);
          return 0;
       }
@@ -1076,8 +1157,9 @@ int valid_nifti_brick_list(nifti_image * nim , int nbricks,
 static int nifti_NBL_matches_nim(const nifti_image *nim,
                                  const nifti_brick_list *NBL)
 {
-   size_t volbytes = 0;     /* bytes per volume */
-   int    ind, errs = 0, nvols = 0;
+   int64_t volbytes = 0;     /* bytes per volume */
+   int64_t nvols = 0;
+   int     ind, errs = 0;
 
 
    if( !nim || !NBL ) {
@@ -1089,9 +1171,9 @@ static int nifti_NBL_matches_nim(const nifti_image *nim,
    /* for nim, compute volbytes and nvols */
    if( nim->ndim > 0 ) {
       /* first 3 indices are over a single volume */
-      volbytes = (size_t)nim->nbyper;
+      volbytes = (int64_t)nim->nbyper;
       for( ind = 1; ind <= nim->ndim && ind < 4; ind++ )
-         volbytes *= (size_t)nim->dim[ind];
+         volbytes *= nim->dim[ind];
 
       for( ind = 4, nvols = 1; ind <= nim->ndim; ind++ )
          nvols *= nim->dim[ind];
@@ -1099,22 +1181,22 @@ static int nifti_NBL_matches_nim(const nifti_image *nim,
 
    if( volbytes != NBL->bsize ) {
       if( g_opts.debug > 1 )
-         fprintf(stderr,"** NBL/nim mismatch, volbytes = %u, %u\n",
-                 (unsigned)NBL->bsize, (unsigned)volbytes);
+         fprintf(stderr,"** NBL/nim mismatch, volbytes = %lld, %lld\n",
+                 NBL->bsize, volbytes);
       errs++;
    }
 
    if( nvols != NBL->nbricks ) {
       if( g_opts.debug > 1 )
-         fprintf(stderr,"** NBL/nim mismatch, nvols = %d, %d\n",
+         fprintf(stderr,"** NBL/nim mismatch, nvols = %lld, %lld\n",
                  NBL->nbricks, nvols);
       errs++;
    }
 
    if( errs ) return 0;
    else if ( g_opts.debug > 2 )
-      fprintf(stderr,"-- nim/NBL agree: nvols = %d, nbytes = %u\n",
-              nvols, (unsigned)volbytes);
+      fprintf(stderr,"-- nim/NBL agree: nvols = %lld, nbytes = %lld\n",
+              nvols, volbytes);
 
    return 1;
 }
@@ -1129,13 +1211,13 @@ static int nifti_NBL_matches_nim(const nifti_image *nim,
  *
  * \return -1 if results cannot be determined, 0 if okay
 *//*--------------------------------------------------------------------*/
-int nifti_disp_matrix_orient( const char * mesg, mat44 mat )
+int nifti_disp_matrix_orient( const char * mesg, nifti_dmat44 mat )
 {
    int i, j, k;
 
    if ( mesg ) fputs( mesg, stderr );  /* use stdout? */
 
-   nifti_mat44_to_orientation( mat, &i,&j,&k );
+   nifti_dmat44_to_orientation( mat, &i,&j,&k );
    if ( i <= 0 || j <= 0 || k <= 0 ) return -1;
 
    /* so we have good codes */
@@ -1164,8 +1246,8 @@ char *nifti_strdup(const char *str)
 
   /* check for failure */
   if( dup ) strcpy(dup, str);
-  else      fprintf(stderr,"** nifti_strdup: failed to alloc %u bytes\n", 
-                    (unsigned int)strlen(str)+1);
+  else      fprintf(stderr,"** nifti_strdup: failed to alloc %lld bytes\n",
+                    (int64_t)(strlen(str)+1));
 
   return dup;
 }
@@ -1183,7 +1265,7 @@ char *nifti_strdup(const char *str)
 
     \sa NIFTI1_DATATYPES group in nifti1.h
 *//*-------------------------------------------------------------------------*/
-char *nifti_datatype_string( int dt )
+char const * nifti_datatype_string( int dt )
 {
    switch( dt ){
      case DT_UNKNOWN:    return "UNKNOWN"    ;
@@ -1252,7 +1334,7 @@ int nifti_is_inttype( int dt )
 
     \sa     NIFTI1_UNITS group in nifti1.h
 *//*-------------------------------------------------------------------------*/
-char *nifti_units_string( int uu )
+char const *nifti_units_string( int uu )
 {
    switch( uu ){
      case NIFTI_UNITS_METER:  return "m" ;
@@ -1280,7 +1362,7 @@ char *nifti_units_string( int uu )
 
     \sa     NIFTI1_XFORM_CODES group in nifti1.h
 *//*-------------------------------------------------------------------------*/
-char *nifti_xform_string( int xx )
+char const *nifti_xform_string( int xx )
 {
    switch( xx ){
      case NIFTI_XFORM_SCANNER_ANAT:  return "Scanner Anat" ;
@@ -1303,7 +1385,7 @@ char *nifti_xform_string( int xx )
 
     \sa     NIFTI1_INTENT_CODES group in nifti1.h
 *//*-------------------------------------------------------------------------*/
-char *nifti_intent_string( int ii )
+char const *nifti_intent_string( int ii )
 {
    switch( ii ){
      case NIFTI_INTENT_CORREL:     return "Correlation statistic" ;
@@ -1359,7 +1441,7 @@ char *nifti_intent_string( int ii )
 
     \sa     NIFTI1_SLICE_ORDER group in nifti1.h
 *//*-------------------------------------------------------------------------*/
-char *nifti_slice_string( int ss )
+char const *nifti_slice_string( int ss )
 {
    switch( ss ){
      case NIFTI_SLICE_SEQ_INC:  return "sequential_increasing"    ;
@@ -1384,7 +1466,7 @@ char *nifti_slice_string( int ss )
 
     \sa  NIFTI_L2R in nifti1_io.h
 *//*-------------------------------------------------------------------------*/
-char *nifti_orientation_string( int ii )
+char const *nifti_orientation_string( int ii )
 {
    switch( ii ){
      case NIFTI_L2R: return "Left-to-Right" ;
@@ -1443,6 +1525,99 @@ void nifti_datatype_sizes( int datatype , int *nbyper, int *swapsize )
    ASSIF(nbyper,nb) ; ASSIF(swapsize,ss) ; return ;
 }
 
+
+/*-----------------------------------------------------------------*/
+/*! copy between float and double mat44 types 10 Jul, 2015 [rickr] */
+
+int nifti_mat44_to_dmat44(mat44 * fm, nifti_dmat44 * dm)
+{
+   int i, j;
+   if( !dm || !fm ) return 1;
+   for( i=0; i<4; i++ )
+      for( j=0; j<4; j++ )
+         dm->m[i][j] = (double)fm->m[i][j];
+   return 0;
+}
+
+int nifti_dmat44_to_mat44(nifti_dmat44 * dm, mat44 * fm)
+{
+   int i, j;
+   if( !dm || !fm ) return 1;
+   for( i=0; i<4; i++ )
+      for( j=0; j<4; j++ )
+         fm->m[i][j] = (float)dm->m[i][j];
+   return 0;
+}
+
+
+/*---------------------------------------------------------------------------*/
+/*! Given the quaternion parameters (etc.), compute a transformation matrix
+    of doubles.
+
+   See comments in nifti1.h for details.
+     - qb,qc,qd = quaternion parameters
+     - qx,qy,qz = offset parameters
+     - dx,dy,dz = grid stepsizes (non-negative inputs are set to 1.0)
+     - qfac     = sign of dz step (< 0 is negative; >= 0 is positive)
+
+   <pre>
+   If qx=qy=qz=0, dx=dy=dz=1, then the output is a rotation matrix.
+   For qfac >= 0, the rotation is proper.
+   For qfac <  0, the rotation is improper.
+   </pre>
+
+   \see "QUATERNION REPRESENTATION OF ROTATION MATRIX" in nifti1.h
+   \see nifti_mat44_to_quatern, nifti_make_orthog_mat44,
+       nifti_mat44_to_orientation
+
+*//*-------------------------------------------------------------------------*/
+nifti_dmat44 nifti_quatern_to_dmat44( double qb, double qc, double qd,
+                                double qx, double qy, double qz,
+                                double dx, double dy, double dz, double qfac )
+{
+   nifti_dmat44 R ;
+   double a,b=qb,c=qc,d=qd , xd,yd,zd ;
+
+   /* last row is always [ 0 0 0 1 ] */
+
+   R.m[3][0]=R.m[3][1]=R.m[3][2] = 0.0 ; R.m[3][3]= 1.0 ;
+
+   /* compute a parameter from b,c,d */
+
+   a = 1.0l - (b*b + c*c + d*d) ;
+   if( a < 1.e-7l ){                   /* special case */
+     a = 1.0l / sqrt(b*b+c*c+d*d) ;
+     b *= a ; c *= a ; d *= a ;        /* normalize (b,c,d) vector */
+     a = 0.0l ;                        /* a = 0 ==> 180 degree rotation */
+   } else{
+     a = sqrt(a) ;                     /* angle = 2*arccos(a) */
+   }
+
+   /* load rotation matrix, including scaling factors for voxel sizes */
+
+   xd = (dx > 0.0) ? dx : 1.0l ;       /* make sure are positive */
+   yd = (dy > 0.0) ? dy : 1.0l ;
+   zd = (dz > 0.0) ? dz : 1.0l ;
+
+   if( qfac < 0.0 ) zd = -zd ;         /* left handedness? */
+
+   R.m[0][0] = (a*a+b*b-c*c-d*d) * xd;
+   R.m[0][1] = 2.0l * (b*c-a*d        ) * yd ;
+   R.m[0][2] = 2.0l * (b*d+a*c        ) * zd ;
+   R.m[1][0] = 2.0l * (b*c+a*d        ) * xd ;
+   R.m[1][1] = (a*a+c*c-b*b-d*d) * yd;
+   R.m[1][2] = 2.0l * (c*d-a*b        ) * zd ;
+   R.m[2][0] = 2.0l * (b*d-a*c        ) * xd ;
+   R.m[2][1] = 2.0l * (c*d+a*b        ) * yd ;
+   R.m[2][2] = (a*a+d*d-c*c-b*b) * zd;
+
+   /* load offsets */
+
+   R.m[0][3] = qx ; R.m[1][3] = qy ; R.m[2][3] = qz ;
+
+   return R ;
+}
+
 /*---------------------------------------------------------------------------*/
 /*! Given the quaternion parameters (etc.), compute a transformation matrix.
 
@@ -1472,7 +1647,7 @@ mat44 nifti_quatern_to_mat44( float qb, float qc, float qd,
 
    /* last row is always [ 0 0 0 1 ] */
 
-   R.m[3][0]=R.m[3][1]=R.m[3][2] = 0.0 ; R.m[3][3]= 1.0 ;
+   R.m[3][0]=R.m[3][1]=R.m[3][2] = 0.0f ; R.m[3][3]= 1.0f ;
 
    /* compute a parameter from b,c,d */
 
@@ -1493,21 +1668,160 @@ mat44 nifti_quatern_to_mat44( float qb, float qc, float qd,
 
    if( qfac < 0.0 ) zd = -zd ;         /* left handedness? */
 
-   R.m[0][0] =        (a*a+b*b-c*c-d*d) * xd ;
+   R.m[0][0] = (float)( (a*a+b*b-c*c-d*d) * xd) ;
    R.m[0][1] = 2.0l * (b*c-a*d        ) * yd ;
    R.m[0][2] = 2.0l * (b*d+a*c        ) * zd ;
    R.m[1][0] = 2.0l * (b*c+a*d        ) * xd ;
-   R.m[1][1] =        (a*a+c*c-b*b-d*d) * yd ;
+   R.m[1][1] = (float)( (a*a+c*c-b*b-d*d) * yd) ;
    R.m[1][2] = 2.0l * (c*d-a*b        ) * zd ;
    R.m[2][0] = 2.0l * (b*d-a*c        ) * xd ;
    R.m[2][1] = 2.0l * (c*d+a*b        ) * yd ;
-   R.m[2][2] =        (a*a+d*d-c*c-b*b) * zd ;
+   R.m[2][2] = (float)( (a*a+d*d-c*c-b*b) * zd) ;
 
    /* load offsets */
 
    R.m[0][3] = qx ; R.m[1][3] = qy ; R.m[2][3] = qz ;
 
    return R ;
+}
+
+/*---------------------------------------------------------------------------*/
+/*! Given the 3x4 upper corner of the matrix R, compute the quaternion
+   parameters that fit it.
+
+     - Any NULL pointer on input won't get assigned (e.g., if you don't want
+       dx,dy,dz, just pass NULL in for those pointers).
+     - If the 3 input matrix columns are NOT orthogonal, they will be
+       orthogonalized prior to calculating the parameters, using
+       the polar decomposition to find the orthogonal matrix closest
+       to the column-normalized input matrix.
+     - However, if the 3 input matrix columns are NOT orthogonal, then
+       the matrix produced by nifti_quatern_to_dmat44 WILL have orthogonal
+       columns, so it won't be the same as the matrix input here.
+       This "feature" is because the NIFTI 'qform' transform is
+       deliberately not fully general -- it is intended to model a volume
+       with perpendicular axes.
+     - If the 3 input matrix columns are not even linearly independent,
+       you'll just have to take your luck, won't you?
+
+   \see "QUATERNION REPRESENTATION OF ROTATION MATRIX" in nifti1.h
+
+   \see nifti_quatern_to_dmat44, nifti_make_orthog_dmat44,
+       nifti_dmat44_to_orientation
+*//*-------------------------------------------------------------------------*/
+void nifti_dmat44_to_quatern(nifti_dmat44 R ,
+                             double *qb, double *qc, double *qd,
+                             double *qx, double *qy, double *qz,
+                             double *dx, double *dy, double *dz, double *qfac )
+{
+   double r11,r12,r13 , r21,r22,r23 , r31,r32,r33 ;
+   double xd,yd,zd , a,b,c,d ;
+   nifti_dmat33 P,Q ;
+
+   /* offset outputs are read write out of input matrix  */
+
+   ASSIF(qx,R.m[0][3]) ; ASSIF(qy,R.m[1][3]) ; ASSIF(qz,R.m[2][3]) ;
+
+   /* load 3x3 matrix into local variables */
+
+   r11 = R.m[0][0] ; r12 = R.m[0][1] ; r13 = R.m[0][2] ;
+   r21 = R.m[1][0] ; r22 = R.m[1][1] ; r23 = R.m[1][2] ;
+   r31 = R.m[2][0] ; r32 = R.m[2][1] ; r33 = R.m[2][2] ;
+
+   /* compute lengths of each column; these determine grid spacings  */
+
+   xd = sqrt( r11*r11 + r21*r21 + r31*r31 ) ;
+   yd = sqrt( r12*r12 + r22*r22 + r32*r32 ) ;
+   zd = sqrt( r13*r13 + r23*r23 + r33*r33 ) ;
+
+   /* if a column length is zero, patch the trouble */
+
+   if( xd == 0.0l ){ r11 = 1.0l ; r21 = r31 = 0.0l ; xd = 1.0l ; }
+   if( yd == 0.0l ){ r22 = 1.0l ; r12 = r32 = 0.0l ; yd = 1.0l ; }
+   if( zd == 0.0l ){ r33 = 1.0l ; r13 = r23 = 0.0l ; zd = 1.0l ; }
+
+   /* assign the output lengths */
+
+   ASSIF(dx,xd) ; ASSIF(dy,yd) ; ASSIF(dz,zd) ;
+
+   /* normalize the columns */
+
+   r11 /= xd ; r21 /= xd ; r31 /= xd ;
+   r12 /= yd ; r22 /= yd ; r32 /= yd ;
+   r13 /= zd ; r23 /= zd ; r33 /= zd ;
+
+   /* At this point, the matrix has normal columns, but we have to allow
+      for the fact that the hideous user may not have given us a matrix
+      with orthogonal columns.
+
+      So, now find the orthogonal matrix closest to the current matrix.
+
+      One reason for using the polar decomposition to get this
+      orthogonal matrix, rather than just directly orthogonalizing
+      the columns, is so that inputting the inverse matrix to R
+      will result in the inverse orthogonal matrix at this point.
+      If we just orthogonalized the columns, this wouldn't necessarily hold. */
+
+   Q.m[0][0] = r11 ; Q.m[0][1] = r12 ; Q.m[0][2] = r13 ; /* load Q */
+   Q.m[1][0] = r21 ; Q.m[1][1] = r22 ; Q.m[1][2] = r23 ;
+   Q.m[2][0] = r31 ; Q.m[2][1] = r32 ; Q.m[2][2] = r33 ;
+
+   P = nifti_dmat33_polar(Q) ;  /* P is orthog matrix closest to Q */
+
+   r11 = P.m[0][0] ; r12 = P.m[0][1] ; r13 = P.m[0][2] ; /* unload */
+   r21 = P.m[1][0] ; r22 = P.m[1][1] ; r23 = P.m[1][2] ;
+   r31 = P.m[2][0] ; r32 = P.m[2][1] ; r33 = P.m[2][2] ;
+
+   /*                            [ r11 r12 r13 ]               */
+   /* at this point, the matrix  [ r21 r22 r23 ] is orthogonal */
+   /*                            [ r31 r32 r33 ]               */
+
+   /* compute the determinant to determine if it is proper */
+
+   zd = r11*r22*r33-r11*r32*r23-r21*r12*r33
+       +r21*r32*r13+r31*r12*r23-r31*r22*r13 ;  /* should be -1 or 1 */
+
+   if( zd > 0 ){             /* proper */
+     ASSIF(qfac,1.0) ;
+   } else {                  /* improper ==> flip 3rd column */
+     ASSIF(qfac,-1.0) ;
+     r13 = -r13 ; r23 = -r23 ; r33 = -r33 ;
+   }
+
+   /* now, compute quaternion parameters */
+
+   a = r11 + r22 + r33 + 1.0l ;
+
+   if( a > 0.5l ){                /* simplest case */
+     a = 0.5l * sqrt(a) ;
+     b = 0.25l * (r32-r23) / a ;
+     c = 0.25l * (r13-r31) / a ;
+     d = 0.25l * (r21-r12) / a ;
+   } else {                       /* trickier case */
+     xd = 1.0 + r11 - (r22+r33) ;  /* 4*b*b */
+     yd = 1.0 + r22 - (r11+r33) ;  /* 4*c*c */
+     zd = 1.0 + r33 - (r11+r22) ;  /* 4*d*d */
+     if( xd > 1.0 ){
+       b = 0.5l * sqrt(xd) ;
+       c = 0.25l* (r12+r21) / b ;
+       d = 0.25l* (r13+r31) / b ;
+       a = 0.25l* (r32-r23) / b ;
+     } else if( yd > 1.0 ){
+       c = 0.5l * sqrt(yd) ;
+       b = 0.25l* (r12+r21) / c ;
+       d = 0.25l* (r23+r32) / c ;
+       a = 0.25l* (r13-r31) / c ;
+     } else {
+       d = 0.5l * sqrt(zd) ;
+       b = 0.25l* (r13+r31) / d ;
+       c = 0.25l* (r23+r32) / d ;
+       a = 0.25l* (r21-r12) / d ;
+     }
+     if( a < 0.0l ){ b=-b ; c=-c ; d=-d; a=-a; }
+   }
+
+   ASSIF(qb,b) ; ASSIF(qc,c) ; ASSIF(qd,d) ;
+   return ;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -1567,7 +1881,7 @@ void nifti_mat44_to_quatern( mat44 R ,
 
    /* assign the output lengths */
 
-   ASSIF(dx,xd) ; ASSIF(dy,yd) ; ASSIF(dz,zd) ;
+   ASSIF(dx,(float)xd) ; ASSIF(dy,(float)yd) ; ASSIF(dz,(float)zd) ;
 
    /* normalize the columns */
 
@@ -1587,9 +1901,9 @@ void nifti_mat44_to_quatern( mat44 R ,
       will result in the inverse orthogonal matrix at this point.
       If we just orthogonalized the columns, this wouldn't necessarily hold. */
 
-   Q.m[0][0] = r11 ; Q.m[0][1] = r12 ; Q.m[0][2] = r13 ; /* load Q */
-   Q.m[1][0] = r21 ; Q.m[1][1] = r22 ; Q.m[1][2] = r23 ;
-   Q.m[2][0] = r31 ; Q.m[2][1] = r32 ; Q.m[2][2] = r33 ;
+   Q.m[0][0] = (float)r11 ; Q.m[0][1] = (float)r12 ; Q.m[0][2] = (float)r13 ; /* load Q */
+   Q.m[1][0] = (float)r21 ; Q.m[1][1] = (float)r22 ; Q.m[1][2] = (float)r23 ;
+   Q.m[2][0] = (float)r31 ; Q.m[2][1] = (float)r32 ; Q.m[2][2] = (float)r33 ;
 
    P = nifti_mat33_polar(Q) ;  /* P is orthog matrix closest to Q */
 
@@ -1607,9 +1921,9 @@ void nifti_mat44_to_quatern( mat44 R ,
        +r21*r32*r13+r31*r12*r23-r31*r22*r13 ;  /* should be -1 or 1 */
 
    if( zd > 0 ){             /* proper */
-     ASSIF(qfac,1.0) ;
+     ASSIF(qfac,1.0f) ;
    } else {                  /* improper ==> flip 3rd column */
-     ASSIF(qfac,-1.0) ;
+     ASSIF(qfac,-1.0f) ;
      r13 = -r13 ; r23 = -r23 ; r33 = -r33 ;
    }
 
@@ -1645,8 +1959,63 @@ void nifti_mat44_to_quatern( mat44 R ,
      if( a < 0.0l ){ b=-b ; c=-c ; d=-d; a=-a; }
    }
 
-   ASSIF(qb,b) ; ASSIF(qc,c) ; ASSIF(qd,d) ;
+   ASSIF(qb,(float)b) ; ASSIF(qc,(float)c) ; ASSIF(qd,(float)d) ;
    return ;
+}
+
+/*---------------------------------------------------------------------------*/
+/*! Compute the inverse of a bordered 4x4 matrix.
+
+     <pre>
+   - Some numerical code fragments were generated by Maple 8.
+   - If a singular matrix is input, the output matrix will be all zero.
+   - You can check for this by examining the [3][3] element, which will
+     be 1.0 for the normal case and 0.0 for the bad case.
+
+     The input matrix should have the form:
+        [ r11 r12 r13 v1 ]
+        [ r21 r22 r23 v2 ]
+        [ r31 r32 r33 v3 ]
+        [  0   0   0   1 ]
+     </pre>
+*//*-------------------------------------------------------------------------*/
+nifti_dmat44 nifti_dmat44_inverse( nifti_dmat44 R )
+{
+   double r11,r12,r13,r21,r22,r23,r31,r32,r33,v1,v2,v3 , deti ;
+   nifti_dmat44 Q ;
+                                                       /*  INPUT MATRIX IS:  */
+   r11 = R.m[0][0]; r12 = R.m[0][1]; r13 = R.m[0][2];  /* [ r11 r12 r13 v1 ] */
+   r21 = R.m[1][0]; r22 = R.m[1][1]; r23 = R.m[1][2];  /* [ r21 r22 r23 v2 ] */
+   r31 = R.m[2][0]; r32 = R.m[2][1]; r33 = R.m[2][2];  /* [ r31 r32 r33 v3 ] */
+   v1  = R.m[0][3]; v2  = R.m[1][3]; v3  = R.m[2][3];  /* [  0   0   0   1 ] */
+
+   deti = r11*r22*r33-r11*r32*r23-r21*r12*r33
+         +r21*r32*r13+r31*r12*r23-r31*r22*r13 ;
+
+   if( deti != 0.0l ) deti = 1.0l / deti ;
+
+   Q.m[0][0] = deti*( r22*r33-r32*r23);
+   Q.m[0][1] = deti*(-r12*r33+r32*r13);
+   Q.m[0][2] = deti*( r12*r23-r22*r13);
+   Q.m[0][3] = deti*(-r12*r23*v3+r12*v2*r33+r22*r13*v3
+                     -r22*v1*r33-r32*r13*v2+r32*v1*r23);
+
+   Q.m[1][0] = deti*(-r21*r33+r31*r23);
+   Q.m[1][1] = deti*( r11*r33-r31*r13);
+   Q.m[1][2] = deti*(-r11*r23+r21*r13);
+   Q.m[1][3] = deti*( r11*r23*v3-r11*v2*r33-r21*r13*v3
+                     +r21*v1*r33+r31*r13*v2-r31*v1*r23);
+
+   Q.m[2][0] = deti*( r21*r32-r31*r22);
+   Q.m[2][1] = deti*(-r11*r32+r31*r12);
+   Q.m[2][2] = deti*( r11*r22-r21*r12);
+   Q.m[2][3] = deti*(-r11*r22*v3+r11*r32*v2+r21*r12*v3
+                     -r21*r32*v1-r31*r12*v2+r31*r22*v1);
+
+   Q.m[3][0] = Q.m[3][1] = Q.m[3][2] = 0.0l ;
+   Q.m[3][3] = (deti == 0.0l) ? 0.0l : 1.0l ; /* failure flag if deti == 0 */
+
+   return Q ;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -1680,28 +2049,113 @@ mat44 nifti_mat44_inverse( mat44 R )
 
    if( deti != 0.0l ) deti = 1.0l / deti ;
 
-   Q.m[0][0] = deti*( r22*r33-r32*r23) ;
-   Q.m[0][1] = deti*(-r12*r33+r32*r13) ;
-   Q.m[0][2] = deti*( r12*r23-r22*r13) ;
-   Q.m[0][3] = deti*(-r12*r23*v3+r12*v2*r33+r22*r13*v3
-                     -r22*v1*r33-r32*r13*v2+r32*v1*r23) ;
+   Q.m[0][0] = (float)( deti*( r22*r33-r32*r23) ) ;
+   Q.m[0][1] = (float)( deti*(-r12*r33+r32*r13) ) ;
+   Q.m[0][2] = (float)( deti*( r12*r23-r22*r13) ) ;
+   Q.m[0][3] = (float)( deti*(-r12*r23*v3+r12*v2*r33+r22*r13*v3
+                     -r22*v1*r33-r32*r13*v2+r32*v1*r23) ) ;
 
-   Q.m[1][0] = deti*(-r21*r33+r31*r23) ;
-   Q.m[1][1] = deti*( r11*r33-r31*r13) ;
-   Q.m[1][2] = deti*(-r11*r23+r21*r13) ;
-   Q.m[1][3] = deti*( r11*r23*v3-r11*v2*r33-r21*r13*v3
-                     +r21*v1*r33+r31*r13*v2-r31*v1*r23) ;
+   Q.m[1][0] = (float)( deti*(-r21*r33+r31*r23) ) ;
+   Q.m[1][1] = (float)( deti*( r11*r33-r31*r13) ) ;
+   Q.m[1][2] = (float)( deti*(-r11*r23+r21*r13) ) ;
+   Q.m[1][3] = (float)( deti*( r11*r23*v3-r11*v2*r33-r21*r13*v3
+                     +r21*v1*r33+r31*r13*v2-r31*v1*r23) ) ;
 
-   Q.m[2][0] = deti*( r21*r32-r31*r22) ;
-   Q.m[2][1] = deti*(-r11*r32+r31*r12) ;
-   Q.m[2][2] = deti*( r11*r22-r21*r12) ;
-   Q.m[2][3] = deti*(-r11*r22*v3+r11*r32*v2+r21*r12*v3
-                     -r21*r32*v1-r31*r12*v2+r31*r22*v1) ;
+   Q.m[2][0] = (float)( deti*( r21*r32-r31*r22) ) ;
+   Q.m[2][1] = (float)( deti*(-r11*r32+r31*r12) ) ;
+   Q.m[2][2] = (float)( deti*( r11*r22-r21*r12) ) ;
+   Q.m[2][3] = (float)( deti*(-r11*r22*v3+r11*r32*v2+r21*r12*v3
+                     -r21*r32*v1-r31*r12*v2+r31*r22*v1) ) ;
 
    Q.m[3][0] = Q.m[3][1] = Q.m[3][2] = 0.0l ;
    Q.m[3][3] = (deti == 0.0l) ? 0.0l : 1.0l ; /* failure flag if deti == 0 */
 
    return Q ;
+}
+
+/*---------------------------------------------------------------------------*/
+/*! Input 9 floats and make an orthgonal nifti_dmat44 out of them.
+
+   Each row is normalized, then nifti_mat33_polar() is used to orthogonalize
+   them.  If row #3 (r31,r32,r33) is input as zero, then it will be taken to
+   be the cross product of rows #1 and #2.
+
+   This function can be used to create a rotation matrix for transforming
+   an oblique volume to anatomical coordinates.  For this application:
+    - row #1 (r11,r12,r13) is the direction vector along the image i-axis
+    - row #2 (r21,r22,r23) is the direction vector along the image j-axis
+    - row #3 (r31,r32,r33) is the direction vector along the slice direction
+      (if available; otherwise enter it as 0's)
+
+   The first 2 rows can be taken from the DICOM attribute (0020,0037)
+   "Image Orientation (Patient)".
+
+   After forming the rotation matrix, the complete affine transformation from
+   (i,j,k) grid indexes to (x,y,z) spatial coordinates can be computed by
+   multiplying each column by the appropriate grid spacing:
+    - column #1 (R.m[0][0],R.m[1][0],R.m[2][0]) by delta-x
+    - column #2 (R.m[0][1],R.m[1][1],R.m[2][1]) by delta-y
+    - column #3 (R.m[0][2],R.m[1][2],R.m[2][2]) by delta-z
+
+   and by then placing the center (x,y,z) coordinates of voxel (0,0,0) into
+   the column #4 (R.m[0][3],R.m[1][3],R.m[2][3]).
+
+   \sa nifti_quatern_to_dmat44, nifti_dmat44_to_quatern,
+       nifti_dmat44_to_orientation
+*//*-------------------------------------------------------------------------*/
+nifti_dmat44 nifti_make_orthog_dmat44( double r11, double r12, double r13 ,
+                               double r21, double r22, double r23 ,
+                               double r31, double r32, double r33  )
+{
+   nifti_dmat44 R ;
+   nifti_dmat33 Q , P ;
+   double val ;
+
+   R.m[3][0] = R.m[3][1] = R.m[3][2] = 0.0l ; R.m[3][3] = 1.0l ;
+
+   Q.m[0][0] = r11 ; Q.m[0][1] = r12 ; Q.m[0][2] = r13 ; /* load Q */
+   Q.m[1][0] = r21 ; Q.m[1][1] = r22 ; Q.m[1][2] = r23 ;
+   Q.m[2][0] = r31 ; Q.m[2][1] = r32 ; Q.m[2][2] = r33 ;
+
+   /* normalize row 1 */
+
+   val = Q.m[0][0]*Q.m[0][0] + Q.m[0][1]*Q.m[0][1] + Q.m[0][2]*Q.m[0][2] ;
+   if( val > 0.0l ){
+     val = 1.0l / sqrt(val) ;
+     Q.m[0][0] *= val ; Q.m[0][1] *= val ; Q.m[0][2] *= val ;
+   } else {
+     Q.m[0][0] = 1.0l ; Q.m[0][1] = 0.0l ; Q.m[0][2] = 0.0l ;
+   }
+
+   /* normalize row 2 */
+
+   val = Q.m[1][0]*Q.m[1][0] + Q.m[1][1]*Q.m[1][1] + Q.m[1][2]*Q.m[1][2] ;
+   if( val > 0.0l ){
+     val = 1.0l / sqrt(val) ;
+     Q.m[1][0] *= val ; Q.m[1][1] *= val ; Q.m[1][2] *= val ;
+   } else {
+     Q.m[1][0] = 0.0l ; Q.m[1][1] = 1.0l ; Q.m[1][2] = 0.0l ;
+   }
+
+   /* normalize row 3 */
+
+   val = Q.m[2][0]*Q.m[2][0] + Q.m[2][1]*Q.m[2][1] + Q.m[2][2]*Q.m[2][2] ;
+   if( val > 0.0l ){
+     val = 1.0l / sqrt(val) ;
+     Q.m[2][0] *= val ; Q.m[2][1] *= val ; Q.m[2][2] *= val ;
+   } else {
+     Q.m[2][0] = Q.m[0][1]*Q.m[1][2] - Q.m[0][2]*Q.m[1][1] ;  /* cross */
+     Q.m[2][1] = Q.m[0][2]*Q.m[1][0] - Q.m[0][0]*Q.m[1][2] ;  /* product */
+     Q.m[2][2] = Q.m[0][0]*Q.m[1][1] - Q.m[0][1]*Q.m[1][0] ;
+   }
+
+   P = nifti_dmat33_polar(Q) ;  /* P is orthog matrix closest to Q */
+
+   R.m[0][0] = P.m[0][0] ; R.m[0][1] = P.m[0][1] ; R.m[0][2] = P.m[0][2] ;
+   R.m[1][0] = P.m[1][0] ; R.m[1][1] = P.m[1][1] ; R.m[1][2] = P.m[1][2] ;
+   R.m[2][0] = P.m[2][0] ; R.m[2][1] = P.m[2][1] ; R.m[2][2] = P.m[2][2] ;
+
+   R.m[0][3] = R.m[1][3] = R.m[2][3] = 0.0f ; return R ;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -1753,7 +2207,7 @@ mat44 nifti_make_orthog_mat44( float r11, float r12, float r13 ,
    val = Q.m[0][0]*Q.m[0][0] + Q.m[0][1]*Q.m[0][1] + Q.m[0][2]*Q.m[0][2] ;
    if( val > 0.0l ){
      val = 1.0l / sqrt(val) ;
-     Q.m[0][0] *= val ; Q.m[0][1] *= val ; Q.m[0][2] *= val ;
+     Q.m[0][0] *= (float)val ; Q.m[0][1] *= (float)val ; Q.m[0][2] *= (float)val ;
    } else {
      Q.m[0][0] = 1.0l ; Q.m[0][1] = 0.0l ; Q.m[0][2] = 0.0l ;
    }
@@ -1763,7 +2217,7 @@ mat44 nifti_make_orthog_mat44( float r11, float r12, float r13 ,
    val = Q.m[1][0]*Q.m[1][0] + Q.m[1][1]*Q.m[1][1] + Q.m[1][2]*Q.m[1][2] ;
    if( val > 0.0l ){
      val = 1.0l / sqrt(val) ;
-     Q.m[1][0] *= val ; Q.m[1][1] *= val ; Q.m[1][2] *= val ;
+     Q.m[1][0] *= (float)val ; Q.m[1][1] *= (float)val ; Q.m[1][2] *= (float)val ;
    } else {
      Q.m[1][0] = 0.0l ; Q.m[1][1] = 1.0l ; Q.m[1][2] = 0.0l ;
    }
@@ -1773,7 +2227,7 @@ mat44 nifti_make_orthog_mat44( float r11, float r12, float r13 ,
    val = Q.m[2][0]*Q.m[2][0] + Q.m[2][1]*Q.m[2][1] + Q.m[2][2]*Q.m[2][2] ;
    if( val > 0.0l ){
      val = 1.0l / sqrt(val) ;
-     Q.m[2][0] *= val ; Q.m[2][1] *= val ; Q.m[2][2] *= val ;
+     Q.m[2][0] *= (float)val ; Q.m[2][1] *= (float)val ; Q.m[2][2] *= (float)val ;
    } else {
      Q.m[2][0] = Q.m[0][1]*Q.m[1][2] - Q.m[0][2]*Q.m[1][1] ;  /* cross */
      Q.m[2][1] = Q.m[0][2]*Q.m[1][0] - Q.m[0][0]*Q.m[1][2] ;  /* product */
@@ -1786,7 +2240,39 @@ mat44 nifti_make_orthog_mat44( float r11, float r12, float r13 ,
    R.m[1][0] = P.m[1][0] ; R.m[1][1] = P.m[1][1] ; R.m[1][2] = P.m[1][2] ;
    R.m[2][0] = P.m[2][0] ; R.m[2][1] = P.m[2][1] ; R.m[2][2] = P.m[2][2] ;
 
-   R.m[0][3] = R.m[1][3] = R.m[2][3] = 0.0 ; return R ;
+   R.m[0][3] = R.m[1][3] = R.m[2][3] = 0.0f ; return R ;
+}
+
+/*----------------------------------------------------------------------*/
+/*! compute the inverse of a 3x3 matrix
+*//*--------------------------------------------------------------------*/
+nifti_dmat33 nifti_dmat33_inverse( nifti_dmat33 R ) /* inverse of 3x3 matrix */
+{
+   double r11,r12,r13,r21,r22,r23,r31,r32,r33 , deti ;
+   nifti_dmat33 Q ;
+                                                       /*  INPUT MATRIX:  */
+   r11 = R.m[0][0]; r12 = R.m[0][1]; r13 = R.m[0][2];  /* [ r11 r12 r13 ] */
+   r21 = R.m[1][0]; r22 = R.m[1][1]; r23 = R.m[1][2];  /* [ r21 r22 r23 ] */
+   r31 = R.m[2][0]; r32 = R.m[2][1]; r33 = R.m[2][2];  /* [ r31 r32 r33 ] */
+
+   deti = r11*r22*r33-r11*r32*r23-r21*r12*r33
+         +r21*r32*r13+r31*r12*r23-r31*r22*r13 ;
+
+   if( deti != 0.0l ) deti = 1.0l / deti ;
+
+   Q.m[0][0] = deti*( r22*r33-r32*r23);
+   Q.m[0][1] = deti*(-r12*r33+r32*r13);
+   Q.m[0][2] = deti*( r12*r23-r22*r13);
+
+   Q.m[1][0] = deti*(-r21*r33+r31*r23);
+   Q.m[1][1] = deti*( r11*r33-r31*r13);
+   Q.m[1][2] = deti*(-r11*r23+r21*r13);
+
+   Q.m[2][0] = deti*( r21*r32-r31*r22);
+   Q.m[2][1] = deti*(-r11*r32+r31*r12);
+   Q.m[2][2] = deti*( r11*r22-r21*r12);
+
+   return Q ;
 }
 
 /*----------------------------------------------------------------------*/
@@ -1806,19 +2292,34 @@ mat33 nifti_mat33_inverse( mat33 R )   /* inverse of 3x3 matrix */
 
    if( deti != 0.0l ) deti = 1.0l / deti ;
 
-   Q.m[0][0] = deti*( r22*r33-r32*r23) ;
-   Q.m[0][1] = deti*(-r12*r33+r32*r13) ;
-   Q.m[0][2] = deti*( r12*r23-r22*r13) ;
+   Q.m[0][0] = (float)( deti*( r22*r33-r32*r23) ) ;
+   Q.m[0][1] = (float)( deti*(-r12*r33+r32*r13) ) ;
+   Q.m[0][2] = (float)( deti*( r12*r23-r22*r13) ) ;
 
-   Q.m[1][0] = deti*(-r21*r33+r31*r23) ;
-   Q.m[1][1] = deti*( r11*r33-r31*r13) ;
-   Q.m[1][2] = deti*(-r11*r23+r21*r13) ;
+   Q.m[1][0] = (float)( deti*(-r21*r33+r31*r23) ) ;
+   Q.m[1][1] = (float)( deti*( r11*r33-r31*r13) ) ;
+   Q.m[1][2] = (float)( deti*(-r11*r23+r21*r13) ) ;
 
-   Q.m[2][0] = deti*( r21*r32-r31*r22) ;
-   Q.m[2][1] = deti*(-r11*r32+r31*r12) ;
-   Q.m[2][2] = deti*( r11*r22-r21*r12) ;
+   Q.m[2][0] = (float)( deti*( r21*r32-r31*r22) ) ;
+   Q.m[2][1] = (float)( deti*(-r11*r32+r31*r12) ) ;
+   Q.m[2][2] = (float)( deti*( r11*r22-r21*r12) ) ;
 
    return Q ;
+}
+
+/*----------------------------------------------------------------------*/
+/*! compute the determinant of a 3x3 matrix
+*//*--------------------------------------------------------------------*/
+double nifti_dmat33_determ( nifti_dmat33 R )   /* determinant of 3x3 matrix */
+{
+   double r11,r12,r13,r21,r22,r23,r31,r32,r33 ;
+                                                       /*  INPUT MATRIX:  */
+   r11 = R.m[0][0]; r12 = R.m[0][1]; r13 = R.m[0][2];  /* [ r11 r12 r13 ] */
+   r21 = R.m[1][0]; r22 = R.m[1][1]; r23 = R.m[1][2];  /* [ r21 r22 r23 ] */
+   r31 = R.m[2][0]; r32 = R.m[2][1]; r33 = R.m[2][2];  /* [ r31 r32 r33 ] */
+
+   return (r11*r22*r33-r11*r32*r23-r21*r12*r33
+         +r21*r32*r13+r31*r12*r23-r31*r22*r13) ;
 }
 
 /*----------------------------------------------------------------------*/
@@ -1832,8 +2333,23 @@ float nifti_mat33_determ( mat33 R )   /* determinant of 3x3 matrix */
    r21 = R.m[1][0]; r22 = R.m[1][1]; r23 = R.m[1][2];  /* [ r21 r22 r23 ] */
    r31 = R.m[2][0]; r32 = R.m[2][1]; r33 = R.m[2][2];  /* [ r31 r32 r33 ] */
 
-   return r11*r22*r33-r11*r32*r23-r21*r12*r33
-         +r21*r32*r13+r31*r12*r23-r31*r22*r13 ;
+   return (float)(r11*r22*r33-r11*r32*r23-r21*r12*r33
+         +r21*r32*r13+r31*r12*r23-r31*r22*r13) ;
+}
+
+/*----------------------------------------------------------------------*/
+/*! compute the max row norm of a 3x3 matrix
+*//*--------------------------------------------------------------------*/
+double nifti_dmat33_rownorm( nifti_dmat33 A )  /* max row norm of 3x3 matrix */
+{
+   double r1,r2,r3 ;
+
+   r1 = fabs(A.m[0][0])+fabs(A.m[0][1])+fabs(A.m[0][2]);
+   r2 = fabs(A.m[1][0])+fabs(A.m[1][1])+fabs(A.m[1][2]);
+   r3 = fabs(A.m[2][0])+fabs(A.m[2][1])+fabs(A.m[2][2]);
+   if( r1 < r2 ) r1 = r2 ;
+   if( r1 < r3 ) r1 = r3 ;
+   return r1 ;
 }
 
 /*----------------------------------------------------------------------*/
@@ -1843,9 +2359,24 @@ float nifti_mat33_rownorm( mat33 A )  /* max row norm of 3x3 matrix */
 {
    float r1,r2,r3 ;
 
-   r1 = fabs(A.m[0][0])+fabs(A.m[0][1])+fabs(A.m[0][2]) ;
-   r2 = fabs(A.m[1][0])+fabs(A.m[1][1])+fabs(A.m[1][2]) ;
-   r3 = fabs(A.m[2][0])+fabs(A.m[2][1])+fabs(A.m[2][2]) ;
+   r1 = (float)( fabs(A.m[0][0])+fabs(A.m[0][1])+fabs(A.m[0][2]) ) ;
+   r2 = (float)( fabs(A.m[1][0])+fabs(A.m[1][1])+fabs(A.m[1][2]) ) ;
+   r3 = (float)( fabs(A.m[2][0])+fabs(A.m[2][1])+fabs(A.m[2][2]) ) ;
+   if( r1 < r2 ) r1 = r2 ;
+   if( r1 < r3 ) r1 = r3 ;
+   return r1 ;
+}
+
+/*----------------------------------------------------------------------*/
+/*! compute the max column norm of a 3x3 matrix
+*//*--------------------------------------------------------------------*/
+double nifti_dmat33_colnorm( nifti_dmat33 A )/* max column norm of 3x3 matrix */
+{
+   double r1,r2,r3 ;
+
+   r1 = fabs(A.m[0][0])+fabs(A.m[1][0])+fabs(A.m[2][0]);
+   r2 = fabs(A.m[0][1])+fabs(A.m[1][1])+fabs(A.m[2][1]);
+   r3 = fabs(A.m[0][2])+fabs(A.m[1][2])+fabs(A.m[2][2]);
    if( r1 < r2 ) r1 = r2 ;
    if( r1 < r3 ) r1 = r3 ;
    return r1 ;
@@ -1858,12 +2389,27 @@ float nifti_mat33_colnorm( mat33 A )  /* max column norm of 3x3 matrix */
 {
    float r1,r2,r3 ;
 
-   r1 = fabs(A.m[0][0])+fabs(A.m[1][0])+fabs(A.m[2][0]) ;
-   r2 = fabs(A.m[0][1])+fabs(A.m[1][1])+fabs(A.m[2][1]) ;
-   r3 = fabs(A.m[0][2])+fabs(A.m[1][2])+fabs(A.m[2][2]) ;
+   r1 = (float)( fabs(A.m[0][0])+fabs(A.m[1][0])+fabs(A.m[2][0]) ) ;
+   r2 = (float)( fabs(A.m[0][1])+fabs(A.m[1][1])+fabs(A.m[2][1]) ) ;
+   r3 = (float)( fabs(A.m[0][2])+fabs(A.m[1][2])+fabs(A.m[2][2]) ) ;
    if( r1 < r2 ) r1 = r2 ;
    if( r1 < r3 ) r1 = r3 ;
    return r1 ;
+}
+
+/*----------------------------------------------------------------------*/
+/*! multiply 2 3x3 matrices
+*//*--------------------------------------------------------------------*/
+nifti_dmat33 nifti_dmat33_mul( nifti_dmat33 A , nifti_dmat33 B )
+/* multiply 2 3x3 matrices */
+{
+   nifti_dmat33 C ; int i,j ;
+   for( i=0 ; i < 3 ; i++ )
+    for( j=0 ; j < 3 ; j++ )
+      C.m[i][j] =  A.m[i][0] * B.m[0][j]
+                 + A.m[i][1] * B.m[1][j]
+                 + A.m[i][2] * B.m[2][j] ;
+   return C ;
 }
 
 /*----------------------------------------------------------------------*/
@@ -1888,10 +2434,69 @@ mat33 nifti_mat33_mul( mat33 A , mat33 B )  /* multiply 2 3x3 matrices */
 
    Algorithm is that from NJ Higham, SIAM J Sci Stat Comput, 7:1160-1174.
 *//*-------------------------------------------------------------------------*/
+nifti_dmat33 nifti_dmat33_polar( nifti_dmat33 A )
+{
+   nifti_dmat33 X , Y , Z ;
+   double alp,bet,gam,gmi , dif=1.0 ;
+   int k=0 ;
+
+   X = A ;
+
+   /* force matrix to be nonsingular */
+
+   gam = nifti_dmat33_determ(X) ;
+   while( gam == 0.0 ){        /* perturb matrix */
+     gam = 0.00001 * ( 0.001 + nifti_dmat33_rownorm(X) );
+     X.m[0][0] += gam ; X.m[1][1] += gam ; X.m[2][2] += gam ;
+     gam = nifti_dmat33_determ(X) ;
+   }
+
+   while(1){
+     Y = nifti_dmat33_inverse(X) ;
+     if( dif > 0.3 ){     /* far from convergence */
+       alp = sqrt( nifti_dmat33_rownorm(X) * nifti_dmat33_colnorm(X) );
+       bet = sqrt( nifti_dmat33_rownorm(Y) * nifti_dmat33_colnorm(Y) );
+       gam = sqrt( bet / alp );
+       gmi = 1.0 / gam;
+     } else {
+       gam = gmi = 1.0f ;  /* close to convergence */
+     }
+     Z.m[0][0] = 0.5 * ( gam*X.m[0][0] + gmi*Y.m[0][0] );
+     Z.m[0][1] = 0.5 * ( gam*X.m[0][1] + gmi*Y.m[1][0] );
+     Z.m[0][2] = 0.5 * ( gam*X.m[0][2] + gmi*Y.m[2][0] );
+     Z.m[1][0] = 0.5 * ( gam*X.m[1][0] + gmi*Y.m[0][1] );
+     Z.m[1][1] = 0.5 * ( gam*X.m[1][1] + gmi*Y.m[1][1] );
+     Z.m[1][2] = 0.5 * ( gam*X.m[1][2] + gmi*Y.m[2][1] );
+     Z.m[2][0] = 0.5 * ( gam*X.m[2][0] + gmi*Y.m[0][2] );
+     Z.m[2][1] = 0.5 * ( gam*X.m[2][1] + gmi*Y.m[1][2] );
+     Z.m[2][2] = 0.5 * ( gam*X.m[2][2] + gmi*Y.m[2][2] );
+
+     dif = fabs(Z.m[0][0]-X.m[0][0])+fabs(Z.m[0][1]-X.m[0][1])
+          +fabs(Z.m[0][2]-X.m[0][2])+fabs(Z.m[1][0]-X.m[1][0])
+          +fabs(Z.m[1][1]-X.m[1][1])+fabs(Z.m[1][2]-X.m[1][2])
+          +fabs(Z.m[2][0]-X.m[2][0])+fabs(Z.m[2][1]-X.m[2][1])
+          +fabs(Z.m[2][2]-X.m[2][2]);
+
+     k = k+1 ;
+     if( k > 100 || dif < 3.e-6 ) break ;  /* convergence or exhaustion */
+     X = Z ;
+   }
+
+   return Z ;
+}
+
+/*---------------------------------------------------------------------------*/
+/*! polar decomposition of a 3x3 matrix
+
+   This finds the closest orthogonal matrix to input A
+   (in both the Frobenius and L2 norms).
+
+   Algorithm is that from NJ Higham, SIAM J Sci Stat Comput, 7:1160-1174.
+*//*-------------------------------------------------------------------------*/
 mat33 nifti_mat33_polar( mat33 A )
 {
    mat33 X , Y , Z ;
-   float alp,bet,gam,gmi , dif=1.0 ;
+   float alp,bet,gam,gmi , dif=1.0f ;
    int k=0 ;
 
    X = A ;
@@ -1900,7 +2505,7 @@ mat33 nifti_mat33_polar( mat33 A )
 
    gam = nifti_mat33_determ(X) ;
    while( gam == 0.0 ){        /* perturb matrix */
-     gam = 0.00001 * ( 0.001 + nifti_mat33_rownorm(X) ) ;
+     gam = (float)( 0.00001 * ( 0.001 + nifti_mat33_rownorm(X) ) ) ;
      X.m[0][0] += gam ; X.m[1][1] += gam ; X.m[2][2] += gam ;
      gam = nifti_mat33_determ(X) ;
    }
@@ -1908,28 +2513,28 @@ mat33 nifti_mat33_polar( mat33 A )
    while(1){
      Y = nifti_mat33_inverse(X) ;
      if( dif > 0.3 ){     /* far from convergence */
-       alp = sqrt( nifti_mat33_rownorm(X) * nifti_mat33_colnorm(X) ) ;
-       bet = sqrt( nifti_mat33_rownorm(Y) * nifti_mat33_colnorm(Y) ) ;
-       gam = sqrt( bet / alp ) ;
-       gmi = 1.0 / gam ;
+       alp = (float)( sqrt( nifti_mat33_rownorm(X) * nifti_mat33_colnorm(X) ) ) ;
+       bet = (float)( sqrt( nifti_mat33_rownorm(Y) * nifti_mat33_colnorm(Y) ) ) ;
+       gam = (float)( sqrt( bet / alp ) ) ;
+       gmi = (float)( 1.0 / gam ) ;
      } else {
-       gam = gmi = 1.0 ;  /* close to convergence */
+       gam = gmi = 1.0f ;  /* close to convergence */
      }
-     Z.m[0][0] = 0.5 * ( gam*X.m[0][0] + gmi*Y.m[0][0] ) ;
-     Z.m[0][1] = 0.5 * ( gam*X.m[0][1] + gmi*Y.m[1][0] ) ;
-     Z.m[0][2] = 0.5 * ( gam*X.m[0][2] + gmi*Y.m[2][0] ) ;
-     Z.m[1][0] = 0.5 * ( gam*X.m[1][0] + gmi*Y.m[0][1] ) ;
-     Z.m[1][1] = 0.5 * ( gam*X.m[1][1] + gmi*Y.m[1][1] ) ;
-     Z.m[1][2] = 0.5 * ( gam*X.m[1][2] + gmi*Y.m[2][1] ) ;
-     Z.m[2][0] = 0.5 * ( gam*X.m[2][0] + gmi*Y.m[0][2] ) ;
-     Z.m[2][1] = 0.5 * ( gam*X.m[2][1] + gmi*Y.m[1][2] ) ;
-     Z.m[2][2] = 0.5 * ( gam*X.m[2][2] + gmi*Y.m[2][2] ) ;
+     Z.m[0][0] = (float)( 0.5 * ( gam*X.m[0][0] + gmi*Y.m[0][0] ) ) ;
+     Z.m[0][1] = (float)( 0.5 * ( gam*X.m[0][1] + gmi*Y.m[1][0] ) ) ;
+     Z.m[0][2] = (float)( 0.5 * ( gam*X.m[0][2] + gmi*Y.m[2][0] ) ) ;
+     Z.m[1][0] = (float)( 0.5 * ( gam*X.m[1][0] + gmi*Y.m[0][1] ) ) ;
+     Z.m[1][1] = (float)( 0.5 * ( gam*X.m[1][1] + gmi*Y.m[1][1] ) ) ;
+     Z.m[1][2] = (float)( 0.5 * ( gam*X.m[1][2] + gmi*Y.m[2][1] ) ) ;
+     Z.m[2][0] = (float)( 0.5 * ( gam*X.m[2][0] + gmi*Y.m[0][2] ) ) ;
+     Z.m[2][1] = (float)( 0.5 * ( gam*X.m[2][1] + gmi*Y.m[1][2] ) ) ;
+     Z.m[2][2] = (float)( 0.5 * ( gam*X.m[2][2] + gmi*Y.m[2][2] ) ) ;
 
-     dif = fabs(Z.m[0][0]-X.m[0][0])+fabs(Z.m[0][1]-X.m[0][1])
+     dif = (float)( fabs(Z.m[0][0]-X.m[0][0])+fabs(Z.m[0][1]-X.m[0][1])
           +fabs(Z.m[0][2]-X.m[0][2])+fabs(Z.m[1][0]-X.m[1][0])
           +fabs(Z.m[1][1]-X.m[1][1])+fabs(Z.m[1][2]-X.m[1][2])
           +fabs(Z.m[2][0]-X.m[2][0])+fabs(Z.m[2][1]-X.m[2][1])
-          +fabs(Z.m[2][2]-X.m[2][2])                          ;
+          +fabs(Z.m[2][2]-X.m[2][2])                          );
 
      k = k+1 ;
      if( k > 100 || dif < 3.e-6 ) break ;  /* convergence or exhaustion */
@@ -1963,12 +2568,13 @@ mat33 nifti_mat33_polar( mat33 A )
    \see nifti_quatern_to_mat44, nifti_mat44_to_quatern,
         nifti_make_orthog_mat44
 *//*-------------------------------------------------------------------------*/
-void nifti_mat44_to_orientation( mat44 R , int *icod, int *jcod, int *kcod )
+void nifti_dmat44_to_orientation( nifti_dmat44 R ,
+                                  int *icod, int *jcod, int *kcod )
 {
-   float xi,xj,xk , yi,yj,yk , zi,zj,zk , val,detQ,detP ;
-   mat33 P , Q , M ;
+   double xi,xj,xk , yi,yj,yk , zi,zj,zk , val,detQ,detP ;
+   nifti_dmat33 P , Q , M ;
    int i,j,k=0,p,q,r , ibest,jbest,kbest,pbest,qbest,rbest ;
-   float vbest ;
+   double vbest ;
 
    if( icod == NULL || jcod == NULL || kcod == NULL ) return ; /* bad */
 
@@ -2036,9 +2642,9 @@ void nifti_mat44_to_orientation( mat44 R , int *icod, int *jcod, int *kcod )
    Q.m[1][0] = yi ; Q.m[1][1] = yj ; Q.m[1][2] = yk ;
    Q.m[2][0] = zi ; Q.m[2][1] = zj ; Q.m[2][2] = zk ;
 
-   /* at this point, Q is the rotation matrix from the (i,j,k) to (x,y,z) axes */
+   /* at this point, Q is the rotation matrix from (i,j,k) to (x,y,z) axes */
 
-   detQ = nifti_mat33_determ( Q ) ;
+   detQ = nifti_dmat33_determ( Q ) ;
    if( detQ == 0.0 ) return ; /* shouldn't happen unless user is a DUFIS */
 
    /* Build and test all possible +1/-1 coordinate permutation matrices P;
@@ -2057,6 +2663,187 @@ void nifti_mat44_to_orientation( mat44 R , int *icod, int *jcod, int *kcod )
        P.m[0][0] = P.m[0][1] = P.m[0][2] =
         P.m[1][0] = P.m[1][1] = P.m[1][2] =
          P.m[2][0] = P.m[2][1] = P.m[2][2] = 0.0 ;
+       for( p=-1 ; p <= 1 ; p+=2 ){    /* p,q,r are -1 or +1      */
+        for( q=-1 ; q <= 1 ; q+=2 ){   /* and go into rows #1,2,3 */
+         for( r=-1 ; r <= 1 ; r+=2 ){
+           P.m[0][i-1] = p ; P.m[1][j-1] = q ; P.m[2][k-1] = r ;
+           detP = nifti_dmat33_determ(P) ;          /* sign of permutation */
+           if( detP * detQ <= 0.0 ) continue ;  /* doesn't match sign of Q */
+           M = nifti_dmat33_mul(P,Q) ;
+
+           /* angle of M rotation = 2.0*acos(0.5*sqrt(1.0+trace(M)))       */
+           /* we want largest trace(M) == smallest angle == M nearest to I */
+
+           val = M.m[0][0] + M.m[1][1] + M.m[2][2] ; /* trace */
+           if( val > vbest ){
+             vbest = val ;
+             ibest = i ; jbest = j ; kbest = k ;
+             pbest = p ; qbest = q ; rbest = r ;
+           }
+   }}}}}}
+
+   /* At this point ibest is 1 or 2 or 3; pbest is -1 or +1; etc.
+
+      The matrix P that corresponds is the best permutation approximation
+      to Q-inverse; that is, P (approximately) takes (x,y,z) coordinates
+      to the (i,j,k) axes.
+
+      For example, the first row of P (which contains pbest in column ibest)
+      determines the way the i axis points relative to the anatomical
+      (x,y,z) axes.  If ibest is 2, then the i axis is along the y axis,
+      which is direction P2A (if pbest > 0) or A2P (if pbest < 0).
+
+      So, using ibest and pbest, we can assign the output code for
+      the i axis.  Mutatis mutandis for the j and k axes, of course. */
+
+   switch( ibest*pbest ){
+     case  1: i = NIFTI_L2R ; break ;
+     case -1: i = NIFTI_R2L ; break ;
+     case  2: i = NIFTI_P2A ; break ;
+     case -2: i = NIFTI_A2P ; break ;
+     case  3: i = NIFTI_I2S ; break ;
+     case -3: i = NIFTI_S2I ; break ;
+   }
+
+   switch( jbest*qbest ){
+     case  1: j = NIFTI_L2R ; break ;
+     case -1: j = NIFTI_R2L ; break ;
+     case  2: j = NIFTI_P2A ; break ;
+     case -2: j = NIFTI_A2P ; break ;
+     case  3: j = NIFTI_I2S ; break ;
+     case -3: j = NIFTI_S2I ; break ;
+   }
+
+   switch( kbest*rbest ){
+     case  1: k = NIFTI_L2R ; break ;
+     case -1: k = NIFTI_R2L ; break ;
+     case  2: k = NIFTI_P2A ; break ;
+     case -2: k = NIFTI_A2P ; break ;
+     case  3: k = NIFTI_I2S ; break ;
+     case -3: k = NIFTI_S2I ; break ;
+   }
+
+   *icod = i ; *jcod = j ; *kcod = k ; return ;
+}
+
+/*---------------------------------------------------------------------------*/
+/*! compute the (closest) orientation from a 4x4 ijk->xyz tranformation matrix
+
+   <pre>
+   Input:  4x4 matrix that transforms (i,j,k) indexes to (x,y,z) coordinates,
+           where +x=Right, +y=Anterior, +z=Superior.
+           (Only the upper-left 3x3 corner of R is used herein.)
+   Output: 3 orientation codes that correspond to the closest "standard"
+           anatomical orientation of the (i,j,k) axes.
+   Method: Find which permutation of (x,y,z) has the smallest angle to the
+           (i,j,k) axes directions, which are the columns of the R matrix.
+   Errors: The codes returned will be zero.
+
+   For example, an axial volume might get return values of
+     *icod = NIFTI_R2L   (i axis is mostly Right to Left)
+     *jcod = NIFTI_P2A   (j axis is mostly Posterior to Anterior)
+     *kcod = NIFTI_I2S   (k axis is mostly Inferior to Superior)
+   </pre>
+
+   \see "QUATERNION REPRESENTATION OF ROTATION MATRIX" in nifti1.h
+
+   \see nifti_quatern_to_mat44, nifti_mat44_to_quatern,
+        nifti_make_orthog_mat44
+*//*-------------------------------------------------------------------------*/
+void nifti_mat44_to_orientation( mat44 R , int *icod, int *jcod, int *kcod )
+{
+   float xi,xj,xk , yi,yj,yk , zi,zj,zk , val,detQ,detP ;
+   mat33 P , Q , M ;
+   int i,j,k=0,p,q,r , ibest,jbest,kbest,pbest,qbest,rbest ;
+   float vbest ;
+
+   if( icod == NULL || jcod == NULL || kcod == NULL ) return ; /* bad */
+
+   *icod = *jcod = *kcod = 0 ; /* error returns, if sh*t happens */
+
+   /* load column vectors for each (i,j,k) direction from matrix */
+
+   /*-- i axis --*/ /*-- j axis --*/ /*-- k axis --*/
+
+   xi = R.m[0][0] ; xj = R.m[0][1] ; xk = R.m[0][2] ;
+   yi = R.m[1][0] ; yj = R.m[1][1] ; yk = R.m[1][2] ;
+   zi = R.m[2][0] ; zj = R.m[2][1] ; zk = R.m[2][2] ;
+
+   /* normalize column vectors to get unit vectors along each ijk-axis */
+
+   /* normalize i axis */
+
+   val = (float)sqrt( xi*xi + yi*yi + zi*zi ) ;
+   if( val == 0.0 ) return ;                 /* stupid input */
+   xi /= val ; yi /= val ; zi /= val ;
+
+   /* normalize j axis */
+
+   val = (float)sqrt( xj*xj + yj*yj + zj*zj ) ;
+   if( val == 0.0 ) return ;                 /* stupid input */
+   xj /= val ; yj /= val ; zj /= val ;
+
+   /* orthogonalize j axis to i axis, if needed */
+
+   val = xi*xj + yi*yj + zi*zj ;    /* dot product between i and j */
+   if( fabs(val) > 1.e-4 ){
+     xj -= val*xi ; yj -= val*yi ; zj -= val*zi ;
+     val = (float)sqrt( xj*xj + yj*yj + zj*zj ) ;  /* must renormalize */
+     if( val == 0.0 ) return ;              /* j was parallel to i? */
+     xj /= val ; yj /= val ; zj /= val ;
+   }
+
+   /* normalize k axis; if it is zero, make it the cross product i x j */
+
+   val = (float)sqrt( xk*xk + yk*yk + zk*zk ) ;
+   if( val == 0.0 ){ xk = yi*zj-zi*yj; yk = zi*xj-zj*xi ; zk=xi*yj-yi*xj ; }
+   else            { xk /= val ; yk /= val ; zk /= val ; }
+
+   /* orthogonalize k to i */
+
+   val = xi*xk + yi*yk + zi*zk ;    /* dot product between i and k */
+   if( fabs(val) > 1.e-4 ){
+     xk -= val*xi ; yk -= val*yi ; zk -= val*zi ;
+     val = (float)sqrt( xk*xk + yk*yk + zk*zk ) ;
+     if( val == 0.0 ) return ;      /* bad */
+     xk /= val ; yk /= val ; zk /= val ;
+   }
+
+   /* orthogonalize k to j */
+
+   val = xj*xk + yj*yk + zj*zk ;    /* dot product between j and k */
+   if( fabs(val) > 1.e-4 ){
+     xk -= val*xj ; yk -= val*yj ; zk -= val*zj ;
+     val = (float)sqrt( xk*xk + yk*yk + zk*zk ) ;
+     if( val == 0.0 ) return ;      /* bad */
+     xk /= val ; yk /= val ; zk /= val ;
+   }
+
+   Q.m[0][0] = xi ; Q.m[0][1] = xj ; Q.m[0][2] = xk ;
+   Q.m[1][0] = yi ; Q.m[1][1] = yj ; Q.m[1][2] = yk ;
+   Q.m[2][0] = zi ; Q.m[2][1] = zj ; Q.m[2][2] = zk ;
+
+   /* at this point, Q is the rotation matrix from the (i,j,k) to (x,y,z) axes */
+
+   detQ = nifti_mat33_determ( Q ) ;
+   if( detQ == 0.0 ) return ; /* shouldn't happen unless user is a DUFIS */
+
+   /* Build and test all possible +1/-1 coordinate permutation matrices P;
+      then find the P such that the rotation matrix M=PQ is closest to the
+      identity, in the sense of M having the smallest total rotation angle. */
+
+   /* Despite the formidable looking 6 nested loops, there are
+      only 3*3*3*2*2*2 = 216 passes, which will run very quickly. */
+
+   vbest = -666.0f ; ibest=pbest=qbest=rbest=1 ; jbest=2 ; kbest=3 ;
+   for( i=1 ; i <= 3 ; i++ ){     /* i = column number to use for row #1 */
+    for( j=1 ; j <= 3 ; j++ ){    /* j = column number to use for row #2 */
+     if( i == j ) continue ;
+      for( k=1 ; k <= 3 ; k++ ){  /* k = column number to use for row #3 */
+       if( i == k || j == k ) continue ;
+       P.m[0][0] = P.m[0][1] = P.m[0][2] =
+        P.m[1][0] = P.m[1][1] = P.m[1][2] =
+         P.m[2][0] = P.m[2][1] = P.m[2][2] = 0.0f ;
        for( p=-1 ; p <= 1 ; p+=2 ){    /* p,q,r are -1 or +1      */
         for( q=-1 ; q <= 1 ; q+=2 ){   /* and go into rows #1,2,3 */
          for( r=-1 ; r <= 1 ; r+=2 ){
@@ -2130,15 +2917,15 @@ void nifti_mat44_to_orientation( mat44 R , int *icod, int *jcod, int *kcod )
 
 /*----------------------------------------------------------------------*/
 /*! swap each byte pair from the given list of n pairs
- * 
+ *
  *  Due to alignment of structures at some architectures (e.g. on ARM),
  *  stick to char varaibles.
  *  Fixes http://bugs.debian.org/446893   Yaroslav <debian@onerussian.com>
  *
 *//*--------------------------------------------------------------------*/
-void nifti_swap_2bytes( size_t n , void *ar )    /* 2 bytes at a time */
+void nifti_swap_2bytes( int64_t n , void *ar )    /* 2 bytes at a time */
 {
-   register size_t ii ;
+   int64_t ii ;
    unsigned char * cp1 = (unsigned char *)ar, * cp2 ;
    unsigned char   tval;
 
@@ -2153,11 +2940,11 @@ void nifti_swap_2bytes( size_t n , void *ar )    /* 2 bytes at a time */
 /*----------------------------------------------------------------------*/
 /*! swap 4 bytes at a time from the given list of n sets of 4 bytes
 *//*--------------------------------------------------------------------*/
-void nifti_swap_4bytes( size_t n , void *ar )    /* 4 bytes at a time */
+void nifti_swap_4bytes( int64_t n , void *ar )    /* 4 bytes at a time */
 {
-   register size_t ii ;
+   int64_t ii ;
    unsigned char * cp0 = (unsigned char *)ar, * cp1, * cp2 ;
-   register unsigned char tval ;
+   unsigned char tval ;
 
    for( ii=0 ; ii < n ; ii++ ){
        cp1 = cp0; cp2 = cp0+3;
@@ -2174,11 +2961,11 @@ void nifti_swap_4bytes( size_t n , void *ar )    /* 4 bytes at a time */
  *
  *  perhaps use this style for the general Nbytes, as Yaroslav suggests
 *//*--------------------------------------------------------------------*/
-void nifti_swap_8bytes( size_t n , void *ar )    /* 8 bytes at a time */
+void nifti_swap_8bytes( int64_t n , void *ar )    /* 8 bytes at a time */
 {
-   register size_t ii ;
+   int64_t ii ;
    unsigned char * cp0 = (unsigned char *)ar, * cp1, * cp2 ;
-   register unsigned char tval ;
+   unsigned char tval ;
 
    for( ii=0 ; ii < n ; ii++ ){
        cp1 = cp0;  cp2 = cp0+7;
@@ -2195,11 +2982,11 @@ void nifti_swap_8bytes( size_t n , void *ar )    /* 8 bytes at a time */
 /*----------------------------------------------------------------------*/
 /*! swap 16 bytes at a time from the given list of n sets of 16 bytes
 *//*--------------------------------------------------------------------*/
-void nifti_swap_16bytes( size_t n , void *ar )    /* 16 bytes at a time */
+void nifti_swap_16bytes( int64_t n , void *ar )    /* 16 bytes at a time */
 {
-   register size_t ii ;
+   int64_t ii ;
    unsigned char * cp0 = (unsigned char *)ar, * cp1, * cp2 ;
-   register unsigned char tval ;
+   unsigned char tval ;
 
    for( ii=0 ; ii < n ; ii++ ){
        cp1 = cp0;  cp2 = cp0+15;
@@ -2218,11 +3005,11 @@ void nifti_swap_16bytes( size_t n , void *ar )    /* 16 bytes at a time */
 /*----------------------------------------------------------------------*/
 /*! generic: swap siz bytes at a time from the given list of n sets
 *//*--------------------------------------------------------------------*/
-void nifti_swap_bytes( size_t n , int siz , void *ar )
+void nifti_swap_bytes( int64_t n , int siz , void *ar )
 {
-   register size_t ii ;
+   int64_t ii ;
    unsigned char * cp0 = (unsigned char *)ar, * cp1, * cp2 ;
-   register unsigned char tval ;
+   unsigned char tval ;
 
    for( ii=0 ; ii < n ; ii++ ){
        cp1 = cp0;  cp2 = cp0+(siz-1);
@@ -2242,7 +3029,7 @@ void nifti_swap_bytes( size_t n , int siz , void *ar )
 /*----------------------------------------------------------------------*/
 /*! based on siz, call the appropriate nifti_swap_Nbytes() function
 *//*--------------------------------------------------------------------*/
-void nifti_swap_Nbytes( size_t n , int siz , void *ar )  /* subsuming case */
+void nifti_swap_Nbytes( int64_t n , int siz , void *ar )  /* subsuming case */
 {
    switch( siz ){
      case 2:  nifti_swap_2bytes ( n , ar ) ; break ;
@@ -2258,21 +3045,81 @@ void nifti_swap_Nbytes( size_t n , int siz , void *ar )  /* subsuming case */
 
 
 /*-------------------------------------------------------------------------*/
-/*! Byte swap NIFTI-1 file header in various places and ways.
-
-    If is_nifti, swap all (even UNUSED) fields of NIfTI header.
-    Else, swap as a nifti_analyze75 struct.
+/*! Byte swap NIFTI file header, depending on the version.
 *//*---------------------------------------------------------------------- */
-void swap_nifti_header( struct nifti_1_header *h , int is_nifti )
+void swap_nifti_header( void * hdr , int ni_ver )
 {
+   if     ( ni_ver == 0 ) nifti_swap_as_analyze((nifti_analyze75 *)hdr);
+   else if( ni_ver == 1 ) nifti_swap_as_nifti1((nifti_1_header *)hdr);
+   else if( ni_ver == 2 ) nifti_swap_as_nifti2((nifti_2_header *)hdr);
+   else if( ni_ver >= 0 && ni_ver <= 9 ) {
+      fprintf(stderr,"** swap_nifti_header: not ready for version %d\n",ni_ver);
+   } else {
+      fprintf(stderr,"** swap_nifti_header: illegal version %d\n", ni_ver);
+   }
+}
 
-   /* if ANALYZE, swap as such and return */
-   if( ! is_nifti ) {
-      nifti_swap_as_analyze((nifti_analyze75 *)h);
-      return;
+
+/*-------------------------------------------------------------------------*/
+/*! Byte swap NIFTI-2 file header.
+*//*---------------------------------------------------------------------- */
+void nifti_swap_as_nifti2( nifti_2_header * h )
+{
+   if ( ! h ) {
+     fprintf(stderr,"** nifti_swap_as_nifti2: NULL pointer\n");
+     return;
    }
 
-   /* otherwise, swap all NIFTI fields */
+   nifti_swap_4bytes(1, &h->sizeof_hdr);
+
+   nifti_swap_2bytes(1, &h->datatype);
+   nifti_swap_2bytes(1, &h->bitpix);
+
+   nifti_swap_8bytes(8, h->dim);
+   nifti_swap_8bytes(1, &h->intent_p1);
+   nifti_swap_8bytes(1, &h->intent_p2);
+   nifti_swap_8bytes(1, &h->intent_p3);
+   nifti_swap_8bytes(8, h->pixdim);
+
+   nifti_swap_8bytes(1, &h->vox_offset);
+   nifti_swap_8bytes(1, &h->scl_slope);
+   nifti_swap_8bytes(1, &h->scl_inter);
+   nifti_swap_8bytes(1, &h->cal_max);
+   nifti_swap_8bytes(1, &h->cal_min);
+   nifti_swap_8bytes(1, &h->slice_duration);
+   nifti_swap_8bytes(1, &h->toffset);
+   nifti_swap_8bytes(1, &h->slice_start);
+   nifti_swap_8bytes(1, &h->slice_end);
+
+   nifti_swap_4bytes(1, &h->qform_code);
+   nifti_swap_4bytes(1, &h->sform_code);
+
+   nifti_swap_8bytes(1, &h->quatern_b);
+   nifti_swap_8bytes(1, &h->quatern_c);
+   nifti_swap_8bytes(1, &h->quatern_d);
+   nifti_swap_8bytes(1, &h->qoffset_x);
+   nifti_swap_8bytes(1, &h->qoffset_y);
+   nifti_swap_8bytes(1, &h->qoffset_z);
+
+   nifti_swap_8bytes(4, h->srow_x);
+   nifti_swap_8bytes(4, h->srow_y);
+   nifti_swap_8bytes(4, h->srow_z);
+
+   nifti_swap_4bytes(1, &h->slice_code);
+   nifti_swap_4bytes(1, &h->xyzt_units);
+   nifti_swap_4bytes(1, &h->intent_code);
+}
+
+/*-------------------------------------------------------------------------*/
+/*! Byte swap NIFTI-1 file header in various places and ways.
+ *  return 0 on success
+*//*---------------------------------------------------------------------- */
+void nifti_swap_as_nifti1( nifti_1_header * h )
+{
+   if ( ! h ) {
+     fprintf(stderr,"** nifti_swap_as_nifti1: NULL pointer\n");
+     return;
+   }
 
    nifti_swap_4bytes(1, &h->sizeof_hdr);
    nifti_swap_4bytes(1, &h->extents);
@@ -2315,8 +3162,6 @@ void swap_nifti_header( struct nifti_1_header *h , int is_nifti )
    nifti_swap_4bytes(4, h->srow_x);
    nifti_swap_4bytes(4, h->srow_y);
    nifti_swap_4bytes(4, h->srow_z);
-
-   return ;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -2324,9 +3169,12 @@ void swap_nifti_header( struct nifti_1_header *h , int is_nifti )
  *
  *  return non-zero on failure
 *//*---------------------------------------------------------------------- */
-int nifti_swap_as_analyze( nifti_analyze75 * h )
+void nifti_swap_as_analyze( nifti_analyze75 * h )
 {
-   if( !h ) return 1;
+   if ( ! h ) {
+     fprintf(stderr,"** nifti_swap_as_analyze: NULL pointer\n");
+     return;
+   }
 
    nifti_swap_4bytes(1, &h->sizeof_hdr);
    nifti_swap_4bytes(1, &h->extents);
@@ -2356,7 +3204,6 @@ int nifti_swap_as_analyze( nifti_analyze75 * h )
    nifti_swap_4bytes(1, &h->cal_min);
    nifti_swap_4bytes(1, &h->compressed);
    nifti_swap_4bytes(1, &h->verified);
-
    nifti_swap_4bytes(1, &h->glmax);
    nifti_swap_4bytes(1, &h->glmin);
 
@@ -2369,20 +3216,18 @@ int nifti_swap_as_analyze( nifti_analyze75 * h )
    nifti_swap_4bytes(1, &h->omin);
    nifti_swap_4bytes(1, &h->smax);
    nifti_swap_4bytes(1, &h->smin);
-
-   return 0;
 }
 
 /*-------------------------------------------------------------------------*/
 /*! OLD VERSION of swap_nifti_header (left for undo/compare operations)
-  
+
     Byte swap NIFTI-1 file header in various places and ways.
 
     If is_nifti is nonzero, will also swap the NIFTI-specific
     components of the header; otherwise, only the components
     common to NIFTI and ANALYZE will be swapped.
 *//*---------------------------------------------------------------------- */
-void old_swap_nifti_header( struct nifti_1_header *h , int is_nifti )
+void old_swap_nifti_header( nifti_1_header *h , int is_nifti )
 {
    /* this stuff is always present, for ANALYZE and NIFTI */
 
@@ -2432,20 +3277,20 @@ void old_swap_nifti_header( struct nifti_1_header *h , int is_nifti )
 
     changed to return int, -1 means no file or error      20 Dec 2004 [rickr]
 *//*-------------------------------------------------------------------------*/
-int nifti_get_filesize( const char *pathname )
+int64_t nifti_get_filesize( const char *pathname )
 {
    struct stat buf ; int ii ;
 
    if( pathname == NULL || *pathname == '\0' ) return -1 ;
    ii = stat( pathname , &buf ); if( ii != 0 ) return -1 ;
-   return (unsigned int)buf.st_size ;
+   return buf.st_size ;
 }
 
 #else  /*---------- non-Unix version of the above, less efficient -----------*/
 
-int nifti_get_filesize( const char *pathname )
+int64_t nifti_get_filesize( const char *pathname )
 {
-   znzFile fp ; int len ;
+   znzFile fp ; int64_t len ;
 
    if( pathname == NULL || *pathname == '\0' ) return -1 ;
    fp = znzopen(pathname,"rb",0); if( znz_isnull(fp) ) return -1 ;
@@ -2461,9 +3306,9 @@ int nifti_get_filesize( const char *pathname )
 
     This is computed as nvox * nbyper.
 *//*--------------------------------------------------------------------*/
-size_t nifti_get_volsize(const nifti_image *nim)
+int64_t nifti_get_volsize(const nifti_image *nim)
 {
-   return nim->nbyper * nim->nvox ; /* total bytes */
+   return (int64_t)nim->nbyper * nim->nvox ; /* total bytes */
 }
 
 
@@ -2488,7 +3333,7 @@ int nifti_fileexists(const char* fname)
 
 /*----------------------------------------------------------------------*/
 /*! return whether the filename is valid
- 
+
     Note: uppercase extensions are now valid.    27 Apr 2009 [rickr]
 
     The name is considered valid if the file basename has length greater than
@@ -2505,7 +3350,7 @@ int nifti_fileexists(const char* fname)
 *//*--------------------------------------------------------------------*/
 int nifti_is_complete_filename(const char* fname)
 {
-   char * ext;
+   const char * ext;
 
    /* check input file(s) for sanity */
    if( fname == NULL || *fname == '\0' ){
@@ -2531,7 +3376,7 @@ int nifti_is_complete_filename(const char* fname)
 
 /*----------------------------------------------------------------------*/
 /*! return whether the filename is valid
- 
+
     Allow uppercase extensions as valid.        27 Apr 2009 [rickr]
     Any .gz extension case must match the base extension case.
 
@@ -2549,7 +3394,7 @@ int nifti_is_complete_filename(const char* fname)
 *//*--------------------------------------------------------------------*/
 int nifti_validfilename(const char* fname)
 {
-   char * ext;
+   const char * ext;
 
    /* check input file(s) for sanity */
    if( fname == NULL || *fname == '\0' ){
@@ -2578,19 +3423,24 @@ int nifti_validfilename(const char* fname)
 
     Uppercase extensions are also valid, but not mixed case.
 
-    \return a pointer to the extension (within the filename), or NULL
+    \return a pointer to the extension substring within the original
+            function input parameter name, or NULL if not found.
+    \caution Note that if the input parameter is is immutabale
+             (i.e. a const char *) then this function performs an
+             implicit casting away of the mutability constraint and
+             the return parameter will appear as a mutable
+             even though it is part of the immuttable string.
 *//*--------------------------------------------------------------------*/
 char * nifti_find_file_extension( const char * name )
 {
-   char * ext, extcopy[8];
+   const char * ext;
+   char extcopy[8];
    int    len;
    char   extnii[8] = ".nii";   /* modifiable, for possible uppercase */
    char   exthdr[8] = ".hdr";   /* (leave space for .gz) */
    char   extimg[8] = ".img";
    char   extnia[8] = ".nia";
-#ifdef HAVE_ZLIB
    char   extgz[4]  = ".gz";
-#endif
    char * elist[4]  = { NULL, NULL, NULL, NULL};
 
    /* stupid compiler... */
@@ -2601,7 +3451,7 @@ char * nifti_find_file_extension( const char * name )
    len = (int)strlen(name);
    if ( len < 4 ) return NULL;
 
-   ext = (char *)name + len - 4;
+   ext = name + len - 4;
 
    /* make manipulation copy, and possibly convert to lowercase */
    strcpy(extcopy, ext);
@@ -2613,13 +3463,13 @@ char * nifti_find_file_extension( const char * name )
          fprintf(stderr,"** mixed case extension '%s' is not valid\n", ext);
          return NULL;
       }
-      else return ext;
+      else return (char *)ext; /* Cast away the constness of the input parameter */
    }
 
 #ifdef HAVE_ZLIB
    if ( len < 7 ) return NULL;
 
-   ext = (char *)name + len - 7;
+   ext = name + len - 7;
 
    /* make manipulation copy, and possibly convert to lowercase */
    strcpy(extcopy, ext);
@@ -2633,7 +3483,7 @@ char * nifti_find_file_extension( const char * name )
          fprintf(stderr,"** mixed case extension '%s' is not valid\n", ext);
          return NULL;
       }
-      else return ext;
+      else return (char *)ext; /* Cast away the constness of the input parameter */
    }
 
 #endif
@@ -2681,15 +3531,23 @@ int nifti_compiled_with_zlib(void)
 *//*--------------------------------------------------------------------*/
 char * nifti_makebasename(const char* fname)
 {
-   char *basename, *ext;
+   char *basename;
+   const char *ext;
 
    basename=nifti_strdup(fname);
 
    ext = nifti_find_file_extension(basename);
-   if ( ext ) *ext = '\0';  /* clear out extension */
-   
+   if ( ext )
+   {
+     basename[strlen(basename)-strlen(ext)] = '\0';  /* clear out extension */
+   }
+
    return basename;  /* in either case */
 }
+
+/*----------------------------------------------------------------------*/
+/* option accessor functions                                            */
+/*----------------------------------------------------------------------*/
 
 /*----------------------------------------------------------------------*/
 /*! set nifti's global debug level, for status reporting
@@ -2724,10 +3582,28 @@ void nifti_set_allow_upper_fext( int allow )
 }
 
 /*----------------------------------------------------------------------*/
+/*! get nifti's global alter_cifti flag              22 Jul 2015 [rickr]
+*//*--------------------------------------------------------------------*/
+int nifti_get_alter_cifti( void )
+{
+    return g_opts.alter_cifti;
+}
+
+/*----------------------------------------------------------------------*/
+/*! set nifti's global alter_cifti flag              22 Jul 2015 [rickr]
+
+    explicitly set to 0 or 1
+*//*--------------------------------------------------------------------*/
+void nifti_set_alter_cifti( int alter_cifti )
+{
+    g_opts.alter_cifti = alter_cifti ? 1 : 0;
+}
+
+/*----------------------------------------------------------------------*/
 /*! check current directory for existing header file
 
     \return filename of header on success and NULL if no appropriate file
-            could be found 
+            could be found
 
     If fname has an uppercase extension, check for uppercase files.
 
@@ -2736,7 +3612,8 @@ void nifti_set_allow_upper_fext( int allow )
 *//*-------------------------------------------------------------------*/
 char * nifti_findhdrname(const char* fname)
 {
-   char *basename, *hdrname, *ext;
+   char *basename, *hdrname;
+   const char *ext;
    char  elist[2][5] = { ".hdr", ".nii" };
    char  extzip[4]   = ".gz";
    int   efirst = 1;    /* init to .nii extension */
@@ -2753,14 +3630,14 @@ char * nifti_findhdrname(const char* fname)
    ext = nifti_find_file_extension(fname);
 
    if( ext ) eisupper = is_uppercase(ext);  /* do we look for uppercase? */
-   
+
    /* if the file exists and is a valid header name (not .img), return it */
-   if ( ext && nifti_fileexists(fname) ) { 
+   if ( ext && nifti_fileexists(fname) ) {
      /* allow for uppercase extension */
      if ( fileext_n_compare(ext,".img",4) != 0 ){
-        hdrname = nifti_strdup(fname); 
+        hdrname = nifti_strdup(fname);
         free(basename);
-        return hdrname; 
+        return hdrname;
      } else
         efirst = 0;     /* note for below */
    }
@@ -2793,7 +3670,7 @@ char * nifti_findhdrname(const char* fname)
    strcat(hdrname,elist[efirst]);
    if (nifti_fileexists(hdrname)) { free(basename); return hdrname; }
 #ifdef HAVE_ZLIB
-   strcat(hdrname,extzip); 
+   strcat(hdrname,extzip);
    if (nifti_fileexists(hdrname)) { free(basename); return hdrname; }
 #endif
 
@@ -2805,13 +3682,13 @@ char * nifti_findhdrname(const char* fname)
    strcat(hdrname,elist[efirst]);
    if (nifti_fileexists(hdrname)) { free(basename); return hdrname; }
 #ifdef HAVE_ZLIB
-   strcat(hdrname,extzip); 
+   strcat(hdrname,extzip);
    if (nifti_fileexists(hdrname)) { free(basename); return hdrname; }
 #endif
 
    /**- if nothing has been found, return NULL */
-   free(basename); 
-   free(hdrname); 
+   free(basename);
+   free(hdrname);
    return NULL;
 }
 
@@ -2838,7 +3715,7 @@ char * nifti_findimgname(const char* fname , int nifti_type)
    char *basename, *imgname, elist[2][5] = { ".nii", ".img" };
    char  extzip[4] = ".gz";
    char  extnia[5] = ".nia";
-   char *ext;
+   const char *ext;
    int   first;  /* first extension to use */
 
    /* check input file(s) for sanity */
@@ -2912,7 +3789,7 @@ char * nifti_findimgname(const char* fname , int nifti_type)
    \param   comp        - add .gz for compressed name
 
    Note that if prefix provides a file suffix, nifti_type is not used.
-  
+
    NB: this allocates memory which should be freed
 
    \sa nifti_set_filenames
@@ -2920,7 +3797,8 @@ char * nifti_findimgname(const char* fname , int nifti_type)
 char * nifti_makehdrname(const char * prefix, int nifti_type, int check,
                          int comp)
 {
-   char * iname, * ext;
+   char * iname;
+   const char * ext;
    char   extnii[5] = ".nii";   /* modifiable, for possible uppercase */
    char   exthdr[5] = ".hdr";
    char   extimg[5] = ".img";
@@ -2946,7 +3824,9 @@ char * nifti_makehdrname(const char * prefix, int nifti_type, int check,
       }
 
       if( strncmp(ext,extimg,4) == 0 )
-         memcpy(ext,exthdr,4);   /* then convert img name to hdr */
+      {
+         memcpy(&(iname[strlen(iname)-strlen(ext)]),exthdr,4);   /* then convert img name to hdr */
+      }
    }
    /* otherwise, make one up */
    else if( nifti_type == NIFTI_FTYPE_NIFTI1_1 ) strcat(iname, extnii);
@@ -2968,7 +3848,7 @@ char * nifti_makehdrname(const char * prefix, int nifti_type, int check,
 
    return iname;
 }
-   
+
 
 /*----------------------------------------------------------------------*/
 /*! creates a filename for storing the image, based on nifti_type
@@ -2977,9 +3857,9 @@ char * nifti_makehdrname(const char * prefix, int nifti_type, int check,
    \param   nifti_type  - determines the extension, unless provided by prefix
    \param   check       - check for existence (fail condition)
    \param   comp        - add .gz for compressed name
-  
+
    Note that if prefix provides a file suffix, nifti_type is not used.
-  
+
    NB: it allocates memory which should be freed
 
    \sa nifti_set_filenames
@@ -2987,7 +3867,8 @@ char * nifti_makehdrname(const char * prefix, int nifti_type, int check,
 char * nifti_makeimgname(const char * prefix, int nifti_type, int check,
                          int comp)
 {
-   char * iname, * ext;
+   char * iname;
+   const char * ext;
    char   extnii[5] = ".nii";   /* modifiable, for possible uppercase */
    char   exthdr[5] = ".hdr";
    char   extimg[5] = ".img";
@@ -3013,7 +3894,9 @@ char * nifti_makeimgname(const char * prefix, int nifti_type, int check,
       }
 
       if( strncmp(ext,exthdr,4) == 0 )
-         memcpy(ext,extimg,4);   /* then convert hdr name to img */
+      {
+         memcpy(&(iname[strlen(iname)-strlen(ext)]),extimg,4);   /* then convert hdr name to img */
+      }
    }
    /* otherwise, make one up */
    else if( nifti_type == NIFTI_FTYPE_NIFTI1_1 ) strcat(iname, extnii);
@@ -3048,7 +3931,7 @@ char * nifti_makeimgname(const char * prefix, int nifti_type, int check,
                          (this is probably a logical place to do so)
 
    \return 0 on successful update
- 
+
    \warning this will free() any existing names and create new ones
 
    \sa nifti_makeimgname, nifti_makehdrname, nifti_type_and_names_match
@@ -3067,14 +3950,14 @@ int nifti_set_filenames( nifti_image * nim, const char * prefix, int check,
    if( g_opts.debug > 1 )
       fprintf(stderr,"+d modifying output filenames using prefix %s\n", prefix);
 
+   /* set and test output filenames */
    if( nim->fname ) free(nim->fname);
    if( nim->iname ) free(nim->iname);
+   nim->iname = NULL;
    nim->fname = nifti_makehdrname(prefix, nim->nifti_type, check, comp);
-   nim->iname = nifti_makeimgname(prefix, nim->nifti_type, check, comp);
-   if( !nim->fname || !nim->iname ){
-      LNI_FERR("nifti_set_filename","failed to set prefix for",prefix);
-      return -1;
-   }
+   if( nim->fname )
+      nim->iname = nifti_makeimgname(prefix, nim->nifti_type, check, comp);
+   if( !nim->fname || !nim->iname ) return -1; /* failure */
 
    if( set_byte_order ) nim->byteorder = nifti_short_order() ;
 
@@ -3108,7 +3991,8 @@ int nifti_set_filenames( nifti_image * nim, const char * prefix, int check,
 int nifti_type_and_names_match( nifti_image * nim, int show_warn )
 {
    char func[] = "nifti_type_and_names_match";
-   char * ext_h, * ext_i;  /* header and image filename extensions */
+   const char * ext_h;  /* header  filename extension */
+   const char * ext_i;  /* image filename extension */
    int  errs = 0;          /* error counter */
 
    /* sanity checks */
@@ -3201,11 +4085,10 @@ int nifti_type_and_names_match( nifti_image * nim, int show_warn )
  * (test as local string, with max length 7) */
 static int fileext_compare(const char * test_ext, const char * known_ext)
 {
-   char caps[8] = "";
-   int  c, cmp, len;
-
+   char   caps[8] = "";
+   size_t c,len;
    /* if equal, don't need to check case (store to avoid multiple calls) */
-   cmp = strcmp(test_ext, known_ext);
+   const int cmp = strcmp(test_ext, known_ext);
    if( cmp == 0 ) return cmp;
 
    /* if anything odd, use default */
@@ -3216,7 +4099,7 @@ static int fileext_compare(const char * test_ext, const char * known_ext)
 
    /* if here, strings are different but need to check upper-case */
 
-   for(c = 0; c < len; c++ ) caps[c] = toupper(known_ext[c]);
+   for(c = 0; c < len; c++ ) caps[c] = toupper((int) known_ext[c]);
    caps[c] = '\0';
 
    return strcmp(test_ext, caps);
@@ -3225,13 +4108,12 @@ static int fileext_compare(const char * test_ext, const char * known_ext)
 /* like strncmp, but also check against capitalization of known_ext
  * (test as local string, with max length 7) */
 static int fileext_n_compare(const char * test_ext,
-                             const char * known_ext, int maxlen)
+                             const char * known_ext, size_t maxlen)
 {
-   char caps[8] = "";
-   int  c, cmp, len;
-
+   char   caps[8] = "";
+   size_t c,len;
    /* if equal, don't need to check case (store to avoid multiple calls) */
-   cmp = strncmp(test_ext, known_ext, maxlen);
+   const int  cmp = strncmp(test_ext, known_ext, maxlen);
    if( cmp == 0 ) return cmp;
 
    /* if anything odd, use default */
@@ -3242,8 +4124,7 @@ static int fileext_n_compare(const char * test_ext,
    if( len > 7 ) return cmp;
 
    /* if here, strings are different but need to check upper-case */
-
-   for(c = 0; c < len; c++ ) caps[c] = toupper(known_ext[c]);
+   for(c = 0; c < len; c++ ) caps[c] = toupper((int) known_ext[c]);
    caps[c] = '\0';
 
    return strncmp(test_ext, caps, maxlen);
@@ -3252,13 +4133,14 @@ static int fileext_n_compare(const char * test_ext,
 /* return 1 if there are uppercase but no lowercase */
 static int is_uppercase(const char * str)
 {
-   int c, hasupper = 0;
+   size_t c;
+   int    hasupper = 0;
 
    if( !str || !*str ) return 0;
 
    for(c = 0; c < strlen(str); c++ ) {
-      if( islower(str[c]) ) return 0;
-      if( !hasupper && isupper(str[c]) ) hasupper = 1;
+     if( islower((int) str[c]) ) return 0;
+     if( !hasupper && isupper((int) str[c]) ) hasupper = 1;
    }
 
    return hasupper;
@@ -3267,13 +4149,14 @@ static int is_uppercase(const char * str)
 /* return 1 if there are both uppercase and lowercase characters */
 static int is_mixedcase(const char * str)
 {
-   int c, hasupper = 0, haslower = 0;
+   size_t c;
+   int    hasupper = 0, haslower = 0;
 
    if( !str || !*str ) return 0;
 
    for(c = 0; c < strlen(str); c++ ) {
-      if( !haslower && islower(str[c]) ) haslower = 1;
-      if( !hasupper && isupper(str[c]) ) hasupper = 1;
+     if( !haslower && islower((int) str[c]) ) haslower = 1;
+     if( !hasupper && isupper((int) str[c]) ) hasupper = 1;
 
       if( haslower && hasupper ) return 1;
    }
@@ -3284,12 +4167,12 @@ static int is_mixedcase(const char * str)
 /* convert any lowercase chars to uppercase */
 static int make_uppercase(char * str)
 {
-   int c;
+   size_t c;
 
    if( !str || !*str ) return 0;
 
    for(c = 0; c < strlen(str); c++ )
-      if( islower(str[c]) ) str[c] = toupper(str[c]);
+     if( islower((int) str[c]) ) str[c] = toupper((int) str[c]);
 
    return 0;
 }
@@ -3297,12 +4180,11 @@ static int make_uppercase(char * str)
 /* convert any uppercase chars to lowercase */
 static int make_lowercase(char * str)
 {
-   int c;
-
+   size_t c;
    if( !str || !*str ) return 0;
 
    for(c = 0; c < strlen(str); c++ )
-      if( isupper(str[c]) ) str[c] = tolower(str[c]);
+     if( isupper((int) str[c]) ) str[c] = tolower((int) str[c]);
 
    return 0;
 }
@@ -3439,10 +4321,12 @@ int nifti_set_type_from_names( nifti_image * nim )
 *//*------------------------------------------------------------------------*/
 int is_nifti_file( const char *hname )
 {
-   struct nifti_1_header nhdr ;
+   nifti_1_header nhdr ;
    znzFile fp ;
    int ii ;
    char *tmpname;
+
+/* rcr - update to check for nifti-1 or -2 */
 
    /* bad input name? */
 
@@ -3493,7 +4377,7 @@ static int print_hex_vals( const char * data, int nbytes, FILE * fp )
 
    fputs("0x", fp);
    for ( c = 0; c < nbytes; c++ )
-      fprintf(fp, " %x", data[c]);
+      fprintf(fp, " %02x", data[c]);
 
    return 0;
 }
@@ -3588,21 +4472,104 @@ int disp_nifti_1_header( const char * info, const nifti_1_header * hp )
 }
 
 
+/*----------------------------------------------------------------------*/
+/*! display the contents of the nifti_2_header (send to stdout)
+
+   \param info if non-NULL, print this character string
+   \param hp   pointer to nifti_2_header
+*//*--------------------------------------------------------------------*/
+int disp_nifti_2_header( const char * info, const nifti_2_header * hp )
+{
+   FILE * fp = stdout;
+   int    c;
+
+   fputs( "-------------------------------------------------------\n", fp );
+   if ( info )  fputs( info, fp );
+   if ( !hp  ){ fputs(" ** no nifti_2_header to display!\n",fp); return 1; }
+
+   /* print fields one by one, makes changing order and copying easier */
+
+   fprintf(fp," nifti_2_header :\n");
+   fprintf(fp,"    sizeof_hdr     = %d\n", hp->sizeof_hdr);
+   fprintf(fp,"    magic[8]       = '%-.4s' + ", hp->magic);
+   print_hex_vals(hp->magic+4, 4, fp); fputc('\n', fp);
+
+   fprintf(fp,"    datatype       = %d (%s)\n",
+           hp->datatype, nifti_datatype_to_string(hp->datatype));
+   fprintf(fp,"    bitpix         = %d\n", hp->bitpix);
+   fprintf(fp, "    dim[8]         =");
+   for ( c = 0; c < 8; c++ ) fprintf(fp," %lld", hp->dim[c]);
+   fputc('\n', fp);
+
+   fprintf(fp, "    intent_p1      = %lf\n", hp->intent_p1);
+   fprintf(fp, "    intent_p2      = %lf\n", hp->intent_p2);
+   fprintf(fp, "    intent_p3      = %lf\n", hp->intent_p3);
+   fprintf(fp, "    pixdim[8]      =");
+   for ( c = 0; c < 8; c++ ) fprintf(fp," %lf", hp->pixdim[c]);
+   fputc('\n', fp);
+
+   fprintf(fp, "    vox_offset     = %lld\n", hp->vox_offset);
+
+   fprintf(fp, "    scl_slope      = %lf\n", hp->scl_slope);
+   fprintf(fp, "    scl_inter      = %lf\n", hp->scl_inter);
+   fprintf(fp, "    cal_max        = %lf\n", hp->cal_max);
+   fprintf(fp, "    cal_min        = %lf\n", hp->cal_min);
+   fprintf(fp, "    slice_duration = %lf\n", hp->slice_duration);
+   fprintf(fp, "    toffset        = %lf\n", hp->toffset);
+
+   fprintf(fp, "    slice_start    = %lld\n", hp->slice_start);
+   fprintf(fp, "    slice_end      = %lld\n", hp->slice_end);
+
+   fprintf(fp, "    descrip        = '%.80s'\n", hp->descrip);
+   fprintf(fp, "    aux_file       = '%.24s'\n", hp->aux_file);
+
+   fprintf(fp, "    qform_code     = %d\n", hp->qform_code);
+   fprintf(fp, "    sform_code     = %d\n", hp->sform_code);
+
+   fprintf(fp, "    quatern_b      = %lf\n", hp->quatern_b);
+   fprintf(fp, "    quatern_c      = %lf\n", hp->quatern_c);
+   fprintf(fp, "    quatern_d      = %lf\n", hp->quatern_d);
+   fprintf(fp, "    qoffset_x      = %lf\n", hp->qoffset_x);
+   fprintf(fp, "    qoffset_y      = %lf\n", hp->qoffset_y);
+   fprintf(fp, "    qoffset_z      = %lf\n", hp->qoffset_z);
+   fprintf(fp, "    srow_x[4]      = %lf, %lf, %lf, %lf\n",
+           hp->srow_x[0], hp->srow_x[1], hp->srow_x[2], hp->srow_x[3]);
+   fprintf(fp, "    srow_y[4]      = %lf, %lf, %lf, %lf\n",
+           hp->srow_y[0], hp->srow_y[1], hp->srow_y[2], hp->srow_y[3]);
+   fprintf(fp, "    srow_z[4]      = %lf, %lf, %lf, %lf\n",
+           hp->srow_z[0], hp->srow_z[1], hp->srow_z[2], hp->srow_z[3]);
+
+   fprintf(fp, "    slice_code     = %d\n", hp->slice_code);
+   fprintf(fp, "    xyzt_units     = %d\n", hp->xyzt_units);
+   fprintf(fp, "    intent_code    = %d\n", hp->intent_code);
+
+   fprintf(fp, "    intent_name    = '%-.16s'\n", hp->intent_name);
+   fprintf(fp, "    dim_info       = 0x%02x\n",(unsigned char)hp->dim_info);
+   fprintf(fp, "    unused_str     = 0x ");
+   for ( c = 0; c < 15; c++ ) fprintf(fp," %02x", hp->unused_str[c]);
+   fputc('\n', fp);
+
+   fputs( "-------------------------------------------------------\n", fp );
+   fflush(fp);
+
+   return 0;
+}
+
+
 #undef  ERREX
-#define ERREX(msg)                                           \
- do{ fprintf(stderr,"** ERROR: nifti_convert_nhdr2nim: %s\n", (msg) ) ;  \
+#define ERREX(msg)                                                        \
+ do{ fprintf(stderr,"** ERROR: nifti_convert_n1hdr2nim: %s\n", (msg) ) ;  \
      return NULL ; } while(0)
 
 /*----------------------------------------------------------------------*/
 /*! convert a nifti_1_header into a nift1_image
-  
+
    \return an allocated nifti_image, or NULL on failure
 *//*--------------------------------------------------------------------*/
-nifti_image* nifti_convert_nhdr2nim(struct nifti_1_header nhdr,
-                                    const char * fname)
+nifti_image* nifti_convert_n1hdr2nim(nifti_1_header nhdr, const char * fname)
 {
    int   ii , doswap , ioff ;
-   int   is_nifti , is_onefile ;
+   int   ni_ver , is_onefile ;
    nifti_image *nim;
 
    nim = (nifti_image *)calloc( 1 , sizeof(nifti_image) ) ;
@@ -3614,21 +4581,22 @@ nifti_image* nifti_convert_nhdr2nim(struct nifti_1_header nhdr,
    nim->data = NULL;
 
    /**- check if we must swap bytes */
-  
+
    doswap = need_nhdr_swap(nhdr.dim[0], nhdr.sizeof_hdr); /* swap data flag */
 
    if( doswap < 0 ){
+      free(nim);
       if( doswap == -1 ) ERREX("bad dim[0]") ;
       ERREX("bad sizeof_hdr") ;  /* else */
    }
 
    /**- determine if this is a NIFTI-1 compliant header */
 
-   is_nifti = NIFTI_VERSION(nhdr) ;
+   ni_ver = NIFTI_VERSION(nhdr) ;
    /*
     * before swapping header, record the Analyze75 orient code
     */
-   if(!is_nifti)
+   if(ni_ver == 0)
      {
      /**- in analyze75, the orient code is at the same address as
       *   qform_code, but it's just one byte
@@ -3640,15 +4608,22 @@ nifti_image* nifti_convert_nhdr2nim(struct nifti_1_header nhdr,
      }
    if( doswap ) {
       if ( g_opts.debug > 3 ) disp_nifti_1_header("-d ni1 pre-swap: ", &nhdr);
-      swap_nifti_header( &nhdr , is_nifti ) ;
+      swap_nifti_header( &nhdr , ni_ver ) ;
    }
 
    if ( g_opts.debug > 2 ) disp_nifti_1_header("-d nhdr2nim : ", &nhdr);
 
-   if( nhdr.datatype == DT_BINARY ||
-       nhdr.datatype == DT_UNKNOWN  )    ERREX("bad datatype") ;
+   if( nhdr.datatype == DT_BINARY || nhdr.datatype == DT_UNKNOWN  )
+   {
+     free(nim);
+     ERREX("bad datatype") ;
+   }
 
-   if( nhdr.dim[1] <= 0 )                ERREX("bad dim[1]") ;
+   if( nhdr.dim[1] <= 0 )
+   {
+     free(nim);
+     ERREX("bad dim[1]") ;
+   }
 
    /* fix bad dim[] values in the defined dimension range */
    for( ii=2 ; ii <= nhdr.dim[0] ; ii++ )
@@ -3671,22 +4646,22 @@ nifti_image* nifti_convert_nhdr2nim(struct nifti_1_header nhdr,
 
    for( ii=1 ; ii <= nhdr.dim[0] ; ii++ ){
      if( nhdr.pixdim[ii] == 0.0         ||
-         !IS_GOOD_FLOAT(nhdr.pixdim[ii])  ) nhdr.pixdim[ii] = 1.0 ;
+         !IS_GOOD_FLOAT(nhdr.pixdim[ii])  ) nhdr.pixdim[ii] = 1.0f ;
    }
 
-  is_onefile = is_nifti && NIFTI_ONEFILE(nhdr) ;
+  is_onefile = (ni_ver > 0) && NIFTI_ONEFILE(nhdr) ;
 
-  if( is_nifti ) nim->nifti_type = (is_onefile) ? NIFTI_FTYPE_NIFTI1_1
-                                                : NIFTI_FTYPE_NIFTI1_2 ;
-  else           nim->nifti_type = NIFTI_FTYPE_ANALYZE ;
-  
+  if( ni_ver ) nim->nifti_type = (is_onefile) ? NIFTI_FTYPE_NIFTI1_1
+                                              : NIFTI_FTYPE_NIFTI1_2 ;
+  else         nim->nifti_type = NIFTI_FTYPE_ANALYZE ;
+
   ii = nifti_short_order() ;
   if( doswap )   nim->byteorder = REVERSE_ORDER(ii) ;
   else           nim->byteorder = ii ;
-  
+
 
   /**- set dimensions of data array */
-  
+
   nim->ndim = nim->dim[0] = nhdr.dim[0];
   nim->nx   = nim->dim[1] = nhdr.dim[1];
   nim->ny   = nim->dim[2] = nhdr.dim[2];
@@ -3698,16 +4673,16 @@ nifti_image* nifti_convert_nhdr2nim(struct nifti_1_header nhdr,
 
   for( ii=1, nim->nvox=1; ii <= nhdr.dim[0]; ii++ )
      nim->nvox *= nhdr.dim[ii];
-  
+
   /**- set the type of data in voxels and how many bytes per voxel */
-  
+
   nim->datatype = nhdr.datatype ;
-  
+
   nifti_datatype_sizes( nim->datatype , &(nim->nbyper) , &(nim->swapsize) ) ;
   if( nim->nbyper == 0 ){ free(nim); ERREX("bad datatype"); }
-  
+
   /**- set the grid spacings */
-  
+
   nim->dx = nim->pixdim[1] = nhdr.pixdim[1] ;
   nim->dy = nim->pixdim[2] = nhdr.pixdim[2] ;
   nim->dz = nim->pixdim[3] = nhdr.pixdim[3] ;
@@ -3715,44 +4690,44 @@ nifti_image* nifti_convert_nhdr2nim(struct nifti_1_header nhdr,
   nim->du = nim->pixdim[5] = nhdr.pixdim[5] ;
   nim->dv = nim->pixdim[6] = nhdr.pixdim[6] ;
   nim->dw = nim->pixdim[7] = nhdr.pixdim[7] ;
-  
+
   /**- compute qto_xyz transformation from pixel indexes (i,j,k) to (x,y,z) */
-  
-  if( !is_nifti || nhdr.qform_code <= 0 ){
+
+  if( !ni_ver || nhdr.qform_code <= 0 ){
     /**- if not nifti or qform_code <= 0, use grid spacing for qto_xyz */
-    
+
     nim->qto_xyz.m[0][0] = nim->dx ;  /* grid spacings */
     nim->qto_xyz.m[1][1] = nim->dy ;  /* along diagonal */
     nim->qto_xyz.m[2][2] = nim->dz ;
-    
+
     /* off diagonal is zero */
-    
-    nim->qto_xyz.m[0][1]=nim->qto_xyz.m[0][2]=nim->qto_xyz.m[0][3] = 0.0;
-    nim->qto_xyz.m[1][0]=nim->qto_xyz.m[1][2]=nim->qto_xyz.m[1][3] = 0.0;
-    nim->qto_xyz.m[2][0]=nim->qto_xyz.m[2][1]=nim->qto_xyz.m[2][3] = 0.0;
-    
+
+    nim->qto_xyz.m[0][1]=nim->qto_xyz.m[0][2]=nim->qto_xyz.m[0][3] = 0.0f;
+    nim->qto_xyz.m[1][0]=nim->qto_xyz.m[1][2]=nim->qto_xyz.m[1][3] = 0.0f;
+    nim->qto_xyz.m[2][0]=nim->qto_xyz.m[2][1]=nim->qto_xyz.m[2][3] = 0.0f;
+
     /* last row is always [ 0 0 0 1 ] */
-    
-    nim->qto_xyz.m[3][0]=nim->qto_xyz.m[3][1]=nim->qto_xyz.m[3][2] = 0.0;
-    nim->qto_xyz.m[3][3]= 1.0 ;
-    
+
+    nim->qto_xyz.m[3][0]=nim->qto_xyz.m[3][1]=nim->qto_xyz.m[3][2] = 0.0f;
+    nim->qto_xyz.m[3][3]= 1.0f ;
+
     nim->qform_code = NIFTI_XFORM_UNKNOWN ;
-    
+
     if( g_opts.debug > 1 ) fprintf(stderr,"-d no qform provided\n");
   } else {
     /**- else NIFTI: use the quaternion-specified transformation */
-    
+
     nim->quatern_b = FIXED_FLOAT( nhdr.quatern_b ) ;
     nim->quatern_c = FIXED_FLOAT( nhdr.quatern_c ) ;
     nim->quatern_d = FIXED_FLOAT( nhdr.quatern_d ) ;
-    
+
     nim->qoffset_x = FIXED_FLOAT(nhdr.qoffset_x) ;
     nim->qoffset_y = FIXED_FLOAT(nhdr.qoffset_y) ;
     nim->qoffset_z = FIXED_FLOAT(nhdr.qoffset_z) ;
-    
-    nim->qfac = (nhdr.pixdim[0] < 0.0) ? -1.0 : 1.0 ;  /* left-handedness? */
-    
-    nim->qto_xyz = nifti_quatern_to_mat44(
+
+    nim->qfac = (nhdr.pixdim[0] < 0.0) ? -1.0f : 1.0f ;  /* left-handedness? */
+
+    nim->qto_xyz = nifti_quatern_to_dmat44(
                       nim->quatern_b, nim->quatern_c, nim->quatern_d,
                       nim->qoffset_x, nim->qoffset_y, nim->qoffset_z,
                       nim->dx       , nim->dy       , nim->dz       ,
@@ -3763,91 +4738,91 @@ nifti_image* nifti_convert_nhdr2nim(struct nifti_1_header nhdr,
     if( g_opts.debug > 1 )
        nifti_disp_matrix_orient("-d qform orientations:\n", nim->qto_xyz);
   }
-  
+
   /**- load inverse transformation (x,y,z) -> (i,j,k) */
-  
-  nim->qto_ijk = nifti_mat44_inverse( nim->qto_xyz ) ;
-  
+
+  nim->qto_ijk = nifti_dmat44_inverse( nim->qto_xyz ) ;
+
   /**- load sto_xyz affine transformation, if present */
-  
-  if( !is_nifti || nhdr.sform_code <= 0 ){
+
+  if( !ni_ver || nhdr.sform_code <= 0 ){
     /**- if not nifti or sform_code <= 0, then no sto transformation */
-    
+
     nim->sform_code = NIFTI_XFORM_UNKNOWN ;
 
     if( g_opts.debug > 1 ) fprintf(stderr,"-d no sform provided\n");
-    
+
   } else {
     /**- else set the sto transformation from srow_*[] */
-    
+
     nim->sto_xyz.m[0][0] = nhdr.srow_x[0] ;
     nim->sto_xyz.m[0][1] = nhdr.srow_x[1] ;
     nim->sto_xyz.m[0][2] = nhdr.srow_x[2] ;
     nim->sto_xyz.m[0][3] = nhdr.srow_x[3] ;
-    
+
     nim->sto_xyz.m[1][0] = nhdr.srow_y[0] ;
     nim->sto_xyz.m[1][1] = nhdr.srow_y[1] ;
     nim->sto_xyz.m[1][2] = nhdr.srow_y[2] ;
     nim->sto_xyz.m[1][3] = nhdr.srow_y[3] ;
-    
+
     nim->sto_xyz.m[2][0] = nhdr.srow_z[0] ;
     nim->sto_xyz.m[2][1] = nhdr.srow_z[1] ;
     nim->sto_xyz.m[2][2] = nhdr.srow_z[2] ;
     nim->sto_xyz.m[2][3] = nhdr.srow_z[3] ;
-    
+
     /* last row is always [ 0 0 0 1 ] */
-    
-    nim->sto_xyz.m[3][0]=nim->sto_xyz.m[3][1]=nim->sto_xyz.m[3][2] = 0.0;
-    nim->sto_xyz.m[3][3]= 1.0 ;
-    
-    nim->sto_ijk = nifti_mat44_inverse( nim->sto_xyz ) ;
-    
+
+    nim->sto_xyz.m[3][0]=nim->sto_xyz.m[3][1]=nim->sto_xyz.m[3][2] = 0.0f;
+    nim->sto_xyz.m[3][3]= 1.0f ;
+
+    nim->sto_ijk = nifti_dmat44_inverse( nim->sto_xyz ) ;
+
     nim->sform_code = nhdr.sform_code ;
 
     if( g_opts.debug > 1 )
        nifti_disp_matrix_orient("-d sform orientations:\n", nim->sto_xyz);
   }
-  
+
   /**- set miscellaneous NIFTI stuff */
-  
-  if( is_nifti ){
+
+  if( ni_ver ){
     nim->scl_slope   = FIXED_FLOAT( nhdr.scl_slope ) ;
     nim->scl_inter   = FIXED_FLOAT( nhdr.scl_inter ) ;
-    
+
     nim->intent_code = nhdr.intent_code ;
-    
+
     nim->intent_p1 = FIXED_FLOAT( nhdr.intent_p1 ) ;
     nim->intent_p2 = FIXED_FLOAT( nhdr.intent_p2 ) ;
     nim->intent_p3 = FIXED_FLOAT( nhdr.intent_p3 ) ;
-    
+
     nim->toffset   = FIXED_FLOAT( nhdr.toffset ) ;
-    
+
     memcpy(nim->intent_name,nhdr.intent_name,15); nim->intent_name[15] = '\0';
-    
+
     nim->xyz_units  = XYZT_TO_SPACE(nhdr.xyzt_units) ;
     nim->time_units = XYZT_TO_TIME (nhdr.xyzt_units) ;
-    
+
     nim->freq_dim  = DIM_INFO_TO_FREQ_DIM ( nhdr.dim_info ) ;
     nim->phase_dim = DIM_INFO_TO_PHASE_DIM( nhdr.dim_info ) ;
     nim->slice_dim = DIM_INFO_TO_SLICE_DIM( nhdr.dim_info ) ;
-    
+
     nim->slice_code     = nhdr.slice_code  ;
     nim->slice_start    = nhdr.slice_start ;
     nim->slice_end      = nhdr.slice_end   ;
     nim->slice_duration = FIXED_FLOAT(nhdr.slice_duration) ;
   }
-  
+
   /**- set Miscellaneous ANALYZE stuff */
-  
+
   nim->cal_min = FIXED_FLOAT(nhdr.cal_min) ;
   nim->cal_max = FIXED_FLOAT(nhdr.cal_max) ;
-  
+
   memcpy(nim->descrip ,nhdr.descrip ,79) ; nim->descrip [79] = '\0' ;
   memcpy(nim->aux_file,nhdr.aux_file,23) ; nim->aux_file[23] = '\0' ;
-  
+
    /**- set ioff from vox_offset (but at least sizeof(header)) */
 
-   is_onefile = is_nifti && NIFTI_ONEFILE(nhdr) ;
+   is_onefile = ni_ver && NIFTI_ONEFILE(nhdr) ;
 
    if( is_onefile ){
      ioff = (int)nhdr.vox_offset ;
@@ -3862,9 +4837,270 @@ nifti_image* nifti_convert_nhdr2nim(struct nifti_1_header nhdr,
    if (fname!=NULL) {
        nifti_set_filenames(nim,fname,0,0);
        if (nim->iname==NULL)  { ERREX("bad filename"); }
-   } else { 
-     nim->fname = NULL;  
-     nim->iname = NULL; 
+   } else {
+     nim->fname = NULL;
+     nim->iname = NULL;
+   }
+
+   /* clear extension fields */
+   nim->num_ext = 0;
+   nim->ext_list = NULL;
+
+   return nim;
+}
+
+#undef  ERREX
+#define ERREX(msg)                                           \
+ do{ fprintf(stderr,"** ERROR: nifti_convert_n2hdr2nim: %s\n", (msg) ) ;  \
+     return NULL ; } while(0)
+
+/*----------------------------------------------------------------------*/
+/*! convert a nifti_1_header into a nift1_image
+
+   \return an allocated nifti_image, or NULL on failure
+*//*--------------------------------------------------------------------*/
+nifti_image* nifti_convert_n2hdr2nim(nifti_2_header nhdr, const char * fname)
+{
+   int          ii, doswap, ni_ver, is_onefile;
+   nifti_image *nim;
+
+   nim = (nifti_image *)calloc( 1 , sizeof(nifti_image) ) ;
+   if( !nim ) ERREX("failed to allocate nifti image");
+
+   /* be explicit with pointers */
+   nim->fname = NULL;
+   nim->iname = NULL;
+   nim->data = NULL;
+
+   /**- check if we must swap bytes */
+
+   doswap = NIFTI2_NEEDS_SWAP(nhdr); /* swap data flag */
+
+   /**- determine if this is a NIFTI-2 compliant header */
+
+   ni_ver = NIFTI_VERSION(nhdr) ;
+   if(ni_ver != 2) {
+      free(nim);
+      fprintf(stderr,"** convert NIFTI-2 hdr2nim: bad version %d\n", ni_ver);
+      return NULL;
+   }
+
+   if( doswap ) {
+      if ( g_opts.debug > 3 ) disp_nifti_2_header("-d n2 pre-swap: ", &nhdr);
+      swap_nifti_header( &nhdr , ni_ver ) ;
+   } else if ( g_opts.debug > 3 ) fprintf(stderr,"-- n2hdr2nim: no swap\n");
+
+   if ( g_opts.debug > 2 ) disp_nifti_2_header("-d n2hdr2nim : ", &nhdr);
+
+   if( nhdr.datatype == DT_BINARY || nhdr.datatype == DT_UNKNOWN  )
+   {
+     free(nim);
+     ERREX("bad datatype") ;
+   }
+
+   if( nhdr.dim[1] <= 0 )
+   {
+     free(nim);
+     ERREX("bad dim[1]") ;
+   }
+
+   /* fix bad dim[] values in the defined dimension range */
+   for( ii=2 ; ii <= nhdr.dim[0] ; ii++ )
+     if( nhdr.dim[ii] <= 0 ) nhdr.dim[ii] = 1 ;
+
+   /* fix any remaining bad dim[] values, so garbage does not propagate */
+   /* (only values 0 or 1 seem rational, otherwise set to arbirary 1)   */
+   for( ii=nhdr.dim[0]+1 ; ii <= 7 ; ii++ )
+     if( nhdr.dim[ii] != 1 && nhdr.dim[ii] != 0) nhdr.dim[ii] = 1 ;
+
+   /**- set bad grid spacings to 1.0 */
+   for( ii=1 ; ii <= nhdr.dim[0] ; ii++ ){
+     if( nhdr.pixdim[ii] == 0.0         ||
+         !IS_GOOD_FLOAT(nhdr.pixdim[ii])  ) nhdr.pixdim[ii] = 1.0 ;
+   }
+
+   is_onefile = (ni_ver > 0) && NIFTI_ONEFILE(nhdr) ;
+
+   nim->nifti_type = (is_onefile) ? NIFTI_FTYPE_NIFTI1_1 : NIFTI_FTYPE_NIFTI1_2;
+
+   ii = nifti_short_order() ;
+   if( doswap )   nim->byteorder = REVERSE_ORDER(ii) ;
+   else           nim->byteorder = ii ;
+
+
+  /**- set dimensions of data array */
+
+  nim->ndim = nim->dim[0] = nhdr.dim[0];
+  nim->nx   = nim->dim[1] = nhdr.dim[1];
+  nim->ny   = nim->dim[2] = nhdr.dim[2];
+  nim->nz   = nim->dim[3] = nhdr.dim[3];
+  nim->nt   = nim->dim[4] = nhdr.dim[4];
+  nim->nu   = nim->dim[5] = nhdr.dim[5];
+  nim->nv   = nim->dim[6] = nhdr.dim[6];
+  nim->nw   = nim->dim[7] = nhdr.dim[7];
+
+  for( ii=1, nim->nvox=1; ii <= nhdr.dim[0]; ii++ )
+     nim->nvox *= nhdr.dim[ii];
+
+  /**- set the type of data in voxels and how many bytes per voxel */
+
+  nim->datatype = nhdr.datatype ;
+
+  nifti_datatype_sizes( nim->datatype , &(nim->nbyper) , &(nim->swapsize) ) ;
+  if( nim->nbyper == 0 ){ free(nim); ERREX("bad datatype"); }
+
+  /**- set the grid spacings */
+
+  nim->dx = nim->pixdim[1] = nhdr.pixdim[1] ;
+  nim->dy = nim->pixdim[2] = nhdr.pixdim[2] ;
+  nim->dz = nim->pixdim[3] = nhdr.pixdim[3] ;
+  nim->dt = nim->pixdim[4] = nhdr.pixdim[4] ;
+  nim->du = nim->pixdim[5] = nhdr.pixdim[5] ;
+  nim->dv = nim->pixdim[6] = nhdr.pixdim[6] ;
+  nim->dw = nim->pixdim[7] = nhdr.pixdim[7] ;
+
+  /**- compute qto_xyz transformation from pixel indexes (i,j,k) to (x,y,z) */
+
+  if( !ni_ver || nhdr.qform_code <= 0 ){
+    /**- if not nifti or qform_code <= 0, use grid spacing for qto_xyz */
+
+    nim->qto_xyz.m[0][0] = nim->dx ;  /* grid spacings */
+    nim->qto_xyz.m[1][1] = nim->dy ;  /* along diagonal */
+    nim->qto_xyz.m[2][2] = nim->dz ;
+
+    /* off diagonal is zero */
+
+    nim->qto_xyz.m[0][1]=nim->qto_xyz.m[0][2]=nim->qto_xyz.m[0][3] = 0.0f;
+    nim->qto_xyz.m[1][0]=nim->qto_xyz.m[1][2]=nim->qto_xyz.m[1][3] = 0.0f;
+    nim->qto_xyz.m[2][0]=nim->qto_xyz.m[2][1]=nim->qto_xyz.m[2][3] = 0.0f;
+
+    /* last row is always [ 0 0 0 1 ] */
+
+    nim->qto_xyz.m[3][0]=nim->qto_xyz.m[3][1]=nim->qto_xyz.m[3][2] = 0.0f;
+    nim->qto_xyz.m[3][3]= 1.0f ;
+
+    nim->qform_code = NIFTI_XFORM_UNKNOWN ;
+
+    if( g_opts.debug > 1 ) fprintf(stderr,"-d no qform provided\n");
+  } else {
+    /**- else NIFTI: use the quaternion-specified transformation */
+
+    nim->quatern_b = FIXED_FLOAT( nhdr.quatern_b ) ;
+    nim->quatern_c = FIXED_FLOAT( nhdr.quatern_c ) ;
+    nim->quatern_d = FIXED_FLOAT( nhdr.quatern_d ) ;
+
+    nim->qoffset_x = FIXED_FLOAT(nhdr.qoffset_x) ;
+    nim->qoffset_y = FIXED_FLOAT(nhdr.qoffset_y) ;
+    nim->qoffset_z = FIXED_FLOAT(nhdr.qoffset_z) ;
+
+    nim->qfac = (nhdr.pixdim[0] < 0.0) ? -1.0 : 1.0 ;  /* left-handedness? */
+
+    nim->qto_xyz = nifti_quatern_to_dmat44(
+                      nim->quatern_b, nim->quatern_c, nim->quatern_d,
+                      nim->qoffset_x, nim->qoffset_y, nim->qoffset_z,
+                      nim->dx       , nim->dy       , nim->dz       ,
+                      nim->qfac                                      ) ;
+
+    nim->qform_code = nhdr.qform_code ;
+
+    if( g_opts.debug > 1 )
+       nifti_disp_matrix_orient("-d qform orientations:\n", nim->qto_xyz);
+  }
+
+  /**- load inverse transformation (x,y,z) -> (i,j,k) */
+
+  nim->qto_ijk = nifti_dmat44_inverse( nim->qto_xyz ) ;
+
+  /**- load sto_xyz affine transformation, if present */
+
+  if( !ni_ver || nhdr.sform_code <= 0 ){
+    /**- if not nifti or sform_code <= 0, then no sto transformation */
+
+    nim->sform_code = NIFTI_XFORM_UNKNOWN ;
+
+    if( g_opts.debug > 1 ) fprintf(stderr,"-d no sform provided\n");
+
+  } else {
+    /**- else set the sto transformation from srow_*[] */
+
+    nim->sto_xyz.m[0][0] = nhdr.srow_x[0] ;
+    nim->sto_xyz.m[0][1] = nhdr.srow_x[1] ;
+    nim->sto_xyz.m[0][2] = nhdr.srow_x[2] ;
+    nim->sto_xyz.m[0][3] = nhdr.srow_x[3] ;
+
+    nim->sto_xyz.m[1][0] = nhdr.srow_y[0] ;
+    nim->sto_xyz.m[1][1] = nhdr.srow_y[1] ;
+    nim->sto_xyz.m[1][2] = nhdr.srow_y[2] ;
+    nim->sto_xyz.m[1][3] = nhdr.srow_y[3] ;
+
+    nim->sto_xyz.m[2][0] = nhdr.srow_z[0] ;
+    nim->sto_xyz.m[2][1] = nhdr.srow_z[1] ;
+    nim->sto_xyz.m[2][2] = nhdr.srow_z[2] ;
+    nim->sto_xyz.m[2][3] = nhdr.srow_z[3] ;
+
+    /* last row is always [ 0 0 0 1 ] */
+
+    nim->sto_xyz.m[3][0]=nim->sto_xyz.m[3][1]=nim->sto_xyz.m[3][2] = 0.0f;
+    nim->sto_xyz.m[3][3]= 1.0f ;
+
+    nim->sto_ijk = nifti_dmat44_inverse( nim->sto_xyz ) ;
+
+    nim->sform_code = nhdr.sform_code ;
+
+    if( g_opts.debug > 1 )
+       nifti_disp_matrix_orient("-d sform orientations:\n", nim->sto_xyz);
+  }
+
+  /**- set miscellaneous NIFTI stuff */
+
+  if( ni_ver ){
+    nim->scl_slope   = FIXED_FLOAT( nhdr.scl_slope ) ;
+    nim->scl_inter   = FIXED_FLOAT( nhdr.scl_inter ) ;
+
+    nim->intent_code = nhdr.intent_code ;
+
+    nim->intent_p1 = FIXED_FLOAT( nhdr.intent_p1 ) ;
+    nim->intent_p2 = FIXED_FLOAT( nhdr.intent_p2 ) ;
+    nim->intent_p3 = FIXED_FLOAT( nhdr.intent_p3 ) ;
+
+    nim->toffset   = FIXED_FLOAT( nhdr.toffset ) ;
+
+    memcpy(nim->intent_name,nhdr.intent_name,15); nim->intent_name[15] = '\0';
+
+    nim->xyz_units  = XYZT_TO_SPACE(nhdr.xyzt_units) ;
+    nim->time_units = XYZT_TO_TIME (nhdr.xyzt_units) ;
+
+    nim->freq_dim  = DIM_INFO_TO_FREQ_DIM ( nhdr.dim_info ) ;
+    nim->phase_dim = DIM_INFO_TO_PHASE_DIM( nhdr.dim_info ) ;
+    nim->slice_dim = DIM_INFO_TO_SLICE_DIM( nhdr.dim_info ) ;
+
+    nim->slice_code     = nhdr.slice_code  ;
+    nim->slice_start    = nhdr.slice_start ;
+    nim->slice_end      = nhdr.slice_end   ;
+    nim->slice_duration = FIXED_FLOAT(nhdr.slice_duration) ;
+  }
+
+  /**- set Miscellaneous ANALYZE stuff */
+
+  nim->cal_min = FIXED_FLOAT(nhdr.cal_min) ;
+  nim->cal_max = FIXED_FLOAT(nhdr.cal_max) ;
+
+  memcpy(nim->descrip ,nhdr.descrip ,79) ; nim->descrip [79] = '\0' ;
+  memcpy(nim->aux_file,nhdr.aux_file,23) ; nim->aux_file[23] = '\0' ;
+
+   /**- set ioff from vox_offset (but at least sizeof(header)) */
+
+   nim->iname_offset = nhdr.vox_offset;
+   if( is_onefile && nhdr.vox_offset < (int64_t)sizeof(nhdr) )
+      nim->iname_offset = (int64_t)sizeof(nhdr);
+
+   /**- deal with file names if set */
+   if (fname!=NULL) {
+      nifti_set_filenames(nim,fname,0,0);
+      if (nim->iname==NULL)  { ERREX("bad filename"); }
+   } else {
+      nim->fname = NULL;
+      nim->iname = NULL;
    }
 
    /* clear extension fields */
@@ -3912,11 +5148,11 @@ znzFile nifti_image_open(const char * hname, char * opts, nifti_image ** nim)
   if( ((*nim) == NULL)      || ((*nim)->iname == NULL) ||
       ((*nim)->nbyper <= 0) || ((*nim)->nvox <= 0)       )
      ERREX("bad header info") ;
-                                                                                
+
   /* open image data file */
   fptr = znzopen( (*nim)->iname, opts, nifti_is_gzfile((*nim)->iname) );
   if( znz_isnull(fptr) ) ERREX("Can't open data file") ;
-                                                                                
+
   return fptr;
 }
 
@@ -3936,14 +5172,14 @@ znzFile nifti_image_open(const char * hname, char * opts, nifti_image ** nim)
 
     \sa nifti_image_read, nifti_image_free, nifti_image_read_bricks
 *//*--------------------------------------------------------------------*/
-nifti_1_header * nifti_read_header(const char * hname, int * swapped, int check)
+nifti_1_header * nifti_read_n1_hdr(const char * hname, int *swapped, int check)
 {
    nifti_1_header   nhdr, * hptr;
    znzFile          fp;
    int              bytes, lswap;
    char           * hfile;
-   char             fname[] = { "nifti_read_header" };
-   
+   char             fname[] = { "nifti_read_n1_hdr" };
+
    /* determine file name to use for header */
    hfile = nifti_findhdrname(hname);
    if( hfile == NULL ){
@@ -3969,7 +5205,7 @@ nifti_1_header * nifti_read_header(const char * hname, int * swapped, int check)
       return NULL;
    }
 
-   /* read the binary header */ 
+   /* read the binary header */
    bytes = (int)znzread( &nhdr, 1, sizeof(nhdr), fp );
    znzclose( fp );                      /* we are done with the file now */
 
@@ -3998,7 +5234,7 @@ nifti_1_header * nifti_read_header(const char * hname, int * swapped, int check)
 
    if ( g_opts.debug > 2 ) disp_nifti_1_header("-d nhdr post-swap: ", &nhdr);
 
-   if ( check && ! nifti_hdr_looks_good(&nhdr) ){
+   if ( check && ! nifti_hdr1_looks_good(&nhdr) ){
       LNI_FERR(fname,"nifti_1_header looks bad for file", hname);
       return NULL;
    }
@@ -4019,6 +5255,97 @@ nifti_1_header * nifti_read_header(const char * hname, int * swapped, int check)
 
 
 /*----------------------------------------------------------------------*/
+/*! return an allocated and filled nifti_2_header struct
+
+    Read the binary header from disk, and swap bytes if necessary.
+
+    \return an allocated nifti_2_header struct, or NULL on failure
+
+    \param hname   name of file containing header
+    \param swapped if not NULL, return whether header bytes were swapped
+    \param check   flag to check for invalid nifti_2_header
+
+    \warning ASCII header type is not supported
+
+    \sa nifti_read_header, nifti_read_n1_hdr,
+        nifti_image_read, nifti_image_read_bricks
+*//*--------------------------------------------------------------------*/
+nifti_2_header * nifti_read_n2_hdr(const char * hname, int * swapped, int check)
+{
+   nifti_2_header   nhdr, * hptr;
+   znzFile          fp;
+   int              bytes, lswap;
+   char           * hfile;
+   char             fname[] = { "nifti_read_n2_hdr" };
+
+   /* determine file name to use for header */
+   hfile = nifti_findhdrname(hname);
+   if( hfile == NULL ){
+      if( g_opts.debug > 0 )
+         LNI_FERR(fname,"failed to find header file for", hname);
+      return NULL;
+   } else if( g_opts.debug > 1 )
+      fprintf(stderr,"-d %s: found N2 header filename '%s'\n",fname,hfile);
+
+   fp = znzopen( hfile, "rb", nifti_is_gzfile(hfile) );
+   if( znz_isnull(fp) ){
+      if( g_opts.debug > 0 )
+         LNI_FERR(fname,"failed to open N2 header file",hfile);
+      free(hfile);
+      return NULL;
+   }
+
+   free(hfile);  /* done with filename */
+
+   if( has_ascii_header(fp) == 1 ){
+      znzclose( fp );
+      if( g_opts.debug > 0 )
+         LNI_FERR(fname,"ASCII header type not supported for NIFTI-2",hname);
+      return NULL;
+   }
+
+   /* read the binary header */
+   bytes = (int)znzread( &nhdr, 1, sizeof(nhdr), fp );
+   znzclose( fp );                      /* we are done with the file now */
+
+   if( bytes < (int)sizeof(nhdr) ){
+      if( g_opts.debug > 0 ){
+         LNI_FERR(fname,"bad binary header read for N2 file", hname);
+         fprintf(stderr,"  - read %d of %d bytes\n",bytes, (int)sizeof(nhdr));
+      }
+      return NULL;
+   }
+
+   /* now just decide on byte swapping */
+   lswap = NIFTI2_NEEDS_SWAP(nhdr);
+   if( lswap ) {
+      if ( g_opts.debug > 3 ) disp_nifti_2_header("-d n2hdr pre-swap: ", &nhdr);
+      swap_nifti_header( &nhdr , 2 );  /* use explicit version */
+   }
+
+   if ( g_opts.debug > 2 ) disp_nifti_2_header("-d nhdr post-swap: ", &nhdr);
+
+   if ( check && ! nifti_hdr2_looks_good(&nhdr) ){
+      LNI_FERR(fname,"nifti_2_header looks bad for file", hname);
+      return NULL;
+   }
+
+   /* all looks good, so allocate memory for and return the header */
+   hptr = (nifti_2_header *)malloc(sizeof(nifti_2_header));
+   if( ! hptr ){
+      fprintf(stderr,"** nifti2_read_hdr: failed to alloc nifti_2_header\n");
+      return NULL;
+   }
+
+   if( swapped ) *swapped = lswap;  /* only if they care <sniff!> */
+
+   memcpy(hptr, &nhdr, sizeof(nifti_2_header));
+
+   return hptr;
+}
+
+
+/*----------------------------------------------------------------------*/
 /*! decide if this nifti_1_header structure looks reasonable
 
    Check dim[0], dim[1], sizeof_hdr, and datatype.
@@ -4029,9 +5356,9 @@ nifti_1_header * nifti_read_header(const char * hname, int * swapped, int check)
 
    \sa nifti_nim_is_valid, valid_nifti_extensions
 *//*--------------------------------------------------------------------*/
-int nifti_hdr_looks_good(const nifti_1_header * hdr)
+int nifti_hdr1_looks_good(const nifti_1_header * hdr)
 {
-   int is_nifti, c, errs = 0;
+   int ni_ver, c, errs = 0;
 
    /* check dim[0] and sizeof_hdr */
    if( need_nhdr_swap(hdr->dim[0], hdr->sizeof_hdr) < 0 ){
@@ -4049,9 +5376,9 @@ int nifti_hdr_looks_good(const nifti_1_header * hdr)
          errs++;
       }
 
-   is_nifti = NIFTI_VERSION(*hdr);      /* determine header type */
+   ni_ver = NIFTI_VERSION(*hdr);      /* determine header type */
 
-   if( is_nifti ){      /* NIFTI */
+   if( ni_ver > 0 ){      /* NIFTI */
 
       if( ! nifti_datatype_is_valid(hdr->datatype, 1) ){
          if( g_opts.debug > 0 )
@@ -4080,9 +5407,122 @@ int nifti_hdr_looks_good(const nifti_1_header * hdr)
 }
 
 
+/*----------------------------------------------------------------------*/
+/*! check that sizeof() returns the proper size
+ *
+ *  if ni_ver is valid (1 or 2 right now), check those sizes
+ *  if ni_ver == 0, check all known sizes
+ *  else whine and fail
+*//*--------------------------------------------------------------------*/
+int nifti_valid_header_size(int ni_ver, int whine)
+{
+   int size, errs=0, checks=0;
+
+   if ( !ni_ver || (ni_ver == 1) ) {
+      size = 348;
+      checks++;
+      if( sizeof(nifti_1_header) != size ) {
+         if( whine )
+            fprintf(stderr,
+               "** warning: sizeof(nifti_1_header) = %d, expected %d\n",
+               (int)sizeof(nifti_1_header), size);
+         errs++;
+      }
+   }
+
+   if ( !ni_ver || (ni_ver == 2) ) {
+      size = 540;
+      checks++;
+      if( sizeof(nifti_2_header) != size ) {
+         if( whine )
+            fprintf(stderr,
+               "** warning: sizeof(nifti_2_header) = %d, expected %d\n",
+               (int)sizeof(nifti_2_header), size);
+         errs++;
+      }
+   }
+
+   if ( ! checks ) {
+      fprintf(stderr,"** nifti_valid_header_size: bad ni_ver = %d\n",ni_ver);
+      return 0;
+   }
+
+   return errs ? 0 : 1;  /* though !errs seems more fun */
+}
+
+
+/*----------------------------------------------------------------------*/
+/*! decide if this nifti_2_header structure looks reasonable
+ * swapping should have already happened
+
+   Check sizeof() and sizeof_hdr.
+   Check dim[0], dim[i], and datatype.
+   Check magic string for "n+2".
+
+   \return 1 if the header seems valid, 0 otherwise
+
+   \sa nifti_nim_is_valid, valid_nifti_extensions
+*//*--------------------------------------------------------------------*/
+int nifti_hdr2_looks_good(const nifti_2_header * hdr)
+{
+   int     ni_ver, c, errs = 0;
+   int64_t d0;
+
+   if( !hdr ) { fprintf(stderr,"** n2hdr: hdr is NULL\n"); return 0; }
+
+   /* for now, just warn if the header sizes are not right */
+   if( g_opts.debug > 0 ) (void)nifti_valid_header_size(0, 1);
+
+   if( hdr->sizeof_hdr != sizeof(nifti_2_header) ) {
+      if( g_opts.debug > 0 )
+         fprintf(stderr,"** bad n2hdr: sizeof_hdr = %d\n", hdr->sizeof_hdr);
+      errs++;
+   }
+
+   /* check the valid dimension sizes (maybe dim[0] is bad) */
+   d0 = hdr->dim[0];
+   if( d0 < 0 || d0 > 7 ) {
+      if( g_opts.debug > 0 ) fprintf(stderr,"** bad n2hdr: dim0 = %lld\n", d0);
+      errs++;
+   } else { /* only check dims if d0 is okay */
+      for( c = 1; c <= d0; c++ )
+         if( hdr->dim[c] <= 0 ){
+           if( g_opts.debug > 0 )
+             fprintf(stderr,"** bad nhdr field: dim[%d] = %lld\n",c,hdr->dim[c]);
+           errs++;
+         }
+   }
+
+   ni_ver = NIFTI_VERSION(*hdr);  /* note version */
+
+   if( ! nifti_datatype_is_valid(hdr->datatype, ni_ver) ){
+      if( g_opts.debug > 0 )
+         fprintf(stderr,"** bad %s NIFTI datatype in hdr, %d\n",
+                 ni_ver ? "NIFTI" : "ANALYZE", hdr->datatype);
+      errs++;
+   }
+
+   /* NIFTI_VERSION must return 2, or else sizes will not match */
+   if( ni_ver != 2 || memcmp((hdr->magic+4), nifti2_magic+4, 4) ) {
+      if( g_opts.debug > 0 ) {
+         fprintf(stderr, "-- header magic not NIFTI-2, magic = '%.4s' + ",
+                         hdr->magic);
+         print_hex_vals(hdr->magic+4, 4, stderr); fputc('\n', stderr);
+      }
+      errs++;
+   }
+
+   if( errs ) return 0;  /* problems */
+
+   if( g_opts.debug > 2 ) fprintf(stderr,"-d nifti header looks good\n");
+
+   return 1;   /* looks good */
+}
+
+
 /*----------------------------------------------------------------------
  * check whether byte swapping is needed
- * 
+ *
  * dim[0] should be in [0,7], and sizeof_hdr should be accurate
  *
  * \returns  > 0 : needs swap
@@ -4107,7 +5547,7 @@ static int need_nhdr_swap( short dim0, int hdrsize )
       }
 
       return -1;        /* bad, naughty d0 */
-   } 
+   }
 
    /* dim[0] == 0 should not happen, but could, so try hdrsize */
    if( hsize == sizeof(nifti_1_header) ) return 0;
@@ -4135,6 +5575,140 @@ static int need_nhdr_swap( short dim0, int hdrsize )
 
 
 /***************************************************************
+ * nifti_read_header
+ ***************************************************************/
+/*! \brief Read and return a nifti header, along with the found type
+
+        - The data buffer will be byteswapped if necessary.
+        - The data buffer will not be scaled.
+        - The data buffer is allocated with calloc().
+
+    \param hname filename of the nifti dataset
+    \param nver : 
+    \return A void pointer, which should be cast based on the returned nver.
+            It points to an allocated header struct.
+*/
+void * nifti_read_header( const char *hname, int *nver, int check )
+{
+   nifti_1_header  n1hdr;
+   nifti_2_header  n2hdr;
+   znzFile         fp;
+   void          * hresult = NULL;
+   int64_t         remain, h1size=0, h2size=0;
+   char            fname[] = { "nifti_read_header" };
+   char           *hfile=NULL, *posn;
+   int             ii, ni_ver;
+
+   if( g_opts.debug > 2 ){
+      fprintf(stderr,"-d reading header from '%s'",hname);
+      fprintf(stderr,", HAVE_ZLIB = %d\n", nifti_compiled_with_zlib());
+   }
+
+   /**- determine filename to use for header */
+   hfile = nifti_findhdrname(hname);
+   if( hfile == NULL ){
+      if(g_opts.debug > 0)
+         LNI_FERR(fname,"failed to find header file for", hname);
+      return NULL;  /* check return */
+   } else if( g_opts.debug > 2 )
+      fprintf(stderr,"-d %s: found header filename '%s'\n",fname,hfile);
+
+   h1size = sizeof(nifti_1_header);
+   h2size = sizeof(nifti_2_header);
+
+   /**- open file, separate reading of header, extensions and data */
+   fp = znzopen(hfile, "rb", nifti_is_gzfile(hfile));
+   if( znz_isnull(fp) ){
+      if( g_opts.debug > 0 ) LNI_FERR(fname,"failed to open header file",hfile);
+      free(hfile);
+      return NULL;
+   }
+
+   /**- next read into nifti_1_header and determine nifti type */
+   ii = (int)znzread(&n1hdr, 1, h1size, fp);
+
+   if( ii < (int)h1size ){      /* failure? */
+      if( g_opts.debug > 0 ){
+         LNI_FERR(fname,"bad binary header read for file", hfile);
+         fprintf(stderr,"  - read %d of %d bytes\n",ii, (int)h1size);
+      }
+      znzclose(fp) ;
+      free(hfile);
+      return NULL;
+   }
+
+   /* find out what type of header we have */
+   ni_ver = nifti_header_version((char *)&n1hdr, h1size);
+   if( g_opts.debug > 2 )
+      fprintf(stderr,"-- %s: NIFTI version = %d", fname, ni_ver);
+
+   /* maybe set return NIFTI version */
+   if( nver ) *nver = ni_ver;
+
+   /* if NIFTI-2, copy and finish reading header */
+   if ( ni_ver == 2 ) {
+      if( g_opts.debug > 2 )
+         fprintf(stderr,"-- %s: copying and filling NIFTI-2 header...", fname);
+      memcpy(&n2hdr, &n1hdr, h1size);   /* copy first part */
+      remain = h2size - h1size;
+      posn = (char *)&n2hdr + h1size;
+      ii = (int)znzread(posn, 1, remain, fp); /* read remaining part */
+      if( ii < (int)remain) {
+         LNI_FERR(fname,"short NIFTI-2 header read for file", hfile);
+         znzclose(fp);  free(hfile);  return NULL;
+      }
+   }
+
+   /* clean up */
+   znzclose(fp);
+   free(hfile);
+
+   /* allocate header space and return */
+   if( ni_ver == 0 || ni_ver == 1 ) {
+      hresult = malloc(h1size);
+      if( ! hresult ) {
+         LNI_FERR(fname,"failed to alloc NIFTI-1 header for file", hname);
+         return NULL;
+      }
+      memcpy(hresult, (void *)&n1hdr, h1size);
+
+      if ( check && ! nifti_hdr1_looks_good((nifti_1_header *)hresult) ){
+         LNI_FERR(fname,"nifti_1_header looks bad for file", hname);
+         return hresult;
+      }
+   } else if ( ni_ver == 2 ) {
+      hresult = malloc(h2size);
+      if( ! hresult ) {
+         LNI_FERR(fname,"failed to alloc NIFTI-2 header for file", hname);
+         return NULL;
+      }
+      memcpy(hresult, &n2hdr, h2size);
+
+      if ( check && ! nifti_hdr2_looks_good((nifti_2_header *)hresult) ){
+         LNI_FERR(fname,"nifti_2_header looks bad for file", hname);
+         return hresult;
+      }
+   } else {
+      if( g_opts.debug > 0 )
+         fprintf(stderr, "** %s: bad nifti header version %d\n", hname, ni_ver);
+
+      /* return a nifti-1 header anyway */
+      hresult = malloc(h1size);
+      if( ! hresult ) {
+         LNI_FERR(fname,"failed to alloc NIFTI-?? header for file", hname);
+         return NULL;
+      }
+      memcpy(hresult, (void *)&n1hdr, h1size);
+   }
+
+   if( g_opts.debug > 1 )
+      fprintf(stderr,"-- returning NIFTI-%d header in %s\n", ni_ver, hname);
+
+   return hresult;
+}
+
+
+/***************************************************************
  * nifti_image_read
  ***************************************************************/
 /*! \brief Read a nifti header and optionally the data, creating a nifti_image.
@@ -4151,20 +5725,18 @@ static int need_nhdr_swap( short dim0, int hdrsize )
 */
 nifti_image *nifti_image_read( const char *hname , int read_data )
 {
-   struct nifti_1_header  nhdr ;
-   nifti_image           *nim ;
-   znzFile                fp ;
-   int                    rv, ii , filesize, remaining;
-   char                   fname[] = { "nifti_image_read" };
-   char                  *hfile=NULL;
+   nifti_1_header  n1hdr;
+   nifti_2_header  n2hdr;
+   nifti_image    *nim;
+   znzFile         fp;
+   int             rv, ii, ni_ver, onefile=0;
+   int64_t         filesize, remain, h1size=0, h2size=0;
+   char            fname[] = { "nifti_image_read" };
+   char           *hfile=NULL, *posn;
 
    if( g_opts.debug > 1 ){
       fprintf(stderr,"-d image_read from '%s', read_data = %d",hname,read_data);
-#ifdef HAVE_ZLIB
-      fprintf(stderr,", HAVE_ZLIB = 1\n");
-#else
-      fprintf(stderr,", HAVE_ZLIB = 0\n");
-#endif
+      fprintf(stderr,", HAVE_ZLIB = %d\n", nifti_compiled_with_zlib());
    }
 
    /**- determine filename to use for header */
@@ -4179,6 +5751,7 @@ nifti_image *nifti_image_read( const char *hname , int read_data )
    if( nifti_is_gzfile(hfile) ) filesize = -1;  /* unknown */
    else                         filesize = nifti_get_filesize(hfile);
 
+   /**- open file, separate reading of header, extensions and data */
    fp = znzopen(hfile, "rb", nifti_is_gzfile(hfile));
    if( znz_isnull(fp) ){
       if( g_opts.debug > 0 ) LNI_FERR(fname,"failed to open header file",hfile);
@@ -4186,6 +5759,7 @@ nifti_image *nifti_image_read( const char *hname , int read_data )
       return NULL;
    }
 
+   /**- first try to read dataset as ASCII (and return if so) */
    rv = has_ascii_header( fp );
    if( rv < 0 ){
       if( g_opts.debug > 0 ) LNI_FERR(fname,"short header read",hfile);
@@ -4196,28 +5770,49 @@ nifti_image *nifti_image_read( const char *hname , int read_data )
    else if ( rv == 1 )  /* process special file type */
       return nifti_read_ascii_image( fp, hfile, filesize, read_data );
 
-   /* else, just process normally */
+   h1size = sizeof(nifti_1_header);
+   h2size = sizeof(nifti_2_header);
 
-   /**- read binary header */
+   /**- next read into nifti_1_header and determine nifti type */
+   ii = (int)znzread(&n1hdr, 1, h1size, fp);
 
-   ii = (int)znzread( &nhdr , 1 , sizeof(nhdr) , fp ) ;       /* read the thing */
-
-   /* keep file open so we can check for exts. after nifti_convert_nhdr2nim() */
-
-   if( ii < (int) sizeof(nhdr) ){
+   if( ii < (int)h1size ){      /* failure? */
       if( g_opts.debug > 0 ){
          LNI_FERR(fname,"bad binary header read for file", hfile);
-         fprintf(stderr,"  - read %d of %d bytes\n",ii, (int)sizeof(nhdr));
+         fprintf(stderr,"  - read %d of %d bytes\n",ii, (int)h1size);
       }
       znzclose(fp) ;
       free(hfile);
       return NULL;
    }
 
-   /* create output image struct and set it up */
+   /* find out what type of header we have */
+   ni_ver = nifti_header_version((char *)&n1hdr, h1size);
+   if( g_opts.debug > 2 )
+      fprintf(stderr,"-- %s: NIFTI version = %d", fname, ni_ver);
 
-   /**- convert all nhdr fields to nifti_image fields */
-   nim = nifti_convert_nhdr2nim(nhdr,hfile);
+   if( ni_ver == 0 || ni_ver == 1 ) {
+      nim = nifti_convert_n1hdr2nim(n1hdr,hfile);
+      onefile = NIFTI_ONEFILE(n1hdr);
+   } else if ( ni_ver == 2 ) {
+      /* fill nifti-2 header and convert */
+      if( g_opts.debug > 2 )
+         fprintf(stderr,"-- %s: copying and filling NIFTI-2 header...", fname);
+      memcpy(&n2hdr, &n1hdr, h1size);   /* copy first part */
+      remain = h2size - h1size;
+      posn = (char *)&n2hdr + h1size;
+      ii = (int)znzread(posn, 1, remain, fp); /* read remaining part */
+      if( ii < (int)remain) {
+         LNI_FERR(fname,"short NIFTI-2 header read for file", hfile);
+         znzclose(fp);  free(hfile);  return NULL;
+      }
+      nim = nifti_convert_n2hdr2nim(n2hdr,hfile);
+      onefile = NIFTI_ONEFILE(n2hdr);
+   } else {
+      if( g_opts.debug > 0 )
+         fprintf(stderr,"** %s: bad nifti im header version %d\n",fname,ni_ver);
+      znzclose(fp);  free(hfile);  return NULL;
+   }
 
    if( nim == NULL ){
       znzclose( fp ) ;                                   /* close the file */
@@ -4233,13 +5828,19 @@ nifti_image *nifti_image_read( const char *hname , int read_data )
    }
 
    /**- check for extensions (any errors here means no extensions) */
-   if( NIFTI_ONEFILE(nhdr) ) remaining = nim->iname_offset - sizeof(nhdr);
-   else                      remaining = filesize - sizeof(nhdr);
+   if ( onefile )     remain = nim->iname_offset;
+   else               remain = filesize;
 
-   (void)nifti_read_extensions(nim, fp, remaining);
+   if ( ni_ver <= 1 ) remain -= h1size;
+   else               remain -= h2size;
+
+   (void)nifti_read_extensions(nim, fp, remain);
 
    znzclose( fp ) ;                                      /* close the file */
    free(hfile);
+
+   if ( g_opts.alter_cifti && nifti_looks_like_cifti(nim) )
+      nifti_alter_cifti_dims(nim);
 
    /**- read the data if desired, then bug out */
    if( read_data ){
@@ -4251,6 +5852,65 @@ nifti_image *nifti_image_read( const char *hname , int read_data )
    else nim->data = NULL ;
 
    return nim ;
+}
+
+
+/*----------------------------------------------------------------------
+ # return the index of the first occurrence of the given ecode, else -1
+ *----------------------------------------------------------------------*/
+static int nifti_ext_type_index(nifti_image * nim, int ecode)
+{
+   int ind;
+
+   if ( !nim || ecode < 0 ) return -1;
+
+   for( ind = 0; ind < nim->num_ext; ind++ )
+      if( nim->ext_list[ind].ecode == ecode )
+         return ind;
+
+   return -1;
+}
+
+/*----------------------------------------------------------------------
+ *! does this dataset look like CIFTI?
+ *
+ * check dimensions and extension ecodes for CIFTI
+ *
+ * should have  - nx=ny=nz=nt=1, nu,nv>1, nw optional
+ *              - CIFTI extension
+ *----------------------------------------------------------------------*/
+int nifti_looks_like_cifti(nifti_image * nim)
+{
+   if( ! nim ) return 0;
+
+   if( nifti_ext_type_index(nim, NIFTI_ECODE_CIFTI) < 0 ) return 0;
+
+   if( nim->nx > 1 || nim->ny > 1 || nim->nz > 1 || nim->nt > 1 ) return 0;
+
+   if( nim->nu > 1 || nim->nv > 1 ) return 1;  /* looks like it */
+
+   return 0;
+}
+
+/*----------------------------------------------------------------------
+ *! alter the dims[] from CIFTI style
+ *
+ * convert nu -> nx, nv -> nt/nu, nw -> nv
+ *----------------------------------------------------------------------*/
+int nifti_alter_cifti_dims(nifti_image * nim)
+{
+   if( ! nifti_looks_like_cifti(nim) ) return 0;
+
+   /* the main effect, move position axis to x ... */
+   if( nim->nu > 1 || nim->dim[5] ) {
+      nim->nx = nim->nu;
+      nim->nu = 1;
+
+      nim->dim[1] = nim->dim[5];
+      nim->dim[5] = 1;
+   }
+
+   return 0;
 }
 
 
@@ -4288,7 +5948,7 @@ static int has_ascii_header( znzFile fp )
 /*! nifti_read_ascii_image  - process as a type-3 .nia image file
 
    return NULL on failure
-  
+
    NOTE: this is NOT part of the NIFTI-1 standard
 *//*--------------------------------------------------------------------*/
 nifti_image * nifti_read_ascii_image(znzFile fp, char *fname, int flen,
@@ -4327,7 +5987,7 @@ nifti_image * nifti_read_ascii_image(znzFile fp, char *fname, int flen,
    if( remain > 4 ){
       /* read extensions (reposition file pointer, first) */
       znzseek(fp, txt_size, SEEK_SET);
-      (void) nifti_read_extensions(nim, fp, remain);
+      (void) nifti_read_extensions(nim, fp, (int64_t)remain);
    }
 
    free(fname);
@@ -4360,12 +6020,14 @@ nifti_image * nifti_read_ascii_image(znzFile fp, char *fname, int flen,
  *
  * return the number of extensions read in, or < 0 on error
  *----------------------------------------------------------------------*/
-static int nifti_read_extensions( nifti_image *nim, znzFile fp, int remain )
+static int nifti_read_extensions( nifti_image *nim, znzFile fp, int64_t remain )
 {
    nifti1_extender    extdr;      /* defines extension existence  */
    nifti1_extension   extn;       /* single extension to process  */
    nifti1_extension * Elist;      /* list of processed extensions */
-   int                posn, count;
+   int64_t            posn, count;
+
+   /* rcr n2 - add and use nifti2_extension type? */
 
    if( !nim || znz_isnull(fp) ) {
       if( g_opts.debug > 0 )
@@ -4375,14 +6037,9 @@ static int nifti_read_extensions( nifti_image *nim, znzFile fp, int remain )
    }
 
    posn = znztell(fp);
- 
-   if( (posn != sizeof(nifti_1_header)) &&
-       (nim->nifti_type != NIFTI_FTYPE_ASCII) )
-      fprintf(stderr,"** WARNING: posn not header size (%d, %d)\n",
-              posn, (int)sizeof(nifti_1_header));
 
    if( g_opts.debug > 2 )
-      fprintf(stderr,"-d nre: posn = %d, offset = %d, type = %d, remain = %d\n",
+      fprintf(stderr,"-d nre: posn=%lld, offset=%lld, type=%d, remain=%lld\n",
               posn, nim->iname_offset, nim->nifti_type, remain);
 
    if( remain < 16 ){
@@ -4391,12 +6048,12 @@ static int nifti_read_extensions( nifti_image *nim, znzFile fp, int remain )
             fprintf(stderr,"-d no extender in '%s' is okay, as "
                            "skip_blank_ext is set\n",nim->fname);
          else
-            fprintf(stderr,"-d remain=%d, no space for extensions\n",remain);
+            fprintf(stderr,"-d remain=%lld, no space for extensions\n",remain);
       }
       return 0;
    }
 
-   count = (int)znzread( extdr.extension, 1, 4, fp ); /* get extender */
+   count = znzread( extdr.extension, 1, 4, fp ); /* get extender */
 
    if( count < 4 ){
       if( g_opts.debug > 1 )
@@ -4414,7 +6071,7 @@ static int nifti_read_extensions( nifti_image *nim, znzFile fp, int remain )
 
    remain -= 4;
    if( g_opts.debug > 2 )
-      fprintf(stderr,"-d found valid 4-byte extender, remain = %d\n", remain);
+      fprintf(stderr,"-d found valid 4-byte extender, remain = %lld\n", remain);
 
    /* so we expect extensions, but have no idea of how many there may be */
 
@@ -4422,15 +6079,15 @@ static int nifti_read_extensions( nifti_image *nim, znzFile fp, int remain )
    Elist = NULL;
    while (nifti_read_next_extension(&extn, nim, remain, fp) > 0)
    {
-      if( nifti_add_exten_to_list(&extn, &Elist, count+1) < 0 ){
+      if( nifti_add_exten_to_list(&extn, &Elist, (int)count+1) < 0 ){
          if( g_opts.debug > 0 )
-            fprintf(stderr,"** failed adding ext %d to list\n", count);
+            fprintf(stderr,"** failed adding ext %lld to list\n", count);
          return -1;
       }
 
       /* we have a new extension */
       if( g_opts.debug > 1 ){
-         fprintf(stderr,"+d found extension #%d, code = 0x%x, size = %d\n",
+         fprintf(stderr,"+d found extension #%lld, code = 0x%x, size = %d\n",
                  count, extn.ecode, extn.esize);
          if( extn.ecode == NIFTI_ECODE_AFNI && g_opts.debug > 2 ) /* ~XML */
             fprintf(stderr,"   AFNI extension: %.*s\n",
@@ -4443,9 +6100,10 @@ static int nifti_read_extensions( nifti_image *nim, znzFile fp, int remain )
       count++;
    }
 
-   if( g_opts.debug > 2 ) fprintf(stderr,"+d found %d extension(s)\n", count);
+   if( g_opts.debug > 2 ) fprintf(stderr,"+d found %lld extension(s)\n", count);
 
-   nim->num_ext = count;
+   /* rcr n2 - allow int64_t num ext? */
+   nim->num_ext = (int)count;
    nim->ext_list = Elist;
 
    return count;
@@ -4496,7 +6154,7 @@ static int nifti_add_exten_to_list( nifti1_extension *  new_ext,
                                     nifti1_extension ** list, int new_length )
 {
    nifti1_extension * tmplist;
-  
+
    tmplist = *list;
    *list = (nifti1_extension *)malloc(new_length * sizeof(nifti1_extension));
 
@@ -4547,7 +6205,7 @@ static int nifti_fill_extension( nifti1_extension *ext, const char * data,
       return -1;
    } else if( ! nifti_is_valid_ecode(ecode) ){
       fprintf(stderr,"** fill_ext: invalid ecode %d\n", ecode);
-      return -1;
+      /* should not be fatal    29 Apr 2015 [rickr] */
    }
 
    /* compute esize, first : len+8, and take ceiling up to a mult of 16 */
@@ -4678,7 +6336,7 @@ int valid_nifti_extensions(const nifti_image * nim)
       if( ! nifti_is_valid_ecode(ext->ecode) ) {
          if( g_opts.debug > 1 )
             fprintf(stderr,"-d ext %d, invalid code %d\n", c, ext->ecode);
-         errs++;
+         /* should not be fatal    29 Apr 2015 [rickr] */
       }
 
       if( ext->esize <= 0 ){
@@ -4711,6 +6369,74 @@ int valid_nifti_extensions(const nifti_image * nim)
    return 1;
 }
 
+/*----------------------------------------------------------------------*/
+/*! determine NIFTI version from buffer (check sizeof_hdr and magic)
+  
+       \return -1 on error, else NIFTI version
+ *//*--------------------------------------------------------------------*/
+int nifti_header_version(const char * buf, int nbytes){
+   nifti_1_header *n1p = (nifti_1_header *)buf;
+   nifti_2_header *n2p = (nifti_2_header *)buf;
+   char            fname[] = { "nifti_header_version" };
+   int             sizeof_hdr, sver, nver;
+
+   if( !buf ) {
+      if(g_opts.debug > 0) 
+         fprintf(stderr,"** %s: have NULL buffer pointer", fname);
+      return -1;
+   }
+
+   if( nbytes < sizeof(nifti_1_header) ) {
+      if(g_opts.debug > 0) 
+         fprintf(stderr,"** %s: nbytes=%d, too small for test", fname, nbytes);
+      return -1;
+   }
+
+   /* try to determine the version based on sizeof_hdr */
+   sver = -1;
+   sizeof_hdr = n1p->sizeof_hdr;
+   if     ( sizeof_hdr == (int)sizeof(nifti_1_header) ) sver = 1;
+   else if( sizeof_hdr == (int)sizeof(nifti_2_header) ) sver = 2;
+   else { /* try swapping */
+      nifti_swap_4bytes(1, &sizeof_hdr);
+      if     ( sizeof_hdr == (int)sizeof(nifti_1_header) ) sver = 1;
+      else if( sizeof_hdr == (int)sizeof(nifti_2_header) ) sver = 2;
+   }
+
+   /* and check magic field */
+   if      ( sver == 1 ) nver = NIFTI_VERSION(*n1p);
+   else if ( sver == 2 ) nver = NIFTI_VERSION(*n2p);
+   else                  nver = -1;
+
+   /* now compare and return */
+
+   if( g_opts.debug > 2 )
+      fprintf(stderr,"-- %s: size ver = %d, ni ver = %d\n", fname, sver, nver);
+
+   if( sver == 1 ) {
+      nver = NIFTI_VERSION(*n1p);
+      if( nver == 0 ) return 0;        /* ANALYZE */
+      if( nver == 1 ) return 1;        /* NIFTI-1 */
+      if( g_opts.debug > 1 )
+         fprintf(stderr,"** %s: bad NIFTI-1 magic= %.4s", fname, n1p->magic);
+      return -1;
+   } else if ( sver == 2 ) {
+      nver = NIFTI_VERSION(*n2p);
+      if( nver == 2 ) return 2;        /* NIFTI-2 */
+      if( g_opts.debug > 1 )
+         fprintf(stderr,"** %s: bad NIFTI-2 magic4= %.4s", fname, n2p->magic);
+      return -1;
+   }
+
+   /* failure */
+
+   if( g_opts.debug > 0 )
+      fprintf(stderr,"** %s: bad sizeof_hdr = %d\n", fname, n1p->sizeof_hdr);
+
+   return -1;
+}
+
+
 
 /*----------------------------------------------------------------------*/
 /*! check whether the extension code is valid
@@ -4737,7 +6463,7 @@ static int nifti_check_extension(nifti_image *nim, int size, int code, int rem)
    if( ! nifti_is_valid_ecode(code) ) {
       if( g_opts.debug > 2 )
          fprintf(stderr,"-d invalid extension code %d\n",code);
-      return 0;
+      /* should not be fatal    29 Apr 2015 [rickr] */
    }
 
    if( size < 16 ){
@@ -4779,7 +6505,7 @@ static int nifti_check_extension(nifti_image *nim, int size, int code, int rem)
 static znzFile nifti_image_load_prep( nifti_image *nim )
 {
    /* set up data space, open data file and seek, then call nifti_read_buffer */
-   size_t  ntot , ii , ioff;
+   int64_t ntot , ii , ioff;
    znzFile fp;
    char   *tmpimgname;
    char    fname[] = { "nifti_image_load_prep" };
@@ -4790,8 +6516,8 @@ static znzFile nifti_image_load_prep( nifti_image *nim )
    {
       if ( g_opts.debug > 0 ){
          if( !nim ) fprintf(stderr,"** ERROR: N_image_load: no nifti image\n");
-         else fprintf(stderr,"** ERROR: N_image_load: bad params (%p,%d,%u)\n",
-                      nim->iname, nim->nbyper, (unsigned)nim->nvox);
+         else fprintf(stderr,"** ERROR: N_image_load: bad params (%p,%d,%lld)\n",
+                      nim->iname, nim->nbyper, nim->nvox);
       }
       return NULL;
    }
@@ -4836,8 +6562,8 @@ static znzFile nifti_image_load_prep( nifti_image *nim )
 
    /**- seek to the appropriate read position */
    if( znzseek(fp , (long)ioff , SEEK_SET) < 0 ){
-      fprintf(stderr,"** could not seek to offset %u in file '%s'\n",
-              (unsigned)ioff, nim->iname);
+      fprintf(stderr,"** could not seek to offset %lld in file '%s'\n",
+              ioff, nim->iname);
       znzclose(fp);
       return NULL;
    }
@@ -4868,7 +6594,7 @@ static znzFile nifti_image_load_prep( nifti_image *nim )
 int nifti_image_load( nifti_image *nim )
 {
    /* set up data space, open data file and seek, then call nifti_read_buffer */
-   size_t ntot , ii ;
+   int64_t ntot , ii ;
    znzFile fp ;
 
    /**- open the file and position the FILE pointer */
@@ -4927,10 +6653,10 @@ int nifti_image_load( nifti_image *nim )
 
    This function does not allocate memory, so dataptr must be valid.
 *//*--------------------------------------------------------------------*/
-size_t nifti_read_buffer(znzFile fp, void* dataptr, size_t ntot, 
+int64_t nifti_read_buffer(znzFile fp, void* dataptr, int64_t ntot,
                                 nifti_image *nim)
 {
-  size_t ii;
+  int64_t ii;
 
   if( dataptr == NULL ){
      if( g_opts.debug > 0 )
@@ -4941,40 +6667,39 @@ size_t nifti_read_buffer(znzFile fp, void* dataptr, size_t ntot,
   ii = znzread( dataptr , 1 , ntot , fp ) ;             /* data input */
 
   /* if read was short, fail */
-  if( ii < ntot ){ 
+  if( ii < ntot ){
     if( g_opts.debug > 0 )
        fprintf(stderr,"++ WARNING: nifti_read_buffer(%s):\n"
-               "   data bytes needed = %u\n"
-               "   data bytes input  = %u\n"
-               "   number missing    = %u (set to 0)\n",
-               nim->iname , (unsigned int)ntot ,
-               (unsigned int)ii , (unsigned int)(ntot-ii) ) ;
+               "   data bytes needed = %lld\n"
+               "   data bytes input  = %lld\n"
+               "   number missing    = %lld (set to 0)\n",
+               nim->iname , ntot , ii , (ntot-ii) ) ;
     /* memset( (char *)(dataptr)+ii , 0 , ntot-ii ) ;  now failure [rickr] */
     return -1 ;
   }
 
   if( g_opts.debug > 2 )
-    fprintf(stderr,"+d nifti_read_buffer: read %u bytes\n", (unsigned)ii);
-  
+    fprintf(stderr,"+d nifti_read_buffer: read %lld bytes\n", ii);
+
   /* byte swap array if needed */
-  
-  /* ntot/swapsize might not fit as int, use size_t    6 Jul 2010 [rickr] */
+
+  /* ntot/swapsize might not fit as int, use int64_t    6 Jul 2010 [rickr] */
   if( nim->swapsize > 1 && nim->byteorder != nifti_short_order() ) {
     if( g_opts.debug > 1 )
        fprintf(stderr,"+d nifti_read_buffer: swapping data bytes...\n");
-    nifti_swap_Nbytes( ntot / nim->swapsize, nim->swapsize , dataptr ) ;
+    nifti_swap_Nbytes( (int)(ntot / nim->swapsize), nim->swapsize , dataptr ) ;
   }
 
 #ifdef isfinite
 {
   /* check input float arrays for goodness, and fix bad floats */
   int fix_count = 0 ;
-  
+
   switch( nim->datatype ){
-    
+
     case NIFTI_TYPE_FLOAT32:
     case NIFTI_TYPE_COMPLEX64:{
-        register float *far = (float *)dataptr ; register size_t jj,nj ;
+        float *far = (float *)dataptr ; int64_t jj,nj ;
         nj = ntot / sizeof(float) ;
         for( jj=0 ; jj < nj ; jj++ )   /* count fixes 30 Nov 2004 [rickr] */
            if( !IS_GOOD_FLOAT(far[jj]) ){
@@ -4983,10 +6708,10 @@ size_t nifti_read_buffer(znzFile fp, void* dataptr, size_t ntot,
            }
       }
       break ;
-    
+
     case NIFTI_TYPE_FLOAT64:
     case NIFTI_TYPE_COMPLEX128:{
-        register double *far = (double *)dataptr ; register size_t jj,nj ;
+        double *far = (double *)dataptr ; int64_t jj,nj ;
         nj = ntot / sizeof(double) ;
         for( jj=0 ; jj < nj ; jj++ )   /* count fixes 30 Nov 2004 [rickr] */
            if( !IS_GOOD_FLOAT(far[jj]) ){
@@ -4995,14 +6720,14 @@ size_t nifti_read_buffer(znzFile fp, void* dataptr, size_t ntot,
            }
       }
       break ;
-    
+
   }
 
   if( g_opts.debug > 1 )
      fprintf(stderr,"+d in image, %d bad floats were set to 0\n", fix_count);
 }
 #endif
-  
+
   return ii;
 }
 
@@ -5088,7 +6813,7 @@ void nifti_image_infodump( const nifti_image *nim )
 /*--------------------------------------------------------------------------
  * nifti_write_buffer just check for a null znzFile and call znzwrite
  *--------------------------------------------------------------------------*/
-/*! \fn size_t nifti_write_buffer(znzFile fp, void *buffer, size_t numbytes)
+/*! \fn int64_t nifti_write_buffer(znzFile fp, void *buffer, int64_t numbytes)
     \brief write numbytes of buffer to file, fp
 
     \param fp           File pointer (from znzopen) to gzippable nifti datafile
@@ -5096,15 +6821,15 @@ void nifti_image_infodump( const nifti_image *nim )
     \param numbytes     number of bytes in buffer to write
     \return number of bytes successfully written
 */
-size_t nifti_write_buffer(znzFile fp, const void *buffer, size_t numbytes)
+int64_t nifti_write_buffer(znzFile fp, const void *buffer, int64_t numbytes)
 {
    /* Write all the image data at once (no swapping here) */
-   size_t ss;
+   int64_t ss;
    if (znz_isnull(fp)){
       fprintf(stderr,"** ERROR: nifti_write_buffer: null file pointer\n");
       return 0;
    }
-   ss = znzwrite( (void*)buffer , 1 , numbytes , fp ) ;
+   ss = znzwrite( (const void*)buffer , 1 , numbytes , fp ) ;
    return ss;
 }
 
@@ -5118,7 +6843,7 @@ size_t nifti_write_buffer(znzFile fp, const void *buffer, size_t numbytes)
    \param  fp  : File pointer
    \param  nim : nifti_image corresponding to the data
    \param  NBL : optional source of write data (if NULL use nim->data)
-  
+
    \return 0 on success, -1 on failure
 
    Note: the nifti_image byte_order is set as that of the current CPU.
@@ -5131,8 +6856,7 @@ size_t nifti_write_buffer(znzFile fp, const void *buffer, size_t numbytes)
 int nifti_write_all_data(znzFile fp, nifti_image * nim,
                          const nifti_brick_list * NBL)
 {
-   size_t ss;
-   int    bnum;
+   int64_t ss, bnum;
 
    if( !NBL ){ /* just write one buffer and get out of here */
       if( nim->data == NULL ){
@@ -5143,17 +6867,17 @@ int nifti_write_all_data(znzFile fp, nifti_image * nim,
       ss = nifti_write_buffer(fp,nim->data,nim->nbyper * nim->nvox);
       if (ss < nim->nbyper * nim->nvox){
          fprintf(stderr,
-            "** ERROR: NWAD: wrote only %u of %u bytes to file\n",
-            (unsigned)ss, (unsigned)(nim->nbyper * nim->nvox));
+            "** ERROR: NWAD: wrote only %lld of %lld bytes to file\n",
+            ss, nim->nbyper * nim->nvox);
          return -1;
       }
 
       if( g_opts.debug > 1 )
-         fprintf(stderr,"+d wrote single image of %u bytes\n", (unsigned)ss);
+         fprintf(stderr,"+d wrote single image of %lld bytes\n", ss);
    } else {
       if( ! NBL->bricks || NBL->nbricks <= 0 || NBL->bsize <= 0 ){
-         fprintf(stderr,"** NWAD: no brick data to write (%p,%d,%u)\n",
-                 (void *)NBL->bricks, NBL->nbricks, (unsigned)NBL->bsize);
+         fprintf(stderr,"** NWAD: no brick data to write (%p,%lld,%lld)\n",
+                 (void *)NBL->bricks, NBL->nbricks, NBL->bsize);
          return -1;
       }
 
@@ -5161,14 +6885,14 @@ int nifti_write_all_data(znzFile fp, nifti_image * nim,
          ss = nifti_write_buffer(fp, NBL->bricks[bnum], NBL->bsize);
          if( ss < NBL->bsize ){
             fprintf(stderr,
-              "** NWAD ERROR: wrote %u of %u bytes of brick %d of %d to file",
-               (unsigned)ss, (unsigned)NBL->bsize, bnum+1, NBL->nbricks);
+            "** NWAD ERROR: wrote %lld of %lld bytes of brick %lld of %lld to file",
+            ss, NBL->bsize, bnum+1, NBL->nbricks);
             return -1;
          }
       }
       if( g_opts.debug > 1 )
-         fprintf(stderr,"+d wrote image of %d brick(s), each of %u bytes\n",
-                 NBL->nbricks, (unsigned int)NBL->bsize);
+         fprintf(stderr,"+d wrote image of %lld brick(s), each of %lld bytes\n",
+                 NBL->nbricks, NBL->bsize);
    }
 
    /* mark as being in this CPU byte order */
@@ -5242,30 +6966,28 @@ static int nifti_write_extensions(znzFile fp, nifti_image *nim)
 *//*--------------------------------------------------------------------*/
 nifti_image* nifti_simple_init_nim(void)
 {
-  nifti_image *nim;
-  struct nifti_1_header nhdr;
-  int nbyper, swapsize;
-  
+   nifti_image *nim;
+   nifti_2_header nhdr;
+   int nbyper, swapsize;
+
    memset(&nhdr,0,sizeof(nhdr)) ;  /* zero out header, to be safe */
-  
+
    nhdr.sizeof_hdr = sizeof(nhdr) ;
-   nhdr.regular    = 'r' ;           /* for some stupid reason */
 
    nhdr.dim[0] = 3 ;
    nhdr.dim[1] = 1 ; nhdr.dim[2] = 1 ; nhdr.dim[3] = 1 ;
    nhdr.dim[4] = 0 ;
 
    nhdr.pixdim[0] = 0.0 ;
-   nhdr.pixdim[1] = 1.0 ; nhdr.pixdim[2] = 1.0 ;
-   nhdr.pixdim[3] = 1.0 ;
+   nhdr.pixdim[1] = 1.0 ; nhdr.pixdim[2] = 1.0 ; nhdr.pixdim[3] = 1.0 ;
 
    nhdr.datatype = DT_FLOAT32 ;
    nifti_datatype_sizes( nhdr.datatype , &nbyper, &swapsize );
    nhdr.bitpix   = 8 * nbyper ;
 
-   strcpy(nhdr.magic, "n+1");  /* init to single file */
+   memcpy(nhdr.magic, nifti2_magic, 8);  /* init to single file */
 
-   nim = nifti_convert_nhdr2nim(nhdr,NULL);
+   nim = nifti_convert_n2hdr2nim(nhdr,NULL);
    nim->fname = NULL;
    nim->iname = NULL;
    return nim;
@@ -5273,38 +6995,39 @@ nifti_image* nifti_simple_init_nim(void)
 
 
 /*----------------------------------------------------------------------*/
-/*! basic initialization of a nifti_1_header struct (with given dimensions)
+/*! basic initialization of a nifti_2_header struct (with given dimensions)
 
-   Return an allocated nifti_1_header struct, based on the given
+   Return an allocated nifti_2_header struct, based on the given
    dimensions and datatype.
- 
+
    \param arg_dims  : optional dim[8] array (default {3,1,1,1,0,0,0,0})
    \param arg_dtype : optional datatype (default DT_FLOAT32)
 
-   \return pointer to allocated nifti_1_header struct
+   \return pointer to allocated nifti_2_header struct
 *//*--------------------------------------------------------------------*/
-nifti_1_header * nifti_make_new_header(const int arg_dims[], int arg_dtype)
+nifti_2_header * nifti_make_new_n2_header(const int64_t arg_dims[],
+                                          int arg_dtype)
 {
-   nifti_1_header * nhdr;
-   const int        default_dims[8] = { 3, 1, 1, 1, 0, 0, 0, 0 };
-   const int      * dim;  /* either passed or default dims  */
+   nifti_2_header * nhdr;
+   const int64_t    default_dims[8] = { 3, 1, 1, 1, 0, 0, 0, 0 };
+   const int64_t  * dim;  /* either passed or default dims  */
    int              dtype; /* either passed or default dtype */
    int              c, nbyper, swapsize;
-  
+
    /* if arg_dims is passed, apply it */
    if( arg_dims ) dim = arg_dims;
    else           dim = default_dims;
 
    /* validate dim: if there is any problem, apply default_dims */
    if( dim[0] < 1 || dim[0] > 7 ) {
-      fprintf(stderr,"** nifti_simple_hdr_with_dims: bad dim[0]=%d\n",dim[0]);
+      fprintf(stderr,"** nifti_simple_hdr_with_dims: bad dim[0]=%lld\n",dim[0]);
       dim = default_dims;
    } else {
       for( c = 1; c <= dim[0]; c++ )
          if( dim[c] < 1 )
          {
             fprintf(stderr,
-                "** nifti_simple_hdr_with_dims: bad dim[%d]=%d\n",c,dim[c]);
+                "** nifti_simple_hdr_with_dims: bad dim[%d]=%lld\n",c,dim[c]);
             dim = default_dims;
             break;
          }
@@ -5320,24 +7043,103 @@ nifti_1_header * nifti_make_new_header(const int arg_dims[], int arg_dtype)
    /* now populate the header struct */
 
    if( g_opts.debug > 1 )
-      fprintf(stderr,"+d nifti_make_new_header, dim[0] = %d, datatype = %d\n",
+      fprintf(stderr,"+d make_new_n2_header, dim[0] = %lld, datatype = %d\n",
               dim[0], dtype);
 
-   nhdr = (nifti_1_header *)calloc(1,sizeof(nifti_1_header));
+   nhdr = (nifti_2_header *)calloc(1,sizeof(nifti_2_header));
    if( !nhdr ){
-      fprintf(stderr,"** nifti_make_new_header: failed to alloc hdr\n");
+      fprintf(stderr,"** make_new_n2_header: failed to alloc hdr\n");
       return NULL;
    }
-  
-   nhdr->sizeof_hdr = sizeof(nifti_1_header) ;
-   nhdr->regular    = 'r' ;           /* for some stupid reason */
+
+   nhdr->sizeof_hdr = sizeof(nifti_2_header) ;
 
    /* init dim and pixdim */
-   nhdr->dim[0] = dim[0] ;
+   nhdr->dim[0] = dim[0];
    nhdr->pixdim[0] = 0.0;
    for( c = 1; c <= dim[0]; c++ ) {
       nhdr->dim[c] = dim[c];
       nhdr->pixdim[c] = 1.0;
+   }
+
+   nhdr->datatype = dtype ;
+   nifti_datatype_sizes( nhdr->datatype , &nbyper, &swapsize );
+   nhdr->bitpix   = 8 * nbyper ;
+
+   memcpy(nhdr->magic, nifti2_magic, 8);  /* init to single file */
+
+   return nhdr;
+}
+
+
+/*----------------------------------------------------------------------*/
+/*! basic initialization of a nifti_1_header struct (with given dimensions)
+
+   Return an allocated nifti_1_header struct, based on the given
+   dimensions and datatype.
+
+   \param arg_dims  : optional dim[8] array (default {3,1,1,1,0,0,0,0})
+   \param arg_dtype : optional datatype (default DT_FLOAT32)
+
+   \return pointer to allocated nifti_1_header struct
+*//*--------------------------------------------------------------------*/
+nifti_1_header * nifti_make_new_n1_header(const int64_t arg_dims[],
+                                          int arg_dtype)
+{
+   nifti_1_header * nhdr;
+   const int64_t    default_dims[8] = { 3, 1, 1, 1, 0, 0, 0, 0 };
+   const int64_t  * dim;  /* either passed or default dims  */
+   int              dtype; /* either passed or default dtype */
+   int              c, nbyper, swapsize;
+
+   /* if arg_dims is passed, apply it */
+   if( arg_dims ) dim = arg_dims;
+   else           dim = default_dims;
+
+   /* validate dim: if there is any problem, apply default_dims */
+   if( dim[0] < 1 || dim[0] > 7 ) {
+      fprintf(stderr,"** nifti_simple_hdr_with_dims: bad dim[0]=%lld\n",dim[0]);
+      dim = default_dims;
+   } else {
+      for( c = 1; c <= dim[0]; c++ )
+         if( dim[c] < 1 )
+         {
+            fprintf(stderr,
+                "** nifti_simple_hdr_with_dims: bad dim[%d]=%lld\n",c,dim[c]);
+            dim = default_dims;
+            break;
+         }
+   }
+
+   /* validate dtype, too */
+   dtype = arg_dtype;
+   if( ! nifti_is_valid_datatype(dtype) ) {
+      fprintf(stderr,"** nifti_simple_hdr_with_dims: bad dtype %d\n",dtype);
+      dtype = DT_FLOAT32;
+   }
+
+   /* now populate the header struct */
+
+   if( g_opts.debug > 1 )
+      fprintf(stderr,"+d make_new_n1_header, dim[0] = %lld, datatype = %d\n",
+              dim[0], dtype);
+
+   nhdr = (nifti_1_header *)calloc(1,sizeof(nifti_1_header));
+   if( !nhdr ){
+      fprintf(stderr,"** make_new_n1_header: failed to alloc hdr\n");
+      return NULL;
+   }
+
+   nhdr->sizeof_hdr = sizeof(nifti_1_header) ;
+   nhdr->regular    = 'r' ;           /* for some stupid reason */
+
+   /* init dim and pixdim */
+   nhdr->dim[0] = (int)dim[0]; /* rcr n2 - check dim sizes for nifti-1 */
+                               /* (verify vals are < 2^15) */
+   nhdr->pixdim[0] = 0.0f;
+   for( c = 1; c <= dim[0]; c++ ) {
+      nhdr->dim[c] = (int)dim[c];
+      nhdr->pixdim[c] = 1.0f;
    }
 
    nhdr->datatype = dtype ;
@@ -5355,25 +7157,26 @@ nifti_1_header * nifti_make_new_header(const int arg_dims[], int arg_dtype)
 
    Create a nifti_image from the given dimensions and data type.
    Optinally, allocate zero-filled data.
-  
+
    \param dims      : optional dim[8]   (default {3,1,1,1,0,0,0,0})
    \param datatype  : optional datatype (default DT_FLOAT32)
    \param data_fill : if flag is set, allocate zero-filled data for image
 
    \return pointer to allocated nifti_image struct
 *//*--------------------------------------------------------------------*/
-nifti_image * nifti_make_new_nim(const int dims[], int datatype, int data_fill)
+nifti_image * nifti_make_new_nim(const int64_t dims[], int datatype,
+                                 int data_fill)
 {
    nifti_image    * nim;
-   nifti_1_header * nhdr;
+   nifti_2_header * nhdr;
 
-   nhdr = nifti_make_new_header(dims, datatype);
+   nhdr = nifti_make_new_n2_header(dims, datatype);
    if( !nhdr ) return NULL;  /* error already printed */
 
-   nim = nifti_convert_nhdr2nim(*nhdr,NULL);
+   nim = nifti_convert_n2hdr2nim(*nhdr,NULL);
    free(nhdr);               /* in any case, we are done with this */
    if( !nim ){
-      fprintf(stderr,"** NMNN: nifti_convert_nhdr2nim failure\n");
+      fprintf(stderr,"** NMNN: nifti_convert_n2hdr2nim failure\n");
       return NULL;
    }
 
@@ -5385,8 +7188,8 @@ nifti_image * nifti_make_new_nim(const int dims[], int datatype, int data_fill)
 
       /* if we cannot allocate data, take ball and go home */
       if( !nim->data ) {
-         fprintf(stderr,"** NMNN: failed to alloc %u bytes for data\n",
-                 (unsigned)(nim->nvox*nim->nbyper));
+         fprintf(stderr,"** NMNN: failed to alloc %lld bytes for data\n",
+                 nim->nvox*nim->nbyper);
          nifti_image_free(nim);
          nim = NULL;
       }
@@ -5394,6 +7197,11 @@ nifti_image * nifti_make_new_nim(const int dims[], int datatype, int data_fill)
 
    return nim;
 }
+
+#undef N_CHECK_2BYTE_VAL
+#define N_CHECK_2BYTE_VAL(fn) do { if( ! NIFTI_IS_16_BIT_INT(nim->fn) ) { \
+   fprintf(stderr,"** nim->%s = %lld does not fit into NIFTI-1 header\n", \
+           #fn, (long long)nim->fn); return 1; } } while(0)
 
 
 /*----------------------------------------------------------------------*/
@@ -5403,12 +7211,17 @@ nifti_image * nifti_make_new_nim(const int dims[], int datatype, int data_fill)
     As in:
     <pre>
     nifti_1_header my_header;
-    my_header = nifti_convert_nim2nhdr(my_nim_pointer);
+    my_header = nifti_convert_nim2n1hdr(my_nim_pointer);
     </pre>
 *//*--------------------------------------------------------------------*/
-struct nifti_1_header nifti_convert_nim2nhdr(const nifti_image * nim)
+int nifti_convert_nim2n1hdr(const nifti_image * nim, nifti_1_header * hdr)
 {
-   struct nifti_1_header nhdr;
+   nifti_1_header nhdr;
+
+   if( !hdr ) {
+      fprintf(stderr,"** nifti_CN2N1hdr: no hdr to fill\n");
+      return 1;
+   }
 
    memset(&nhdr,0,sizeof(nhdr)) ;  /* zero out header, to be safe */
 
@@ -5418,12 +7231,23 @@ struct nifti_1_header nifti_convert_nim2nhdr(const nifti_image * nim)
    nhdr.sizeof_hdr = sizeof(nhdr) ;
    nhdr.regular    = 'r' ;             /* for some stupid reason */
 
+   N_CHECK_2BYTE_VAL(ndim);
+   N_CHECK_2BYTE_VAL(nx);
+   N_CHECK_2BYTE_VAL(ny);
+   N_CHECK_2BYTE_VAL(nz);
+   N_CHECK_2BYTE_VAL(nt);
+   N_CHECK_2BYTE_VAL(nu);
+   N_CHECK_2BYTE_VAL(nv);
+   N_CHECK_2BYTE_VAL(nw);
+   N_CHECK_2BYTE_VAL(datatype);
+   N_CHECK_2BYTE_VAL(nbyper);
+
    nhdr.dim[0] = nim->ndim ;
    nhdr.dim[1] = nim->nx ; nhdr.dim[2] = nim->ny ; nhdr.dim[3] = nim->nz ;
    nhdr.dim[4] = nim->nt ; nhdr.dim[5] = nim->nu ; nhdr.dim[6] = nim->nv ;
    nhdr.dim[7] = nim->nw ;
 
-   nhdr.pixdim[0] = 0.0 ;
+   nhdr.pixdim[0] = 0.0f ;
    nhdr.pixdim[1] = nim->dx ; nhdr.pixdim[2] = nim->dy ;
    nhdr.pixdim[3] = nim->dz ; nhdr.pixdim[4] = nim->dt ;
    nhdr.pixdim[5] = nim->du ; nhdr.pixdim[6] = nim->dv ;
@@ -5456,10 +7280,17 @@ struct nifti_1_header nifti_convert_nim2nhdr(const nifti_image * nim)
      if( nim->nifti_type == NIFTI_FTYPE_NIFTI1_1 ) strcpy(nhdr.magic,"n+1") ;
      else                                          strcpy(nhdr.magic,"ni1") ;
 
-     nhdr.pixdim[1] = fabs(nhdr.pixdim[1]) ; nhdr.pixdim[2] = fabs(nhdr.pixdim[2]) ;
-     nhdr.pixdim[3] = fabs(nhdr.pixdim[3]) ; nhdr.pixdim[4] = fabs(nhdr.pixdim[4]) ;
-     nhdr.pixdim[5] = fabs(nhdr.pixdim[5]) ; nhdr.pixdim[6] = fabs(nhdr.pixdim[6]) ;
-     nhdr.pixdim[7] = fabs(nhdr.pixdim[7]) ;
+     nhdr.pixdim[1] = (float)fabs(nhdr.pixdim[1]) ;
+     nhdr.pixdim[2] = (float)fabs(nhdr.pixdim[2]) ;
+     nhdr.pixdim[3] = (float)fabs(nhdr.pixdim[3]) ;
+     nhdr.pixdim[4] = (float)fabs(nhdr.pixdim[4]) ;
+     nhdr.pixdim[5] = (float)fabs(nhdr.pixdim[5]) ;
+     nhdr.pixdim[6] = (float)fabs(nhdr.pixdim[6]) ;
+     nhdr.pixdim[7] = (float)fabs(nhdr.pixdim[7]) ;
+
+     N_CHECK_2BYTE_VAL(intent_code);
+     N_CHECK_2BYTE_VAL(qform_code);
+     N_CHECK_2BYTE_VAL(sform_code);
 
      nhdr.intent_code = nim->intent_code ;
      nhdr.intent_p1   = nim->intent_p1 ;
@@ -5482,7 +7313,7 @@ struct nifti_1_header nifti_convert_nim2nhdr(const nifti_image * nim)
        nhdr.qoffset_x  = nim->qoffset_x ;
        nhdr.qoffset_y  = nim->qoffset_y ;
        nhdr.qoffset_z  = nim->qoffset_z ;
-       nhdr.pixdim[0]  = (nim->qfac >= 0.0) ? 1.0 : -1.0 ;
+       nhdr.pixdim[0]  = (nim->qfac >= 0.0) ? 1.0f : -1.0f ;
      }
 
      if( nim->sform_code > 0 ){
@@ -5501,6 +7332,10 @@ struct nifti_1_header nifti_convert_nim2nhdr(const nifti_image * nim)
        nhdr.srow_z[3]  = nim->sto_xyz.m[2][3] ;
      }
 
+     N_CHECK_2BYTE_VAL(sform_code);
+     N_CHECK_2BYTE_VAL(slice_start);
+     N_CHECK_2BYTE_VAL(slice_end);
+
      nhdr.dim_info = FPS_INTO_DIM_INFO( nim->freq_dim ,
                                         nim->phase_dim , nim->slice_dim ) ;
      nhdr.slice_code     = nim->slice_code ;
@@ -5509,7 +7344,121 @@ struct nifti_1_header nifti_convert_nim2nhdr(const nifti_image * nim)
      nhdr.slice_duration = nim->slice_duration ;
    }
 
-   return nhdr;
+   memcpy(hdr, &nhdr, sizeof(nhdr));
+
+   return 0;
+}
+
+
+/*----------------------------------------------------------------------*/
+/*! convert a nifti_image structure to a nifti_2_header struct
+
+    No allocation is done, this should be used via structure copy.
+    As in:
+    <pre>
+    nifti_2_header my_header;
+    my_header = nifti_convert_nim2n2hdr(my_nim_pointer);
+    </pre>
+*//*--------------------------------------------------------------------*/
+int nifti_convert_nim2n2hdr(const nifti_image * nim, nifti_2_header * hdr)
+{
+   nifti_2_header nhdr;
+
+   if( !hdr ) {
+      fprintf(stderr,"** nifti_CN2N2hdr: no hdr to fill\n");
+      return 1;
+   }
+
+   memset(&nhdr,0,sizeof(nhdr)) ;  /* zero out header, to be safe */
+
+
+   /**- load the ANALYZE-7.5 generic parts of the header struct */
+
+   nhdr.sizeof_hdr = sizeof(nhdr) ;
+   if( nim->nifti_type == NIFTI_FTYPE_NIFTI2_1 ) strcpy(nhdr.magic,"n+2") ;
+   else                                          strcpy(nhdr.magic,"ni2") ;
+
+   nhdr.datatype = nim->datatype ;
+   nhdr.bitpix   = 8 * nim->nbyper ;
+
+   nhdr.dim[0] = nim->ndim ;
+   nhdr.dim[1] = nim->nx ; nhdr.dim[2] = nim->ny ; nhdr.dim[3] = nim->nz ;
+   nhdr.dim[4] = nim->nt ; nhdr.dim[5] = nim->nu ; nhdr.dim[6] = nim->nv ;
+   nhdr.dim[7] = nim->nw ;
+
+   nhdr.intent_p1 = nim->intent_p1 ;
+   nhdr.intent_p2 = nim->intent_p2 ;
+   nhdr.intent_p3 = nim->intent_p3 ;
+
+   nhdr.pixdim[0] = 0.0 ;
+   nhdr.pixdim[1] = fabs(nim->dx) ; nhdr.pixdim[2] = fabs(nim->dy) ;
+   nhdr.pixdim[3] = fabs(nim->dz) ; nhdr.pixdim[4] = fabs(nim->dt) ;
+   nhdr.pixdim[5] = fabs(nim->du) ; nhdr.pixdim[6] = fabs(nim->dv) ;
+   nhdr.pixdim[7] = fabs(nim->dw) ;
+
+   nhdr.vox_offset  = nim->iname_offset ;
+
+   nhdr.scl_slope = nim->scl_slope ;
+   nhdr.scl_inter = nim->scl_inter ;
+
+   nhdr.cal_max = nim->cal_max ;
+   nhdr.cal_min = nim->cal_min ;
+
+   nhdr.slice_duration = nim->slice_duration ;
+   nhdr.toffset        = nim->toffset ;
+   nhdr.slice_start    = nim->slice_start ;
+   nhdr.slice_end      = nim->slice_end ;
+
+   if( nim->descrip[0] != '\0' ){
+     memcpy(nhdr.descrip ,nim->descrip ,79) ; nhdr.descrip[79] = '\0' ;
+   }
+   if( nim->aux_file[0] != '\0' ){
+     memcpy(nhdr.aux_file ,nim->aux_file ,23) ; nhdr.aux_file[23] = '\0' ;
+   }
+
+   if( nim->qform_code > 0 ){
+     nhdr.qform_code = nim->qform_code ;
+     nhdr.quatern_b  = nim->quatern_b ;
+     nhdr.quatern_c  = nim->quatern_c ;
+     nhdr.quatern_d  = nim->quatern_d ;
+     nhdr.qoffset_x  = nim->qoffset_x ;
+     nhdr.qoffset_y  = nim->qoffset_y ;
+     nhdr.qoffset_z  = nim->qoffset_z ;
+     nhdr.pixdim[0]  = (nim->qfac >= 0.0) ? 1.0f : -1.0f ;
+   }
+
+   if( nim->sform_code > 0 ){
+     nhdr.sform_code = nim->sform_code ;
+     nhdr.srow_x[0]  = nim->sto_xyz.m[0][0] ;
+     nhdr.srow_x[1]  = nim->sto_xyz.m[0][1] ;
+     nhdr.srow_x[2]  = nim->sto_xyz.m[0][2] ;
+     nhdr.srow_x[3]  = nim->sto_xyz.m[0][3] ;
+     nhdr.srow_y[0]  = nim->sto_xyz.m[1][0] ;
+     nhdr.srow_y[1]  = nim->sto_xyz.m[1][1] ;
+     nhdr.srow_y[2]  = nim->sto_xyz.m[1][2] ;
+     nhdr.srow_y[3]  = nim->sto_xyz.m[1][3] ;
+     nhdr.srow_z[0]  = nim->sto_xyz.m[2][0] ;
+     nhdr.srow_z[1]  = nim->sto_xyz.m[2][1] ;
+     nhdr.srow_z[2]  = nim->sto_xyz.m[2][2] ;
+     nhdr.srow_z[3]  = nim->sto_xyz.m[2][3] ;
+   }
+
+   nhdr.slice_code  = nim->slice_code ;
+   nhdr.xyzt_units  = SPACE_TIME_TO_XYZT( nim->xyz_units, nim->time_units ) ;
+   nhdr.intent_code = nim->intent_code ;
+   if( nim->intent_name[0] != '\0' ){
+     memcpy(nhdr.intent_name,nim->intent_name,15) ;
+     nhdr.intent_name[15] = '\0' ;
+   }
+
+   nhdr.dim_info = FPS_INTO_DIM_INFO( nim->freq_dim ,
+                                      nim->phase_dim , nim->slice_dim ) ;
+
+   nhdr.unused_str[0] = '\0' ;  /* not needed, but complete */
+
+   memcpy(hdr, &nhdr, sizeof(nhdr));
+
+   return 0;
 }
 
 
@@ -5526,7 +7475,7 @@ struct nifti_1_header nifti_convert_nim2nhdr(const nifti_image * nim)
 int nifti_copy_extensions(nifti_image * nim_dest, const nifti_image * nim_src)
 {
    char   * data;
-   size_t   bytes;
+   int64_t  bytes;
    int      c, size, old_size;
 
    if( nim_dest->num_ext > 0 || nim_dest->ext_list != NULL ){
@@ -5614,7 +7563,7 @@ int nifti_extension_size(nifti_image *nim)
 *//*--------------------------------------------------------------------*/
 void nifti_set_iname_offset(nifti_image *nim)
 {
-   int offset;
+   int64_t offset;
 
    switch( nim->nifti_type ){
 
@@ -5625,12 +7574,12 @@ void nifti_set_iname_offset(nifti_image *nim)
 
      /* NIFTI-1 single binary file - always update */
      case NIFTI_FTYPE_NIFTI1_1:
-       offset = nifti_extension_size(nim)+sizeof(struct nifti_1_header)+4;
+       offset = nifti_extension_size(nim)+sizeof(nifti_1_header)+4;
        /* be sure offset is aligned to a 16 byte boundary */
        if ( ( offset % 16 ) != 0 )  offset = ((offset + 0xf) & ~0xf);
        if( nim->iname_offset != offset ){
           if( g_opts.debug > 1 )
-             fprintf(stderr,"+d changing offset from %d to %d\n",
+             fprintf(stderr,"+d changing offset from %lld to %lld\n",
                   nim->iname_offset, offset);
           nim->iname_offset = offset;
        }
@@ -5656,7 +7605,7 @@ void nifti_set_iname_offset(nifti_image *nim)
    \sa nifti_image_write, nifti_image_write_hdr_img2, nifti_image_free,
        nifti_set_filenames
 *//*--------------------------------------------------------------------*/
-znzFile nifti_image_write_hdr_img( nifti_image *nim , int write_data , 
+znzFile nifti_image_write_hdr_img( nifti_image *nim , int write_data ,
                                           const char* opts )
 {
   return nifti_image_write_hdr_img2(nim,write_data,opts,NULL,NULL);
@@ -5675,7 +7624,7 @@ znzFile nifti_image_write_hdr_img( nifti_image *nim , int write_data ,
  * If the image data file is left open it returns a valid znzFile handle.
  * It also uses imgfile as the open image file is not null, and modifies
  * it inside.
- * 
+ *
  * \param nim        nifti_image to write to disk
  * \param write_opts flags whether to write data and/or close file (see below)
  * \param opts       file-open options, probably "wb" from nifti_image_write()
@@ -5683,25 +7632,27 @@ znzFile nifti_image_write_hdr_img( nifti_image *nim , int write_data ,
                      (may be NULL)
  * \param NBL        optional nifti_brick_list, containing the image data
                      (may be NULL)
- * 
+ *
  * Values for write_opts mode are based on two binary flags
  * ( 0/1 for no-write/write data, and 0/2 for close/leave-open files ) :
  *    -   0 = do not write data and close (do not open data file)
  *    -   1 = write data        and close
- *    -   2 = do not write data and leave data file open 
- *    -   3 = write data        and leave data file open 
+ *    -   2 = do not write data and leave data file open
+ *    -   3 = write data        and leave data file open
  *
  * \sa nifti_image_write, nifti_image_write_hdr_img, nifti_image_free,
  *     nifti_set_filenames
 *//*---------------------------------------------------------------------*/
-znzFile nifti_image_write_hdr_img2(nifti_image *nim, int write_opts, 
+znzFile nifti_image_write_hdr_img2(nifti_image *nim, int write_opts,
                const char * opts, znzFile imgfile, const nifti_brick_list * NBL)
 {
-   struct nifti_1_header nhdr ;
-   znzFile               fp=NULL;
-   size_t                ss ;
-   int                   write_data, leave_open;
-   char                  func[] = { "nifti_image_write_hdr_img2" };
+   nifti_1_header n1hdr ;
+   nifti_2_header n2hdr ;
+   znzFile        fp=NULL;
+   int64_t        ss ;
+   int            write_data, leave_open;
+   int            nver=1, hsize=(int)sizeof(nifti_1_header);  /* 5 Aug 2015 */
+   char           func[] = { "nifti_image_write_hdr_img2" };
 
    write_data = write_opts & 1;  /* just separate the bits now */
    leave_open = write_opts & 2;
@@ -5718,14 +7669,23 @@ znzFile nifti_image_write_hdr_img2(nifti_image *nim, int write_opts,
    if( g_opts.debug > 1 ){
       fprintf(stderr,"-d writing nifti file '%s'...\n", nim->fname);
       if( g_opts.debug > 2 )
-         fprintf(stderr,"-d nifti type %d, offset %d\n",
+         fprintf(stderr,"-d nifti type %d, offset %lld\n",
                  nim->nifti_type, nim->iname_offset);
    }
 
    if( nim->nifti_type == NIFTI_FTYPE_ASCII )   /* non-standard case */
       return nifti_write_ascii_image(nim,NBL,opts,write_data,leave_open);
 
-   nhdr = nifti_convert_nim2nhdr(nim);    /* create the nifti1_header struct */
+   /* create the nifti header struct                  5 Aug, 2015 [rickr]
+        - default is NIFTI-1 (option?)
+        - if that fails try NIFTI-2
+   */
+   if( nifti_convert_nim2n1hdr(nim, &n1hdr) ) {
+      if( nifti_convert_nim2n2hdr(nim, &n2hdr) ) return NULL;
+      fprintf(stderr,"+d writing %s as NIFTI-2, instead...\n", nim->fname);
+      nver = 2; /* we will write NIFTI-2 */
+      hsize = (int)sizeof(nifti_2_header);
+   }
 
    /* if writing to 2 files, make sure iname is set and different from fname */
    if( nim->nifti_type != NIFTI_FTYPE_NIFTI1_1 ){
@@ -5734,7 +7694,7 @@ znzFile nifti_image_write_hdr_img2(nifti_image *nim, int write_opts,
        }
        if( nim->iname == NULL ){ /* then make a new one */
          nim->iname = nifti_makeimgname(nim->fname,nim->nifti_type,0,0);
-         if( nim->iname == NULL ) return NULL;  
+         if( nim->iname == NULL ) return NULL;
        }
    }
 
@@ -5755,8 +7715,10 @@ znzFile nifti_image_write_hdr_img2(nifti_image *nim, int write_opts,
 
    /* write the header and extensions */
 
-   ss = znzwrite(&nhdr , 1 , sizeof(nhdr) , fp); /* write header */
-   if( ss < sizeof(nhdr) ){
+   if( nver == 2 ) ss = znzwrite(&n2hdr , 1 , hsize , fp); /* write header */
+   else            ss = znzwrite(&n1hdr , 1 , hsize , fp); /* write header */
+
+   if( ss < hsize ){
       LNI_FERR(func,"bad header write to output file",nim->fname);
       znzclose(fp); return fp;
    }
@@ -5802,20 +7764,20 @@ znzFile nifti_write_ascii_image(nifti_image *nim, const nifti_brick_list * NBL,
 {
    znzFile   fp;
    char    * hstr;
-                                                                                
+
    hstr = nifti_image_to_ascii( nim ) ;  /* get header in ASCII form */
    if( ! hstr ){ fprintf(stderr,"** failed image_to_ascii()\n"); return NULL; }
-                                                                                
+
    fp = znzopen( nim->fname , opts , nifti_is_gzfile(nim->fname) ) ;
    if( znz_isnull(fp) ){
       free(hstr);
       fprintf(stderr,"** failed to open '%s' for ascii write\n",nim->fname);
       return fp;
    }
-                                                                                
+
    znzputs(hstr,fp);                                               /* header */
    nifti_write_extensions(fp,nim);                             /* extensions */
-                                                                                
+
    if ( write_data   ) { nifti_write_all_data(fp,nim,NBL); }         /* data */
    if ( ! leave_open ) { znzclose(fp); }
    free(hstr);
@@ -5971,7 +7933,7 @@ static int unescape_string( char *str )
 
         else if( ii+3 < ll        &&
                  str[ii+1] == '#' &&
-                 isdigit(str[ii+2]) ){   /* &#dec; */
+                 isdigit((int) str[ii+2]) ){   /* &#dec; */
 
            unsigned int val='?' ; int kk=ii+3 ;
            while( kk < ll && kk != ';' ) kk++ ;
@@ -5982,7 +7944,7 @@ static int unescape_string( char *str )
         else if( ii+4 < ll        &&
                  str[ii+1] == '#' &&
                  str[ii+2] == 'x' &&
-                 isxdigit(str[ii+3]) ){   /* &#hex; */
+                 isxdigit((int) str[ii+3]) ){   /* &#hex; */
 
            unsigned int val='?' ; int kk=ii+4 ;
            while( kk < ll && kk != ';' ) kk++ ;
@@ -6114,16 +8076,16 @@ char *nifti_image_to_ascii( const nifti_image *nim )
    ebuf = escapize_string(nim->iname) ;
    sprintf( buf+strlen(buf) , "  image_filename = %s\n", ebuf); free(ebuf);
 
-   sprintf( buf+strlen(buf) , "  image_offset = '%d'\n" , nim->iname_offset );
+   sprintf( buf+strlen(buf) , "  image_offset = '%lld'\n" , nim->iname_offset );
 
-                       sprintf( buf+strlen(buf), "  ndim = '%d'\n", nim->ndim);
-                       sprintf( buf+strlen(buf), "  nx = '%d'\n",   nim->nx  );
-   if( nim->ndim > 1 ) sprintf( buf+strlen(buf), "  ny = '%d'\n",   nim->ny  );
-   if( nim->ndim > 2 ) sprintf( buf+strlen(buf), "  nz = '%d'\n",   nim->nz  );
-   if( nim->ndim > 3 ) sprintf( buf+strlen(buf), "  nt = '%d'\n",   nim->nt  );
-   if( nim->ndim > 4 ) sprintf( buf+strlen(buf), "  nu = '%d'\n",   nim->nu  );
-   if( nim->ndim > 5 ) sprintf( buf+strlen(buf), "  nv = '%d'\n",   nim->nv  );
-   if( nim->ndim > 6 ) sprintf( buf+strlen(buf), "  nw = '%d'\n",   nim->nw  );
+                       sprintf( buf+strlen(buf), "  ndim = '%lld'\n",nim->ndim);
+                       sprintf( buf+strlen(buf), "  nx = '%lld'\n",  nim->nx  );
+   if( nim->ndim > 1 ) sprintf( buf+strlen(buf), "  ny = '%lld'\n",  nim->ny  );
+   if( nim->ndim > 2 ) sprintf( buf+strlen(buf), "  nz = '%lld'\n",  nim->nz  );
+   if( nim->ndim > 3 ) sprintf( buf+strlen(buf), "  nt = '%lld'\n",  nim->nt  );
+   if( nim->ndim > 4 ) sprintf( buf+strlen(buf), "  nu = '%lld'\n",  nim->nu  );
+   if( nim->ndim > 5 ) sprintf( buf+strlen(buf), "  nv = '%lld'\n",  nim->nv  );
+   if( nim->ndim > 6 ) sprintf( buf+strlen(buf), "  nw = '%lld'\n",  nim->nw  );
                        sprintf( buf+strlen(buf), "  dx = '%g'\n",   nim->dx  );
    if( nim->ndim > 1 ) sprintf( buf+strlen(buf), "  dy = '%g'\n",   nim->dy  );
    if( nim->ndim > 2 ) sprintf( buf+strlen(buf), "  dz = '%g'\n",   nim->dz  );
@@ -6136,7 +8098,7 @@ char *nifti_image_to_ascii( const nifti_image *nim )
    sprintf( buf+strlen(buf) , "  datatype_name = '%s'\n" ,
                               nifti_datatype_string(nim->datatype) ) ;
 
-   sprintf( buf+strlen(buf) , "  nvox = '%u'\n" , (unsigned)nim->nvox ) ;
+   sprintf( buf+strlen(buf) , "  nvox = '%lld'\n" ,  nim->nvox ) ;
    sprintf( buf+strlen(buf) , "  nbyper = '%d'\n" , nim->nbyper ) ;
 
    sprintf( buf+strlen(buf) , "  byteorder = '%s'\n" ,
@@ -6195,8 +8157,8 @@ char *nifti_image_to_ascii( const nifti_image *nim )
               nim->slice_code , nifti_slice_string(nim->slice_code) ) ;
    if( nim->slice_start >= 0 && nim->slice_end > nim->slice_start )
      sprintf( buf+strlen(buf) ,
-              "  slice_start = '%d'\n"
-              "  slice_end = '%d'\n"  , nim->slice_start , nim->slice_end ) ;
+              "  slice_start = '%lld'\n"
+              "  slice_end = '%lld'\n"  , nim->slice_start , nim->slice_end ) ;
    if( nim->slice_duration != 0.0 )
      sprintf( buf+strlen(buf) , "  slice_duration = '%g'\n",
               nim->slice_duration ) ;
@@ -6252,7 +8214,7 @@ char *nifti_image_to_ascii( const nifti_image *nim )
          nim->quatern_b , nim->quatern_c , nim->quatern_d ,
          nim->qoffset_x , nim->qoffset_y , nim->qoffset_z , nim->qfac ) ;
 
-     nifti_mat44_to_orientation( nim->qto_xyz , &i,&j,&k ) ;
+     nifti_dmat44_to_orientation( nim->qto_xyz , &i,&j,&k ) ;
      if( i > 0 && j > 0 && k > 0 )
        sprintf( buf+strlen(buf) ,
                 "  qform_i_orientation = '%s'\n"
@@ -6291,7 +8253,7 @@ char *nifti_image_to_ascii( const nifti_image *nim )
          nim->sto_ijk.m[3][0] , nim->sto_ijk.m[3][1] ,
          nim->sto_ijk.m[3][2] , nim->sto_ijk.m[3][3]  ) ;
 
-     nifti_mat44_to_orientation( nim->sto_xyz , &i,&j,&k ) ;
+     nifti_dmat44_to_orientation( nim->sto_xyz , &i,&j,&k ) ;
      if( i > 0 && j > 0 && k > 0 )
        sprintf( buf+strlen(buf) ,
                 "  sform_i_orientation = '%s'\n"
@@ -6339,11 +8301,11 @@ int nifti_short_order(void)   /* determine this CPU's byte order */
 /* macro to check lhs string against "n1"; if it matches,
    interpret rhs string as a number, and put it into nim->"n2" */
 
-#define QQNUM(n1,n2) if( strcmp(lhs,#n1)==0 ) nim->n2=strtod(rhs,NULL)
+#define QQNUM(n1,n2,tt) if( strcmp(lhs,#n1)==0 ) nim->n2=(tt)strtod(rhs,NULL)
 
 /* same, but where "n1" == "n2" */
 
-#define QNUM(nam)    QQNUM(nam,nam)
+#define QNUM(nam,tt)    QQNUM(nam,nam,tt)
 
 /* macro to check lhs string against "nam"; if it matches,
    put rhs string into nim->"nam" string, with max length = "ml" */
@@ -6363,14 +8325,14 @@ int nifti_short_order(void)   /* determine this CPU's byte order */
 nifti_image *nifti_image_from_ascii( const char *str, int * bytes_read )
 {
    char lhs[1024] , rhs[1024] ;
-   int ii , spos, nn , slen ;
+   int ii , spos, nn ;
    nifti_image *nim ;              /* will be output */
 
    if( str == NULL || *str == '\0' ) return NULL ;  /* bad input!? */
 
    /* scan for opening string */
 
-   spos = 0 ; slen = (int)strlen(str) ;
+   spos = 0 ;
    ii = sscanf( str+spos , "%1023s%n" , lhs , &nn ) ; spos += nn ;
    if( ii == 0 || strcmp(lhs,"<nifti_image") != 0 ) return NULL ;
 
@@ -6386,7 +8348,7 @@ nifti_image *nifti_image_from_ascii( const char *str, int * bytes_read )
            = nim->nu = nim->nv = nim->nw = 1 ;
    nim->dx = nim->dy = nim->dz = nim->dt
            = nim->du = nim->dv = nim->dw = 0 ;
-   nim->qfac = 1.0 ;
+   nim->qfac = 1.0f ;
 
    nim->byteorder = nifti_short_order() ;
 
@@ -6444,7 +8406,7 @@ nifti_image *nifti_image_from_ascii( const char *str, int * bytes_read )
        nim->iname = nifti_strdup(rhs) ;
      }
      else if( strcmp(lhs,"sto_xyz_matrix") == 0 ){
-       sscanf( rhs , "%f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f" ,
+       sscanf( rhs , "%lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf" ,
                &(nim->sto_xyz.m[0][0]) , &(nim->sto_xyz.m[0][1]) ,
                &(nim->sto_xyz.m[0][2]) , &(nim->sto_xyz.m[0][3]) ,
                &(nim->sto_xyz.m[1][0]) , &(nim->sto_xyz.m[1][1]) ,
@@ -6458,54 +8420,54 @@ nifti_image *nifti_image_from_ascii( const char *str, int * bytes_read )
        if( strcmp(rhs,"MSB_FIRST") == 0 ) nim->byteorder = MSB_FIRST ;
        if( strcmp(rhs,"LSB_FIRST") == 0 ) nim->byteorder = LSB_FIRST ;
      }
-     else QQNUM(image_offset,iname_offset) ;
-     else QNUM(datatype) ;
-     else QNUM(ndim) ;
-     else QNUM(nx) ;
-     else QNUM(ny) ;
-     else QNUM(nz) ;
-     else QNUM(nt) ;
-     else QNUM(nu) ;
-     else QNUM(nv) ;
-     else QNUM(nw) ;
-     else QNUM(dx) ;
-     else QNUM(dy) ;
-     else QNUM(dz) ;
-     else QNUM(dt) ;
-     else QNUM(du) ;
-     else QNUM(dv) ;
-     else QNUM(dw) ;
-     else QNUM(cal_min) ;
-     else QNUM(cal_max) ;
-     else QNUM(scl_slope) ;
-     else QNUM(scl_inter) ;
-     else QNUM(intent_code) ;
-     else QNUM(intent_p1) ;
-     else QNUM(intent_p2) ;
-     else QNUM(intent_p3) ;
+     else QQNUM(image_offset,iname_offset,int) ;
+     else QNUM(datatype,short int) ;
+     else QNUM(ndim,int) ;
+     else QNUM(nx,int) ;
+     else QNUM(ny,int) ;
+     else QNUM(nz,int) ;
+     else QNUM(nt,int) ;
+     else QNUM(nu,int) ;
+     else QNUM(nv,int) ;
+     else QNUM(nw,int) ;
+     else QNUM(dx,float) ;
+     else QNUM(dy,float) ;
+     else QNUM(dz,float) ;
+     else QNUM(dt,float) ;
+     else QNUM(du,float) ;
+     else QNUM(dv,float) ;
+     else QNUM(dw,float) ;
+     else QNUM(cal_min,float) ;
+     else QNUM(cal_max,float) ;
+     else QNUM(scl_slope,float) ;
+     else QNUM(scl_inter,float) ;
+     else QNUM(intent_code,short) ;
+     else QNUM(intent_p1,float) ;
+     else QNUM(intent_p2,float) ;
+     else QNUM(intent_p3,float) ;
      else QSTR(intent_name,15) ;
-     else QNUM(toffset) ;
-     else QNUM(xyz_units) ;
-     else QNUM(time_units) ;
+     else QNUM(toffset,float) ;
+     else QNUM(xyz_units,int) ;
+     else QNUM(time_units,int) ;
      else QSTR(descrip,79) ;
      else QSTR(aux_file,23) ;
-     else QNUM(qform_code) ;
-     else QNUM(quatern_b) ;
-     else QNUM(quatern_c) ;
-     else QNUM(quatern_d) ;
-     else QNUM(qoffset_x) ;
-     else QNUM(qoffset_y) ;
-     else QNUM(qoffset_z) ;
-     else QNUM(qfac) ;
-     else QNUM(sform_code) ;
-     else QNUM(freq_dim) ;
-     else QNUM(phase_dim) ;
-     else QNUM(slice_dim) ;
-     else QNUM(slice_code) ;
-     else QNUM(slice_start) ;
-     else QNUM(slice_end) ;
-     else QNUM(slice_duration) ;
-     else QNUM(num_ext) ;
+     else QNUM(qform_code,int) ;
+     else QNUM(quatern_b,float) ;
+     else QNUM(quatern_c,float) ;
+     else QNUM(quatern_d,float) ;
+     else QNUM(qoffset_x,float) ;
+     else QNUM(qoffset_y,float) ;
+     else QNUM(qoffset_z,float) ;
+     else QNUM(qfac,float) ;
+     else QNUM(sform_code,int) ;
+     else QNUM(freq_dim,int) ;
+     else QNUM(phase_dim,int) ;
+     else QNUM(slice_dim,int) ;
+     else QNUM(slice_code,int) ;
+     else QNUM(slice_start,int) ;
+     else QNUM(slice_end,int) ;
+     else QNUM(slice_duration,float) ;
+     else QNUM(num_ext,int) ;
 
    } /* end of while loop */
 
@@ -6527,25 +8489,25 @@ nifti_image *nifti_image_from_ascii( const char *str, int * bytes_read )
    nim->dim[6] = nim->nv ; nim->pixdim[6] = nim->dv ;
    nim->dim[7] = nim->nw ; nim->pixdim[7] = nim->dw ;
 
-   nim->nvox = (size_t)nim->nx * nim->ny * nim->nz
-                     * nim->nt * nim->nu * nim->nv * nim->nw ;
+   nim->nvox = (int64_t)nim->nx * nim->ny * nim->nz
+                      * nim->nt * nim->nu * nim->nv * nim->nw ;
 
    if( nim->qform_code > 0 )
-     nim->qto_xyz = nifti_quatern_to_mat44(
+     nim->qto_xyz = nifti_quatern_to_dmat44(
                       nim->quatern_b, nim->quatern_c, nim->quatern_d,
                       nim->qoffset_x, nim->qoffset_y, nim->qoffset_z,
                       nim->dx       , nim->dy       , nim->dz       ,
                       nim->qfac                                      ) ;
    else
-     nim->qto_xyz = nifti_quatern_to_mat44(
+     nim->qto_xyz = nifti_quatern_to_dmat44(
                       0.0 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0 ,
                       nim->dx , nim->dy , nim->dz , 0.0 ) ;
 
 
-   nim->qto_ijk = nifti_mat44_inverse( nim->qto_xyz ) ;
+   nim->qto_ijk = nifti_dmat44_inverse( nim->qto_xyz ) ;
 
    if( nim->sform_code > 0 )
-     nim->sto_ijk = nifti_mat44_inverse( nim->sto_xyz ) ;
+     nim->sto_ijk = nifti_dmat44_inverse( nim->sto_xyz ) ;
 
    return nim ;
 }
@@ -6556,7 +8518,7 @@ nifti_image *nifti_image_from_ascii( const char *str, int * bytes_read )
 
     \return 1 if the structure seems valid, otherwise 0
 
-    \sa nifti_nim_has_valid_dims, nifti_hdr_looks_good
+    \sa nifti_nim_has_valid_dims, nifti_hdr1_looks_good
 *//*-------------------------------------------------------------------------*/
 int nifti_nim_is_valid(nifti_image * nim, int complain)
 {
@@ -6587,20 +8549,20 @@ int nifti_nim_is_valid(nifti_image * nim, int complain)
 
     \return 1 if valid, 0 if not
 
-    \sa nifti_nim_is_valid, nifti_hdr_looks_good
+    \sa nifti_nim_is_valid, nifti_hdr1_looks_good
 
     rely on dim[] as the master
 *//*-------------------------------------------------------------------------*/
 int nifti_nim_has_valid_dims(nifti_image * nim, int complain)
 {
-   size_t prod;
-   int    c, errs = 0;
+   int64_t prod, c;
+   int     errs = 0;
 
    /**- start with dim[0]: failure here is considered terminal */
    if( nim->dim[0] <= 0 || nim->dim[0] > 7 ){
       errs++;
       if( complain )
-         fprintf(stderr,"** NVd: dim[0] (%d) out of range [1,7]\n",nim->dim[0]);
+        fprintf(stderr,"** NVd: dim[0] (%lld) out of range [1,7]\n",nim->dim[0]);
       return 0;
    }
 
@@ -6608,7 +8570,8 @@ int nifti_nim_has_valid_dims(nifti_image * nim, int complain)
    if( nim->ndim != nim->dim[0] ){
       errs++;
       if( ! complain ) return 0;
-      fprintf(stderr,"** NVd: ndim != dim[0] (%d,%d)\n",nim->ndim,nim->dim[0]);
+      fprintf(stderr,"** NVd: ndim != dim[0] (%lld,%lld)\n",
+              nim->ndim,nim->dim[0]);
    }
 
    /**- compare each dim[i] to the proper nx, ny, ... */
@@ -6621,8 +8584,8 @@ int nifti_nim_has_valid_dims(nifti_image * nim, int complain)
        ( (nim->dim[0] >= 7) && (nim->dim[7] != nim->nw) )   ){
       errs++;
       if( !complain ) return 0;
-      fprintf(stderr,"** NVd mismatch: dims    = %d,%d,%d,%d,%d,%d,%d\n"
-                     "                 nxyz... = %d,%d,%d,%d,%d,%d,%d\n",
+      fprintf(stderr,"** NVd mismatch: dims    = %lld,%lld,%lld,%lld,%lld,%lld,%lld\n"
+                     "                 nxyz... = %lld,%lld,%lld,%lld,%lld,%lld,%lld\n",
                      nim->dim[1], nim->dim[2], nim->dim[3],
                      nim->dim[4], nim->dim[5], nim->dim[6], nim->dim[7],
                      nim->nx, nim->ny, nim->nz,
@@ -6630,8 +8593,8 @@ int nifti_nim_has_valid_dims(nifti_image * nim, int complain)
    }
 
    if( g_opts.debug > 2 ){
-      fprintf(stderr,"-d check dim[%d] =", nim->dim[0]);
-      for( c = 0; c < 7; c++ ) fprintf(stderr," %d", nim->dim[c]);
+      fprintf(stderr,"-d check dim[%lld] =", nim->dim[0]);
+      for( c = 0; c < 7; c++ ) fprintf(stderr," %lld", nim->dim[c]);
       fputc('\n', stderr);
    }
 
@@ -6642,14 +8605,14 @@ int nifti_nim_has_valid_dims(nifti_image * nim, int complain)
          prod *= nim->dim[c];
       else if( nim->dim[c] <= 0 ){
          if( !complain ) return 0;
-         fprintf(stderr,"** NVd: dim[%d] (=%d) <= 0\n",c, nim->dim[c]);
+         fprintf(stderr,"** NVd: dim[%lld] (=%lld) <= 0\n",c, nim->dim[c]);
          errs++;
       }
    }
    if( prod != nim->nvox ){
       if( ! complain ) return 0;
-      fprintf(stderr,"** NVd: nvox does not match %d-dim product (%u, %u)\n",
-              nim->dim[0], (unsigned)nim->nvox, (unsigned)prod);
+      fprintf(stderr,"** NVd: nvox does not match %lld-dim product (%lld, %lld)\n",
+              nim->dim[0], nim->nvox, prod);
       errs++;
    }
 
@@ -6659,7 +8622,7 @@ int nifti_nim_has_valid_dims(nifti_image * nim, int complain)
    if( g_opts.debug > 1 )
       for( c = nim->dim[0]+1; c <= 7; c++ )
          if( nim->dim[c] != 0 && nim->dim[c] != 1 )
-            fprintf(stderr,"** NVd warning: dim[%d] = %d, but ndim = %d\n",
+            fprintf(stderr,"** NVd warning: dim[%lld] = %lld, but ndim = %lld\n",
                     c, nim->dim[c], nim->dim[0]);
 
    if( g_opts.debug > 2 )
@@ -6724,8 +8687,8 @@ int nifti_nim_has_valid_dims(nifti_image * nim, int complain)
           valid memory, sufficient to hold the results.  This is done for
           speed and possibly repeated calls to this function.
 
-      e.g. { int    dims[8] = { 0,  -1, -1, -1, -1, -1, -1, -1 };
-             void * data    = NULL;
+      e.g. { int64_t dims[8] = { 0,  -1, -1, -1, -1, -1, -1, -1 };
+             void  * data    = NULL;
              for( zslice = 0; zslice < nzslices; zslice++ ){
                 dims[3] = zslice;
                 ret_val = nifti_read_collapsed_image(nim, dims, &data);
@@ -6741,25 +8704,26 @@ int nifti_nim_has_valid_dims(nifti_image * nim, int complain)
     \sa nifti_image_read, nifti_image_free, nifti_image_read_bricks
         nifti_image_load
 *//*-------------------------------------------------------------------------*/
-int nifti_read_collapsed_image( nifti_image * nim, const int dims [8],
+int64_t nifti_read_collapsed_image( nifti_image * nim, const int64_t dims [8],
                                 void ** data )
 {
    znzFile fp;
-   int     pivots[8], prods[8], nprods; /* sizes are bounded by dims[], so 8 */
-   int     c, bytes;
+   int64_t prods[8];          /* sizes are bounded by dims[], so 8 */
+   int     pivots[8], nprods; /* sizes are bounded by dims[], so 8 */
+   int64_t c, bytes;
 
    /** - check pointers for sanity */
    if( !nim || !dims || !data ){
       fprintf(stderr,"** nifti_RCI: bad params %p, %p, %p\n",
-              (void *)nim, (void *)dims, (void *)data);
+              (void *)nim, (const void *)dims, (void *)data);
       return -1;
    }
 
    if( g_opts.debug > 2 ){
       fprintf(stderr,"-d read_collapsed_image:\n        dims =");
-      for(c = 0; c < 8; c++) fprintf(stderr," %3d", dims[c]);
+      for(c = 0; c < 8; c++) fprintf(stderr," %3lld", dims[c]);
       fprintf(stderr,"\n   nim->dims =");
-      for(c = 0; c < 8; c++) fprintf(stderr," %3d", nim->dim[c]);
+      for(c = 0; c < 8; c++) fprintf(stderr," %3lld", nim->dim[c]);
       fputc('\n', stderr);
    }
 
@@ -6772,7 +8736,7 @@ int nifti_read_collapsed_image( nifti_image * nim, const int dims [8],
    /** - verify that dims[] makes sense for this dataset */
    for( c = 1; c <= nim->dim[0]; c++ ){
       if( dims[c] >= nim->dim[c] ){
-         fprintf(stderr,"** nifti_RCI: dims[%d] >= nim->dim[%d] (%d,%d)\n",
+         fprintf(stderr,"** nifti_RCI: dims[%lld] >= nim->dim[%lld] (%lld,%lld)\n",
                  c, c, dims[c], nim->dim[c]);
          return -1;
       }
@@ -6790,13 +8754,13 @@ int nifti_read_collapsed_image( nifti_image * nim, const int dims [8],
 
    /** - call the recursive reading function, passing nim, the pivot info,
          location to store memory, and file pointer and position */
-   c = rci_read_data(nim, pivots,prods,nprods,dims,
-                     (char *)*data, fp, znztell(fp));
+   c = rci_read_data(nim, pivots, prods, nprods, dims, (char *)*data, fp,
+                     znztell(fp));
    znzclose(fp);   /* in any case, close the file */
    if( c < 0 ){ free(*data);  *data = NULL;  return -1; }    /* failure */
 
    if( g_opts.debug > 1 )
-      fprintf(stderr,"+d read %d bytes of collapsed image from %s\n",
+      fprintf(stderr,"+d read %lld bytes of collapsed image from %s\n",
               bytes, nim->fname);
 
    return bytes;
@@ -6807,7 +8771,7 @@ int nifti_read_collapsed_image( nifti_image * nim, const int dims [8],
 ** stride array.
 */
 static void
-compute_strides(int *strides,const int *size,int nbyper)
+compute_strides(int64_t *strides,const int64_t *size,int nbyper)
 {
   int i;
   strides[0] = nbyper;
@@ -6825,7 +8789,7 @@ compute_strides(int *strides,const int *size,int nbyper)
     around the center of a 3D image.
 
     \param nim  given nifti_image struct, corresponding to the data file
-    \param start_index the index location of the first voxel that will be returned
+    \param start_index the index location of first voxel that will be returned
     \param region_size the size of the subregion to be returned
     \param data pointer to data pointer (if *data is NULL, data will be
                 allocated, otherwise not)
@@ -6834,7 +8798,7 @@ compute_strides(int *strides,const int *size,int nbyper)
 
       if start_index[7] = { 29,  29, 29, 0, 0, 0, 0 } and
          region_size[7] = {  5,   5,  5, 1, 1, 1, 1 }
-         -> read 5x5x5 region starting with the first voxel location at (29,29,29)
+         -> read 5x5x5 region starting with the first voxel at (29,29,29)
 
     NOTE: If *data is not NULL, then it will be assumed that it points to
           valid memory, sufficient to hold the results.  This is done for
@@ -6846,81 +8810,59 @@ compute_strides(int *strides,const int *size,int nbyper)
     \sa nifti_image_read, nifti_image_free, nifti_image_read_bricks
         nifti_image_load, nifti_read_collapsed_image
 *//*-------------------------------------------------------------------------*/
-int nifti_read_subregion_image( nifti_image * nim,
-                                int *start_index,
-                                int *region_size,
+int64_t nifti_read_subregion_image( nifti_image * nim,
+                                int64_t *start_index,
+                                int64_t *region_size,
                                 void ** data )
 {
   znzFile fp;                   /* file to read */
-  int i,j,k,l,m,n;              /* indices for dims */
-  long int bytes = 0;           /* total # bytes read */
-  int total_alloc_size;         /* size of buffer allocation */
-  char *readptr;                /* where in *data to read next */
-  int strides[7];               /* strides between dimensions */
-  int collapsed_dims[8];        /* for read_collapsed_image */
-  int *image_size;              /* pointer to dimensions in header */
-  long int initial_offset;
-  long int offset;              /* seek offset for reading current row */
+  int64_t i,j,k,l,m,n;          /* indices for dims */
+  int64_t bytes = 0;            /* total # bytes read */
+  int64_t total_alloc_size;     /* size of buffer allocation */
+  char   *readptr;              /* where in *data to read next */
+  int64_t strides[7];           /* strides between dimensions */
+  int64_t collapsed_dims[8];    /* for read_collapsed_image */
+  int64_t *image_size;          /* pointer to dimensions in header */
+  int64_t initial_offset;
+  int64_t offset;               /* seek offset for reading current row */
 
   /* probably ignored, but set to ndim for consistency*/
   collapsed_dims[0] = nim->ndim;
 
   /* build a dims array for collapsed image read */
-  for(i = 0; i < nim->ndim; i++)
-    {
+  for(i = 0; i < nim->ndim; i++) {
     /* if you take the whole extent in this dimension */
-    if(start_index[i] == 0 &&
-       region_size[i] == nim->dim[i+1])
-      {
+    if(start_index[i] == 0 && region_size[i] == nim->dim[i+1])
       collapsed_dims[i+1] = -1;
-      }
     /* if you specify a single element in this dimension */
     else if(region_size[i] == 1)
-      {
       collapsed_dims[i+1] = start_index[i];
-      }
     else
-      {
       collapsed_dims[i+1] = -2; /* sentinel value */
-      }
-    }
+  }
   /* fill out end of collapsed_dims */
   for(i = nim->ndim ; i < 7; i++)
-    {
     collapsed_dims[i+1] = -1;
-    }
 
   /* check to see whether collapsed read is possible */
   for(i = 1; i <= nim->ndim; i++)
-    {
-    if(collapsed_dims[i] == -2)
-      {
-      break;
-      }
-    }
+    if(collapsed_dims[i] == -2) break;
 
-  /* if you get through all the dimensions without hitting 
+  /* if you get through all the dimensions without hitting
   ** a subrange of size > 1, a collapsed read is possible
   */
   if(i > nim->ndim)
-    {
     return nifti_read_collapsed_image(nim, collapsed_dims, data);
-    }
 
   /* point past first element of dim, which holds nim->ndim */
   image_size = &(nim->dim[1]);
 
   /* check region sizes for sanity */
   for(i = 0; i < nim->ndim; i++)
-    {
-    if(start_index[i]  + region_size[i] > image_size[i])
-      {
+    if(start_index[i]  + region_size[i] > image_size[i]) {
       if(g_opts.debug > 1)
-        {
         fprintf(stderr,"region doesn't fit within image size\n");
-        }
       return -1;
-      }
     }
 
   /* get the file open */
@@ -6928,31 +8870,23 @@ int nifti_read_subregion_image( nifti_image * nim,
   /* the current offset is just past the nifti header, save
    * location so that SEEK_SET can be used below
    */
-  initial_offset = znztell(fp);  
+  initial_offset = znztell(fp);
   /* get strides*/
   compute_strides(strides,image_size,nim->nbyper);
 
   total_alloc_size = nim->nbyper; /* size of pixel */
 
   /* find alloc size */
-  for(i = 0; i < nim->ndim; i++)
-    {
-    total_alloc_size *= region_size[i];
-    }
-  /* allocate buffer, if necessary */
-  if(*data == 0)
-    {
-    *data = (void *)malloc(total_alloc_size);
-    }
+  for(i = 0; i < nim->ndim; i++) total_alloc_size *= region_size[i];
 
-  if(*data == 0)
-    {
+  /* allocate buffer, if necessary */
+  if(! *data) *data = (void *)malloc(total_alloc_size);
+
+  if(! *data) {
     if(g_opts.debug > 1)
-      {
-      fprintf(stderr,"allocation of %d bytes failed\n",total_alloc_size);
-      return -1;
-      }
-    }
+      fprintf(stderr,"allocation of %lld bytes failed\n",total_alloc_size);
+    return -1;
+  }
 
   /* point to start of data buffer as char * */
   readptr = *((char **)data);
@@ -6960,31 +8894,24 @@ int nifti_read_subregion_image( nifti_image * nim,
   /* can't assume that start_index and region_size have any more than
   ** nim->ndim elements so make local copies, filled out to seven elements
   */
-  int si[7], rs[7];
-  for(i = 0; i < nim->ndim; i++)
-    {
+  int64_t si[7], rs[7];
+  for(i = 0; i < nim->ndim; i++) {
     si[i] = start_index[i];
     rs[i] = region_size[i];
-    }
-  for(i = nim->ndim; i < 7; i++)
-    {
+  }
+  for(i = nim->ndim; i < 7; i++) {
     si[i] = 0;
     rs[i] = 1;
-    }
+  }
+
   /* loop through subregion and read a row at a time */
-  for(i = si[6]; i < (si[6] + rs[6]); i++)
-    {
-    for(j = si[5]; j < (si[5] + rs[5]); j++)
-      {
-      for(k = si[4]; k < (si[4] + rs[4]); k++)
-        {
-        for(l = si[3]; l < (si[3] + rs[3]); l++)
-          {
-          for(m = si[2]; m < (si[2] + rs[2]); m++)
-            {
-            for(n = si[1]; n < (si[1] + rs[1]); n++)
-              {
-              int nread,read_amount;
+  for(i = si[6]; i < (si[6] + rs[6]); i++) {
+    for(j = si[5]; j < (si[5] + rs[5]); j++) {
+      for(k = si[4]; k < (si[4] + rs[4]); k++) {
+        for(l = si[3]; l < (si[3] + rs[3]); l++) {
+          for(m = si[2]; m < (si[2] + rs[2]); m++) {
+            for(n = si[1]; n < (si[1] + rs[1]); n++) {
+              int64_t nread,read_amount;
               offset = initial_offset +
                 (i * strides[6]) +
                 (j * strides[5]) +
@@ -6994,24 +8921,22 @@ int nifti_read_subregion_image( nifti_image * nim,
                 (n * strides[1]) +
                 (si[0] * strides[0]);
               znzseek(fp, offset, SEEK_SET); /* seek to current row */
-              read_amount = rs[0] * nim->nbyper; /* read a row of the subregion*/
-              nread = (int)nifti_read_buffer(fp, readptr, read_amount, nim);
-              if(nread != read_amount)
-                {
-                if(g_opts.debug > 1)
-                  {
-                  fprintf(stderr,"read of %d bytes failed\n",read_amount);
+              read_amount = rs[0] * nim->nbyper; /* read a row of subregion */
+              nread = nifti_read_buffer(fp, readptr, read_amount, nim);
+              if(nread != read_amount) {
+                if(g_opts.debug > 1) {
+                  fprintf(stderr,"read of %lld bytes failed\n",read_amount);
                   return -1;
-                  }
                 }
-              bytes += nread;
-              readptr += read_amount;
               }
+            bytes += nread;
+            readptr += read_amount;
             }
           }
         }
       }
     }
+  }
   }
   return bytes;
 }
@@ -7024,11 +8949,12 @@ int nifti_read_subregion_image( nifti_image * nim,
 
    return 0 on success, < 0 on failure
 */
-static int rci_read_data(nifti_image * nim, int * pivots, int * prods,
-      int nprods, const int dims[], char * data, znzFile fp, size_t base_offset)
+static int rci_read_data(nifti_image * nim, int * pivots, int64_t * prods,
+                         int nprods, const int64_t dims[], char * data,
+                         znzFile fp, int64_t base_offset)
 {
-   size_t sublen, offset, read_size;
-   int    c;
+   int64_t sublen, offset, read_size;
+   int     c;
 
    /* bad check first - base_offset may not have been checked */
    if( nprods <= 0 ){
@@ -7038,7 +8964,7 @@ static int rci_read_data(nifti_image * nim, int * pivots, int * prods,
 
    /* base case: actually read the data */
    if( nprods == 1 ){
-      size_t nread, bytes;
+      int64_t nread, bytes;
 
       /* make sure things look good here */
       if( *pivots != 0 ){
@@ -7047,16 +8973,16 @@ static int rci_read_data(nifti_image * nim, int * pivots, int * prods,
       }
 
       /* so just seek and read (prods[0] * nbyper) bytes from the file */
-      znzseek(fp, (long)base_offset, SEEK_SET);
-      bytes = (size_t)prods[0] * nim->nbyper;
+      znzseek(fp, base_offset, SEEK_SET);
+      bytes = prods[0] * nim->nbyper;
       nread = nifti_read_buffer(fp, data, bytes, nim);
       if( nread != bytes ){
-         fprintf(stderr,"** rciRD: read only %u of %u bytes from '%s'\n",
-                 (unsigned)nread, (unsigned)bytes, nim->fname);
+         fprintf(stderr,"** rciRD: read only %lld of %lld bytes from '%s'\n",
+                 nread, bytes, nim->fname);
          return -1;
       } else if( g_opts.debug > 3 )
-         fprintf(stderr,"+d successful read of %u bytes at offset %u\n",
-                 (unsigned)bytes, (unsigned)base_offset);
+         fprintf(stderr,"+d successful read of %lld bytes at offset %lld\n",
+                 bytes, base_offset);
 
       return 0;  /* done with base case - return success */
    }
@@ -7075,14 +9001,13 @@ static int rci_read_data(nifti_image * nim, int * pivots, int * prods,
       /* offset is (c * sub-block size (including pivot dim))   */
       /*         + (dims[] index into pivot sub-block)          */
       /* the unneeded multiplication is to make this more clear */
-      offset = (size_t)c * sublen * nim->dim[*pivots] +
-               (size_t)sublen * dims[*pivots];
+      offset = (int64_t)c * sublen * nim->dim[*pivots] +
+               (int64_t)sublen * dims[*pivots];
       offset *= nim->nbyper;
 
       if( g_opts.debug > 3 )
-         fprintf(stderr,"-d reading %u bytes, foff %u + %u, doff %u\n",
-                 (unsigned)read_size, (unsigned)base_offset, (unsigned)offset,
-                 (unsigned)(c*read_size));
+         fprintf(stderr,"-d reading %lld bytes, foff %lld + %lld, doff %lld\n",
+                 read_size, base_offset, offset, c*read_size);
 
       /* now read the next level down, adding this offset */
       if( rci_read_data(nim, pivots+1, prods+1, nprods-1, dims,
@@ -7101,33 +9026,34 @@ static int rci_read_data(nifti_image * nim, int * pivots, int * prods,
 
    return total size on success, and < 0 on failure
 */
-static int rci_alloc_mem(void ** data, int prods[8], int nprods, int nbyper )
+static int rci_alloc_mem(void **data, int64_t prods[8], int nprods, int nbyper )
 {
-   int size, index;
+   int64_t size;
+   int     memindex;
 
    if( nbyper < 0 || nprods < 1 || nprods > 8 ){
       fprintf(stderr,"** rci_am: bad params, %d, %d\n", nbyper, nprods);
       return -1;
    }
 
-   for( index = 0, size = 1; index < nprods; index++ )
-       size *= prods[index];
+   for( memindex = 0, size = 1; memindex < nprods; memindex++ )
+       size *= prods[memindex];
 
    size *= nbyper;
 
    if( ! *data ){   /* then allocate what is needed */
       if( g_opts.debug > 1 )
-         fprintf(stderr,"+d alloc %d (= %d x %d) bytes for collapsed image\n",
+         fprintf(stderr,"+d alloc %lld (%lld x %d) bytes for collapsed image\n",
                  size, size/nbyper, nbyper);
 
       *data = malloc(size);   /* actually allocate the memory */
       if( ! *data ){
-         fprintf(stderr,"** rci_am: failed to alloc %d bytes for data\n", size);
-         return -1;
+        fprintf(stderr,"** rci_am: failed to alloc %lld bytes for data\n", size);
+        return -1;
       }
    } else if( g_opts.debug > 1 )
-      fprintf(stderr,"-d rci_am: *data already set, need %d (%d x %d) bytes\n",
-              size, size/nbyper, nbyper);
+      fprintf(stderr,"-d rci_am: *data already set, need %lld x %d bytes\n",
+              size/nbyper, nbyper);
 
    return size;
 }
@@ -7139,22 +9065,22 @@ static int rci_alloc_mem(void ** data, int prods[8], int nprods, int nbyper )
    wants to collapse a dimension.  The last pivot should always be zero
    (note that we have space for that in the lists).
 */
-static int make_pivot_list(nifti_image * nim, const int dims[], int pivots[],
-                                              int prods[], int * nprods )
+static int make_pivot_list(nifti_image *nim, const int64_t dims[], int pivots[],
+                                             int64_t prods[], int * nprods )
 {
-   int len, index;
+   int len, dind;
 
    len = 0;
-   index = nim->dim[0];
-   while( index > 0 ){
+   dind = nim->dim[0];
+   while( dind > 0 ){
       prods[len] = 1;
-      while( index > 0 && (nim->dim[index] == 1 || dims[index] == -1) ){
-         prods[len] *= nim->dim[index];
-         index--;
+      while( dind > 0 && (nim->dim[dind] == 1 || dims[dind] == -1) ){
+         prods[len] *= nim->dim[dind];
+         dind--;
       }
-      pivots[len] = index;
+      pivots[len] = dind;
       len++;
-      index--;  /* fine, let it drop out at -1 */
+      dind--;  /* fine, let it drop out at -1 */
    }
 
    /* make sure to include 0 as a pivot (instead of just 1, if it is) */
@@ -7168,9 +9094,9 @@ static int make_pivot_list(nifti_image * nim, const int dims[], int pivots[],
 
    if( g_opts.debug > 2 ){
       fprintf(stderr,"+d pivot list created, pivots :");
-      for(index = 0; index < len; index++) fprintf(stderr," %d", pivots[index]);
+      for(dind = 0; dind < len; dind++) fprintf(stderr," %d", pivots[dind]);
       fprintf(stderr,", prods :");
-      for(index = 0; index < len; index++) fprintf(stderr," %d", prods[index]);
+      for(dind = 0; dind < len; dind++) fprintf(stderr," %lld", prods[dind]);
       fputc('\n',stderr);
    }
 
@@ -7206,12 +9132,13 @@ static int make_pivot_list(nifti_image * nim, const int dims[], int pivots[],
 
    (borrowed, with permission, from thd_intlist.c)
 *//*-------------------------------------------------------------------*/
-int * nifti_get_intlist( int nvals , const char * str )
+int64_t * nifti_get_int64list( int64_t nvals , const char * str )
 {
-   int *subv = NULL ;
-   int ii , ipos , nout , slen ;
-   int ibot,itop,istep , nused ;
-   char *cpt ;
+   int64_t *subv = NULL ;
+   int64_t ii , nout ;
+   int64_t ibot,itop,istep , nused ;
+   int     ipos , slen ;
+   char    *cpt ;
 
    /* Meaningless input? */
    if( nvals < 1 ) return NULL ;
@@ -7220,7 +9147,7 @@ int * nifti_get_intlist( int nvals , const char * str )
    if( str == NULL || str[0] == '\0' ) return NULL ;
 
    /* skip initial '[' or '{' */
-   subv = (int *)malloc( sizeof(int) * 2 ) ;
+   subv = (int64_t *)malloc( sizeof(int64_t) * 2 ) ;
    if( !subv ) {
       fprintf(stderr,"** nifti_get_intlist: failed alloc of 2 ints\n");
       return NULL;
@@ -7231,7 +9158,7 @@ int * nifti_get_intlist( int nvals , const char * str )
    if( str[ipos] == '[' || str[ipos] == '{' ) ipos++ ;
 
    if( g_opts.debug > 1 )
-      fprintf(stderr,"-d making int_list (vals = %d) from '%s'\n", nvals, str);
+      fprintf(stderr,"-d making int_list (vals = %lld) from '%s'\n", nvals, str);
 
    /**- for each sub-selector until end of input... */
 
@@ -7246,14 +9173,14 @@ int * nifti_get_intlist( int nvals , const char * str )
       if( str[ipos] == '$' ){  /* special case */
          ibot = nvals-1 ; ipos++ ;
       } else {                 /* decode an integer */
-         ibot = strtol( str+ipos , &cpt , 10 ) ;
+         ibot = strtoll( str+ipos , &cpt , 10 ) ;
          if( ibot < 0 ){
-           fprintf(stderr,"** ERROR: list index %d is out of range 0..%d\n",
+           fprintf(stderr,"** ERROR: list index %lld is out of range 0..%lld\n",
                    ibot,nvals-1) ;
            free(subv) ; return NULL ;
          }
          if( ibot >= nvals ){
-           fprintf(stderr,"** ERROR: list index %d is out of range 0..%d\n",
+           fprintf(stderr,"** ERROR: list index %lld is out of range 0..%lld\n",
                    ibot,nvals-1) ;
            free(subv) ; return NULL ;
          }
@@ -7271,9 +9198,9 @@ int * nifti_get_intlist( int nvals , const char * str )
 
       if( str[ipos] == ',' || ISEND(str[ipos]) ){
          nout++ ;
-         subv = (int *)realloc( (char *)subv , sizeof(int) * (nout+1) ) ;
+         subv = (int64_t *)realloc( (char *)subv , sizeof(int64_t)*(nout+1) ) ;
          if( !subv ) {
-            fprintf(stderr,"** nifti_get_intlist: failed realloc of %d ints\n",
+            fprintf(stderr,"** nifti_get_intlist: failed realloc of %lld ints\n",
                     nout+1);
             return NULL;
          }
@@ -7300,14 +9227,14 @@ int * nifti_get_intlist( int nvals , const char * str )
       if( str[ipos] == '$' ){  /* special case */
          itop = nvals-1 ; ipos++ ;
       } else {                 /* decode an integer */
-         itop = strtol( str+ipos , &cpt , 10 ) ;
+         itop = strtoll( str+ipos , &cpt , 10 ) ;
          if( itop < 0 ){
-           fprintf(stderr,"** ERROR: index %d is out of range 0..%d\n",
+           fprintf(stderr,"** ERROR: index %lld is out of range 0..%lld\n",
                    itop,nvals-1) ;
            free(subv) ; return NULL ;
          }
          if( itop >= nvals ){
-           fprintf(stderr,"** ERROR: index %d is out of range 0..%d\n",
+           fprintf(stderr,"** ERROR: index %lld is out of range 0..%lld\n",
                    itop,nvals-1) ;
            free(subv) ; return NULL ;
          }
@@ -7329,7 +9256,7 @@ int * nifti_get_intlist( int nvals , const char * str )
 
       if( str[ipos] == '(' ){  /* decode an integer */
          ipos++ ;
-         istep = strtol( str+ipos , &cpt , 10 ) ;
+         istep = strtoll( str+ipos , &cpt , 10 ) ;
          if( istep == 0 ){
            fprintf(stderr,"** ERROR: index loop step is 0!\n") ;
            free(subv) ; return NULL ;
@@ -7338,8 +9265,8 @@ int * nifti_get_intlist( int nvals , const char * str )
          ipos += nused ;
          if( str[ipos] == ')' ) ipos++ ;
          if( (ibot-itop)*istep > 0 ){
-           fprintf(stderr,"** WARNING: index list '%d..%d(%d)' means nothing\n",
-                   ibot,itop,istep ) ;
+        fprintf(stderr,"** WARNING: index list '%lld..%lld(%lld)' means nothing\n",
+                ibot,itop,istep ) ;
          }
       }
 
@@ -7347,9 +9274,9 @@ int * nifti_get_intlist( int nvals , const char * str )
 
       for( ii=ibot ; (ii-itop)*istep <= 0 ; ii += istep ){
          nout++ ;
-         subv = (int *)realloc( (char *)subv , sizeof(int) * (nout+1) ) ;
+         subv = (int64_t *)realloc( (char *)subv , sizeof(int64_t)*(nout+1) ) ;
          if( !subv ) {
-            fprintf(stderr,"** nifti_get_intlist: failed realloc of %d ints\n",
+            fprintf(stderr,"** nifti_get_intlist: failed realloc of %lld ints\n",
                     nout+1);
             return NULL;
          }
@@ -7365,13 +9292,58 @@ int * nifti_get_intlist( int nvals , const char * str )
    }  /* end of loop through selector string */
 
    if( g_opts.debug > 1 ) {
-      fprintf(stderr,"+d int_list (vals = %d): ", subv[0]);
-      for( ii = 1; ii <= subv[0]; ii++ ) fprintf(stderr,"%d ", subv[ii]);
+      fprintf(stderr,"+d int_list (vals = %lld): ", subv[0]);
+      for( ii = 1; ii <= subv[0]; ii++ ) fprintf(stderr,"%lld ", subv[ii]);
       fputc('\n',stderr);
    }
 
    if( subv[0] == 0 ){ free(subv); subv = NULL; }
    return subv ;
+}
+
+/*! a 32-bit version of nifti_get_int64list */
+int * nifti_get_intlist( int nvals , const char * str )
+{
+   int     *ilist=NULL;
+   int64_t *i64list=NULL, nints, index;
+
+   i64list = nifti_get_int64list((int64_t)nvals, str);
+   if( !i64list ) return NULL;
+
+   /* check that the length is between 1 and INT_MAX */
+   nints = i64list[0];
+   if( nints <= 0 ) { free(i64list); return NULL; }
+
+   if( nints > INT_MAX ) {
+      fprintf(stderr,"** N_get_intlist: %lld ints is too long for 32-bits\n",
+              nints);
+      free(i64list);
+      return NULL;
+   }
+
+   /* have a valid result, copy as ints */
+   ilist = (int *)malloc((nints+1) * sizeof(int));
+   if( !ilist ) {
+      fprintf(stderr,"** N_get_intlist: failed to alloc %lld ints\n", nints);
+      free(i64list);
+      return NULL;
+   }
+
+   /* copy list, including length at index 0 */
+   for( index=0; index <= nints; index++ ) {
+      if( i64list[index] > INT_MAX ) {
+         fprintf(stderr,"** N_get_intlist: value %lld too big for 32-bits\n",
+                 i64list[index]);
+         free(ilist);
+         free(i64list);
+         return NULL;
+      }
+      ilist[index] = (int)i64list[index];
+   }
+
+   free(i64list);
+
+   return ilist;
 }
 
 /*---------------------------------------------------------------------*/
@@ -7399,7 +9371,7 @@ int nifti_datatype_from_string( const char * name )
  *  corresponding macro label as a string.  The dtype code is the
  *  macro value defined in nifti1.h.
 *//*-------------------------------------------------------------------*/
-char * nifti_datatype_to_string( int dtype )
+const char * nifti_datatype_to_string( int dtype )
 {
     int tablen = sizeof(nifti_type_list)/sizeof(nifti_type_ele);
     int c;
@@ -7484,7 +9456,7 @@ int nifti_test_datatype_sizes(int verb)
 *//*-------------------------------------------------------------------*/
 int nifti_disp_type_list( int which )
 {
-    char * style;
+    const char * style;
     int    tablen = sizeof(nifti_type_list)/sizeof(nifti_type_ele);
     int    lwhich, c;
 
@@ -7509,3 +9481,4 @@ int nifti_disp_type_list( int which )
 }
 
 
+} // namespace mirtk

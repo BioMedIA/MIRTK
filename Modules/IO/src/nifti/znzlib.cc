@@ -21,8 +21,6 @@ NB: seeks for writable files with compression are quite restricted
 
  */
 
-#include "znzlib.h"
-
 /*
 znzlib.c  (zipped or non-zipped library)
 
@@ -37,6 +35,12 @@ znzlib.c  (zipped or non-zipped library)
 *****  incidental or otherwise, caused by any use of this document.     *****
 
 */
+
+
+#include "znzlib.h"
+
+
+namespace mirtk {
 
 
 /* Note extra argument (use_compression) where 
@@ -322,3 +326,5 @@ int znzprintf(znzFile stream, const char *format, ...)
 
 #endif
 
+
+} // namespace mirtk

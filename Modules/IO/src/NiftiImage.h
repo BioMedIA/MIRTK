@@ -1,9 +1,9 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2008-2015 Imperial College London
+ * Copyright 2008-2016 Imperial College London
  * Copyright 2008-2013 Daniel Rueckert, Julia Schnabel
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2013-2016 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,11 +21,7 @@
 #ifndef MIRTK_NiftiImage_H
 #define MIRTK_NiftiImage_H
 
-#ifdef HAVE_NiftiCLib
-#  include <nifti/nifti1_io.h>
-#else
-#  include "nifti1_io.h"
-#endif
+#include "nifti/nifti2_io.h"
 
 #ifndef LSB_FIRST
 #  define LSB_FIRST 1

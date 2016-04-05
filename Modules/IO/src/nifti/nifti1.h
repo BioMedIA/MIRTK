@@ -9,8 +9,8 @@
                 TIME_SERIES, NODE_INDEX, RGB_VECTOR, RGBA_VECTOR, SHAPE
  */
 
-#ifndef _NIFTI_HEADER_
-#define _NIFTI_HEADER_
+#ifndef _MIRTK_NIFTI_HEADER_
+#define _MIRTK_NIFTI_HEADER_
 
 /*****************************************************************************
       ** This file defines the "NIFTI-1" header format.               **
@@ -129,11 +129,8 @@
      sizeof(int) = sizeof(float) = 4 ;  sizeof(short) = 2
 -----------------------------------------------------------------------------*/
 
-/*=================*/
-#ifdef  __cplusplus
-extern "C" {
-#endif
-/*=================*/
+namespace mirtk {
+
 
 /*! \struct nifti_1_header
     \brief Data structure defining the fields in the nifti1 header.
@@ -1481,10 +1478,7 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
 
 /*****************************************************************************/
 
-/*=================*/
-#ifdef  __cplusplus
-}
-#endif
-/*=================*/
 
-#endif /* _NIFTI_HEADER_ */
+} // namespace mirtk
+
+#endif /* _MIRTK_NIFTI_HEADER_ */
