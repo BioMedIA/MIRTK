@@ -22,7 +22,7 @@ namespace mirtk {
 
 
 /*! global history and version strings, for printing */
-static char * gifti_history[] =
+static const char * gifti_history[] =
 {
   "----------------------------------------------------------------------\n"
   "history (of gifti library changes):\n"
@@ -154,8 +154,9 @@ static char gifti_version[] = "gifti library version 1.09, 28 June, 2010";
 /*! global lists of XML strings */
 
 /*! this should match GIFTI_IND_ORD_* */
-char * gifti_index_order_list[] = {"Undefined", "RowMajorOrder",
-                                                "ColumnMajorOrder"};
+const char * gifti_index_order_list[] = {
+  "Undefined", "RowMajorOrder", "ColumnMajorOrder"
+};
 
 /*! gifti_type_list is an array of gifti_type_ele structs which list, for
     each type, the bytes per value, swapsize and corresponding name string
@@ -181,7 +182,7 @@ static gifti_type_ele gifti_type_list[] = {
 };
 
 /*! this list provides a link between intent codes and their name strings */
-typedef struct { int code; char * name; } gifti_intent_ele;
+typedef struct { int code; const char * name; } gifti_intent_ele;
 static gifti_intent_ele gifti_intent_list[] = {
     { NIFTI_INTENT_NONE,             "NIFTI_INTENT_NONE"        },
     { NIFTI_INTENT_CORREL,           "NIFTI_INTENT_CORREL"      },
@@ -226,13 +227,13 @@ static gifti_intent_ele gifti_intent_list[] = {
 };
 
 /*! this should match GIFTI_ENCODING_* */
-char * gifti_encoding_list[] = {
+const char * gifti_encoding_list[] = {
     "Undefined", "ASCII", "Base64Binary", "GZipBase64Binary",
     "ExternalFileBinary"
 };
 
 /*! this should match GIFTI_ENDIAN_* */
-char * gifti_endian_list[] = {"Undefined", "BigEndian", "LittleEndian"};
+const char * gifti_endian_list[] = {"Undefined", "BigEndian", "LittleEndian"};
 
 /* ---------------------------------------------------------------------- */
 /* local prototypes */
@@ -243,7 +244,7 @@ static int compare_labeltables(const giiLabelTable *t1, const giiLabelTable *t2,
 static int copy_data_as_float(void * dest, int dtype, void * src, int stype,
                               long long nvals);
 static int DA_data_exists(gifti_image * gim, const int * dalist, int len);
-static int str2list_index(char *list[], int max, const char *str);
+//static int str2list_index(char *list[], int max, const char *str);
 
 /* ---------------------------------------------------------------------- */
 /*! giftilib globals */
@@ -1020,7 +1021,7 @@ int gifti_str2attr_darray(giiDataArray * DA, const char *attr,
 }
 
 /* return 0 (UNDEFINED) on failure */
-static int str2list_index( char * list[], int max, const char *str )
+static int str2list_index( const char * list[], int max, const char *str )
 {
     int index;
     if( !list || !str ) {
@@ -1064,7 +1065,7 @@ int gifti_str2encoding( const char * str )
  *  This function is meant to index into one of the gifti_*_list arrays,
  *  while being certain that the index is not out of range.
 *//*-------------------------------------------------------------------*/
-char * gifti_list_index2string(char * list[], int index)
+const char * gifti_list_index2string(const char * list[], int index)
 {
     int lsize;    /* list size cannot be computed from the passed pointer */
 
@@ -1125,7 +1126,7 @@ int gifti_str2endian( const char * str )
 /*----------------------------------------------------------------------
  *! return the NIFTI_TYPE_ value string corresponding to the given type
 *//*-------------------------------------------------------------------*/
-char * gifti_datatype2str(int type)
+const char * gifti_datatype2str(int type)
 {
     int len = sizeof(gifti_type_list)/sizeof(gifti_type_ele);
     int c;
@@ -2117,7 +2118,7 @@ int gifti_intent_from_string( const char * name )
  *  corresponding macro label as a string.  The dtype code is the
  *  macro value defined in nifti1.h.
 *//*-------------------------------------------------------------------*/
-char * gifti_intent_to_string( int code )
+const char * gifti_intent_to_string( int code )
 {
     int tablen = sizeof(gifti_intent_list)/sizeof(gifti_intent_ele);
     int c;

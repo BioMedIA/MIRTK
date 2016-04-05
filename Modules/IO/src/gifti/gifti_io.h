@@ -72,10 +72,10 @@ namespace mirtk {
 #endif
 
 /* global declarations of matching lists */
-extern char * gifti_index_order_list[];
-extern char * gifti_dataloc_list[];
-extern char * gifti_encoding_list[] ;
-extern char * gifti_endian_list[];
+extern const char * gifti_index_order_list[];
+extern const char * gifti_dataloc_list[];
+extern const char * gifti_encoding_list[] ;
+extern const char * gifti_endian_list[];
 
 /* ---------------------------------------------------------------------- */
 
@@ -150,10 +150,10 @@ typedef struct {
 } gifti_globals;
 
 typedef struct {
-    int    type;          /* should match NIFTI_TYPE_* */
-    int    nbyper;        /* bytes per value           */
-    int    swapsize;      /* bytes per swap piece      */
-    char * name;          /* text string match type    */
+    int          type;          /* should match NIFTI_TYPE_* */
+    int          nbyper;        /* bytes per value           */
+    int          swapsize;      /* bytes per swap piece      */
+    const char * name;          /* text string match type    */
 } gifti_type_ele;
 
 
@@ -209,14 +209,14 @@ long long gifti_gim_DA_size     (const gifti_image * p, int in_mb);
 int    gifti_check_swap         (void *data, int endian, long long nsets,
                                  int swapsize);
 int    gifti_datatype_sizes     (int datatype, int *nbyper, int *swapsize);
-char * gifti_datatype2str       (int type);
+const char * gifti_datatype2str       (int type);
 char * gifti_get_meta_value     (const nvpairs * nvp, const char * name);
 int    gifti_get_this_endian    (void);
 int    gifti_image_has_data     (const gifti_image * gim);
 int    gifti_intent_from_string (const char * name);
 int    gifti_intent_is_valid    (int code);
-char * gifti_intent_to_string   (int code);
-char * gifti_list_index2string  (char * list[], int index);
+const char * gifti_intent_to_string   (int code);
+const char * gifti_list_index2string  (const char * list[], int index);
 int    gifti_get_xml_buf_size   (void);
 int    gifti_set_xml_buf_size   (int buf_size);
 int    gifti_str2attr_gifti     (gifti_image * gim, const char * attr,

@@ -39,7 +39,7 @@ static int  int_compare         (const void * v0, const void * v1);
 static int  copy_b64_data       (gxml_data *, const char *, char *, int, int*);
 static int  decode_ascii       (gxml_data*,char*,int,int,void*,long long*,int*);
 static int  decode_b64          (gxml_data*, char*, int, char *, long long *);
-static int  disp_gxml_data      (char *, gxml_data *, int);
+static int  disp_gxml_data      (const char *, gxml_data *, int);
 static int  ename2type          (const char *);
 static int  epush               (gxml_data *, int, const char *, const char **);
 static int  epop                (gxml_data *, int, const char *);
@@ -66,7 +66,7 @@ static int  reset_xml_buf       (gxml_data *, char **, int *);
 static void show_attrs          (gxml_data *,int,const char **);
 static void show_depth          (int, int, FILE *);
 static void show_enames         (FILE *);
-static int  show_stack          (char *, gxml_data *);
+static int  show_stack          (const char *, gxml_data *);
 
 static int  short_sorted_da_list(gxml_data *dp, const int * dalist, int len);
 static int  stack_is_valid      (gxml_data *);
@@ -136,7 +136,7 @@ static int  ewrite_meta             (gxml_data *, giiMetaData *, FILE *);
 static int  gxml_disp_b64_data      (const char *, const void *, int, FILE *);
 
 /* these should match GXML_ETYPE_* defines */
-static char * enames[GXML_MAX_ELEN] = {
+static const char * enames[GXML_MAX_ELEN] = {
     "Invalid", "GIFTI", "MetaData", "MD", "Name", "Value", "LabelTable",
     "Label", "DataArray", "CoordinateSystemTransformMatrix", "Data",
     "DataSpace", "TransformedSpace", "MatrixData", "CDATA"
@@ -1149,7 +1149,7 @@ static int pop_darray(gxml_data * xd)
             fprintf(stderr,"-- uncompressing %lld bytes into %lld\n",
                            xd->dind, (long long)outlen);
 
-        rv = uncompress(da->data, &outlen, (Bytef*)xd->zdata, xd->dind);
+        rv = uncompress((Bytef*)da->data, &outlen, (const Bytef*)xd->zdata, xd->dind);
         olen = outlen;
 
         if( rv != Z_OK ) {
@@ -2399,7 +2399,7 @@ static XML_Parser init_xml_parser( void * user_data )
 }
 
 
-static int show_stack(char * mesg, gxml_data * xd)
+static int show_stack(const char * mesg, gxml_data * xd)
 {
     int c;
     if( !xd ) return 1;
@@ -2721,7 +2721,7 @@ static int ewrite_data(gxml_data * xd, giiDataArray * da, FILE * fp)
             if( update_partial_buffer(&xd->zdata, &xd->zlen, blen, 1) )
                 return 1;
 
-            rv = compress2((Bytef *)xd->zdata, &blen, da->data,
+            rv = compress2((Bytef *)xd->zdata, &blen, (const Bytef*)da->data,
                            da->nvals*da->nbyper, xd->zlevel);
             if ( xd->verb > 2 )
                 fprintf(stderr,"-- compress buffer (%.2f%% of %lld bytes)...\n",
@@ -3076,9 +3076,9 @@ static int ewrite_str_attr(const char * name, const char * value, int spaces,
 
 static int gxml_write_preamble(FILE * fp)
 {
-    char * version  = GIFTI_XML_VERSION;
-    char * encoding = GIFTI_XML_ENCODING;
-    char * dtd      = GIFTI_XML_DTD_SOURCE;
+    const char * version  = GIFTI_XML_VERSION;
+    const char * encoding = GIFTI_XML_ENCODING;
+    const char * dtd      = GIFTI_XML_DTD_SOURCE;
 
     fprintf(fp, "<?xml version=\"%s\" encoding=\"%s\"?>\n", version, encoding);
     fprintf(fp, "<!DOCTYPE GIFTI SYSTEM \"%s\">\n", dtd);
@@ -3086,7 +3086,7 @@ static int gxml_write_preamble(FILE * fp)
     return 0;
 }
 
-static int disp_gxml_data(char * mesg, gxml_data * dp, int show_all )
+static int disp_gxml_data(const char * mesg, gxml_data * dp, int show_all )
 {
     if( mesg ) fputs(mesg, stderr);
 
