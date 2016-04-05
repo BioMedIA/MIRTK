@@ -20,6 +20,7 @@
 #ifndef MIRTK_PointSetIO_H
 #define MIRTK_PointSetIO_H
 
+#include "mirtk/IOConfig.h"
 #include "mirtk/PointSet.h"
 
 #include "vtkSmartPointer.h"
@@ -148,7 +149,30 @@ vtkSmartPointer<vtkPolyData> ReadOFF(const char *fname);
 /// @return Whether dataset was written successfully to the specified file.
 bool WriteOFF(const char *fname, vtkPolyData *polydata);
 
+// =============================================================================
+// GIFTI I/O functions
+// =============================================================================
+#if MIRTK_IO_WITH_GIFTI
+
+/// Read polygonal dataset from GIFTI (.gii) file
+///
+/// @param[in] fname File name.
+///
+/// @return Polygonal dataset. Dataset is empty if file could not be read.
+vtkSmartPointer<vtkPolyData> ReadGIFTI(const char *fname);
+
+/// Write polygonal dataset to GIFTI ([.surf].gii) file
+///
+/// @param[in] fname    File name.
+/// @param[in] polydata Polygonal dataset.
+/// @param[in] compress Whether to compress binary data.
+/// @param[in] ascii    Whether to write data in ASCII format.
+///
+/// @return Whether dataset was written successfully to the specified file.
+bool WriteGIFTI(const char *fname, vtkPolyData *polydata, bool compress = true, bool ascii = false);
+
+#endif // MIRTK_IO_WITH_GIFTI
 
 } // namespace mirtk
 
-#endif // MIRTK_VtkPointSetIO_H
+#endif // MIRTK_PointSetIO_H

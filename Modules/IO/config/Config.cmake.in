@@ -56,6 +56,9 @@
 basis_set_config(WITH_NIFTI 1)
 basis_copy_config(WITH_NIfTI WITH_NIFTI)
 
+## @brief Whether this library was built with GIFTI support
+basis_set_config(WITH_GIFTI 1)
+
 ## @brief Whether this library was built with PNG support
 basis_set_config(WITH_PNG @PNG_FOUND@)
 

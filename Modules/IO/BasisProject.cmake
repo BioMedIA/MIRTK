@@ -65,7 +65,7 @@ basis_project (
       vtkIOPLY,
       vtkIOXML
     }"
-    ZLIB # for NiftiCLib
+    ZLIB # for [NG]iftiCLib
     #<optional-dependency>
   TEST_DEPENDS
     #<test-dependency>

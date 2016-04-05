@@ -20,4 +20,7 @@
 option(WITH_NiftiCLib "Require system installation of NIfTI C library" OFF)
 mark_as_advanced(WITH_NiftiCLib)
 
+option(WITH_GiftiCLib "Require system installation of GIFTI C library" OFF)
+mark_as_advanced(WITH_GiftiCLib)
+
 mirtk_configure_module()

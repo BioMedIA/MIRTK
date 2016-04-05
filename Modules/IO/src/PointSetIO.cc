@@ -56,6 +56,11 @@
 
 #include "brainsuite/dfsurface.h"
 
+#if MIRTK_IO_WITH_GIFTI
+  #include "mirtk/NiftiImageInfo.h"
+  #include "gifti/gifti_io.h"
+#endif
+
 
 namespace mirtk {
 
@@ -82,7 +87,7 @@ vtkSmartPointer<vtkPointSet> ReadPointSet(const char *fname, int *ftype, bool ex
 {
   vtkSmartPointer<vtkPointSet> pointset;
   const string ext = Extension(fname);
-  if (ext == ".vtp" || ext == ".stl" || ext == ".ply" || ext == ".obj" || ext == ".dfs" || ext == ".off") {
+  if (ext == ".vtp" || ext == ".stl" || ext == ".ply" || ext == ".obj" || ext == ".dfs" || ext == ".off" || ext == ".gii") {
     pointset = ReadPolyData(fname);
   } else if (ext.length() == 4  && ext.substr(0, 3) == ".vt" && ext != ".vtk") {
     vtkSmartPointer<vtkXMLGenericDataObjectReader> reader;
@@ -165,6 +170,12 @@ vtkSmartPointer<vtkPolyData> ReadPolyData(const char *fname, int *ftype, bool ex
     polydata = ReadDFS(fname);
   } else if (ext == ".off") {
     polydata = ReadOFF(fname);
+  } else if (ext == ".gii") {
+    #if MIRTK_IO_WITH_GIFTI
+      polydata = ReadGIFTI(fname);
+    #else
+      cerr << "GIFTI file " << fname << " cannot be read because MIRTK IO library was built without GIFTI support" << endl;
+    #endif
   } else {
     vtkSmartPointer<vtkPolyDataReader> reader;
     reader = vtkSmartPointer<vtkPolyDataReader>::New();
@@ -219,6 +230,12 @@ bool WritePolyData(const char *fname, vtkPolyData *polydata, bool compress, bool
     success = WriteDFS(fname, polydata);
   } else if (ext == ".off") {
     success = WriteOFF(fname, polydata);
+  } else if (ext == ".gii") {
+    #if MIRTK_IO_WITH_GIFTI
+      success = WriteGIFTI(fname, polydata, compress, ascii);
+    #else
+      cerr << "Cannot write surface to GIFTI file because MIRTK IO library was built without GIFTI support" << endl;
+    #endif
   } else {
     vtkSmartPointer<vtkPolyDataWriter> writer;
     writer = vtkSmartPointer<vtkPolyDataWriter>::New();
@@ -700,6 +717,163 @@ bool WriteTetGenSMesh(const char *fname, vtkPolyData *polydata, const PointSet *
   os << "0\n";
   return !os.fail();
 }
+
+// =============================================================================
+// GIFTI I/O functions
+// =============================================================================
+#if MIRTK_IO_WITH_GIFTI
+
+// -----------------------------------------------------------------------------
+vtkSmartPointer<vtkPolyData> ReadGIFTI(const char *fname)
+{
+  gifti_image *gim = gifti_read_image(fname, 1);
+  if (gim == nullptr) return vtkSmartPointer<vtkPolyData>::New();
+
+  vtkSmartPointer<vtkPolyData> polydata = vtkSmartPointer<vtkPolyData>::New();
+  vtkPointData *pd = polydata->GetPointData();
+
+  bool ok = true;
+  for (int i = 0; i < gim->numDA; ++i) {
+    giiDataArray *array = gim->darray[i];
+    // Coordinates
+    if (array->intent == NIFTI_INTENT_POINTSET) {
+      if (array->datatype != NIFTI_TYPE_FLOAT32) {
+        cerr << "Error: GIFTI coordinates array must have datatype NIFTI_TYPE_FLOAT32!" << endl;
+        ok = false;
+      }
+      if (array->num_dim != 2) {
+        cerr << "Error: GIFTI coordinates array must have 2 dimensions!" << endl;
+        ok = false;
+      }
+      if (array->dims[1] != 3) {
+        cerr << "Error: Second dimension of GIFTI coordinates array must have size 3!" << endl;
+        ok = false;
+      }
+      if (ok) {
+        vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
+        const int n = array->dims[0];
+        points->SetNumberOfPoints(n);
+        const float *x = reinterpret_cast<float *>(array->data);
+        if (array->ind_ord == GIFTI_IND_ORD_COL_MAJOR) {
+          const float *y = x + n, *z = y + n;
+          for (int j = 0; j < n; ++j, ++x, ++y, ++z) {
+            points->SetPoint(j, static_cast<double>(*x), static_cast<double>(*y), static_cast<double>(*z));
+          }
+        } else {
+          const float *y = x + 1, *z = x + 2;
+          for (int j = 0; j < n; ++j, x += 3, y += 3, z += 3) {
+            points->SetPoint(j, static_cast<double>(*x), static_cast<double>(*y), static_cast<double>(*z));
+          }
+        }
+        polydata->SetPoints(points);
+      }
+    // Topology
+    } else if (array->intent == NIFTI_INTENT_TRIANGLE) {
+      if (array->datatype != NIFTI_TYPE_INT32) {
+        cerr << "Error: GIFTI topology array must have datatype NIFTI_TYPE_INT32!" << endl;
+        ok = false;
+      }
+      if (array->num_dim != 2) {
+        cerr << "Error: GIFTI topology array must have 2 dimensions!" << endl;
+        ok = false;
+      }
+      if (array->dims[1] != 3) {
+        cerr << "Error: Second dimension of GIFTI topology array must have size 3!" << endl;
+        ok = false;
+      }
+      if (ok) {
+        vtkIdType pts[3];
+        vtkSmartPointer<vtkCellArray> triangles = vtkSmartPointer<vtkCellArray>::New();
+        const int n = array->dims[0];
+        triangles->Allocate(3 * n);
+        const int *a = reinterpret_cast<int *>(array->data);
+        if (array->ind_ord == GIFTI_IND_ORD_COL_MAJOR) {
+          const int *b = a + n, *c = b + n;
+          for (int j = 0; j < n; ++j, ++a, ++b, ++c) {
+            pts[0] = static_cast<vtkIdType>(*a);
+            pts[1] = static_cast<vtkIdType>(*b);
+            pts[2] = static_cast<vtkIdType>(*c);
+            triangles->InsertNextCell(3, pts);
+          }
+        } else {
+          const int *b = a + 1, *c = a + 2;
+          for (int j = 0; j < n; ++j, a += 3, b += 3, c += 3) {
+            pts[0] = static_cast<vtkIdType>(*a);
+            pts[1] = static_cast<vtkIdType>(*b);
+            pts[2] = static_cast<vtkIdType>(*c);
+            triangles->InsertNextCell(3, pts);
+          }
+        }
+        polydata->SetPolys(triangles);
+      }
+    // Functional, shape, label, time series, ...
+    } else {
+      if (array->num_dim != 1) {
+        cerr << "Error: GIFTI point data array must have 1 dimension!" << endl;
+        ok = false;
+        continue;
+      }
+      const int n = array->dims[0];
+      const string name = ToString(array->intent);
+      vtkSmartPointer<vtkDataArray> data;
+      if (array->datatype == NIFTI_TYPE_INT32) {
+        data = vtkSmartPointer<vtkIntArray>::New();
+        data->SetName(name.c_str());
+        data->SetNumberOfComponents(1);
+        data->SetNumberOfTuples(n);
+        const int *v = reinterpret_cast<int *>(array->data);
+        for (int j = 0; j < n; ++j, ++v) {
+          data->SetComponent(j, 0, static_cast<double>(*v));
+        }
+      } else if (array->datatype == NIFTI_TYPE_FLOAT32) {
+        data = vtkSmartPointer<vtkFloatArray>::New();
+        data->SetName(name.c_str());
+        data->SetNumberOfComponents(1);
+        data->SetNumberOfTuples(n);
+        const float *v = reinterpret_cast<float *>(array->data);
+        for (int j = 0; j < n; ++j, ++v) {
+          data->SetComponent(j, 0, static_cast<double>(*v));
+        }
+      } else {
+        cerr << "Error: GIFTI point data array must have datatype NIFTI_TYPE_INT32 or NIFTI_TYPE_FLOAT32!" << endl;
+        ok = false;
+        continue;
+      }
+      if (array->intent == NIFTI_INTENT_SHAPE && !pd->GetScalars()) {
+        pd->SetScalars(data);
+      } else {
+        pd->AddArray(data);
+      }
+    }
+  }
+
+  if (polydata->GetPoints()) {
+    for (int i = 0; i < pd->GetNumberOfArrays(); ++i) {
+      if (pd->GetArray(i)->GetNumberOfTuples() != polydata->GetNumberOfPoints()) {
+        cerr << "Error: GIFTI array " << pd->GetArray(i)->GetName() << " has invalid size!" << endl;
+        ok = false;
+      }
+    }
+  } else {
+    cerr << "Error: GIFTI file has no coordinates array!" << endl;
+    ok = false;
+  }
+
+  if (!ok) {
+    gifti_free_image(gim);
+    polydata = vtkSmartPointer<vtkPolyData>::New();
+  }
+
+  return polydata;
+}
+
+// -----------------------------------------------------------------------------
+bool WriteGIFTI(const char *fname, vtkPolyData *polydata, bool compress, bool ascii)
+{
+  return false;
+}
+
+#endif // MIRTK_IO_WITH_GIFTI
 
 
 } // namespace mirtk

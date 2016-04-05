@@ -25,6 +25,9 @@
 #define MIRTK_IO_WITH_NIFTI 1
 #define MIRTK_IO_WITH_NIfTI MIRTK_IO_WITH_NIFTI
 
+/// Whether MIRTK IO module was built with GIFTI support
+#define MIRTK_IO_WITH_GIFTI 1
+
 /// Whether MIRTK IO module was built with PNG support
 #define MIRTK_IO_WITH_PNG @WITH_PNG_CONFIG@
 
