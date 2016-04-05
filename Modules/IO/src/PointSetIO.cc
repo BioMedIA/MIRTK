@@ -815,79 +815,87 @@ static void CopyGIFTIDataArray(vtkDataArray *dst, const giiDataArray *src,
 
 // -----------------------------------------------------------------------------
 // vtkInformation keys of standard GIFTI meta data entries
-vtkInformationKeyMacro(GiftiMetaData, DATE, String);
-vtkInformationKeyMacro(GiftiMetaData, USER_NAME, String);
-vtkInformationKeyMacro(GiftiMetaData, SUBJECT_ID, String);
-vtkInformationKeyMacro(GiftiMetaData, SURFACE_ID, String);
-vtkInformationKeyMacro(GiftiMetaData, UNIQUE_ID, String);
-vtkInformationKeyMacro(GiftiMetaData, NAME, String);
-vtkInformationKeyMacro(GiftiMetaData, DESCRIPTION, String);
-vtkInformationKeyMacro(GiftiMetaData, TIME_STEP, Double);
-vtkInformationKeyMacro(GiftiMetaData, ANATOMICAL_STRUCTURE_PRIMARY, String);
-vtkInformationKeyMacro(GiftiMetaData, ANATOMICAL_STRUCTURE_SECONDARY, String);
-vtkInformationKeyMacro(GiftiMetaData, GEOMETRIC_TYPE, String);
-vtkInformationKeyMacro(GiftiMetaData, TOPOLOGICAL_TYPE, String);
-vtkInformationKeyMacro(GiftiMetaData, INTENT_CODE, Integer);
-vtkInformationKeyMacro(GiftiMetaData, INTENT_P1, Double);
-vtkInformationKeyMacro(GiftiMetaData, INTENT_P2, Double);
-vtkInformationKeyMacro(GiftiMetaData, INTENT_P3, Double);
+#define GiftiMetaDataKeyMacro(getter, name, type) \
+  vtkInformation##type##Key *GiftiMetaData::getter() \
+  { \
+    static vtkInformation##type##Key *key \
+     = new vtkInformation##type##Key(name, "GiftiMetaData"); \
+    return key; \
+  }
+
+GiftiMetaDataKeyMacro(DATE, "Date", String);
+GiftiMetaDataKeyMacro(USER_NAME, "UserName", String);
+GiftiMetaDataKeyMacro(SUBJECT_ID, "SubjectID", String);
+GiftiMetaDataKeyMacro(SURFACE_ID, "SurfaceID", String);
+GiftiMetaDataKeyMacro(UNIQUE_ID,  "UniqueID", String);
+GiftiMetaDataKeyMacro(NAME, "Name", String);
+GiftiMetaDataKeyMacro(DESCRIPTION, "Description", String);
+GiftiMetaDataKeyMacro(TIME_STEP, "TimeStep", Double);
+GiftiMetaDataKeyMacro(ANATOMICAL_STRUCTURE_PRIMARY, "AnatomicalStructurePrimary", String);
+GiftiMetaDataKeyMacro(ANATOMICAL_STRUCTURE_SECONDARY, "AnatomicalStructureSecondary", String);
+GiftiMetaDataKeyMacro(GEOMETRIC_TYPE, "GeometricType", String);
+GiftiMetaDataKeyMacro(TOPOLOGICAL_TYPE, "TopologicalType", String);
+GiftiMetaDataKeyMacro(INTENT_CODE, "Intent_code", Integer);
+GiftiMetaDataKeyMacro(INTENT_P1, "intent_p1", Double);
+GiftiMetaDataKeyMacro(INTENT_P2, "intent_p2", Double);
+GiftiMetaDataKeyMacro(INTENT_P3, "intent_p3", Double);
 
 // -----------------------------------------------------------------------------
 /// Copy standard GIFTI meta data to vtkInformation
 static void CopyGIFTIMetaData(vtkInformation *info, const giiMetaData &meta)
 {
   for (int i = 0; i < meta.length; ++i) {
-    if (strcmp(meta.name[i], "Date") == 0) {
+    if (strcmp(meta.name[i], GiftiMetaData::DATE()->GetName()) == 0) {
       info->Set(GiftiMetaData::DATE(), meta.value[i]);
-    } else if (strcmp(meta.name[i], "UserName") == 0) {
+    } else if (strcmp(meta.name[i], GiftiMetaData::USER_NAME()->GetName()) == 0) {
       info->Set(GiftiMetaData::USER_NAME(), meta.value[i]);
-    } else if (strcmp(meta.name[i], "SubjectID") == 0) {
+    } else if (strcmp(meta.name[i], GiftiMetaData::SUBJECT_ID()->GetName()) == 0) {
       info->Set(GiftiMetaData::SUBJECT_ID(), meta.value[i]);
-    } else if (strcmp(meta.name[i], "SurfaceID") == 0) {
+    } else if (strcmp(meta.name[i], GiftiMetaData::SURFACE_ID()->GetName()) == 0) {
       info->Set(GiftiMetaData::SURFACE_ID(), meta.value[i]);
-    } else if (strcmp(meta.name[i], "UniqueID") == 0) {
+    } else if (strcmp(meta.name[i], GiftiMetaData::UNIQUE_ID()->GetName()) == 0) {
       info->Set(GiftiMetaData::UNIQUE_ID(), meta.value[i]);
-    } else if (strcmp(meta.name[i], "Name") == 0) {
+    } else if (strcmp(meta.name[i], GiftiMetaData::NAME()->GetName()) == 0) {
       info->Set(GiftiMetaData::NAME(), meta.value[i]);
-    } else if (strcmp(meta.name[i], "Description") == 0) {
+    } else if (strcmp(meta.name[i], GiftiMetaData::DESCRIPTION()->GetName()) == 0) {
       info->Set(GiftiMetaData::DESCRIPTION(), meta.value[i]);
-    } else if (strcmp(meta.name[i], "TimeStep") == 0) {
+    } else if (strcmp(meta.name[i], GiftiMetaData::TIME_STEP()->GetName()) == 0) {
       double tr;
       if (FromString(meta.value[i], tr)) {
         info->Set(GiftiMetaData::TIME_STEP(), tr);
       }
-    } else if (strcmp(meta.name[i], "AnatomicalStructurePrimary") == 0) {
+    } else if (strcmp(meta.name[i], GiftiMetaData::ANATOMICAL_STRUCTURE_PRIMARY()->GetName()) == 0) {
       info->Set(GiftiMetaData::ANATOMICAL_STRUCTURE_PRIMARY(), meta.value[i]);
-    } else if (strcmp(meta.name[i], "AnatomicalStructureSecondary") == 0) {
+    } else if (strcmp(meta.name[i], GiftiMetaData::ANATOMICAL_STRUCTURE_SECONDARY()->GetName()) == 0) {
       info->Set(GiftiMetaData::ANATOMICAL_STRUCTURE_SECONDARY(), meta.value[i]);
-    } else if (strcmp(meta.name[i], "GeometricType") == 0) {
+    } else if (strcmp(meta.name[i], GiftiMetaData::GEOMETRIC_TYPE()->GetName()) == 0) {
       info->Set(GiftiMetaData::GEOMETRIC_TYPE(), meta.value[i]);
-    } else if (strcmp(meta.name[i], "TopologicalType") == 0) {
+    } else if (strcmp(meta.name[i], GiftiMetaData::TOPOLOGICAL_TYPE()->GetName()) == 0) {
       info->Set(GiftiMetaData::TOPOLOGICAL_TYPE(), meta.value[i]);
-    } else if (strcmp(meta.name[i], "Intent")      == 0 ||
-               strcmp(meta.name[i], "Intent_code") == 0 ||
-               strcmp(meta.name[i], "IntentCode")  == 0) {
+    } else if (strcmp(meta.name[i], GiftiMetaData::INTENT_CODE()->GetName()) == 0 ||
+               strcmp(meta.name[i], "Intent")     == 0 ||
+               strcmp(meta.name[i], "IntentCode") == 0) {
       int intent_code;
       if (FromString(meta.value[i], intent_code)) {
         info->Set(GiftiMetaData::INTENT_CODE(), intent_code);
       }
-    } else if (strcmp(meta.name[i], "IntentP1")  == 0 ||
+    } else if (strcmp(meta.name[i], GiftiMetaData::INTENT_P1()->GetName())  == 0 ||
                strcmp(meta.name[i], "Intent_p1") == 0 ||
-               strcmp(meta.name[i], "intent_p1") == 0) {
+               strcmp(meta.name[i], "IntentP1")  == 0) {
       double intent_p1;
       if (FromString(meta.value[i], intent_p1)) {
         info->Set(GiftiMetaData::INTENT_P1(), intent_p1);
       }
-    } else if (strcmp(meta.name[i], "IntentP2")  == 0 ||
+    } else if (strcmp(meta.name[i], GiftiMetaData::INTENT_P2()->GetName())  == 0 ||
                strcmp(meta.name[i], "Intent_p2") == 0 ||
-               strcmp(meta.name[i], "intent_p2") == 0) {
+               strcmp(meta.name[i], "IntentP2")  == 0) {
       double intent_p2;
       if (FromString(meta.value[i], intent_p2)) {
         info->Set(GiftiMetaData::INTENT_P2(), intent_p2);
       }
-    } else if (strcmp(meta.name[i], "IntentP3")  == 0 ||
+    } else if (strcmp(meta.name[i], GiftiMetaData::INTENT_P3()->GetName())  == 0 ||
                strcmp(meta.name[i], "Intent_p3") == 0 ||
-               strcmp(meta.name[i], "intent_p3") == 0) {
+               strcmp(meta.name[i], "IntentP3")  == 0) {
       double intent_p3;
       if (FromString(meta.value[i], intent_p3)) {
         info->Set(GiftiMetaData::INTENT_P3(), intent_p3);
