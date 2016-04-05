@@ -9,11 +9,17 @@ contribute changes or enhancements to gifticlib.
 \sa http://www.nitrc.org/projects/gifti
 */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <ctype.h>
-#include <string.h>
-#include "gifti_io.h"
+#include <cstdio>
+#include <cstdlib>
+#include <cctype>
+#include <cstring>
+
+#include "nifti/nifti2_io.h"
+#include "gifti/gifti_io.h"
+
+
+namespace mirtk {
+
 
 /*! global history and version strings, for printing */
 static char * gifti_history[] =
@@ -4570,3 +4576,6 @@ static int copy_data_as_float(void * dest, int dtype, void * src, int stype,
 
     return 0;
 }
+
+
+} // namespace mirtk

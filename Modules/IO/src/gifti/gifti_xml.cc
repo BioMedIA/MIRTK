@@ -9,10 +9,16 @@ contribute changes or enhancements to gifticlib.
 \sa http://www.nitrc.org/projects/gifti
 */
 
-#include <stdio.h>
-#include <ctype.h>
-#include <string.h>
-#include "gifti_io.h"
+#include <cstdio>
+#include <cctype>
+#include <cstring>
+
+#include "nifti/nifti1.h"
+#include "gifti/gifti_io.h"
+
+
+namespace mirtk {
+
 
 #define GXML_MIN_BSIZE 2048
 #define GXML_DEF_BSIZE 32768
@@ -3124,3 +3130,6 @@ static int disp_gxml_data(char * mesg, gxml_data * dp, int show_all )
 
     return 0;
 }
+
+
+} // namespace mirtk

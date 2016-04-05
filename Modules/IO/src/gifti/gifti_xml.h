@@ -9,8 +9,11 @@ contribute changes or enhancements to gifticlib.
 \sa http://www.nitrc.org/projects/gifti
 */
 
-#ifndef GIFTI_XML_H
-#define GIFTI_XML_H
+#ifndef MIRTK_GIFTI_XML_H
+#define MIRTK_GIFTI_XML_H
+
+namespace mirtk {
+
 
 #define GXML_MAX_DEPTH 10    /* maximum stack depth */
 #define GXML_MAX_ELEN  128   /* maximum element length */
@@ -135,4 +138,6 @@ int   gxml_set_zlevel      ( int val );
 int   gxml_get_zlevel      ( void    );
 
 
-#endif /* GIFTI_XML_H */
+} // namespace mirtk
+
+#endif /* MIRTK_GIFTI_XML_H */

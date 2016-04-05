@@ -9,15 +9,18 @@ contribute changes or enhancements to gifticlib.
 \sa http://www.nitrc.org/projects/gifti
 */
 
-#ifndef GIFTI_IO_H
-#define GIFTI_IO_H
+#ifndef MIRTK_GIFTI_IO_H
+#define MIRTK_GIFTI_IO_H
 
 #ifdef HAVE_ZLIB
 #  include <zlib.h>
 #endif
 #include <expat.h>
-#include <nifti1_io.h>
 /* also #include "gifti_xml.h", but at the end */
+
+
+namespace mirtk {
+
 
 /* ---------------------------------------------------------------------- */
 /* These must be 0-based and sequential.
@@ -336,6 +339,9 @@ char * gifticlib_version         (void);
 #undef G_CHECK_NULL_STR
 #define G_CHECK_NULL_STR(s) (s ? s : "NULL")
 
+
+} // namespace mirtk
+
 #include "gifti_xml.h" /* needs gifti_io.h, but users should not #include it */
 
-#endif /* GIFTI_IO_H */
+#endif /* MIRTK_GIFTI_IO_H */
