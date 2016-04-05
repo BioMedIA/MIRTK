@@ -1,3 +1,14 @@
+/**
+\file  gifti_xml.c
+\brief GIFTI I/O library.  Written by Richard Reynolds, SSCC, DIRP, NIMH.
+
+The gifticlib code is released into the public domain.  Developers are
+encouraged to incorporate the library into their application, and to
+contribute changes or enhancements to gifticlib.
+
+\sa http://www.nitrc.org/projects/gifti
+*/
+
 #include <stdio.h>
 #include <ctype.h>
 #include <string.h>
