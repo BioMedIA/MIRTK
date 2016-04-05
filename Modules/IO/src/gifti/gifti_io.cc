@@ -1,5 +1,5 @@
 /**
-\file  gifti_io.c
+\file  gifti_io.cc
 \brief GIFTI I/O library.  Written by Richard Reynolds, SSCC, DIRP, NIMH.
 
 The gifticlib code is released into the public domain.  Developers are
