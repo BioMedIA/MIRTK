@@ -2,8 +2,8 @@
     \brief Header structure for NIFTI-2 format.
  */
 
-#ifndef __NIFTI2_HEADER
-#define __NIFTI2_HEADER
+#ifndef __MIRTK_NIFTI2_HEADER
+#define __MIRTK_NIFTI2_HEADER
 
 /*---------------------------------------------------------------------------*/
 /* Changes to the header from NIFTI-1 to NIFTI-2 are intended to allow for
@@ -39,13 +39,10 @@
                                                           2 Jan, 2014 [rickr]
 -----------------------------------------------------------------------------*/
 
-#include <stdint.h>
+#include <cstdint>
 
-/*=================*/
-#ifdef  __cplusplus
-extern "C" {
-#endif
-/*=================*/
+namespace mirtk {
+
 
 /*! \struct nifti_2_header
     \brief Data structure defining the fields in the nifti2 header.
@@ -108,10 +105,7 @@ typedef struct nifti_2_header nifti_2_header;
 #define NIFTI2_NEEDS_SWAP(h) \
    ((h).sizeof_hdr == 1543569408 || (h).sizeof_hdr == 469893120)
 
-/*=================*/
-#ifdef  __cplusplus
-}
-#endif
-/*=================*/
 
-#endif /* __NIFTI2_HEADER */
+} // namespace mirtk
+
+#endif /* __MIRTK_NIFTI2_HEADER */

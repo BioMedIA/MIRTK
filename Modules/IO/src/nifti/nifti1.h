@@ -9,8 +9,8 @@
                 TIME_SERIES, NODE_INDEX, RGB_VECTOR, RGBA_VECTOR, SHAPE
  */
 
-#ifndef _NIFTI_HEADER_
-#define _NIFTI_HEADER_
+#ifndef _MIRTK_NIFTI_HEADER_
+#define _MIRTK_NIFTI_HEADER_
 
 /*****************************************************************************
       ** This file defines the "NIFTI-1" header format.               **
@@ -129,11 +129,8 @@
      sizeof(int) = sizeof(float) = 4 ;  sizeof(short) = 2
 -----------------------------------------------------------------------------*/
 
-/*=================*/
-#ifdef  __cplusplus
-extern "C" {
-#endif
-/*=================*/
+namespace mirtk {
+
 
 /*! \struct nifti_1_header
     \brief Data structure defining the fields in the nifti1 header.
@@ -276,7 +273,7 @@ typedef struct nifti_1_header nifti_1_header ;
    program can simply ignore all extended header sections simply by jumping
    straight to the image data using vox_offset.
 -----------------------------------------------------------------------------*/
-
+   
 /*! \struct nifti1_extender
     \brief This structure represents a 4-byte string that should follow the
            binary nifti_1_header data in a NIFTI-1 header file.  If the char
@@ -910,7 +907,7 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
 
 #define NIFTI_INTENT_QUATERNION 1010
 
- /*! Dimensionless value - no params - although, as in _ESTIMATE
+ /*! Dimensionless value - no params - although, as in _ESTIMATE 
      the name of the parameter may be stored in intent_name.     */
 
 #define NIFTI_INTENT_DIMLESS    1011
@@ -1481,10 +1478,7 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
 
 /*****************************************************************************/
 
-/*=================*/
-#ifdef  __cplusplus
-}
-#endif
-/*=================*/
 
-#endif /* _NIFTI_HEADER_ */
+} // namespace mirtk
+
+#endif /* _MIRTK_NIFTI_HEADER_ */

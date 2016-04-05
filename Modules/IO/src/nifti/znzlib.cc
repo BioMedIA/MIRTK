@@ -16,12 +16,10 @@ are required:
    that specifies whether to use compression (1) or not (0)
  - use znz_isnull rather than any (pointer == NULL) comparisons in the code
    for znzfile types (normally done after a return from znzopen)
-
+ 
 NB: seeks for writable files with compression are quite restricted
 
  */
-
-#include "znzlib.h"
 
 /*
 znzlib.c  (zipped or non-zipped library)
@@ -39,7 +37,13 @@ znzlib.c  (zipped or non-zipped library)
 */
 
 
-/* Note extra argument (use_compression) where
+#include "znzlib.h"
+
+
+namespace mirtk {
+
+
+/* Note extra argument (use_compression) where 
    use_compression==0 is no compression
    use_compression!=0 uses zlib (gzip) compression
 */
@@ -116,7 +120,7 @@ int Xznzclose(znzFile * file)
     if ((*file)->zfptr!=NULL)  { retval = gzclose((*file)->zfptr); }
 #endif
     if ((*file)->nzfptr!=NULL) { retval = fclose((*file)->nzfptr); }
-
+                                                                                
     free(*file);
     *file = NULL;
   }
@@ -130,13 +134,14 @@ int Xznzclose(znzFile * file)
 
 size_t znzread(void* buf, size_t size, size_t nmemb, znzFile file)
 {
+  if (file==NULL) { return 0; }
+
+#ifdef HAVE_ZLIB
   size_t     remain = size*nmemb;
   char     * cbuf = (char *)buf;
   unsigned   n2read;
   int        nread;
 
-  if (file==NULL) { return 0; }
-#ifdef HAVE_ZLIB
   if (file->zfptr!=NULL) {
     /* gzread/write take unsigned int length, so maybe read in int pieces
        (noted by M Hanke, example given by M Adler)   6 July 2010 [rickr] */
@@ -164,17 +169,18 @@ size_t znzread(void* buf, size_t size, size_t nmemb, znzFile file)
 
 size_t znzwrite(const void* buf, size_t size, size_t nmemb, znzFile file)
 {
+  if (file==NULL) { return 0; }
+
+#ifdef HAVE_ZLIB
   size_t     remain = size*nmemb;
-  const char * cbuf = (const char *)buf;
+  char     * cbuf = (char *)buf;
   unsigned   n2write;
   int        nwritten;
 
-  if (file==NULL) { return 0; }
-#ifdef HAVE_ZLIB
   if (file->zfptr!=NULL) {
     while( remain > 0 ) {
        n2write = (remain < ZNZ_MAX_BLOCK_SIZE) ? remain : ZNZ_MAX_BLOCK_SIZE;
-       nwritten = gzwrite(file->zfptr, (const void *)cbuf, n2write);
+       nwritten = gzwrite(file->zfptr, (void *)cbuf, n2write);
 
        /* gzread returns 0 on error, but in case that ever changes... */
        if( nwritten < 0 ) return nwritten;
@@ -293,12 +299,12 @@ int znzgetc(znzFile file)
 int znzprintf(znzFile stream, const char *format, ...)
 {
   int retval=0;
-  char *tmpstr;
   va_list va;
   if (stream==NULL) { return 0; }
   va_start(va, format);
 #ifdef HAVE_ZLIB
   if (stream->zfptr!=NULL) {
+    char *tmpstr;
     int size;  /* local to HAVE_ZLIB block */
     size = strlen(format) + 1000000;  /* overkill I hope */
     tmpstr = (char *)calloc(1, size);
@@ -309,7 +315,7 @@ int znzprintf(znzFile stream, const char *format, ...)
     vsprintf(tmpstr,format,va);
     retval=gzprintf(stream->zfptr,"%s",tmpstr);
     free(tmpstr);
-  } else
+  } else 
 #endif
   {
    retval=vfprintf(stream->nzfptr,format,va);
@@ -320,3 +326,5 @@ int znzprintf(znzFile stream, const char *format, ...)
 
 #endif
 
+
+} // namespace mirtk

@@ -3,29 +3,23 @@
            - Written by Bob Cox, SSCC NIMH
            - Revisions by Rick Reynolds, SSCC NIMH
  */
-#ifndef _NIFTI2_IO_HEADER_
-#define _NIFTI2_IO_HEADER_
+#ifndef _MIRTK_NIFTI2_IO_HEADER_
+#define _MIRTK_NIFTI2_IO_HEADER_
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <math.h>
-#include <limits.h>
-#include <ctype.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <cmath>
+#include <climits>
+#include <cctype>
 
 #ifndef DONT_INCLUDE_ANALYZE_STRUCT
 #define DONT_INCLUDE_ANALYZE_STRUCT  /*** not needed herein ***/
 #endif
-#include "nifti1.h"                  /*** NIFTI-1 header specification ***/
-#include "nifti2.h"                  /*** NIFTI-2 header specification ***/
+#include "nifti/nifti1.h"                  /*** NIFTI-1 header specification ***/
+#include "nifti/nifti2.h"                  /*** NIFTI-2 header specification ***/
 
-#include <znzlib.h>
-
-/*=================*/
-#ifdef  __cplusplus
-extern "C" {
-#endif
-/*=================*/
+#include "nifti/znzlib.h"
 
 /*****===================================================================*****/
 /*****         File nifti2_io.h == Declarations for nifti2_io.c          *****/
@@ -73,6 +67,9 @@ extern "C" {
         b. some image field types have been altered (to have larger size)
         c. some routines have been changed to apply to multiple NIFTI types
 */
+
+namespace mirtk {
+
 
 /********************** Some sample data structures **************************/
 
@@ -372,12 +369,12 @@ typedef struct {
 /*****************************************************************************/
 /*--------------- Prototypes of functions defined in this file --------------*/
 
-char const * nifti_datatype_string   ( int dt ) ;
-char const *nifti_units_string      ( int uu ) ;
-char const *nifti_intent_string     ( int ii ) ;
-char const *nifti_xform_string      ( int xx ) ;
-char const *nifti_slice_string      ( int ss ) ;
-char const *nifti_orientation_string( int ii ) ;
+const char * nifti_datatype_string   ( int dt ) ;
+const char * nifti_units_string      ( int uu ) ;
+const char * nifti_intent_string     ( int ii ) ;
+const char * nifti_xform_string      ( int xx ) ;
+const char * nifti_slice_string      ( int ss ) ;
+const char * nifti_orientation_string( int ii ) ;
 
 int   nifti_is_inttype( int dt ) ;
 
@@ -468,7 +465,7 @@ int    nifti_validfilename(const char* fname);
 
 
 int    disp_nifti_1_header(const char * info, const nifti_1_header * hp ) ;
-int    disp_nifti_2_header( const char * info, const nifti_2_header * hp ) ;
+int    disp_nifti_2_header(const char * info, const nifti_2_header * hp ) ;
 void   nifti_set_debug_level( int level ) ;
 void   nifti_set_skip_blank_ext( int skip ) ;
 void   nifti_set_allow_upper_fext( int allow ) ;
@@ -725,10 +722,7 @@ typedef struct {
 #endif  /* _NIFTI2_IO_C_ section */
 /*------------------------------------------------------------------------*/
 
-/*=================*/
-#ifdef  __cplusplus
-}
-#endif
-/*=================*/
 
-#endif /* _NIFTI2_IO_HEADER_ */
+} // namespace mirtk
+
+#endif /* _MIRTK_NIFTI2_IO_HEADER_ */

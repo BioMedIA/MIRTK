@@ -1,5 +1,5 @@
-#ifndef _ZNZLIB_H_
-#define _ZNZLIB_H_
+#ifndef _MIRTK_ZNZLIB_H_
+#define _MIRTK_ZNZLIB_H_
 
 /*
 znzlib.h  (zipped or non-zipped library)
@@ -20,7 +20,7 @@ znzlib.h  (zipped or non-zipped library)
 
 This library provides an interface to both compressed (gzip/zlib) and
 uncompressed (normal) file IO.  The functions are written to have the
-same interface as the standard file IO functions.
+same interface as the standard file IO functions.  
 
 To use this library instead of normal file IO, the following changes
 are required:
@@ -30,22 +30,16 @@ are required:
  - add a third parameter to all calls to znzopen (previously fopen)
    that specifies whether to use compression (1) or not (0)
  - use znz_isnull rather than any (pointer == NULL) comparisons in the code
-
+ 
 NB: seeks for writable files with compression are quite restricted
 
 */
 
 
-/*=================*/
-#ifdef  __cplusplus
-extern "C" {
-#endif
-/*=================*/
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdarg.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <cstdarg>
 
 /* include optional check for HAVE_FDOPEN here, from deleted config.h:
 
@@ -56,12 +50,16 @@ extern "C" {
 
 
 #ifdef HAVE_ZLIB
-#if defined(ITKZLIB) && !defined(ITK_USE_SYSTEM_ZLIB)
-#include "itk_zlib.h"
-#else
-#include "zlib.h"
+#  if defined(ITKZLIB)
+#    include "itk_zlib.h"
+#  else
+#    include "zlib.h"
+#  endif
 #endif
-#endif
+
+
+namespace mirtk {
+
 
 struct znzptr {
   int withz;
@@ -80,7 +78,7 @@ typedef struct znzptr * znzFile;
 #define znz_isnull(f) ((f) == NULL)
 #define znzclose(f)   Xznzclose(&(f))
 
-/* Note extra argument (use_compression) where
+/* Note extra argument (use_compression) where 
    use_compression==0 is no compression
    use_compression!=0 uses zlib (gzip) compression
 */
@@ -113,10 +111,7 @@ int znzgetc(znzFile file);
 int znzprintf(znzFile stream, const char *format, ...);
 #endif
 
-/*=================*/
-#ifdef  __cplusplus
-}
-#endif
-/*=================*/
 
-#endif
+} // namespace mirtk
+
+#endif /* _MIRTK_ZNZLIB_H_ */ 
