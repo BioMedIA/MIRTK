@@ -17,8 +17,8 @@
  * limitations under the License.
  */
 
-#ifndef MIRTK_VtkPointSetIO_H
-#define MIRTK_VtkPointSetIO_H
+#ifndef MIRTK_PointSetIO_H
+#define MIRTK_PointSetIO_H
 
 #include "mirtk/PointSet.h"
 
