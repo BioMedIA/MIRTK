@@ -1,8 +1,8 @@
 # ============================================================================
 # Medical Image Registration ToolKit (MIRTK)
 #
-# Copyright 2013-2015 Imperial College London
-# Copyright 2013-2015 Andreas Schuh
+# Copyright 2013-2016 Imperial College London
+# Copyright 2013-2016 Andreas Schuh
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -28,20 +28,55 @@
 # @brief Build configuration of MIRTK IO library.
 ##############################################################################
 
+# ----------------------------------------------------------------------------
+# NIfTI I/O library
+if (NOT NiftiCLib_FOUND)
+
+  add_library(nifticlib OBJECT
+    nifti/nifti1.h
+    nifti/nifti2.h
+    nifti/nifti2_io.h
+    nifti/nifti2_io.cc
+    nifti/znzlib.h
+    nifti/znzlib.cc
+  )
+  
+  set_target_properties(nifticlib PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
+  
+  if (MSVC)
+    # disable all function not secure warnings
+    target_compile_definitions(nifticlib PRIVATE _CRT_SECURE_NO_WARNINGS)
+    # disable all conversion from double to float loss of data warnings
+    target_compile_options(nifticlib PRIVATE /wd4244)
+    # disable all conversion from size_t to int loss of data and sign warnings
+    target_compile_options(nifticlib PRIVATE /wd4267)
+  endif ()
+  
+endif ()
+# ----------------------------------------------------------------------------
+# MIRTK I/O library
 set(HEADERS
   ${BINARY_INCLUDE_DIR}/mirtk/IOConfig.h
   ${BINARY_INCLUDE_DIR}/mirtk/IOExport.h
   GIPLImageReader.h
   GIPLImageWriter.h
+  NiftiImageInfo.h
+  NiftiImageReader.h
+  NiftiImageWriter.h
   PGMImageReader.h
   PGMImageWriter.h
 )
 
 set(SOURCES
+  IOConfig.cc
   GIPL.h
   GIPLImageReader.cc
   GIPLImageWriter.cc
-  IOConfig.cc
+  NiftiImage.h
+  NiftiImage.cc
+  NiftiImageInfo.cc
+  NiftiImageReader.cc
+  NiftiImageWriter.cc
   PGM.h
   PGMImageReader.cc
   PGMImageWriter.cc
@@ -54,19 +89,9 @@ set(DEPENDS
 )
 
 if (NiftiCLib_FOUND)
-  list(APPEND HEADERS
-    NiftiImageInfo.h
-    NiftiImageReader.h
-    NiftiImageWriter.h
-  )
-  list(APPEND SOURCES
-    NiftiImage.h
-    NiftiImage.cc
-    NiftiImageInfo.cc
-    NiftiImageReader.cc
-    NiftiImageWriter.cc
-  )
   list(APPEND DEPENDS ${NiftiCLib_LIBRARIES})
+else ()
+  list(APPEND SOURCES $<TARGET_OBJECTS:nifticlib>)
 endif ()
 
 if (PNG_FOUND)
@@ -85,5 +110,6 @@ if (VTK_FOUND)
   list(APPEND SOURCES PointSetIO.cc dfsurface.h)
   list(APPEND DEPENDS ${VTK_LIBRARIES})
 endif ()
+
 
 mirtk_add_library(AUTO_REGISTER)

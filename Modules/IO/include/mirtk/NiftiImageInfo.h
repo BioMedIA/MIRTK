@@ -27,7 +27,7 @@
 namespace mirtk {
 
 
-/// NIfTI-1 datatype codes
+/// NIfTI datatype codes
 enum NiftiDataType
 {
   NIFTI_TYPE_UINT8      =    2,
@@ -48,9 +48,10 @@ enum NiftiDataType
   NIFTI_TYPE_RGBA32     = 2304
 };
 
-/// NIfTI-1 intent codes, to describe intended meaning of dataset contents
+/// NIfTI intent codes, to describe intended meaning of dataset contents
 enum NiftiIntent
 {
+  NIFTI_INTENT_NONE         =    0,
   NIFTI_FIRST_STATCODE      =    2,
   NIFTI_INTENT_CORREL       =    2,
   NIFTI_INTENT_TTEST        =    3,
@@ -94,7 +95,10 @@ enum NiftiIntent
   NIFTI_INTENT_SHAPE        = 2005
 };
 
-/// NIfTI-1 xform codes to describe the "standard" coordinate system
+/// Convert NIfTI intent code to string
+template <> string ToString(const NiftiIntent &value, int w, char c, bool left);
+
+/// NIfTI xform codes to describe the "standard" coordinate system
 enum NiftiXForm
 {
   NIFTI_XFORM_UNKNOWN      = 0, ///< Arbitrary coordinates (Method 1)
@@ -106,7 +110,7 @@ enum NiftiXForm
   NIFTI_XFORM_MNI_152      = 4  ///< MNI 152 normalized coordinates
 };
 
-/// NIfTI-1 units codes to describe the unit of measurement for
+/// NIfTI units codes to describe the unit of measurement for
 /// each dimension of the dataset
 enum NiftiUnits
 {
@@ -122,11 +126,11 @@ enum NiftiUnits
   NIFTI_UNITS_RADS    = 48  ///< NIFTI code for radians per second
 };
 
-/// Convert string to NIfTI-1 units code
+/// Convert string to NIfTI units code
 bool FromString(const char *, NiftiUnits &);
 
 /**
- * NIfTI-1 image header information.
+ * NIfTI image header information.
  *
  * \note Only contains most commonly used entries of nifti_image struct
  *       and uses MIRTK types for non-builtin types.
@@ -144,37 +148,37 @@ struct NiftiImageInfo
   size_t nvox;           ///< number of voxels = nx*ny*nz*...*nw
   int    nbyper;         ///< bytes per voxel, matches datatype
   int    datatype;       ///< type of data in voxels: DT_* code
-  float  dx;             ///< grid spacings
-  float  dy;             ///< grid spacings
-  float  dz;             ///< grid spacings
-  float  dt;             ///< grid spacings
-  float  du;             ///< grid spacings
-  float  dv;             ///< grid spacings
-  float  dw;             ///< grid spacings
-  float  scl_slope;      ///< scaling parameter - slope
-  float  scl_inter;      ///< scaling parameter - intercept
-  float  cal_min;        ///< calibration parameter, minimum
-  float  cal_max;        ///< calibration parameter, maximum
+  double dx;             ///< grid spacings
+  double dy;             ///< grid spacings
+  double dz;             ///< grid spacings
+  double dt;             ///< grid spacings
+  double du;             ///< grid spacings
+  double dv;             ///< grid spacings
+  double dw;             ///< grid spacings
+  double scl_slope;      ///< scaling parameter - slope
+  double scl_inter;      ///< scaling parameter - intercept
+  double cal_min;        ///< calibration parameter, minimum
+  double cal_max;        ///< calibration parameter, maximum
   int    slice_code;     ///< code for slice timing pattern
   int    slice_start;    ///< index for start of slices
   int    slice_end;      ///< index for end of slices
-  float  slice_duration; ///< time between individual slices
+  double slice_duration; ///< time between individual slices
   int    qform_code;     ///< codes for (x,y,z) space meaning
   Matrix qto_xyz;        ///< qform: transform (i,j,k) to (x,y,z)
   Matrix qto_ijk;        ///< qform: transform (x,y,z) to (i,j,k)
   int    sform_code;     ///< codes for (x,y,z) space meaning
   Matrix sto_xyz;        ///< sform: transform (i,j,k) to (x,y,z)
   Matrix sto_ijk;        ///< sform: transform (x,y,z) to (i,j,k)
-  float  toffset;        ///< time coordinate offset
+  double toffset;        ///< time coordinate offset
   int    xyz_units;      ///< dx,dy,dz units: NIFTI_UNITS_* code
   int    time_units;     ///< dt       units: NIFTI_UNITS_* code
   int    nifti_type;     ///< 0==ANALYZE, 1==NIFTI-1 (1 file),
                          ///              2==NIFTI-1 (2 files),
                          ///              3==NIFTI-ASCII (1 file)
   int    intent_code;    ///< statistic type (or something)
-  float  intent_p1;      ///< intent parameters
-  float  intent_p2;      ///< intent parameters
-  float  intent_p3;      ///< intent parameters
+  double intent_p1;      ///< intent parameters
+  double intent_p2;      ///< intent parameters
+  double intent_p3;      ///< intent parameters
   string intent_name;    ///< optional description of intent data
   string descrip;        ///< optional text to describe dataset
   string aux_file;       ///< auxiliary filename

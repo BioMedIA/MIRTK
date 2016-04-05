@@ -19,6 +19,12 @@
 
 #include "mirtk/NiftiImageInfo.h"
 
+#include "nifti/nifti2_io.h"
+
+#undef NIFTI_UNITS_METER
+#undef NIFTI_UNITS_MM
+#undef NIFTI_UNITS_MICRON
+
 
 // =============================================================================
 // Enumerations -- **BEFORE** including nifti1_io.h which defines macros!!!
@@ -26,6 +32,12 @@
 
 namespace mirtk {
 
+
+// -----------------------------------------------------------------------------
+template <> string ToString(const NiftiIntent &value, int w, char c, bool left)
+{
+  return ToString(nifti_intent_string(value), w, c, left);
+}
 
 // -----------------------------------------------------------------------------
 bool FromString(const char *str, NiftiUnits &units)
@@ -47,14 +59,10 @@ bool FromString(const char *str, NiftiUnits &units)
 } // namespace mirtk
 
 // =============================================================================
-// Include nifti1_io.h
+// Include NIfTI I/O library header
 // =============================================================================
 
-#ifdef HAVE_NiftiCLib
-#  include <nifti/nifti1_io.h>
-#else
-#  include "nifti1_io.h"
-#endif
+#include "nifti/nifti2_io.h"
 
 
 namespace mirtk {
@@ -65,7 +73,7 @@ namespace mirtk {
 // =============================================================================
 
 // -----------------------------------------------------------------------------
-static inline Matrix ToMatrix(const mat44 &mat)
+static inline Matrix ToMatrix(const nifti_dmat44 &mat)
 {
   Matrix m;
   for (int i = 0; i < 4; ++i)

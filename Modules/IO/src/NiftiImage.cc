@@ -31,7 +31,7 @@ namespace mirtk {
 // -----------------------------------------------------------------------------
 NiftiImage::NiftiImage(const char *fname)
 :
-  nim(NULL)
+  nim(nullptr)
 {
   if (fname) Read(fname);
   else nim = nifti_simple_init_nim();
@@ -40,17 +40,17 @@ NiftiImage::NiftiImage(const char *fname)
 // -----------------------------------------------------------------------------
 NiftiImage::~NiftiImage()
 {
-  if (nim != NULL) {
-    nim->data = NULL; // (de)allocated elsewhere
+  if (nim != nullptr) {
+    nim->data = nullptr; // (de)allocated elsewhere
     nifti_image_free(nim);
   }
-  nim = NULL;
+  nim = nullptr;
 }
 
 // -----------------------------------------------------------------------------
 void NiftiImage::Read(const char *filename)
 {
-  if (nim != NULL) nifti_image_free(nim);
+  if (nim != nullptr) nifti_image_free(nim);
   const int read_data = 0;
   nim = nifti_image_read(filename, read_data);
 }
@@ -62,12 +62,12 @@ void NiftiImage::Initialize(int x, int y, int z, int t, int u,
                             Matrix &qmat, Matrix *smat, double torigin,
                             const void *data)
 {
+  nifti_dmat44 mat_44;
   int nbytepix = 0, ss = 0;
   int i, j;
-  mat44 mat_44;
 
   // Spatial dimensions
-  nim->nifti_type = 1;               // 1==NIFTI-1 (1 file) - should set the magic in nhdr in Write()
+  nim->nifti_type = 1;               // 1==nii (1 file) - should set the magic in nhdr in Write()
   nim->datatype   = datatype;        // Will be NIFTI_TYPE_UINT8 | NIFTI_TYPE_INT16 | NIFTI_TYPE_FLOAT32
   nim->ndim       = ((u > 1) ? 5 : (t > 1 ? 4 : 3));
   nim->nx         = (x > 1 ? x : 1); // So that nvox can be computed correctly, see below
@@ -77,11 +77,11 @@ void NiftiImage::Initialize(int x, int y, int z, int t, int u,
   nim->nu         = (u > 1 ? u : 1); // ...
   nim->nv         = 1;               // ...
   nim->nw         = 1;               // ...
-  nim->dx         = abs(static_cast<float>(xsize)); // Store only absolute pixel size values
-  nim->dy         = abs(static_cast<float>(ysize)); // dito
-  nim->dz         = abs(static_cast<float>(zsize)); // ...
-  nim->dt         = abs(static_cast<float>(tsize));
-  nim->toffset    = static_cast<float>(torigin);
+  nim->dx         = abs(xsize);      // Store only absolute pixel size values
+  nim->dy         = abs(ysize);      // dito
+  nim->dz         = abs(zsize);      // ...
+  nim->dt         = abs(tsize);
+  nim->toffset    = torigin;
   // Redundant fields ndim->dim/pixdim will be filled by nim2nhdr/nhdr2nim conversions in Write()
 
   // Derived values
@@ -92,12 +92,12 @@ void NiftiImage::Initialize(int x, int y, int z, int t, int u,
   // Compute qform
   for (i = 0; i < 4; ++i)
   for (j = 0; j < 4; ++j) {
-    mat_44.m[i][j] = static_cast<float>(qmat(i, j));
+    mat_44.m[i][j] = qmat(i, j);
   }
 
   nim->qform_code = 1;
   nim->qto_xyz = mat_44;
-  nifti_mat44_to_quatern(
+  nifti_dmat44_to_quatern(
     mat_44,
     &(nim->quatern_b), &(nim->quatern_c), &(nim->quatern_d),
     &(nim->qoffset_x), &(nim->qoffset_y), &(nim->qoffset_z),
@@ -108,11 +108,11 @@ void NiftiImage::Initialize(int x, int y, int z, int t, int u,
   if (smat) {
     for (i = 0; i < 4; ++i)
     for (j = 0; j < 4; ++j) {
-      mat_44.m[i][j] = static_cast<float>((*smat)(i, j));
+      mat_44.m[i][j] = (*smat)(i, j);
     }
     nim->sform_code = NIFTI_XFORM_ALIGNED_ANAT;
     nim->sto_xyz    = mat_44;
-    nim->sto_ijk    = nifti_mat44_inverse(mat_44);
+    nim->sto_ijk    = nifti_dmat44_inverse(mat_44);
   } else {
     nim->sform_code = NIFTI_XFORM_UNKNOWN;
   }
@@ -148,7 +148,7 @@ void NiftiImage::Initialize(int x, int y, int z, int t,
 void NiftiImage::Print()
 {
   cerr << "NiftiImage::Print() : \n";
-  if (nim != NULL) nifti_image_infodump(nim);
+  if (nim != nullptr) nifti_image_infodump(nim);
 }
 
 
