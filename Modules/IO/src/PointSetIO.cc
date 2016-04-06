@@ -1717,8 +1717,17 @@ bool WriteGIFTI(const char *fname, vtkPolyData *polydata, bool compress, bool as
   gifti_add_to_nvpairs(&gim->ex_atrs, "xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance");
   gifti_add_to_nvpairs(&gim->ex_atrs, "xsi:noNamespaceSchemaLocation", "http://brainvis.wustl.edu/caret6/xml_schemas/GIFTI_Caret.xsd");
 
+  // Remove file meta data that is no longer valid
+  vtkSmartPointer<vtkInformation> info = vtkSmartPointer<vtkInformation>::New();
+  info->Copy(polydata->GetInformation());
+  info->Remove(GiftiMetaData::DATE());
+  info->Remove(GiftiMetaData::USER_NAME());
+  info->Remove(GiftiMetaData::WORKING_DIRECTORY());
+  info->Remove(GiftiMetaData::PROGRAM_PROVENANCE());
+  info->Remove(GiftiMetaData::PROVENANCE());
+  info->Remove(GiftiMetaData::PARENT_PROVENANCE());
+
   // Copy file level meta data from vtkPolyData information
-  vtkInformation * const info = polydata->GetInformation();
   CopyMetaData(gim->meta, info, GiftiMetaData::KeysForFile());
 
   // Set UserName and Date
