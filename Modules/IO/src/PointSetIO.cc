@@ -1303,13 +1303,23 @@ GetPointData(const gifti_image *gim, vtkIdType npoints = 0, vtkIdTypeArray *indi
       } else {
         data->SetName(ToString(da->intent).c_str());
       }
-      const int idx = pd->AddArray(data);
-      if (da->intent == NIFTI_INTENT_SHAPE && !pd->GetScalars()) {
-        pd->SetActiveAttribute(idx, vtkDataSetAttributes::SCALARS);
+      int idx = -1;
+      switch (da->intent) {
+        case NIFTI_INTENT_SHAPE: {
+          if (!pd->GetScalars()) idx = pd->SetScalars(data);
+        } break;
+        case NIFTI_INTENT_VECTOR: {
+          if (ncomp == 3) {
+            const string lname = ToLower(data->GetName());
+            if (lname == "normals" || lname == "normal") {
+              if (!pd->GetNormals()) idx = pd->SetNormals(data);
+            } else {
+              if (!pd->GetVectors()) idx = pd->SetVectors(data);
+            }
+          }
+        } break;
       }
-      if (da->intent == NIFTI_INTENT_VECTOR && ncomp == 3 && !pd->GetVectors()) {
-        pd->SetActiveAttribute(idx, vtkDataSetAttributes::VECTORS);
-      }
+      if (idx == -1) idx = pd->AddArray(data);
     }
   }
   if (!ok) pd->Initialize();
