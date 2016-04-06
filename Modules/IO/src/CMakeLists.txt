@@ -40,9 +40,9 @@ if (NOT NiftiCLib_FOUND)
     nifti/znzlib.h
     nifti/znzlib.cc
   )
-  
+ 
   set_target_properties(nifticlib PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
-  
+ 
   if (MSVC)
     # disable all function not secure warnings
     target_compile_definitions(nifticlib PRIVATE _CRT_SECURE_NO_WARNINGS)
@@ -51,7 +51,30 @@ if (NOT NiftiCLib_FOUND)
     # disable all conversion from size_t to int loss of data and sign warnings
     target_compile_options(nifticlib PRIVATE /wd4267)
   endif ()
-  
+
+endif ()
+# ----------------------------------------------------------------------------
+# GIFTI I/O library
+if (NOT GiftiCLib_FOUND AND VTK_FOUND AND EXPAT_FOUND)
+
+  add_library(gifticlib OBJECT
+    gifti/gifti_io.h
+    gifti/gifti_io.cc
+    gifti/gifti_xml.h
+    gifti/gifti_xml.cc
+  )
+ 
+  set_target_properties(gifticlib PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
+
+  if (MSVC)
+    # disable all function not secure warnings
+    target_compile_definitions(gifticlib PRIVATE _CRT_SECURE_NO_WARNINGS)
+    # disable all conversion from double to float loss of data warnings
+    target_compile_options(gifticlib PRIVATE /wd4244)
+    # disable all conversion from size_t to int loss of data and sign warnings
+    target_compile_options(gifticlib PRIVATE /wd4267)
+  endif ()
+ 
 endif ()
 # ----------------------------------------------------------------------------
 # MIRTK I/O library
@@ -88,12 +111,6 @@ set(DEPENDS
   LibImage
 )
 
-if (NiftiCLib_FOUND)
-  list(APPEND DEPENDS ${NiftiCLib_LIBRARIES})
-else ()
-  list(APPEND SOURCES $<TARGET_OBJECTS:nifticlib>)
-endif ()
-
 if (PNG_FOUND)
   add_definitions(${PNG_DEFINITIONS})
   list(APPEND HEADERS PNGImageWriter.h)
@@ -101,15 +118,26 @@ if (PNG_FOUND)
   list(APPEND DEPENDS ${PNG_LIBRARIES})
 endif ()
 
-if (ZLIB_FOUND)
-  list(APPEND DEPENDS ${ZLIB_LIBRARIES})
+if (NiftiCLib_FOUND)
+  list(APPEND DEPENDS ${NiftiCLib_LIBRARIES})
+else ()
+  list(APPEND SOURCES $<TARGET_OBJECTS:nifticlib>)
 endif ()
 
 if (VTK_FOUND)
   list(APPEND HEADERS PointSetIO.h)
   list(APPEND SOURCES PointSetIO.cc brainsuite/dfsurface.h)
   list(APPEND DEPENDS ${VTK_LIBRARIES})
+  if (GiftiCLib_FOUND)
+    list(APPEND DEPENDS ${GiftiCLib_LIBRARIES})
+  elseif (EXPAT_FOUND)
+    list(APPEND SOURCES $<TARGET_OBJECTS:gifticlib>)
+    list(APPEND DEPENDS ${EXPAT_LIBRARIES})
+  endif ()
 endif ()
 
+if (ZLIB_FOUND)
+  list(APPEND DEPENDS ${ZLIB_LIBRARIES})
+endif ()
 
 mirtk_add_library(AUTO_REGISTER)

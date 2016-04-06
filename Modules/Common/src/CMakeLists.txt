@@ -67,6 +67,7 @@ set(HEADERS
   Status.h
   Stream.h
   String.h
+  System.h
   Terminal.h
   TestProd.h
   UnorderedMap.h
@@ -87,6 +88,7 @@ set(SOURCES
   Path.cc
   Profiling.cc
   String.cc
+  System.cc
   Terminal.cc
   Version.cc
 )

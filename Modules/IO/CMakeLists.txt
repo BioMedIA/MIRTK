@@ -17,7 +17,10 @@
 # limitations under the License.
 # ============================================================================
 
-option(WITH_NiftiCLib "Require system installation of NIfTI C library" OFF)
+option(WITH_NiftiCLib "Require system installation of NIfTI C library, use included NIfTI I/O sources when OFF" OFF)
 mark_as_advanced(WITH_NiftiCLib)
+
+option(WITH_GiftiCLib "Require system installation of GIFTI C library, use included GIFTI I/O sources when OFF" OFF)
+mark_as_advanced(WITH_GiftiCLib)
 
 mirtk_configure_module()
