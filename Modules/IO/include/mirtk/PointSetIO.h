@@ -226,6 +226,32 @@ public:
   /// Third parameter of statistical test
   static vtkInformationDoubleKey *INTENT_P3();
 
+  // ---------------------------------------------------------------------------
+  // vtkInformation key instances for HCP GIFTI meta data entries
+
+  /// Information about software that produced the data file
+  ///
+  /// For example, HCP Workbench stores its version and the version of the used
+  /// runtime library, Git commit SHA, OS name, and compiler information here.
+  static vtkInformationStringKey *PROGRAM_PROVENANCE();
+
+  /// Command and arguments that produced the (.func.gii) data file
+  static vtkInformationStringKey *PROVENANCE();
+
+  /// Command and arguments of parent command that executed the command specified
+  /// by the "Provenance" meta data entry to produce the data file
+  ///
+  /// @sa PROVENANCE
+  static vtkInformationStringKey *PARENT_PROVENANCE();
+
+  /// Working directory of the command that produced the data file
+  ///
+  /// @sa PROVENANCE
+  static vtkInformationStringKey *WORKING_DIRECTORY();
+
+  // ---------------------------------------------------------------------------
+  // Sets of meta data keys
+
   /// Standard meta data keys of a GIFTI file
   static Array<vtkInformationKey *> KeysForFile();
 

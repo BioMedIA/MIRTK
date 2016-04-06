@@ -843,6 +843,12 @@ GiftiMetaDataKeyMacro(INTENT_P1, "intent_p1", Double);
 GiftiMetaDataKeyMacro(INTENT_P2, "intent_p2", Double);
 GiftiMetaDataKeyMacro(INTENT_P3, "intent_p3", Double);
 
+// HCP Workbench
+GiftiMetaDataKeyMacro(PROGRAM_PROVENANCE, "ProgramProvenance", String);
+GiftiMetaDataKeyMacro(PROVENANCE, "Provenance", String);
+GiftiMetaDataKeyMacro(PARENT_PROVENANCE, "ParentProvenance", String);
+GiftiMetaDataKeyMacro(WORKING_DIRECTORY, "WorkingDirectory", String);
+
 // -----------------------------------------------------------------------------
 Array<vtkInformationKey *> GiftiMetaData::KeysForFile()
 {
@@ -853,6 +859,12 @@ Array<vtkInformationKey *> GiftiMetaData::KeysForFile()
   keys.push_back(SUBJECT_ID());
   keys.push_back(UNIQUE_ID());
   keys.push_back(TIME_STEP());
+  keys.push_back(PROGRAM_PROVENANCE());
+  keys.push_back(PROVENANCE());
+  keys.push_back(PARENT_PROVENANCE());
+  keys.push_back(WORKING_DIRECTORY());
+  keys.push_back(ANATOMICAL_STRUCTURE_PRIMARY()); // HCP Workbench .func.gii
+  keys.push_back(ANATOMICAL_STRUCTURE_SECONDARY());
   return keys;
 }
 
@@ -1341,6 +1353,21 @@ vtkSmartPointer<vtkPolyData> ReadGIFTI(const char *fname, vtkPolyData *surface, 
     polydata->SetPoints(points);
     polydata->SetPolys(polys);
     polydata->GetPointData()->ShallowCopy(pd);
+    // In the GIFTI files released by the Human Connectome Project (HCP),
+    // the name of point set and triangle list is identical and contains the
+    // path of the FreeSurfer surface file. We store this data array name in
+    // the vtkPolyData information and in WriteGIFTI we then set the Name meta
+    // data of point set and triangle list to the name stored in this map.
+    if (geom_info->Has(GiftiMetaData::NAME()) && topo_info->Has(GiftiMetaData::NAME())) {
+      if (strcmp(geom_info->Get(GiftiMetaData::NAME()),
+                 topo_info->Get(GiftiMetaData::NAME())) == 0) {
+        info->CopyEntry(geom_info, GiftiMetaData::NAME());
+      }
+    } else if (geom_info->Has(GiftiMetaData::NAME())) {
+      info->CopyEntry(geom_info, GiftiMetaData::NAME());
+    } else if (topo_info->Has(GiftiMetaData::NAME())) {
+      info->CopyEntry(topo_info, GiftiMetaData::NAME());
+    }
     // Copy meta data of geometry and topology data arrays to vtkPolyData information
     if (geom_info->Has(GiftiMetaData::SUBJECT_ID())) {
       info->CopyEntry(geom_info, GiftiMetaData::SUBJECT_ID());
