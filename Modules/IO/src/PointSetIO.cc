@@ -791,10 +791,14 @@ static int GiftiIntentCode(vtkDataArray *data, int attr = -1)
   } else if (data->GetName()) {
     const string lname = ToLower(data->GetName());
     if (lname.find("curvature") != string::npos ||
-        lname.find("shape")     != string::npos ||
-        lname == "curv" ||
-        lname == "sulcal depth" || lname == "sulcaldepth" || lname == "sulcal_depth" ||
-        lname == "k" || lname == "h") {
+        lname == "curv" || lname == "sulc" || // Sulcal depth
+        lname == "sulcal depth" ||
+        lname == "sulcaldepth"  ||
+        lname == "sulcal_depth" ||
+        lname == "k1" || lname == "k2" || // Principle curvature
+        lname == "h" || // Mean curvature
+        lname == "k" || // Gaussian curvature
+        lname == "c" || lname == "curvedness") { // Curvedness
       return NIFTI_INTENT_SHAPE;
     }
   }
