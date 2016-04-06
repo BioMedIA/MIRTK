@@ -21,6 +21,7 @@
 
 #include "mirtk/Path.h"
 #include "mirtk/Stream.h"
+#include "mirtk/System.h" // GetUserName, GetDateTime
 #include "mirtk/Vtk.h"
 
 #include "vtkPoints.h"
@@ -30,6 +31,7 @@
 #include "vtkIdTypeArray.h"
 #include "vtkIdList.h"
 #include "vtkInformation.h"
+#include "vtkInformationIterator.h"
 
 #include "vtkUnsignedShortArray.h"
 #include "vtkFloatArray.h"
@@ -842,6 +844,65 @@ GiftiMetaDataKeyMacro(INTENT_P2, "intent_p2", Double);
 GiftiMetaDataKeyMacro(INTENT_P3, "intent_p3", Double);
 
 // -----------------------------------------------------------------------------
+Array<vtkInformationKey *> GiftiMetaData::KeysForFile()
+{
+  Array<vtkInformationKey *> keys;
+  keys.push_back(DATE());
+  keys.push_back(USER_NAME());
+  keys.push_back(DESCRIPTION());
+  keys.push_back(SUBJECT_ID());
+  keys.push_back(UNIQUE_ID());
+  keys.push_back(TIME_STEP());
+  return keys;
+}
+
+// -----------------------------------------------------------------------------
+Array<vtkInformationKey *> GiftiMetaData::KeysForDataArray(int intent)
+{
+  Array<vtkInformationKey *> keys;
+  keys.push_back(NAME());
+  keys.push_back(DESCRIPTION());
+  keys.push_back(UNIQUE_ID());
+  keys.push_back(SUBJECT_ID());
+  keys.push_back(SURFACE_ID());
+  if (intent < 0) {
+    keys.push_back(ANATOMICAL_STRUCTURE_PRIMARY());
+    keys.push_back(ANATOMICAL_STRUCTURE_SECONDARY());
+    keys.push_back(GEOMETRIC_TYPE());
+    keys.push_back(TOPOLOGICAL_TYPE());
+    keys.push_back(INTENT_CODE());
+    keys.push_back(INTENT_P1());
+    keys.push_back(INTENT_P2());
+    keys.push_back(INTENT_P3());
+  } else if (intent == NIFTI_INTENT_POINTSET) {
+    keys.push_back(ANATOMICAL_STRUCTURE_PRIMARY());
+    keys.push_back(ANATOMICAL_STRUCTURE_SECONDARY());
+    keys.push_back(GEOMETRIC_TYPE());
+  } else if (intent == NIFTI_INTENT_TRIANGLE) {
+    keys.push_back(TOPOLOGICAL_TYPE());
+  } else if (NIFTI_FIRST_STATCODE <= intent && intent <= NIFTI_LAST_STATCODE) {
+    keys.push_back(INTENT_CODE());
+    keys.push_back(INTENT_P1());
+    keys.push_back(INTENT_P2());
+    keys.push_back(INTENT_P3());
+  }
+  return keys;
+}
+
+// -----------------------------------------------------------------------------
+/// Get GIFTI meta data from vtkInformation given a vtkInformationKey as string
+string GiftiMetaData::Get(vtkInformation *info, vtkInformationKey *key)
+{
+  vtkInformationStringKey *skey = vtkInformationStringKey::SafeDownCast(key);
+  if (skey) return info->Get(skey);
+  vtkInformationDoubleKey *dkey = vtkInformationDoubleKey::SafeDownCast(key);
+  if (dkey) return ToString(info->Get(dkey));
+  vtkInformationIntegerKey *ikey = vtkInformationIntegerKey::SafeDownCast(key);
+  if (dkey) return ToString(info->Get(ikey));
+  return string();
+}
+
+// -----------------------------------------------------------------------------
 /// Copy standard GIFTI meta data to vtkInformation
 static void CopyGIFTIMetaData(vtkInformation *info, const giiMetaData &meta)
 {
@@ -900,6 +961,41 @@ static void CopyGIFTIMetaData(vtkInformation *info, const giiMetaData &meta)
       double intent_p3;
       if (FromString(meta.value[i], intent_p3)) {
         info->Set(GiftiMetaData::INTENT_P3(), intent_p3);
+      }
+    }
+  }
+}
+
+// -----------------------------------------------------------------------------
+/// Copy standard GIFTI meta data from vtkInformation if present
+#if 0 // unused
+static void CopyGIFTIMetaData(giiMetaData &meta, vtkInformation *info)
+{
+  vtkNew<vtkInformationIterator> it;
+  it->SetInformation(info);
+  for (it->InitTraversal(); !it->IsDoneWithTraversal(); it->GoToNextItem()) {
+    vtkInformationKey * const key = it->GetCurrentKey();
+    if (info->Has(key)) {
+      const string value = GiftiMetaData::Get(info, key);
+      if (!value.empty()) {
+        gifti_add_to_meta(&meta, key->GetName(), value.c_str(), 1);
+      }
+    }
+  }
+}
+#endif
+
+// -----------------------------------------------------------------------------
+/// Copy specified standard GIFTI meta data from vtkInformation if present
+static void CopyGIFTIMetaData(giiMetaData &meta, vtkInformation *info,
+                              const Array<vtkInformationKey *> &keys)
+{
+  for (auto it = keys.begin(); it != keys.end(); ++it) {
+    vtkInformationKey * const key = *it;
+    if (info->Has(key)) {
+      const string value = GiftiMetaData::Get(info, key);
+      if (!value.empty()) {
+        gifti_add_to_meta(&meta, key->GetName(), value.c_str(), 1);
       }
     }
   }
@@ -1258,6 +1354,9 @@ vtkSmartPointer<vtkPolyData> ReadGIFTI(const char *fname, vtkPolyData *surface, 
     if (geom_info->Has(GiftiMetaData::DESCRIPTION())) {
       info->CopyEntry(geom_info, GiftiMetaData::DESCRIPTION());
     }
+    if (geom_info->Has(GiftiMetaData::DATA_SPACE())) {
+      info->CopyEntry(geom_info, GiftiMetaData::DATA_SPACE());
+    }
     if (geom_info->Has(GiftiMetaData::ANATOMICAL_STRUCTURE_PRIMARY())) {
       info->CopyEntry(geom_info, GiftiMetaData::ANATOMICAL_STRUCTURE_PRIMARY());
     }
@@ -1278,9 +1377,198 @@ vtkSmartPointer<vtkPolyData> ReadGIFTI(const char *fname, vtkPolyData *surface, 
 }
 
 // -----------------------------------------------------------------------------
+bool AddGIFTICoordinates(gifti_image *gim, vtkPoints *points, vtkInformation *info = nullptr)
+{
+  if (gifti_add_empty_darray(gim, 1) != 0) return false;
+  giiDataArray *da = gim->darray[gim->numDA-1];
+
+  // Set data array attributes
+  da->intent     = NIFTI_INTENT_POINTSET;
+  da->datatype   = NIFTI_TYPE_FLOAT32;
+  da->ind_ord    = GIFTI_IND_ORD_ROW_MAJOR;
+  da->num_dim    = 2;
+  da->dims[0]    = static_cast<int>(points->GetNumberOfPoints());
+  da->dims[1]    = 3;
+  #ifdef HAVE_ZLIB
+    da->encoding = GIFTI_ENCODING_B64GZ;
+  #else
+    da->encoding = GIFTI_ENCODING_B64BIN;
+  #endif
+  da->endian     = gifti_get_this_endian();
+  da->ext_fname  = nullptr;
+  da->ext_offset = 0;
+  da->nvals      = gifti_darray_nvals(da);
+  gifti_datatype_sizes(da->datatype, &da->nbyper, nullptr);
+
+  // Allocate memory for point set coordinates
+  da->data = calloc(da->nvals * da->nbyper, sizeof(char));
+  if (da->data == nullptr) {
+    gifti_free_DataArray(da);
+    gim->darray[--gim->numDA] = nullptr;
+    return false;
+  }
+
+  // Copy point set coordinates
+  double p[3];
+  float *pdata = reinterpret_cast<float *>(da->data);
+  for (int i = 0; i < da->dims[0]; ++i) {
+    points->GetPoint(i, p);
+    (*pdata) = static_cast<float>(p[0]), ++pdata;
+    (*pdata) = static_cast<float>(p[1]), ++pdata;
+    (*pdata) = static_cast<float>(p[2]), ++pdata;
+  }
+
+  // Add coordinate system with identity matrix
+  if (gifti_add_empty_CS(da) != 0) {
+    gifti_free_DataArray(da);
+    gim->darray[--gim->numDA] = nullptr;
+    return false;
+  }
+  giiCoordSystem *cs = da->coordsys[da->numCS-1];
+  const char *dataspace;
+  if (info && info->Has(GiftiMetaData::DATA_SPACE())) {
+    dataspace = info->Get(GiftiMetaData::DATA_SPACE());
+  } else {
+    dataspace = "NIFTI_XFORM_UNKNOWN";
+  }
+  cs->dataspace  = gifti_strdup(dataspace);
+  cs->xformspace = gifti_strdup(dataspace);
+  cs->xform[0][0] = cs->xform[1][1] = cs->xform[2][2] = cs->xform[3][3] = 1.0;
+
+  // Copy meta data from vtkPolyData information
+  if (info) {
+    CopyGIFTIMetaData(da->meta, info, GiftiMetaData::KeysForDataArray(da->intent));
+  }
+
+  return true;
+}
+
+// -----------------------------------------------------------------------------
+bool AddGIFTITopology(gifti_image *gim, vtkCellArray *triangles, vtkInformation *info = nullptr)
+{
+  if (triangles->GetMaxCellSize() != 3) return false;
+
+  if (gifti_add_empty_darray(gim, 1) != 0) return false;
+  giiDataArray *da = gim->darray[gim->numDA-1];
+
+  // Set data array attributes
+  da->intent     = NIFTI_INTENT_TRIANGLE;
+  da->datatype   = NIFTI_TYPE_INT32;
+  da->ind_ord    = GIFTI_IND_ORD_ROW_MAJOR;
+  da->num_dim    = 2;
+  da->dims[0]    = static_cast<int>(triangles->GetNumberOfCells());
+  da->dims[1]    = 3;
+  #ifdef HAVE_ZLIB
+    da->encoding = GIFTI_ENCODING_B64GZ;
+  #else
+    da->encoding = GIFTI_ENCODING_B64BIN;
+  #endif
+  da->endian     = gifti_get_this_endian();
+  da->ext_fname  = nullptr;
+  da->ext_offset = 0;
+  da->nvals      = gifti_darray_nvals(da);
+  gifti_datatype_sizes(da->datatype, &da->nbyper, nullptr);
+
+  // Allocate memory for point indices
+  da->data = calloc(da->nvals * da->nbyper, sizeof(char));
+  if (da->data == nullptr) {
+    gifti_free_DataArray(da);
+    gim->darray[--gim->numDA] = nullptr;
+    return false;
+  }
+
+  // Copy triangles
+  vtkIdType npts, *pts;
+  int *pdata = reinterpret_cast<int *>(da->data);
+  triangles->InitTraversal();
+  for (int i = 0; i < da->dims[0]; ++i) {
+    triangles->GetNextCell(npts, pts);
+    if (npts != 3) {
+      gifti_free_DataArray(da);
+      gim->darray[--gim->numDA] = nullptr;
+      return false;
+    }
+    (*pdata) = static_cast<int>(pts[0]), ++pdata;
+    (*pdata) = static_cast<int>(pts[1]), ++pdata;
+    (*pdata) = static_cast<int>(pts[2]), ++pdata;
+  }
+
+  // Copy meta data from vtkPolyData information
+  if (info) {
+    CopyGIFTIMetaData(da->meta, info, GiftiMetaData::KeysForDataArray(da->intent));
+  }
+
+  return true;
+}
+
+// -----------------------------------------------------------------------------
 bool WriteGIFTI(const char *fname, vtkPolyData *polydata, bool compress, bool ascii)
 {
-  return false;
+  // Determine type of GIFTI file from file name extensions
+  const string ext  = Extension(fname, EXT_Last);
+
+  string type;
+  if (ext == ".gii") {
+    const string name = fname;
+    type = Extension(name.substr(0, name.length() - ext.length()), EXT_Last);
+    if (type == ".label" || type == ".time") {
+      cerr << "WriteGIFTI: Output file type " << type << ext << " not supported" << endl;
+      return false;
+    }
+    if (type != ".coord" &&
+        type != ".func" &&
+        type != ".label" &&
+        type != ".rgba" &&
+        type != ".shape" &&
+        type != ".surf" &&
+        type != ".tensor" &&
+        type != ".time" &&
+        type != ".topo" &&
+        type != ".vector") {
+      type.clear();
+    }
+  }
+
+  // Allocate new GIFTI structure
+  gifti_image *gim = gifti_create_image(0, 0, 0, 0, nullptr, 0);
+  if (gim == nullptr) return false;
+
+  // Set extra attributes for XML validation
+  gifti_add_to_nvpairs(&gim->ex_atrs, "xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance");
+  gifti_add_to_nvpairs(&gim->ex_atrs, "xsi:noNamespaceSchemaLocation", "http://brainvis.wustl.edu/caret6/xml_schemas/GIFTI_Caret.xsd");
+
+  // Copy file level meta data from vtkPolyData information
+  vtkInformation * const info = polydata->GetInformation();
+  CopyGIFTIMetaData(gim->meta, info, GiftiMetaData::KeysForFile());
+
+  // Set UserName and Date
+  gifti_add_to_meta(&gim->meta, GiftiMetaData::DATE()     ->GetName(), GetDateTime().c_str(), 1);
+  gifti_add_to_meta(&gim->meta, GiftiMetaData::USER_NAME()->GetName(), GetUserName().c_str(), 1);
+
+  // Add point coordinates
+  if (polydata->GetNumberOfPoints() > 0) {
+    if (type.empty() || type == ".coord" || type == ".surf") {
+      AddGIFTICoordinates(gim, polydata->GetPoints(), info);
+    }
+  }
+
+  // Add triangles
+  if (polydata->GetPolys() && polydata->GetPolys()->GetNumberOfCells() > 0) {
+    if (type.empty() || type == ".topo" || type == ".surf") {
+      AddGIFTITopology(gim, polydata->GetPolys(), info);
+    }
+  }
+
+  // TODO: Add point data arrays
+  if (type.empty() || (type != ".coord" && type != ".topo" && type != ".surf")) {
+  }
+
+  // Write GIFTI file
+  const int write_data = 1;
+  bool success = (gifti_write_image(gim, fname, write_data) == 0);
+  gifti_free_image(gim);
+
+  return success;
 }
 
 #endif // MIRTK_IO_WITH_GIFTI

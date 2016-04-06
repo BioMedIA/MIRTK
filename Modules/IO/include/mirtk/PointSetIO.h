@@ -226,6 +226,14 @@ public:
   /// Third parameter of statistical test
   static vtkInformationDoubleKey *INTENT_P3();
 
+  /// Standard meta data keys of a GIFTI file
+  static Array<vtkInformationKey *> KeysForFile();
+
+  /// Standard meta data keys of a GIFTI data array with specified intent
+  static Array<vtkInformationKey *> KeysForDataArray(int = -1);
+
+  /// Get meta data value for given vtkInformationKey as string
+  static string Get(vtkInformation *, vtkInformationKey *);
 };
 
 /// Read point set coordinates from GIFTI ([.coord].gii) file
