@@ -1252,7 +1252,7 @@ vtkSmartPointer<vtkPolyData> ReadGIFTI(const char *fname, vtkPolyData *surface, 
       info->CopyEntry(geom_info, GiftiMetaData::GEOMETRIC_TYPE());
     }
     if (topo_info->Has(GiftiMetaData::TOPOLOGICAL_TYPE())) {
-      info->CopyEntry(geom_info, GiftiMetaData::TOPOLOGICAL_TYPE());
+      info->CopyEntry(topo_info, GiftiMetaData::TOPOLOGICAL_TYPE());
     }
   } else {
     info->Clear();
