@@ -750,6 +750,58 @@ static int GiftiDataTypeToVtk(int datatype)
 }
 
 // -----------------------------------------------------------------------------
+/// Get GIFTI data type suitable for given VTK data array
+///
+/// @note GIFTI only supports NIFTI_TYPE_UINT8, NIFTI_TYPE_INT32, and NIFTI_TYPE_FLOAT32.
+static int GiftiDataType(vtkDataArray *data)
+{
+  switch (data->GetDataType()) {
+    case VTK_UNSIGNED_CHAR:
+      return NIFTI_TYPE_UINT8;
+    case VTK_CHAR:
+    case VTK_SHORT:
+    case VTK_INT:
+    case VTK_UNSIGNED_SHORT:
+    case VTK_UNSIGNED_INT:
+      return NIFTI_TYPE_INT32;
+    default:
+      return NIFTI_TYPE_FLOAT32;
+  }
+}
+
+// -----------------------------------------------------------------------------
+/// Get GIFTI intent code for given VTK point data array
+///
+/// @param[in] data Point data array.
+/// @param[in] attr VTK attribute type or -1 if it is no VTK attribute.
+static int GiftiIntentCode(vtkDataArray *data, int attr = -1)
+{
+  if (data->GetName()) {
+    NiftiIntent intent = NIFTI_INTENT_NONE;
+    if (FromString(data->GetName(), intent) && intent != NIFTI_INTENT_NONE) {
+      return intent;
+    }
+  }
+  if (attr == vtkDataSetAttributes::NORMALS ||
+      attr == vtkDataSetAttributes::VECTORS) {
+    return NIFTI_INTENT_VECTOR;
+  }
+  if (data->GetNumberOfComponents() > 1) {
+    return NIFTI_INTENT_VECTOR;
+  } else if (data->GetName()) {
+    const string lname = ToLower(data->GetName());
+    if (lname.find("curvature") != string::npos ||
+        lname.find("shape")     != string::npos ||
+        lname == "curv" ||
+        lname == "sulcal depth" || lname == "sulcaldepth" || lname == "sulcal_depth" ||
+        lname == "k" || lname == "h") {
+      return NIFTI_INTENT_SHAPE;
+    }
+  }
+  return NIFTI_INTENT_NONE;
+}
+
+// -----------------------------------------------------------------------------
 /// Copy GIFTI data array of data type matching the template argument to vtkDataArray
 template <class T>
 void CopyDataArrayWithType(vtkDataArray *dst, const giiDataArray *src,
@@ -794,6 +846,27 @@ void CopyDataArrayWithType(vtkDataArray *dst, const giiDataArray *src,
 }
 
 // -----------------------------------------------------------------------------
+/// Copy vtkDataArray to GIFTI data array of data type matching the template argument
+template <class T>
+void CopyDataArrayWithType(giiDataArray *dst, vtkDataArray *src)
+{
+  const int m = static_cast<int>(src->GetNumberOfTuples());
+  const int n = static_cast<int>(src->GetNumberOfComponents());
+  T *v = reinterpret_cast<T *>(dst->data);
+  if (dst->ind_ord == GIFTI_IND_ORD_COL_MAJOR) {
+    for (int j = 0; j < n; ++j)
+    for (int i = 0; i < m; ++i, ++v) {
+      (*v) = static_cast<T>(src->GetComponent(i, j));
+    }
+  } else {
+    for (int i = 0; i < m; ++i)
+    for (int j = 0; j < n; ++j) {
+      (*v) = static_cast<T>(src->GetComponent(i, j));
+    }
+  }
+}
+
+// -----------------------------------------------------------------------------
 /// Copy GIFTI data array to vtkDataArray
 static void CopyDataArray(vtkDataArray *dst, const giiDataArray *src,
                           vtkIdTypeArray *indices = nullptr)
@@ -811,6 +884,20 @@ static void CopyDataArray(vtkDataArray *dst, const giiDataArray *src,
     case NIFTI_TYPE_FLOAT64: CopyDataArrayWithType<double  >(dst, src, indices); break;
     default:
       cerr << "GIFTI data array has unknown/invalid data type: " << src->datatype << endl;
+      exit(1);
+  }
+}
+
+// -----------------------------------------------------------------------------
+/// Copy vtkDataArray to GIFTI data array
+static void CopyDataArray(giiDataArray *dst, vtkDataArray *src)
+{
+  switch (dst->datatype) {
+    case NIFTI_TYPE_UINT8:   CopyDataArrayWithType<uint8_t >(dst, src); break;
+    case NIFTI_TYPE_INT32:   CopyDataArrayWithType<int32_t >(dst, src); break;
+    case NIFTI_TYPE_FLOAT32: CopyDataArrayWithType<float   >(dst, src); break;
+    default:
+      cerr << "GIFTI data array has unknown/invalid data type: " << dst->datatype << endl;
       exit(1);
   }
 }
@@ -1529,6 +1616,63 @@ static bool AddTriangles(gifti_image *gim, vtkCellArray *triangles, vtkInformati
 }
 
 // -----------------------------------------------------------------------------
+static bool AddDataArray(gifti_image *gim, vtkDataArray *data, int attr = -1)
+{
+  if (gifti_add_empty_darray(gim, 1) != 0) return false;
+  giiDataArray *da = gim->darray[gim->numDA-1];
+
+  // Set data array attributes
+  da->intent     = GiftiIntentCode(data, attr);
+  da->datatype   = GiftiDataType(data);
+  da->ind_ord    = GIFTI_IND_ORD_ROW_MAJOR;
+  da->num_dim    = 1;
+  da->dims[0]    = static_cast<int>(data->GetNumberOfTuples());
+  if (data->GetNumberOfComponents() > 1) {
+    da->num_dim  = 2;
+    da->dims[1]  = static_cast<int>(data->GetNumberOfComponents());
+  }
+  #ifdef HAVE_ZLIB
+    da->encoding = GIFTI_ENCODING_B64GZ;
+  #else
+    da->encoding = GIFTI_ENCODING_B64BIN;
+  #endif
+  da->endian     = gifti_get_this_endian();
+  da->ext_fname  = nullptr;
+  da->ext_offset = 0;
+  da->nvals      = gifti_darray_nvals(da);
+  gifti_datatype_sizes(da->datatype, &da->nbyper, nullptr);
+
+  // Allocate memory
+  da->data = calloc(da->nvals * da->nbyper, sizeof(char));
+  if (da->data == nullptr) {
+    gifti_free_DataArray(da);
+    gim->darray[--gim->numDA] = nullptr;
+    return false;
+  }
+
+  // Convert and copy data
+  CopyDataArray(da, data);
+  return false;
+}
+
+// -----------------------------------------------------------------------------
+static bool AddPointData(gifti_image *gim, vtkPointData *pd)
+{
+  const int numDA = gim->numDA;
+  for (int i = 0; i < pd->GetNumberOfArrays(); ++i) {
+    if (!AddDataArray(gim, pd->GetArray(i), pd->IsArrayAnAttribute(i))) {
+      for (int j = numDA; j < gim->numDA; ++j) {
+        gifti_free_DataArray(gim->darray[j]);
+        gim->darray[j] = nullptr;
+      }
+      gim->numDA = numDA;
+      return false;
+    }
+  }
+  return true;
+}
+
+// -----------------------------------------------------------------------------
 bool WriteGIFTI(const char *fname, vtkPolyData *polydata, bool compress, bool ascii)
 {
   // Determine type of GIFTI file from file name extensions
@@ -1538,10 +1682,6 @@ bool WriteGIFTI(const char *fname, vtkPolyData *polydata, bool compress, bool as
   if (ext == ".gii") {
     const string name = fname;
     type = Extension(name.substr(0, name.length() - ext.length()), EXT_Last);
-    if (type == ".label" || type == ".time") {
-      cerr << "WriteGIFTI: Output file type " << type << ext << " not supported" << endl;
-      return false;
-    }
     if (type != ".coord" &&
         type != ".func" &&
         type != ".label" &&
@@ -1553,6 +1693,12 @@ bool WriteGIFTI(const char *fname, vtkPolyData *polydata, bool compress, bool as
         type != ".topo" &&
         type != ".vector") {
       type.clear();
+    } else if (type != ".coord" && type != ".topo" && type != ".surf") {
+      cerr << "WriteGIFTI: Output file type " << type << ext << " not supported!\n"
+              "            Can only write .coord.gii, .topo.gii, .surf.gii, or generic .gii file.\n"
+              "            To write a generic GIFTI file, remove the " << type << " infix before\n"
+              "            the .gii file name extension." << endl;
+      return false;
     }
   }
 
@@ -1592,8 +1738,9 @@ bool WriteGIFTI(const char *fname, vtkPolyData *polydata, bool compress, bool as
     }
   }
 
-  // TODO: Add point data arrays
+  // Add point data arrays
   if (type.empty() || (type != ".coord" && type != ".topo" && type != ".surf")) {
+    AddPointData(gim, polydata->GetPointData());
   }
 
   // Set encoding of all data arrays
