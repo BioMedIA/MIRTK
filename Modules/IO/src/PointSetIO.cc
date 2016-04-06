@@ -732,7 +732,7 @@ bool WriteTetGenSMesh(const char *fname, vtkPolyData *polydata, const PointSet *
 
 // -----------------------------------------------------------------------------
 /// Get VTK data type enumeration value corresponding to given GIFTI datatype
-static int GIFTIDataTypeToVTK(int datatype)
+static int GiftiDataTypeToVtk(int datatype)
 {
   switch (datatype) {
     case NIFTI_TYPE_INT8:    return VTK_CHAR;
@@ -752,8 +752,8 @@ static int GIFTIDataTypeToVTK(int datatype)
 // -----------------------------------------------------------------------------
 /// Copy GIFTI data array of data type matching the template argument to vtkDataArray
 template <class T>
-void CopyGIFTIDataArrayWithDataType(vtkDataArray *dst, const giiDataArray *src,
-                                    vtkIdTypeArray *indices = nullptr)
+void CopyDataArrayWithType(vtkDataArray *dst, const giiDataArray *src,
+                           vtkIdTypeArray *indices = nullptr)
 {
   const int m = src->dims[0];
   const int n = static_cast<int>(src->nvals / static_cast<long long>(m));
@@ -795,20 +795,20 @@ void CopyGIFTIDataArrayWithDataType(vtkDataArray *dst, const giiDataArray *src,
 
 // -----------------------------------------------------------------------------
 /// Copy GIFTI data array to vtkDataArray
-static void CopyGIFTIDataArray(vtkDataArray *dst, const giiDataArray *src,
-                               vtkIdTypeArray *indices = nullptr)
+static void CopyDataArray(vtkDataArray *dst, const giiDataArray *src,
+                          vtkIdTypeArray *indices = nullptr)
 {
   switch (src->datatype) {
-    case NIFTI_TYPE_INT8:    CopyGIFTIDataArrayWithDataType<int8_t  >(dst, src, indices); break;
-    case NIFTI_TYPE_INT16:   CopyGIFTIDataArrayWithDataType<int16_t >(dst, src, indices); break;
-    case NIFTI_TYPE_INT32:   CopyGIFTIDataArrayWithDataType<int32_t >(dst, src, indices); break;
-    case NIFTI_TYPE_INT64:   CopyGIFTIDataArrayWithDataType<int64_t >(dst, src, indices); break;
-    case NIFTI_TYPE_UINT8:   CopyGIFTIDataArrayWithDataType<uint8_t >(dst, src, indices); break;
-    case NIFTI_TYPE_UINT16:  CopyGIFTIDataArrayWithDataType<uint16_t>(dst, src, indices); break;
-    case NIFTI_TYPE_UINT32:  CopyGIFTIDataArrayWithDataType<uint32_t>(dst, src, indices); break;
-    case NIFTI_TYPE_UINT64:  CopyGIFTIDataArrayWithDataType<uint64_t>(dst, src, indices); break;
-    case NIFTI_TYPE_FLOAT32: CopyGIFTIDataArrayWithDataType<float   >(dst, src, indices); break;
-    case NIFTI_TYPE_FLOAT64: CopyGIFTIDataArrayWithDataType<double  >(dst, src, indices); break;
+    case NIFTI_TYPE_INT8:    CopyDataArrayWithType<int8_t  >(dst, src, indices); break;
+    case NIFTI_TYPE_INT16:   CopyDataArrayWithType<int16_t >(dst, src, indices); break;
+    case NIFTI_TYPE_INT32:   CopyDataArrayWithType<int32_t >(dst, src, indices); break;
+    case NIFTI_TYPE_INT64:   CopyDataArrayWithType<int64_t >(dst, src, indices); break;
+    case NIFTI_TYPE_UINT8:   CopyDataArrayWithType<uint8_t >(dst, src, indices); break;
+    case NIFTI_TYPE_UINT16:  CopyDataArrayWithType<uint16_t>(dst, src, indices); break;
+    case NIFTI_TYPE_UINT32:  CopyDataArrayWithType<uint32_t>(dst, src, indices); break;
+    case NIFTI_TYPE_UINT64:  CopyDataArrayWithType<uint64_t>(dst, src, indices); break;
+    case NIFTI_TYPE_FLOAT32: CopyDataArrayWithType<float   >(dst, src, indices); break;
+    case NIFTI_TYPE_FLOAT64: CopyDataArrayWithType<double  >(dst, src, indices); break;
     default:
       cerr << "GIFTI data array has unknown/invalid data type: " << src->datatype << endl;
       exit(1);
@@ -904,7 +904,7 @@ string GiftiMetaData::Get(vtkInformation *info, vtkInformationKey *key)
 
 // -----------------------------------------------------------------------------
 /// Copy standard GIFTI meta data to vtkInformation
-static void CopyGIFTIMetaData(vtkInformation *info, const giiMetaData &meta)
+static void CopyMetaData(vtkInformation *info, const giiMetaData &meta)
 {
   for (int i = 0; i < meta.length; ++i) {
     if (strcmp(meta.name[i], GiftiMetaData::DATE()->GetName()) == 0) {
@@ -969,7 +969,7 @@ static void CopyGIFTIMetaData(vtkInformation *info, const giiMetaData &meta)
 // -----------------------------------------------------------------------------
 /// Copy standard GIFTI meta data from vtkInformation if present
 #if 0 // unused
-static void CopyGIFTIMetaData(giiMetaData &meta, vtkInformation *info)
+static void CopyMetaData(giiMetaData &meta, vtkInformation *info)
 {
   vtkNew<vtkInformationIterator> it;
   it->SetInformation(info);
@@ -987,8 +987,8 @@ static void CopyGIFTIMetaData(giiMetaData &meta, vtkInformation *info)
 
 // -----------------------------------------------------------------------------
 /// Copy specified standard GIFTI meta data from vtkInformation if present
-static void CopyGIFTIMetaData(giiMetaData &meta, vtkInformation *info,
-                              const Array<vtkInformationKey *> &keys)
+static void CopyMetaData(giiMetaData &meta, vtkInformation *info,
+                         const Array<vtkInformationKey *> &keys)
 {
   for (auto it = keys.begin(); it != keys.end(); ++it) {
     vtkInformationKey * const key = *it;
@@ -1004,34 +1004,34 @@ static void CopyGIFTIMetaData(giiMetaData &meta, vtkInformation *info,
 // -----------------------------------------------------------------------------
 /// Copy GIFTI point set to vtkPoints
 static vtkSmartPointer<vtkPoints>
-GIFTICoordinatesToVTK(const gifti_image *gim, vtkInformation *info = nullptr, bool errmsg = false)
+GetPoints(const gifti_image *gim, vtkInformation *info = nullptr, bool errmsg = false)
 {
   vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
   for (int i = 0; i < gim->numDA; ++i) {
-    giiDataArray *array = gim->darray[i];
-    if (array->intent == NIFTI_INTENT_POINTSET) {
-      if (array->datatype != NIFTI_TYPE_FLOAT32) {
+    giiDataArray *da = gim->darray[i];
+    if (da->intent == NIFTI_INTENT_POINTSET) {
+      if (da->datatype != NIFTI_TYPE_FLOAT32) {
         if (errmsg) {
           cerr << "Error: GIFTI coordinates array must have datatype NIFTI_TYPE_FLOAT32!" << endl;
         }
         break;
       }
-      if (array->num_dim != 2) {
+      if (da->num_dim != 2) {
         if (errmsg) {
           cerr << "Error: GIFTI coordinates array must have 2 dimensions!" << endl;
         }
         break;
       }
-      if (array->dims[1] != 3) {
+      if (da->dims[1] != 3) {
         if (errmsg) {
           cerr << "Error: Second dimension of GIFTI coordinates array must have size 3!" << endl;
         }
         break;
       }
-      const int n = array->dims[0];
+      const int n = da->dims[0];
       points->SetNumberOfPoints(n);
-      const float *x = reinterpret_cast<float *>(array->data);
-      if (array->ind_ord == GIFTI_IND_ORD_COL_MAJOR) {
+      const float *x = reinterpret_cast<float *>(da->data);
+      if (da->ind_ord == GIFTI_IND_ORD_COL_MAJOR) {
         const float *y = x + n, *z = y + n;
         for (int j = 0; j < n; ++j, ++x, ++y, ++z) {
           points->SetPoint(j, static_cast<double>(*x), static_cast<double>(*y), static_cast<double>(*z));
@@ -1043,12 +1043,12 @@ GIFTICoordinatesToVTK(const gifti_image *gim, vtkInformation *info = nullptr, bo
         }
       }
       if (info) {
-        CopyGIFTIMetaData(info, array->meta);
+        CopyMetaData(info, da->meta);
         const char *dataspace;
-        if (array->numCS > 0) {
-          dataspace = array->coordsys[0]->dataspace;
-          for (int c = 1; c < array->numCS; ++c) {
-            if (strcmp(dataspace, array->coordsys[c]->dataspace) != 0) {
+        if (da->numCS > 0) {
+          dataspace = da->coordsys[0]->dataspace;
+          for (int c = 1; c < da->numCS; ++c) {
+            if (strcmp(dataspace, da->coordsys[c]->dataspace) != 0) {
               dataspace = "NIFTI_XFORM_UNKNOWN";
               break;
             }
@@ -1067,36 +1067,36 @@ GIFTICoordinatesToVTK(const gifti_image *gim, vtkInformation *info = nullptr, bo
 // -----------------------------------------------------------------------------
 /// Copy GIFTI topology information to vtkCellArray
 static vtkSmartPointer<vtkCellArray>
-GIFTITopologyToVTK(const gifti_image *gim, vtkInformation *info = nullptr, bool errmsg = false)
+GetTriangles(const gifti_image *gim, vtkInformation *info = nullptr, bool errmsg = false)
 {
   vtkSmartPointer<vtkCellArray> triangles;
   for (int i = 0; i < gim->numDA; ++i) {
-    giiDataArray *array = gim->darray[i];
-    if (array->intent == NIFTI_INTENT_TRIANGLE) {
-      if (array->datatype != NIFTI_TYPE_INT32) {
+    giiDataArray *da = gim->darray[i];
+    if (da->intent == NIFTI_INTENT_TRIANGLE) {
+      if (da->datatype != NIFTI_TYPE_INT32) {
         if (errmsg) {
           cerr << "Error: GIFTI topology array must have datatype NIFTI_TYPE_INT32!" << endl;
         }
         break;
       }
-      if (array->num_dim != 2) {
+      if (da->num_dim != 2) {
         if (errmsg) {
           cerr << "Error: GIFTI topology array must have 2 dimensions!" << endl;
         }
         break;
       }
-      if (array->dims[1] != 3) {
+      if (da->dims[1] != 3) {
         if (errmsg) {
           cerr << "Error: Second dimension of GIFTI topology array must have size 3!" << endl;
         }
         break;
       }
       vtkIdType pts[3];
-      const int n = array->dims[0];
+      const int n = da->dims[0];
       triangles = vtkSmartPointer<vtkCellArray>::New();
       triangles->Allocate(3 * n);
-      const int *a = reinterpret_cast<int *>(array->data);
-      if (array->ind_ord == GIFTI_IND_ORD_COL_MAJOR) {
+      const int *a = reinterpret_cast<int *>(da->data);
+      if (da->ind_ord == GIFTI_IND_ORD_COL_MAJOR) {
         const int *b = a + n, *c = b + n;
         for (int j = 0; j < n; ++j, ++a, ++b, ++c) {
           pts[0] = static_cast<vtkIdType>(*a);
@@ -1113,7 +1113,7 @@ GIFTITopologyToVTK(const gifti_image *gim, vtkInformation *info = nullptr, bool 
           triangles->InsertNextCell(3, pts);
         }
       }
-      if (info) CopyGIFTIMetaData(info, array->meta);
+      if (info) CopyMetaData(info, da->meta);
       break;
     }
   }
@@ -1123,19 +1123,19 @@ GIFTITopologyToVTK(const gifti_image *gim, vtkInformation *info = nullptr, bool 
 // -----------------------------------------------------------------------------
 /// Convert GIFTI node indices array to vtkDataArray
 static vtkSmartPointer<vtkIdTypeArray>
-GIFTINodeIndicesToVTK(const gifti_image *gim, bool errmsg = false)
+GetNodeIndices(const gifti_image *gim, bool errmsg = false)
 {
   vtkSmartPointer<vtkIdTypeArray> indices;
   for (int i = 0; i < gim->numDA; ++i) {
-    giiDataArray *array = gim->darray[i];
-    if (array->intent == NIFTI_INTENT_NODE_INDEX) {
-      if (array->num_dim != 1) {
+    giiDataArray *da = gim->darray[i];
+    if (da->intent == NIFTI_INTENT_NODE_INDEX) {
+      if (da->num_dim != 1) {
         if (errmsg) {
           cerr << "Error: GIFTI node indices array must have 1 dimension!" << endl;
         }
         break;
       }
-      if (array->dims[0] <= 0) {
+      if (da->dims[0] <= 0) {
         if (errmsg) {
           cerr << "Error: GIFTI node indices array must contain at least one index!" << endl;
         }
@@ -1143,8 +1143,8 @@ GIFTINodeIndicesToVTK(const gifti_image *gim, bool errmsg = false)
       }
       indices = vtkSmartPointer<vtkIdTypeArray>::New();
       indices->SetNumberOfComponents(1);
-      indices->SetNumberOfTuples(array->dims[0]);
-      CopyGIFTIDataArray(indices, array);
+      indices->SetNumberOfTuples(da->dims[0]);
+      CopyDataArray(indices, da);
     }
   }
   return indices;
@@ -1153,7 +1153,7 @@ GIFTINodeIndicesToVTK(const gifti_image *gim, bool errmsg = false)
 // -----------------------------------------------------------------------------
 /// Convert GIFTI data arrays to vtkDataArray instances of a vtkPointData
 static vtkSmartPointer<vtkPointData>
-GIFTIPointDataToVTK(const gifti_image *gim, vtkIdType npoints = 0, vtkIdTypeArray *indices = nullptr, bool errmsg = false)
+GetPointData(const gifti_image *gim, vtkIdType npoints = 0, vtkIdTypeArray *indices = nullptr, bool errmsg = false)
 {
   vtkIdType nindices = 0;
   if (indices) {
@@ -1170,18 +1170,18 @@ GIFTIPointDataToVTK(const gifti_image *gim, vtkIdType npoints = 0, vtkIdTypeArra
   bool ok = true;
   vtkSmartPointer<vtkPointData> pd = vtkSmartPointer<vtkPointData>::New();
   for (int i = 0; i < gim->numDA; ++i) {
-    giiDataArray *array = gim->darray[i];
-    if (array->intent != NIFTI_INTENT_POINTSET &&
-        array->intent != NIFTI_INTENT_TRIANGLE &&
-        array->intent != NIFTI_INTENT_NODE_INDEX &&
-        array->num_dim > 0 && array->dims[0] > 0 && array->nvals > 0) {
-      const int ncomp = static_cast<int>(array->nvals / static_cast<long long>(array->dims[0]));
+    giiDataArray *da = gim->darray[i];
+    if (da->intent != NIFTI_INTENT_POINTSET &&
+        da->intent != NIFTI_INTENT_TRIANGLE &&
+        da->intent != NIFTI_INTENT_NODE_INDEX &&
+        da->num_dim > 0 && da->dims[0] > 0 && da->nvals > 0) {
+      const int ncomp = static_cast<int>(da->nvals / static_cast<long long>(da->dims[0]));
       vtkSmartPointer<vtkDataArray> data;
-      data = NewVTKDataArray(GIFTIDataTypeToVTK(array->datatype));
+      data = NewVTKDataArray(GiftiDataTypeToVtk(da->datatype));
       data->SetNumberOfComponents(ncomp);
       if (npoints) {
-        if (( indices && static_cast<vtkIdType>(array->dims[0]) != nindices) ||
-            (!indices && static_cast<vtkIdType>(array->dims[0]) != npoints)) {
+        if (( indices && static_cast<vtkIdType>(da->dims[0]) != nindices) ||
+            (!indices && static_cast<vtkIdType>(da->dims[0]) != npoints)) {
           if (errmsg) {
             cerr << "Error: GIFTI array size does not match point set or node indices array size!" << endl;
           }
@@ -1190,21 +1190,21 @@ GIFTIPointDataToVTK(const gifti_image *gim, vtkIdType npoints = 0, vtkIdTypeArra
         }
         data->SetNumberOfTuples(npoints);
       } else {
-        data->SetNumberOfTuples(array->dims[0]);
+        data->SetNumberOfTuples(da->dims[0]);
       }
-      CopyGIFTIDataArray(data, array, indices);
+      CopyDataArray(data, da, indices);
       vtkInformation * const info = data->GetInformation();
-      CopyGIFTIMetaData(info, array->meta);
+      CopyMetaData(info, da->meta);
       if (info->Has(GiftiMetaData::NAME())) {
         data->SetName(info->Get(GiftiMetaData::NAME()));
       } else {
-        data->SetName(ToString(array->intent).c_str());
+        data->SetName(ToString(da->intent).c_str());
       }
       const int idx = pd->AddArray(data);
-      if (array->intent == NIFTI_INTENT_SHAPE && !pd->GetScalars()) {
+      if (da->intent == NIFTI_INTENT_SHAPE && !pd->GetScalars()) {
         pd->SetActiveAttribute(idx, vtkDataSetAttributes::SCALARS);
       }
-      if (array->intent == NIFTI_INTENT_VECTOR && ncomp == 3 && !pd->GetVectors()) {
+      if (da->intent == NIFTI_INTENT_VECTOR && ncomp == 3 && !pd->GetVectors()) {
         pd->SetActiveAttribute(idx, vtkDataSetAttributes::VECTORS);
       }
     }
@@ -1223,7 +1223,7 @@ vtkSmartPointer<vtkPoints> ReadGIFTICoordinates(const char *fname, vtkInformatio
     }
     return vtkSmartPointer<vtkPoints>::New();
   }
-  return GIFTICoordinatesToVTK(gim, info, errmsg);
+  return GetPoints(gim, info, errmsg);
 }
 
 // -----------------------------------------------------------------------------
@@ -1236,7 +1236,7 @@ vtkSmartPointer<vtkCellArray> ReadGIFTITopology(const char *fname, vtkInformatio
     }
     return nullptr;
   }
-  return GIFTITopologyToVTK(gim, info, errmsg);
+  return GetTriangles(gim, info, errmsg);
 }
 
 // -----------------------------------------------------------------------------
@@ -1249,7 +1249,7 @@ vtkSmartPointer<vtkPointData> ReadGIFTIPointData(const char *fname, bool errmsg)
     }
     return nullptr;
   }
-  return GIFTIPointDataToVTK(gim, 0, nullptr, errmsg);
+  return GetPointData(gim, 0, nullptr, errmsg);
 }
 
 // -----------------------------------------------------------------------------
@@ -1265,8 +1265,8 @@ vtkSmartPointer<vtkPolyData> ReadGIFTI(const char *fname, vtkPolyData *surface, 
   // Convert geometry and topology arrays including their meta data
   vtkSmartPointer<vtkInformation> geom_info = vtkSmartPointer<vtkInformation>::New();
   vtkSmartPointer<vtkInformation> topo_info = vtkSmartPointer<vtkInformation>::New();
-  vtkSmartPointer<vtkPoints>    points = GIFTICoordinatesToVTK(gim, geom_info,  errmsg);
-  vtkSmartPointer<vtkCellArray> polys  = GIFTITopologyToVTK   (gim, topo_info,  errmsg);
+  vtkSmartPointer<vtkPoints>    points = GetPoints   (gim, geom_info,  errmsg);
+  vtkSmartPointer<vtkCellArray> polys  = GetTriangles(gim, topo_info,  errmsg);
 
   // Polygonal dataset requires a point set
   if (points->GetNumberOfPoints() == 0) {
@@ -1294,7 +1294,7 @@ vtkSmartPointer<vtkPolyData> ReadGIFTI(const char *fname, vtkPolyData *surface, 
   }
 
   // Get node indices array
-  vtkSmartPointer<vtkIdTypeArray> indices = GIFTINodeIndicesToVTK(gim, errmsg);
+  vtkSmartPointer<vtkIdTypeArray> indices = GetNodeIndices(gim, errmsg);
   if (indices) {
     for (vtkIdType i = 0; i < indices->GetNumberOfTuples(); ++i) {
       const vtkIdType index = indices->GetComponent(i, 0);
@@ -1310,11 +1310,11 @@ vtkSmartPointer<vtkPolyData> ReadGIFTI(const char *fname, vtkPolyData *surface, 
   }
 
   // Convert possibly sparse point data arrays
-  vtkSmartPointer<vtkPointData> pd = GIFTIPointDataToVTK(gim, npoints, indices, errmsg);
+  vtkSmartPointer<vtkPointData> pd = GetPointData(gim, npoints, indices, errmsg);
 
   // Copy file meta data to vtkPolyData information
   vtkInformation * const info = polydata->GetInformation();
-  CopyGIFTIMetaData(info, gim->meta);
+  CopyMetaData(info, gim->meta);
 
   // Free gifti_image instance
   gifti_free_image(gim);
@@ -1377,7 +1377,7 @@ vtkSmartPointer<vtkPolyData> ReadGIFTI(const char *fname, vtkPolyData *surface, 
 }
 
 // -----------------------------------------------------------------------------
-bool AddGIFTICoordinates(gifti_image *gim, vtkPoints *points, vtkInformation *info = nullptr)
+static bool AddPoints(gifti_image *gim, vtkPoints *points, vtkInformation *info = nullptr)
 {
   if (gifti_add_empty_darray(gim, 1) != 0) return false;
   giiDataArray *da = gim->darray[gim->numDA-1];
@@ -1437,14 +1437,14 @@ bool AddGIFTICoordinates(gifti_image *gim, vtkPoints *points, vtkInformation *in
 
   // Copy meta data from vtkPolyData information
   if (info) {
-    CopyGIFTIMetaData(da->meta, info, GiftiMetaData::KeysForDataArray(da->intent));
+    CopyMetaData(da->meta, info, GiftiMetaData::KeysForDataArray(da->intent));
   }
 
   return true;
 }
 
 // -----------------------------------------------------------------------------
-bool AddGIFTITopology(gifti_image *gim, vtkCellArray *triangles, vtkInformation *info = nullptr)
+static bool AddTriangles(gifti_image *gim, vtkCellArray *triangles, vtkInformation *info = nullptr)
 {
   if (triangles->GetMaxCellSize() != 3) return false;
 
@@ -1495,7 +1495,7 @@ bool AddGIFTITopology(gifti_image *gim, vtkCellArray *triangles, vtkInformation 
 
   // Copy meta data from vtkPolyData information
   if (info) {
-    CopyGIFTIMetaData(da->meta, info, GiftiMetaData::KeysForDataArray(da->intent));
+    CopyMetaData(da->meta, info, GiftiMetaData::KeysForDataArray(da->intent));
   }
 
   return true;
@@ -1539,7 +1539,7 @@ bool WriteGIFTI(const char *fname, vtkPolyData *polydata, bool compress, bool as
 
   // Copy file level meta data from vtkPolyData information
   vtkInformation * const info = polydata->GetInformation();
-  CopyGIFTIMetaData(gim->meta, info, GiftiMetaData::KeysForFile());
+  CopyMetaData(gim->meta, info, GiftiMetaData::KeysForFile());
 
   // Set UserName and Date
   gifti_add_to_meta(&gim->meta, GiftiMetaData::DATE()     ->GetName(), GetDateTime().c_str(), 1);
@@ -1548,14 +1548,20 @@ bool WriteGIFTI(const char *fname, vtkPolyData *polydata, bool compress, bool as
   // Add point coordinates
   if (polydata->GetNumberOfPoints() > 0) {
     if (type.empty() || type == ".coord" || type == ".surf") {
-      AddGIFTICoordinates(gim, polydata->GetPoints(), info);
+      if (!AddPoints(gim, polydata->GetPoints(), info)) {
+        gifti_free_image(gim);
+        return false;
+      }
     }
   }
 
   // Add triangles
   if (polydata->GetPolys() && polydata->GetPolys()->GetNumberOfCells() > 0) {
     if (type.empty() || type == ".topo" || type == ".surf") {
-      AddGIFTITopology(gim, polydata->GetPolys(), info);
+      if (!AddTriangles(gim, polydata->GetPolys(), info)) {
+        gifti_free_image(gim);
+        return false;
+      }
     }
   }
 
