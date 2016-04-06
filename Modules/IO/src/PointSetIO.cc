@@ -1643,7 +1643,7 @@ static bool AddDataArray(gifti_image *gim, vtkDataArray *data, int attr = -1)
   gifti_datatype_sizes(da->datatype, &da->nbyper, nullptr);
 
   // Allocate memory
-  da->data = calloc(da->nvals * da->nbyper, sizeof(char));
+  da->data = malloc(da->nvals * da->nbyper);
   if (da->data == nullptr) {
     gifti_free_DataArray(da);
     gim->darray[--gim->numDA] = nullptr;
