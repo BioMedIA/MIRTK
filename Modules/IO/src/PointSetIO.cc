@@ -831,6 +831,7 @@ GiftiMetaDataKeyMacro(UNIQUE_ID,  "UniqueID", String);
 GiftiMetaDataKeyMacro(NAME, "Name", String);
 GiftiMetaDataKeyMacro(DESCRIPTION, "Description", String);
 GiftiMetaDataKeyMacro(TIME_STEP, "TimeStep", Double);
+GiftiMetaDataKeyMacro(DATA_SPACE, "DataSpace", String);
 GiftiMetaDataKeyMacro(ANATOMICAL_STRUCTURE_PRIMARY, "AnatomicalStructurePrimary", String);
 GiftiMetaDataKeyMacro(ANATOMICAL_STRUCTURE_SECONDARY, "AnatomicalStructureSecondary", String);
 GiftiMetaDataKeyMacro(GEOMETRIC_TYPE, "GeometricType", String);
@@ -945,7 +946,22 @@ GIFTICoordinatesToVTK(const gifti_image *gim, vtkInformation *info = nullptr, bo
           points->SetPoint(j, static_cast<double>(*x), static_cast<double>(*y), static_cast<double>(*z));
         }
       }
-      if (info) CopyGIFTIMetaData(info, array->meta);
+      if (info) {
+        CopyGIFTIMetaData(info, array->meta);
+        const char *dataspace;
+        if (array->numCS > 0) {
+          dataspace = array->coordsys[0]->dataspace;
+          for (int c = 1; c < array->numCS; ++c) {
+            if (strcmp(dataspace, array->coordsys[c]->dataspace) != 0) {
+              dataspace = "NIFTI_XFORM_UNKNOWN";
+              break;
+            }
+          }
+        } else {
+          dataspace = "NIFTI_XFORM_UNKNOWN";
+        }
+        info->Set(GiftiMetaData::DATA_SPACE(), dataspace);
+      }
       break;
     }
   }

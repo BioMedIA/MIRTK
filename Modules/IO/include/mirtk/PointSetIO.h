@@ -199,6 +199,9 @@ public:
   /// and is equivalent to the slice_duration of a NIfTI volume
   static vtkInformationDoubleKey *TIME_STEP();
 
+  /// Data space of point set before any coordinate system transformation
+  static vtkInformationStringKey *DATA_SPACE();
+
   /// Anatomical structure that the point set models
   static vtkInformationStringKey *ANATOMICAL_STRUCTURE_PRIMARY();
 
