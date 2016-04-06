@@ -518,6 +518,8 @@ typedef struct nifti1_extension nifti1_extension ;
     \brief aliases for the nifti1 datatype codes
     @{
  */
+#ifndef NO_NIFTI_TYPE_DEFINES
+
                                        /*! unsigned char. */
 #define NIFTI_TYPE_UINT8           2
                                        /*! signed short. */
@@ -550,6 +552,8 @@ typedef struct nifti1_extension nifti1_extension ;
 #define NIFTI_TYPE_COMPLEX256   2048
                                        /*! 4 8 bit bytes. */
 #define NIFTI_TYPE_RGBA32       2304
+
+#endif // NO_NIFTI_TYPE_DEFINES
 /* @} */
 
                      /*-------- sample typedefs for complicated types ---*/
@@ -647,6 +651,7 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
 
    If no data name is implied or needed, intent_name[0] should be set to 0.
 -----------------------------------------------------------------------------*/
+#ifndef NO_NIFTI_INTENT_DEFINES
 
  /*! default: no intention is indicated in the header. */
 
@@ -950,6 +955,7 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
 
 #define NIFTI_INTENT_SHAPE        2005
 
+#endif // NO_NIFTI_INTENT_DEFINES
 /* @} */
 
 /*---------------------------------------------------------------------------*/
@@ -1207,6 +1213,8 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
     \brief nifti1 xform codes to describe the "standard" coordinate system
     @{
  */
+#ifndef NO_NIFTI_XFORM_DEFINES
+
                                     /*! Arbitrary coordinates (Method 1). */
 
 #define NIFTI_XFORM_UNKNOWN      0
@@ -1228,6 +1236,9 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
                                     /*! MNI 152 normalized coordinates. */
 
 #define NIFTI_XFORM_MNI_152      4
+
+
+#endif // NO_NIFTI_XFORM_DEFINES
 /* @} */
 
 /*---------------------------------------------------------------------------*/
@@ -1272,6 +1283,8 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
            each dimension of the dataset
     @{
  */
+#ifndef NO_NIFTI_UNITS_DEFINES
+
                                /*! NIFTI code for unspecified units. */
 #define NIFTI_UNITS_UNKNOWN 0
 
@@ -1298,6 +1311,8 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
 #define NIFTI_UNITS_PPM    40
                                /*! NIFTI code for radians per second. */
 #define NIFTI_UNITS_RADS   48
+
+#endif // NO_NIFTI_UNITS_DEFINES
 /* @} */
 
 #undef  XYZT_TO_SPACE
@@ -1413,6 +1428,7 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
            of the slices
     @{
  */
+#ifndef NO_NIFTI_SLICE_DEFINES
 #define NIFTI_SLICE_UNKNOWN   0
 #define NIFTI_SLICE_SEQ_INC   1
 #define NIFTI_SLICE_SEQ_DEC   2
@@ -1420,6 +1436,7 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
 #define NIFTI_SLICE_ALT_DEC   4
 #define NIFTI_SLICE_ALT_INC2  5  /* 05 May 2005: RWCox */
 #define NIFTI_SLICE_ALT_DEC2  6  /* 05 May 2005: RWCox */
+#endif // NO_NIFTI_SLICE_DEFINES
 /* @} */
 
 /*---------------------------------------------------------------------------*/
