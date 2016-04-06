@@ -19,11 +19,12 @@
 
 #include "mirtk/NiftiImageInfo.h"
 
+#define NO_NIFTI_TYPE_DEFINES
+#define NO_NIFTI_INTENT_DEFINES
+#define NO_NIFTI_XFORM_DEFINES
+#define NO_NIFTI_UNITS_DEFINES
+#define NO_NIFTI_SLICE_DEFINES
 #include "nifti/nifti2_io.h"
-
-#undef NIFTI_UNITS_METER
-#undef NIFTI_UNITS_MM
-#undef NIFTI_UNITS_MICRON
 
 
 // =============================================================================
@@ -34,9 +35,116 @@ namespace mirtk {
 
 
 // -----------------------------------------------------------------------------
+template <> bool FromString(const char *str, NiftiIntent &value)
+{
+  string lstr = Trim(ToLower(str));
+  if (lstr.rfind(" distribution") == lstr.length() - 13) {
+    lstr = lstr.substr(0, lstr.length() - 13);
+  } else if (lstr.rfind(" statistic") == lstr.length() - 10) {
+    lstr = lstr.substr(0, lstr.length() - 10);
+  }
+
+  if (lstr == "correlation") return NIFTI_INTENT_CORREL;
+  if (lstr == "t-statistic" || lstr == "t-test") return NIFTI_INTENT_TTEST;
+  if (lstr == "f-statistic" || lstr == "f-test") return NIFTI_INTENT_FTEST;
+  if (lstr == "z-score") return NIFTI_INTENT_ZSCORE;
+
+  if (lstr == "f-statistic noncentral") return NIFTI_INTENT_FTEST_NONC;
+  if (lstr == "chi-squared noncentral") return NIFTI_INTENT_CHISQ_NONC;
+  if (lstr == "t-statistic noncentral") return NIFTI_INTENT_TTEST_NONC;
+
+  if (lstr == "chi-squared") return NIFTI_INTENT_CHISQ;
+  if (lstr == "beta") return NIFTI_INTENT_BETA;
+  if (lstr == "gamma") return NIFTI_INTENT_GAMMA;
+  if (lstr == "poisson") return NIFTI_INTENT_POISSON;
+  if (lstr == "normal") return NIFTI_INTENT_NORMAL;
+  if (lstr == "logistic") return NIFTI_INTENT_LOGISTIC;
+  if (lstr == "laplace") return NIFTI_INTENT_LAPLACE;
+  if (lstr == "uniform") return NIFTI_INTENT_UNIFORM;
+  if (lstr == "weibull") return NIFTI_INTENT_WEIBULL;
+  if (lstr == "chi") return NIFTI_INTENT_CHI;
+  if (lstr == "inverse gaussian") return NIFTI_INTENT_INVGAUSS;
+  if (lstr == "extreme value") return NIFTI_INTENT_EXTVAL;
+
+  if (lstr == "p-value") return NIFTI_INTENT_PVAL;
+  if (lstr == "log p-value") return NIFTI_INTENT_LOGPVAL;
+  if (lstr == "log10 p-value") return NIFTI_INTENT_LOG10PVAL;
+
+  if (lstr == "estimate") return NIFTI_INTENT_ESTIMATE;
+  if (lstr == "label index" || lstr == "label") return NIFTI_INTENT_LABEL;
+  if (lstr == "neuronames index" || lstr == "neuroname") return NIFTI_INTENT_NEURONAME;
+  if (lstr == "general matrix") return NIFTI_INTENT_GENMATRIX;
+  if (lstr == "symmetric matrix") return NIFTI_INTENT_SYMMATRIX;
+  if (lstr == "displacement vector") return NIFTI_INTENT_DISPVECT;
+  if (lstr == "vector") return NIFTI_INTENT_VECTOR;
+  if (lstr == "pointset") return NIFTI_INTENT_POINTSET;
+  if (lstr == "triangle") return NIFTI_INTENT_TRIANGLE;
+  if (lstr == "quaternion") return NIFTI_INTENT_QUATERNION;
+
+  if (lstr == "time series") return NIFTI_INTENT_TIME_SERIES;
+  if (lstr == "node index") return NIFTI_INTENT_NODE_INDEX;
+  if (lstr == "shape") return NIFTI_INTENT_SHAPE;
+  if (lstr == "rgb") return NIFTI_INTENT_RGB_VECTOR;
+  if (lstr == "rgba") return NIFTI_INTENT_RGBA_VECTOR;
+
+  if (lstr == "dimensionless number" || lstr == "dimensionless") {
+    return NIFTI_INTENT_DIMLESS;
+  }
+
+  return NIFTI_INTENT_NONE;
+}
+
+// -----------------------------------------------------------------------------
 template <> string ToString(const NiftiIntent &value, int w, char c, bool left)
 {
-  return ToString(nifti_intent_string(value), w, c, left);
+  const char *str = "Unknown";
+  switch (value) {
+    case NIFTI_INTENT_NONE:       str = "Unknown"; break;
+    case NIFTI_INTENT_CORREL:     str = "Correlation statistic"; break;
+    case NIFTI_INTENT_TTEST:      str = "T-statistic"; break;
+    case NIFTI_INTENT_FTEST:      str = "F-statistic"; break;
+    case NIFTI_INTENT_ZSCORE:     str = "Z-score"; break;
+    case NIFTI_INTENT_CHISQ:      str = "Chi-squared distribution"; break;
+    case NIFTI_INTENT_BETA:       str = "Beta distribution"; break;
+    case NIFTI_INTENT_BINOM:      str = "Binomial distribution"; break;
+    case NIFTI_INTENT_GAMMA:      str = "Gamma distribution"; break;
+    case NIFTI_INTENT_POISSON:    str = "Poisson distribution"; break;
+    case NIFTI_INTENT_NORMAL:     str = "Normal distribution"; break;
+    case NIFTI_INTENT_FTEST_NONC: str = "F-statistic noncentral"; break;
+    case NIFTI_INTENT_CHISQ_NONC: str = "Chi-squared noncentral"; break;
+    case NIFTI_INTENT_LOGISTIC:   str = "Logistic distribution"; break;
+    case NIFTI_INTENT_LAPLACE:    str = "Laplace distribution"; break;
+    case NIFTI_INTENT_UNIFORM:    str = "Uniform distribution"; break;
+    case NIFTI_INTENT_TTEST_NONC: str = "T-statistic noncentral"; break;
+    case NIFTI_INTENT_WEIBULL:    str = "Weibull distribution"; break;
+    case NIFTI_INTENT_CHI:        str = "Chi distribution"; break;
+    case NIFTI_INTENT_INVGAUSS:   str = "Inverse Gaussian distribution"; break;
+    case NIFTI_INTENT_EXTVAL:     str = "Extreme Value distribution"; break;
+    case NIFTI_INTENT_PVAL:       str = "P-value"; break;
+
+    case NIFTI_INTENT_LOGPVAL:    str = "Log P-value"; break;
+    case NIFTI_INTENT_LOG10PVAL:  str = "Log10 P-value"; break;
+
+    case NIFTI_INTENT_ESTIMATE:   str = "Estimate"; break;
+    case NIFTI_INTENT_LABEL:      str = "Label index"; break;
+    case NIFTI_INTENT_NEURONAME:  str = "NeuroNames index"; break;
+    case NIFTI_INTENT_GENMATRIX:  str = "General matrix"; break;
+    case NIFTI_INTENT_SYMMATRIX:  str = "Symmetric matrix"; break;
+    case NIFTI_INTENT_DISPVECT:   str = "Displacement vector"; break;
+    case NIFTI_INTENT_VECTOR:     str = "Vector"; break;
+    case NIFTI_INTENT_POINTSET:   str = "Pointset"; break;
+    case NIFTI_INTENT_TRIANGLE:   str = "Triangle"; break;
+    case NIFTI_INTENT_QUATERNION: str = "Quaternion"; break;
+
+    case NIFTI_INTENT_DIMLESS:    str = "Dimensionless number"; break;
+
+    case NIFTI_INTENT_TIME_SERIES: str = "Time series"; break;
+    case NIFTI_INTENT_NODE_INDEX:  str = "Node index"; break;
+    case NIFTI_INTENT_SHAPE:       str = "Shape"; break;
+    case NIFTI_INTENT_RGB_VECTOR:  str = "RGB"; break;
+    case NIFTI_INTENT_RGBA_VECTOR: str = "RGBA"; break;
+  }
+  return ToString(str, w, c, left);
 }
 
 // -----------------------------------------------------------------------------

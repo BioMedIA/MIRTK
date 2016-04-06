@@ -95,6 +95,9 @@ enum NiftiIntent
   NIFTI_INTENT_SHAPE        = 2005
 };
 
+/// Convert string to NIfTI intent code
+template <> bool FromString(const char *str, NiftiIntent &value);
+
 /// Convert NIfTI intent code to string
 template <> string ToString(const NiftiIntent &value, int w, char c, bool left);
 
