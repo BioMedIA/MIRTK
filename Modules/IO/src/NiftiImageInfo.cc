@@ -150,7 +150,7 @@ template <> string ToString(const NiftiIntent &value, int w, char c, bool left)
 // -----------------------------------------------------------------------------
 bool FromString(const char *str, NiftiUnits &units)
 {
-  const string lstr = ToLower(str);
+  const string lstr = Trim(ToLower(str));
   if (lstr == "m" || lstr == "meter" || lstr == ToString(int(NIFTI_UNITS_METER))) {
     units = NIFTI_UNITS_METER;
   } else if (lstr == "mm" || lstr == "millimeter" || lstr == ToString(int(NIFTI_UNITS_MM))) {
