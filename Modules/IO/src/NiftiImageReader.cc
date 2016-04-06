@@ -17,6 +17,7 @@
  * limitations under the License.
  */
 
+#define _NIFTI2_IO_C_
 #include "NiftiImage.h"
 
 #include "mirtk/NiftiImageReader.h"
@@ -77,12 +78,56 @@ NiftiImageReader::~NiftiImageReader()
 // -----------------------------------------------------------------------------
 bool NiftiImageReader::CheckHeader(const char *fname)
 {
-  char magic_number[4];
-  Cifstream from(fname);
-  from.Open(fname);
-  from.ReadAsChar(magic_number, 4, 344);
-  from.Close();
-  return (strcmp(magic_number, "n+1") == 0 || strcmp(magic_number, "ni1") == 0);
+  // Get name of corresponding image header file
+  const char *hname = nifti_findhdrname(fname);
+  if (hname == nullptr) return false;
+  // Open header file stream
+  Cifstream from(hname);
+  // Check if it as a NIfTI image in ASCII format
+  // (cf. has_ascii_header function defined in nifti2_io.cc)
+  char nia_magic[16];
+  if (from.ReadAsChar(nia_magic, 12)) {
+    if (strncmp(nia_magic, "<nifti_image", 12) == 0) return true;
+    from.Seek(0);
+  }
+  // Try to read NIfTI-1 header
+  nifti_1_header n1hdr;
+  const size_t h1size = sizeof(nifti_1_header);
+  from.ReadAsChar((char *)&n1hdr, h1size);
+  // Check if it is a NIfTI header and which version
+  const int ni_ver = nifti_header_version((char *)&n1hdr, h1size);
+  if (ni_ver == -1) return false;
+  // In case of NIfTI-2, the file may be a CIFTI file instead
+  if (ni_ver == 2) {
+    // Fill remaining bytes of NIfTI-2 header
+    nifti_2_header n2hdr;
+    const size_t h2size = sizeof(nifti_2_header);
+    memcpy(&n2hdr, &n1hdr, h1size);
+    if (!from.ReadAsChar((char *)&n2hdr + h1size, static_cast<int>(h2size - h1size))) {
+      return false;
+    }
+    // Check dimension sizes if it could be a CIFTI before checking the extensions
+    nifti_image *nim = nifti_convert_n2hdr2nim(n2hdr, hname);
+    const bool needs_swap = (nim->byteorder != nifti_short_order());
+    bool maybe_cifti = (nim->nx < 2 && nim->ny < 2 && nim->nz < 2 && nim->nt < 2);
+    if (nim->nu < 2 && nim->nt < 2) maybe_cifti = false;
+    nifti_image_free(nim);
+    // Look for CIFTI extension
+    if (maybe_cifti) {
+      int size, code;
+      while (from.ReadAsChar((char *)&size, 4) &&
+             from.ReadAsChar((char *)&code, 4)) {
+        if (needs_swap) {
+          nifti_swap_4bytes(1, &size);
+          nifti_swap_4bytes(1, &code);
+        }
+        if (size < 16 || size & 0xf) break;          // size must be multiple of 16
+        if (code == NIFTI_ECODE_CIFTI) return false; // found CIFTI extension
+        if (!nifti_is_valid_ecode(code)) break;      // extension code must be valid
+      }
+    }
+  }
+  return true;
 }
 
 // -----------------------------------------------------------------------------
@@ -94,56 +139,17 @@ bool NiftiImageReader::CanRead(const char *fname) const
 // -----------------------------------------------------------------------------
 void NiftiImageReader::Initialize()
 {
-  // Read magic no
-  char magic_number[4];
-  Cifstream from(_FileName.c_str());
-  from.ReadAsChar(magic_number, 4, 344);
-  from.Close();
-
-  // Determine corresponding image data file
-  _ImageName     = _FileName;
-  const size_t l = _FileName.size();
-  if (l <= 4) {
-    cerr << this->NameOfClass() << ": Input file name is missing proper extension: " << _FileName << endl;
-    exit(1);
-  }
-
-  if (strcmp(magic_number, "ni1") == 0) {
-    string ext = Extension(_FileName, EXT_LastWithGz);
-    if (ext == ".hdr.gz") {
-      _ImageName[l-6] = 'i';
-      _ImageName[l-5] = 'm';
-      _ImageName[l-4] = 'g';
-    } else {
-      struct stat buf;
-      _ImageName[l-3] = 'i';
-      _ImageName[l-2] = 'm';
-      _ImageName[l-1] = 'g';
-      if (stat(_ImageName.c_str(), &buf) != 0) {
-        string fname;
-        Array<string> exts;
-        exts.push_back(".gz");
-        exts.push_back(".GZ");
-        exts.push_back(".z");
-        exts.push_back(".Z");
-        for (size_t i = 0; i < exts.size(); ++i) {
-          fname = _ImageName + exts[i];
-          if (stat(fname.c_str(), &buf) == 0) break;
-          fname.clear();
-        }
-        if (!fname.empty()) _ImageName = fname;
-      }
-    }
-  } else if (strcmp(magic_number, "n+1") != 0) {
-    cerr << this->NameOfClass() << "::Read: File format is not NIFTI" << endl;
-    exit(1);
-  }
-
   // Read header
   this->ReadHeader();
 
   // Open image data file
-  this->Open(_ImageName.c_str());
+  const char *iname = nifti_findimgname(_FileName.c_str(), _Nifti->nim->nifti_type);
+  if (iname == nullptr) {
+    cerr << this->NameOfClass() << "::ReadHeader: Could not find image data file for " << _FileName << endl;
+    exit(1);
+  }
+  this->Open(iname);
+  _ImageName = iname;
 }
 
 // -----------------------------------------------------------------------------
@@ -155,7 +161,12 @@ void NiftiImageReader::ReadHeader()
   nifti_dmat33 mat_33;
 
   // Read header
-  _Nifti->Read(_FileName.c_str());
+  const char *hname = nifti_findhdrname(_FileName.c_str());
+  if (hname == nullptr) {
+    cerr << this->NameOfClass() << "::ReadHeader: Could not find header file for " << _FileName << endl;
+    exit(1);
+  }
+  _Nifti->Read(hname);
 
   // Check dimension
   if (_Nifti->nim->dim[0] > 5) {
@@ -168,15 +179,7 @@ void NiftiImageReader::ReadHeader()
   }
 
   // Check for swapping
-#if MIRTK_BIG_ENDIAN
-  if (_Nifti->nim->byteorder == MSB_FIRST) {
-    _Swapped = !_Swapped;
-  }
-#else
-  if (_Nifti->nim->byteorder == LSB_FIRST) {
-    _Swapped = !_Swapped;
-  }
-#endif
+  _Swapped = (_Nifti->nim->byteorder != nifti_short_order());
 
   // Check data scaling
   if (_Nifti->nim->scl_slope != 0) {
