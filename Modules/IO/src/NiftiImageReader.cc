@@ -99,6 +99,7 @@ bool NiftiImageReader::CheckHeader(const char *fname)
   if (ni_ver == -1) return false;
   // In case of NIfTI-2, the file may be a CIFTI file instead
   if (ni_ver == 2) {
+    bool maybe_cifti = false, is_cifti = false;
     // Fill remaining bytes of NIfTI-2 header
     nifti_2_header n2hdr;
     const size_t h2size = sizeof(nifti_2_header);
@@ -106,26 +107,43 @@ bool NiftiImageReader::CheckHeader(const char *fname)
     if (!from.ReadAsChar((char *)&n2hdr + h1size, static_cast<int>(h2size - h1size))) {
       return false;
     }
+    // Check if header has extensions
+    bool has_extensions = false;
+    nifti1_extender extdr;
+    if (from.ReadAsChar((char *)&extdr, 4)) {
+      has_extensions = (extdr.extension[0] == 1 &&
+                        extdr.extension[1] == 0 &&
+                        extdr.extension[2] == 0 &&
+                        extdr.extension[3] == 0);
+    }
     // Check dimension sizes if it could be a CIFTI before checking the extensions
-    nifti_image *nim = nifti_convert_n2hdr2nim(n2hdr, hname);
-    const bool needs_swap = (nim->byteorder != nifti_short_order());
-    bool maybe_cifti = (nim->nx < 2 && nim->ny < 2 && nim->nz < 2 && nim->nt < 2);
-    if (nim->nu < 2 && nim->nt < 2) maybe_cifti = false;
-    nifti_image_free(nim);
-    // Look for CIFTI extension
+    if (has_extensions) {
+      nifti_image *nim = nifti_convert_n2hdr2nim(n2hdr, hname);
+      maybe_cifti = (nim->nx < 2 && nim->ny < 2 && nim->nz < 2 && nim->nt < 2);
+      if (nim->nu < 2 && nim->nt < 2) maybe_cifti = false;
+      nifti_image_free(nim);
+    }
+    // Check presence of CIFTI extension
     if (maybe_cifti) {
       int size, code;
+      const bool needs_swap = NIFTI_NEEDS_SWAP(n2hdr);
       while (from.ReadAsChar((char *)&size, 4) &&
              from.ReadAsChar((char *)&code, 4)) {
         if (needs_swap) {
           nifti_swap_4bytes(1, &size);
           nifti_swap_4bytes(1, &code);
         }
-        if (size < 16 || size & 0xf) break;          // size must be multiple of 16
-        if (code == NIFTI_ECODE_CIFTI) return false; // found CIFTI extension
-        if (!nifti_is_valid_ecode(code)) break;      // extension code must be valid
+        if (size < 16 || size & 0xf) break;     // size must be multiple of 16
+        if (!nifti_is_valid_ecode(code)) break; // extension code must be valid
+        if (code == NIFTI_ECODE_CIFTI) {        // found CIFTI extension
+          is_cifti = true;
+          break;
+        }
+        from.Seek(from.Tell() + size - 8);
       }
     }
+    // CIFTI file is no image file
+    if (is_cifti) return false;
   }
   return true;
 }
