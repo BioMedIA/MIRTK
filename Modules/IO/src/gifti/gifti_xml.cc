@@ -2663,7 +2663,7 @@ static int ewrite_darray(gxml_data * xd, giiDataArray * da, FILE * fp)
     if( da->ext_fname && *da->ext_fname )
         ewrite_long_long_attr("ExternalFileOffset",da->ext_offset, offset,0,fp);
     else
-        ewrite_str_attr("ExternalFileOffset", NULL, offset, 0, fp);
+        ewrite_str_attr("ExternalFileOffset", "0", offset, 0, fp);
     fprintf(fp, ">\n");
 
     /* write sub-elements */
