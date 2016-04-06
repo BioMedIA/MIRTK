@@ -1740,7 +1740,10 @@ bool WriteGIFTI(const char *fname, vtkPolyData *polydata, bool compress, bool as
 
   // Add point data arrays
   if (type.empty() || (type != ".coord" && type != ".topo" && type != ".surf")) {
-    AddPointData(gim, polydata->GetPointData());
+    if (!AddPointData(gim, polydata->GetPointData())) {
+      gifti_free_image(gim);
+      return false;
+    }
   }
 
   // Set encoding of all data arrays
