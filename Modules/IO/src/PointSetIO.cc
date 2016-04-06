@@ -818,7 +818,7 @@ static void CopyGIFTIDataArray(vtkDataArray *dst, const giiDataArray *src,
 #define GiftiMetaDataKeyMacro(getter, name, type) \
   vtkInformation##type##Key *GiftiMetaData::getter() \
   { \
-    static vtkInformation##type##Key *key \
+    static vtkSmartPointer<vtkInformation##type##Key> key \
      = new vtkInformation##type##Key(name, "GiftiMetaData"); \
     return key; \
   }
