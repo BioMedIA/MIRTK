@@ -1563,6 +1563,17 @@ bool WriteGIFTI(const char *fname, vtkPolyData *polydata, bool compress, bool as
   if (type.empty() || (type != ".coord" && type != ".topo" && type != ".surf")) {
   }
 
+  // Set encoding of all data arrays
+  #ifndef HAVE_ZLIB
+    compress = false;
+  #endif
+  int encoding = (ascii      ? GIFTI_ENCODING_ASCII :
+                   (compress ? GIFTI_ENCODING_B64GZ :
+                               GIFTI_ENCODING_B64BIN));
+  for (int i = 0; i < gim->numDA; ++i) {
+    gim->darray[i]->encoding = encoding;
+  }
+
   // Write GIFTI file
   const int write_data = 1;
   bool success = (gifti_write_image(gim, fname, write_data) == 0);
