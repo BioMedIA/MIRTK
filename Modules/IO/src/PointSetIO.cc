@@ -1262,11 +1262,11 @@ GetPointData(const gifti_image *gim, vtkIdType npoints = 0, vtkIdTypeArray *indi
   if (indices) {
     nindices = indices->GetNumberOfTuples();
     if (npoints == 0) {
-      cerr << "GIFTIPointDataToVTK: Number of points cannot be zero when reading sparse point data arrays!" << endl;
+      cerr << "Error: Number of points cannot be zero when reading sparse GIFTI point data arrays!" << endl;
       exit(1);
     }
     if (nindices > npoints) {
-      cerr << "GIFTIPointDataToVTK: Number of points cannot be less then number of node indices!" << endl;
+      cerr << "Error: Number of points cannot be less then number of GIFTI node indices!" << endl;
       exit(1);
     }
   }
