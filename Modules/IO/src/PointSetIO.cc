@@ -1652,7 +1652,7 @@ static bool AddDataArray(gifti_image *gim, vtkDataArray *data, int attr = -1)
 
   // Convert and copy data
   CopyDataArray(da, data);
-  return false;
+  return true;
 }
 
 // -----------------------------------------------------------------------------
