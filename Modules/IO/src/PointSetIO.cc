@@ -1652,6 +1652,13 @@ static bool AddDataArray(gifti_image *gim, vtkDataArray *data, int attr = -1)
 
   // Convert and copy data
   CopyDataArray(da, data);
+
+  // Copy meta data from vtkDataArray information
+  CopyMetaData(da->meta, data->GetInformation(), GiftiMetaData::KeysForDataArray(da->intent));
+  if (data->GetName()) {
+    gifti_add_to_meta(&da->meta, GiftiMetaData::NAME()->GetName(), data->GetName(), 1);
+  }
+
   return true;
 }
 
