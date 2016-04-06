@@ -825,7 +825,7 @@ void CopyDataArrayWithType(vtkDataArray *dst, const giiDataArray *src,
     } else {
       for (int i = 0; i < m; ++i) {
         index = indices->GetComponent(i, 0);
-        for (int j = 0; j < n; ++j) {
+        for (int j = 0; j < n; ++j, ++v) {
           dst->SetComponent(index, j, static_cast<double>(*v));
         }
       }
@@ -838,7 +838,7 @@ void CopyDataArrayWithType(vtkDataArray *dst, const giiDataArray *src,
       }
     } else {
       for (int i = 0; i < m; ++i)
-      for (int j = 0; j < n; ++j) {
+      for (int j = 0; j < n; ++j, ++v) {
         dst->SetComponent(i, j, static_cast<double>(*v));
       }
     }
@@ -860,7 +860,7 @@ void CopyDataArrayWithType(giiDataArray *dst, vtkDataArray *src)
     }
   } else {
     for (int i = 0; i < m; ++i)
-    for (int j = 0; j < n; ++j) {
+    for (int j = 0; j < n; ++j, ++v) {
       (*v) = static_cast<T>(src->GetComponent(i, j));
     }
   }
