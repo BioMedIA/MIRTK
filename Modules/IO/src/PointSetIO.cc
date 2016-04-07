@@ -21,7 +21,7 @@
 
 #include "mirtk/Path.h"
 #include "mirtk/Stream.h"
-#include "mirtk/System.h" // GetUserName, GetDateTime
+#include "mirtk/System.h" // GetUser, GetDateTime
 #include "mirtk/Vtk.h"
 
 #include "vtkPoints.h"
@@ -1746,7 +1746,7 @@ bool WriteGIFTI(const char *fname, vtkPolyData *polydata, bool compress, bool as
 
   // Set UserName and Date
   gifti_add_to_meta(&gim->meta, GiftiMetaData::DATE()     ->GetName(), GetDateTime().c_str(), 1);
-  gifti_add_to_meta(&gim->meta, GiftiMetaData::USER_NAME()->GetName(), GetUserName().c_str(), 1);
+  gifti_add_to_meta(&gim->meta, GiftiMetaData::USER_NAME()->GetName(), GetUser().c_str(), 1);
 
   // Add point coordinates
   if (polydata->GetNumberOfPoints() > 0) {

@@ -23,7 +23,6 @@
 
 #include <chrono>
 #include <ctime>
-#include <iomanip>
 
 #ifdef WINDOWS
   #define VC_EXTRALEAN
@@ -58,9 +57,9 @@ string GetDate()
   typedef std::chrono::system_clock Clock;
   std::time_t now = Clock::to_time_t(Clock::now());
   tm info = localtime(now);
-  ostringstream os;
-  os << std::put_time(&info, "%d %b %Y");
-  return os.str();
+  char date_string[16];
+  strftime(date_string, 16, "%d %b %Y", &info);
+  return date_string;
 }
 
 // -----------------------------------------------------------------------------
@@ -69,9 +68,9 @@ string GetTime()
   typedef std::chrono::system_clock Clock;
   std::time_t now = Clock::to_time_t(Clock::now());
   tm info = localtime(now);
-  ostringstream os;
-  os << std::put_time(&info, "%H:%M:%S %Z");
-  return os.str();
+  char time_string[16];
+  strftime(time_string, 16, "%H:%M:%S %Z", &info);
+  return time_string;
 }
 
 // -----------------------------------------------------------------------------
@@ -80,13 +79,13 @@ string GetDateTime()
   typedef std::chrono::system_clock Clock;
   std::time_t now = Clock::to_time_t(Clock::now());
   tm info = localtime(now);
-  ostringstream os;
-  os << std::put_time(&info, "%c %Z");
-  return os.str();
+  char date_time_string[32];
+  strftime(date_time_string, 16, "%c %Z", &info);
+  return date_time_string;
 }
 
 // -----------------------------------------------------------------------------
-string GetUserName()
+string GetUser()
 {
 #ifdef WINDOWS
   char username[UNLEN+1];

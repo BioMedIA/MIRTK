@@ -39,7 +39,7 @@ string GetTime();
 string GetDateTime();
 
 /// Get name of user executing this program
-string GetUserName();
+string GetUser();
 
 
 } // namespace mirtk
