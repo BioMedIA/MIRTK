@@ -28,6 +28,7 @@
 #include "vtkUnsignedIntArray.h"
 #include "vtkFloatArray.h"
 #include "vtkDoubleArray.h"
+#include "vtkIdTypeArray.h"
 
 
 namespace mirtk {
@@ -45,6 +46,7 @@ vtkSmartPointer<vtkDataArray> NewVTKDataArray(int vtkType)
     case VTK_UNSIGNED_INT:   return vtkSmartPointer<vtkUnsignedIntArray>::New();
     case VTK_FLOAT:          return vtkSmartPointer<vtkFloatArray>::New();
     case VTK_DOUBLE:         return vtkSmartPointer<vtkDoubleArray>::New();
+    case VTK_ID_TYPE:        return vtkSmartPointer<vtkIdTypeArray>::New();
     default:
       cerr << "Invalid VTK data type: " << vtkType << endl;
       exit(1);
