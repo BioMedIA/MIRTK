@@ -19,16 +19,9 @@
 
 #include "mirtk/NiftiImageInfo.h"
 
-#define NO_NIFTI_TYPE_DEFINES
-#define NO_NIFTI_INTENT_DEFINES
-#define NO_NIFTI_XFORM_DEFINES
-#define NO_NIFTI_UNITS_DEFINES
-#define NO_NIFTI_SLICE_DEFINES
-#include "nifti/nifti2_io.h"
-
 
 // =============================================================================
-// Enumerations -- **BEFORE** including nifti1_io.h which defines macros!!!
+// Enumerations -- **BEFORE** including nifti2_io.h which defines macros!!!
 // =============================================================================
 
 namespace mirtk {
@@ -44,54 +37,51 @@ template <> bool FromString(const char *str, NiftiIntent &value)
     lstr = lstr.substr(0, lstr.length() - 10);
   }
 
-  if (lstr == "correlation") return NIFTI_INTENT_CORREL;
-  if (lstr == "t-statistic" || lstr == "t-test") return NIFTI_INTENT_TTEST;
-  if (lstr == "f-statistic" || lstr == "f-test") return NIFTI_INTENT_FTEST;
-  if (lstr == "z-score") return NIFTI_INTENT_ZSCORE;
-
-  if (lstr == "f-statistic noncentral") return NIFTI_INTENT_FTEST_NONC;
-  if (lstr == "chi-squared noncentral") return NIFTI_INTENT_CHISQ_NONC;
-  if (lstr == "t-statistic noncentral") return NIFTI_INTENT_TTEST_NONC;
-
-  if (lstr == "chi-squared") return NIFTI_INTENT_CHISQ;
-  if (lstr == "beta") return NIFTI_INTENT_BETA;
-  if (lstr == "gamma") return NIFTI_INTENT_GAMMA;
-  if (lstr == "poisson") return NIFTI_INTENT_POISSON;
-  if (lstr == "normal") return NIFTI_INTENT_NORMAL;
-  if (lstr == "logistic") return NIFTI_INTENT_LOGISTIC;
-  if (lstr == "laplace") return NIFTI_INTENT_LAPLACE;
-  if (lstr == "uniform") return NIFTI_INTENT_UNIFORM;
-  if (lstr == "weibull") return NIFTI_INTENT_WEIBULL;
-  if (lstr == "chi") return NIFTI_INTENT_CHI;
-  if (lstr == "inverse gaussian") return NIFTI_INTENT_INVGAUSS;
-  if (lstr == "extreme value") return NIFTI_INTENT_EXTVAL;
-
-  if (lstr == "p-value") return NIFTI_INTENT_PVAL;
-  if (lstr == "log p-value") return NIFTI_INTENT_LOGPVAL;
-  if (lstr == "log10 p-value") return NIFTI_INTENT_LOG10PVAL;
-
-  if (lstr == "estimate") return NIFTI_INTENT_ESTIMATE;
-  if (lstr == "label index" || lstr == "label") return NIFTI_INTENT_LABEL;
-  if (lstr == "neuronames index" || lstr == "neuroname") return NIFTI_INTENT_NEURONAME;
-  if (lstr == "general matrix") return NIFTI_INTENT_GENMATRIX;
-  if (lstr == "symmetric matrix") return NIFTI_INTENT_SYMMATRIX;
-  if (lstr == "displacement vector") return NIFTI_INTENT_DISPVECT;
-  if (lstr == "vector") return NIFTI_INTENT_VECTOR;
-  if (lstr == "pointset") return NIFTI_INTENT_POINTSET;
-  if (lstr == "triangle") return NIFTI_INTENT_TRIANGLE;
-  if (lstr == "quaternion") return NIFTI_INTENT_QUATERNION;
-
-  if (lstr == "time series") return NIFTI_INTENT_TIME_SERIES;
-  if (lstr == "node index") return NIFTI_INTENT_NODE_INDEX;
-  if (lstr == "shape") return NIFTI_INTENT_SHAPE;
-  if (lstr == "rgb") return NIFTI_INTENT_RGB_VECTOR;
-  if (lstr == "rgba") return NIFTI_INTENT_RGBA_VECTOR;
-
-  if (lstr == "dimensionless number" || lstr == "dimensionless") {
-    return NIFTI_INTENT_DIMLESS;
+  if      (lstr == "unknown" || lstr == "none") value = NIFTI_INTENT_NONE;
+  else if (lstr == "correlation") value = NIFTI_INTENT_CORREL;
+  else if (lstr == "t-statistic" || lstr == "t-test") value = NIFTI_INTENT_TTEST;
+  else if (lstr == "f-statistic" || lstr == "f-test") value = NIFTI_INTENT_FTEST;
+  else if (lstr == "z-score") value = NIFTI_INTENT_ZSCORE;
+  else if (lstr == "f-statistic noncentral") value = NIFTI_INTENT_FTEST_NONC;
+  else if (lstr == "chi-squared noncentral") value = NIFTI_INTENT_CHISQ_NONC;
+  else if (lstr == "t-statistic noncentral") value = NIFTI_INTENT_TTEST_NONC;
+  else if (lstr == "chi-squared") value = NIFTI_INTENT_CHISQ;
+  else if (lstr == "beta") value = NIFTI_INTENT_BETA;
+  else if (lstr == "gamma") value = NIFTI_INTENT_GAMMA;
+  else if (lstr == "poisson") value = NIFTI_INTENT_POISSON;
+  else if (lstr == "normal") value = NIFTI_INTENT_NORMAL;
+  else if (lstr == "logistic") value = NIFTI_INTENT_LOGISTIC;
+  else if (lstr == "laplace") value = NIFTI_INTENT_LAPLACE;
+  else if (lstr == "uniform") value = NIFTI_INTENT_UNIFORM;
+  else if (lstr == "weibull") value = NIFTI_INTENT_WEIBULL;
+  else if (lstr == "chi") value = NIFTI_INTENT_CHI;
+  else if (lstr == "inverse gaussian") value = NIFTI_INTENT_INVGAUSS;
+  else if (lstr == "extreme value") value = NIFTI_INTENT_EXTVAL;
+  else if (lstr == "p-value") value = NIFTI_INTENT_PVAL;
+  else if (lstr == "log p-value") value = NIFTI_INTENT_LOGPVAL;
+  else if (lstr == "log10 p-value") value = NIFTI_INTENT_LOG10PVAL;
+  else if (lstr == "estimate") value = NIFTI_INTENT_ESTIMATE;
+  else if (lstr == "label index" || lstr == "label") value = NIFTI_INTENT_LABEL;
+  else if (lstr == "neuronames index" || lstr == "neuroname") value = NIFTI_INTENT_NEURONAME;
+  else if (lstr == "general matrix") value = NIFTI_INTENT_GENMATRIX;
+  else if (lstr == "symmetric matrix") value = NIFTI_INTENT_SYMMATRIX;
+  else if (lstr == "displacement vector") value = NIFTI_INTENT_DISPVECT;
+  else if (lstr == "vector") value = NIFTI_INTENT_VECTOR;
+  else if (lstr == "pointset") value = NIFTI_INTENT_POINTSET;
+  else if (lstr == "triangle") value = NIFTI_INTENT_TRIANGLE;
+  else if (lstr == "quaternion") value = NIFTI_INTENT_QUATERNION;
+  else if (lstr == "time series") value = NIFTI_INTENT_TIME_SERIES;
+  else if (lstr == "node index") value = NIFTI_INTENT_NODE_INDEX;
+  else if (lstr == "shape") value = NIFTI_INTENT_SHAPE;
+  else if (lstr == "rgb") value = NIFTI_INTENT_RGB_VECTOR;
+  else if (lstr == "rgba") value = NIFTI_INTENT_RGBA_VECTOR;
+  else if (lstr == "dimensionless number" || lstr == "dimensionless") {
+    value = NIFTI_INTENT_DIMLESS;
+  } else {
+    return false;
   }
 
-  return NIFTI_INTENT_NONE;
+  return true;
 }
 
 // -----------------------------------------------------------------------------
