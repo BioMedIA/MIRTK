@@ -78,6 +78,7 @@ function(mirtk_add_library)
     if (WIN32)
       set_target_properties(${target_uid} PROPERTIES SUFFIX "_s.lib")
     endif ()
+    set_target_properties(${target_uid} PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
   endif ()
   # VTK 7.0.0 adds its CMake modules directory to CMAKE_MODULE_PATH
   # and this directory contains a GenerateExportHeader.cmake module
