@@ -1,8 +1,8 @@
 # ==============================================================================
 # Medical Image Registration ToolKit (MIRTK)
 #
-# Copyright 2013-2015 Imperial College London
-# Copyright 2013-2015 Andreas Schuh
+# Copyright 2013-2016 Imperial College London
+# Copyright 2013-2016 Andreas Schuh
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -52,13 +52,30 @@
 # @ingroup BasisSettings
 ##############################################################################
 
-add_subdirectory(
-  "${TOPLEVEL_PROJECT_SOURCE_DIR}/ThirdParty/LBFGS"
-  "${TOPLEVEL_PROJECT_BINARY_DIR}/ThirdParty/LBFGS"
-)
+# Directory with source files of third-party libraries
+set(MIRTK_THIRDPARTY_DIR "${MIRTK_SOURCE_DIR}/ThirdParty")
 
-set(LBFGS_INCLUDE_DIRS "${TOPLEVEL_PROJECT_SOURCE_DIR}/ThirdParty/LBFGS/include")
-set(LBFGS_LIBRARIES lbfgs)
-set(LBFGS_FOUND TRUE)
 
-include_directories(${LBFGS_INCLUDE_DIRS})
+# ------------------------------------------------------------------------------
+# libLBFGS (optional)
+set(LibLBFGS_SOURCE_DIR "${MIRTK_THIRDPARTY_DIR}/LBFGS")
+
+# Set default for WITH_LibLBFGS option
+if (NOT DEFINED WITH_LibLBFGS_DEFAULT AND EXISTS "${LibLBFGS_SOURCE_DIR}/CMakeLists.txt")
+  set(WITH_LibLBFGS_DEFAULT ON)
+endif ()
+
+# When third-party submodule is available and library is needed
+if ((DEFINED WITH_LibLBFGS AND WITH_LibLBFGS) OR (NOT DEFINED WITH_LibLBFGS AND WITH_LibLBFGS_DEFAULT))
+  basis_check_if_package_is_needed_by_modules(is_needed LibLBFGS)
+  if (is_needed AND EXISTS "${LibLBFGS_SOURCE_DIR}/CMakeLists.txt")
+    message(STATUS "Configuring module ThirdParty/LBFGS...")
+    add_subdirectory("${LibLBFGS_SOURCE_DIR}" "${MIRTK_BINARY_DIR}/ThirdParty/LBFGS")
+    set(LibLBFGS_FOUND       TRUE)
+    set(LibLBFGS_INCLUDE_DIR "${LibLBFGS_INCLUDE_DIR}")
+    set(LibLBFGS_LIBRARIES   liblbfgs)
+    set(LibLBFGS_DIR        "${MIRTK_BINARY_DIR}/ThirdParty/LBFGS")
+    message(STATUS "Configuring module ThirdParty/LBFGS... - done")
+  endif ()
+  unset(is_needed)
+endif ()

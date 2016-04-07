@@ -1211,6 +1211,93 @@ macro (basis_project_modules)
 endmacro ()
 
 # ----------------------------------------------------------------------------
+## @brief Check if named project module depends on the specified package
+#
+# @param[out] result  Name of boolean return variable.
+# @param[in]  module  Name of project module.
+# @param[in]  package Name of (external) package.
+#
+# @returns Sets @p result variable to either @c TRUE or @c FALSE.
+function (basis_check_if_module_depends_on_package result module package)
+  if (ARGN)
+    cmake_parse_arguments(ARGN "REQUIRED;OPTIONAL" "" "" ${ARGN})
+    if (ARGN_UNPARSED_ARGUMENTS)
+      message(FATAL_ERROR "Too many arguments: ${ARGN_UNPARSED_ARGUMENTS}")
+    endif ()
+  else ()
+    set(ARGN_REQUIRED TRUE)
+    set(ARGN_OPTIONAL TRUE)
+  endif ()
+  basis_tokenize_dependency ("${package}" pkg_name pkg_version pkg_comps)
+  set(depends)
+  if (ARGN_REQUIRED)
+    list(APPEND depends ${${module}_DEPENDS})
+    if (BUILD_APPLICATIONS)
+      list(APPEND depends ${${module}_TOOLS_DEPENDS})
+    endif ()
+    if (BUILD_TESTING)
+      list(APPEND depends ${${module}_TEST_DEPENDS})
+    endif ()
+  endif ()
+  if (ARGN_OPTIONAL)
+    set(depends ${${module}_OPTIONAL_DEPENDS})
+    if (BUILD_APPLICATIONS)
+      list(APPEND depends ${${module}_OPTIONAL_TOOLS_DEPENDS})
+    endif ()
+    if (BUILD_TESTING)
+      list(APPEND depends ${${module}_OPTIONAL_TEST_DEPENDS})
+    endif ()
+  endif ()
+  set(pkg_found FALSE)
+  foreach (dep IN LISTS depends)
+    basis_tokenize_dependency ("${dep}" dep_name dep_version dep_comps)
+    if ("^${dep_name}$" STREQUAL "^${pkg_name}$")
+      if (pkg_comps)
+        foreach (comp IN LISTS pkg_comps)
+          list(FIND dep_comps ${comp} idx)
+          if (NOT idx EQUAL -1)
+            set(pkg_found TRUE)
+            break()
+          endif ()
+        endforeach ()
+        if (pkg_found)
+          break()
+        endif ()
+      else ()
+        set(pkg_found TRUE)
+        break()
+      endif ()
+    endif ()
+  endforeach ()
+  set(${result} ${pkg_found} PARENT_SCOPE)
+endfunction ()
+
+# ----------------------------------------------------------------------------
+## @brief Check if any of the named/enabled modules depends on the specified package
+#
+# @param[out] result  Name of boolean return variable.
+# @param[in]  package Name of (external) package.
+# @param[in]  ARGN    Names of project modules. If none specified,
+#                     the list of enabled modules is used instead.
+#
+# @returns Sets @p result variable to either @c TRUE or @c FALSE.
+function (basis_check_if_package_is_needed_by_modules result package)
+  if (ARGN)
+    set(modules ${ARGN})
+  else ()
+    set(modules ${PROJECT_MODULES_ENABLED})
+  endif ()
+  set(pkg_found FALSE)
+  foreach (module IN LISTS modules)
+    basis_check_if_module_depends_on_package(pkg_found ${module} ${package})
+    if (pkg_found)
+      break()
+    endif ()
+  endforeach ()
+  set(${result} ${pkg_found} PARENT_SCOPE)
+endfunction ()
+
+# ----------------------------------------------------------------------------
 ## @brief Configure public header files.
 function (basis_configure_public_headers)
   # --------------------------------------------------------------------------

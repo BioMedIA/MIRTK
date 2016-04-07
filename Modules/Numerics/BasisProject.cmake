@@ -61,6 +61,7 @@ basis_project (
   OPTIONAL_DEPENDS
     ARPACK
     UMFPACK
+    LibLBFGS
     MATLAB{mwmclmcrrt}
     VTK-7|6{vtkCommonCore,vtkCommonDataModel,vtkIOGeometry,vtkIOLegacy,vtkIOPLY,vtkIOXML}
     #<optional-dependency>
