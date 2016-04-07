@@ -36,6 +36,12 @@
 # @ingroup BasisSettings
 ################################################################################
 
+if (GiftiCLib_FOUND OR (VTK_FOUND AND EXPAT_FOUND))
+  set(WITH_GIFTI_CONFIG 1)
+else ()
+  set(WITH_GIFTI_CONFIG 0)
+endif ()
+
 basis_set_config_option(WITH_PNG_CONFIG  "${PNG_FOUND}")
 basis_set_config_option(WITH_VTK_CONFIG  "${VTK_FOUND}")
 basis_set_config_option(WITH_ZLIB_CONFIG "${ZLIB_FOUND}")
