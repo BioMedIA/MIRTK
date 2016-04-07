@@ -75,6 +75,7 @@ before configuring the MIRTK build:
 
     git submodule update --init -- ThirdParty/Boost
     git submodule update --init -- ThirdParty/Eigen
+    git submodule update --init -- ThirdParty/LBFGS
 
 The source files of core MIRTK modules are included in the top-level MIRTK repository
 under the Modules/ subdirectory. Further optional packages which are developed and
