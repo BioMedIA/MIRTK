@@ -56,4 +56,5 @@
 if (NOT GiftiCLib_FOUND AND VTK_FOUND)
   set(USE_EXPAT TRUE) # no WITH_EXPAT option, look for it in any case
   basis_find_package(EXPAT)
+  basis_use_package(EXPAT)
 endif ()
