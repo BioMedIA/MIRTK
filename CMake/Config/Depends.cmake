@@ -55,14 +55,18 @@
 # Directory with source files of third-party libraries
 set(MIRTK_THIRDPARTY_DIR "${MIRTK_SOURCE_DIR}/ThirdParty")
 
+
 # ------------------------------------------------------------------------------
 # libLBFGS (optional)
-if (WITH_LibLBFGS)
+set(LibLBFGS_SOURCE_DIR "${MIRTK_THIRDPARTY_DIR}/LBFGS")
 
-  # Third-party source directory
-  set(LibLBFGS_SOURCE_DIR "${MIRTK_THIRDPARTY_DIR}/LBFGS")
+# Set default for WITH_LibLBFGS option
+if (NOT DEFINED WITH_LibLBFGS_DEFAULT AND EXISTS "${LibLBFGS_SOURCE_DIR}/CMakeLists.txt")
+  set(WITH_LibLBFGS_DEFAULT ON)
+endif ()
 
-  # When third-party submodule is available and library is needed
+# When third-party submodule is available and library is needed
+if ((DEFINED WITH_LibLBFGS AND WITH_LibLBFGS) OR (NOT DEFINED WITH_LibLBFGS AND WITH_LibLBFGS_DEFAULT))
   basis_check_if_package_is_needed_by_modules(is_needed LibLBFGS)
   if (is_needed AND EXISTS "${LibLBFGS_SOURCE_DIR}/CMakeLists.txt")
     message(STATUS "Configuring module ThirdParty/LBFGS...")
@@ -70,8 +74,8 @@ if (WITH_LibLBFGS)
     set(LibLBFGS_FOUND       TRUE)
     set(LibLBFGS_INCLUDE_DIR "${LibLBFGS_INCLUDE_DIR}")
     set(LibLBFGS_LIBRARIES   liblbfgs)
+    set(LibLBFGS_DIR        "${MIRTK_BINARY_DIR}/ThirdParty/LBFGS")
     message(STATUS "Configuring module ThirdParty/LBFGS... - done")
   endif ()
   unset(is_needed)
-
 endif ()
