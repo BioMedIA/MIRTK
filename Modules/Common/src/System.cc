@@ -41,13 +41,25 @@ namespace mirtk {
 
 
 // -----------------------------------------------------------------------------
+static tm localtime(const std::time_t &t)
+{
+  tm info;
+#ifdef WINDOWS
+  localtime_s(&info, &t);
+#else
+  info = *std::localtime(&t);
+#endif
+  return info;
+}
+
+// -----------------------------------------------------------------------------
 string GetDate()
 {
   typedef std::chrono::system_clock Clock;
   std::time_t now = Clock::to_time_t(Clock::now());
-  tm *info = std::localtime(&now);
+  tm info = localtime(now);
   ostringstream os;
-  os << std::put_time(info, "%d %b %Y");
+  os << std::put_time(&info, "%d %b %Y");
   return os.str();
 }
 
@@ -56,9 +68,9 @@ string GetTime()
 {
   typedef std::chrono::system_clock Clock;
   std::time_t now = Clock::to_time_t(Clock::now());
-  tm *info = std::localtime(&now);
+  tm info = localtime(now);
   ostringstream os;
-  os << std::put_time(info, "%H:%M:%S %Z");
+  os << std::put_time(&info, "%H:%M:%S %Z");
   return os.str();
 }
 
@@ -67,9 +79,9 @@ string GetDateTime()
 {
   typedef std::chrono::system_clock Clock;
   std::time_t now = Clock::to_time_t(Clock::now());
-  tm *info = std::localtime(&now);
+  tm info = localtime(now);
   ostringstream os;
-  os << std::put_time(info, "%c %Z");
+  os << std::put_time(&info, "%c %Z");
   return os.str();
 }
 
@@ -79,7 +91,7 @@ string GetUserName()
 #ifdef WINDOWS
   char username[UNLEN+1];
   DWORD username_len = UNLEN+1;
-  if (GetUserName(username, &username_len)) return username;
+  if (::GetUserName(username, &username_len)) return username;
 #else
   const passwd *pw = getpwuid(getuid());
   if (pw) return pw->pw_name;
