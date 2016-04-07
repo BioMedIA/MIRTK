@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+#define _SCL_SECURE_NO_WARNINGS
+
 #include "mirtk/Transformation.h"
 #include "mirtk/MultiLevelTransformation.h"
 #include "mirtk/Matrix.h"
