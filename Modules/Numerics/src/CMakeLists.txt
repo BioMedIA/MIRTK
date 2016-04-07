@@ -100,10 +100,10 @@ set(SOURCES
 
 set(DEPENDS LibCommon)
 
-if (LBFGS_FOUND)
+if (LibLBFGS_FOUND)
   list(APPEND HEADERS LimitedMemoryBFGSDescent.h)
   list(APPEND SOURCES LimitedMemoryBFGSDescent.cc)
-  list(APPEND DEPENDS ${LBFGS_LIBRARIES})
+  list(APPEND DEPENDS ${LibLBFGS_LIBRARIES})
 endif ()
 
 if (MATLAB_FOUND)

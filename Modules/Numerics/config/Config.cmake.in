@@ -59,7 +59,7 @@ basis_set_config(WITH_VTK @VTK_FOUND@)
 basis_set_config(WITH_MATLAB @MATLAB_FOUND@)
 
 ## @brief Whether this library was built with LBFGS support
-basis_set_config(WITH_LBFGS @LBFGS_FOUND@)
+basis_set_config(WITH_LBFGS @LibLBFGS_FOUND@)
 
 ## @brief Whether this library was built with ARPACK support
 basis_set_config(WITH_ARPACK @ARPACK_FOUND@)
