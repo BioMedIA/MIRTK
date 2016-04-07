@@ -57,16 +57,16 @@ basis_set_config(WITH_NIFTI 1)
 basis_copy_config(WITH_NIfTI WITH_NIFTI)
 
 ## @brief Whether this library was built with GIFTI support
-basis_set_config(WITH_GIFTI 1)
+basis_set_config(WITH_GIFTI @WITH_GIFTI_CONFIG@)
 
 ## @brief Whether this library was built with PNG support
-basis_set_config(WITH_PNG @PNG_FOUND@)
+basis_set_config(WITH_PNG @WITH_PNG_CONFIG@)
 
 ## @brief Whether this library was built with VTK support
-basis_set_config(WITH_VTK @VTK_FOUND@)
+basis_set_config(WITH_VTK @WITH_VTK_CONFIG@)
 
 ## @brief Whether this library was built with ZLIB support
-basis_set_config(WITH_ZLIB @ZLIB_FOUND@)
+basis_set_config(WITH_ZLIB @WITH_ZLIB_CONFIG@)
 
 
 
