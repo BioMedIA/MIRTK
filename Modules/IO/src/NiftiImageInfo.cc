@@ -185,15 +185,15 @@ static inline Matrix ToMatrix(const nifti_dmat44 &mat)
 inline NiftiImageInfo ToNiftiImageInfo(const nifti_image *nim)
 {
   NiftiImageInfo info;
-  info.ndim           = nim->ndim;
-  info.nx             = nim->nx;
-  info.ny             = nim->ny;
-  info.nz             = nim->nz;
-  info.nt             = nim->nt;
-  info.nu             = nim->nu;
-  info.nv             = nim->nv;
-  info.nw             = nim->nw;
-  info.nvox           = nim->nvox;
+  info.ndim           = static_cast<int>(nim->ndim);
+  info.nx             = static_cast<int>(nim->nx);
+  info.ny             = static_cast<int>(nim->ny);
+  info.nz             = static_cast<int>(nim->nz);
+  info.nt             = static_cast<int>(nim->nt);
+  info.nu             = static_cast<int>(nim->nu);
+  info.nv             = static_cast<int>(nim->nv);
+  info.nw             = static_cast<int>(nim->nw);
+  info.nvox           = static_cast<int>(nim->nvox);
   info.nbyper         = nim->nbyper;
   info.datatype       = nim->datatype;
   info.dx             = nim->dx;
@@ -208,8 +208,8 @@ inline NiftiImageInfo ToNiftiImageInfo(const nifti_image *nim)
   info.cal_min        = nim->cal_min;
   info.cal_max        = nim->cal_max;
   info.slice_code     = nim->slice_code;
-  info.slice_start    = nim->slice_start;
-  info.slice_end      = nim->slice_end;
+  info.slice_start    = static_cast<int>(nim->slice_start);
+  info.slice_end      = static_cast<int>(nim->slice_end);
   info.slice_duration = nim->slice_duration;
   info.qform_code     = nim->qform_code;
   info.qto_xyz        = ToMatrix(nim->qto_xyz);
@@ -230,7 +230,7 @@ inline NiftiImageInfo ToNiftiImageInfo(const nifti_image *nim)
   info.aux_file       = nim->aux_file;
   info.fname          = nim->fname;
   info.iname          = nim->iname;
-  info.iname_offset   = nim->iname_offset;
+  info.iname_offset   = static_cast<int>(nim->iname_offset);
   info.swapsize       = nim->swapsize;
   info.byteorder      = nim->byteorder;
   return info;

@@ -174,7 +174,7 @@ void NiftiImageReader::Initialize()
 void NiftiImageReader::ReadHeader()
 {
   int          order;
-  float        det;
+  double       det;
   nifti_dmat44 mat_44, mat_inv_44;
   nifti_dmat33 mat_33;
 
@@ -209,17 +209,17 @@ void NiftiImageReader::ReadHeader()
 
   // Copy header information
   // (from now on force all vox dims to be positive - LR info is in sform)
-  _Attributes._x  = _Nifti->nim->dim[1];
-  _Attributes._y  = _Nifti->nim->dim[2];
-  _Attributes._z  = _Nifti->nim->dim[3];
+  _Attributes._x  = static_cast<int>(_Nifti->nim->dim[1]);
+  _Attributes._y  = static_cast<int>(_Nifti->nim->dim[2]);
+  _Attributes._z  = static_cast<int>(_Nifti->nim->dim[3]);
   _Attributes._dx = abs(_Nifti->nim->pixdim[1]);
   _Attributes._dy = abs(_Nifti->nim->pixdim[2]);
   _Attributes._dz = abs(_Nifti->nim->pixdim[3]);
   if (_Nifti->nim->dim[0] == 4) {
-    _Attributes._t  = _Nifti->nim->dim[4];
+    _Attributes._t  = static_cast<int>(_Nifti->nim->dim[4]);
     _Attributes._dt = abs(_Nifti->nim->pixdim[4]);
   } else if (_Nifti->nim->dim[0] == 5) {
-    _Attributes._t  = _Nifti->nim->dim[5];
+    _Attributes._t  = static_cast<int>(_Nifti->nim->dim[5]);
     _Attributes._dt = (_Nifti->nim->intent_code == NIFTI_INTENT_VECTOR ? 0 : 1);
   } else {
     _Attributes._t  = 1;
@@ -381,7 +381,7 @@ void NiftiImageReader::ReadHeader()
   }
 
   // Data starts here 
-  _Start = _Nifti->nim->iname_offset;
+  _Start = static_cast<int>(_Nifti->nim->iname_offset);
 }
 
 // -----------------------------------------------------------------------------
