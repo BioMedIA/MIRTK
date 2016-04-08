@@ -700,6 +700,17 @@ endmacro ()
 #         and hence a link dependency on the BASIS utilities has to be added.
 #         (default: @c BASIS_UTILITIES)</td>
 #   </tr>
+#   <tr>
+#     @tp @b FINAL @endtp
+#     <td>Finalize custom targets immediately. Any following target property changes
+#         will have no effect. When this option is used, the custom target which
+#         executes the custom build command is added in the current working directory.
+#         Otherwise it will be added in the top-level source directory of the project.
+#         Which with the Visual Studio generators adds the corresponding Visual Studio
+#         Project files directly to the top-level build directory. This can be avoided
+#         using this option or calling basis_finalize_targets() at the end of each
+#         CMakeLists.txt file.</td>
+#   </tr>
 # </table>
 #
 # @returns Adds an executable build target. In case of an executable which is
@@ -717,7 +728,7 @@ function (basis_add_executable TARGET_NAME)
   # parse arguments
   CMAKE_PARSE_ARGUMENTS (
     ARGN
-      "EXECUTABLE;LIBEXEC;NO_BASIS_UTILITIES;USE_BASIS_UTILITIES;EXPORT;NOEXPORT"
+      "EXECUTABLE;LIBEXEC;NO_BASIS_UTILITIES;USE_BASIS_UTILITIES;EXPORT;NOEXPORT;FINAL"
       "COMPONENT;DESTINATION;LANGUAGE"
       ""
     ${ARGN}
@@ -977,6 +988,17 @@ endfunction ()
 #         and hence a link dependency on the BASIS utilities has to be added.
 #         (default: @c BASIS_UTILITIES)</td>
 #   </tr>
+#   <tr>
+#     @tp @b FINAL @endtp
+#     <td>Finalize custom targets immediately. Any following target property changes
+#         will have no effect. When this option is used, the custom target which
+#         executes the custom build command is added in the current working directory.
+#         Otherwise it will be added in the top-level source directory of the project.
+#         Which with the Visual Studio generators adds the corresponding Visual Studio
+#         Project files directly to the top-level build directory. This can be avoided
+#         using this option or calling basis_finalize_targets() at the end of each
+#         CMakeLists.txt file.</td>
+#   </tr>
 # </table>
 #
 # @returns Adds a library build target. In case of a library not written in C++
@@ -995,7 +1017,7 @@ function (basis_add_library TARGET_NAME)
   # parse arguments
   CMAKE_PARSE_ARGUMENTS (
     ARGN
-      "STATIC;SHARED;MODULE;MEX;USE_BASIS_UTILITIES;NO_BASIS_UTILITIES;EXPORT;NOEXPORT"
+      "STATIC;SHARED;MODULE;MEX;USE_BASIS_UTILITIES;NO_BASIS_UTILITIES;EXPORT;NOEXPORT;FINAL"
       "COMPONENT;RUNTIME_COMPONENT;LIBRARY_COMPONENT;DESTINATION;RUNTIME_DESTINATION;LIBRARY_DESTINATION;LANGUAGE"
       ""
     ${ARGN}
@@ -1332,6 +1354,17 @@ endfunction ()
 #         script or if the programming language is unknown, respectively, not detected
 #         correctly. In this case, consider the use of the @p LANGUAGE argument.</td>
 #   </tr>
+#   <tr>
+#     @tp @b FINAL @endtp
+#     <td>Finalize custom targets immediately. Any following target property changes
+#         will have no effect. When this option is used, the custom target which
+#         executes the custom build command is added in the current working directory.
+#         Otherwise it will be added in the top-level source directory of the project.
+#         Which with the Visual Studio generators adds the corresponding Visual Studio
+#         Project files directly to the top-level build directory. This can be avoided
+#         using this option or calling basis_finalize_targets() at the end of each
+#         CMakeLists.txt file.</td>
+#   </tr>
 # </table>
 #
 # @returns Adds a custom CMake target with the documented properties. The actual custom
@@ -1342,7 +1375,7 @@ function (basis_add_script TARGET_NAME)
   # parse arguments
   CMAKE_PARSE_ARGUMENTS (
     ARGN
-      "MODULE;EXECUTABLE;LIBEXEC;NO_BASIS_UTILITIES;USE_BASIS_UTILITIES;EXPORT;NOEXPORT"
+      "MODULE;EXECUTABLE;LIBEXEC;NO_BASIS_UTILITIES;USE_BASIS_UTILITIES;EXPORT;NOEXPORT;FINAL"
       "COMPONENT;DESTINATION;LANGUAGE"
       ""
     ${ARGN}
@@ -1536,9 +1569,69 @@ function (basis_add_script TARGET_NAME)
       TEST                     ${IS_TEST}
       LIBEXEC                  ${ARGN_LIBEXEC}
   )
+  # finalize target
+  if (ARGN_FINAL)
+    basis_build_script(${TARGET_UID})
+  endif ()
   # add target to list of targets
   basis_set_project_property (APPEND PROPERTY TARGETS "${TARGET_UID}")
   message (STATUS "Adding ${type} script ${TARGET_UID}... - done")
+endfunction ()
+
+# ----------------------------------------------------------------------------
+## @brief Finalize custom targets by adding the missing build commands.
+#
+# This function is called by basis_project_end() in order to finalize the
+# addition of the custom build targets such as, for example, build targets
+# for the build of executable scripts, Python packages, MATLAB Compiler
+# executables and shared libraries, and MEX-files. It can, however, also
+# be called explicitly either at the end of each CMakeLists.txt file that
+# adds new build targets or with the name of the target(s) to finalize in
+# some of the CMakeLists.txt files. This is to ensure that the custom target
+# which executes the actual build command is added in the same directory as
+# the original custom target with the respective target properties.
+#
+# @param[in] ARGN List of targets to finalize. If none specified, all custom
+#                 targets that were added before and are not finalized already
+#                 will be finalized using the current binary directory.
+#
+# @returns Generates the CMake build scripts and adds custom build commands
+#          and corresponding targets for the execution of these scripts.
+#
+# @sa basis_build_script()
+# @sa basis_build_script_library()
+# @sa basis_build_mcc_target()
+# @sa basis_build_mex_file()
+function (basis_finalize_targets)
+  if (ARGN)
+    set (TARGETS)
+    foreach (TARGET_NAME ${ARGN})
+      basis_get_target_uid (TARGET_UID ${TARGET_NAME})
+      list (APPEND TARGETS ${TARGET_UID})
+    endforeach ()
+  else ()
+    basis_get_project_property (TARGETS PROPERTY TARGETS)
+  endif ()
+  foreach (TARGET_UID ${TARGETS})
+    if (NOT TARGET _${TARGET_UID})
+      get_target_property (BASIS_TYPE ${TARGET_UID} BASIS_TYPE)
+      if (BASIS_TYPE MATCHES "^EXECUTABLE$|^(SHARED|MODULE)_LIBRARY$")
+        if (BASIS_INSTALL_RPATH AND NOT CMAKE_SKIP_RPATH)
+          # Only if BASIS is allowed to take care of the INSTALL_RPATH property
+          # and the use of this property was not disabled by the project
+          basis_set_target_install_rpath (${TARGET_UID})
+        endif ()
+      elseif (BASIS_TYPE MATCHES "SCRIPT_LIBRARY")
+        basis_build_script_library (${TARGET_UID})
+      elseif (BASIS_TYPE MATCHES "SCRIPT")
+        basis_build_script (${TARGET_UID})
+      elseif (BASIS_TYPE MATCHES "MEX")
+        basis_build_mex_file (${TARGET_UID})
+      elseif (BASIS_TYPE MATCHES "MCC")
+        basis_build_mcc_target (${TARGET_UID})
+      endif ()
+    endif ()
+  endforeach ()
 endfunction ()
 
 # ============================================================================
@@ -2269,6 +2362,17 @@ endfunction ()
 #         of this script or if the programming language is unknown, respectively, not
 #         detected correctly. In this case, consider the use of the @p LANGUAGE argument.</td>
 #   </tr>
+#   <tr>
+#     @tp @b FINAL @endtp
+#     <td>Finalize custom targets immediately. Any following target property changes
+#         will have no effect. When this option is used, the custom target which
+#         executes the custom build command is added in the current working directory.
+#         Otherwise it will be added in the top-level source directory of the project.
+#         Which with the Visual Studio generators adds the corresponding Visual Studio
+#         Project files directly to the top-level build directory. This can be avoided
+#         using this option or calling basis_finalize_targets() at the end of each
+#         CMakeLists.txt file.</td>
+#   </tr>
 # </table>
 #
 # @returns Adds a custom CMake target with the documented properties. The actual custom
@@ -2286,7 +2390,7 @@ function (basis_add_script_library TARGET_NAME)
   # parse arguments
   CMAKE_PARSE_ARGUMENTS (
     ARGN
-      "NO_BASIS_UTILITIES;USE_BASIS_UTILITIES;EXPORT;NOEXPORT"
+      "NO_BASIS_UTILITIES;USE_BASIS_UTILITIES;EXPORT;NOEXPORT;FINAL"
       "COMPONENT;DESTINATION;LANGUAGE"
       ""
     ${ARGN}
@@ -2442,6 +2546,10 @@ function (basis_add_script_library TARGET_NAME)
       message ("** Target ${TARGET_UID} uses the BASIS utilities for ${UTILITIES_LANGUAGE}.")
     endif ()
   endif ()
+  # finalize target
+  if (ARGN_FINAL)
+    basis_build_script_library(${TARGET_UID})
+  endif ()
   # add target to list of targets
   basis_set_project_property (APPEND PROPERTY TARGETS "${TARGET_UID}")
   message (STATUS "Adding script library ${TARGET_UID}... - done")
@@ -2450,45 +2558,6 @@ endfunction ()
 # ============================================================================
 # custom build commands
 # ============================================================================
-
-# ----------------------------------------------------------------------------
-## @brief Finalize custom targets by adding the missing build commands.
-#
-# This function is called by basis_project_end() in order to finalize the
-# addition of the custom build targets such as, for example, build targets
-# for the build of executable scripts, Python packages, MATLAB Compiler
-# executables and shared libraries, and MEX-files.
-#
-# @returns Generates the CMake build scripts and adds custom build commands
-#          and corresponding targets for the execution of these scripts.
-#
-# @sa basis_build_script()
-# @sa basis_build_script_library()
-# @sa basis_build_mcc_target()
-# @sa basis_build_mex_file()
-function (basis_finalize_targets)
-  basis_get_project_property (TARGETS PROPERTY TARGETS)
-  foreach (TARGET_UID ${TARGETS})
-    if (NOT TARGET _${TARGET_UID})
-      get_target_property (BASIS_TYPE ${TARGET_UID} BASIS_TYPE)
-      if (BASIS_TYPE MATCHES "^EXECUTABLE$|^(SHARED|MODULE)_LIBRARY$")
-        if (BASIS_INSTALL_RPATH AND NOT CMAKE_SKIP_RPATH)
-          # Only if BASIS is allowed to take care of the INSTALL_RPATH property
-          # and the use of this property was not disabled by the project
-          basis_set_target_install_rpath (${TARGET_UID})
-        endif ()
-      elseif (BASIS_TYPE MATCHES "SCRIPT_LIBRARY")
-        basis_build_script_library (${TARGET_UID})
-      elseif (BASIS_TYPE MATCHES "SCRIPT")
-        basis_build_script (${TARGET_UID})
-      elseif (BASIS_TYPE MATCHES "MEX")
-        basis_build_mex_file (${TARGET_UID})
-      elseif (BASIS_TYPE MATCHES "MCC")
-        basis_build_mcc_target (${TARGET_UID})
-      endif ()
-    endif ()
-  endforeach ()
-endfunction ()
 
 # ----------------------------------------------------------------------------
 ## @brief Set INSTALL_RPATH property of executable or shared library target.

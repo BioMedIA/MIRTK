@@ -652,6 +652,17 @@ endfunction ()
 #         and hence a link dependency on the BASIS utilities must be added.
 #         (default: @c BASIS_UTILITIES)</td>
 #   </tr>
+#   <tr>
+#     @tp @b FINAL @endtp
+#     <td>Finalize custom targets immediately. Any following target property changes
+#         will have no effect. When this option is used, the custom target which
+#         executes the custom build command is added in the current working directory.
+#         Otherwise it will be added in the top-level source directory of the project.
+#         Which with the Visual Studio generators adds the corresponding Visual Studio
+#         Project files directly to the top-level build directory. This can be avoided
+#         using this option or calling basis_finalize_targets() at the end of each
+#         CMakeLists.txt file.</td>
+#   </tr>
 # </table>
 #
 # @returns Adds custom target to build MEX-file using the MEX script.
@@ -673,7 +684,7 @@ function (basis_add_mex_file TARGET_NAME)
   # parse arguments
   CMAKE_PARSE_ARGUMENTS (
     ARGN
-      "USE_BASIS_UTILITIES;NO_BASIS_UTILITIES;EXPORT;NOEXPORT"
+      "USE_BASIS_UTILITIES;NO_BASIS_UTILITIES;EXPORT;NOEXPORT;FINAL"
       "COMPONENT;DESTINATION"
       ""
     ${ARGN}
@@ -751,6 +762,10 @@ function (basis_add_mex_file TARGET_NAME)
   # link to BASIS utilities
   if (USES_BASIS_UTILITIES)
     basis_target_link_libraries (.${TARGET_UID} basis)
+  endif ()
+  # finalize target
+  if (ARGN_FINAL)
+    basis_build_mex_file(${TARGET_UID})
   endif ()
   # add target to list of targets
   basis_set_project_property (APPEND PROPERTY TARGETS "${TARGET_UID}")
@@ -881,6 +896,17 @@ endfunction ()
 #         must be added.
 #         (default: @c BASIS_UTILITIES)</td>
 #   </tr>
+#   <tr>
+#     @tp @b FINAL @endtp
+#     <td>Finalize custom targets immediately. Any following target property changes
+#         will have no effect. When this option is used, the custom target which
+#         executes the custom build command is added in the current working directory.
+#         Otherwise it will be added in the top-level source directory of the project.
+#         Which with the Visual Studio generators adds the corresponding Visual Studio
+#         Project files directly to the top-level build directory. This can be avoided
+#         using this option or calling basis_finalize_targets() at the end of each
+#         CMakeLists.txt file.</td>
+#   </tr>
 # </table>
 #
 # @todo Consider NO_BASIS_UTILITIES and USE_BASIS_UTILITIES options after the BASIS
@@ -900,7 +926,7 @@ function (basis_add_mcc_target TARGET_NAME)
   # parse arguments
   CMAKE_PARSE_ARGUMENTS (
     ARGN
-      "SHARED;EXECUTABLE;LIBEXEC;USE_BASIS_UTILITIES;NO_BASIS_UTILITIES;EXPORT;NOEXPORT"
+      "SHARED;EXECUTABLE;LIBEXEC;USE_BASIS_UTILITIES;NO_BASIS_UTILITIES;EXPORT;NOEXPORT;FINAL"
       "COMPONENT;RUNTIME_COMPONENT;LIBRARY_COMPONENT;DESTINATION;RUNTIME_DESTINATION;LIBRARY_DESTINATION;HEADER_DESTINATION"
       ""
     ${ARGN}
@@ -1121,6 +1147,10 @@ function (basis_add_mcc_target TARGET_NAME)
       LIBEXEC                   ${ARGN_LIBEXEC}
       TEST                      ${IS_TEST}
   )
+  # finalize target
+  if (ARGN_FINAL)
+    basis_build_mcc_target(${TARGET_UID})
+  endif ()
   # add target to list of targets
   basis_set_project_property (APPEND PROPERTY TARGETS "${TARGET_UID}")
   message (STATUS "Adding MATLAB ${type} ${TARGET_UID}... - done")
