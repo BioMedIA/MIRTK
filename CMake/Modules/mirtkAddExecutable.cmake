@@ -62,11 +62,11 @@ function(mirtk_add_executable target_name)
     basis_add_executable(${target_name}.cpp ${TARGET_SOURCES} LIBEXEC)
   elseif (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${target_name}.py" OR
           EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${target_name}.py.in")
-    basis_add_executable(${target_name}.py ${TARGET_SOURCES} LIBEXEC)
+    basis_add_executable(${target_name}.py ${TARGET_SOURCES} LIBEXEC FINAL)
     set(LANGUAGE PYTHON)
   elseif (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${target_name}.sh" OR
           EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${target_name}.sh.in")
-    basis_add_executable(${target_name}.sh ${TARGET_SOURCES} LIBEXEC)
+    basis_add_executable(${target_name}.sh ${TARGET_SOURCES} LIBEXEC FINAL)
     set(LANGUAGE BASH)
   else ()
     message(FATAL_ERROR "Source file for MIRTK command ${target_name} not found!"
