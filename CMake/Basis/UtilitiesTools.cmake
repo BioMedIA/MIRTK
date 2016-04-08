@@ -528,6 +528,7 @@ function (basis_configure_utilities)
         PREFIX                    "${PREFIX}"
         SCRIPT_DEFINITIONS        "${SCRIPT_DEFINITIONS}"
     )
+    basis_finalize_targets (.${TARGET_UID})
   endif ()
   # --------------------------------------------------------------------------
   # Perl
@@ -560,6 +561,7 @@ function (basis_configure_utilities)
              set (EXECUTABLE_TARGET_INFO \"${EXECUTABLE_TARGET_INFO_PERL_B}\")
            endif ()"
     )
+    basis_finalize_targets (.${TARGET_UID})
   endif ()
   # --------------------------------------------------------------------------
   # Bash
@@ -606,6 +608,7 @@ function (basis_configure_utilities)
         PREFIX                    "${PREFIX}"
         SCRIPT_DEFINITIONS        "${SCRIPT_DEFINITIONS}"
     )
+    basis_finalize_targets (.${TARGET_UID})
   endif ()
   message (STATUS "Configuring BASIS utilities... - done")
 endfunction ()
