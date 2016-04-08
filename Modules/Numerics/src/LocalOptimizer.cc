@@ -23,7 +23,6 @@
 #include "mirtk/Math.h"
 #include "mirtk/Array.h"
 #include "mirtk/Memory.h"
-#include "mirtk/ObjectFactory.h"
 
 
 namespace mirtk {
@@ -33,11 +32,19 @@ namespace mirtk {
 // Factory method
 // =============================================================================
 
+// Define singleton factory class for instantiation of local optimizers
+mirtkDefineObjectFactory(OptimizationMethod, LocalOptimizer);
+
+// -----------------------------------------------------------------------------
+LocalOptimizer::FactoryType &LocalOptimizer::Factory()
+{
+  return LocalOptimizerFactory::Instance();
+}
+
 // -----------------------------------------------------------------------------
 LocalOptimizer *LocalOptimizer::New(enum OptimizationMethod type, ObjectiveFunction *f)
 {
-  typedef ObjectFactory<enum OptimizationMethod, LocalOptimizer> Factory;
-  LocalOptimizer *optimizer = Factory::Instance().New(type);
+  LocalOptimizer *optimizer = Factory().New(type);
   if (!optimizer) {
     cerr << "LocalOptimizer::New: Unknown optimizer or optimizer not available: "
          << ToString(type) << " (code " << type << ")" << endl;

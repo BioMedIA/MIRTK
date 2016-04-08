@@ -25,6 +25,7 @@
 #include "mirtk/Indent.h"
 #include "mirtk/EnergyMeasure.h"
 #include "mirtk/Transformation.h"
+#include "mirtk/ObjectFactory.h"
 
 
 namespace mirtk {
@@ -76,6 +77,12 @@ protected:
   EnergyTerm &operator =(const EnergyTerm &);
 
 public:
+
+  /// Type of energy term factory
+  typedef ObjectFactory<enum EnergyMeasure, EnergyTerm> FactoryType;
+
+  /// Get global energy term factory instance
+  static FactoryType &Factory();
 
   /// Construct new energy term or return nullptr if term not available
   static EnergyTerm *TryNew(EnergyMeasure, const char * = "", double = 1.0);
@@ -214,13 +221,14 @@ private:
 // -----------------------------------------------------------------------------
 /// Register object type with factory singleton
 #define mirtkRegisterEnergyTermMacro(type)                                     \
-  mirtk::ObjectFactory<mirtk::EnergyMeasure, mirtk::EnergyTerm>::Instance()    \
-      .Register(type::ID(), type::NameOfType(), mirtk::New<mirtk::EnergyTerm, type>)
+  mirtk::EnergyTerm::Factory().Register(type::ID(), type::NameOfType(),        \
+                                        mirtk::New<mirtk::EnergyTerm, type>)
 
 // -----------------------------------------------------------------------------
 /// Register object type with factory singleton at static initialization time
 #define mirtkAutoRegisterEnergyTermMacro(type)                                 \
-  mirtkAutoRegisterObjectTypeMacro(mirtk::EnergyMeasure, type::ID(),           \
+  mirtkAutoRegisterObjectTypeMacro(mirtk::EnergyTerm::Factory(),               \
+                                   mirtk::EnergyMeasure, type::ID(),           \
                                    mirtk::EnergyTerm,    type)
 
 
