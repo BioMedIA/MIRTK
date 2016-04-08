@@ -29,6 +29,44 @@ namespace mirtk { namespace data { namespace op {
 
 
 // -----------------------------------------------------------------------------
+/// Reset data mask
+class ResetMask : public Op
+{
+private:
+
+  bool _Inverse;
+
+public:
+
+  ResetMask(bool inv = false) : _Inverse(inv) {}
+
+  /// Process given data (not thread-safe!)
+  virtual void Process(int n, double *, bool *mask = nullptr)
+  {
+    if (mask != nullptr) {
+      memset(mask, _Inverse ? 1 : 0, n * sizeof(bool));
+    }
+  }
+};
+
+// -----------------------------------------------------------------------------
+/// Invert mask values
+class InvertMask : public Op
+{
+public:
+
+  /// Process given data (not thread-safe!)
+  virtual void Process(int n, double *, bool *mask = nullptr)
+  {
+    if (mask != nullptr) {
+      for (int i = 0; i < n; ++i) {
+        mask[i] = !mask[i];
+      }
+    }
+  }
+};
+
+// -----------------------------------------------------------------------------
 /// Set value of unmasked data points
 class SetInsideValue : public Op
 {
