@@ -281,16 +281,42 @@ function (basis_export_targets)
   # export non-custom targets
   basis_get_project_property (EXPORT_TARGETS)
   if (EXPORT_TARGETS)
+    # add link dependencies to build tree export set
+    foreach (EXPORT_TARGET IN LISTS EXPORT_TARGETS)
+      get_target_property (LINK_DEPENDS ${EXPORT_TARGET} BASIS_LINK_DEPENDS)
+      foreach (LINK_DEPEND IN LISTS LINK_DEPENDS)
+        if (TARGET ${LINK_DEPEND})
+          list (FIND  EXPORT_TARGETS ${LINK_DEPEND} IDX)
+          if (IDX EQUAL -1)
+            get_target_property (IMPORTED ${LINK_DEPEND} IMPORTED)
+            if (NOT IMPORTED)
+              message (AUTHOR_WARNING
+                "Adding missing link dependency ${LINK_DEPEND} of ${EXPORT_TARGET} to list of export() targets."
+                " Add the target ${LINK_DEPEND} to the export set using basis_add_export_target() after the"
+                " add_library(${LINK_DEPEND}) command and before basis_project_end(). If the target is added"
+                " using basis_add_library(${LINK_DEPEND}), remove the NOEXPORT option or add EXPORT instead when"
+                " the global variable BASIS_EXPORT_DEFAULT is set to FALSE (actual value is ${BASIS_EXPORT_DEFAULT})."
+              )
+              list (APPEND EXPORT_TARGETS ${LINK_DEPEND})
+            endif ()
+          endif ()
+        endif ()
+      endforeach ()
+    endforeach ()
+    list (REMOVE_DUPLICATES EXPORT_TARGETS)
+    # set namespace of exported import targets
     if (BASIS_USE_TARGET_UIDS AND BASIS_USE_FULLY_QUALIFIED_UIDS)
       set (NAMESPACE_OPT)
     elseif (TOPLEVEL_PROJECT_NAMESPACE_CMAKE)
       set (NAMESPACE_OPT NAMESPACE "${TOPLEVEL_PROJECT_NAMESPACE_CMAKE}${BASIS_NAMESPACE_DELIMITER_CMAKE}")
     endif ()
+    # export build tree targets
     export (
       TARGETS   ${EXPORT_TARGETS}
       FILE      "${BINARY_LIBCONF_DIR}/${ARGN_FILE}"
       ${NAMESPACE_OPT}
     )
+    # install export set
     basis_get_project_property (INSTALL_EXPORT_TARGETS)
     if (INSTALL_EXPORT_TARGETS AND NOT BASIS_BUILD_ONLY)
       foreach (COMPONENT "${BASIS_RUNTIME_COMPONENT}" "${BASIS_LIBRARY_COMPONENT}")
