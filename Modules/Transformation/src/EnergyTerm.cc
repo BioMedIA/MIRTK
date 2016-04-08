@@ -20,7 +20,6 @@
 #include "mirtk/EnergyTerm.h"
 
 #include "mirtk/Math.h"
-#include "mirtk/ObjectFactory.h"
 #include "mirtk/Algorithm.h" // transform
 
 
@@ -31,11 +30,19 @@ namespace mirtk {
 // Factory method
 // =============================================================================
 
+// Define singleton factory class for instantiation of energy term
+mirtkDefineObjectFactory(EnergyMeasure, EnergyTerm);
+
+// -----------------------------------------------------------------------------
+EnergyTerm::FactoryType &EnergyTerm::Factory()
+{
+  return EnergyTermFactory::Instance();
+}
+
 // -----------------------------------------------------------------------------
 EnergyTerm *EnergyTerm::TryNew(enum EnergyMeasure em, const char *name, double w)
 {
-  typedef ObjectFactory<enum EnergyMeasure, EnergyTerm> Factory;
-  EnergyTerm *term = Factory::Instance().New(em);
+  EnergyTerm *term = Factory().New(em);
   if (term) {
     term->Name(name);
     term->Weight(w);

@@ -26,6 +26,7 @@
 #include "mirtk/Array.h"
 #include "mirtk/OptimizationMethod.h"
 #include "mirtk/ObjectiveFunction.h"
+#include "mirtk/ObjectFactory.h"
 
 
 namespace mirtk {
@@ -77,6 +78,12 @@ protected:
   LocalOptimizer &operator =(const LocalOptimizer &);
 
 public:
+
+  /// Type of optimizer factory
+  typedef ObjectFactory<enum OptimizationMethod, LocalOptimizer> FactoryType;
+
+  /// Get global optimizer factory instance
+  static FactoryType &Factory();
 
   /// Construct optimizer
   static LocalOptimizer *New(enum OptimizationMethod, ObjectiveFunction * = NULL);
@@ -179,12 +186,14 @@ private:
 // -----------------------------------------------------------------------------
 /// Register object type with factory singleton
 #define mirtkRegisterOptimizerMacro(type)                                      \
-  mirtk::ObjectFactory<mirtk::OptimizationMethod, mirtk::LocalOptimizer>::Instance() \
-      .Register(type::ID(), type::NameOfType(), mirtk::New<mirtk::LocalOptimizer, type>)
+  mirtk::LocalOptimizer::Factory()                                             \
+      .Register(type::ID(), type::NameOfType(),                                \
+                mirtk::New<mirtk::LocalOptimizer, type>)
 
 // -----------------------------------------------------------------------------
 #define mirtkAutoRegisterOptimizerMacro(type)                                  \
-  mirtkAutoRegisterObjectTypeMacro(mirtk::OptimizationMethod, type::ID(),      \
+  mirtkAutoRegisterObjectTypeMacro(mirtk::LocalOptimizer::Factory(),           \
+                                   mirtk::OptimizationMethod, type::ID(),      \
                                    mirtk::LocalOptimizer,     type)
 
 ////////////////////////////////////////////////////////////////////////////////

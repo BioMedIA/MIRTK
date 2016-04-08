@@ -53,34 +53,26 @@ public:
   /// Type of object creator
   typedef Interface *(*Creator)();
 
-  /// Type of this object factory
-  typedef ObjectFactory<Id, Interface> Self;
+  /// Type of object factory instance
+  typedef ObjectFactory<Id, Interface> InstanceType;
 
   // ---------------------------------------------------------------------------
-  // Singleton
-private:
+  // Abstract base class for singleton
+protected:
 
   /// Constructor
   ObjectFactory() {}
 
   /// Destructor
-  ~ObjectFactory() {}
+  virtual ~ObjectFactory() {}
 
   /// Copy constructor. Intentionally not implemented.
-  ObjectFactory(const Self &);
+  ObjectFactory(const ObjectFactory &);
 
   /// Assignment operator. Intentionally not implemented.
-  void operator =(const Self &);
+  void operator =(const ObjectFactory &);
 
 public:
-
-  /// Singleton instance
-  /// \attention This function is not thread-safe!
-  static Self &Instance()
-  {
-    static Self instance;
-    return instance;
-  }
 
   // ---------------------------------------------------------------------------
   // Object creation
@@ -147,16 +139,38 @@ template <class BaseType, class ObjectType> BaseType *New()
 }
 
 // -----------------------------------------------------------------------------
-/// Register object type with factory singleton at static initialization time
+/// Define singleton object factory class in .cc file of object base class
+#define mirtkDefineObjectFactory(id_type, base)                                \
+    class base##Factory : public mirtk::ObjectFactory<id_type, base>           \
+    {                                                                          \
+    private:                                                                   \
+      /** Constructor */                                                       \
+      base##Factory() {}                                                       \
+      /** Destructor */                                                        \
+      virtual ~base##Factory() {}                                              \
+      /** Copy constructor. Intentionally not implemented. */                  \
+      base##Factory(const base##Factory &);                                    \
+      /** Assignment operator. Intentionally not implemented. */               \
+      void operator =(const base##Factory &);                                  \
+    public:                                                                    \
+      /** Get singleton instance */                                            \
+      static base##Factory &Instance()                                         \
+      {                                                                        \
+        static base##Factory instance;                                         \
+        return instance;                                                       \
+      }                                                                        \
+    }
+
+// -----------------------------------------------------------------------------
+/// Register object type with factory at static initialization time
 #ifdef MIRTK_AUTO_REGISTER
-  #define mirtkAutoRegisterObjectTypeMacro(id_type, id, base, type)            \
+  #define mirtkAutoRegisterObjectTypeMacro(factory, id_type, id, base, type)   \
     namespace {                                                                \
       static auto _##type##Registered =                                        \
-        mirtk::ObjectFactory<id_type, base>::Instance()                        \
-          .Register(id, type::NameOfType(), mirtk::New<base, type>);           \
+        (factory).Register(id, type::NameOfType(), mirtk::New<base, type>);    \
     }
 #else // MIRTK_AUTO_REGISTER
-  #define mirtkAutoRegisterObjectTypeMacro(id_type, id, base, type)
+  #define mirtkAutoRegisterObjectTypeMacro(factory, id_type, id, base, type)
 #endif // MIRTK_AUTO_REGISTER
 
 
