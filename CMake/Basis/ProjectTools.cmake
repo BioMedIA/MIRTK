@@ -87,14 +87,15 @@ endmacro ()
 # NAME option instead to declare its name, it can be either an independent
 # project or a (tighly coupled) "submodule" of another project. A project is
 # regarded a "submodule" when it is not a subproject but specifies a PACKAGE
-# it belongs to. Otherwise, when only a project has only a NAME, but no PACKAGE
+# it belongs to. Otherwise, when a project has only a NAME but no PACKAGE,
 # the PACKAGE name is set equal the project NAME and the project is regarded
 # as neither a subproject nor a submodule. When either a subproject or submodule
 # is built as part of a top-level project (usually the PACKAGE it belongs to),
 # the CMake variable PROJECT_IS_MODULE is furthermore set to TRUE by the
-# basis_add_module command. The PROJECT_IS_SUBPROJECT and PROJECT_IS_SUBMODULE
-# flags are used by the BASIS commands to decide to which "namespace" the
-# targets of a project belong to and what components to install.
+# basis_add_module and basis_add_subdirectory command, respectively.
+# The boolean PROJECT_IS_SUBPROJECT and PROJECT_IS_SUBMODULE variables are
+# used by the BASIS commands to decide to which "namespace" the targets of a
+# project belong to and what components to install.
 #
 # @sa basis_project()
 # @sa basis_slicer_module()
@@ -386,6 +387,14 @@ macro (basis_project_check_metadata)
     if (PROJECT_EXCLUDE_FROM_ALL)
       message (FATAL_ERROR "EXCLUDE_FROM_ALL option only valid for project modules.")
     endif ()
+  endif ()
+  # prefix used for CMake variables in <Pkg>[<Module>]Config.cmake (cf. GenerateConfig.cmake)
+  if (PROJECT_IS_SUBMODULE)
+    set (PROJECT_CONFIG_PREFIX "${PROJECT_PACKAGE_NAME}_${PROJECT_NAME}")
+  elseif (PROJECT_IS_MODULE OR PROJECT_IS_SUBPROJECT)
+    set (PROJECT_CONFIG_PREFIX "${PROJECT_NAME}")
+  else ()
+    set (PROJECT_CONFIG_PREFIX "${PROJECT_PACKAGE_NAME}")
   endif ()
   # source tree directories aliases
   if (PROJECT_INCLUDE_DIR)
@@ -907,6 +916,9 @@ function (basis_get_module_info MODULE_NAME F)
   set (${PROJECT_NAME}_OPTIONAL_TEST_DEPENDS  "${OPTIONAL_TEST_DEPENDS}"  PARENT_SCOPE)
   set (${PROJECT_NAME}_DECLARED               TRUE                        PARENT_SCOPE)
   set (${PROJECT_NAME}_MISSING                FALSE                       PARENT_SCOPE)
+  set (${PROJECT_NAME}_IS_SUBPROJECT          "${PROJECT_IS_SUBPROJECT}"  PARENT_SCOPE)
+  set (${PROJECT_NAME}_IS_SUBMODULE           "${PROJECT_IS_SUBMODULE}"   PARENT_SCOPE)
+  set (${PROJECT_NAME}_CONFIG_PREFIX          "${PROJECT_CONFIG_PREFIX}"  PARENT_SCOPE)
   # remember source directories - used by basis_add_doxygen_doc()
   set (${PROJECT_NAME}_INCLUDE_DIRS "${PROJECT_INCLUDE_DIRS}" PARENT_SCOPE)
   set (${PROJECT_NAME}_CODE_DIRS    "${PROJECT_CODE_DIRS}"    PARENT_SCOPE)
@@ -2327,7 +2339,7 @@ endmacro ()
 ## @brief Use a previously added project module.
 macro (basis_use_module MODULE)
   set (NO_${MODULE}_IMPORTS TRUE)
-  include ("${${MODULE}_USE_FILE}")
+  include ("${${${MODULE}_CONFIG_PREFIX}_USE_FILE}")
   add_definitions(-DHAVE_${PROJECT_PACKAGE_NAME}_${MODULE})
 endmacro ()
 
