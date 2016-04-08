@@ -35,20 +35,30 @@ endif ()
 #
 # @param[out] EXPORT_OPTION Export option for install() command including
 #                           the EXPORT option name. Set to an empty string
-#                           if target is not installed.
+#                           if target is not installed (see @p ARGN).
 # @param[in]  TARGET_UID    UID of target to be exported.
 # @param[in]  IS_TEST       Whether given target is a test executable or library.
-# @param[in]  ARGN          Optional installation destinations.
+# @param[in]  ARGN          Optional installation destinations. The actual
+#                           values are ignored and argument @c TRUE should
+#                           be used if no specific destination paths are given,
+#                           but the target is also to be included in the export
+#                           set used for installation. If ARGN is empty, the
+#                           target is only added to the build tree export set.
+#                           When @p ARGN is @c 0, @c FALSE or @c OFF, the target
+#                           is not added to list of installation exports.
 function (basis_add_export_target EXPORT_OPTION TARGET_UID IS_TEST)
   set (EXPORT_SET "${TOPLEVEL_PROJECT_NAME}")
   if (IS_TEST)
     basis_set_project_property (PROJECT "${EXPORT_SET}" APPEND PROPERTY TEST_EXPORT_TARGETS "${TARGET_UID}")
+    set (${EXPORT_OPTION} "" PARENT_SCOPE)
   else ()
     basis_set_project_property (PROJECT "${EXPORT_SET}" APPEND PROPERTY EXPORT_TARGETS "${TARGET_UID}")
-    if (ARGN)
+    if (ARGN AND NOT "^${ARGN}$" STREQUAL "^(0|false|FALSE|off|OFF)$")
       basis_set_project_property (PROJECT "${EXPORT_SET}" APPEND PROPERTY INSTALL_EXPORT_TARGETS "${TARGET_UID}")
+      set (${EXPORT_OPTION} "EXPORT;${EXPORT_SET}" PARENT_SCOPE)
+    else ()
+      set (${EXPORT_OPTION} "" PARENT_SCOPE)
     endif ()
-    set (${EXPORT_OPTION} "EXPORT;${EXPORT_SET}" PARENT_SCOPE)
   endif ()
 endfunction ()
 
