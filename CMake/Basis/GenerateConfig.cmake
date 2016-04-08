@@ -75,17 +75,9 @@ endif ()
 
 # code used at top of package configuration and use files to set package
 # namespace prefix used for configuration variables
-if (PROJECT_IS_MODULE OR PROJECT_IS_SUBPROJECT)
-  set (BASIS_NS "${PROJECT_NAME}")
-elseif (PROJECT_IS_SUBMODULE)
-  set (BASIS_NS "${PROJECT_PACKAGE_NAME}_${PROJECT_NAME}")
-else ()
-  set (BASIS_NS "${PROJECT_PACKAGE_NAME}")
-endif ()
-
 set (BASIS_NS
 "# prefix used for variable names
-set (NS \"${BASIS_NS}_\")
+set (NS \"${PROJECT_CONFIG_PREFIX}_\")
 
 # allow caller to change namespace - used by projects with modules
 if (\${NS}CONFIG_PREFIX)
