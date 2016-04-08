@@ -44,9 +44,12 @@ function (mirtk_target_dependencies target_name)
       mirtk_get_target_name(dep_name "${dep}")
       if (TARGET "${dep_name}")
         get_target_property(dep_type ${dep_name} TYPE)
-        # Add dependency on imported link library
+        # Add dependency on (imported|other) library target
         if (dep_type MATCHES "LIBRARY")
-          target_link_libraries(${target_uid} ${dep_attr} ${dep_name})
+          # Need to use basis_target_link_libraries such that BASIS can add
+          # link dependencies of non-imported targets added via add_library
+          # instead of basis_add_library to the export set if necessary
+          basis_target_link_libraries(${target_uid} ${dep_attr} ${dep_name})
           get_property(dep_imported TARGET ${dep_name} PROPERTY IMPORTED)
           if (dep_imported)
             basis_get_target_location(dep_path ${dep_name} PATH)
