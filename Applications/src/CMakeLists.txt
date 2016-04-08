@@ -30,7 +30,7 @@ endif ()
 
 # ----------------------------------------------------------------------------
 # Generic file info tool
-if (MODULE_Image)
+if (MIRTK_Image_FOUND)
   mirtk_add_executable(info
     DEPENDS
       LibCommon LibNumerics LibImage LibIO
@@ -42,7 +42,7 @@ endif ()
 
 # ----------------------------------------------------------------------------
 # Image tools
-if (MODULE_Image)
+if (MIRTK_Image_FOUND)
 
   macro(add_image_command cmd)
     mirtk_add_executable(${cmd} DEPENDS LibCommon LibNumerics LibImage LibIO ${ARGN})
@@ -77,7 +77,7 @@ endif ()
 
 # ----------------------------------------------------------------------------
 # Registration tools
-if (MODULE_Registration)
+if (MIRTK_Registration_FOUND)
 
   macro(add_registration_command cmd)
     mirtk_add_executable(${cmd} DEPENDS LibCommon LibNumerics LibImage LibIO LibTransformation LibRegistration ${ARGN})
@@ -89,7 +89,7 @@ endif ()
 
 # ----------------------------------------------------------------------------
 # Transformation tools
-if (MODULE_Transformation)
+if (MIRTK_Transformation_FOUND)
 
   macro(add_transformation_command cmd)
     mirtk_add_executable(${cmd} DEPENDS LibCommon LibNumerics LibImage LibTransformation ${ARGN})
@@ -98,7 +98,7 @@ if (MODULE_Transformation)
   add_transformation_command(edit-dof)
   add_transformation_command(invert-dof)
 
-  if (MODULE_Image)
+  if (MIRTK_Image_FOUND)
 
     macro(add_image_transformation_command cmd)
       add_transformation_command(${cmd} LibIO ${ARGN})
@@ -119,7 +119,7 @@ endif ()
 
 # ----------------------------------------------------------------------------
 # Point set tools
-if (MODULE_PointSet)
+if (MIRTK_PointSet_FOUND)
 
   macro(add_pointset_command cmd)
     mirtk_add_executable(${cmd} DEPENDS LibCommon LibNumerics LibImage LibPointSet LibIO ${VTK_LIBRARIES} ${ARGN})
@@ -144,19 +144,19 @@ if (MODULE_PointSet)
     add_pointset_command(convert-mris)
   endif ()
 
-  if (MODULE_Image)
+  if (MIRTK_Image_FOUND)
 
     add_pointset_command(convert-pointset)
     add_pointset_command(extract-pointset-surface)
     add_pointset_command(extract-surface)
 
-    if (MODULE_Transformation)
+    if (MIRTK_Transformation_FOUND)
       add_pointset_command(transform-points LibTransformation)
     endif ()
 
   endif ()
 
-  if (MODULE_Transformation)
+  if (MIRTK_Transformation_FOUND)
     add_pointset_command(match-points LibTransformation)
   endif ()
 
