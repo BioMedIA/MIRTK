@@ -2754,106 +2754,103 @@ function (basis_get_source_language LANGUAGE)
   set (LANGUAGE_OUT)
   # iterate over source files
   foreach (SOURCE_FILE ${ARGN})
-    
     # skip generator expressions
-    if (SOURCE_FILE MATCHES "^\\$<")
-      continue()
-    endif ()
+    if (NOT SOURCE_FILE MATCHES "^\\$<")
+      get_filename_component (SOURCE_FILE "${SOURCE_FILE}" ABSOLUTE)
 
-    get_filename_component (SOURCE_FILE "${SOURCE_FILE}" ABSOLUTE)
+      if (IS_DIRECTORY "${SOURCE_FILE}")
 
-    if (IS_DIRECTORY "${SOURCE_FILE}")
+        file (GLOB_RECURSE SOURCE_FILES "${SOURCE_FILE}/*")
+        list (APPEND ARGN ${SOURCE_FILES})
 
-      file (GLOB_RECURSE SOURCE_FILES "${SOURCE_FILE}/*")
-      list (APPEND ARGN ${SOURCE_FILES})
+      else ()
 
-    else ()
-
-      # ------------------------------------------------------------------------
-      # determine language based on extension for those without shebang
-      set (LANG)
-      # C++
-      if (SOURCE_FILE MATCHES "\\.(c|cc|cpp|cxx|h|hh|hpp|hxx|txx|inl)(\\.in)?$")
-        set (LANG "CXX")
-      # Java
-      elseif (SOURCE_FILE MATCHES "\\.java(\\.in)?$")
-        set (LANG "JAVA")
-      # MATLAB
-      elseif (SOURCE_FILE MATCHES "\\.m(\\.in)?$")
-        set (LANG "MATLAB")
-      endif ()
-
-      # ------------------------------------------------------------------------
-      # determine language from shebang directive
-      #
-      # Note that some scripting languages may use identical file name extensions.
-      # This is in particular the case for Python and Jython. The only way we
-      # can distinguish these two is by looking at the shebang directive.
-      if (NOT LANG)
-        
-        if (NOT EXISTS "${SOURCE_FILE}" AND EXISTS "${SOURCE_FILE}.in")
-          set (SOURCE_FILE "${SOURCE_FILE}.in")
+        # ------------------------------------------------------------------------
+        # determine language based on extension for those without shebang
+        set (LANG)
+        # C++
+        if (SOURCE_FILE MATCHES "\\.(c|cc|cpp|cxx|h|hh|hpp|hxx|txx|inl)(\\.in)?$")
+          set (LANG "CXX")
+        # Java
+        elseif (SOURCE_FILE MATCHES "\\.java(\\.in)?$")
+          set (LANG "JAVA")
+        # MATLAB
+        elseif (SOURCE_FILE MATCHES "\\.m(\\.in)?$")
+          set (LANG "MATLAB")
         endif ()
-        if (EXISTS "${SOURCE_FILE}")
-          file (STRINGS "${SOURCE_FILE}" FIRST_LINE LIMIT_COUNT 1)
-          if (FIRST_LINE MATCHES "^#!")
-            if (FIRST_LINE MATCHES "^#! */usr/bin/env +([^ ]+)")
-              set (INTERPRETER "${CMAKE_MATCH_1}")
-            elseif (FIRST_LINE MATCHES "^#! *([^ ]+)")
-              set (INTERPRETER "${CMAKE_MATCH_1}")
-              get_filename_component (INTERPRETER "${INTERPRETER}" NAME)
-            else ()
-              set (INTERPRETER)
-            endif ()
-            if (INTERPRETER MATCHES "^(python|jython|perl|bash)$")
-              string (TOUPPER "${INTERPRETER}" LANG)
+
+        # ------------------------------------------------------------------------
+        # determine language from shebang directive
+        #
+        # Note that some scripting languages may use identical file name extensions.
+        # This is in particular the case for Python and Jython. The only way we
+        # can distinguish these two is by looking at the shebang directive.
+        if (NOT LANG)
+          
+          if (NOT EXISTS "${SOURCE_FILE}" AND EXISTS "${SOURCE_FILE}.in")
+            set (SOURCE_FILE "${SOURCE_FILE}.in")
+          endif ()
+          if (EXISTS "${SOURCE_FILE}")
+            file (STRINGS "${SOURCE_FILE}" FIRST_LINE LIMIT_COUNT 1)
+            if (FIRST_LINE MATCHES "^#!")
+              if (FIRST_LINE MATCHES "^#! */usr/bin/env +([^ ]+)")
+                set (INTERPRETER "${CMAKE_MATCH_1}")
+              elseif (FIRST_LINE MATCHES "^#! *([^ ]+)")
+                set (INTERPRETER "${CMAKE_MATCH_1}")
+                get_filename_component (INTERPRETER "${INTERPRETER}" NAME)
+              else ()
+                set (INTERPRETER)
+              endif ()
+              if (INTERPRETER MATCHES "^(python|jython|perl|bash)$")
+                string (TOUPPER "${INTERPRETER}" LANG)
+              endif ()
             endif ()
           endif ()
         endif ()
-      endif ()
 
-      # ------------------------------------------------------------------------
-      # determine language from further known extensions
-      if (NOT LANG)
-        # Python
-        if (SOURCE_FILE MATCHES "\\.py(\\.in)?$")
-          set (LANG "PYTHON")
-        # Perl
-        elseif (SOURCE_FILE MATCHES "\\.(pl|pm|t)(\\.in)?$")
-          set (LANG "PERL")
-        # BASH
-        elseif (SOURCE_FILE MATCHES "\\.sh(\\.in)?$")
-          set (LANG "BASH")
-        # Batch
-        elseif (SOURCE_FILE MATCHES "\\.bat(\\.in)?$")
-          set (LANG "BATCH")
-        # unknown
-        else ()
-          set (LANGUAGE_OUT "UNKNOWN")
-          break ()
+        # ------------------------------------------------------------------------
+        # determine language from further known extensions
+        if (NOT LANG)
+          # Python
+          if (SOURCE_FILE MATCHES "\\.py(\\.in)?$")
+            set (LANG "PYTHON")
+          # Perl
+          elseif (SOURCE_FILE MATCHES "\\.(pl|pm|t)(\\.in)?$")
+            set (LANG "PERL")
+          # BASH
+          elseif (SOURCE_FILE MATCHES "\\.sh(\\.in)?$")
+            set (LANG "BASH")
+          # Batch
+          elseif (SOURCE_FILE MATCHES "\\.bat(\\.in)?$")
+            set (LANG "BATCH")
+          # unknown
+          else ()
+            set (LANGUAGE_OUT "UNKNOWN")
+            break ()
+          endif ()
         endif ()
-      endif ()
 
-      # ------------------------------------------------------------------------
-      # detect ambiguity
-      if (LANGUAGE_OUT AND NOT "^${LANG}$" STREQUAL "^${LANGUAGE_OUT}$")
-        if (LANGUAGE_OUT MATCHES "CXX" AND LANG MATCHES "MATLAB")
-          # MATLAB Compiler can handle this...
-        elseif (LANGUAGE_OUT MATCHES "MATLAB" AND LANG MATCHES "CXX")
-          set (LANG "MATLAB") # language stays MATLAB
-        elseif (LANGUAGE_OUT MATCHES "PYTHON" AND LANG MATCHES "JYTHON")
-          # Jython can deal with Python scripts/modules
-        elseif (LANGUAGE_OUT MATCHES "JYTHON" AND LANG MATCHES "PYTHON")
-          set (LANG "JYTHON") # language stays JYTHON
-        else ()
-          # ambiguity
-          set (LANGUAGE_OUT "AMBIGUOUS")
-          break ()
+        # ------------------------------------------------------------------------
+        # detect ambiguity
+        if (LANGUAGE_OUT AND NOT "^${LANG}$" STREQUAL "^${LANGUAGE_OUT}$")
+          if (LANGUAGE_OUT MATCHES "CXX" AND LANG MATCHES "MATLAB")
+            # MATLAB Compiler can handle this...
+          elseif (LANGUAGE_OUT MATCHES "MATLAB" AND LANG MATCHES "CXX")
+            set (LANG "MATLAB") # language stays MATLAB
+          elseif (LANGUAGE_OUT MATCHES "PYTHON" AND LANG MATCHES "JYTHON")
+            # Jython can deal with Python scripts/modules
+          elseif (LANGUAGE_OUT MATCHES "JYTHON" AND LANG MATCHES "PYTHON")
+            set (LANG "JYTHON") # language stays JYTHON
+          else ()
+            # ambiguity
+            set (LANGUAGE_OUT "AMBIGUOUS")
+            break ()
+          endif ()
         endif ()
-      endif ()
 
-      # update current language
-      set (LANGUAGE_OUT "${LANG}")
+        # update current language
+        set (LANGUAGE_OUT "${LANG}")
+      endif ()
     endif ()
   endforeach ()
   # return
