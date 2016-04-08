@@ -27,7 +27,7 @@
 # Use basis_add_executable to add the executable targets in this directory.
 ##############################################################################
 
-basis_add_executable(mirtk.py)
+basis_add_executable(mirtk.py FINAL)
 
 if (UNIX)
   message(STATUS "Writing Bash completions script...")

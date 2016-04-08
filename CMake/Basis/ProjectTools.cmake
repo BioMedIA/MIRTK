@@ -2594,11 +2594,12 @@ macro (basis_project_end)
   #
   # Note: Must be done *after* the TARGETS project properties of the modules
   #       were copied as basis_finalize_targets() iterates over this list.
+
+  # add missing build commands for custom targets
+  basis_finalize_targets ()
   if (NOT PROJECT_IS_MODULE OR PROJECT_IS_SUBPROJECT)
     # configure the BASIS utilities
     basis_configure_utilities ()
-    # add missing build commands for custom targets
-    basis_finalize_targets ()
     # add build target for missing __init__.py files of Python package
     if (BASIS_PYTHON_TEMPLATES_DIR)
       if (PythonInterp_FOUND OR JythonInterp_FOUND)
