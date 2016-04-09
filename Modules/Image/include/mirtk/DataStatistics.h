@@ -36,6 +36,9 @@ namespace mirtk { namespace data { namespace statistic {
 /// Base class of all data statistics
 class Statistic : public Op
 {
+  /// Do not include statistic in output report
+  mirtkPublicAttributeMacro(bool, Hidden);
+
   /// Description of data statistic
   mirtkPublicAttributeMacro(string, Description);
 
@@ -50,6 +53,7 @@ protected:
   /// Constructor
   Statistic(const char *desc = NULL, const Array<string> *names = NULL)
   :
+    _Hidden(false),
     _Description(desc ? desc : "Unknown statistic"),
     _Values(1, numeric_limits<double>::quiet_NaN())
   {
@@ -67,8 +71,15 @@ public:
   /// Destructor
   virtual ~Statistic() {}
 
+  /// Hide/Show statistic in output report
+  mirtkOnOffMacro(Hidden);
+
   /// Get value of statistic (first entry of _Values vector)
-  virtual double Value() const
+  ///
+  /// @returns Reference to first element of _Values vector such that the
+  ///          address of the this element can be passed on to subsequent
+  ///          data operations.
+  virtual const double &Value() const
   {
     return _Values[0];
   }

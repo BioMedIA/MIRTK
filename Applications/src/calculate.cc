@@ -84,27 +84,6 @@ void PrintHelp(const char *name)
   cout << "      For example, -label 1 3 5..6 10 20..50. This option is a shorthand for\n";
   cout << "        :option:`-mask-all` :option:`-threshold-inside` <lower> <upper> :option:`-invert-mask`\n";
   cout << "      where one :option:`-threshold-inside` operation is performed for each argument.\n";
-  cout << "  -threshold <lower> [<upper>]\n";
-  cout << "      This masking operation is equivalent to :option:`-threshold-outside`.\n";
-  cout << "      When no upper threshold is specified, it defaults to +inf. Therefore,\n";
-  cout << "      \"-threshold 0\" will exclude all negative values.\n";
-  cout << "  -threshold-inside, -mask-inside <lower> <upper>\n";
-  cout << "      Exclude values which are inside a given closed interval.\n";
-  cout << "      When the lower threshold is greater than the upper threshold,\n";
-  cout << "      values less than or equal to the upper threshold and values greater\n";
-  cout << "      than or equal to the lower threshold are excluded.\n";
-  cout << "  -threshold-outside, -mask-outside <lower> <upper>\n";
-  cout << "      Exclude values which are outside a given open interval.\n";
-  cout << "      When the lower threshold is greater than the upper threshold,\n";
-  cout << "      values inside the closed interval <upper>..<lower> are excluded.\n";
-  cout << "  -threshold-lt, -lower-threshold, -mask-lt <value>\n";
-  cout << "      Exclude values less than a given threshold.\n";
-  cout << "  -threshold-le, -mask-le, -mask-below <value>\n";
-  cout << "      Exclude values less than or equal to a given threshold.\n";
-  cout << "  -threshold-ge, -mask-ge, -mask-above <value>\n";
-  cout << "      Exclude values greater than or equal to a given threshold.\n";
-  cout << "  -threshold-gt, -upper-threshold, -mask-gt <value>\n";
-  cout << "      Exclude values greater than a given threshold.\n";
   cout << "  -mask <float|file>\n";
   cout << "      Exclude values equal a given threshold or with zero input mask value.\n";
   cout << "      Note that this does not modify the data values, but only marks them to be\n";
@@ -117,12 +96,57 @@ void PrintHelp(const char *name)
   cout << "  -invert-mask\n";
   cout << "      Invert mask to include all values that where excluded before and\n";
   cout << "      exclude all values that were included before.\n";
-  cout << "\n";
-  cout << "Data manipulation options:\n";
   cout << "  -set, -inside <value>\n";
   cout << "      Set new value for all currently included data values.\n";
   cout << "  -pad, -outside <value>\n";
   cout << "      Set new value for all currently excluded data values.\n";
+  cout << "\n";
+  cout << "Data thresholding options:\n";
+  cout << "  -threshold <lower> [<upper>]\n";
+  cout << "      This masking operation is equivalent to :option:`-threshold-outside`.\n";
+  cout << "      When no upper threshold is specified, it defaults to +inf. Therefore,\n";
+  cout << "      \"-threshold 0\" will exclude all negative values.\n";
+  cout << "  -percentile-threshold, -pct-threshold <lower>\n";
+  cout << "      This masking operation is equivalent to :option:`-threshold-outside-percentiles`.\n";
+  cout << "      with an upper threshold of +inf. Therefore, \"-threshold 0\" excludes all negative values.\n";
+  cout << "  -threshold-percentiles, -threshold-pcts <lower> <upper>\n";
+  cout << "      This masking operation is equivalent to :option:`-threshold-outside-percentiles`.\n";
+  cout << "  -threshold-inside, -mask-inside <lower> <upper>\n";
+  cout << "      Exclude values which are inside a given closed interval.\n";
+  cout << "      When the lower threshold is greater than the upper threshold,\n";
+  cout << "      values less than or equal to the upper threshold and values greater\n";
+  cout << "      than or equal to the lower threshold are excluded.\n";
+  cout << "  -threshold-inside-percentiles, -threshold-inside-pcts, -mask-inside-percentiles, -mask-inside-pct <lower> <upper>\n";
+  cout << "      Exclude values which are inside a given closed interval of percentiles.\n";
+  cout << "      When the lower percentile is greater than the upper percentile,\n";
+  cout << "      values less than or equal to the upper percentile and values greater\n";
+  cout << "      than or equal to the lower percentile are excluded.\n";
+  cout << "  -threshold-outside, -mask-outside <lower> <upper>\n";
+  cout << "      Exclude values which are outside a given open interval.\n";
+  cout << "      When the lower threshold is greater than the upper threshold,\n";
+  cout << "      values inside the closed interval <upper>..<lower> are excluded.\n";
+  cout << "  -threshold-outside-percentiles, -threshold-outside-pcts, -mask-outside-percentiles, -mask-outside-pcts <lower> <upper>\n";
+  cout << "      Exclude values which are outside a given open interval of percentiles.\n";
+  cout << "      When the lower percentile is greater than the upper percentile,\n";
+  cout << "      values inside the closed interval <upper>..<lower> are excluded.\n";
+  cout << "  -threshold-lt, -lower-threshold, -mask-lt <value>\n";
+  cout << "      Exclude values less than a given threshold.\n";
+  cout << "  -threshold-lt-percentile, -threshold-lt-pct, -lower-percentile-threshold, -lower-pct-threshold, -mask-lt-percentile, -mask-lt-pct <value>\n";
+  cout << "      Exclude values less than a given precentile.\n";
+  cout << "  -threshold-le, -mask-le, -mask-below <value>\n";
+  cout << "      Exclude values less than or equal to a given threshold.\n";
+  cout << "  -threshold-le-percentile, -threshold-le-pct, -mask-le-percentile, -mask-le-pct, -mask-below-percentile, -mask-below-pct <value>\n";
+  cout << "      Exclude values less than or equal to a given percentile.\n";
+  cout << "  -threshold-ge, -mask-ge, -mask-above <value>\n";
+  cout << "      Exclude values greater than or equal to a given threshold.\n";
+  cout << "  -threshold-ge-percentile, -threshold-ge-pct, -mask-ge-percentile, -mask-ge-pct, -mask-above-percentile, -mask-above-pct <value>\n";
+  cout << "      Exclude values greater than or equal to a given percentile.\n";
+  cout << "  -threshold-gt, -upper-threshold, -mask-gt <value>\n";
+  cout << "      Exclude values greater than a given threshold.\n";
+  cout << "  -threshold-gt-percentile, -threshold-gt-pct, -upper-percentile-threshold, -upper-pct-threshold, -mask-gt-percentile, -mask-gt-pct <value>\n";
+  cout << "      Exclude values greater than a given percentile.\n";
+  cout << "\n";
+  cout << "Data rescaling options:\n";
   cout << "  -binarize <lower> [<upper>]\n";
   cout << "      Set values inside the closed interval <lower>..<upper> to one,\n";
   cout << "      and all other values to zero. The default upper threshold is +inf.\n";
@@ -131,13 +155,21 @@ void PrintHelp(const char *name)
   cout << "      and all other values to one instead. This operation is short for:\n";
   cout << "      :option:`-threshold-inside` <lower> <upper> :option:`-set` 1 :option:`-pad` 0\n";
   cout << "  -clamp <lower> <upper>\n";
-  cout << "      Clamp values which are less a lower or greater an upper threshold.\n";
+  cout << "      Clamp values which are less than a lower or greater than an upper threshold.\n";
+  cout << "  -clamp-percentiles, -clamp-pcts <lower> <upper>\n";
+  cout << "      Clamp values which are less than a lower percentile or greater than an upper percentile.\n";
   cout << "  -clamp-below, -clamp-lt <value>\n";
   cout << "      Clamp values less than a given threshold.\n";
+  cout << "  -clamp-below-percentile, -clamp-below-pct, -clamp-lt-percentile, -clamp-lt-pct <value>\n";
+  cout << "      Clamp values less than a given percentile.\n";
   cout << "  -clamp-above, -clamp-gt <value>\n";
   cout << "      Clamp values greater than a given threshold.\n";
+  cout << "  -clamp-above-percentile, -clamp-above-pct, -clamp-gt-percentile, -clamp-gt-pct <value>\n";
+  cout << "      Clamp values greater than a given percentile.\n";
   cout << "  -rescale <min> <max>\n";
   cout << "      Linearly rescale values to the interval [min, max].\n";
+  cout << "\n";
+  cout << "Arithmetic operation options:\n";
   cout << "  -add, -plus, + <value|file>\n";
   cout << "      Add constant value or data sequence read from specified file.\n";
   cout << "  -sub, -subtract, -minus, - <value|file>\n";
@@ -294,7 +326,11 @@ int main(int argc, char **argv)
 #endif // MIRTK_Image_WITH_VTK
 
   // Optional arguments
+  const double inf = numeric_limits<double>::infinity();
+  const double nan = numeric_limits<double>::quiet_NaN();
+
   double      a, b;
+  int         p;
   const char *append_name   = NULL;
   const char *delimiter     = NULL;
   bool        print_header  = false;
@@ -328,16 +364,14 @@ int main(int argc, char **argv)
         const char *arg = ARGUMENT;
         const Array<string> parts = Split(arg, "..");
         if (parts.size() == 1) {
-          if (!FromString(parts[0], a)) {
-            a = numeric_limits<double>::quiet_NaN();
-          }
+          if (!FromString(parts[0], a)) a = nan;
           b = a;
         } else if (parts.size() == 2) {
           if (!FromString(parts[0], a) || !FromString(parts[1], b)) {
-            a = b = numeric_limits<double>::quiet_NaN();
+            a = b = nan;
           }
         } else {
-          a = b = numeric_limits<double>::quiet_NaN();
+          a = b = nan;
         }
         if (IsNaN(a) || IsNaN(b)) {
           FatalError("Invalid -label argument: " << arg);
@@ -362,27 +396,101 @@ int main(int argc, char **argv)
       PARSE_ARGUMENT(a);
       PARSE_ARGUMENT(b);
       ops.push_back(unique_ptr<Op>(new MaskOutsideOpenInterval(a, b)));
+    } else if (OPTION("-threshold-outside-percentiles") || OPTION("-threshold-outside-pcts") ||
+               OPTION("-mask-outside-percentiles")      || OPTION("-mask-outside-pcts")) {
+      PARSE_ARGUMENT(p);
+      Statistic *a = new Percentile(p);
+      a->Hidden(verbose < 1);
+      ops.push_back(unique_ptr<Op>(a));
+      PARSE_ARGUMENT(p);
+      Statistic *b = new Percentile(p);
+      b->Hidden(verbose < 1);
+      ops.push_back(unique_ptr<Op>(b));
+      Op *op = new MaskOutsideOpenInterval(&a->Value(), &b->Value());
+      ops.push_back(unique_ptr<Op>(op));
     } else if (OPTION("-threshold")) {
       PARSE_ARGUMENT(a);
       if (HAS_ARGUMENT) PARSE_ARGUMENT(b);
-      else b = numeric_limits<double>::infinity();
+      else b = inf;
       ops.push_back(unique_ptr<Op>(new MaskOutsideInterval(a, b)));
+    } else if (OPTION("-percentile-threshold") || OPTION("-pct-threshold")) {
+      PARSE_ARGUMENT(p);
+      Statistic *a = new Percentile(p);
+      a->Hidden(verbose < 1);
+      ops.push_back(unique_ptr<Op>(a));
+      Op *op = new MaskOutsideInterval(&a->Value(), inf);
+      ops.push_back(unique_ptr<Op>(op));
+    } else if (OPTION("-threshold-percentiles") || OPTION("-threshold-pcts")) {
+      PARSE_ARGUMENT(p);
+      Statistic *a = new Percentile(p);
+      a->Hidden(verbose < 1);
+      ops.push_back(unique_ptr<Op>(a));
+      PARSE_ARGUMENT(p);
+      Statistic *b = new Percentile(p);
+      b->Hidden(verbose < 1);
+      ops.push_back(unique_ptr<Op>(b));
+      Op *op = new MaskOutsideInterval(&a->Value(), &b->Value());
+      ops.push_back(unique_ptr<Op>(op));
     } else if (OPTION("-threshold-inside") || OPTION("-mask-inside")) {
       PARSE_ARGUMENT(a);
       PARSE_ARGUMENT(b);
       ops.push_back(unique_ptr<Op>(new MaskInsideInterval(a, b)));
+    } else if (OPTION("-threshold-inside-percentiles") || OPTION("-threshold-inside-pcts") ||
+               OPTION("-mask-inside-percentiles")      || OPTION("-mask-inside-pcts")) {
+      PARSE_ARGUMENT(p);
+      Statistic *a = new Percentile(p);
+      a->Hidden(verbose < 1);
+      ops.push_back(unique_ptr<Op>(a));
+      PARSE_ARGUMENT(p);
+      Statistic *b = new Percentile(p);
+      b->Hidden(verbose < 1);
+      ops.push_back(unique_ptr<Op>(b));
+      Op *op = new MaskInsideInterval(&a->Value(), &b->Value());
+      ops.push_back(unique_ptr<Op>(op));
     } else if (OPTION("-threshold-lt") || OPTION("-lower-threshold") || OPTION("-mask-lt")) {
       PARSE_ARGUMENT(a);
-      ops.push_back(unique_ptr<Op>(new MaskOutsideInterval(a, numeric_limits<double>::infinity())));
+      ops.push_back(unique_ptr<Op>(new MaskOutsideInterval(a, inf)));
+    } else if (OPTION("-threshold-lt-percentile")    || OPTION("-threshold-lt-pct") ||
+               OPTION("-lower-percentile-threshold") || OPTION("-lower-pct-threshold") ||
+               OPTION("-mask-lt-percentile")         || OPTION("-mask-lt-pct")) {
+      PARSE_ARGUMENT(p);
+      Statistic *a = new Percentile(p);
+      a->Hidden(verbose < 1);
+      ops.push_back(unique_ptr<Op>(a));
+      ops.push_back(unique_ptr<Op>(new MaskOutsideInterval(&a->Value(), inf)));
     } else if (OPTION("-threshold-le") || OPTION("-mask-below") || OPTION("-mask-le")) {
       PARSE_ARGUMENT(a);
-      ops.push_back(unique_ptr<Op>(new MaskOutsideOpenInterval(a, numeric_limits<double>::infinity())));
+      ops.push_back(unique_ptr<Op>(new MaskOutsideOpenInterval(a, inf)));
+    } else if (OPTION("-threshold-le-percentile") || OPTION("-threshold-le-pct") ||
+               OPTION("-mask-below-percentile")   || OPTION("-mask-below-pct") ||
+               OPTION("-mask-le-percentile")      || OPTION("-mask-le-pct")) {
+      PARSE_ARGUMENT(p);
+      Statistic *a = new Percentile(p);
+      a->Hidden(verbose < 1);
+      ops.push_back(unique_ptr<Op>(a));
+      ops.push_back(unique_ptr<Op>(new MaskOutsideOpenInterval(&a->Value(), inf)));
     } else if (OPTION("-threshold-ge") || OPTION("-mask-above") || OPTION("-mask-ge")) {
       PARSE_ARGUMENT(b);
-      ops.push_back(unique_ptr<Op>(new MaskOutsideOpenInterval(-numeric_limits<double>::infinity(), b)));
+      ops.push_back(unique_ptr<Op>(new MaskOutsideOpenInterval(-inf, b)));
+    } else if (OPTION("-threshold-ge-percentile") || OPTION("-threshold-ge-pct") ||
+               OPTION("-mask-above-percentile")   || OPTION("-mask-above-pct") ||
+               OPTION("-mask-ge-percentile")      || OPTION("-mask-ge-pct")) {
+      PARSE_ARGUMENT(p);
+      Statistic *b = new Percentile(p);
+      b->Hidden(verbose < 1);
+      ops.push_back(unique_ptr<Op>(b));
+      ops.push_back(unique_ptr<Op>(new MaskOutsideOpenInterval(-inf, &b->Value())));
     } else if (OPTION("-threshold-gt") || OPTION("-upper-threshold") || OPTION("-mask-gt")) {
       PARSE_ARGUMENT(b);
-      ops.push_back(unique_ptr<Op>(new MaskOutsideInterval(-numeric_limits<double>::infinity(), b)));
+      ops.push_back(unique_ptr<Op>(new MaskOutsideInterval(-inf, b)));
+    } else if (OPTION("-threshold-gt-percentile")    || OPTION("-threshold-gt-pct") ||
+               OPTION("-upper-percentile-threshold") || OPTION("-upper-pct-threshold") ||
+               OPTION("-mask-gt-percentile")         || OPTION("-mask-gt-pct")) {
+      PARSE_ARGUMENT(p);
+      Statistic *b = new Percentile(p);
+      b->Hidden(verbose < 1);
+      ops.push_back(unique_ptr<Op>(b));
+      ops.push_back(unique_ptr<Op>(new MaskOutsideInterval(-inf, &b->Value())));
     } else if (OPTION("-even")) {
       ops.push_back(unique_ptr<Op>(new MaskOddValues()));
     } else if (OPTION("-odd")) {
@@ -392,12 +500,36 @@ int main(int argc, char **argv)
       PARSE_ARGUMENT(a);
       PARSE_ARGUMENT(b);
       ops.push_back(unique_ptr<Op>(new Clamp(a, b)));
+    } else if (OPTION("-clamp-percentiles") || OPTION("-clamp-pcts")) {
+      PARSE_ARGUMENT(p);
+      Statistic *a = new Percentile(p);
+      a->Hidden(verbose < 1);
+      ops.push_back(unique_ptr<Op>(a));
+      PARSE_ARGUMENT(p);
+      Statistic *b = new Percentile(p);
+      b->Hidden(verbose < 1);
+      ops.push_back(unique_ptr<Op>(b));
+      ops.push_back(unique_ptr<Op>(new Clamp(&a->Value(), &b->Value())));
     } else if (OPTION("-clamp-lt") || OPTION("-clamp-below")) {
       PARSE_ARGUMENT(a);
       ops.push_back(unique_ptr<Op>(new LowerThreshold(a)));
+    } else if (OPTION("-clamp-lt-percentile")    || OPTION("-clamp-lt-pct") ||
+               OPTION("-clamp-below-percentile") || OPTION("-clamp-below-pct")) {
+      PARSE_ARGUMENT(p);
+      Statistic *a = new Percentile(p);
+      a->Hidden(verbose < 1);
+      ops.push_back(unique_ptr<Op>(a));
+      ops.push_back(unique_ptr<Op>(new LowerThreshold(&a->Value())));
     } else if (OPTION("-clamp-gt") || OPTION("-clamp-above")) {
       PARSE_ARGUMENT(b);
       ops.push_back(unique_ptr<Op>(new UpperThreshold(b)));
+    } else if (OPTION("-clamp-gt-percentile")    || OPTION("-clamp-gt-pct") ||
+               OPTION("-clamp-above-percentile") || OPTION("-clamp-above-pct")) {
+      PARSE_ARGUMENT(p);
+      Statistic *b = new Percentile(p);
+      b->Hidden(verbose < 1);
+      ops.push_back(unique_ptr<Op>(b));
+      ops.push_back(unique_ptr<Op>(new UpperThreshold(&b->Value())));
     } else if (OPTION("-rescale")) {
       double min, max;
       if (!FromString(ARGUMENT, min)) {
@@ -427,7 +559,7 @@ int main(int argc, char **argv)
     } else if (OPTION("-binarize")) {
       PARSE_ARGUMENT(a);
       if (HAS_ARGUMENT) PARSE_ARGUMENT(b);
-      else b = numeric_limits<double>::infinity();
+      else b = inf;
       ops.push_back(unique_ptr<Op>(new Binarize(a, b)));
     } else if (OPTION("-add") || OPTION("-plus") || OPTION("+")) {
       const char *arg = ARGUMENT;
@@ -643,7 +775,7 @@ int main(int argc, char **argv)
     }
     for (size_t i = 0; i < ops.size(); ++i) {
       Statistic *stat = dynamic_cast<Statistic *>(ops[i].get());
-      if (stat) {
+      if (stat != nullptr && !stat->Hidden()) {
         for (size_t j = 0; j < stat->Names().size(); ++j, ++c) {
           if (c > 0) out << delimiter;
           if (c < header.size()) out << header[c];
@@ -667,7 +799,7 @@ int main(int argc, char **argv)
     bool first = prefix.empty();
     for (size_t i = 0; i < ops.size(); ++i) {
       Statistic *stat = dynamic_cast<Statistic *>(ops[i].get());
-      if (stat) {
+      if (stat != nullptr && !stat->Hidden()) {
         if (!first) out << delimiter;
         else first = false;
         stat->PrintValues(out, digits, delimiter);
@@ -684,7 +816,9 @@ int main(int argc, char **argv)
     }
     for (size_t i = 0; i < ops.size(); ++i) {
       Statistic *stat = dynamic_cast<Statistic *>(ops[i].get());
-      if (stat) stat->Print(out, digits, prefix_string.c_str());
+      if (stat != nullptr && !stat->Hidden()) {
+        stat->Print(out, digits, prefix_string.c_str());
+      }
     }
   }
 
