@@ -92,10 +92,9 @@ typedef struct {                   /** 3x3 matrix struct (double) **/
 /*...........................................................................*/
 
 /*! \enum analyze_75_orient_code
- *  \brief Old-style analyze75 orientation
- *         codes.
+ *  \brief Old-style ANALYZE 7.5 orientation codes.
  */
-typedef enum _analyze75_orient_code {
+enum analyze_75_orient_code {
   a75_transverse_unflipped = 0,
   a75_coronal_unflipped = 1,
   a75_sagittal_unflipped = 2,
@@ -103,7 +102,7 @@ typedef enum _analyze75_orient_code {
   a75_coronal_flipped = 4,
   a75_sagittal_flipped = 5,
   a75_orient_unknown = 6
-} analyze_75_orient_code;
+};
 
 /*! \struct nifti_image
     \brief High level data structure for open nifti datasets in the
