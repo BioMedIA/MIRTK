@@ -78,15 +78,25 @@ void PrintHelp(const char *name)
   cout << "      Exclude values which are not an even number when cast to an integer.\n";
   cout << "  -odd\n";
   cout << "      Exclude values which are not an odd number when cast to an integer.\n";
-  cout << "  -label <value>...\n";
-  cout << "      Include data points with a value equal either one of the given values.\n";
-  cout << "      Closed intervals of values can be specified as \"<lower>..<upper>\"\n";
-  cout << "      to not having to list all the values in the interval. For example:\n";
-  cout << "      -label 1 3 5..6 10 20..50\n";
+  cout << "  -label <value|lower..upper>...\n";
+  cout << "      Include data points with a value equal to either one of the given values.\n";
+  cout << "      Closed intervals of values can be specified as \"lower..upper\".\n";
+  cout << "      For example, -label 1 3 5..6 10 20..50. This option is a shorthand for\n";
+  cout << "        :option:`-mask-all` :option:`-threshold-inside` <lower> <upper> :option:`-invert-mask`\n";
+  cout << "      where one :option:`-threshold-inside` operation is performed for each argument.\n";
+  cout << "  -threshold <lower> [<upper>]\n";
+  cout << "      This masking operation is equivalent to :option:`-threshold-outside`.\n";
+  cout << "      When no upper threshold is specified, it defaults to +inf. Therefore,\n";
+  cout << "      \"-threshold 0\" will exclude all negative values.\n";
   cout << "  -threshold-inside, -mask-inside <lower> <upper>\n";
   cout << "      Exclude values which are inside a given closed interval.\n";
+  cout << "      When the lower threshold is greater than the upper threshold,\n";
+  cout << "      values less than or equal to the upper threshold and values greater\n";
+  cout << "      than or equal to the lower threshold are excluded.\n";
   cout << "  -threshold-outside, -mask-outside <lower> <upper>\n";
   cout << "      Exclude values which are outside a given open interval.\n";
+  cout << "      When the lower threshold is greater than the upper threshold,\n";
+  cout << "      values inside the closed interval <upper>..<lower> are excluded.\n";
   cout << "  -threshold-lt, -lower-threshold, -mask-lt <value>\n";
   cout << "      Exclude values less than a given threshold.\n";
   cout << "  -threshold-le, -mask-le, -mask-below <value>\n";
@@ -98,8 +108,10 @@ void PrintHelp(const char *name)
   cout << "  -mask <float|file>\n";
   cout << "      Exclude values equal a given threshold or with zero input mask value.\n";
   cout << "      Note that this does not modify the data values, but only marks them to be\n";
-  cout << "      ignored from now on. Use :option:`-outside` or -pad following this operation\n";
-  cout << "      to replace these values by an outside value.\n";
+  cout << "      ignored from now on. Use :option:`-pad` following this operation to\n";
+  cout << "      replace these values by a background value.\n";
+  cout << "  -mask-all\n";
+  cout << "      Exclude all values.\n";
   cout << "  -reset-mask\n";
   cout << "      Reset mask to include all values again.\n";
   cout << "  -invert-mask\n";
@@ -107,10 +119,17 @@ void PrintHelp(const char *name)
   cout << "      exclude all values that were included before.\n";
   cout << "\n";
   cout << "Data manipulation options:\n";
-  cout << "  -inside <float>\n";
+  cout << "  -set, -inside <value>\n";
   cout << "      Set new value for all currently included data values.\n";
-  cout << "  -outside, -pad <float>\n";
+  cout << "  -pad, -outside <value>\n";
   cout << "      Set new value for all currently excluded data values.\n";
+  cout << "  -binarize <lower> [<upper>]\n";
+  cout << "      Set values inside the closed interval <lower>..<upper> to one,\n";
+  cout << "      and all other values to zero. The default upper threshold is +inf.\n";
+  cout << "      When the lower threshold is greater than the upper threshold,\n";
+  cout << "      values inside the closed interval <upper>..<lower> are set to zero\n";
+  cout << "      and all other values to one instead. This operation is short for:\n";
+  cout << "      :option:`-threshold-inside` <lower> <upper> :option:`-set` 1 :option:`-pad` 0\n";
   cout << "  -clamp <lower> <upper>\n";
   cout << "      Clamp values which are less a lower or greater an upper threshold.\n";
   cout << "  -clamp-below, -clamp-lt <value>\n";
@@ -119,18 +138,18 @@ void PrintHelp(const char *name)
   cout << "      Clamp values greater than a given threshold.\n";
   cout << "  -rescale <min> <max>\n";
   cout << "      Linearly rescale values to the interval [min, max].\n";
-  cout << "  -add, -plus, + <float|file>\n";
+  cout << "  -add, -plus, + <value|file>\n";
   cout << "      Add constant value or data sequence read from specified file.\n";
-  cout << "  -sub, -subtract, -minus, - <float|file>\n";
+  cout << "  -sub, -subtract, -minus, - <value|file>\n";
   cout << "      Subtract constant value or data sequence read from specified file.\n";
-  cout << "  -mul, -multiply-with, -times, * <float|file>\n";
+  cout << "  -mul, -multiply-with, -times, * <value|file>\n";
   cout << "      Multiply by constant value or data sequence read from specified file.\n";
-  cout << "  -div, -divide-by, -over, / <float|file>\n";
+  cout << "  -div, -divide-by, -over, / <value|file>\n";
   cout << "      Divide by constant value or data sequence read from specified file.\n";
   cout << "      When dividing by zero values in the input file, the result is NaN.\n";
-  cout << "      Use :option:`-mask` with argument NaN and :option:`-outside` to replace\n";
+  cout << "      Use :option:`-mask` with argument NaN and :option:`-pad` to replace\n";
   cout << "      these undefined values by a constant such as zero.\n";
-  cout << "  -div-with-zero <file>\n";
+  cout << "  -div-with-zero <value|file>\n";
   cout << "      Same as :option:`-div` but set result to zero instead of NaN in case of\n";
   cout << "      a division by zero due to a zero value in the specified file.\n";
   cout << "  -abs\n";
@@ -326,8 +345,10 @@ int main(int argc, char **argv)
         ops.push_back(unique_ptr<Op>(new MaskInsideInterval(a, b)));
       } while (HAS_ARGUMENT);
       ops.push_back(unique_ptr<Op>(new InvertMask()));
-    } else if (OPTION("-reset-mask")) {
+    } else if (OPTION("-mask-all")) {
       ops.push_back(unique_ptr<Op>(new ResetMask(false)));
+    } else if (OPTION("-reset-mask")) {
+      ops.push_back(unique_ptr<Op>(new ResetMask(true)));
     } else if (OPTION("-invert-mask")) {
       ops.push_back(unique_ptr<Op>(new InvertMask()));
     } else if (OPTION("-mask")) {
@@ -341,7 +362,12 @@ int main(int argc, char **argv)
       PARSE_ARGUMENT(a);
       PARSE_ARGUMENT(b);
       ops.push_back(unique_ptr<Op>(new MaskOutsideOpenInterval(a, b)));
-    } else if (OPTION("-threshold-outside") || OPTION("-mask-outside")) {
+    } else if (OPTION("-threshold")) {
+      PARSE_ARGUMENT(a);
+      if (HAS_ARGUMENT) PARSE_ARGUMENT(b);
+      else b = numeric_limits<double>::infinity();
+      ops.push_back(unique_ptr<Op>(new MaskOutsideInterval(a, b)));
+    } else if (OPTION("-threshold-inside") || OPTION("-mask-inside")) {
       PARSE_ARGUMENT(a);
       PARSE_ARGUMENT(b);
       ops.push_back(unique_ptr<Op>(new MaskInsideInterval(a, b)));
@@ -383,14 +409,14 @@ int main(int argc, char **argv)
         exit(1);
       }
       ops.push_back(unique_ptr<Op>(new Rescale(min, max)));
-    } else if (OPTION("-inside")) {
+    } else if (OPTION("-set") || OPTION("-inside")) {
       double inside_value;
       if (!FromString(ARGUMENT, inside_value)) {
         cerr << "Invalid -inside value, must be a number!" << endl;
         exit(1);
       }
       ops.push_back(unique_ptr<Op>(new SetInsideValue(inside_value)));
-    } else if (OPTION("-outside") || OPTION("-pad")) {
+    } else if (OPTION("-pad") || OPTION("-outside")) {
       double outside_value;
       if (!FromString(ARGUMENT, outside_value)) {
         cerr << "Invalid -outside value, must be a number!" << endl;
@@ -398,6 +424,11 @@ int main(int argc, char **argv)
       }
       ops.push_back(unique_ptr<Op>(new SetOutsideValue(outside_value)));
     // Data transformations
+    } else if (OPTION("-binarize")) {
+      PARSE_ARGUMENT(a);
+      if (HAS_ARGUMENT) PARSE_ARGUMENT(b);
+      else b = numeric_limits<double>::infinity();
+      ops.push_back(unique_ptr<Op>(new Binarize(a, b)));
     } else if (OPTION("-add") || OPTION("-plus") || OPTION("+")) {
       const char *arg = ARGUMENT;
       double c;

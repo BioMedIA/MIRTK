@@ -34,17 +34,17 @@ class ResetMask : public Op
 {
 private:
 
-  bool _Inverse;
+  bool _Value;
 
 public:
 
-  ResetMask(bool inv = false) : _Inverse(inv) {}
+  ResetMask(bool value = true) : _Value(value) {}
 
   /// Process given data (not thread-safe!)
   virtual void Process(int n, double *, bool *mask = nullptr)
   {
     if (mask != nullptr) {
-      memset(mask, _Inverse ? 1 : 0, n * sizeof(bool));
+      memset(mask, _Value ? 1 : 0, n * sizeof(bool));
     }
   }
 };
@@ -601,14 +601,16 @@ public:
   MaskOutsideInterval(double l, double u)
   :
     _LowerThreshold(l), _UpperThreshold(u)
-  {
-    if (_UpperThreshold < _LowerThreshold) swap(_LowerThreshold, _UpperThreshold);
-  }
+  {}
 
   /// Transform data value and/or mask data value by setting *mask = false
   virtual double Op(double value, bool &mask) const
   {
-    if (value < _LowerThreshold || value > _UpperThreshold) mask = false;
+    if (_LowerThreshold > _UpperThreshold) {
+      if (_UpperThreshold < value && value < _LowerThreshold) mask = false;
+    } else {
+      if (value < _LowerThreshold || value > _UpperThreshold) mask = false;
+    }
     return value;
   }
 
@@ -636,14 +638,16 @@ public:
   MaskOutsideOpenInterval(double l, double u)
   :
     _LowerThreshold(l), _UpperThreshold(u)
-  {
-    if (_UpperThreshold < _LowerThreshold) swap(_LowerThreshold, _UpperThreshold);
-  }
+  {}
 
   /// Transform data value and/or mask data value by setting *mask = false
   virtual double Op(double value, bool &mask) const
   {
-    if (value <= _LowerThreshold || value >= _UpperThreshold) mask = false;
+    if (_LowerThreshold > _UpperThreshold) {
+      if (_UpperThreshold <= value && value <= _LowerThreshold) mask = false;
+    } else {
+      if (value <= _LowerThreshold || value >= _UpperThreshold) mask = false;
+    }
     return value;
   }
 
@@ -671,14 +675,16 @@ public:
   MaskInsideInterval(double l, double u)
   :
     _LowerThreshold(l), _UpperThreshold(u)
-  {
-    if (_UpperThreshold < _LowerThreshold) swap(_LowerThreshold, _UpperThreshold);
-  }
+  {}
 
   /// Transform data value and/or mask data value by setting *mask = false
   virtual double Op(double value, bool &mask) const
   {
-    if (_LowerThreshold <= value && value <= _UpperThreshold) mask = false;
+    if (_LowerThreshold > _UpperThreshold) {
+      if (value <= _UpperThreshold || value >= _LowerThreshold) mask = false;
+    } else {
+      if (_LowerThreshold <= value && value <= _UpperThreshold) mask = false;
+    }
     return value;
   }
 
@@ -706,14 +712,16 @@ public:
   MaskInsideOpenInterval(double l, double u)
   :
     _LowerThreshold(l), _UpperThreshold(u)
-  {
-    if (_UpperThreshold < _LowerThreshold) swap(_LowerThreshold, _UpperThreshold);
-  }
+  {}
 
   /// Transform data value and/or mask data value by setting *mask = false
   virtual double Op(double value, bool &mask) const
   {
-    if (_LowerThreshold < value && value < _UpperThreshold) mask = false;
+    if (_LowerThreshold > _UpperThreshold) {
+      if (value < _UpperThreshold || value > _LowerThreshold) mask = false;
+    } else {
+      if (_LowerThreshold < value && value < _UpperThreshold) mask = false;
+    }
     return value;
   }
 
@@ -780,7 +788,7 @@ public:
   LowerThreshold(double value) : _Threshold(value) {}
 
   /// Transform data value and/or mask data value by setting *mask = false
-  virtual double Op(double value, bool &mask) const
+  virtual double Op(double value, bool &) const
   {
     if (value <= _Threshold) value = _Threshold;
     return value;
@@ -807,7 +815,7 @@ public:
   UpperThreshold(double value) : _Threshold(value) {}
 
   /// Transform data value and/or mask data value by setting *mask = false
-  virtual double Op(double value, bool &mask) const
+  virtual double Op(double value, bool &) const
   {
     if (value >= _Threshold) value = _Threshold;
     return value;
@@ -837,11 +845,55 @@ public:
   Clamp(double l, double u) : _LowerThreshold(l), _UpperThreshold(u) {}
 
   /// Transform data value and/or mask data value by setting *mask = false
-  virtual double Op(double value, bool &mask) const
+  virtual double Op(double value, bool &) const
   {
     if      (value <= _LowerThreshold) value = _LowerThreshold;
     else if (value >= _UpperThreshold) value = _UpperThreshold;
     return value;
+  }
+
+  /// Process given data (not thread-safe!)
+  virtual void Process(int n, double *data, bool *mask = NULL)
+  {
+    ElementWiseUnaryOp::Process(n, data, mask);
+    parallel_for(blocked_range<int>(0, n), *this);
+  }
+};
+
+// -----------------------------------------------------------------------------
+/// Set values to either one or zero
+class Binarize : public ElementWiseUnaryOp
+{
+  /// Lower threshold value
+  mirtkPublicAttributeMacro(double, LowerThreshold);
+
+  /// Upper threshold value
+  mirtkPublicAttributeMacro(double, UpperThreshold);
+
+public:
+
+  /// Constructor
+  Binarize(double l, double u = numeric_limits<double>::infinity())
+  :
+    _LowerThreshold(l), _UpperThreshold(u)
+  {}
+
+  /// Transform data value and/or mask data value by setting *mask = false
+  virtual double Op(double value, bool &) const
+  {
+    if (_LowerThreshold > _UpperThreshold) {
+      if (_UpperThreshold <= value && value <= _LowerThreshold) {
+        return 0.0;
+      } else {
+        return 1.0;
+      }
+    } else {
+      if (_LowerThreshold <= value && value <= _UpperThreshold) {
+        return 1.0;
+      } else {
+        return 0.0;
+      }
+    }
   }
 
   /// Process given data (not thread-safe!)
