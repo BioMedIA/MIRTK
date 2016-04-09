@@ -81,10 +81,11 @@ basis_add_doc (
     mirtkCutilMath.h
     mirtkForEach*VoxelFunction.h
     dfsurface.h
-    nifti1*.* znzlib.*
-    lbfgs.h lbfgs.c */LBFGS/src/arithmetic_*.*
+    nifti1.h nifti2*.* znzlib.*
+    gifti_io.* gifti_xml.*
     */Eigen/*
     */Boost/*
+    */LBFGS/*
 )
  
 # ============================================================================
