@@ -29,6 +29,44 @@ namespace mirtk { namespace data { namespace op {
 
 
 // -----------------------------------------------------------------------------
+/// Reset data mask
+class ResetMask : public Op
+{
+private:
+
+  bool _Value;
+
+public:
+
+  ResetMask(bool value = true) : _Value(value) {}
+
+  /// Process given data (not thread-safe!)
+  virtual void Process(int n, double *, bool *mask = nullptr)
+  {
+    if (mask != nullptr) {
+      memset(mask, _Value ? 1 : 0, n * sizeof(bool));
+    }
+  }
+};
+
+// -----------------------------------------------------------------------------
+/// Invert mask values
+class InvertMask : public Op
+{
+public:
+
+  /// Process given data (not thread-safe!)
+  virtual void Process(int n, double *, bool *mask = nullptr)
+  {
+    if (mask != nullptr) {
+      for (int i = 0; i < n; ++i) {
+        mask[i] = !mask[i];
+      }
+    }
+  }
+};
+
+// -----------------------------------------------------------------------------
 /// Set value of unmasked data points
 class SetInsideValue : public Op
 {
@@ -554,29 +592,71 @@ class MaskOutsideInterval : public ElementWiseUnaryOp
   /// Lower threshold value
   mirtkPublicAttributeMacro(double, LowerThreshold);
 
+  /// Address of lower threshold value storage
+  ///
+  /// This pointer can be set to the memory location of a double value that
+  /// will be set by a preceeding data statistic operation such as
+  /// data::statistic::Percentile. The result of this statistic calculation
+  /// thus becomes the input parameter of this data masking operation.
+  mirtkPublicAggregateMacro(const double, LowerThresholdPointer);
+
   /// Upper threshold value
   mirtkPublicAttributeMacro(double, UpperThreshold);
+
+  /// Address of upper threshold value storage
+  ///
+  /// This pointer can be set to the memory location of a double value that
+  /// will be set by a preceeding data statistic operation such as
+  /// data::statistic::Percentile. The result of this statistic calculation
+  /// thus becomes the input parameter of this data masking operation.
+  mirtkPublicAggregateMacro(const double, UpperThresholdPointer);
 
 public:
 
   /// Constructor
   MaskOutsideInterval(double l, double u)
   :
-    _LowerThreshold(l), _UpperThreshold(u)
-  {
-    if (_UpperThreshold < _LowerThreshold) swap(_LowerThreshold, _UpperThreshold);
-  }
+    _LowerThreshold(l), _LowerThresholdPointer(nullptr),
+    _UpperThreshold(u), _UpperThresholdPointer(nullptr)
+  {}
+
+  /// Constructor
+  MaskOutsideInterval(const double *l, const double *u)
+  :
+    _LowerThreshold(.0), _LowerThresholdPointer(l),
+    _UpperThreshold(.0), _UpperThresholdPointer(u)
+  {}
+
+  /// Constructor
+  MaskOutsideInterval(double l, const double *u)
+  :
+    _LowerThreshold(l ), _LowerThresholdPointer(nullptr),
+    _UpperThreshold(.0), _UpperThresholdPointer(u)
+  {}
+
+  /// Constructor
+  MaskOutsideInterval(const double *l, double u)
+  :
+    _LowerThreshold(.0), _LowerThresholdPointer(l),
+    _UpperThreshold(u ), _UpperThresholdPointer(nullptr)
+  {}
 
   /// Transform data value and/or mask data value by setting *mask = false
   virtual double Op(double value, bool &mask) const
   {
-    if (value < _LowerThreshold || value > _UpperThreshold) mask = false;
+    if (_LowerThreshold > _UpperThreshold) {
+      if (_UpperThreshold < value && value < _LowerThreshold) mask = false;
+    } else {
+      if (value < _LowerThreshold || value > _UpperThreshold) mask = false;
+    }
     return value;
   }
 
   /// Process given data (not thread-safe!)
   virtual void Process(int n, double *data, bool *mask = NULL)
   {
+    if (_LowerThresholdPointer) _LowerThreshold = *_LowerThresholdPointer;
+    if (_UpperThresholdPointer) _UpperThreshold = *_UpperThresholdPointer;
     ElementWiseUnaryOp::Process(n, data, mask);
     parallel_for(blocked_range<int>(0, n), *this);
   }
@@ -589,29 +669,71 @@ class MaskOutsideOpenInterval : public ElementWiseUnaryOp
   /// Lower threshold value
   mirtkPublicAttributeMacro(double, LowerThreshold);
 
+  /// Address of lower threshold value storage
+  ///
+  /// This pointer can be set to the memory location of a double value that
+  /// will be set by a preceeding data statistic operation such as
+  /// data::statistic::Percentile. The result of this statistic calculation
+  /// thus becomes the input parameter of this data masking operation.
+  mirtkPublicAggregateMacro(const double, LowerThresholdPointer);
+
   /// Upper threshold value
   mirtkPublicAttributeMacro(double, UpperThreshold);
+
+  /// Address of upper threshold value storage
+  ///
+  /// This pointer can be set to the memory location of a double value that
+  /// will be set by a preceeding data statistic operation such as
+  /// data::statistic::Percentile. The result of this statistic calculation
+  /// thus becomes the input parameter of this data masking operation.
+  mirtkPublicAggregateMacro(const double, UpperThresholdPointer);
 
 public:
 
   /// Constructor
   MaskOutsideOpenInterval(double l, double u)
   :
-    _LowerThreshold(l), _UpperThreshold(u)
-  {
-    if (_UpperThreshold < _LowerThreshold) swap(_LowerThreshold, _UpperThreshold);
-  }
+    _LowerThreshold(l), _LowerThresholdPointer(nullptr),
+    _UpperThreshold(u), _UpperThresholdPointer(nullptr)
+  {}
+
+  /// Constructor
+  MaskOutsideOpenInterval(const double *l, const double *u)
+  :
+    _LowerThreshold(.0), _LowerThresholdPointer(l),
+    _UpperThreshold(.0), _UpperThresholdPointer(u)
+  {}
+
+  /// Constructor
+  MaskOutsideOpenInterval(double l, const double *u)
+  :
+    _LowerThreshold(l ), _LowerThresholdPointer(nullptr),
+    _UpperThreshold(.0), _UpperThresholdPointer(u)
+  {}
+
+  /// Constructor
+  MaskOutsideOpenInterval(const double *l, double u)
+  :
+    _LowerThreshold(.0), _LowerThresholdPointer(l),
+    _UpperThreshold(u ), _UpperThresholdPointer(nullptr)
+  {}
 
   /// Transform data value and/or mask data value by setting *mask = false
   virtual double Op(double value, bool &mask) const
   {
-    if (value <= _LowerThreshold || value >= _UpperThreshold) mask = false;
+    if (_LowerThreshold > _UpperThreshold) {
+      if (_UpperThreshold <= value && value <= _LowerThreshold) mask = false;
+    } else {
+      if (value <= _LowerThreshold || value >= _UpperThreshold) mask = false;
+    }
     return value;
   }
 
   /// Process given data (not thread-safe!)
   virtual void Process(int n, double *data, bool *mask = NULL)
   {
+    if (_LowerThresholdPointer) _LowerThreshold = *_LowerThresholdPointer;
+    if (_UpperThresholdPointer) _UpperThreshold = *_UpperThresholdPointer;
     ElementWiseUnaryOp::Process(n, data, mask);
     parallel_for(blocked_range<int>(0, n), *this);
   }
@@ -624,29 +746,71 @@ class MaskInsideInterval : public ElementWiseUnaryOp
   /// Lower threshold value
   mirtkPublicAttributeMacro(double, LowerThreshold);
 
+  /// Address of lower threshold value storage
+  ///
+  /// This pointer can be set to the memory location of a double value that
+  /// will be set by a preceeding data statistic operation such as
+  /// data::statistic::Percentile. The result of this statistic calculation
+  /// thus becomes the input parameter of this data masking operation.
+  mirtkPublicAggregateMacro(const double, LowerThresholdPointer);
+
   /// Upper threshold value
   mirtkPublicAttributeMacro(double, UpperThreshold);
+
+  /// Address of upper threshold value storage
+  ///
+  /// This pointer can be set to the memory location of a double value that
+  /// will be set by a preceeding data statistic operation such as
+  /// data::statistic::Percentile. The result of this statistic calculation
+  /// thus becomes the input parameter of this data masking operation.
+  mirtkPublicAggregateMacro(const double, UpperThresholdPointer);
 
 public:
 
   /// Constructor
   MaskInsideInterval(double l, double u)
   :
-    _LowerThreshold(l), _UpperThreshold(u)
-  {
-    if (_UpperThreshold < _LowerThreshold) swap(_LowerThreshold, _UpperThreshold);
-  }
+    _LowerThreshold(l), _LowerThresholdPointer(nullptr),
+    _UpperThreshold(u), _UpperThresholdPointer(nullptr)
+  {}
+
+  /// Constructor
+  MaskInsideInterval(const double *l, const double *u)
+  :
+    _LowerThreshold(.0), _LowerThresholdPointer(l),
+    _UpperThreshold(.0), _UpperThresholdPointer(u)
+  {}
+
+  /// Constructor
+  MaskInsideInterval(double l, const double *u)
+  :
+    _LowerThreshold(l ), _LowerThresholdPointer(nullptr),
+    _UpperThreshold(.0), _UpperThresholdPointer(u)
+  {}
+
+  /// Constructor
+  MaskInsideInterval(const double *l, double u)
+  :
+    _LowerThreshold(.0), _LowerThresholdPointer(l),
+    _UpperThreshold(u ), _UpperThresholdPointer(nullptr)
+  {}
 
   /// Transform data value and/or mask data value by setting *mask = false
   virtual double Op(double value, bool &mask) const
   {
-    if (_LowerThreshold <= value && value <= _UpperThreshold) mask = false;
+    if (_LowerThreshold > _UpperThreshold) {
+      if (value <= _UpperThreshold || value >= _LowerThreshold) mask = false;
+    } else {
+      if (_LowerThreshold <= value && value <= _UpperThreshold) mask = false;
+    }
     return value;
   }
 
   /// Process given data (not thread-safe!)
   virtual void Process(int n, double *data, bool *mask = NULL)
   {
+    if (_LowerThresholdPointer) _LowerThreshold = *_LowerThresholdPointer;
+    if (_UpperThresholdPointer) _UpperThreshold = *_UpperThresholdPointer;
     ElementWiseUnaryOp::Process(n, data, mask);
     parallel_for(blocked_range<int>(0, n), *this);
   }
@@ -659,29 +823,71 @@ class MaskInsideOpenInterval : public ElementWiseUnaryOp
   /// Lower threshold value
   mirtkPublicAttributeMacro(double, LowerThreshold);
 
+  /// Address of lower threshold value storage
+  ///
+  /// This pointer can be set to the memory location of a double value that
+  /// will be set by a preceeding data statistic operation such as
+  /// data::statistic::Percentile. The result of this statistic calculation
+  /// thus becomes the input parameter of this data masking operation.
+  mirtkPublicAggregateMacro(const double, LowerThresholdPointer);
+
   /// Upper threshold value
   mirtkPublicAttributeMacro(double, UpperThreshold);
+
+  /// Address of upper threshold value storage
+  ///
+  /// This pointer can be set to the memory location of a double value that
+  /// will be set by a preceeding data statistic operation such as
+  /// data::statistic::Percentile. The result of this statistic calculation
+  /// thus becomes the input parameter of this data masking operation.
+  mirtkPublicAggregateMacro(const double, UpperThresholdPointer);
 
 public:
 
   /// Constructor
   MaskInsideOpenInterval(double l, double u)
   :
-    _LowerThreshold(l), _UpperThreshold(u)
-  {
-    if (_UpperThreshold < _LowerThreshold) swap(_LowerThreshold, _UpperThreshold);
-  }
+    _LowerThreshold(l), _LowerThresholdPointer(nullptr),
+    _UpperThreshold(u), _UpperThresholdPointer(nullptr)
+  {}
+
+  /// Constructor
+  MaskInsideOpenInterval(const double *l, const double *u)
+  :
+    _LowerThreshold(.0), _LowerThresholdPointer(l),
+    _UpperThreshold(.0), _UpperThresholdPointer(u)
+  {}
+
+  /// Constructor
+  MaskInsideOpenInterval(double l, const double *u)
+  :
+    _LowerThreshold(l ), _LowerThresholdPointer(nullptr),
+    _UpperThreshold(.0), _UpperThresholdPointer(u)
+  {}
+
+  /// Constructor
+  MaskInsideOpenInterval(const double *l, double u)
+  :
+    _LowerThreshold(.0), _LowerThresholdPointer(l),
+    _UpperThreshold(u ), _UpperThresholdPointer(nullptr)
+  {}
 
   /// Transform data value and/or mask data value by setting *mask = false
   virtual double Op(double value, bool &mask) const
   {
-    if (_LowerThreshold < value && value < _UpperThreshold) mask = false;
+    if (_LowerThreshold > _UpperThreshold) {
+      if (value < _UpperThreshold || value > _LowerThreshold) mask = false;
+    } else {
+      if (_LowerThreshold < value && value < _UpperThreshold) mask = false;
+    }
     return value;
   }
 
   /// Process given data (not thread-safe!)
   virtual void Process(int n, double *data, bool *mask = NULL)
   {
+    if (_LowerThresholdPointer) _LowerThreshold = *_LowerThresholdPointer;
+    if (_UpperThresholdPointer) _UpperThreshold = *_UpperThresholdPointer;
     ElementWiseUnaryOp::Process(n, data, mask);
     parallel_for(blocked_range<int>(0, n), *this);
   }
@@ -736,13 +942,30 @@ class LowerThreshold : public ElementWiseUnaryOp
   /// Lower threshold value
   mirtkPublicAttributeMacro(double, Threshold);
 
+  /// Address of lower threshold value storage
+  ///
+  /// This pointer can be set to the memory location of a double value that
+  /// will be set by a preceeding data statistic operation such as
+  /// data::statistic::Percentile. The result of this statistic calculation
+  /// thus becomes the input parameter of this data masking operation.
+  mirtkPublicAggregateMacro(const double, ThresholdPointer);
+
 public:
 
   /// Constructor
-  LowerThreshold(double value) : _Threshold(value) {}
+  LowerThreshold(double value)
+  :
+    _Threshold(value), _ThresholdPointer(nullptr)
+  {}
+
+  /// Constructor
+  LowerThreshold(const double *value)
+  :
+    _Threshold(.0), _ThresholdPointer(value)
+  {}
 
   /// Transform data value and/or mask data value by setting *mask = false
-  virtual double Op(double value, bool &mask) const
+  virtual double Op(double value, bool &) const
   {
     if (value <= _Threshold) value = _Threshold;
     return value;
@@ -751,6 +974,7 @@ public:
   /// Process given data (not thread-safe!)
   virtual void Process(int n, double *data, bool *mask = NULL)
   {
+    if (_ThresholdPointer) _Threshold = *_ThresholdPointer;
     ElementWiseUnaryOp::Process(n, data, mask);
     parallel_for(blocked_range<int>(0, n), *this);
   }
@@ -763,13 +987,30 @@ class UpperThreshold : public ElementWiseUnaryOp
   /// Upper threshold value
   mirtkPublicAttributeMacro(double, Threshold);
 
+  /// Address of upper threshold value storage
+  ///
+  /// This pointer can be set to the memory location of a double value that
+  /// will be set by a preceeding data statistic operation such as
+  /// data::statistic::Percentile. The result of this statistic calculation
+  /// thus becomes the input parameter of this data masking operation.
+  mirtkPublicAggregateMacro(const double, ThresholdPointer);
+
 public:
 
   /// Constructor
-  UpperThreshold(double value) : _Threshold(value) {}
+  UpperThreshold(double value)
+  :
+    _Threshold(value), _ThresholdPointer(nullptr)
+  {}
+
+  /// Constructor
+  UpperThreshold(const double *value)
+  :
+    _Threshold(.0), _ThresholdPointer(value)
+  {}
 
   /// Transform data value and/or mask data value by setting *mask = false
-  virtual double Op(double value, bool &mask) const
+  virtual double Op(double value, bool &) const
   {
     if (value >= _Threshold) value = _Threshold;
     return value;
@@ -778,6 +1019,7 @@ public:
   /// Process given data (not thread-safe!)
   virtual void Process(int n, double *data, bool *mask = NULL)
   {
+    if (_ThresholdPointer) _Threshold = *_ThresholdPointer;
     ElementWiseUnaryOp::Process(n, data, mask);
     parallel_for(blocked_range<int>(0, n), *this);
   }
@@ -790,20 +1032,107 @@ class Clamp : public ElementWiseUnaryOp
   /// Lower threshold value
   mirtkPublicAttributeMacro(double, LowerThreshold);
 
+  /// Address of lower threshold value storage
+  ///
+  /// This pointer can be set to the memory location of a double value that
+  /// will be set by a preceeding data statistic operation such as
+  /// data::statistic::Percentile. The result of this statistic calculation
+  /// thus becomes the input parameter of this data masking operation.
+  mirtkPublicAggregateMacro(const double, LowerThresholdPointer);
+
+  /// Upper threshold value
+  mirtkPublicAttributeMacro(double, UpperThreshold);
+
+  /// Address of upper threshold value storage
+  ///
+  /// This pointer can be set to the memory location of a double value that
+  /// will be set by a preceeding data statistic operation such as
+  /// data::statistic::Percentile. The result of this statistic calculation
+  /// thus becomes the input parameter of this data masking operation.
+  mirtkPublicAggregateMacro(const double, UpperThresholdPointer);
+
+public:
+
+  /// Constructor
+  Clamp(double l, double u)
+  :
+    _LowerThreshold(l), _LowerThresholdPointer(nullptr),
+    _UpperThreshold(u), _UpperThresholdPointer(nullptr)
+  {}
+
+  /// Constructor
+  Clamp(const double *l, const double *u)
+  :
+    _LowerThreshold(.0), _LowerThresholdPointer(l),
+    _UpperThreshold(.0), _UpperThresholdPointer(u)
+  {}
+
+  /// Constructor
+  Clamp(double l, const double *u)
+  :
+    _LowerThreshold(l ), _LowerThresholdPointer(nullptr),
+    _UpperThreshold(.0), _UpperThresholdPointer(u)
+  {}
+
+  /// Constructor
+  Clamp(const double *l, double u)
+  :
+    _LowerThreshold(.0), _LowerThresholdPointer(l),
+    _UpperThreshold(u ), _UpperThresholdPointer(nullptr)
+  {}
+
+  /// Transform data value and/or mask data value by setting *mask = false
+  virtual double Op(double value, bool &) const
+  {
+    if      (value <= _LowerThreshold) value = _LowerThreshold;
+    else if (value >= _UpperThreshold) value = _UpperThreshold;
+    return value;
+  }
+
+  /// Process given data (not thread-safe!)
+  virtual void Process(int n, double *data, bool *mask = NULL)
+  {
+    if (_LowerThresholdPointer) _LowerThreshold = *_LowerThresholdPointer;
+    if (_UpperThresholdPointer) _UpperThreshold = *_UpperThresholdPointer;
+    ElementWiseUnaryOp::Process(n, data, mask);
+    parallel_for(blocked_range<int>(0, n), *this);
+  }
+};
+
+// -----------------------------------------------------------------------------
+/// Set values to either one or zero
+class Binarize : public ElementWiseUnaryOp
+{
+  /// Lower threshold value
+  mirtkPublicAttributeMacro(double, LowerThreshold);
+
   /// Upper threshold value
   mirtkPublicAttributeMacro(double, UpperThreshold);
 
 public:
 
   /// Constructor
-  Clamp(double l, double u) : _LowerThreshold(l), _UpperThreshold(u) {}
+  Binarize(double l, double u = numeric_limits<double>::infinity())
+  :
+    _LowerThreshold(l), _UpperThreshold(u)
+  {}
 
   /// Transform data value and/or mask data value by setting *mask = false
-  virtual double Op(double value, bool &mask) const
+  virtual double Op(double value, bool &) const
   {
-    if      (value <= _LowerThreshold) value = _LowerThreshold;
-    else if (value >= _UpperThreshold) value = _UpperThreshold;
-    return value;
+    if (_LowerThreshold > _UpperThreshold) {
+      if (_UpperThreshold <= value && value <= _LowerThreshold) {
+        return 0.0;
+      } else {
+        return 1.0;
+      }
+    } else {
+      if (_LowerThreshold <= value && value <= _UpperThreshold) {
+        return 1.0;
+      } else {
+        return 0.0;
+      }
+    }
   }
 
   /// Process given data (not thread-safe!)

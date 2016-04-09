@@ -45,129 +45,254 @@ using namespace mirtk::data::statistic;
 // -----------------------------------------------------------------------------
 void PrintHelp(const char *name)
 {
-  cout << endl;
-  cout << "Usage: " << name << " <input> [options]" << endl;
-  cout << endl;
-  cout << "Description:" << endl;
-  cout << "  This tool can be used for basic calculations from a sequence of data values read" << endl;
-  cout << "  either from an image or a VTK pointset. It can be used, for example, to add two" << endl;
-  cout << "  data sequences and to divide the result by a constant. The current sequence can" << endl;
-  cout << "  be written to an output file again using the -out option. Additionally, statistics" << endl;
-  cout << "  of the current data sequence can be computed such as the mean or variance." << endl;
-  cout << "  The order of the data transformations and calculation of statistics is determined" << endl;
-  cout << "  by the order of the command-line arguments."  << endl;
-  cout << endl;
-  cout << "  By default, data statistics are printed to STDOUT in a human readable format." << endl;
-  cout << "  This output can be appended to a text file using the -append option instead." << endl;
-  cout << "  For a more machine readable output, e.g., as comma separated values (CSV)," << endl;
-  cout << "  specify a delimiting string using the -d option. In this case, a header line" << endl;
-  cout << "  is also printed when the -header option is given with optional user specified" << endl;
-  cout << "  column names for the individual output values." << endl;
-  cout << endl;
-  cout << "Input options:" << endl;
-  cout << "  -scalars <name>   Name of input point data array. (default: active SCALARS array)" << endl;
-  cout << endl;
-  cout << "Data manipulation options:" << endl;
-  cout << "  -mask <float|file>                Exclude values equal a given threshold or with zero input mask value." << endl;
-  cout << "                                    Note that this does not modify the data values, but only marks them to be" << endl;
-  cout << "                                    ignored from now on. Use -outside/-pad following this operation to set an outside value." << endl;
-  cout << "  -mask-inside  <lower> <upper>     Exclude values which are inside a given closed interval." << endl;
-  cout << "  -mask-outside <lower> <upper>     Exclude values which are outside a given open interval." << endl;
-  cout << "  -mask-below <value>               Exclude values less or equal a given threshold." << endl;
-  cout << "  -mask-above <value>               Exclude values greator or equal a given threshold." << endl;
-  cout << "  -even                             Exclude values which are not an even number when cast to an integer." << endl;
-  cout << "  -odd                              Exclude values which are not an odd number when cast to an integer." << endl;
-  cout << "  -threshold <lower> [<upper>]      Clamp values which are less or equal and optionally greater or equal a threshold." << endl;
-  cout << "  -threshold-below <value>          Clamp values less or equal a given threshold." << endl;
-  cout << "  -threshold-above <value>          Clamp values greator or equal a given threshold." << endl;
-  cout << "  -rescale <min> <max>              Linearly rescale values to the interval [min, max]." << endl;
-  cout << "  -inside <float>                   Set new value for all currently unmasked data values." << endl;
-  cout << "  -outside, -pad <float>            Set new value for all currently masked data values." << endl;
-  cout << "  -out <file> [<type>]              Write current data sequence to file in the format of the input file." << endl;
-  cout << "                                    Output data type can be: uchar, short, ushort, int, uint, float, double." << endl;
-  cout << "  -add <float|file>                 Add constant value or data sequence read from specified file." << endl;
-  cout << "  -sub <float|file>                 Subtract constant value or data sequence read from specified file." << endl;
-  cout << "  -mul <float|file>                 Multiply by constant value or data sequence read from specified file." << endl;
-  cout << "  -div <float|file>                 Divide by constant value or data sequence read from specified file." << endl;
-  cout << "                                    When dividing by zero values in the input file, the result is NaN." << endl;
-  cout << "                                    Use :option:`-mask` with argument NaN and :option:`-outside` to replace" << endl;
-  cout << "                                    these undefined values by a constant such as zero." << endl;
-  cout << "  -div-with-zero <file>             Same as :option:`-div` but set result to zero instead of NaN in case of" << endl;
-  cout << "                                    a division by zero due to a zero value in the specified file." << endl;
-  cout << "  -abs                              Take absolute values." << endl;
-  cout << "  -pow <exponent>                   Raise values to the power of the given exponent." << endl;
-  cout << "  -sq -square                       Raise values to the power of 2 (i.e, -pow 2)." << endl;
-  cout << "  -sqrt                             Calculate square root of each value (i.e, -pow .5)." << endl;
-  cout << "  -exp                              Calculate exponential of data sequence." << endl;
-  cout << "  -log [<threshold>] [<base>]       Compute logarithm after applying an optional threshold." << endl;
-  cout << "                                    (default threshold: min double, default base: e)" << endl;
-  cout << "  -lb [<threshold>]                 Compute binary logarithm, alias for -log <threshold> 2." << endl;
-  cout << "  -log2 [<threshold>]               Compute binary logarithm, alias for -log <threshold> 2." << endl;
-  cout << "  -ln [<threshold>]                 Compute natural logarithm, alias for -log [<threshold>]." << endl;
-  cout << "  -lg [<threshold>]                 Compute logarithm to base 10, alias for -log <threshold> 10." << endl;
-  cout << "  -log10 [<threshold>]              Compute logarithm to base 10, alias for -log <threshold> 10." << endl;
-  cout << endl;
-  cout << "Data statistics options:" << endl;
-  cout << "  -append <file>                    Append output to a file. (default: STDOUT)" << endl;
-  cout << "  -delimiter | -delim | -d | -sep   Delimiting character(s). (default: '')" << endl;
-  cout << "  -header [<name>...]               Request output of header line if delimiter was" << endl;
-  cout << "                                    specified as well. If the output is appended to" << endl;
-  cout << "                                    a text file, the header is only printed if it does not exist." << endl;
-  cout << "                                    If no or fewer custom column names are given, the default" << endl;
-  cout << "                                    names for each statistic are printed. (default: none)" << endl;
-  cout << "  -prefix <str>...                  One or more prefix strings to print. If no delimiter" << endl;
-  cout << "                                    is specified, the concatenated strings are printed before" << endl;
-  cout << "                                    each line of the output. Otherwise, each prefix string" << endl;
-  cout << "                                    is printed as entry for the first columns in the delimited" << endl;
-  cout << "                                    output row, separated by the specified delimiter. (default: none)" << endl;
-  cout << "  -precision <int>                  Number of significant digits. (default: 5)" << endl;
-  cout << "  -mean | -avg                      Print mean intensity. (default: on)" << endl;
-  cout << "  -variance | -var                  Print variance of intensity values. (default: off)" << endl;
-  cout << "  -sigma | -std                     Print standard deviation of intensity values. (default: on)" << endl;
-  cout << "  -minimum | -min                   Print minimum intensity value. (default: off)" << endl;
-  cout << "  -maximum | -max                   Print maximum intensity value. (default: off)" << endl;
-  cout << "  -extrema | -minmax                Print minimum and maximum intensity value. (default: on)" << endl;
-  cout << "  -range                            Print range of intensity values (i.e., max - min). (default: off)" << endl;
-  cout << "  -percentile <n> | -pct <n>        Print n-th percentile. (default: none)" << endl;
+  cout << "\n";
+  cout << "Usage: " << name << " <input> [options]\n";
+  cout << "\n";
+  cout << "Description:\n";
+  cout << "  This tool can be used for basic calculations from a sequence of data values read\n";
+  cout << "  either from an image or a VTK pointset. It can be used, for example, to add two\n";
+  cout << "  data sequences and to divide the result by a constant. The current sequence can\n";
+  cout << "  be written to an output file again using :option:`-out`. Additionally, statistics\n";
+  cout << "  of the current data sequence can be computed such as the mean or variance.\n";
+  cout << "  The order of the data transformations and calculation of statistics is determined\n";
+  cout << "  by the order of the command-line arguments.\n";
+  cout << "\n";
+  cout << "  The data mask is used to include/exclude values from subsequent operations.\n";
+  cout << "  Initially, all NaN values in the input data sequence are excluded.\n";
+  cout << "  Further values can be excluded using one or more of the masking operations.\n";
+  cout << "  Using the mask, operations can be performed on only a subset of the data,\n";
+  cout << "  and the mask then reset using :option:`-reset-mask`.\n";
+  cout << "\n";
+  cout << "  By default, data statistics are printed to STDOUT in a human readable format.\n";
+  cout << "  This output can be appended to a text file using :option:`-append` instead.\n";
+  cout << "  For a more machine readable output, e.g., as comma separated values (CSV),\n";
+  cout << "  specify a delimiting string using :option:`-delimiter`. In this case, a header\n";
+  cout << "  line is also printed when :option:`-header` is given with optional user\n";
+  cout << "  specified column names for the individual output values.\n";
+  cout << "\n";
+  cout << "Input options:\n";
+  cout << "  -scalars <name>   Name of input point data array. (default: active SCALARS array)\n";
+  cout << "\n";
+  cout << "Data masking options:\n";
+  cout << "  -even\n";
+  cout << "      Exclude values which are not an even number when cast to an integer.\n";
+  cout << "  -odd\n";
+  cout << "      Exclude values which are not an odd number when cast to an integer.\n";
+  cout << "  -label <value|lower..upper>...\n";
+  cout << "      Include data points with a value equal to either one of the given values.\n";
+  cout << "      Closed intervals of values can be specified as \"lower..upper\".\n";
+  cout << "      For example, \"-label 1 3 5..6 10 20..50\". This option is a shorthand for\n";
+  cout << "        :option:`-mask-all` :option:`-threshold-inside` <lower> <upper> :option:`-invert-mask`\n";
+  cout << "      where one :option:`-threshold-inside` operation is performed for each argument.\n";
+  cout << "  -mask <float|file>\n";
+  cout << "      Exclude values equal a given threshold or with zero input mask value.\n";
+  cout << "      Note that this does not modify the data values, but only marks them to be\n";
+  cout << "      ignored from now on. Use :option:`-pad` following this operation to\n";
+  cout << "      replace these values by a background value.\n";
+  cout << "  -mask-all\n";
+  cout << "      Exclude all values.\n";
+  cout << "  -reset-mask\n";
+  cout << "      Reset mask to include all values again.\n";
+  cout << "  -invert-mask\n";
+  cout << "      Invert mask to include all values that where excluded before and\n";
+  cout << "      exclude all values that were included before.\n";
+  cout << "  -set, -inside <value>\n";
+  cout << "      Set new value for all currently included data values.\n";
+  cout << "  -pad, -outside <value>\n";
+  cout << "      Set new value for all currently excluded data values.\n";
+  cout << "\n";
+  cout << "Data thresholding options:\n";
+  cout << "  -threshold <lower> [<upper>]\n";
+  cout << "      This masking operation is equivalent to :option:`-threshold-outside`.\n";
+  cout << "      When no upper threshold is specified, it defaults to +inf. Therefore,\n";
+  cout << "      \"-threshold 0\" will exclude all negative values.\n";
+  cout << "  -percentile-threshold, -pct-threshold <lower>\n";
+  cout << "      This masking operation is equivalent to :option:`-threshold-outside-percentiles`.\n";
+  cout << "      with an upper threshold of +inf. Therefore, \"-threshold 0\" excludes all negative values.\n";
+  cout << "  -threshold-percentiles, -threshold-pcts <lower> <upper>\n";
+  cout << "      This masking operation is equivalent to :option:`-threshold-outside-percentiles`.\n";
+  cout << "  -threshold-inside, -mask-inside <lower> <upper>\n";
+  cout << "      Exclude values which are inside a given closed interval.\n";
+  cout << "      When the lower threshold is greater than the upper threshold,\n";
+  cout << "      values less than or equal to the upper threshold and values greater\n";
+  cout << "      than or equal to the lower threshold are excluded.\n";
+  cout << "  -threshold-inside-percentiles, -threshold-inside-pcts, -mask-inside-percentiles, -mask-inside-pct <lower> <upper>\n";
+  cout << "      Exclude values which are inside a given closed interval of percentiles.\n";
+  cout << "      When the lower percentile is greater than the upper percentile,\n";
+  cout << "      values less than or equal to the upper percentile and values greater\n";
+  cout << "      than or equal to the lower percentile are excluded.\n";
+  cout << "  -threshold-outside, -mask-outside <lower> <upper>\n";
+  cout << "      Exclude values which are outside a given open interval.\n";
+  cout << "      When the lower threshold is greater than the upper threshold,\n";
+  cout << "      values inside the closed interval <upper>..<lower> are excluded.\n";
+  cout << "  -threshold-outside-percentiles, -threshold-outside-pcts, -mask-outside-percentiles, -mask-outside-pcts <lower> <upper>\n";
+  cout << "      Exclude values which are outside a given open interval of percentiles.\n";
+  cout << "      When the lower percentile is greater than the upper percentile,\n";
+  cout << "      values inside the closed interval <upper>..<lower> are excluded.\n";
+  cout << "  -threshold-lt, -lower-threshold, -mask-lt <value>\n";
+  cout << "      Exclude values less than a given threshold.\n";
+  cout << "  -threshold-lt-percentile, -threshold-lt-pct, -lower-percentile-threshold, -lower-pct-threshold, -mask-lt-percentile, -mask-lt-pct <value>\n";
+  cout << "      Exclude values less than a given precentile.\n";
+  cout << "  -threshold-le, -mask-le, -mask-below <value>\n";
+  cout << "      Exclude values less than or equal to a given threshold.\n";
+  cout << "  -threshold-le-percentile, -threshold-le-pct, -mask-le-percentile, -mask-le-pct, -mask-below-percentile, -mask-below-pct <value>\n";
+  cout << "      Exclude values less than or equal to a given percentile.\n";
+  cout << "  -threshold-ge, -mask-ge, -mask-above <value>\n";
+  cout << "      Exclude values greater than or equal to a given threshold.\n";
+  cout << "  -threshold-ge-percentile, -threshold-ge-pct, -mask-ge-percentile, -mask-ge-pct, -mask-above-percentile, -mask-above-pct <value>\n";
+  cout << "      Exclude values greater than or equal to a given percentile.\n";
+  cout << "  -threshold-gt, -upper-threshold, -mask-gt <value>\n";
+  cout << "      Exclude values greater than a given threshold.\n";
+  cout << "  -threshold-gt-percentile, -threshold-gt-pct, -upper-percentile-threshold, -upper-pct-threshold, -mask-gt-percentile, -mask-gt-pct <value>\n";
+  cout << "      Exclude values greater than a given percentile.\n";
+  cout << "\n";
+  cout << "Data rescaling options:\n";
+  cout << "  -binarize <lower> [<upper>]\n";
+  cout << "      Set values inside the closed interval <lower>..<upper> to one,\n";
+  cout << "      and all other values to zero. The default upper threshold is +inf.\n";
+  cout << "      When the lower threshold is greater than the upper threshold,\n";
+  cout << "      values inside the closed interval <upper>..<lower> are set to zero\n";
+  cout << "      and all other values to one instead. This operation is short for:\n";
+  cout << "      :option:`-threshold-inside` <lower> <upper> :option:`-set` 1 :option:`-pad` 0\n";
+  cout << "  -clamp <lower> <upper>\n";
+  cout << "      Clamp values which are less than a lower or greater than an upper threshold.\n";
+  cout << "  -clamp-percentiles, -clamp-pcts <lower> <upper>\n";
+  cout << "      Clamp values which are less than a lower percentile or greater than an upper percentile.\n";
+  cout << "  -clamp-below, -clamp-lt <value>\n";
+  cout << "      Clamp values less than a given threshold.\n";
+  cout << "  -clamp-below-percentile, -clamp-below-pct, -clamp-lt-percentile, -clamp-lt-pct <value>\n";
+  cout << "      Clamp values less than a given percentile.\n";
+  cout << "  -clamp-above, -clamp-gt <value>\n";
+  cout << "      Clamp values greater than a given threshold.\n";
+  cout << "  -clamp-above-percentile, -clamp-above-pct, -clamp-gt-percentile, -clamp-gt-pct <value>\n";
+  cout << "      Clamp values greater than a given percentile.\n";
+  cout << "  -rescale <min> <max>\n";
+  cout << "      Linearly rescale values to the interval [min, max].\n";
+  cout << "\n";
+  cout << "Arithmetic operation options:\n";
+  cout << "  -add, -plus <value|file>\n";
+  cout << "      Add constant value or data sequence read from specified file.\n";
+  cout << "      Another name for this option is the '+' sign, see Examples.\n";
+  cout << "  -sub, -subtract, -minus <value|file>\n";
+  cout << "      Subtract constant value or data sequence read from specified file.\n";
+  cout << "      Another name for this option is the '-' sign, see Examples.\n";
+  cout << "  -mul, -multiply-with, -times <value|file>\n";
+  cout << "      Multiply by constant value or data sequence read from specified file.\n";
+  cout << "      Another name for this option is the '*' sign, see Examples.\n";
+  cout << "  -div, -divide-by, -over <value|file>\n";
+  cout << "      Divide by constant value or data sequence read from specified file.\n";
+  cout << "      When dividing by zero values in the input file, the result is NaN.\n";
+  cout << "      Use :option:`-mask` with argument NaN and :option:`-pad` to replace\n";
+  cout << "      these undefined values by a constant such as zero.\n";
+  cout << "      Another name for this option is the '/' sign, see Examples.\n";
+  cout << "  -div-with-zero <value|file>\n";
+  cout << "      Same as :option:`-div` but set result to zero instead of NaN in case of\n";
+  cout << "      a division by zero due to a zero value in the specified file.\n";
+  cout << "  -abs\n";
+  cout << "      Replace values by their respective absolute value.\n";
+  cout << "  -pow, -power <exponent>\n";
+  cout << "      Raise values to the power of the given exponent.\n";
+  cout << "  -sq, -square\n";
+  cout << "      Raise values to the power of 2 (i.e, -pow 2).\n";
+  cout << "  -sqrt\n";
+  cout << "      Calculate square root of each value (i.e, -pow .5).\n";
+  cout << "  -exp\n";
+  cout << "      Calculate exponential of data sequence.\n";
+  cout << "  -log [<threshold>] [<base>]\n";
+  cout << "      Compute logarithm after applying an optional threshold.\n";
+  cout << "      (default threshold: min double, default base: e)\n";
+  cout << "  -lb, -log2 [<threshold>]\n";
+  cout << "      Compute binary logarithm, alias for :option:`-log` with base 2.\n";
+  cout << "  -ln, -loge [<threshold>]\n";
+  cout << "      Compute natural logarithm, alias for :option:`-log` with base e.\n";
+  cout << "  -lg, -log10 [<threshold>]\n";
+  cout << "      Compute logarithm to base 10, alias for :option:`-log` with base 10.\n";
+  cout << "\n";
+  cout << "Data output options:\n";
+  cout << "  -out, -o, -output <file> [<type>]\n";
+  cout << "      Write current data sequence to file in the format of the input file.\n";
+  cout << "      Output data type can be: uchar, short, ushort, int, uint, float, double.\n";
+  cout << "      Another name for this option is the '=' sign, see Examples.\n";
+  cout << "\n";
+  cout << "Data statistics options:\n";
+  cout << "  -append <file>\n";
+  cout << "      Append output to a file. (default: STDOUT)\n";
+  cout << "  -delimiter, -delim, -d, -sep\n";
+  cout << "      Delimiting character(s). (default: '')\n";
+  cout << "  -header [<name>...]\n";
+  cout << "      Request output of header line if delimiter was specified as well.\n";
+  cout << "      If the output is appended to a text file, the header is only printed\n";
+  cout << "      if it does not exist. If no or fewer custom column names are given,\n";
+  cout << "      the default names for each statistic are printed. (default: none)\n";
+  cout << "  -prefix <str>...\n";
+  cout << "      One or more prefix strings to print. If no delimiter is specified,\n";
+  cout << "      the concatenated strings are printed before each line of the output.\n";
+  cout << "      Otherwise, each prefix string is printed as entry for the first columns\n";
+  cout << "      in the delimited output row, separated by the specified delimiter. (default: none)\n";
+  cout << "  -precision, -digits <int>\n";
+  cout << "      Number of significant digits. (default: 5)\n";
+  cout << "  -mean, -avg, -average\n";
+  cout << "      Print mean intensity. (default: on)\n";
+  cout << "  -variance, -var\n";
+  cout << "      Print variance of intensity values. (default: off)\n";
+  cout << "  -sigma, -std, -stddev, -stdev, -sd\n";
+  cout << "      Print standard deviation of intensity values. (default: on)\n";
+  cout << "  -normal-distribution\n";
+  cout << "      Print mean intensity and standard deviation of intensity values.\n";
+  cout << "      Other option names: -mean+sigma, -mean+sd, -avg+std,... (default: off)\n";
+  cout << "  -minimum, -min\n";
+  cout << "      Print minimum intensity value. (default: off)\n";
+  cout << "  -maximum, -max\n";
+  cout << "      Print maximum intensity value. (default: off)\n";
+  cout << "  -extrema, -minmax\n";
+  cout << "      Print minimum and maximum intensity value. (default: on)\n";
+  cout << "  -range\n";
+  cout << "      Print range of intensity values (i.e., max - min). (default: off)\n";
+  cout << "  -percentile, -pct, -p <n>...\n";
+  cout << "      Print n-th percentile. (default: none)\n";
+  cout << "  -lower-percentile-mean, -lpctavg <n>\n";
+  cout << "      Print mean intensity of values less than or equal to the n-th percentile. (default: off)\n";
+  cout << "  -upper-percentile-mean, -upctavg <n>\n";
+  cout << "      Print mean intensity of values greater than or equal to the n-th percentile. (default: off)\n";
   PrintCommonOptions(cout);
-  cout << endl;
-  cout << "Examples:" << endl;
-  cout << endl;
-  cout << "  " << name << " mni305.nii.gz" << endl;
-  cout << "      Mean = 26.9753" << endl;
-  cout << "      Standard deviation = 50.3525" << endl;
-  cout << "      Extrema = [0, 254]" << endl;
-  cout << "      Range = 254" << endl;
-  cout << endl;
-  cout << "  " << name << " mni305.nii.gz -pct 77" << endl;
-  cout << "      77th percentile = 25" << endl;
-  cout << endl;
-  cout << "  " << name << " mni305.nii.gz -padding 25 -range -percentile 25 50 75 -prefix MNI305 '[>25]'" << endl;
-  cout << "      MNI305 [>25] range = 254" << endl;
-  cout << "      MNI305 [>25] 25th percentile = 69" << endl;
-  cout << "      MNI305 [>25] 50th percentile = 113" << endl;
-  cout << "      MNI305 [>25] 75th percentile = 150" << endl;
-  cout << endl;
-  cout << "  " << name << " mni305.nii.gz -d , -prefix MNI305" << endl;
-  cout << "      MNI305,26.9753,50.3525,0,254,254 [no newline at end of line]" << endl;
-  cout << endl;
-  cout << "  " << name << " mni305.nii.gz -d , -prefix MNI305 -header" << endl;
-  cout << "      ,Mean,Sigma,Min,Max,Range" << endl;
-  cout << "      MNI305,26.9753,50.3525,0,254,254" << endl;
-  cout << endl;
-  cout << "  " << name << " mni305.nii.gz -d , -prefix MNI305 -header ID Mean SD" << endl;
-  cout << "      ID,Mean,SD,Min,Max,Range" << endl;
-  cout << "      MNI305,26.9753,50.3525,0,254,254" << endl;
-  cout << endl;
-  cout << "  " << name << " a.nii.gz + b.nii.gz = c.nii.gz" << endl;
-  cout << endl;
-  cout << "  " << name << " a.vtk + b.nii.gz - 10 / c.nii = d.vtk" << endl;
-  cout << "      Adds data values at identical sequential memory indices in a and b," << endl;
-  cout << "      subtracts the constant 10, and then divides by the values in image c." << endl;
-  cout << endl;
-  cout << "      Note: Operations are always executed from left to right," << endl;
-  cout << "            i.e., no mathematical operator precedence is considered!" << endl;
-  cout << endl;
+  cout << "\n";
+  cout << "Examples:\n";
+  cout << "\n";
+  cout << "  " << name << " mni305.nii.gz\n";
+  cout << "      Mean = 26.9753\n";
+  cout << "      Standard deviation = 50.3525\n";
+  cout << "      Extrema = [0, 254]\n";
+  cout << "      Range = 254\n";
+  cout << "\n";
+  cout << "  " << name << " mni305.nii.gz -pct 77\n";
+  cout << "      77th percentile = 25\n";
+  cout << "\n";
+  cout << "  " << name << " mni305.nii.gz -padding 25 -range -percentile 25 50 75 -prefix MNI305 '[>25]'\n";
+  cout << "      MNI305 [>25] range = 254\n";
+  cout << "      MNI305 [>25] 25th percentile = 69\n";
+  cout << "      MNI305 [>25] 50th percentile = 113\n";
+  cout << "      MNI305 [>25] 75th percentile = 150\n";
+  cout << "\n";
+  cout << "  " << name << " mni305.nii.gz -d , -prefix MNI305\n";
+  cout << "      MNI305,26.9753,50.3525,0,254,254 [no newline at end of line]\n";
+  cout << "\n";
+  cout << "  " << name << " mni305.nii.gz -d , -prefix MNI305 -header\n";
+  cout << "      ,Mean,Sigma,Min,Max,Range\n";
+  cout << "      MNI305,26.9753,50.3525,0,254,254\n";
+  cout << "\n";
+  cout << "  " << name << " mni305.nii.gz -d , -prefix MNI305 -header ID Mean SD\n";
+  cout << "      ID,Mean,SD,Min,Max,Range\n";
+  cout << "      MNI305,26.9753,50.3525,0,254,254\n";
+  cout << "\n";
+  cout << "  " << name << " a.nii.gz + b.nii.gz = c.nii.gz\n";
+  cout << "\n";
+  cout << "  " << name << " a.vtk + b.nii.gz - 10 / c.nii = d.vtk\n";
+  cout << "      Adds data values at identical sequential memory indices in a and b,\n";
+  cout << "      subtracts the constant 10, and then divides by the values in image c.\n";
+  cout << "\n";
+  cout << "      Note: Operations are always executed from left to right,\n";
+  cout << "            i.e., no mathematical operator precedence is considered!\n";
+  cout << "\n";
 }
 
 // =============================================================================
@@ -207,6 +332,11 @@ int main(int argc, char **argv)
 #endif // MIRTK_Image_WITH_VTK
 
   // Optional arguments
+  const double inf = numeric_limits<double>::infinity();
+  const double nan = numeric_limits<double>::quiet_NaN();
+
+  double      a, b;
+  int         p;
   const char *append_name   = NULL;
   const char *delimiter     = NULL;
   bool        print_header  = false;
@@ -218,17 +348,49 @@ int main(int argc, char **argv)
   Array<unique_ptr<Op> > ops;
 
   for (ARGUMENTS_AFTER(1)) {
-    if (OPTION("-append")) append_name = ARGUMENT;
-#if MIRTK_Image_WITH_VTK
-    else if (OPTION("-scalars")) scalars_name = ARGUMENT;
-#endif // MIRTK_Image_WITH_VTK
-    else if (OPTION("-prefix")) {
+    if (OPTION("-append")) {
+      append_name = ARGUMENT;
+    } else if (OPTION("-scalars")) {
+      #if MIRTK_Image_WITH_VTK
+        scalars_name = ARGUMENT;
+      #else
+        FatalError("Cannot process -scalars of VTK file because MIRTK Image library was built without VTK!");
+      #endif // MIRTK_Image_WITH_VTK
+    } else if (OPTION("-prefix")) {
       do {
         prefix.push_back(ARGUMENT);
       } while (HAS_ARGUMENT);
     } else if (OPTION("-header")) {
       print_header = true;
       while (HAS_ARGUMENT) header.push_back(ARGUMENT);
+    // Masking
+    } else if (OPTION("-label")) {
+      ops.push_back(unique_ptr<Op>(new ResetMask(true)));
+      do {
+        const char *arg = ARGUMENT;
+        const Array<string> parts = Split(arg, "..");
+        if (parts.size() == 1) {
+          if (!FromString(parts[0], a)) a = nan;
+          b = a;
+        } else if (parts.size() == 2) {
+          if (!FromString(parts[0], a) || !FromString(parts[1], b)) {
+            a = b = nan;
+          }
+        } else {
+          a = b = nan;
+        }
+        if (IsNaN(a) || IsNaN(b)) {
+          FatalError("Invalid -label argument: " << arg);
+        }
+        ops.push_back(unique_ptr<Op>(new MaskInsideInterval(a, b)));
+      } while (HAS_ARGUMENT);
+      ops.push_back(unique_ptr<Op>(new InvertMask()));
+    } else if (OPTION("-mask-all")) {
+      ops.push_back(unique_ptr<Op>(new ResetMask(false)));
+    } else if (OPTION("-reset-mask")) {
+      ops.push_back(unique_ptr<Op>(new ResetMask(true)));
+    } else if (OPTION("-invert-mask")) {
+      ops.push_back(unique_ptr<Op>(new InvertMask()));
     } else if (OPTION("-mask")) {
       double c;
       do {
@@ -236,75 +398,144 @@ int main(int argc, char **argv)
         if (FromString(arg, c)) ops.push_back(unique_ptr<Op>(new Mask(c)));
         else                    ops.push_back(unique_ptr<Op>(new Mask(arg)));
       } while (HAS_ARGUMENT);
-    } else if (OPTION("-mask-outside")) {
-      const char *arg = ARGUMENT;
-      double lower, upper;
-      if (!FromString(arg, lower)) {
-        cerr << "Invalid -mask-outside lower argument, must be a number!" << endl;
-      }
-      arg = ARGUMENT;
-      if (!FromString(arg, upper)) {
-        cerr << "Invalid -mask-outside upper argument, must be a number!" << endl;
-      }
-      ops.push_back(unique_ptr<Op>(new MaskOutsideOpenInterval(lower, upper)));
-    } else if (OPTION("-mask-inside")) {
-      const char *arg = ARGUMENT;
-      double lower, upper;
-      if (!FromString(arg, lower)) {
-        cerr << "Invalid -mask-inside lower argument, must be a number!" << endl;
-      }
-      arg = ARGUMENT;
-      if (!FromString(arg, upper)) {
-        cerr << "Invalid -mask-inside upper argument, must be a number!" << endl;
-      }
-      ops.push_back(unique_ptr<Op>(new MaskInsideInterval(lower, upper)));
-    } else if (OPTION("-mask-below")) {
-      const char *arg = ARGUMENT;
-      double lower;
-      if (!FromString(arg, lower)) {
-        cerr << "Invalid -mask-below argument, must be a number!" << endl;
-      }
-      ops.push_back(unique_ptr<Op>(new MaskOutsideOpenInterval(lower, numeric_limits<double>::infinity())));
-    } else if (OPTION("-mask-above")) {
-      const char *arg = ARGUMENT;
-      double upper;
-      if (!FromString(arg, upper)) {
-        cerr << "Invalid -mask-above argument, must be a number!" << endl;
-      }
-      ops.push_back(unique_ptr<Op>(new MaskOutsideOpenInterval(-numeric_limits<double>::infinity(), upper)));
+    } else if (OPTION("-threshold-outside") || OPTION("-mask-outside")) {
+      PARSE_ARGUMENT(a);
+      PARSE_ARGUMENT(b);
+      ops.push_back(unique_ptr<Op>(new MaskOutsideOpenInterval(a, b)));
+    } else if (OPTION("-threshold-outside-percentiles") || OPTION("-threshold-outside-pcts") ||
+               OPTION("-mask-outside-percentiles")      || OPTION("-mask-outside-pcts")) {
+      PARSE_ARGUMENT(p);
+      Statistic *a = new Percentile(p);
+      a->Hidden(verbose < 1);
+      ops.push_back(unique_ptr<Op>(a));
+      PARSE_ARGUMENT(p);
+      Statistic *b = new Percentile(p);
+      b->Hidden(verbose < 1);
+      ops.push_back(unique_ptr<Op>(b));
+      Op *op = new MaskOutsideOpenInterval(&a->Value(), &b->Value());
+      ops.push_back(unique_ptr<Op>(op));
+    } else if (OPTION("-threshold")) {
+      PARSE_ARGUMENT(a);
+      if (HAS_ARGUMENT) PARSE_ARGUMENT(b);
+      else b = inf;
+      ops.push_back(unique_ptr<Op>(new MaskOutsideInterval(a, b)));
+    } else if (OPTION("-percentile-threshold") || OPTION("-pct-threshold")) {
+      PARSE_ARGUMENT(p);
+      Statistic *a = new Percentile(p);
+      a->Hidden(verbose < 1);
+      ops.push_back(unique_ptr<Op>(a));
+      Op *op = new MaskOutsideInterval(&a->Value(), inf);
+      ops.push_back(unique_ptr<Op>(op));
+    } else if (OPTION("-threshold-percentiles") || OPTION("-threshold-pcts")) {
+      PARSE_ARGUMENT(p);
+      Statistic *a = new Percentile(p);
+      a->Hidden(verbose < 1);
+      ops.push_back(unique_ptr<Op>(a));
+      PARSE_ARGUMENT(p);
+      Statistic *b = new Percentile(p);
+      b->Hidden(verbose < 1);
+      ops.push_back(unique_ptr<Op>(b));
+      Op *op = new MaskOutsideInterval(&a->Value(), &b->Value());
+      ops.push_back(unique_ptr<Op>(op));
+    } else if (OPTION("-threshold-inside") || OPTION("-mask-inside")) {
+      PARSE_ARGUMENT(a);
+      PARSE_ARGUMENT(b);
+      ops.push_back(unique_ptr<Op>(new MaskInsideInterval(a, b)));
+    } else if (OPTION("-threshold-inside-percentiles") || OPTION("-threshold-inside-pcts") ||
+               OPTION("-mask-inside-percentiles")      || OPTION("-mask-inside-pcts")) {
+      PARSE_ARGUMENT(p);
+      Statistic *a = new Percentile(p);
+      a->Hidden(verbose < 1);
+      ops.push_back(unique_ptr<Op>(a));
+      PARSE_ARGUMENT(p);
+      Statistic *b = new Percentile(p);
+      b->Hidden(verbose < 1);
+      ops.push_back(unique_ptr<Op>(b));
+      Op *op = new MaskInsideInterval(&a->Value(), &b->Value());
+      ops.push_back(unique_ptr<Op>(op));
+    } else if (OPTION("-threshold-lt") || OPTION("-lower-threshold") || OPTION("-mask-lt")) {
+      PARSE_ARGUMENT(a);
+      ops.push_back(unique_ptr<Op>(new MaskOutsideInterval(a, inf)));
+    } else if (OPTION("-threshold-lt-percentile")    || OPTION("-threshold-lt-pct") ||
+               OPTION("-lower-percentile-threshold") || OPTION("-lower-pct-threshold") ||
+               OPTION("-mask-lt-percentile")         || OPTION("-mask-lt-pct")) {
+      PARSE_ARGUMENT(p);
+      Statistic *a = new Percentile(p);
+      a->Hidden(verbose < 1);
+      ops.push_back(unique_ptr<Op>(a));
+      ops.push_back(unique_ptr<Op>(new MaskOutsideInterval(&a->Value(), inf)));
+    } else if (OPTION("-threshold-le") || OPTION("-mask-below") || OPTION("-mask-le")) {
+      PARSE_ARGUMENT(a);
+      ops.push_back(unique_ptr<Op>(new MaskOutsideOpenInterval(a, inf)));
+    } else if (OPTION("-threshold-le-percentile") || OPTION("-threshold-le-pct") ||
+               OPTION("-mask-below-percentile")   || OPTION("-mask-below-pct") ||
+               OPTION("-mask-le-percentile")      || OPTION("-mask-le-pct")) {
+      PARSE_ARGUMENT(p);
+      Statistic *a = new Percentile(p);
+      a->Hidden(verbose < 1);
+      ops.push_back(unique_ptr<Op>(a));
+      ops.push_back(unique_ptr<Op>(new MaskOutsideOpenInterval(&a->Value(), inf)));
+    } else if (OPTION("-threshold-ge") || OPTION("-mask-above") || OPTION("-mask-ge")) {
+      PARSE_ARGUMENT(b);
+      ops.push_back(unique_ptr<Op>(new MaskOutsideOpenInterval(-inf, b)));
+    } else if (OPTION("-threshold-ge-percentile") || OPTION("-threshold-ge-pct") ||
+               OPTION("-mask-above-percentile")   || OPTION("-mask-above-pct") ||
+               OPTION("-mask-ge-percentile")      || OPTION("-mask-ge-pct")) {
+      PARSE_ARGUMENT(p);
+      Statistic *b = new Percentile(p);
+      b->Hidden(verbose < 1);
+      ops.push_back(unique_ptr<Op>(b));
+      ops.push_back(unique_ptr<Op>(new MaskOutsideOpenInterval(-inf, &b->Value())));
+    } else if (OPTION("-threshold-gt") || OPTION("-upper-threshold") || OPTION("-mask-gt")) {
+      PARSE_ARGUMENT(b);
+      ops.push_back(unique_ptr<Op>(new MaskOutsideInterval(-inf, b)));
+    } else if (OPTION("-threshold-gt-percentile")    || OPTION("-threshold-gt-pct") ||
+               OPTION("-upper-percentile-threshold") || OPTION("-upper-pct-threshold") ||
+               OPTION("-mask-gt-percentile")         || OPTION("-mask-gt-pct")) {
+      PARSE_ARGUMENT(p);
+      Statistic *b = new Percentile(p);
+      b->Hidden(verbose < 1);
+      ops.push_back(unique_ptr<Op>(b));
+      ops.push_back(unique_ptr<Op>(new MaskOutsideInterval(-inf, &b->Value())));
     } else if (OPTION("-even")) {
       ops.push_back(unique_ptr<Op>(new MaskOddValues()));
     } else if (OPTION("-odd")) {
       ops.push_back(unique_ptr<Op>(new MaskEvenValues()));
-    } else if (OPTION("-threshold")) {
-      double lower, upper;
-      if (!FromString(ARGUMENT, lower)) {
-        cerr << "Invalid -threshold argument, must be a number!" << endl;
-        exit(1);
-      }
-      if (HAS_ARGUMENT) {
-        if (!FromString(ARGUMENT, upper)) {
-          cerr << "Invalid -threshold upper argument, must be a number!" << endl;
-          exit(1);
-        }
-        ops.push_back(unique_ptr<Op>(new Clamp(lower, upper)));
-      } else {
-        ops.push_back(unique_ptr<Op>(new LowerThreshold(lower)));
-      }
-    } else if (OPTION("-threshold-below") || OPTION("-lower-threshold")) {
-      double threshold;
-      if (!FromString(ARGUMENT, threshold)) {
-        cerr << "Invalid -threshold-below, must be a number!" << endl;
-        exit(1);
-      }
-      ops.push_back(unique_ptr<Op>(new LowerThreshold(threshold)));
-    } else if (OPTION("-threshold-above") || OPTION("-upper-threshold")) {
-      double threshold;
-      if (!FromString(ARGUMENT, threshold)) {
-        cerr << "Invalid -threshold-above, must be a number!" << endl;
-        exit(1);
-      }
-      ops.push_back(unique_ptr<Op>(new UpperThreshold(threshold)));
+    // Clamping
+    } else if (OPTION("-clamp")) {
+      PARSE_ARGUMENT(a);
+      PARSE_ARGUMENT(b);
+      ops.push_back(unique_ptr<Op>(new Clamp(a, b)));
+    } else if (OPTION("-clamp-percentiles") || OPTION("-clamp-pcts")) {
+      PARSE_ARGUMENT(p);
+      Statistic *a = new Percentile(p);
+      a->Hidden(verbose < 1);
+      ops.push_back(unique_ptr<Op>(a));
+      PARSE_ARGUMENT(p);
+      Statistic *b = new Percentile(p);
+      b->Hidden(verbose < 1);
+      ops.push_back(unique_ptr<Op>(b));
+      ops.push_back(unique_ptr<Op>(new Clamp(&a->Value(), &b->Value())));
+    } else if (OPTION("-clamp-lt") || OPTION("-clamp-below")) {
+      PARSE_ARGUMENT(a);
+      ops.push_back(unique_ptr<Op>(new LowerThreshold(a)));
+    } else if (OPTION("-clamp-lt-percentile")    || OPTION("-clamp-lt-pct") ||
+               OPTION("-clamp-below-percentile") || OPTION("-clamp-below-pct")) {
+      PARSE_ARGUMENT(p);
+      Statistic *a = new Percentile(p);
+      a->Hidden(verbose < 1);
+      ops.push_back(unique_ptr<Op>(a));
+      ops.push_back(unique_ptr<Op>(new LowerThreshold(&a->Value())));
+    } else if (OPTION("-clamp-gt") || OPTION("-clamp-above")) {
+      PARSE_ARGUMENT(b);
+      ops.push_back(unique_ptr<Op>(new UpperThreshold(b)));
+    } else if (OPTION("-clamp-gt-percentile")    || OPTION("-clamp-gt-pct") ||
+               OPTION("-clamp-above-percentile") || OPTION("-clamp-above-pct")) {
+      PARSE_ARGUMENT(p);
+      Statistic *b = new Percentile(p);
+      b->Hidden(verbose < 1);
+      ops.push_back(unique_ptr<Op>(b));
+      ops.push_back(unique_ptr<Op>(new UpperThreshold(&b->Value())));
     } else if (OPTION("-rescale")) {
       double min, max;
       if (!FromString(ARGUMENT, min)) {
@@ -316,14 +547,14 @@ int main(int argc, char **argv)
         exit(1);
       }
       ops.push_back(unique_ptr<Op>(new Rescale(min, max)));
-    } else if (OPTION("-inside")) {
+    } else if (OPTION("-set") || OPTION("-inside")) {
       double inside_value;
       if (!FromString(ARGUMENT, inside_value)) {
         cerr << "Invalid -inside value, must be a number!" << endl;
         exit(1);
       }
       ops.push_back(unique_ptr<Op>(new SetInsideValue(inside_value)));
-    } else if (OPTION("-outside") || OPTION("-pad")) {
+    } else if (OPTION("-pad") || OPTION("-outside")) {
       double outside_value;
       if (!FromString(ARGUMENT, outside_value)) {
         cerr << "Invalid -outside value, must be a number!" << endl;
@@ -331,6 +562,11 @@ int main(int argc, char **argv)
       }
       ops.push_back(unique_ptr<Op>(new SetOutsideValue(outside_value)));
     // Data transformations
+    } else if (OPTION("-binarize")) {
+      PARSE_ARGUMENT(a);
+      if (HAS_ARGUMENT) PARSE_ARGUMENT(b);
+      else b = inf;
+      ops.push_back(unique_ptr<Op>(new Binarize(a, b)));
     } else if (OPTION("-add") || OPTION("-plus") || OPTION("+")) {
       const char *arg = ARGUMENT;
       double c;
@@ -385,32 +621,38 @@ int main(int argc, char **argv)
       ops.push_back(unique_ptr<Op>(new Pow(2.0)));
     } else if (OPTION("-exp")) {
       ops.push_back(unique_ptr<Op>(new Exp()));
-    } else if (OPTION("-log") || OPTION("-log2") || OPTION("-log10") || OPTION("-lb") || OPTION("-ln") || OPTION("-lg")) {
-      double threshold = numeric_limits<double>::min();
+    } else if (OPTION("-log") || OPTION("-log2") || OPTION("-loge") || OPTION("-log10") || OPTION("-lb") || OPTION("-ln") || OPTION("-lg")) {
+      a = numeric_limits<double>::min();
       if (HAS_ARGUMENT) {
-        if (!FromString(ARGUMENT, threshold) || threshold <= .0) {
+        PARSE_ARGUMENT(a);
+        if (a <= .0) {
           cerr << "Invalid -log threshold argument, must be a positive number" << endl;
           exit(1);
         }
       }
-      Op *op = NULL;
+      Op *op = nullptr;
       if (strcmp(OPTNAME, "-log") == 0) {
         if (HAS_ARGUMENT) {
           double base;
           if (!FromString(ARGUMENT, base)) {
-            cerr << "Invalid -log base argument, must be a positive number" << endl;
-            exit(1);
+            char c;
+            if (!FromString(ARGUMENT, c) || c != 'e') {
+              cerr << "Invalid -log base argument, must be a positive number or character e" << endl;
+              exit(1);
+            }
+            op = new Ln(a);
+          } else {
+            op = new Log(base, a);
           }
-          op = new Log(base, threshold);
         } else {
-          op = new Ln(threshold);
+          op = new Ln(a);
         }
-      } else if (strcmp(OPTNAME, "-log2") == 0 || strcmp(OPTNAME, "-lb") == 0) {
-        op = new Lb(threshold);
+      } else if (strcmp(OPTNAME, "-log2")  == 0 || strcmp(OPTNAME, "-lb") == 0) {
+        op = new Lb(a);
       } else if (strcmp(OPTNAME, "-log10") == 0 || strcmp(OPTNAME, "-lg") == 0) {
-        op = new Lg(threshold);
-      } else if (strcmp(OPTNAME, "-ln") == 0) {
-        op = new Ln(threshold);
+        op = new Lg(a);
+      } else if (strcmp(OPTNAME, "-loge")  == 0 || strcmp(OPTNAME, "-ln") == 0) {
+        op = new Ln(a);
       }
       ops.push_back(unique_ptr<Op>(op));
     } else if (OPTION("-o") || OPTION("-out") || OPTION("-output") || OPTION("=")) {
@@ -424,11 +666,11 @@ int main(int argc, char **argv)
           exit(1);
         }
       }
-#if MIRTK_Image_WITH_VTK
-      ops.push_back(unique_ptr<Op>(new Write(fname, dtype, attr, dataset, scalars_name)));
-#else
-      ops.push_back(unique_ptr<Op>(new Write(fname, dtype, attr)));
-#endif
+      #if MIRTK_Image_WITH_VTK
+        ops.push_back(unique_ptr<Op>(new Write(fname, dtype, attr, dataset, scalars_name)));
+      #else
+        ops.push_back(unique_ptr<Op>(new Write(fname, dtype, attr)));
+      #endif
     // Data statistics
     } else if (OPTION("-mean") || OPTION("-average") || OPTION("-avg")) {
       ops.push_back(unique_ptr<Op>(new Mean()));
@@ -539,7 +781,7 @@ int main(int argc, char **argv)
     }
     for (size_t i = 0; i < ops.size(); ++i) {
       Statistic *stat = dynamic_cast<Statistic *>(ops[i].get());
-      if (stat) {
+      if (stat != nullptr && !stat->Hidden()) {
         for (size_t j = 0; j < stat->Names().size(); ++j, ++c) {
           if (c > 0) out << delimiter;
           if (c < header.size()) out << header[c];
@@ -563,7 +805,7 @@ int main(int argc, char **argv)
     bool first = prefix.empty();
     for (size_t i = 0; i < ops.size(); ++i) {
       Statistic *stat = dynamic_cast<Statistic *>(ops[i].get());
-      if (stat) {
+      if (stat != nullptr && !stat->Hidden()) {
         if (!first) out << delimiter;
         else first = false;
         stat->PrintValues(out, digits, delimiter);
@@ -580,7 +822,9 @@ int main(int argc, char **argv)
     }
     for (size_t i = 0; i < ops.size(); ++i) {
       Statistic *stat = dynamic_cast<Statistic *>(ops[i].get());
-      if (stat) stat->Print(out, digits, prefix_string.c_str());
+      if (stat != nullptr && !stat->Hidden()) {
+        stat->Print(out, digits, prefix_string.c_str());
+      }
     }
   }
 
