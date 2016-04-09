@@ -238,8 +238,8 @@ void PrintHelp(const char *name)
   cout << "  -sigma, -std, -stddev, -stdev, -sd\n";
   cout << "      Print standard deviation of intensity values. (default: on)\n";
   cout << "  -normal-distribution\n";
-  cout << "      Print mean intensity and standard deviation of intensity values. (default: off)\n";
-  cout << "      Other option names: -mean+sigma, -mean+sd, -avg+std,...\n";
+  cout << "      Print mean intensity and standard deviation of intensity values.\n";
+  cout << "      Other option names: -mean+sigma, -mean+sd, -avg+std,... (default: off)\n";
   cout << "  -minimum, -min\n";
   cout << "      Print minimum intensity value. (default: off)\n";
   cout << "  -maximum, -max\n";
