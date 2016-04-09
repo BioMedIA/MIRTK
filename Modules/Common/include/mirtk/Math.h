@@ -86,7 +86,8 @@ MIRTKCU_API inline bool IsNaN(double x)
 #ifdef WINDOWS
   return (_isnan(x) != 0);
 #else
-  return ::isnan(x);
+  using std::isnan;
+  return isnan(x);
 #endif
 }
 
@@ -97,7 +98,8 @@ MIRTKCU_API inline bool IsInf(double x)
 #ifdef WINDOWS
   return !_finite(x);
 #else
-  return ::isinf(x);
+  using std::isinf;
+  return isinf(x);
 #endif
 }
 
