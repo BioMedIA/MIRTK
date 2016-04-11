@@ -58,7 +58,7 @@ void PrintHelp(const char *name)
   cout << "Optional arguments:\n";
   cout << "  -dofin <file>      Source image transformation. (default: Id)\n";
   cout << "  -interp <mode>     Interpolation mode. (default: linear with padding)\n";
-  cout << "  -metric <sim>...   Image (dis-)similarity measure(s). (default: AvgSI)\n";
+  cout << "  -metric <sim>...   Image (dis-)similarity measure(s). (default: SSD, CC, MI, NMI)\n";
   cout << "  -Tp <value>        Target image background value/threshold. (default: NaN)\n";
   cout << "  -Sp <value>        Source image background value/threshold. (default: NaN)\n";
   cout << "  -Rx1 <int>         Leftmost  target voxel index along x axis.\n";
@@ -149,7 +149,11 @@ int main(int argc, char **argv)
   }
 
   if (metric.empty()) {
-    FatalError("Default similarity metric AvgSI not implemented yet, use -metric option");
+    metric.reserve(4);
+    metric.push_back(SIM_SSD);
+    metric.push_back(SIM_CC);
+    metric.push_back(SIM_MI);
+    metric.push_back(SIM_NMI);
   }
 
   if (delim.empty()) {
@@ -213,7 +217,7 @@ int main(int argc, char **argv)
 
   target.Update();
 
-  // Print header
+  // Print table header
   if (verbose < 1) {
     cout << "Target" << delim << "Source";
     for (size_t i = 0; i < metric.size(); ++i) {
