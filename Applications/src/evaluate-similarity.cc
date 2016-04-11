@@ -21,7 +21,6 @@
 #include "mirtk/Options.h"
 
 #include "mirtk/IOConfig.h"
-#include "mirtk/Indent.h"
 #include "mirtk/GenericImage.h"
 #include "mirtk/Transformation.h"
 #include "mirtk/RegisteredImage.h"
@@ -42,18 +41,20 @@ void PrintHelp(const char *name)
   cout << "Usage: " << name << " <target> <source>... [options]\n";
   cout << "\n";
   cout << "Description:\n";
-  cout << "  Computes the (dis-)similarity of two intensity images.\n";
+  cout << "  Evaluates the (dis-)similarity of two intensity images.\n";
+  cout << "\n";
   cout << "  If more than one source image is given, the (dis-)similarity between\n";
   cout << "  each of these and the target is evaluated. By default, common image\n";
-  cout << "  image (dis-)similarity metrics are reported. One or more other metrics\n";
-  cout << "  can be chosen using :option:`-metric` which can be given multiple times.\n";
+  cout << "  (dis-)similarity metrics are reported. One or more metrics for the\n";
+  cout << "  evaluation can be chosen using :option:`-metric`.\n";
+  cout << "\n";
   cout << "  The input source image can either be pre-aligned with the target image\n";
   cout << "  or the output of a previous registration can be specified using\n";
   cout << "  :option:`-dofin`.\n";
   cout << "\n";
   cout << "Arguments:\n";
   cout << "  target   Target image.\n";
-  cout << "  source   (Transformed) source image.\n";
+  cout << "  source   Source image.\n";
   cout << "\n";
   cout << "Optional arguments:\n";
   cout << "  -dofin <file>      Source image transformation. (default: Id)\n";
@@ -68,12 +69,15 @@ void PrintHelp(const char *name)
   cout << "  -Rz1 <int>         Leftmost  target voxel index along z axis.\n";
   cout << "  -Rz2 <int>         Rightmost target voxel index along z axis.\n";
   cout << "\n";
-  cout << "Output format options:\n";
+  cout << "Output options:\n";
   cout << "  -precision <int>   Number of significant digits. (default: 5)\n";
   cout << "  -delim <char>      Delimiter for output of multiple metric values. (default: ,)\n";
-  cout << "  -table             Output in non-verbose tabular format, i.e., \"-v 0\".\n";
-  cout << "  -csv               Output as comma separated values, i.e., \"-v 0 -delim ','\"\n";
-  cout << "  -tsv               Output as tab   separated values, i.e., \"-v 0 -delim '\\t'\"\n";
+  cout << "  -table             Output in tabular format.\n";
+  cout << "  -csv               Output as comma separated values table.\n";
+  cout << "  -tsv               Output as tab   separated values table.\n";
+  cout << "  -noid              Exclude image IDs from output. (default: off)\n";
+  cout << "  -fullid            Use complete input image file path as ID.\n";
+  cout << "                     (default: file name without image extension)\n";
   PrintCommonOptions(cout);
   cout << endl;
 }
@@ -103,12 +107,10 @@ int main(int argc, char **argv)
   const char *dofin_name     = nullptr;
   double      target_padding = numeric_limits<double>::quiet_NaN();
   double      source_padding = numeric_limits<double>::quiet_NaN();
+  bool        full_path_id   = false;
+  bool        no_image_id    = false;
   int         digits         = 5;
   string      delim;
-
-  verbose = 1; // by default, include textual description of output value
-               // can be disabled by caller using "-v 0" option in order to
-               // only append the overlap value (excl. newline) to a file
 
   int i1 =  0, j1 =  0, k1 =  0;
   int i2 = -1, j2 = -1, k2 = -1;
@@ -136,9 +138,11 @@ int main(int argc, char **argv)
         delim.replace(pos, 2, "\t");
       }
     }
-    else if (OPTION("-table")) verbose = 0;
-    else if (OPTION("-csv")) verbose = 0, delim = ',';
-    else if (OPTION("-tsv")) verbose = 0, delim = '\t';
+    else if (OPTION("-table")) verbose = -1;
+    else if (OPTION("-csv"))   verbose = -1, delim = ',';
+    else if (OPTION("-tsv"))   verbose = -1, delim = '\t';
+    else if (OPTION("-fullid")) full_path_id = true;
+    else if (OPTION("-noid"))   no_image_id = true;
     else if (OPTION("-Rx1")) PARSE_ARGUMENT(i1);
     else if (OPTION("-Rx2")) PARSE_ARGUMENT(i2);
     else if (OPTION("-Ry1")) PARSE_ARGUMENT(j1);
@@ -158,7 +162,7 @@ int main(int argc, char **argv)
 
   if (delim.empty()) {
     delim = ',';
-    if (verbose > 0) delim += ' ';
+    if (verbose >= 0) delim += ' ';
   }
 
   // Initialize I/O module
@@ -218,22 +222,28 @@ int main(int argc, char **argv)
   target.Update();
 
   // Print table header
-  if (verbose < 1) {
-    cout << "Target" << delim << "Source";
+  if (verbose < 0) {
+    if (!no_image_id) {
+      cout << "Target" << delim << "Source" << delim;
+    }
     for (size_t i = 0; i < metric.size(); ++i) {
-      cout << delim << ToString(metric[i]);
+      if (i > 0) cout << delim;
+      cout << ToString(metric[i]);
     }
     cout << endl;
   }
 
   // Evaluate similarity of (transformed) source image(s)
-  const string target_id = FileName(target_name);
+  const string target_id = (full_path_id ? target_name : FileName(target_name));
   for (size_t n = 0; n < source_name.size(); ++n) {
 
-    if (verbose > 0) cout << "Target = ";
-    cout << target_id << delim;
-    if (verbose > 0) cout << "Source = ";
-    cout << FileName(source_name[n]);
+    // Print image IDs
+    if (!no_image_id) {
+      if (verbose >= 0) cout << "Target = ";
+      cout << target_id << delim;
+      if (verbose >= 0) cout << "Source = ";
+      cout << (full_path_id ? source_name[n] : FileName(source_name[n]));
+    }
 
     // Read source image
     source_image.Read(source_name[n]);
@@ -243,7 +253,7 @@ int main(int argc, char **argv)
     // Compute similarity measure(s)
     for (size_t i = 0; i < metric.size(); ++i) {
       cout << delim;
-      if (verbose > 0) cout << ToString(metric[i]) << " = ";
+      if (verbose >= 0) cout << ToString(metric[i]) << " = ";
       unique_ptr<ImageSimilarity> sim(ImageSimilarity::New(metric[i]));
       sim->Target(&target);
       sim->Source(&source);
