@@ -83,6 +83,10 @@ if (MIRTK_Image_FOUND)
     mirtk_target_dependencies(calculate vtkCommonCore)
   endif ()
 
+  if (MIRTK_Transformation_FOUND AND MIRTK_Registration_FOUND)
+    add_image_command(evaluate-similarity LibTransformation LibRegistration)
+  endif ()
+
 endif ()
 
 # ----------------------------------------------------------------------------
