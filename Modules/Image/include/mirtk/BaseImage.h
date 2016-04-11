@@ -1359,7 +1359,7 @@ inline void BaseImage::PutBackgroundValueAsDouble(double value, bool threshold)
 {
   _bg    = value;
   _bgSet = true;
-  if (threshold) {
+  if (threshold && !IsNaN(_bg)) {
     for (int idx = 0; idx < _NumberOfVoxels; idx++) {
       if (this->GetAsDouble(idx) < _bg) this->PutAsDouble(idx, _bg);
     }
