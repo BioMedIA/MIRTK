@@ -279,14 +279,16 @@ ImageSimilarity::ImageSimilarity(const char *name, double weight)
   DataFidelity(name, weight),
   _Target                  (new RegisteredImage()),
   _Source                  (new RegisteredImage()),
-  _GradientWrtTarget       (NULL),
-  _GradientWrtSource       (NULL),
-  _Gradient                (NULL),
   _Mask                    (nullptr),
+  _GradientWrtTarget       (nullptr),
+  _GradientWrtSource       (nullptr),
+  _Gradient                (nullptr),
   _NumberOfVoxels          (0),
   _UseApproximateGradient  (false),
   _VoxelWisePreconditioning(.0),
   _NodeBasedPreconditioning(.0),
+  _SkipTargetInitialization(false),
+  _SkipSourceInitialization(false),
   _InitialUpdate           (false)
 {
   _ParameterPrefix.push_back("Image (dis-)similarity ");
@@ -301,12 +303,12 @@ ImageSimilarity::ImageSimilarity(const char *name, double weight)
 ImageSimilarity::ImageSimilarity(const ImageSimilarity &other)
 :
   DataFidelity(other),
-  _Target           (other._Target ? new RegisteredImage(*other._Target) : NULL),
-  _Source           (other._Source ? new RegisteredImage(*other._Source) : NULL),
-  _GradientWrtTarget       (NULL),
-  _GradientWrtSource       (NULL),
-  _Gradient                (NULL),
+  _Target(other._Target ? new RegisteredImage(*other._Target) : nullptr),
+  _Source(other._Source ? new RegisteredImage(*other._Source) : nullptr),
   _Mask  (other._Mask),
+  _GradientWrtTarget       (nullptr),
+  _GradientWrtSource       (nullptr),
+  _Gradient                (nullptr),
   _NumberOfVoxels          (other._NumberOfVoxels),
   _UseApproximateGradient  (other._UseApproximateGradient),
   _VoxelWisePreconditioning(other._VoxelWisePreconditioning),
@@ -324,8 +326,8 @@ ImageSimilarity &ImageSimilarity::operator =(const ImageSimilarity &other)
   Delete(_GradientWrtTarget);
   Delete(_GradientWrtSource);
   Deallocate(_Gradient);
-  _Target = other._Target ? new RegisteredImage(*other._Target) : NULL;
-  _Source = other._Source ? new RegisteredImage(*other._Source) : NULL;
+  _Target = other._Target ? new RegisteredImage(*other._Target) : nullptr;
+  _Source = other._Source ? new RegisteredImage(*other._Source) : nullptr;
   _Mask   = other._Mask;
   _NumberOfVoxels           = other._NumberOfVoxels;
   _UseApproximateGradient   = other._UseApproximateGradient;
@@ -333,6 +335,18 @@ ImageSimilarity &ImageSimilarity::operator =(const ImageSimilarity &other)
   _NodeBasedPreconditioning = other._NodeBasedPreconditioning;
   _InitialUpdate            = other._InitialUpdate;
   return *this;
+}
+
+// -----------------------------------------------------------------------------
+void ImageSimilarity::ReleaseTarget()
+{
+  _Target = nullptr;
+}
+
+// -----------------------------------------------------------------------------
+void ImageSimilarity::ReleaseSource()
+{
+  _Source = nullptr;
 }
 
 // -----------------------------------------------------------------------------
@@ -352,8 +366,12 @@ ImageSimilarity::~ImageSimilarity()
 // -----------------------------------------------------------------------------
 void ImageSimilarity::InitializeInput(const ImageAttributes &domain)
 {
-  _Target->Initialize(domain, _Target->Transformation() ? 4 : 1);
-  _Source->Initialize(domain, _Source->Transformation() ? 4 : 1);
+  if (!_SkipTargetInitialization) {
+    _Target->Initialize(domain, _Target->Transformation() ? 4 : 1);
+  }
+  if (!_SkipSourceInitialization) {
+    _Source->Initialize(domain, _Source->Transformation() ? 4 : 1);
+  }
   _Domain = domain;
 }
 

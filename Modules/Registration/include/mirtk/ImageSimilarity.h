@@ -121,6 +121,12 @@ public:
   /// Scheme for Difference Measures in Deformable Registration. In ICCV 2011.
   mirtkPublicAttributeMacro(double, NodeBasedPreconditioning);
 
+  /// Skip initialization of target image
+  mirtkPublicAttributeMacro(bool, SkipTargetInitialization);
+
+  /// Skip initialization of source image
+  mirtkPublicAttributeMacro(bool, SkipSourceInitialization);
+
   /// Whether Update has not been called since initialization
   mirtkAttributeMacro(bool, InitialUpdate);
 
@@ -159,6 +165,12 @@ public:
 
   /// Initialize similarity measure once input and parameters have been set
   virtual void Initialize();
+
+  /// Release input target image
+  void ReleaseTarget();
+
+  /// Release input source image
+  void ReleaseSource();
 
   // ---------------------------------------------------------------------------
   // Parameters
