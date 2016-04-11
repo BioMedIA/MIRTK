@@ -282,6 +282,7 @@ ImageSimilarity::ImageSimilarity(const char *name, double weight)
   _GradientWrtTarget       (NULL),
   _GradientWrtSource       (NULL),
   _Gradient                (NULL),
+  _Mask                    (nullptr),
   _NumberOfVoxels          (0),
   _UseApproximateGradient  (false),
   _VoxelWisePreconditioning(.0),
@@ -305,6 +306,7 @@ ImageSimilarity::ImageSimilarity(const ImageSimilarity &other)
   _GradientWrtTarget       (NULL),
   _GradientWrtSource       (NULL),
   _Gradient                (NULL),
+  _Mask  (other._Mask),
   _NumberOfVoxels          (other._NumberOfVoxels),
   _UseApproximateGradient  (other._UseApproximateGradient),
   _VoxelWisePreconditioning(other._VoxelWisePreconditioning),
@@ -324,6 +326,7 @@ ImageSimilarity &ImageSimilarity::operator =(const ImageSimilarity &other)
   Deallocate(_Gradient);
   _Target = other._Target ? new RegisteredImage(*other._Target) : NULL;
   _Source = other._Source ? new RegisteredImage(*other._Source) : NULL;
+  _Mask   = other._Mask;
   _NumberOfVoxels           = other._NumberOfVoxels;
   _UseApproximateGradient   = other._UseApproximateGradient;
   _VoxelWisePreconditioning = other._VoxelWisePreconditioning;
