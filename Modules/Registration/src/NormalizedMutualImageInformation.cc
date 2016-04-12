@@ -126,7 +126,7 @@ using namespace NormalizedMutualImageInformationUtils;
 NormalizedMutualImageInformation
 ::NormalizedMutualImageInformation(const char *name)
 :
-  ProbabilisticImageSimilarity(name)
+  HistogramImageSimilarity(name)
 {
 }
 
@@ -134,7 +134,7 @@ NormalizedMutualImageInformation
 NormalizedMutualImageInformation
 ::NormalizedMutualImageInformation(const NormalizedMutualImageInformation &other)
 :
-  ProbabilisticImageSimilarity(other)
+  HistogramImageSimilarity(other)
 {
 }
 
@@ -156,7 +156,7 @@ double NormalizedMutualImageInformation::Evaluate()
 // -----------------------------------------------------------------------------
 double NormalizedMutualImageInformation::RawValue(double value) const
 {
-  return 2.0 - ProbabilisticImageSimilarity::RawValue(value);
+  return 2.0 - HistogramImageSimilarity::RawValue(value);
 }
 
 // -----------------------------------------------------------------------------

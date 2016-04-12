@@ -20,7 +20,7 @@
 #ifndef MIRTK_JointImageEntropy_H
 #define MIRTK_JointImageEntropy_H
 
-#include "mirtk/ProbabilisticImageSimilarity.h"
+#include "mirtk/HistogramImageSimilarity.h"
 
 
 namespace mirtk {
@@ -29,7 +29,7 @@ namespace mirtk {
 /**
  * Joint entropy image similarity measure
  */
-class JointImageEntropy : public ProbabilisticImageSimilarity
+class JointImageEntropy : public HistogramImageSimilarity
 {
   mirtkEnergyTermMacro(JointImageEntropy, EM_JE);
 

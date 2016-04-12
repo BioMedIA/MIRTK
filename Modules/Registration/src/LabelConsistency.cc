@@ -36,14 +36,14 @@ mirtkAutoRegisterEnergyTermMacro(LabelConsistency);
 // -----------------------------------------------------------------------------
 LabelConsistency::LabelConsistency(const char *name)
 :
-  ProbabilisticImageSimilarity(name)
+  HistogramImageSimilarity(name)
 {
 }
 
 // -----------------------------------------------------------------------------
 LabelConsistency::LabelConsistency(const LabelConsistency &other)
 :
-  ProbabilisticImageSimilarity(other)
+  HistogramImageSimilarity(other)
 {
 }
 
@@ -81,7 +81,7 @@ void LabelConsistency::Initialize()
   }
 
   // Initialize base class
-  ProbabilisticImageSimilarity::Initialize();
+  HistogramImageSimilarity::Initialize();
 }
 
 // =============================================================================

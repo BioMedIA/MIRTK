@@ -37,7 +37,7 @@ mirtkAutoRegisterEnergyTermMacro(IntensityCorrelationRatioXY);
 IntensityCorrelationRatioXY
 ::IntensityCorrelationRatioXY(const char *name)
 :
-  ProbabilisticImageSimilarity(name)
+  HistogramImageSimilarity(name)
 {
 }
 
@@ -45,7 +45,7 @@ IntensityCorrelationRatioXY
 IntensityCorrelationRatioXY
 ::IntensityCorrelationRatioXY(const IntensityCorrelationRatioXY &other)
 :
-  ProbabilisticImageSimilarity(other)
+  HistogramImageSimilarity(other)
 {
 }
 

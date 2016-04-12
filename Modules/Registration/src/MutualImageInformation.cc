@@ -37,7 +37,7 @@ mirtkAutoRegisterEnergyTermMacro(MutualImageInformation);
 MutualImageInformation
 ::MutualImageInformation(const char *name)
 :
-  ProbabilisticImageSimilarity(name)
+  HistogramImageSimilarity(name)
 {
 }
 
@@ -45,7 +45,7 @@ MutualImageInformation
 MutualImageInformation
 ::MutualImageInformation(const MutualImageInformation &other)
 :
-  ProbabilisticImageSimilarity(other)
+  HistogramImageSimilarity(other)
 {
 }
 
@@ -67,7 +67,7 @@ double MutualImageInformation::Evaluate()
 // -----------------------------------------------------------------------------
 double MutualImageInformation::RawValue(double value) const
 {
-  return -ProbabilisticImageSimilarity::RawValue(value);
+  return -HistogramImageSimilarity::RawValue(value);
 }
 
 

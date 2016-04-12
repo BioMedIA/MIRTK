@@ -31,6 +31,7 @@ set(HEADERS
   GenericRegistrationFilter.h
   GenericRegistrationLogger.h
   GradientFieldSimilarity.h
+  HistogramImageSimilarity.h
   ImageCovariance.h
   ImageSimilarity.h
   IntensityCorrelationRatioXY.h
@@ -43,7 +44,6 @@ set(HEADERS
   NormalizedIntensityCrossCorrelation.h
   NormalizedMutualImageInformation.h
   PeakSignalToNoiseRatio.h
-  ProbabilisticImageSimilarity.h
   Registration.h
   RegistrationEnergy.h
   RegistrationFilter.h
@@ -58,6 +58,7 @@ set(SOURCES
   GenericRegistrationFilter.cc
   GenericRegistrationLogger.cc
   GradientFieldSimilarity.cc
+  HistogramImageSimilarity.cc
   ImageCovariance.cc
   ImageSimilarity.cc
   IntensityCorrelationRatioXY.cc
@@ -70,7 +71,6 @@ set(SOURCES
   NormalizedIntensityCrossCorrelation.cc
   NormalizedMutualImageInformation.cc
   PeakSignalToNoiseRatio.cc
-  ProbabilisticImageSimilarity.cc
   RegistrationConfig.cc
   RegistrationEnergy.cc
   RegistrationEnergyParser.h

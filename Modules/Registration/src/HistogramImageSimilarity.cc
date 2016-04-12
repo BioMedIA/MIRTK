@@ -17,7 +17,7 @@
  * limitations under the License.
  */
 
-#include "mirtk/ProbabilisticImageSimilarity.h"
+#include "mirtk/HistogramImageSimilarity.h"
 
 #include "mirtk/Math.h"
 #include "mirtk/Deallocate.h"
@@ -32,21 +32,21 @@ namespace mirtk {
 // Auxiliary functor
 // =============================================================================
 
-namespace ProbabilisticImageSimilarityUtils {
+namespace HistogramImageSimilarityUtils {
 
 
 // -----------------------------------------------------------------------------
 /// Add samples to joint histogram (no rescaling required)
 class FillHistogram
 {
-  const ProbabilisticImageSimilarity               *_Similarity;
-  ProbabilisticImageSimilarity::JointHistogramType *_Histogram;
-  ProbabilisticImageSimilarity::JointHistogramType *_Output;
+  const HistogramImageSimilarity               *_Similarity;
+  HistogramImageSimilarity::JointHistogramType *_Histogram;
+  HistogramImageSimilarity::JointHistogramType *_Output;
 
 public:
 
-  FillHistogram(const ProbabilisticImageSimilarity               *sim,
-                ProbabilisticImageSimilarity::JointHistogramType *hist)
+  FillHistogram(const HistogramImageSimilarity               *sim,
+                HistogramImageSimilarity::JointHistogramType *hist)
   :
     _Similarity(sim), _Histogram(hist), _Output(hist)
   {}
@@ -59,7 +59,7 @@ public:
     _Output->GetMin  (&xmin,   &ymin);
     _Output->GetMax  (&xmax,   &ymax);
     _Output->GetWidth(&xwidth, &ywidth);
-    _Histogram = new ProbabilisticImageSimilarity::JointHistogramType(xmin, xmax, xwidth,
+    _Histogram = new HistogramImageSimilarity::JointHistogramType(xmin, xmax, xwidth,
                                                                       ymin, ymax, ywidth);
     if (_Histogram->NumberOfBinsX() != _Output->NumberOfBinsX() ||
         _Histogram->NumberOfBinsY() != _Output->NumberOfBinsY()) {
@@ -75,8 +75,8 @@ public:
   void join(const FillHistogram &rhs)
   {
     const int nbins = _Histogram->NumberOfBins();
-    ProbabilisticImageSimilarity::JointHistogramType::BinType *l = _Histogram->RawPointer();
-    ProbabilisticImageSimilarity::JointHistogramType::BinType *r = rhs._Histogram->RawPointer();
+    HistogramImageSimilarity::JointHistogramType::BinType *l = _Histogram->RawPointer();
+    HistogramImageSimilarity::JointHistogramType::BinType *r = rhs._Histogram->RawPointer();
     for (int i = 0; i < nbins; ++i, ++l, ++r) (*l) += (*r);
     _Histogram->NumberOfSamples(_Histogram->NumberOfSamples() + rhs._Histogram->NumberOfSamples());
   }
@@ -94,15 +94,15 @@ public:
 };
 
 
-} // namespace ProbabilisticImageSimilarityUtils
-using namespace ProbabilisticImageSimilarityUtils;
+} // namespace HistogramImageSimilarityUtils
+using namespace HistogramImageSimilarityUtils;
 
 // =============================================================================
 // Construction/Destruction
 // =============================================================================
 
 // -----------------------------------------------------------------------------
-ProbabilisticImageSimilarity::ProbabilisticImageSimilarity(const char *name, double weight)
+HistogramImageSimilarity::HistogramImageSimilarity(const char *name, double weight)
 :
   ImageSimilarity(name, weight),
   _Samples  (new JointHistogramType()), _SamplesOwner(true),
@@ -113,7 +113,7 @@ ProbabilisticImageSimilarity::ProbabilisticImageSimilarity(const char *name, dou
 }
 
 // -----------------------------------------------------------------------------
-void ProbabilisticImageSimilarity::CopyAttributes(const ProbabilisticImageSimilarity &other)
+void HistogramImageSimilarity::CopyAttributes(const HistogramImageSimilarity &other)
 {
   if (_SamplesOwner) delete _Samples;
   _Samples            = (other._SamplesOwner ? new JointHistogramType(*other._Samples) : other._Samples);
@@ -124,7 +124,7 @@ void ProbabilisticImageSimilarity::CopyAttributes(const ProbabilisticImageSimila
 }
 
 // -----------------------------------------------------------------------------
-ProbabilisticImageSimilarity::ProbabilisticImageSimilarity(const ProbabilisticImageSimilarity &other)
+HistogramImageSimilarity::HistogramImageSimilarity(const HistogramImageSimilarity &other)
 :
   ImageSimilarity(other),
   _Samples  (nullptr),
@@ -134,7 +134,7 @@ ProbabilisticImageSimilarity::ProbabilisticImageSimilarity(const ProbabilisticIm
 }
 
 // -----------------------------------------------------------------------------
-ProbabilisticImageSimilarity &ProbabilisticImageSimilarity::operator =(const ProbabilisticImageSimilarity &other)
+HistogramImageSimilarity &HistogramImageSimilarity::operator =(const HistogramImageSimilarity &other)
 {
   if (this != &other) {
     ImageSimilarity::operator =(other);
@@ -144,7 +144,7 @@ ProbabilisticImageSimilarity &ProbabilisticImageSimilarity::operator =(const Pro
 }
 
 // -----------------------------------------------------------------------------
-ProbabilisticImageSimilarity::~ProbabilisticImageSimilarity()
+HistogramImageSimilarity::~HistogramImageSimilarity()
 {
   if (_SamplesOwner) Delete(_Samples);
   Delete(_Histogram);
@@ -155,7 +155,7 @@ ProbabilisticImageSimilarity::~ProbabilisticImageSimilarity()
 // =============================================================================
 
 // -----------------------------------------------------------------------------
-bool ProbabilisticImageSimilarity::SetWithPrefix(const char *param, const char *value)
+bool HistogramImageSimilarity::SetWithPrefix(const char *param, const char *value)
 {
   if (strcmp(param, "No. of bins") == 0) {
     if (!FromString(value, _NumberOfTargetBins) && _NumberOfTargetBins < 1) return false;
@@ -172,7 +172,7 @@ bool ProbabilisticImageSimilarity::SetWithPrefix(const char *param, const char *
 }
 
 // -----------------------------------------------------------------------------
-ParameterList ProbabilisticImageSimilarity::Parameter() const
+ParameterList HistogramImageSimilarity::Parameter() const
 {
   ParameterList params = ImageSimilarity::Parameter();
   if (_NumberOfTargetBins == _NumberOfSourceBins) {
@@ -189,7 +189,7 @@ ParameterList ProbabilisticImageSimilarity::Parameter() const
 // =============================================================================
 
 // -----------------------------------------------------------------------------
-int ProbabilisticImageSimilarity
+int HistogramImageSimilarity
 ::DefaultNumberOfBins(const BaseImage *image, double min_intensity, double max_intensity)
 {
   if (IsNaN(min_intensity) || IsNaN(max_intensity)) {
@@ -206,7 +206,7 @@ int ProbabilisticImageSimilarity
 }
 
 // -----------------------------------------------------------------------------
-void ProbabilisticImageSimilarity::Initialize()
+void HistogramImageSimilarity::Initialize()
 {
   // Initialize base class
   ImageSimilarity::Initialize();
@@ -259,7 +259,7 @@ void ProbabilisticImageSimilarity::Initialize()
 }
 
 // -----------------------------------------------------------------------------
-void ProbabilisticImageSimilarity::Update(bool gradient)
+void HistogramImageSimilarity::Update(bool gradient)
 {
   // Update base class and moving image(s)
   ImageSimilarity::Update(gradient);
@@ -286,7 +286,7 @@ void ProbabilisticImageSimilarity::Update(bool gradient)
 }
 
 // -----------------------------------------------------------------------------
-void ProbabilisticImageSimilarity::Exclude(const blocked_range3d<int> &region)
+void HistogramImageSimilarity::Exclude(const blocked_range3d<int> &region)
 {
   for (int k = region.pages().begin(); k < region.pages().end(); ++k)
   for (int j = region.rows ().begin(); j < region.rows ().end(); ++j)
@@ -299,7 +299,7 @@ void ProbabilisticImageSimilarity::Exclude(const blocked_range3d<int> &region)
 }
 
 // -----------------------------------------------------------------------------
-void ProbabilisticImageSimilarity::Include(const blocked_range3d<int> &region)
+void HistogramImageSimilarity::Include(const blocked_range3d<int> &region)
 {
   bool changed = false;
   for (int k = region.pages().begin(); k < region.pages().end(); ++k)
@@ -322,7 +322,7 @@ void ProbabilisticImageSimilarity::Include(const blocked_range3d<int> &region)
 // =============================================================================
 
 // -----------------------------------------------------------------------------
-void ProbabilisticImageSimilarity::Print(Indent indent) const
+void HistogramImageSimilarity::Print(Indent indent) const
 {
   ImageSimilarity::Print(indent);
 
@@ -340,7 +340,7 @@ void ProbabilisticImageSimilarity::Print(Indent indent) const
 }
 
 // -----------------------------------------------------------------------------
-void ProbabilisticImageSimilarity::WriteDataSets(const char *p, const char *suffix, bool all) const
+void HistogramImageSimilarity::WriteDataSets(const char *p, const char *suffix, bool all) const
 {
   ImageSimilarity::WriteDataSets(p, suffix, all);
 

@@ -20,7 +20,7 @@
 #ifndef MIRTK_NormalizedMutualImageInformation_H
 #define MIRTK_NormalizedMutualImageInformation_H
 
-#include "mirtk/ProbabilisticImageSimilarity.h"
+#include "mirtk/HistogramImageSimilarity.h"
 
 
 namespace mirtk {
@@ -29,7 +29,7 @@ namespace mirtk {
 /**
  * Normalized mutual information image similarity measure
  */
-class NormalizedMutualImageInformation : public ProbabilisticImageSimilarity
+class NormalizedMutualImageInformation : public HistogramImageSimilarity
 {
   mirtkEnergyTermMacro(NormalizedMutualImageInformation, EM_NMI);
 

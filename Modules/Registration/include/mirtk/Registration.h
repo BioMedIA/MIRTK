@@ -25,7 +25,7 @@
 // Base classes
 #include "mirtk/DataFidelity.h"
 #include "mirtk/ImageSimilarity.h"
-#include "mirtk/ProbabilisticImageSimilarity.h"
+#include "mirtk/HistogramImageSimilarity.h"
 #include "mirtk/GradientFieldSimilarity.h"
 
 #if MIRTK_Registration_WITH_PointSet

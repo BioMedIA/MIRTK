@@ -20,7 +20,7 @@
 #ifndef MIRTK_LabelConsistency_H
 #define MIRTK_LabelConsistency_H
 
-#include "mirtk/ProbabilisticImageSimilarity.h"
+#include "mirtk/HistogramImageSimilarity.h"
 
 
 namespace mirtk {
@@ -29,7 +29,7 @@ namespace mirtk {
 /**
  * Label consistency image similarity measure
  */
-class LabelConsistency : public ProbabilisticImageSimilarity
+class LabelConsistency : public HistogramImageSimilarity
 {
   mirtkEnergyTermMacro(LabelConsistency, EM_LC);
 
