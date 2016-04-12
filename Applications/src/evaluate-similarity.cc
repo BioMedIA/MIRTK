@@ -24,8 +24,11 @@
 #include "mirtk/GenericImage.h"
 #include "mirtk/Transformation.h"
 #include "mirtk/RegisteredImage.h"
+#include "mirtk/EnergyMeasure.h"
 #include "mirtk/SimilarityMeasure.h"
 #include "mirtk/ImageSimilarity.h"
+#include "mirtk/ProbabilisticImageSimilarity.h"
+#include "mirtk/NearestNeighborInterpolateImageFunction.h"
 
 using namespace mirtk;
 
@@ -57,11 +60,25 @@ void PrintHelp(const char *name)
   cout << "  source   Source image.\n";
   cout << "\n";
   cout << "Optional arguments:\n";
+  cout << "  -mask <file>       Target image region of interest mask. (default: :option:`-Tp`)\n";
   cout << "  -dofin <file>      Source image transformation. (default: Id)\n";
   cout << "  -interp <mode>     Interpolation mode. (default: linear with padding)\n";
-  cout << "  -metric <sim>...   Image (dis-)similarity measure(s). (default: SSD, CC, MI, NMI)\n";
+  cout << "  -metric <sim>...   Image (dis-)similarity measure(s):\n";
+  cout << "                     ";
+  EnergyMeasure m = static_cast<EnergyMeasure>(SIM_Begin + 1);
+  while (m < SIM_End) {
+    if (m > SIM_Begin + 1) cout << ", ";
+    cout << ToString(m);
+    m = static_cast<EnergyMeasure>(m + 1);
+  }
+  cout << "\n                     (default: SSD, CoVar, CC, JE, MI, NMI, CR_XY, CR_YX)\n";
+  cout << "  -p, -padding <value>   Common image background value/threshold. (default: NaN)\n";
   cout << "  -Tp <value>        Target image background value/threshold. (default: NaN)\n";
   cout << "  -Sp <value>        Source image background value/threshold. (default: NaN)\n";
+  cout << "  -bins <int>        Number of histogram bins.        (default: min(dynamic range, 255))\n";
+  cout << "  -Tbins <int>       Number of target histogram bins. (default: min(dynamic range, 255))\n";
+  cout << "  -Sbins <int>       Number of source histogram bins. (default: min(dynamic range, 255))\n";
+  cout << "  -parzen            Smooth histogram samples using cubic B-spline Parzen window. (default: off)\n";
   cout << "  -Rx1 <int>         Leftmost  target voxel index along x axis.\n";
   cout << "  -Rx2 <int>         Rightmost target voxel index along x axis.\n";
   cout << "  -Ry1 <int>         Leftmost  target voxel index along y axis.\n";
@@ -83,12 +100,27 @@ void PrintHelp(const char *name)
 }
 
 // =============================================================================
+// Auxiliary functions
+// =============================================================================
+
+// -----------------------------------------------------------------------------
+int DefaultNumberOfBins(const BaseImage *, double min_intensity, double max_intensity)
+{
+  int nbins = iround(max_intensity - min_intensity) + 1;
+  if (nbins > 256) nbins = 256;
+  return nbins;
+}
+
+// =============================================================================
 // Main
 // =============================================================================
 
 // -----------------------------------------------------------------------------
 int main(int argc, char **argv)
 {
+  typedef ProbabilisticImageSimilarity::JointHistogramType JointHistogram;
+  typedef RegisteredImage::VoxelType                       VoxelType;
+
   // Check command line
   REQUIRES_POSARGS(2);
 
@@ -104,9 +136,13 @@ int main(int argc, char **argv)
   // Parse optional arguments
   Array<SimilarityMeasure> metric;
   InterpolationMode interp   = Interpolation_LinearWithPadding;
+  const char *mask_name      = nullptr;
   const char *dofin_name     = nullptr;
   double      target_padding = numeric_limits<double>::quiet_NaN();
   double      source_padding = numeric_limits<double>::quiet_NaN();
+  int         target_bins    = 0;
+  int         source_bins    = 0;
+  bool        parzen_window  = false;
   bool        full_path_id   = false;
   bool        no_image_id    = false;
   int         digits         = 5;
@@ -117,9 +153,23 @@ int main(int argc, char **argv)
 
   for (ALL_OPTIONS) {
     if      (OPTION("-dofin")) dofin_name = ARGUMENT;
+    else if (OPTION("-mask"))  mask_name  = ARGUMENT;
     else if (OPTION("-interp")) PARSE_ARGUMENT(interp);
     else if (OPTION("-Tp")) PARSE_ARGUMENT(target_padding);
     else if (OPTION("-Sp")) PARSE_ARGUMENT(source_padding);
+    else if (OPTION("-padding") || OPTION("-p")) {
+      PARSE_ARGUMENT(target_padding);
+      source_padding = target_padding;
+    }
+    else if (OPTION("-tbins") || OPTION("-Tbins")) PARSE_ARGUMENT(target_bins);
+    else if (OPTION("-sbins") || OPTION("-Sbins")) PARSE_ARGUMENT(target_bins);
+    else if (OPTION("-bins")) {
+      PARSE_ARGUMENT(target_bins);
+      source_bins = target_bins;
+    }
+    else if (OPTION("-parzen") || OPTION("-parzen-window") || OPTION("-smooth-histogram")) {
+      parzen_window = true;
+    }
     else if (OPTION("-metric")) {
       do {
         SimilarityMeasure m;
@@ -153,14 +203,24 @@ int main(int argc, char **argv)
   }
 
   if (metric.empty()) {
-    metric.reserve(4);
+    metric.reserve(8);
     metric.push_back(SIM_SSD);
+    metric.push_back(SIM_CoVar);
     metric.push_back(SIM_CC);
+    metric.push_back(SIM_JE);
     metric.push_back(SIM_MI);
     metric.push_back(SIM_NMI);
+    metric.push_back(SIM_CR_XY);
+    metric.push_back(SIM_CR_YX);
   }
 
-  if (delim.empty()) {
+  int width = 22;
+  if (verbose > 0) {
+    delim = '\n';
+    for (size_t i = 0; i < metric.size(); ++i) {
+      width = max(width, static_cast<int>(ToPrettyString(metric[i]).length()));
+    }
+  } else if (delim.empty()) {
     delim = ',';
     if (verbose >= 0) delim += ' ';
   }
@@ -181,10 +241,10 @@ int main(int argc, char **argv)
 
   // Read target image
   target_image.Read(target_name);
-  if (target_image.T() > 1) {
-    FatalError("Target image must be 2D or 3D image!");
-  }
   target_image.PutBackgroundValueAsDouble(target_padding, true);
+  if (target_image.T() > 1) {
+    FatalError("Target image must be a 2D or 3D image!");
+  }
 
   // Read input transformation
   unique_ptr<Transformation> dofin;
@@ -215,13 +275,88 @@ int main(int argc, char **argv)
   target_region._yorigin = y1 - y2;
   target_region._zorigin = z1 - z2;
 
-  // Initialize (transformed) images
+  const int nvox = target_region.NumberOfPoints();
+
+  // Initializ (transformed) images
   target.Initialize(target_region);
   source.Initialize(target_region);
 
-  target.Update();
+  target.PutBackgroundValueAsDouble(target_padding);
+  source.PutBackgroundValueAsDouble(source_padding);
+
+  target.Recompute();
+
+  // Target region of interest and image overlap masks
+  BinaryImage mask(target_region), overlap(target_region);
+
+  if (mask_name) {
+    BinaryImage input_mask(mask_name);
+    if (input_mask.T() > 1) {
+      FatalError("Mask image must be a 2D or 3D scalar image!");
+    }
+    if (input_mask.HasSpatialAttributesOf(&target)) {
+      mask.CopyFrom(input_mask);
+    } else {
+      GenericNearestNeighborInterpolateImageFunction<BinaryImage> nn;
+      nn.Input(&input_mask);
+      nn.Initialize();
+      double x, y, z;
+      for (int k = 0; k < target.Z(); ++k)
+      for (int j = 0; j < target.Y(); ++j)
+      for (int i = 0; i < target.X(); ++i) {
+        x = i, y = j, z = k;
+        target.ImageToWorld(x, y, z);
+        mask(i, j, k) = nn.Evaluate(x, y, z);
+      }
+    }
+  } else {
+    const VoxelType *tgt = target.Data();
+    if (IsNaN(target_padding)) {
+      for (int idx = 0; idx < nvox; ++idx, ++tgt) {
+        mask(idx) = (IsNaN(*tgt) ? 0 : 1);
+      }
+    } else {
+      for (int idx = 0; idx < nvox; ++idx, ++tgt) {
+        mask(idx) = (*tgt > target_padding ? 1 : 0);
+      }
+    }
+  }
+
+  target.PutMask(&mask);
+
+  // Target intensity range in region of interest
+  double tmin, tmax;
+  target_image.GetMinMaxAsDouble(tmin, tmax);
+  if (fequal(tmin, tmax)) {
+    FatalError("Target image has homogeneous intensity = " << tmin);
+  }
+
+  // Initialize similarity measures
+  Array<unique_ptr<ImageSimilarity> > sim(metric.size());
+  bool use_shared_histogram = false;
+  JointHistogram samples;
+
+  for (size_t i = 0; i < metric.size(); ++i) {
+    sim[i].reset(ImageSimilarity::New(metric[i], ToString(metric[i]).c_str(), 1.0));
+    sim[i]->Target(&target);
+    sim[i]->Source(&source);
+    sim[i]->Mask(&overlap);
+    sim[i]->Domain(target_region);
+    sim[i]->DivideByInitialValue(false);
+    sim[i]->SkipTargetInitialization(true);
+    sim[i]->SkipSourceInitialization(true);
+    ProbabilisticImageSimilarity *p;
+    p = dynamic_cast<ProbabilisticImageSimilarity *>(sim[i].get());
+    if (p != nullptr) {
+      p->Samples(&samples);
+      p->UseParzenWindow(parzen_window);
+      use_shared_histogram = true;
+    }
+  }
 
   // Print table header
+  const string target_id = (full_path_id ? target_name : FileName(target_name));
+
   if (verbose < 0) {
     if (!no_image_id) {
       cout << "Target" << delim << "Source" << delim;
@@ -234,38 +369,88 @@ int main(int argc, char **argv)
   }
 
   // Evaluate similarity of (transformed) source image(s)
-  const string target_id = (full_path_id ? target_name : FileName(target_name));
   for (size_t n = 0; n < source_name.size(); ++n) {
 
     // Print image IDs
-    if (!no_image_id) {
-      if (verbose >= 0) cout << "Target = ";
+    const string source_id = (full_path_id ? source_name[n] : FileName(source_name[n]));
+
+    if (verbose > 0) {
+      if (n > 0) cout << "\n";
+      cout << "Similarity of " << target_id << " and " << source_id << ":\n";
+    } else if (!no_image_id) {
+      if (verbose == 0) cout << "Target = ";
       cout << target_id << delim;
-      if (verbose >= 0) cout << "Source = ";
-      cout << (full_path_id ? source_name[n] : FileName(source_name[n]));
+      if (verbose == 0) cout << "Source = ";
+      cout << source_id;
     }
+    cout.flush();
+
+    const Indent indent(verbose > 0 ? 1 : 0);
 
     // Read source image
     source_image.Read(source_name[n]);
     source_image.PutBackgroundValueAsDouble(source_padding, true);
-    source.Update();
+    source.Recompute();
 
-    // Compute similarity measure(s)
-    for (size_t i = 0; i < metric.size(); ++i) {
+    // Compute overlap mask
+    overlap = mask;
+    for (int idx = 0; idx < nvox; ++idx) {
+      overlap(idx) = (overlap(idx) && source.IsForeground(idx) ? 1 : 0);
+    }
+
+    // Fill joint histogram
+    if (use_shared_histogram) {
+      double smin, smax;
+      source_image.GetMinMaxAsDouble(smin, smax);
+      if (fequal(smin, smax)) {
+        FatalError("Source image has homogeneous intensity = " << smin);
+      }
+      int tbins = target_bins, sbins = source_bins;
+      if (tbins <= 0) tbins = DefaultNumberOfBins(&target_image, tmin, tmax);
+      if (sbins <= 0) sbins = DefaultNumberOfBins(&source_image, smin, smax);
+      double twidth = (tmax - tmin) / tbins;
+      double swidth = (smax - smin) / sbins;
+      samples.Initialize(tmin, tmax, twidth, smin, smax, swidth);
+      const VoxelType *tgt = target.Data();
+      const VoxelType *src = source.Data();
+      for (int idx = 0; idx < nvox; ++idx, ++tgt, ++src) {
+        if (mask(idx)) {
+          samples.Add(samples.ValToBinX(*tgt), samples.ValToBinY(*src));
+        }
+      }
+      if (verbose > 0) {
+        cout.precision(digits);
+        #define Print(name, value) \
+          cout << delim << indent << ToString(name, width, ' ', true) << " = " << value
+        Print("No. of samples",         samples.NumberOfSamples());
+        Print("No. of histogram bins",  samples.NumberOfBinsX() << " x " << samples.NumberOfBinsY());
+        Print("Size of histogram bins", samples.WidthX() << " x " << samples.WidthY());
+        Print("Mean target intensity",  samples.MeanX());
+        Print("Mean source intensity",  samples.MeanY());
+        Print("Target image range", "[" << samples.MinX() << ", " << samples.MaxX() << "]");
+        Print("Source image range", "[" << samples.MinY() << ", " << samples.MaxY() << "]");
+        Print("Target image variance",  samples.VarianceX());
+        Print("Source image variance",  samples.VarianceY());
+        Print("Target image entropy",   samples.EntropyX());
+        Print("Source image entropy",   samples.EntropyY());
+        #undef Print
+        cout.flush();
+      }
+    }
+
+    // Evaluate similarity measure(s)
+    for (size_t i = 0; i < sim.size(); ++i) {
       cout << delim;
-      if (verbose >= 0) cout << ToString(metric[i]) << " = ";
-      unique_ptr<ImageSimilarity> sim(ImageSimilarity::New(metric[i]));
-      sim->Target(&target);
-      sim->Source(&source);
-      sim->Domain(target_region);
-      sim->DivideByInitialValue(false);
-      sim->SkipTargetInitialization(true);
-      sim->SkipSourceInitialization(true);
-      sim->Initialize();
-      sim->Update(false);
-      cout << setprecision(digits) << sim->RawValue();
-      sim->ReleaseTarget();
-      sim->ReleaseSource();
+      if (verbose > 0) {
+        cout << indent << ToPrettyString(metric[i], width, ' ', true) << " = ";
+      } else if (verbose == 0) {
+        cout << sim[i]->Name() << " = ";
+      }
+      if (verbose > 0) cout.flush();
+      sim[i]->Initialize();
+      sim[i]->Update();
+      cout << setprecision(digits) << sim[i]->RawValue();
+      if (verbose > 0) cout.flush();
     }
 
     cout << endl;
