@@ -31,8 +31,13 @@ set(HEADERS
   GenericRegistrationFilter.h
   GenericRegistrationLogger.h
   GradientFieldSimilarity.h
+  ImageCovariance.h
   ImageSimilarity.h
+  IntensityCorrelationRatioXY.h
+  IntensityCorrelationRatioYX.h
   IntensityCrossCorrelation.h
+  JointImageEntropy.h
+  LabelConsistency.h
   MutualImageInformation.h
   NormalizedGradientFieldSimilarity.h
   NormalizedIntensityCrossCorrelation.h
@@ -52,8 +57,13 @@ set(SOURCES
   GenericRegistrationFilter.cc
   GenericRegistrationLogger.cc
   GradientFieldSimilarity.cc
+  ImageCovariance.cc
   ImageSimilarity.cc
+  IntensityCorrelationRatioXY.cc
+  IntensityCorrelationRatioYX.cc
   IntensityCrossCorrelation.cc
+  JointImageEntropy.cc
+  LabelConsistency.cc
   MutualImageInformation.cc
   NormalizedGradientFieldSimilarity.cc
   NormalizedIntensityCrossCorrelation.cc

@@ -43,11 +43,12 @@ enum EnergyMeasure
     EM_SSD,                     ///< Sum of squared differences
     EM_CR_XY,                   ///< Correlation ratio
     EM_CR_YX,                   ///< Correlation ratio
-    EM_LC,
-    EM_K,
+    EM_LC,                      ///< Label consistency
+    EM_K,                       ///< Kappa statistic
     EM_ML,
     EM_NGF_COS,                 ///< Cosine of normalzed gradient field
     EM_LNCC,                    ///< Normalized/Local cross-correlation
+    EM_CoVar,                   ///< Covariance
 
   SIM_End,
   // ---------------------------------------------------------------------------
@@ -125,6 +126,7 @@ inline string ToString(const EnergyMeasure &value, int w, char c, bool left)
     case EM_ML:      str = "ML"; break;
     case EM_NGF_COS: str = "NGF_COS"; break;
     case EM_LNCC:    str = "LNCC"; break;
+    case EM_CoVar:   str = "CoVar"; break;
 
     // ---------------------------------------------------------------------------
     // Point set distance measures
@@ -166,6 +168,72 @@ inline string ToString(const EnergyMeasure &value, int w, char c, bool left)
     // ---------------------------------------------------------------------------
     // Unknown/invalid enumeration value
     default: str = "Unknown";
+  }
+  return ToString(str, w, c, left);
+}
+
+// -----------------------------------------------------------------------------
+/// Convert energy measure enumeration value to human-friendly descriptive string
+inline string ToPrettyString(const EnergyMeasure &value, int w = 0, char c = ' ', bool left = true)
+{
+  const char *str;
+  switch (value) {
+    // ---------------------------------------------------------------------------
+    // Image (dis-)similarity measures
+    case EM_JE:      str = "Joint entropy"; break;
+    case EM_CC:      str = "Cross-correlation"; break;
+    case EM_MI:      str = "Mutual information"; break;
+    case EM_NMI:     str = "Normalized mutual information"; break;
+    case EM_SSD:     str = "Sum of squared differences"; break;
+    case EM_CR_XY:   str = "Correlation ratio C(X|Y)"; break;
+    case EM_CR_YX:   str = "Correlation ratio C(Y|X)"; break;
+    case EM_LC:      str = "Label consistency"; break;
+    case EM_K:       str = "Kappa statistic"; break;
+    case EM_ML:      str = "ML"; break;
+    case EM_NGF_COS: str = "Cosine of normalized gradient field"; break;
+    case EM_LNCC:    str = "Local normalized cross-correlation"; break;
+    case EM_CoVar:   str = "Covariance"; break;
+
+    // ---------------------------------------------------------------------------
+    // Point set distance measures
+    case EM_FRE:                    str = "Fiducial registration error"; break;
+    case EM_CorrespondenceDistance: str = "Point correspondence distance"; break;
+    case EM_CurrentsDistance:       str = "Currents distance"; break;
+    case EM_VarifoldDistance:       str = "Varifold distance"; break;
+
+    // ---------------------------------------------------------------------------
+    // External point set forces
+    case EM_BalloonForce:               str = "Balloon force"; break;
+    case EM_ImageEdgeForce:             str = "Image edge force"; break;
+    case EM_ImplicitSurfaceDistance:    str = "Implicit surface distance"; break;
+    case EM_ImplicitSurfaceSpringForce: str = "Implicit surface spring force"; break;
+
+    // ---------------------------------------------------------------------------
+    // Internal point set forces
+    case EM_MetricDistortion:    str = "Metric distortion"; break;
+    case EM_Stretching:          str = "Stretching"; break;
+    case EM_Curvature:           str = "Curvature"; break;
+    case EM_QuadraticCurvature:  str = "Quadratic curvature"; break;
+    case EM_NonSelfIntersection: str = "Non-self intersection"; break;
+    case EM_RepulsiveForce:      str = "Repulsion"; break;
+    case EM_InflationForce:      str = "Inflation"; break;
+    case EM_SpringForce:         str = "Spring"; break;
+
+    // -------------------------------------------------------------------------
+    // Transformation constraints
+    case EM_BendingEnergy:        str = "Bending energy"; break;
+    case EM_VolumePreservation:   str = "Volume preservation"; break;
+    case EM_TopologyPreservation: str = "Topology preservation"; break;
+    case EM_Sparsity:             str = "Sparsity constraint"; break;
+    case EM_L0Norm:               str = "l0 norm"; break;
+    case EM_L1Norm:               str = "l1 norm"; break;
+    case EM_L2Norm:               str = "l2 norm"; break;
+    case EM_SqLogDetJac:          str = "Squared logarithm of Jacobian determinant"; break;
+    case EM_MinDetJac:            str = "Minimum Jacobian determinant"; break;
+
+    // ---------------------------------------------------------------------------
+    // Unknown/invalid enumeration value
+    default: str = "Unknown energy term";
   }
   return ToString(str, w, c, left);
 }
