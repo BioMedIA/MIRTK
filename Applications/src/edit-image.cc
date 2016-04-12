@@ -96,40 +96,40 @@ int main(int argc, char *argv[])
   unique_ptr<BaseImage> image(BaseImage::New(input_name));
 
   double origin[4];
-  double xsize, ysize, zsize;
+  double xsize, ysize, zsize, tsize;
   double xaxis[3], yaxis[3], zaxis[3];
 
   for (ALL_OPTIONS) {
     if (OPTION("-size")) {
-      xsize = atof(ARGUMENT);
-      ysize = atof(ARGUMENT);
-      zsize = atof(ARGUMENT);
+      PARSE_ARGUMENT(xsize);
+      PARSE_ARGUMENT(ysize);
+      PARSE_ARGUMENT(zsize);
       image->PutPixelSize(xsize, ysize, zsize);
     }
     else if (OPTION("-tsize")) {
-      image->PutTSize(atof(ARGUMENT));
+      PARSE_ARGUMENT(tsize);
+      image->PutTSize(tsize);
     }
     else if (OPTION("-origin")) {
-      origin[0] = atof(argv[1]);
-      origin[1] = atof(argv[1]);
-      origin[2] = atof(argv[1]);
+      PARSE_ARGUMENT(origin[0]);
+      PARSE_ARGUMENT(origin[1]);
+      PARSE_ARGUMENT(origin[2]);
       image->PutOrigin(origin[0], origin[1], origin[2]);
     }
     else if (OPTION("-torigin")) {
-      origin[3] = atof(argv[1]);
-      image->GetOrigin(origin[0], origin[1], origin[2]);
-      image->PutOrigin(origin[0], origin[1], origin[2], origin[3]);
+      PARSE_ARGUMENT(origin[3]);
+      image->PutTOrigin(origin[3]);
     }
     else if (OPTION("-orientation")) {
-      xaxis[0] = atof(argv[1]);
-      xaxis[1] = atof(argv[1]);
-      xaxis[2] = atof(argv[1]);
-      yaxis[0] = atof(argv[1]);
-      yaxis[1] = atof(argv[1]);
-      yaxis[2] = atof(argv[1]);
-      zaxis[0] = atof(argv[1]);
-      zaxis[1] = atof(argv[1]);
-      zaxis[2] = atof(argv[1]);
+      PARSE_ARGUMENT(xaxis[0]);
+      PARSE_ARGUMENT(xaxis[1]);
+      PARSE_ARGUMENT(xaxis[2]);
+      PARSE_ARGUMENT(yaxis[0]);
+      PARSE_ARGUMENT(yaxis[1]);
+      PARSE_ARGUMENT(yaxis[2]);
+      PARSE_ARGUMENT(zaxis[0]);
+      PARSE_ARGUMENT(zaxis[1]);
+      PARSE_ARGUMENT(zaxis[2]);
       image->PutOrientation(xaxis, yaxis, zaxis);
     }
     else if (OPTION("-copy-size")) {
@@ -139,8 +139,8 @@ int main(int argc, char *argv[])
     }
     else if (OPTION("-copy-origin")) {
       GreyImage target(ARGUMENT);
-      target.GetOrigin(origin[0], origin[1], origin[2]);
-      image->PutOrigin(origin[0], origin[1], origin[2]);
+      target.GetOrigin(origin[0], origin[1], origin[2], origin[3]);
+      image->PutOrigin(origin[0], origin[1], origin[2], origin[3]);
     }
     else if (OPTION("-copy-orientation")) {
       GreyImage target(ARGUMENT);
@@ -149,8 +149,8 @@ int main(int argc, char *argv[])
     }
     else if (OPTION("-copy-origin-orientation")) {
       GreyImage target(ARGUMENT);
-      target.GetOrigin(origin[0], origin[1], origin[2]);
-      image->PutOrigin(origin[0], origin[1], origin[2]);
+      target.GetOrigin(origin[0], origin[1], origin[2], origin[3]);
+      image->PutOrigin(origin[0], origin[1], origin[2], origin[3]);
       target.GetOrientation(xaxis, yaxis, zaxis);
       image->PutOrientation(xaxis, yaxis, zaxis);
     }
@@ -160,8 +160,8 @@ int main(int argc, char *argv[])
       image->PutPixelSize(xsize, ysize, zsize);
       target.GetOrientation(xaxis, yaxis, zaxis);
       image->PutOrientation(xaxis, yaxis, zaxis);
-      target.GetOrigin(origin[0], origin[1], origin[2]);
-      image->PutOrigin(origin[0], origin[1], origin[2]);
+      target.GetOrigin(origin[0], origin[1], origin[2], origin[3]);
+      image->PutOrigin(origin[0], origin[1], origin[2], origin[3]);
     }
     #ifdef HAVE_MIRTK_Transformation
     else if (OPTION("-dofin") || OPTION("-dofin_i") || OPTION("-putdof") || OPTION("-putdof_i")) {
