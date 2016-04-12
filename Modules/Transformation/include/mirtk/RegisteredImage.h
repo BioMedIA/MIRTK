@@ -223,10 +223,11 @@ public:
 
   /// Update image intensity and transformed derivatives
   ///
-  /// This function only updates the first intensity channel within the image
+  /// This function updates the requested output image channels only within the
   /// specified image region. If the image is not transformed or only warped by
-  /// a fixed transformation, this function does nothing. Use \c force=true to
-  /// initialize this image even if does not change over the course of the registration.
+  /// a fixed transformation, this function does nothing. Set \c force to \c true
+  /// to initialize this image even if it does not change over the course of the
+  /// registration or use the corresponding Recompute function.
   ///
   /// \param[in] region    Image region to update.
   /// \param[in] intensity Request update of scalar intensities.
@@ -262,6 +263,26 @@ public:
   /// \param[in] force     Force update in any case.
   void Update(bool intensity = true, bool gradient = false, bool hessian = false,
               bool force     = false);
+
+  /// Force update of all output channels
+  ///
+  /// This convenience function always recomputes all output channels within
+  /// the specified image region. To do so, it calls the Update function with
+  /// \c force set to \c true. It is commonly used after Initialize in an
+  /// application where the input image and transformation are not being modified
+  /// or when the SelfUpdate of the image has been disabled to explicitly
+  /// recompute the image content after the input was modified.
+  void Recompute(const blocked_range3d<int> &region);
+
+  /// Force update of all output channels
+  ///
+  /// This convenience function always recomputes all output channels.
+  /// To do so, it calls the Update function with \c force set to \c true.
+  /// It is commonly used after Initialize in an application where the
+  /// input image and transformation are not being modified or when the
+  /// SelfUpdate of the image has been disabled to explicitly recompute
+  /// the image content after the input was modified.
+  void Recompute();
 
 private:
 

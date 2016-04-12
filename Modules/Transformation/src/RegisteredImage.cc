@@ -229,7 +229,9 @@ void RegisteredImage::Initialize(const ImageAttributes &attr, int t)
   // Attention: Initialization of actual image content must be forced upon first
   //            Update call. This is initiated by the ImageSimilarity::Update
   //            function which in turn is called before the first energy gradient
-  //            evaluation (see GradientDescent::Gradient).
+  //            evaluation (see GradientDescent::Gradient). Applications can
+  //            call the Recompute function after Initialize to complete the
+  //            initialization of the image.
 
   MIRTK_DEBUG_TIMING(4, "initialization of " << (_Transformation ? "moving" : "fixed") << " image");
 }
@@ -1310,6 +1312,22 @@ void RegisteredImage::Update(const blocked_range3d<int>  &region,
   // Reset pointers to own displacement fields
   _Displacement      = _disp;
   _FixedDisplacement = _fixed;
+}
+
+// -----------------------------------------------------------------------------
+void RegisteredImage::Recompute(const blocked_range3d<int> &region)
+{
+  const bool update_intensity = true;
+  const bool update_gradient  = true;
+  const bool update_hessian   = true;
+  const bool force_update     = true;
+  this->Update(region, update_intensity, update_gradient, update_hessian, force_update);
+}
+
+// -----------------------------------------------------------------------------
+void RegisteredImage::Recompute()
+{
+  this->Recompute(blocked_range3d<int>(0, Z(), 0, Y(), 0, X()));
 }
 
 
