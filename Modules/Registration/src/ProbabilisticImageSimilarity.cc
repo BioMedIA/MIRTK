@@ -105,39 +105,48 @@ using namespace ProbabilisticImageSimilarityUtils;
 ProbabilisticImageSimilarity::ProbabilisticImageSimilarity(const char *name, double weight)
 :
   ImageSimilarity(name, weight),
-  _Samples           (NULL),
-  _Histogram         (NULL),
+  _Samples  (new JointHistogramType()), _SamplesOwner(true),
+  _Histogram(nullptr),
   _NumberOfTargetBins(0),
   _NumberOfSourceBins(0)
 {
 }
 
 // -----------------------------------------------------------------------------
+void ProbabilisticImageSimilarity::CopyAttributes(const ProbabilisticImageSimilarity &other)
+{
+  if (_SamplesOwner) delete _Samples;
+  _Samples            = (other._SamplesOwner ? new JointHistogramType(*other._Samples) : other._Samples);
+  _SamplesOwner       = other._SamplesOwner;
+  _Histogram          = other._Histogram ? new JointHistogramType(*other._Histogram) : nullptr;
+  _NumberOfTargetBins = other._NumberOfTargetBins;
+  _NumberOfSourceBins = other._NumberOfSourceBins;
+}
+
+// -----------------------------------------------------------------------------
 ProbabilisticImageSimilarity::ProbabilisticImageSimilarity(const ProbabilisticImageSimilarity &other)
 :
   ImageSimilarity(other),
-  _Samples           (other._Samples   ? new JointHistogramType(*other._Samples)   : NULL),
-  _Histogram         (other._Histogram ? new JointHistogramType(*other._Histogram) : NULL),
-  _NumberOfTargetBins(other._NumberOfTargetBins),
-  _NumberOfSourceBins(other._NumberOfSourceBins)
+  _Samples  (nullptr),
+  _Histogram(nullptr)
 {
+  CopyAttributes(other);
 }
 
 // -----------------------------------------------------------------------------
 ProbabilisticImageSimilarity &ProbabilisticImageSimilarity::operator =(const ProbabilisticImageSimilarity &other)
 {
-  ImageSimilarity::operator =(other);
-  _Samples            = other._Samples   ? new JointHistogramType(*other._Samples)   : NULL;
-  _Histogram          = other._Histogram ? new JointHistogramType(*other._Histogram) : NULL;
-  _NumberOfTargetBins = other._NumberOfTargetBins;
-  _NumberOfSourceBins = other._NumberOfSourceBins;
+  if (this != &other) {
+    ImageSimilarity::operator =(other);
+    CopyAttributes(other);
+  }
   return *this;
 }
 
 // -----------------------------------------------------------------------------
 ProbabilisticImageSimilarity::~ProbabilisticImageSimilarity()
 {
-  Delete(_Samples);
+  if (_SamplesOwner) Delete(_Samples);
   Delete(_Histogram);
 }
 
@@ -180,8 +189,15 @@ ParameterList ProbabilisticImageSimilarity::Parameter() const
 // =============================================================================
 
 // -----------------------------------------------------------------------------
-int DefaultNumberOfBins(const Image *image, double min_intensity, double max_intensity)
+int ProbabilisticImageSimilarity
+::DefaultNumberOfBins(const BaseImage *image, double min_intensity, double max_intensity)
 {
+  if (IsNaN(min_intensity) || IsNaN(max_intensity)) {
+    double min_value, max_value;
+    image->GetMinMaxAsDouble(min_value, max_value);
+    if (IsNaN(min_intensity)) min_intensity = min_value;
+    if (IsNaN(max_intensity)) max_intensity = max_value;
+  }
   int nbins = min(iround((max_intensity - min_intensity) / 5.0),
                   iround(image->NumberOfVoxels() / 1000.0));
   if      (nbins < 16) nbins = 16;
@@ -192,39 +208,42 @@ int DefaultNumberOfBins(const Image *image, double min_intensity, double max_int
 // -----------------------------------------------------------------------------
 void ProbabilisticImageSimilarity::Initialize()
 {
-  double tmin = numeric_limits<double>::quiet_NaN(), tmax;
-  double smin = numeric_limits<double>::quiet_NaN(), smax;
-
   // Initialize base class
   ImageSimilarity::Initialize();
 
-  // Set default number of bins
-  if (_NumberOfTargetBins <= 0) {
-    Target()->InputImage()->GetMinMaxAsDouble(&tmin, &tmax);
-    _NumberOfTargetBins = DefaultNumberOfBins(Target()->InputImage(), tmin, tmax);
-  }
-  if (_NumberOfSourceBins <= 0) {
-    Source()->InputImage()->GetMinMaxAsDouble(&smin, &smax);
-    _NumberOfSourceBins = DefaultNumberOfBins(Source()->InputImage(), smin, smax);
+  // Initialize joint histogram
+  if (_SamplesOwner) {
+    double tmin = numeric_limits<double>::quiet_NaN(), tmax;
+    double smin = numeric_limits<double>::quiet_NaN(), smax;
+    // Set default number of bins
+    if (_NumberOfTargetBins <= 0) {
+      Target()->InputImage()->GetMinMaxAsDouble(&tmin, &tmax);
+      _NumberOfTargetBins = DefaultNumberOfBins(Target()->InputImage(), tmin, tmax);
+    }
+    if (_NumberOfSourceBins <= 0) {
+      Source()->InputImage()->GetMinMaxAsDouble(&smin, &smax);
+      _NumberOfSourceBins = DefaultNumberOfBins(Source()->InputImage(), smin, smax);
+    }
+    // Initialize container for raw joint histogram samples
+    if (IsNaN(tmin)) Target()->InputImage()->GetMinMaxAsDouble(&tmin, &tmax);
+    if (IsNaN(smin)) Source()->InputImage()->GetMinMaxAsDouble(&smin, &smax);
+    if (fequal(tmin, tmax)) {
+      cerr << this->NameOfClass() << "::Initialize(): Input target image has homogeneous intensity values only" << endl;
+      exit(1);
+    }
+    if (fequal(smin, smax)) {
+      cerr << this->NameOfClass() << "::Initialize(): Input source image has homogeneous intensity values only" << endl;
+      exit(1);
+    }
+    const double twidth = (tmax - tmin) / _NumberOfTargetBins;
+    const double swidth = (smax - smin) / _NumberOfSourceBins;
+    _Samples->Initialize(tmin, tmax, twidth, smin, smax, swidth);
+  } else {
+    _NumberOfTargetBins = _Samples->NumberOfBinsX();
+    _NumberOfSourceBins = _Samples->NumberOfBinsY();
   }
 
-  // Initialize container for raw joint histogram samples
-  Delete(_Samples);
-  if (IsNaN(tmin)) Target()->InputImage()->GetMinMaxAsDouble(&tmin, &tmax);
-  if (IsNaN(smin)) Source()->InputImage()->GetMinMaxAsDouble(&smin, &smax);
-  if (fequal(tmin, tmax)) {
-    cerr << this->NameOfClass() << "::Initialize(): Input target image has homogeneous intensity values only" << endl;
-    exit(1);
-  }
-  if (fequal(smin, smax)) {
-    cerr << this->NameOfClass() << "::Initialize(): Input source image has homogeneous intensity values only" << endl;
-    exit(1);
-  }
-  double twidth = (tmax - tmin) / _NumberOfTargetBins;
-  double swidth = (smax - smin) / _NumberOfSourceBins;
-  _Samples = new JointHistogramType(tmin, tmax, twidth,
-                                    smin, smax, swidth);
-
+  // Broadcast attributes of joint histogram
   ostringstream os;
   if (this->HasPrefix()) os << this->DefaultPrefix();
   else                   os << this->NameOfClass() << " ";
@@ -247,13 +266,13 @@ void ProbabilisticImageSimilarity::Update(bool gradient)
 
   MIRTK_START_TIMING();
 
-  // Reset histogram
-  _Samples->Reset();
-
-  // Add histogram samples
-  blocked_range<int> voxels(0, _NumberOfVoxels, _NumberOfVoxels / 8);
-  FillHistogram add(this, _Samples);
-  parallel_reduce(voxels, add);
+  // Update joint histogram
+  if (_SamplesOwner) {
+    _Samples->Reset();
+    blocked_range<int> voxels(0, _NumberOfVoxels, _NumberOfVoxels / 8);
+    FillHistogram add(this, _Samples);
+    parallel_reduce(voxels, add);
+  }
 
   // Smooth histogram
   //
@@ -261,7 +280,7 @@ void ProbabilisticImageSimilarity::Update(bool gradient)
   // Include/Exclude functions needed for the (optional) finite difference
   // approximation of the gradient.
   _Histogram->Reset(*_Samples);
-  _Histogram->Smooth();
+  if (_UseParzenWindow) _Histogram->Smooth();
 
   MIRTK_DEBUG_TIMING(2, "update of joint histogram");
 }

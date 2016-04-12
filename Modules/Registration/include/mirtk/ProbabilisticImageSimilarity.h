@@ -48,20 +48,42 @@ public:
   /// Type of joint histogram
   typedef Histogram2D<double> JointHistogramType;
 
+  /// Get default number of bins for given input image
+  ///
+  /// \param[in] image         Intensity image.
+  /// \param[in] min_intensity Pre-computed minimum intensity value.
+  /// \param[in] max_intensity Pre-computed maximum intensity value.
+  ///
+  /// \returns Number of histogram bins.
+  static int DefaultNumberOfBins(const BaseImage *image,
+                                 double min_intensity = numeric_limits<double>::quiet_NaN(),
+                                 double max_intensity = numeric_limits<double>::quiet_NaN());
+
   // ---------------------------------------------------------------------------
   // Attributes
 
-  /// Joint histogram of image intensities (unsmoothed samples)
-  mirtkComponentMacro(JointHistogramType, Samples);
+  /// Joint histogram of raw intensity samples (no Parzen window function)
+  ///
+  /// This class allocates a joint histogram instance and takes care of updating
+  /// it upon each Update call. When an external _Samples histogram is provided,
+  /// however, the owner of this external histogram is reponsible for updating
+  /// and this histogram before the Update of this image similarity.
+  mirtkLooseComponentMacro(JointHistogramType, Samples);
 
   /// Joint histogram of image intensities (cubic B-spline Parzen windows)
   mirtkComponentMacro(JointHistogramType, Histogram);
+
+  /// Whether to use a Parzen window function
+  mirtkPublicAttributeMacro(bool, UseParzenWindow);
 
   /// Number of histogram bins for target image intensities
   mirtkPublicAttributeMacro(int, NumberOfTargetBins);
 
   /// Number of histogram bins for source image intensities
   mirtkPublicAttributeMacro(int, NumberOfSourceBins);
+
+  /// Copy attributes of this class from another instance
+  void CopyAttributes(const ProbabilisticImageSimilarity &);
 
   // ---------------------------------------------------------------------------
   // Construction/Destruction
