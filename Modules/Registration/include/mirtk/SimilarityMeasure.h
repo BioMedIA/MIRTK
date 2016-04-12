@@ -46,10 +46,11 @@ enum SimilarityMeasure
   SIM_CR_YX   = EM_CR_YX,   ///< Correlation ratio
   SIM_LC      = EM_LC,      ///< Label consistency
   SIM_K       = EM_K,       ///< Kappa statistic
-  SIM_ML      = EM_ML,
+  SIM_ML      = EM_ML,      ///< Maximum likelihood
   SIM_NGF_COS = EM_NGF_COS, ///< Cosine of normalzed gradient field
   SIM_LNCC    = EM_LNCC,    ///< Local normalized cross-correlation
-  SIM_CoVar   = EM_CoVar    ///< Covariance
+  SIM_CoVar   = EM_CoVar,   ///< Covariance
+  SIM_PSNR    = EM_PSNR     ///< Peak signal-to-noise ratio
 };
 
 // -----------------------------------------------------------------------------

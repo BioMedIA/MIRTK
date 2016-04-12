@@ -42,6 +42,7 @@ set(HEADERS
   NormalizedGradientFieldSimilarity.h
   NormalizedIntensityCrossCorrelation.h
   NormalizedMutualImageInformation.h
+  PeakSignalToNoiseRatio.h
   ProbabilisticImageSimilarity.h
   Registration.h
   RegistrationEnergy.h
@@ -68,6 +69,7 @@ set(SOURCES
   NormalizedGradientFieldSimilarity.cc
   NormalizedIntensityCrossCorrelation.cc
   NormalizedMutualImageInformation.cc
+  PeakSignalToNoiseRatio.cc
   ProbabilisticImageSimilarity.cc
   RegistrationConfig.cc
   RegistrationEnergy.cc
