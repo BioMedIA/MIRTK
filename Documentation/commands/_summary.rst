@@ -38,6 +38,7 @@
    /commands/evaluate-dof
    /commands/evaluate-jacobian
    /commands/evaluate-overlap
+   /commands/evaluate-similarity
    /commands/evaluate-surface-overlap
    /commands/extract-connected-components
    /commands/extract-connected-points
@@ -100,6 +101,7 @@ Command                        Description
 |evaluate-dof|                 |evaluate-dof-brief-description|
 |evaluate-jacobian|            |evaluate-jacobian-brief-description|
 |evaluate-overlap|             |evaluate-overlap-brief-description|
+|evaluate-similarity|          |evaluate-similarity-brief-description|
 |evaluate-surface-overlap|     |evaluate-surface-overlap-brief-description|
 |extract-connected-components| |extract-connected-components-brief-description|
 |extract-connected-points|     |extract-connected-points-brief-description|
@@ -160,6 +162,7 @@ Command                        Description
 .. |evaluate-dof|                 replace:: :doc:`/commands/evaluate-dof`
 .. |evaluate-jacobian|            replace:: :doc:`/commands/evaluate-jacobian`
 .. |evaluate-overlap|             replace:: :doc:`/commands/evaluate-overlap`
+.. |evaluate-similarity|          replace:: :doc:`/commands/evaluate-similarity`
 .. |evaluate-surface-overlap|     replace:: :doc:`/commands/evaluate-surface-overlap`
 .. |extract-connected-components| replace:: :doc:`/commands/extract-connected-components`
 .. |extract-connected-points|     replace:: :doc:`/commands/extract-connected-points`
@@ -219,6 +222,7 @@ Command                        Description
 .. include:: /commands/_summaries/evaluate-dof.rst
 .. include:: /commands/_summaries/evaluate-jacobian.rst
 .. include:: /commands/_summaries/evaluate-overlap.rst
+.. include:: /commands/_summaries/evaluate-similarity.rst
 .. include:: /commands/_summaries/evaluate-surface-overlap.rst
 .. include:: /commands/_summaries/extract-connected-components.rst
 .. include:: /commands/_summaries/extract-connected-points.rst

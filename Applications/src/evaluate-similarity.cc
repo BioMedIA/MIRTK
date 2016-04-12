@@ -71,7 +71,7 @@ void PrintHelp(const char *name)
     cout << ToString(m);
     m = static_cast<EnergyMeasure>(m + 1);
   }
-  cout << "\n                     (default: SSD, CoVar, CC, JE, MI, NMI, CR_XY, CR_YX)\n";
+  cout << "\n";
   cout << "  -p, -padding <value>   Common image background value/threshold. (default: NaN)\n";
   cout << "  -Tp <value>        Target image background value/threshold. (default: NaN)\n";
   cout << "  -Sp <value>        Source image background value/threshold. (default: NaN)\n";
