@@ -22,6 +22,7 @@
 
 #include "mirtk/String.h"
 #include "mirtk/Array.h"
+#include "mirtk/ImageAttributes.h"
 #include "mirtk/TransformationType.h"
 
 

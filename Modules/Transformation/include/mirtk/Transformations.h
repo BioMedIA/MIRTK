@@ -21,6 +21,9 @@
 #define MIRTK_Transformations_H
 
 
+// Transformation model enumerations and auxiliary functions
+#include "mirtk/TransformationModel.h"
+
 // Homogeneous transformations
 #include "mirtk/HomogeneousTransformation.h"
 #include "mirtk/RigidTransformation.h"
