@@ -1,8 +1,8 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2013-2015 Imperial College London
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2013-2016 Imperial College London
+ * Copyright 2013-2016 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -51,30 +51,40 @@ void PrintHelp(const char *name)
   cout << "Description:\n";
   cout << "  Converts between different transformation file formats:\n";
   cout << "\n";
-  cout << "  =====================  =================================================================================\n";
-  cout << "  unknown                Unknown, try to guess it from file header/type.\n";
-  cout << "  disp_world|disp|image  Dense displacement field image with world space displacement vectors [mm].\n";
-  cout << "  disp_voxel             Dense displacement field image with target space displacement vectors [voxel].\n";
-  cout << "  mirtk|irtk2            MIRTK/IRTK 2 transformation file format.\n";
-  cout << "  mirtk_rigid|rigid      Rigid MIRTK/IRTK 2 transformation file format (6 DoFs).\n";
-  cout << "  mirtk_similarity       Similarity MIRTK/IRTK 2 transformation file format (7 DoFs).\n";
-  cout << "  mirtk_affine|affine    Affine MIRTK/IRTK 2 transformation file format (12 DoFs).\n";
-  cout << "  mirtk_linear_ffd       Linear free-form deformation.\n";
-  cout << "  mirtk_bspline_ffd      Cubic B-spline free-form deformation.\n";
-  cout << "  mni_xfm|xfm            Linear FreeSurfer transformation (.xfm file).\n";
-  cout << "  fsl                    Guess/choose FSL output file format.\n";
-  cout << "  flirt                  FSL FLIRT output file format.\n";
-  cout << "  fnirt                  FSL FNIRT output file format.\n";
-  cout << "  nreg                   Guess/choose Nifty Reg transformation output file format.\n";
-  cout << "  aladin                 Nifty Reg Aladin output file format.\n";
-  cout << "  f3d                    Nifty Reg reg_f3d output file format with nifti1.intent_p1 code.\n";
-  cout << "  f3d_def_field          Nifty Reg reg_f3d output image deformation  field.\n";
-  cout << "  f3d_disp_field         Nifty Reg reg_f3d output image displacement field.\n";
-  cout << "  f3d_spline_grid        Nifty Reg reg_f3d output control point displacement field.\n";
-  cout << "  f3d_def_vel_field      Nifty Reg reg_f3d output image deformation  field as stationary velocity field.\n";
-  cout << "  f3d_disp_vel_field     Nifty Reg reg_f3d output image displacement field as stationary velocity field.\n";
-  cout << "  f3d_spline_vel_grid    Nifty Reg reg_f3d output control point velocity field.\n";
-  cout << "  =====================  =================================================================================\n";
+  cout << "  =====================       =================================================================================\n";
+  cout << "  unknown                     Unknown, try to guess it from file header/type.\n";
+  cout << "  disp_world|disp|image       Dense displacement field image with world space displacement vectors [mm].\n";
+  cout << "  disp_voxel                  Dense displacement field image with target space displacement vectors [voxel].\n";
+  cout << "  mirtk                       MIRTK transformation file format.\n";
+  cout << "  mirtk_rigid|rigid           Rigid MIRTK transformation file format (6 DoFs).\n";
+  cout << "  mirtk_similarity            Similarity MIRTK transformation file format (7 DoFs).\n";
+  cout << "  mirtk_affine|affine         Affine MIRTK transformation file format (12 DoFs).\n";
+  cout << "  mirtk_linear_ffd            Linear free-form deformation.\n";
+  cout << "  mirtk_bspline_ffd           Cubic B-spline free-form deformation.\n";
+  cout << "  irtk                        IRTK transformation file format.\n";
+  cout << "  irtk_rigid                  Rigid IRTK transformation file format (6 DoFs).\n";
+  cout << "  irtk_affine                 Affine IRTK transformation file format (12 DoFs).\n";
+  cout << "  irtk_linear_ffd             Linear IRTK free-form deformation.\n";
+  cout << "  irtk_bspline_ffd            Cubic B-spline IRTK free-form deformation.\n";
+  cout << "  mni_xfm|xfm                 Linear FreeSurfer transformation (.xfm file).\n";
+  cout << "  fsl                         Guess/choose FSL output file format.\n";
+  cout << "  flirt                       FSL FLIRT output file format.\n";
+  cout << "  fnirt                       FSL FNIRT output file format.\n";
+  cout << "  nreg                        Guess/choose Nifty Reg transformation output file format.\n";
+  cout << "  aladin                      Nifty Reg Aladin output file format.\n";
+  cout << "  f3d                         Nifty Reg reg_f3d output file format with nifti1.intent_p1 code.\n";
+  cout << "  f3d_def_field               Nifty Reg reg_f3d output image deformation  field.\n";
+  cout << "  f3d_disp_field              Nifty Reg reg_f3d output image displacement field.\n";
+  cout << "  f3d_spline_grid             Nifty Reg reg_f3d output control point displacement field.\n";
+  cout << "  f3d_def_vel_field           Nifty Reg reg_f3d output image deformation  field as stationary velocity field.\n";
+  cout << "  f3d_disp_vel_field          Nifty Reg reg_f3d output image displacement field as stationary velocity field.\n";
+  cout << "  f3d_spline_vel_grid         Nifty Reg reg_f3d output control point velocity field.\n";
+  cout << "  star_ccm                    Output file suitable for import in STAR CCM+.\n";
+  cout << "  star_ccm_table              Point displacements as STAR CCM+ XYZ Table.\n";
+  cout << "  star_ccm_table_xyz          Transformed points  as STAR CCM+ XYZ Table.\n";
+  cout << "  table|csv|tsv               Table of target point coordinates and displacement vectors.\n";
+  cout << "  table_xyz|csv_xyz|tsv_xyz   Table of transformed point coordinates.\n";
+  cout << "  =====================       =================================================================================\n";
 #if !MIRTK_IO_WITH_NIfTI
   cout << "\n";
   cout << "  Cannot convert from/to the following formats because the I/O module is missing NIfTI support:\n";
@@ -84,7 +94,7 @@ void PrintHelp(const char *name)
 #endif // !MIRTK_IO_WITH_NIfTI
   cout << "\n";
   cout << "Arguments:\n";
-  cout << "  input    Input transformation file.\n";
+  cout << "  input    Input  transformation file.\n";
   cout << "  output   Output transformation file.\n";
   cout << "\n";
   cout << "Options:\n";
@@ -100,15 +110,22 @@ void PrintHelp(const char *name)
   cout << "                             Also required when converting linear transformations to displacment\n";
   cout << "                             fields or (M)FFD transformation types. (default: none)\n";
   cout << "  -source <fname>            Source image. Required for from/to FSL format conversion. (default: none)\n";
+  cout << "  -points <fname>            Input point set. Used for CSV/TSV and STAR-CCM+ output of transformed\n";
+  cout << "                             points. By default, all target or FFD lattice points are transformed.\n";
+  cout << "  -Tt <time>                 Time point of target image. Used by 3D+t, TD, and SV FFDs.\n";
   cout << "  -Ts <time>                 Time point of source image. Used by 3D+t, TD, and SV FFDs.\n";
   cout << "  -ds <value>                Output control point spacing. (default: input spacing)\n";
   cout << "  -dx <value>                Output control point spacing in x dimension. (default: input spacing)\n";
   cout << "  -dy <value>                Output control point spacing in y dimension. (default: input spacing)\n";
   cout << "  -dz <value>                Output control point spacing in z dimension. (default: input spacing)\n";
+  cout << "  -dt <value>                Temporal sampling used for CSV/TSV and STAR-CCM+ output. (default: input spacing)\n";
+  cout << "  -t1, -tmin <value>         Lower time interval limit for output of CSV/TSV and STAR-CCM+ table. (default: -inf)\n";
+  cout << "  -t2, -tmax <value>         Upper time interval limit for output of CSV/TSV and STAR-CCM+ table. (default: +inf)\n";
   cout << "  -scaling-steps <int>       Number of scaling and squaring steps.\n";
   cout << "                             In case of f3d_*_vel_*, use nifti1.intent_p2 by default.\n";
   cout << "  -xyz_units (m|mm|mu)       Spatial units of original target NIfTI header\n";
   cout << "                             if ignored by Nifty Reg's reg_f3d. (default: mm)\n";
+  cout << "  -delimiter <string>        Delimiting character sequence to use for CSV/TSV or STAR-CCM+ Table output.\n";
   PrintStandardOptions(cout);
   cout << endl;
 }
@@ -145,14 +162,19 @@ enum TransformationFileFormat
   // Dense displacement field image
   Format_WorldDisplacement, ///< Displacement vectors in world units (mm)
   Format_VoxelDisplacement, ///< Displacement vectors in voxel units
-  // (M)IRTK
+  // MIRTK
   Format_MIRTK,
   Format_MIRTK_Rigid,
   Format_MIRTK_Similarity,
   Format_MIRTK_Affine,
   Format_MIRTK_LinearFFD,
   Format_MIRTK_BSplineFFD,
-  Format_LegacyIRTK,
+  // IRTK
+  Format_IRTK,
+  Format_IRTK_Rigid,
+  Format_IRTK_Affine,
+  Format_IRTK_LinearFFD,
+  Format_IRTK_BSplineFFD,
   // FSL
   Format_FSL,
   Format_FSL_FLIRT,
@@ -176,6 +198,15 @@ enum TransformationFileFormat
   Format_MNI,
   Format_MNI_XFM,
   Format_MNI_M3Z,
+  // STAR-CCM+
+  Format_STAR_CCM,
+  Format_STAR_CCM_Table,
+  Format_STAR_CCM_Table_XYZ,
+  // Table
+  Format_CSV,
+  Format_CSV_XYZ,
+  Format_TSV,
+  Format_TSV_XYZ,
   // Last enumeration entry
   Format_Last
 };
@@ -195,7 +226,11 @@ inline string ToString(const TransformationFileFormat &format, int w, char c, bo
     case Format_MIRTK_Affine:             str = "mirtk_affine"; break;
     case Format_MIRTK_LinearFFD:          str = "mirtk_linear_ffd"; break;
     case Format_MIRTK_BSplineFFD:         str = "mirtk_bspline_ffd"; break;
-    case Format_LegacyIRTK:               str = "legacy_irtk"; break;
+    case Format_IRTK:                     str = "irtk"; break;
+    case Format_IRTK_Rigid:               str = "irtk_rigid"; break;
+    case Format_IRTK_Affine:              str = "irtk_affine"; break;
+    case Format_IRTK_LinearFFD:           str = "irtk_linear_ffd"; break;
+    case Format_IRTK_BSplineFFD:          str = "irtk_bspline_ffd"; break;
     case Format_FSL:                      str = "fsl"; break;
     case Format_FSL_FLIRT:                str = "firt"; break;
     case Format_FSL_FNIRT_Displacement:   str = "fnirt_disp"; break;
@@ -216,6 +251,13 @@ inline string ToString(const TransformationFileFormat &format, int w, char c, bo
     case Format_MNI:                      str = "mni"; break;
     case Format_MNI_XFM:                  str = "mni_xfm"; break;
     case Format_MNI_M3Z:                  str = "mni_m3z"; break;
+    case Format_STAR_CCM:                 str = "star_ccm"; break;
+    case Format_STAR_CCM_Table:           str = "star_ccm_table"; break;
+    case Format_STAR_CCM_Table_XYZ:       str = "star_ccm_table_xyz"; break;
+    case Format_CSV:                      str = "csv"; break;
+    case Format_CSV_XYZ:                  str = "csv_xyz"; break;
+    case Format_TSV:                      str = "tsv"; break;
+    case Format_TSV_XYZ:                  str = "tsv_xyz"; break;
     default:                              str = "unknown"; break;
   }
   return ToString(str, w, c, left);
@@ -226,13 +268,11 @@ inline string ToString(const TransformationFileFormat &format, int w, char c, bo
 template <>
 inline bool FromString(const char *str, TransformationFileFormat &format)
 {
-  string format_name = ToLower(str);
+  string format_name = ToLower(Trim(str));
   format = Format_Unknown;
 
   // Alternative format names
-  if      (format_name == "irtk1") format = Format_LegacyIRTK;
-  else if (format_name.compare(0, 5, "irtk2") == 0) format_name = "mirtk" + format_name.substr(5);
-  else if (format_name == "disp" || format_name == "image") format = Format_WorldDisplacement;
+  if      (format_name == "disp" || format_name == "image") format = Format_WorldDisplacement;
   else if (format_name == "rigid") format = Format_MIRTK_Rigid;
   else if (format_name == "similarity") format = Format_MIRTK_Similarity;
   else if (format_name == "affine") format = Format_MIRTK_Affine;
@@ -247,6 +287,10 @@ inline bool FromString(const char *str, TransformationFileFormat &format)
   else if (format_name == "freesurfer_xfm" || format_name == "xfm") format = Format_MNI_XFM;
   else if (format_name == "freesurfer_m3z" || format_name == "m3z") format = Format_MNI_M3Z;
   else if (format_name.compare(0, 4, "reg_") == 0) format_name = format_name.substr(4);
+  else if (format_name == "star-ccm" || format_name == "star-ccm+") format = Format_STAR_CCM;
+  else if (format_name == "star-ccm table" || format_name == "star-ccm+ table") format = Format_STAR_CCM_Table;
+  else if (format_name == "table") format = Format_TSV;
+  else if (format_name == "table_xyz") format = Format_TSV_XYZ;
 
   // Default format names (cf. ToString(const TransformationFileFormat &))
   if (format == Format_Unknown) {
@@ -320,12 +364,23 @@ enum FSLIntentCode
 ////////////////////////////////////////////////////////////////////////////////
 
 // =============================================================================
-// (M)IRTK
+// MIRTK
 // =============================================================================
 
 // -----------------------------------------------------------------------------
 /// Read transformation from MIRTK transformation file
 Transformation *ReadMIRTK(const char *fname)
+{
+  return Transformation::New(fname);
+}
+
+// =============================================================================
+// IRTK
+// =============================================================================
+
+// -----------------------------------------------------------------------------
+/// Read transformation from IRTK transformation file
+Transformation *ReadIRTK(const char *fname)
 {
   return Transformation::New(fname);
 }
@@ -784,7 +839,7 @@ bool WriteVoxelDisplacement(const char *dx_name, const char *dy_name, const char
 }
 
 // =============================================================================
-// (M)IRTK
+// MIRTK
 // =============================================================================
 
 // -----------------------------------------------------------------------------
@@ -1207,6 +1262,179 @@ bool WriteF3D(const char *fname, const Transformation *dof,
   return true;
 }
 
+// =============================================================================
+// STAR-CCM+
+// =============================================================================
+
+// -----------------------------------------------------------------------------
+/// Write transformation for import into STAR-CCM+ GUI using XYZ Table format
+bool WriteSTARCCMTable(const char *fname, const ImageAttributes &target, const Transformation *dof,
+                       double      tmin          = -numeric_limits<double>::infinity(),
+                       double      tmax          = +numeric_limits<double>::infinity(),
+                       double      dt            = .0,
+                       bool        displacements = false,
+                       const char *points_name   = nullptr,
+                       const char *delimiter     = " ")
+{
+  double t, t0 = target.LatticeToTime(0);
+
+  // ---------------------------------------------------------------------------
+  // Sampling grid
+  ImageAttributes domain = target;
+  if (!domain) {
+    const FreeFormTransformation           *ffd  = nullptr;
+    const MultiLevelFreeFormTransformation *mffd = nullptr;
+
+    (ffd  = dynamic_cast<const FreeFormTransformation           *>(dof)) ||
+    (mffd = dynamic_cast<const MultiLevelFreeFormTransformation *>(dof));
+    if (mffd) ffd = mffd->GetLocalTransformation(-1);
+
+    if (ffd) {
+      domain = ffd->Attributes();
+    } else if (!points_name) {
+      Warning("Cannot convert linear transformation to STAR-CCM+ Table without input -target image or -points!");
+      return false;
+    }
+  }
+  if (dt > .0) {
+    const double T = domain.LatticeToTime(domain._t - 1) - domain.LatticeToTime(0);
+    domain._t  = ifloor(T / dt);
+    domain._dt = dt;
+  }
+
+  // Open text file
+  ofstream table(fname);
+  if (!table) {
+    Warning("Failed to open file " << fname << " for writing!");
+    return false;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Write header
+  if (displacements) {
+    table << "X" << delimiter << "Y" << delimiter << "Z";
+    if (domain._t == 1) {
+      table << delimiter << "DX" << delimiter << "DY" << delimiter << "DZ";
+    } else {
+      for (int l = 0; l < domain._t; ++l) {
+        t = domain.LatticeToTime(l);
+        if (tmin <= t && t <= tmax) {
+          table << delimiter << "DX[t=" << domain.LatticeToTime(l) << "ms]";
+          table << delimiter << "DY[t=" << domain.LatticeToTime(l) << "ms]";
+          table << delimiter << "DZ[t=" << domain.LatticeToTime(l) << "ms]";
+        }
+      }
+    }
+  } else {
+    if (domain._t == 1) {
+      table << "X[t=0ms]" << delimiter << "Y[t=0ms]" << delimiter << "Z[t=0ms]";
+      table << delimiter;
+      table << "X[t=1ms]" << delimiter << "Y[t=1ms]" << delimiter << "Z[t=1ms]";
+    } else {
+      for (int l = 0, c = 0; l < domain._t; ++l) {
+        t = domain.LatticeToTime(l);
+        if (tmin <= t && t <= tmax) {
+          if (++c > 1) table << delimiter;
+          table << "X[t=" << domain.LatticeToTime(l) << "ms]";
+          table << delimiter << "Y[t=" << domain.LatticeToTime(l) << "ms]";
+          table << delimiter << "Z[t=" << domain.LatticeToTime(l) << "ms]";
+        }
+      }
+    }
+  }
+  table << "\n";
+
+  if (!table) return false;
+
+  // ---------------------------------------------------------------------------
+  // Either write displacement/new position for each input point
+  if (points_name) {
+
+    PointSet points;
+    points.Read(points_name);
+
+    double dx, dy, dz;
+    for (int r = 0; r < points.Size(); ++r) {
+      if (displacements) {
+        table << points(r)._x << delimiter << points(r)._y << delimiter << points(r)._z;
+        table << delimiter;
+      }
+      for (int l = 0, c = 0; l < domain._t; ++l) {
+        t = domain.LatticeToTime(l);
+        if (domain._t == 1 || (tmin <= t && t <= tmax)) {
+          if (++c > 1) table << delimiter;
+          dx = points(r)._x, dy = points(r)._y, dz = points(r)._z;
+          if (displacements) {
+            dof->Displacement(dx, dy, dz, t, t0);
+          } else {
+            dof->Transform(dx, dy, dz, t, t0);
+          }
+          table << dx << delimiter << dy << delimiter << dz;
+        }
+      }
+      table << "\n";
+
+      if (!table) return false;
+    }
+
+  // ---------------------------------------------------------------------------
+  // or write displacement/new position for each lattice point
+  } else {
+
+    // Evaluate displacements
+    WorldCoordsImage wc;
+    Array<RealImage> disp(domain._t);
+    for (int l = 0; l < domain._t; ++l) {
+      t = domain.LatticeToTime(l);
+      if (domain._t == 1 || (tmin <= t && t <= tmax)) {
+        disp[l].Initialize(domain, 3);
+        disp[l].PutTOrigin(t);
+        if (wc.IsEmpty()) disp[l].ImageToWorld(wc);
+        dof->Displacement(disp[l], t0, &wc);
+      }
+    }
+    if (wc.IsEmpty()) {
+      Warning("Invalid time interval [" << tmin << " " << tmax << "]");
+      return false;
+    }
+
+    // Write rows
+    double dx, dy, dz;
+    const int nvox = domain.NumberOfSpatialPoints();
+    const WorldCoordsImage::VoxelType *x = wc.Data();
+    const WorldCoordsImage::VoxelType *y = x + nvox;
+    const WorldCoordsImage::VoxelType *z = y + nvox;
+
+    for (int r = 0; r < nvox; ++r, ++x, ++y, ++z) {
+      if (displacements) {
+        table << *x << delimiter << *y << delimiter << *z;
+        table << delimiter;
+      }
+      for (int l = 0, c = 0; l < domain._t; ++l) {
+        t = domain.LatticeToTime(l);
+        if (domain._t == 1 || (tmin <= t && t <= tmax)) {
+          if (++c > 1) table << delimiter;
+          dx = *(disp[l].Data() + r           );
+          dy = *(disp[l].Data() + r +     nvox);
+          dz = *(disp[l].Data() + r + 2 * nvox);
+          if (!displacements) {
+            dx += *x, dy += *y, dz += *z;
+          }
+          table << dx << delimiter << dy << delimiter << dz;
+        }
+      }
+      table << "\n";
+
+      if (!table) return false;
+    }
+
+  }
+
+  // Close file
+  table.close();
+  return !table.fail();
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // Main
 ////////////////////////////////////////////////////////////////////////////////
@@ -1230,10 +1458,18 @@ int main(int argc, char *argv[])
   const char *dofin_name  = nullptr;
   const char *target_name = nullptr;
   const char *source_name = nullptr;
+  const char *points_name = nullptr;
   int         steps       = 0;
   int         xyz_units   = 0;
-  double      dx = .0, dy = .0, dz = .0;
-  double      ts = .0;
+  double      dx          = .0;
+  double      dy          = .0;
+  double      dz          = .0;
+  double      dt          = .0;
+  double      t0          = numeric_limits<double>::quiet_NaN();
+  double      ts          = .0;
+  double      tmin        = -numeric_limits<double>::infinity();
+  double      tmax        = +numeric_limits<double>::infinity();
+  const char *delimiter   = nullptr;
 
   #if MIRTK_IO_WITH_NIfTI
     xyz_units = NIFTI_UNITS_MM;
@@ -1247,8 +1483,12 @@ int main(int argc, char *argv[])
     else if (OPTION("-dofin")) dofin_name = ARGUMENT;
     else if (OPTION("-target")) target_name = ARGUMENT;
     else if (OPTION("-source")) source_name = ARGUMENT;
+    else if (OPTION("-points")) points_name = ARGUMENT;
     else if (OPTION("-steps")) PARSE_ARGUMENT(steps);
+    else if (OPTION("-Tt")) PARSE_ARGUMENT(t0);
     else if (OPTION("-Ts")) PARSE_ARGUMENT(ts);
+    else if (OPTION("-tmin") || OPTION("-t1")) PARSE_ARGUMENT(tmin);
+    else if (OPTION("-tmax") || OPTION("-t2")) PARSE_ARGUMENT(tmax);
     else if (OPTION("-ds")) {
       PARSE_ARGUMENT(dx);
       dy = dz = dx;
@@ -1256,6 +1496,8 @@ int main(int argc, char *argv[])
     else if (OPTION("-dx")) PARSE_ARGUMENT(dx);
     else if (OPTION("-dy")) PARSE_ARGUMENT(dy);
     else if (OPTION("-dz")) PARSE_ARGUMENT(dz);
+    else if (OPTION("-dt")) PARSE_ARGUMENT(dt);
+    else if (OPTION("-delimiter") || OPTION("-delim")) delimiter = ARGUMENT;
     else if (OPTION("-xyz_units")) {
       #if MIRTK_IO_WITH_NIfTI
         PARSE_ARGUMENT(xyz_units);
@@ -1274,9 +1516,15 @@ int main(int argc, char *argv[])
   if (format_out == Format_Unknown) {
     if      (ext_out_nifti) format_out = Format_WorldDisplacement;
     else if (ext_out_mirtk) format_out = Format_MIRTK;
+    else if (ext_out == ".csv") format_out = Format_CSV;
+    else if (ext_out == ".tsv" || ext_out == ".txt") format_out = Format_TSV;
     else {
       FatalError("No default output format available for extension " << ext_out << ", use [-output]-format option!");
     }
+  }
+
+  if (format_out == Format_IRTK_LinearFFD || format_out == Format_IRTK_BSplineFFD) {
+    FatalError("Cannot write deformable IRTK transformation file!");
   }
 
   // Read target/source attributes
@@ -1285,11 +1533,13 @@ int main(int argc, char *argv[])
     InitializeIOLibrary();
     BinaryImage target(target_name);
     target_attr = target.Attributes();
+    if (!IsNaN(t0)) target_attr._torigin = t0;
   }
   if (source_name) {
     InitializeIOLibrary();
     BinaryImage source(source_name);
     source_attr = source.Attributes();
+    if (!IsNaN(ts)) source_attr._torigin = ts;
   }
 
   // Guess input file format
@@ -1303,6 +1553,10 @@ int main(int argc, char *argv[])
       format_in = Format_MNI_XFM;
     } else if (ext_in == ".m3z") {
       format_in = Format_MNI_M3Z;
+    } else if (ext_in == ".csv") {
+      format_in = Format_CSV;
+    } else if (ext_in == ".tsv" || ext_in == ".txt") {
+      format_in = Format_TSV;
     }
   } else if (format_in == Format_FSL) {
     if (ext_in_nifti) {
@@ -1363,9 +1617,14 @@ int main(int argc, char *argv[])
       }
     } break;
 
-    // (M)IRTK
+    // MIRTK
     case Format_MIRTK: {
       dof.reset(ReadMIRTK(input_name));
+    } break;
+
+    // IRTK
+    case Format_IRTK: {
+      dof.reset(ReadIRTK(input_name));
     } break;
 
     // FSL
@@ -1397,6 +1656,21 @@ int main(int argc, char *argv[])
       dof.reset(ReadXFM(input_name));
     } break;
 
+    // STAR-CCM+
+    case Format_STAR_CCM:
+    case Format_STAR_CCM_Table:
+    case Format_STAR_CCM_Table_XYZ: {
+      FatalError("Cannot read transformation from STAR-CCM+ file!");
+    } break;
+
+    // Table
+    case Format_CSV:
+    case Format_CSV_XYZ:
+    case Format_TSV:
+    case Format_TSV_XYZ: {
+      FatalError("Cannot read transformation from CSV/TSV file!");
+    } break;
+
     // Still unknown...
     default:
       FatalError("Unknown input transformation file format! Use -input-format option.");
@@ -1416,6 +1690,8 @@ int main(int argc, char *argv[])
   } else if (format_out == Format_NREG) {
     if (ext_out_nifti || !is_linear) format_out = Format_F3D;
     else                             format_out = Format_Aladin;
+  } else if (format_out == Format_STAR_CCM) {
+    format_out = Format_STAR_CCM_Table;
   }
 
   const char *dx_output = nullptr;
@@ -1469,7 +1745,7 @@ int main(int argc, char *argv[])
       }
     } break;
 
-    // (M)IRTK
+    // MIRTK
     case Format_MIRTK:
     case Format_MIRTK_Rigid:
     case Format_MIRTK_Similarity:
@@ -1478,6 +1754,34 @@ int main(int argc, char *argv[])
     case Format_MIRTK_BSplineFFD: {
       success = WriteMIRTK(output_name, dof.get(), target_attr, dx, dy, dz,
                            ToMIRTKTransformationType(format_out));
+    } break;
+
+    // IRTK
+    case Format_IRTK_Rigid: {
+      success = WriteMIRTK(output_name, dof.get(), target_attr, dx, dy, dz, TRANSFORMATION_RIGID);
+    } break;
+    case Format_IRTK_Affine: {
+      success = WriteMIRTK(output_name, dof.get(), target_attr, dx, dy, dz, TRANSFORMATION_AFFINE);
+    } break;
+    case Format_IRTK: {
+      const RigidTransformation      *rig;
+      const SimilarityTransformation *sim;
+      const AffineTransformation     *aff;
+      rig = dynamic_cast<const RigidTransformation      *>(dof.get());
+      sim = dynamic_cast<const SimilarityTransformation *>(dof.get());
+      aff = dynamic_cast<const AffineTransformation     *>(dof.get());
+      if (aff || sim) {
+        success = WriteMIRTK(output_name, dof.get(), target_attr, dx, dy, dz, TRANSFORMATION_AFFINE);
+      } else if (rig) {
+        success = WriteMIRTK(output_name, dof.get(), target_attr, dx, dy, dz, TRANSFORMATION_RIGID);
+      } else {
+        FatalError("Cannot write deformable IRTK transformation!");
+      }
+    } break;
+
+    case Format_IRTK_LinearFFD:
+    case Format_IRTK_BSplineFFD: {
+      FatalError("Cannot write deformable IRTK transformation!");
     } break;
 
     // FSL
@@ -1508,6 +1812,42 @@ int main(int argc, char *argv[])
     case Format_F3D_DISP_VEL_FIELD:
     case Format_F3D_SPLINE_VEL_GRID: {
       success = WriteF3D(output_name, dof.get(), ToF3DTransformationType(format_out));
+    } break;
+
+    // STAR-CCM+
+    case Format_STAR_CCM_Table: {
+      const bool disps = true;
+      success = WriteSTARCCMTable(output_name, target_attr, dof.get(), tmin, tmax, dt, disps, points_name);
+    } break;
+
+    case Format_STAR_CCM_Table_XYZ: {
+      const bool disps = false;
+      success = WriteSTARCCMTable(output_name, target_attr, dof.get(), tmin, tmax, dt, disps, points_name);
+    } break;
+
+    // Table
+    case Format_CSV: {
+      const bool disps = true;
+      if (delimiter == nullptr) delimiter = ",";
+      success = WriteSTARCCMTable(output_name, target_attr, dof.get(), tmin, tmax, dt, disps, points_name, delimiter);
+    } break;
+
+    case Format_CSV_XYZ: {
+      const bool disps = false;
+      if (delimiter == nullptr) delimiter = ",";
+      success = WriteSTARCCMTable(output_name, target_attr, dof.get(), tmin, tmax, dt, disps, points_name, delimiter);
+    } break;
+
+    case Format_TSV: {
+      const bool disps = true;
+      if (delimiter == nullptr) delimiter = "\t";
+      success = WriteSTARCCMTable(output_name, target_attr, dof.get(), tmin, tmax, dt, disps, points_name, delimiter);
+    } break;
+
+    case Format_TSV_XYZ: {
+      const bool disps = false;
+      if (delimiter == nullptr) delimiter = "\t";
+      success = WriteSTARCCMTable(output_name, target_attr, dof.get(), tmin, tmax, dt, disps, points_name, delimiter);
     } break;
 
     // Unknown?

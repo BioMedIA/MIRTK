@@ -50,6 +50,7 @@ def path(argv, quiet=False):
     """Get full path of MIRTK command executable."""
     if isinstance(argv, str): command = argv
     else:                     command = argv[0]
+    if command == 'convert-dof2csv': command = 'convert-dof'
     fpath = None
     for ext in libexec_ext:
         p = os.path.join(libexec_dir, config, command + ext)
@@ -72,6 +73,14 @@ def path(argv, quiet=False):
 # ----------------------------------------------------------------------------
 def _call(argv, verbose=0, execfunc=subprocess.call):
     """Execute MIRTK command."""
+    if argv[0] == 'convert-dof2csv':
+        new_argv = ['convert-dof']
+        out_fmt  = 'star_ccm_table'
+        for arg in argv[1:]:
+            if arg == '-pos': out_fmt = 'star_ccm_table_xyz'
+            else: new_argv.append(arg)
+        new_argv.extend(['-output-format', out_fmt])
+        argv = new_argv
     argv[0] = path(argv)
     if not argv[0]: return 1
     if verbose > 0:
