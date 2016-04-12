@@ -31,13 +31,14 @@ endif ()
 # ----------------------------------------------------------------------------
 # Generic file info tool
 if (MIRTK_Image_FOUND)
-  mirtk_add_executable(info
-    DEPENDS
-      LibCommon LibNumerics LibImage LibIO
-    OPTIONAL
-      LibTransformation LibPointSet
-      vtkCommonCore vtkCommonDataModel vtkFiltersCore vtkFiltersGeneral
-  )
+  mirtk_add_executable(info)
+  mirtk_target_dependencies(info LibCommon LibNumerics LibImage LibIO)
+  if (MIRTK_Transformation_FOUND)
+    mirtk_target_dependencies(info LibTransformation)
+  endif ()
+  if (MIRTK_PointSet_FOUND)
+    mirtk_target_dependencies(info LibPointSet vtkCommonCore vtkCommonDataModel vtkFiltersCore vtkFiltersGeneral)
+  endif ()
 endif ()
 
 # ----------------------------------------------------------------------------
@@ -45,11 +46,12 @@ endif ()
 if (MIRTK_Image_FOUND)
 
   macro(add_image_command cmd)
-    mirtk_add_executable(${cmd} DEPENDS LibCommon LibNumerics LibImage LibIO ${ARGN})
+    mirtk_add_executable(${cmd})
+    mirtk_target_dependencies(${cmd} LibCommon LibNumerics LibImage LibIO ${ARGN})
   endmacro()
 
-  add_image_command(average-images OPTIONAL LibTransformation)
-  add_image_command(calculate OPTIONAL vtkCommonCore)
+  add_image_command(average-images)
+  add_image_command(calculate)
   add_image_command(calculate-distance-map)
   add_image_command(calculate-exponential-map)
   add_image_command(calculate-lie-bracket)
@@ -60,7 +62,7 @@ if (MIRTK_Image_FOUND)
   add_image_command(detect-edges)
   add_image_command(dilate-image)
   add_image_command(downsample-image)
-  add_image_command(edit-image OPTIONAL LibTransformation)
+  add_image_command(edit-image)
   add_image_command(erode-image)
   add_image_command(evaluate-overlap)
   add_image_command(extract-connected-components)
@@ -71,7 +73,19 @@ if (MIRTK_Image_FOUND)
   add_image_command(reflect-image)
   add_image_command(resample-image)
   add_image_command(smooth-image)
-  add_image_command(transform-image LibTransformation)
+
+  if (MIRTK_Transformation_FOUND)
+    mirtk_target_dependencies(average-images LibTransformation)
+    mirtk_target_dependencies(edit-image     LibTransformation)
+  endif ()
+
+  if (MIRTK_Image_WITH_VTK)
+    mirtk_target_dependencies(calculate vtkCommonCore)
+  endif ()
+
+  if (MIRTK_Transformation_FOUND AND MIRTK_Registration_FOUND)
+    add_image_command(evaluate-similarity LibTransformation LibRegistration)
+  endif ()
 
 endif ()
 
@@ -80,10 +94,18 @@ endif ()
 if (MIRTK_Registration_FOUND)
 
   macro(add_registration_command cmd)
-    mirtk_add_executable(${cmd} DEPENDS LibCommon LibNumerics LibImage LibIO LibTransformation LibRegistration ${ARGN})
+    mirtk_add_executable(${cmd})
+    mirtk_target_dependencies(${cmd} LibCommon LibNumerics LibImage LibIO LibTransformation LibRegistration ${ARGN})
   endmacro()
 
-  add_registration_command(register OPTIONAL LibLBFGS LibPointSet LibDeformable)
+  add_registration_command(register)
+
+  if (MIRTK_Registration_WITH_PointSet)
+    mirtk_target_dependencies(register LibPointSet)
+  endif ()
+  if (MIRTK_Registration_WITH_Deformable)
+    mirtk_target_dependencies(register LibDeformable)
+  endif ()
 
 endif ()
 
@@ -92,7 +114,8 @@ endif ()
 if (MIRTK_Transformation_FOUND)
 
   macro(add_transformation_command cmd)
-    mirtk_add_executable(${cmd} DEPENDS LibCommon LibNumerics LibImage LibTransformation ${ARGN})
+    mirtk_add_executable(${cmd})
+    mirtk_target_dependencies(${cmd} LibCommon LibNumerics LibImage LibTransformation ${ARGN})
   endmacro()
 
   add_transformation_command(edit-dof)
@@ -112,7 +135,12 @@ if (MIRTK_Transformation_FOUND)
     add_image_transformation_command(convert-dof2velo)
     add_image_transformation_command(evaluate-dof)
     add_image_transformation_command(evaluate-jacobian)
-    add_image_transformation_command(init-dof OPTIONAL vtkCommonCore)
+    add_image_transformation_command(init-dof)
+    add_image_transformation_command(transform-image)
+
+    if (VTK_FOUND AND MIRTK_IO_WITH_VTK)
+      mirtk_target_dependencies(init-dof vtkCommonCore)
+    endif ()
 
   endif ()
 endif ()
@@ -122,7 +150,8 @@ endif ()
 if (MIRTK_PointSet_FOUND)
 
   macro(add_pointset_command cmd)
-    mirtk_add_executable(${cmd} DEPENDS LibCommon LibNumerics LibImage LibPointSet LibIO ${VTK_LIBRARIES} ${ARGN})
+    mirtk_add_executable(${cmd})
+    mirtk_target_dependencies(${cmd} LibCommon LibNumerics LibImage LibPointSet LibIO ${VTK_LIBRARIES} ${ARGN})
   endmacro()
 
   add_pointset_command(calculate-surface-attributes)
@@ -132,12 +161,16 @@ if (MIRTK_PointSet_FOUND)
   add_pointset_command(delete-pointset-attributes)
   add_pointset_command(evaluate-distance)
   add_pointset_command(evaluate-distortion)
-  add_pointset_command(evaluate-surface-overlap OPTIONAL ${FLANN_CPP_LIBRARY})
+  add_pointset_command(evaluate-surface-overlap)
   add_pointset_command(extract-connected-points)
   add_pointset_command(offset-surface)
   add_pointset_command(project-onto-surface)
   add_pointset_command(remesh)
   add_pointset_command(smooth-surface)
+
+  if (FLANN_FOUND)
+    mirtk_target_dependencies(evaluate-surface-overlap ${FLANN_CPP_LIBRARY})
+  endif ()
 
   if (PythonInterp_FOUND)
     # requires Python VTK modules and FreeSurfer installation

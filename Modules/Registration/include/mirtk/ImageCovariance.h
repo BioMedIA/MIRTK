@@ -1,8 +1,8 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2013-2015 Imperial College London
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2016 Imperial College London
+ * Copyright 2016 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,8 +17,8 @@
  * limitations under the License.
  */
 
-#ifndef MIRTK_MutualImageInformation_H
-#define MIRTK_MutualImageInformation_H
+#ifndef MIRTK_ImageCovariance_H
+#define MIRTK_ImageCovariance_H
 
 #include "mirtk/ProbabilisticImageSimilarity.h"
 
@@ -27,27 +27,27 @@ namespace mirtk {
 
 
 /**
- * Mutual information image similarity measure
+ * Joint entropy image similarity measure
  */
-class MutualImageInformation : public ProbabilisticImageSimilarity
+class ImageCovariance : public ProbabilisticImageSimilarity
 {
-  mirtkEnergyTermMacro(MutualImageInformation, EM_MI);
+  mirtkEnergyTermMacro(ImageCovariance, EM_CoVar);
 
   // ---------------------------------------------------------------------------
   // Construction/Destruction
 public:
 
   /// Constructor
-  MutualImageInformation(const char * = "");
+  ImageCovariance(const char * = "");
 
   /// Copy constructor
-  MutualImageInformation(const MutualImageInformation &);
+  ImageCovariance(const ImageCovariance &);
 
   /// Assignment operator
-  MutualImageInformation &operator =(const MutualImageInformation &);
+  ImageCovariance &operator =(const ImageCovariance &);
 
   /// Destructor
-  ~MutualImageInformation();
+  ~ImageCovariance();
 
   // ---------------------------------------------------------------------------
   // Evaluation
@@ -69,4 +69,4 @@ public:
 
 } // namespace mirtk
 
-#endif // MIRTK_MutualImageInformation_H
+#endif // MIRTK_ImageCovariance_H

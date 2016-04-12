@@ -1,8 +1,8 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2013-2015 Imperial College London
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2016 Imperial College London
+ * Copyright 2016 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,8 +17,8 @@
  * limitations under the License.
  */
 
-#ifndef MIRTK_MutualImageInformation_H
-#define MIRTK_MutualImageInformation_H
+#ifndef MIRTK_LabelConsistency_H
+#define MIRTK_LabelConsistency_H
 
 #include "mirtk/ProbabilisticImageSimilarity.h"
 
@@ -27,27 +27,33 @@ namespace mirtk {
 
 
 /**
- * Mutual information image similarity measure
+ * Label consistency image similarity measure
  */
-class MutualImageInformation : public ProbabilisticImageSimilarity
+class LabelConsistency : public ProbabilisticImageSimilarity
 {
-  mirtkEnergyTermMacro(MutualImageInformation, EM_MI);
+  mirtkEnergyTermMacro(LabelConsistency, EM_LC);
 
   // ---------------------------------------------------------------------------
   // Construction/Destruction
 public:
 
   /// Constructor
-  MutualImageInformation(const char * = "");
+  LabelConsistency(const char * = "");
 
   /// Copy constructor
-  MutualImageInformation(const MutualImageInformation &);
+  LabelConsistency(const LabelConsistency &);
 
   /// Assignment operator
-  MutualImageInformation &operator =(const MutualImageInformation &);
+  LabelConsistency &operator =(const LabelConsistency &);
 
   /// Destructor
-  ~MutualImageInformation();
+  ~LabelConsistency();
+
+  // ---------------------------------------------------------------------------
+  // Initialization
+
+  /// Initialize similarity measure once input and parameters have been set
+  virtual void Initialize();
 
   // ---------------------------------------------------------------------------
   // Evaluation
@@ -56,17 +62,9 @@ protected:
   /// Evaluate similarity of images
   virtual double Evaluate();
 
-  // ---------------------------------------------------------------------------
-  // Debugging
-public:
-
-  /// Return unweighted and unnormalized raw energy term value
-  /// \remarks Use for progress reporting only.
-  virtual double RawValue(double) const;
-
 };
 
 
 } // namespace mirtk
 
-#endif // MIRTK_MutualImageInformation_H
+#endif // MIRTK_LabelConsistency_H

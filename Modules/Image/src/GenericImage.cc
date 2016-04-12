@@ -902,7 +902,7 @@ template <class VoxelType>
 void GenericImage<VoxelType>::PutBackgroundValueAsDouble(double value, bool threshold)
 {
   BaseImage::PutBackgroundValueAsDouble(value);
-  if (threshold) {
+  if (threshold && !IsNaN(value)) {
     const VoxelType bg = voxel_cast<VoxelType>(this->_bg);
     VoxelType *ptr = this->GetPointerToVoxels();
     for (int idx = 0; idx < _NumberOfVoxels; ++idx, ++ptr) {

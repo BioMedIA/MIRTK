@@ -134,6 +134,19 @@ string Trim(const string &str, const string &what)
 }
 
 // ------------------------------------------------------------------------
+string TrimAll(const string &str, const string &what)
+{
+  string res;
+  size_t pos = 0, end;
+  while ((pos = str.find_first_not_of(what, pos)) != string::npos) {
+    end  = str.find_first_of(what, pos);
+    res += str.substr(pos, end - pos);
+    pos  = end;
+  }
+  return res;
+}
+
+// ------------------------------------------------------------------------
 Array<string> Split(string s, const char *d, int n, bool discard_empty)
 {
   const size_t delimiter_length = strlen(d);

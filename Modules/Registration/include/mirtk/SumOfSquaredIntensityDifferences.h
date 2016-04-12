@@ -36,14 +36,29 @@ class SumOfSquaredIntensityDifferences : public ImageSimilarity
   // ---------------------------------------------------------------------------
   // Attributes
 
+  /// Minimum input target image intensity value
+  mirtkReadOnlyAttributeMacro(double, MinTargetIntensity);
+
+  /// Maximum input target image intensity value
+  mirtkReadOnlyAttributeMacro(double, MaxTargetIntensity);
+
+  /// Minimum input source image intensity value
+  mirtkReadOnlyAttributeMacro(double, MinSourceIntensity);
+
+  /// Maximum input source image intensity value
+  mirtkReadOnlyAttributeMacro(double, MaxSourceIntensity);
+
   /// Maximum squared intensity difference used for normalization
-  mirtkAttributeMacro(double, MaxSqDiff);
+  mirtkReadOnlyAttributeMacro(double, MaxSqDiff);
 
   /// Sum of squared intensity difference value
-  double _Value;
+  mirtkReadOnlyAttributeMacro(double, SumSqDiff);
 
   /// Number of foreground voxels for which similarity is evaluated
-  int _N;
+  mirtkReadOnlyAttributeMacro(int, NumberOfForegroundVoxels);
+
+  /// Copy attributes of this class from another instance
+  void CopyAttributes(const SumOfSquaredIntensityDifferences &);
 
   // ---------------------------------------------------------------------------
   // Construction/Destruction

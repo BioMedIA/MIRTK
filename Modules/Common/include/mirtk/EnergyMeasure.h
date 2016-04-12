@@ -43,11 +43,13 @@ enum EnergyMeasure
     EM_SSD,                     ///< Sum of squared differences
     EM_CR_XY,                   ///< Correlation ratio
     EM_CR_YX,                   ///< Correlation ratio
-    EM_LC,
-    EM_K,
-    EM_ML,
+    EM_LC,                      ///< Label consistency
+    EM_K,                       ///< Kappa statistic
+    EM_ML,                      ///< Maximum likelihood
     EM_NGF_COS,                 ///< Cosine of normalzed gradient field
     EM_LNCC,                    ///< Normalized/Local cross-correlation
+    EM_CoVar,                   ///< Covariance
+    EM_PSNR,                    ///< Peak signal-to-noise ratio
 
   SIM_End,
   // ---------------------------------------------------------------------------
@@ -125,6 +127,8 @@ inline string ToString(const EnergyMeasure &value, int w, char c, bool left)
     case EM_ML:      str = "ML"; break;
     case EM_NGF_COS: str = "NGF_COS"; break;
     case EM_LNCC:    str = "LNCC"; break;
+    case EM_CoVar:   str = "CoVar"; break;
+    case EM_PSNR:    str = "PSNR"; break;
 
     // ---------------------------------------------------------------------------
     // Point set distance measures
@@ -171,49 +175,111 @@ inline string ToString(const EnergyMeasure &value, int w, char c, bool left)
 }
 
 // -----------------------------------------------------------------------------
+/// Convert energy measure enumeration value to human-friendly descriptive string
+inline string ToPrettyString(const EnergyMeasure &value, int w = 0, char c = ' ', bool left = true)
+{
+  const char *str;
+  switch (value) {
+    // ---------------------------------------------------------------------------
+    // Image (dis-)similarity measures
+    case EM_JE:      str = "Joint entropy"; break;
+    case EM_CC:      str = "Cross-correlation"; break;
+    case EM_MI:      str = "Mutual information"; break;
+    case EM_NMI:     str = "Normalized mutual information"; break;
+    case EM_SSD:     str = "Sum of squared differences"; break;
+    case EM_CR_XY:   str = "Correlation ratio C(X|Y)"; break;
+    case EM_CR_YX:   str = "Correlation ratio C(Y|X)"; break;
+    case EM_LC:      str = "Label consistency"; break;
+    case EM_K:       str = "Kappa statistic"; break;
+    case EM_ML:      str = "Maximum likelihood"; break;
+    case EM_NGF_COS: str = "Cosine of normalized gradient field"; break;
+    case EM_LNCC:    str = "Local normalized cross-correlation"; break;
+    case EM_CoVar:   str = "Covariance"; break;
+    case EM_PSNR:    str = "Peak signal-to-noise ratio"; break;
+
+    // ---------------------------------------------------------------------------
+    // Point set distance measures
+    case EM_FRE:                    str = "Fiducial registration error"; break;
+    case EM_CorrespondenceDistance: str = "Point correspondence distance"; break;
+    case EM_CurrentsDistance:       str = "Currents distance"; break;
+    case EM_VarifoldDistance:       str = "Varifold distance"; break;
+
+    // ---------------------------------------------------------------------------
+    // External point set forces
+    case EM_BalloonForce:               str = "Balloon force"; break;
+    case EM_ImageEdgeForce:             str = "Image edge force"; break;
+    case EM_ImplicitSurfaceDistance:    str = "Implicit surface distance"; break;
+    case EM_ImplicitSurfaceSpringForce: str = "Implicit surface spring force"; break;
+
+    // ---------------------------------------------------------------------------
+    // Internal point set forces
+    case EM_MetricDistortion:    str = "Metric distortion"; break;
+    case EM_Stretching:          str = "Stretching"; break;
+    case EM_Curvature:           str = "Curvature"; break;
+    case EM_QuadraticCurvature:  str = "Quadratic curvature"; break;
+    case EM_NonSelfIntersection: str = "Non-self intersection"; break;
+    case EM_RepulsiveForce:      str = "Repulsion"; break;
+    case EM_InflationForce:      str = "Inflation"; break;
+    case EM_SpringForce:         str = "Spring"; break;
+
+    // -------------------------------------------------------------------------
+    // Transformation constraints
+    case EM_BendingEnergy:        str = "Bending energy"; break;
+    case EM_VolumePreservation:   str = "Volume preservation"; break;
+    case EM_TopologyPreservation: str = "Topology preservation"; break;
+    case EM_Sparsity:             str = "Sparsity constraint"; break;
+    case EM_L0Norm:               str = "l0 norm"; break;
+    case EM_L1Norm:               str = "l1 norm"; break;
+    case EM_L2Norm:               str = "l2 norm"; break;
+    case EM_SqLogDetJac:          str = "Squared logarithm of Jacobian determinant"; break;
+    case EM_MinDetJac:            str = "Minimum Jacobian determinant"; break;
+
+    // ---------------------------------------------------------------------------
+    // Unknown/invalid enumeration value
+    default: str = "Unknown energy term";
+  }
+  return ToString(str, w, c, left);
+}
+
+// -----------------------------------------------------------------------------
 /// Convert energy measure string to enumeration value
 template <>
 inline bool FromString(const char *str, EnergyMeasure &value)
 {
+  const string lstr = ToLower(Trim(str));
+
   value = EM_Unknown;
 
   // ---------------------------------------------------------------------------
   // Alternative names for image (dis-)similarity measures
   if (value == EM_Unknown) {
-    if      (strcmp(str, "NCC") == 0) value = EM_LNCC;
-    else if (strcmp(str, "LCC") == 0) value = EM_LNCC;
+    if      (lstr == "ncc")   value = EM_LNCC;
+    else if (lstr == "lcc")   value = EM_LNCC;
+    else if (lstr == "kappa") value = EM_K;
+    else if (lstr == "correlation ratio xy" ||
+             lstr == "correlationratioxy") value = EM_CR_XY;
+    else if (lstr == "correlation ratio" ||
+             lstr == "correlationratio" ||
+             lstr == "correlation ratio yx" ||
+             lstr == "correlationratioyx") value = EM_CR_YX;
   }
 
   // ---------------------------------------------------------------------------
   // Alternative names for point set distance measures
   if (value == EM_Unknown) {
-    if (strcmp(str, "Fiducial Registration Error") == 0 ||
-        strcmp(str, "Fiducial registration error") == 0 ||
-        strcmp(str, "Fiducial Error")              == 0 ||
-        strcmp(str, "Fiducial error")              == 0 ||
-        strcmp(str, "Landmark Registration Error") == 0 ||
-        strcmp(str, "Landmark registration error") == 0 ||
-        strcmp(str, "Landmark Error")              == 0 ||
-        strcmp(str, "Landmark error")              == 0) {
+    if (lstr == "fiducial error" || lstr == "fiducialerror" ||
+        lstr == "landmark error" || lstr == "landmarkerror" ||
+        lstr == "landmark registration error" || lstr == "landmarkregistrationerror") {
       value = EM_FRE;
-    } else if (strcmp(str, "Point Correspondence Distance") == 0 ||
-               strcmp(str, "Point correspondence distance") == 0 ||
-               strcmp(str, "Correspondence Distance")       == 0 ||
-               strcmp(str, "Correspondence distance")       == 0) {
+    } else if (lstr == "correspondence distance" || lstr == "correspondencedistance") {
       value = EM_CorrespondenceDistance;
-    } else if (strcmp(str, "Currents distance") == 0 ||
-               strcmp(str, "Currents Distance") == 0) {
-      value = EM_CurrentsDistance;
-    } else if (strcmp(str, "Varifold distance") == 0 ||
-               strcmp(str, "Varifold Distance") == 0) {
-      value = EM_VarifoldDistance;
     }
   }
 
   // ---------------------------------------------------------------------------
   // Alternative names for external point set forces
   if (value == EM_Unknown) {
-    if (strcmp(str, "EdgeForce") == 0) value = EM_ImageEdgeForce;
+    if (lstr == "edge force" || lstr == "edgeforce") value = EM_ImageEdgeForce;
   }
 
   // ---------------------------------------------------------------------------
@@ -233,16 +299,20 @@ inline bool FromString(const char *str, EnergyMeasure &value)
   // ---------------------------------------------------------------------------
   // Alternative names for transformation regularization terms
   if (value == EM_Unknown) {
-    if      (strcmp(str, "JAC")    == 0) value = EM_SqLogDetJac;
-    else if (strcmp(str, "MinJac") == 0) value = EM_MinDetJac;
+    if      (lstr == "jac")    value = EM_SqLogDetJac;
+    else if (lstr == "minjac") value = EM_MinDetJac;
   }
 
   // ---------------------------------------------------------------------------
-  // Convert default names of energy measures (cf. ToString(EnergyMeasure))
+  // Convert default names of energy measures
+  // (cf. ToString(EnergyMeasure) and ToPrettyString(EnergyMeasure))
   if (value == EM_Unknown) {
+    string pretty;
     value = static_cast<EnergyMeasure>(EM_Last - 1);
     while (value != EM_Unknown) {
-      if (ToString(value) == str) break;
+      if (lstr == ToLower(ToString(value))) break;
+      pretty = ToLower(ToPrettyString(value));
+      if (lstr == pretty || lstr == TrimAll(pretty, " -")) break;
       value = static_cast<EnergyMeasure>(value - 1);
     }
   }

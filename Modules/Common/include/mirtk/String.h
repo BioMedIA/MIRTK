@@ -231,6 +231,14 @@ string ToUpper(const string &);
 /// \returns String with leading and trailing (whitespace) characters removed.
 string Trim(const string &str, const string &what = " \t\r\n");
 
+/// Remove (whitespace) characters from string
+///
+/// \param[in] str  Input string.
+/// \param[in] what Set of characters to remove from string.
+///
+/// \returns String with leading and trailing (whitespace) characters removed.
+string TrimAll(const string &str, const string &what = " \t\r\n");
+
 /// Split string into parts separated by specified delimiting sequence of characters
 ///
 /// @param s String to be split.

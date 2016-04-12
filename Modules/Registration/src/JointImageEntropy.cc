@@ -1,8 +1,8 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2013-2015 Imperial College London
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2016 Imperial College London
+ * Copyright 2016 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
  * limitations under the License.
  */
 
-#include "mirtk/MutualImageInformation.h"
+#include "mirtk/JointImageEntropy.h"
 
 #include "mirtk/ObjectFactory.h"
 
@@ -26,7 +26,7 @@ namespace mirtk {
 
 
 // Register energy term with object factory during static initialization
-mirtkAutoRegisterEnergyTermMacro(MutualImageInformation);
+mirtkAutoRegisterEnergyTermMacro(JointImageEntropy);
 
 
 // =============================================================================
@@ -34,23 +34,21 @@ mirtkAutoRegisterEnergyTermMacro(MutualImageInformation);
 // =============================================================================
 
 // -----------------------------------------------------------------------------
-MutualImageInformation
-::MutualImageInformation(const char *name)
+JointImageEntropy::JointImageEntropy(const char *name)
 :
   ProbabilisticImageSimilarity(name)
 {
 }
 
 // -----------------------------------------------------------------------------
-MutualImageInformation
-::MutualImageInformation(const MutualImageInformation &other)
+JointImageEntropy::JointImageEntropy(const JointImageEntropy &other)
 :
   ProbabilisticImageSimilarity(other)
 {
 }
 
 // -----------------------------------------------------------------------------
-MutualImageInformation::~MutualImageInformation()
+JointImageEntropy::~JointImageEntropy()
 {
 }
 
@@ -59,13 +57,13 @@ MutualImageInformation::~MutualImageInformation()
 // =============================================================================
 
 // -----------------------------------------------------------------------------
-double MutualImageInformation::Evaluate()
+double JointImageEntropy::Evaluate()
 {
-  return -_Histogram->MutualInformation();
+  return -_Histogram->JointEntropy();
 }
 
 // -----------------------------------------------------------------------------
-double MutualImageInformation::RawValue(double value) const
+double JointImageEntropy::RawValue(double value) const
 {
   return -ProbabilisticImageSimilarity::RawValue(value);
 }

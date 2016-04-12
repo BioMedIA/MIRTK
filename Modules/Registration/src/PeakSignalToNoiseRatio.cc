@@ -1,8 +1,8 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2013-2015 Imperial College London
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2016 Imperial College London
+ * Copyright 2016 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,8 +17,9 @@
  * limitations under the License.
  */
 
-#include "mirtk/MutualImageInformation.h"
+#include "mirtk/PeakSignalToNoiseRatio.h"
 
+#include "mirtk/Math.h"
 #include "mirtk/ObjectFactory.h"
 
 
@@ -26,31 +27,35 @@ namespace mirtk {
 
 
 // Register energy term with object factory during static initialization
-mirtkAutoRegisterEnergyTermMacro(MutualImageInformation);
-
+mirtkAutoRegisterEnergyTermMacro(PeakSignalToNoiseRatio);
 
 // =============================================================================
 // Construction/Destruction
 // =============================================================================
 
 // -----------------------------------------------------------------------------
-MutualImageInformation
-::MutualImageInformation(const char *name)
+PeakSignalToNoiseRatio::PeakSignalToNoiseRatio(const char *name)
 :
-  ProbabilisticImageSimilarity(name)
+  SumOfSquaredIntensityDifferences(name)
 {
 }
 
 // -----------------------------------------------------------------------------
-MutualImageInformation
-::MutualImageInformation(const MutualImageInformation &other)
+PeakSignalToNoiseRatio::PeakSignalToNoiseRatio(const PeakSignalToNoiseRatio &other)
 :
-  ProbabilisticImageSimilarity(other)
+  SumOfSquaredIntensityDifferences(other)
 {
 }
 
 // -----------------------------------------------------------------------------
-MutualImageInformation::~MutualImageInformation()
+PeakSignalToNoiseRatio &PeakSignalToNoiseRatio::operator =(const PeakSignalToNoiseRatio &other)
+{
+  SumOfSquaredIntensityDifferences::operator =(other);
+  return *this;
+}
+
+// -----------------------------------------------------------------------------
+PeakSignalToNoiseRatio::~PeakSignalToNoiseRatio()
 {
 }
 
@@ -59,15 +64,16 @@ MutualImageInformation::~MutualImageInformation()
 // =============================================================================
 
 // -----------------------------------------------------------------------------
-double MutualImageInformation::Evaluate()
+double PeakSignalToNoiseRatio::Evaluate()
 {
-  return -_Histogram->MutualInformation();
+  return - (20.0 * log10(_MaxTargetIntensity) -
+            10.0 * log10(_SumSqDiff / _NumberOfForegroundVoxels));
 }
 
 // -----------------------------------------------------------------------------
-double MutualImageInformation::RawValue(double value) const
+double PeakSignalToNoiseRatio::RawValue(double value) const
 {
-  return -ProbabilisticImageSimilarity::RawValue(value);
+  return - ImageSimilarity::RawValue(value);
 }
 
 

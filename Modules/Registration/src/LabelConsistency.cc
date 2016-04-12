@@ -1,8 +1,8 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2013-2015 Imperial College London
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2016 Imperial College London
+ * Copyright 2016 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
  * limitations under the License.
  */
 
-#include "mirtk/MutualImageInformation.h"
+#include "mirtk/LabelConsistency.h"
 
 #include "mirtk/ObjectFactory.h"
 
@@ -26,7 +26,7 @@ namespace mirtk {
 
 
 // Register energy term with object factory during static initialization
-mirtkAutoRegisterEnergyTermMacro(MutualImageInformation);
+mirtkAutoRegisterEnergyTermMacro(LabelConsistency);
 
 
 // =============================================================================
@@ -34,24 +34,54 @@ mirtkAutoRegisterEnergyTermMacro(MutualImageInformation);
 // =============================================================================
 
 // -----------------------------------------------------------------------------
-MutualImageInformation
-::MutualImageInformation(const char *name)
+LabelConsistency::LabelConsistency(const char *name)
 :
   ProbabilisticImageSimilarity(name)
 {
 }
 
 // -----------------------------------------------------------------------------
-MutualImageInformation
-::MutualImageInformation(const MutualImageInformation &other)
+LabelConsistency::LabelConsistency(const LabelConsistency &other)
 :
   ProbabilisticImageSimilarity(other)
 {
 }
 
 // -----------------------------------------------------------------------------
-MutualImageInformation::~MutualImageInformation()
+LabelConsistency::~LabelConsistency()
 {
+}
+
+// =============================================================================
+// Initialization
+// =============================================================================
+
+// -----------------------------------------------------------------------------
+void LabelConsistency::Initialize()
+{
+  // Number of target and source bins must be equal
+  if (_Samples && !_SamplesOwner) {
+    if (_Samples->NumberOfBinsX() != _Samples->NumberOfBinsY()) {
+      cerr << this->NameOfType() << "::Initialize: External joint histogram must"
+          " have equal number of bins in both dimensions" << endl;
+      exit(1);
+    }
+  } else {
+    if (_NumberOfTargetBins <= 0) {
+      double tmin, tmax;
+      Target()->InputImage()->GetMinMaxAsDouble(&tmin, &tmax);
+      _NumberOfTargetBins = DefaultNumberOfBins(Target()->InputImage(), tmin, tmax);
+    }
+    if (_NumberOfSourceBins <= 0) {
+      double smin, smax;
+      Source()->InputImage()->GetMinMaxAsDouble(&smin, &smax);
+      _NumberOfSourceBins = DefaultNumberOfBins(Source()->InputImage(), smin, smax);
+    }
+    _NumberOfTargetBins = _NumberOfSourceBins = (_NumberOfTargetBins + _NumberOfSourceBins) / 2;
+  }
+
+  // Initialize base class
+  ProbabilisticImageSimilarity::Initialize();
 }
 
 // =============================================================================
@@ -59,15 +89,9 @@ MutualImageInformation::~MutualImageInformation()
 // =============================================================================
 
 // -----------------------------------------------------------------------------
-double MutualImageInformation::Evaluate()
+double LabelConsistency::Evaluate()
 {
-  return -_Histogram->MutualInformation();
-}
-
-// -----------------------------------------------------------------------------
-double MutualImageInformation::RawValue(double value) const
-{
-  return -ProbabilisticImageSimilarity::RawValue(value);
+  return _Histogram->LabelConsistency();
 }
 
 

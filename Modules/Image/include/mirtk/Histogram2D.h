@@ -85,7 +85,11 @@ public:
               double min_y, double max_y, double width_y);
 
   /// Destructor
-  ~Histogram2D(void);
+  ~Histogram2D();
+
+  /// Construct a histogram for samples ranging from min to max and width
+  void Initialize(double min_x, double max_x, double width_x,
+                  double min_y, double max_y, double width_y);
 
   /// Clear and reset histogram
   void Reset();

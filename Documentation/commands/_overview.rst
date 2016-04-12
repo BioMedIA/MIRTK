@@ -9,13 +9,13 @@
 |decimate-surface|             |deform-mesh|                  |delete-pointset-attributes|   |detect-edges|                
 |dilate-image|                 |downsample-image|             |edit-dof|                     |edit-image|                  
 |erode-image|                  |evaluate-distance|            |evaluate-distortion|          |evaluate-dof|                
-|evaluate-jacobian|            |evaluate-overlap|             |evaluate-surface-overlap|     |extract-connected-components|
-|extract-connected-points|     |extract-image-region|         |extract-pointset-surface|     |extract-surface|             
-|flip-image|                   |help-rst|                     |info|                         |init-dof|                    
-|invert-dof|                   |map|                          |match-points|                 |offset-surface|              
-|open-image|                   |project-onto-surface|         |reflect-image|                |register|                    
-|remesh|                       |resample-image|               |smooth-image|                 |smooth-surface|              
-|transform-image|              |transform-points|            
+|evaluate-jacobian|            |evaluate-overlap|             |evaluate-similarity|          |evaluate-surface-overlap|    
+|extract-connected-components| |extract-connected-points|     |extract-image-region|         |extract-pointset-surface|    
+|extract-surface|              |flip-image|                   |help-rst|                     |info|                        
+|init-dof|                     |invert-dof|                   |map|                          |match-points|                
+|offset-surface|               |open-image|                   |project-onto-surface|         |reflect-image|               
+|register|                     |remesh|                       |resample-image|               |smooth-image|                
+|smooth-surface|               |transform-image|              |transform-points|            
 ============================== ============================== ============================== ==============================
 
 .. |average-dofs| replace:: :doc:`commands/average-dofs`
@@ -52,6 +52,7 @@
 .. |evaluate-dof| replace:: :doc:`commands/evaluate-dof`
 .. |evaluate-jacobian| replace:: :doc:`commands/evaluate-jacobian`
 .. |evaluate-overlap| replace:: :doc:`commands/evaluate-overlap`
+.. |evaluate-similarity| replace:: :doc:`commands/evaluate-similarity`
 .. |evaluate-surface-overlap| replace:: :doc:`commands/evaluate-surface-overlap`
 .. |extract-connected-components| replace:: :doc:`commands/extract-connected-components`
 .. |extract-connected-points| replace:: :doc:`commands/extract-connected-points`

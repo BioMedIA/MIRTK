@@ -1,8 +1,8 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2013-2015 Imperial College London
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2016 Imperial College London
+ * Copyright 2016 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,37 +17,37 @@
  * limitations under the License.
  */
 
-#ifndef MIRTK_MutualImageInformation_H
-#define MIRTK_MutualImageInformation_H
+#ifndef MIRTK_PeakSignalToNoiseRatio_H
+#define MIRTK_PeakSignalToNoiseRatio_H
 
-#include "mirtk/ProbabilisticImageSimilarity.h"
+#include "mirtk/SumOfSquaredIntensityDifferences.h"
 
 
 namespace mirtk {
 
 
 /**
- * Mutual information image similarity measure
+ * Peak signal to noise ratio of two registered images
  */
-class MutualImageInformation : public ProbabilisticImageSimilarity
+class PeakSignalToNoiseRatio : public SumOfSquaredIntensityDifferences
 {
-  mirtkEnergyTermMacro(MutualImageInformation, EM_MI);
+  mirtkEnergyTermMacro(PeakSignalToNoiseRatio, EM_PSNR);
 
   // ---------------------------------------------------------------------------
   // Construction/Destruction
 public:
 
   /// Constructor
-  MutualImageInformation(const char * = "");
+  PeakSignalToNoiseRatio(const char * = "");
 
   /// Copy constructor
-  MutualImageInformation(const MutualImageInformation &);
+  PeakSignalToNoiseRatio(const PeakSignalToNoiseRatio &);
 
   /// Assignment operator
-  MutualImageInformation &operator =(const MutualImageInformation &);
+  PeakSignalToNoiseRatio &operator =(const PeakSignalToNoiseRatio &);
 
   /// Destructor
-  ~MutualImageInformation();
+  ~PeakSignalToNoiseRatio();
 
   // ---------------------------------------------------------------------------
   // Evaluation
@@ -69,4 +69,4 @@ public:
 
 } // namespace mirtk
 
-#endif // MIRTK_MutualImageInformation_H
+#endif // MIRTK_PeakSignalToNoiseRatio_H 

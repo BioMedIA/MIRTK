@@ -1,8 +1,8 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2013-2015 Imperial College London
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2016 Imperial College London
+ * Copyright 2016 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
  * limitations under the License.
  */
 
-#include "mirtk/MutualImageInformation.h"
+#include "mirtk/ImageCovariance.h"
 
 #include "mirtk/ObjectFactory.h"
 
@@ -26,7 +26,7 @@ namespace mirtk {
 
 
 // Register energy term with object factory during static initialization
-mirtkAutoRegisterEnergyTermMacro(MutualImageInformation);
+mirtkAutoRegisterEnergyTermMacro(ImageCovariance);
 
 
 // =============================================================================
@@ -34,23 +34,21 @@ mirtkAutoRegisterEnergyTermMacro(MutualImageInformation);
 // =============================================================================
 
 // -----------------------------------------------------------------------------
-MutualImageInformation
-::MutualImageInformation(const char *name)
+ImageCovariance::ImageCovariance(const char *name)
 :
   ProbabilisticImageSimilarity(name)
 {
 }
 
 // -----------------------------------------------------------------------------
-MutualImageInformation
-::MutualImageInformation(const MutualImageInformation &other)
+ImageCovariance::ImageCovariance(const ImageCovariance &other)
 :
   ProbabilisticImageSimilarity(other)
 {
 }
 
 // -----------------------------------------------------------------------------
-MutualImageInformation::~MutualImageInformation()
+ImageCovariance::~ImageCovariance()
 {
 }
 
@@ -59,13 +57,13 @@ MutualImageInformation::~MutualImageInformation()
 // =============================================================================
 
 // -----------------------------------------------------------------------------
-double MutualImageInformation::Evaluate()
+double ImageCovariance::Evaluate()
 {
-  return -_Histogram->MutualInformation();
+  return -_Histogram->Covariance();
 }
 
 // -----------------------------------------------------------------------------
-double MutualImageInformation::RawValue(double value) const
+double ImageCovariance::RawValue(double value) const
 {
   return -ProbabilisticImageSimilarity::RawValue(value);
 }

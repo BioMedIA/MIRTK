@@ -116,17 +116,44 @@ SumOfSquaredIntensityDifferences
 ::SumOfSquaredIntensityDifferences(const char *name)
 :
   ImageSimilarity(name),
-  _MaxSqDiff(1.0), _Value(.0), _N(0)
+  _MinTargetIntensity(.0), _MaxTargetIntensity(1.0),
+  _MinSourceIntensity(.0), _MaxSourceIntensity(1.0),
+  _MaxSqDiff(1.0), _SumSqDiff(.0),
+  _NumberOfForegroundVoxels(0)
 {
+}
+
+// -----------------------------------------------------------------------------
+void SumOfSquaredIntensityDifferences
+::CopyAttributes(const SumOfSquaredIntensityDifferences &other)
+{
+  _MinTargetIntensity       = other._MinTargetIntensity;
+  _MaxTargetIntensity       = other._MaxTargetIntensity;
+  _MinSourceIntensity       = other._MinSourceIntensity;
+  _MaxSourceIntensity       = other._MaxSourceIntensity;
+  _MaxSqDiff                = other._MaxSqDiff;
+  _SumSqDiff                = other._SumSqDiff;
+  _NumberOfForegroundVoxels = other._NumberOfForegroundVoxels;
 }
 
 // -----------------------------------------------------------------------------
 SumOfSquaredIntensityDifferences
 ::SumOfSquaredIntensityDifferences(const SumOfSquaredIntensityDifferences &other)
 :
-  ImageSimilarity(other),
-  _MaxSqDiff(other._MaxSqDiff), _Value(other._Value), _N(other._N)
+  ImageSimilarity(other)
 {
+  CopyAttributes(other);
+}
+
+// -----------------------------------------------------------------------------
+SumOfSquaredIntensityDifferences &SumOfSquaredIntensityDifferences
+::operator =(const SumOfSquaredIntensityDifferences &other)
+{
+  if (this != &other) {
+    ImageSimilarity::operator =(other);
+    CopyAttributes(other);
+  }
+  return *this;
 }
 
 // -----------------------------------------------------------------------------
@@ -144,14 +171,16 @@ void SumOfSquaredIntensityDifferences::Initialize()
   // Initialize base class
   ImageSimilarity::Initialize();
 
-  // Determine maximum possible intensity difference
-  double tmin, tmax, smin, smax;
-  Target()->InputImage()->GetMinMaxAsDouble(&tmin, &tmax);
-  Source()->InputImage()->GetMinMaxAsDouble(&smin, &smax);
-  _MaxSqDiff = (tmin - smax) * (tmin - smax) > (tmax - smin) * (tmax - smin) ?
-               (tmin - smax) * (tmin - smax) : (tmax - smin) * (tmax - smin);
+  // Determine maximum intensities and maximum possible intensity difference
+  Target()->InputImage()->GetMinMaxAsDouble(_MinTargetIntensity, _MaxTargetIntensity);
+  Source()->InputImage()->GetMinMaxAsDouble(_MinSourceIntensity, _MaxSourceIntensity);
+  _MaxSqDiff = pow(max(abs(_MaxSourceIntensity - _MinTargetIntensity),
+                       abs(_MaxTargetIntensity - _MinSourceIntensity)), 2);
   if (_MaxSqDiff == .0) _MaxSqDiff = 1.0;
-  _Value = .0, _N =  0;
+
+  // Initialize sum of squared differences
+  _SumSqDiff = .0;
+  _NumberOfForegroundVoxels =  0;
 }
 
 // =============================================================================
@@ -166,7 +195,7 @@ void SumOfSquaredIntensityDifferences::Update(bool gradient)
   // Evaluate sum of squared differences over all voxels
   EvaluateSumOfSquaredDifferences ssd(this);
   ParallelForEachVoxel(_Domain, _Target, _Source, ssd);
-  _Value = ssd._Sum, _N = ssd._Cnt;
+  _SumSqDiff = ssd._Sum, _NumberOfForegroundVoxels = ssd._Cnt;
 }
 
 // -----------------------------------------------------------------------------
@@ -174,7 +203,7 @@ void SumOfSquaredIntensityDifferences::Exclude(const blocked_range3d<int> &regio
 {
   EvaluateSumOfSquaredDifferences ssd(this);
   ParallelForEachVoxel(region, _Target, _Source, ssd);
-  _Value -= ssd._Sum, _N -= ssd._Cnt;
+  _SumSqDiff -= ssd._Sum, _NumberOfForegroundVoxels -= ssd._Cnt;
 }
 
 // -----------------------------------------------------------------------------
@@ -182,13 +211,14 @@ void SumOfSquaredIntensityDifferences::Include(const blocked_range3d<int> &regio
 {
   EvaluateSumOfSquaredDifferences ssd(this);
   ParallelForEachVoxel(region, _Target, _Source, ssd);
-  _Value += ssd._Sum, _N += ssd._Cnt;
+  _SumSqDiff += ssd._Sum, _NumberOfForegroundVoxels += ssd._Cnt;
 }
 
 // -----------------------------------------------------------------------------
 double SumOfSquaredIntensityDifferences::Evaluate()
 {
-  return ((_N > 0) ? (_Value / (_N * _MaxSqDiff)) : .0);
+  if (_NumberOfForegroundVoxels == 0) return .0;
+  return _SumSqDiff / (_NumberOfForegroundVoxels * _MaxSqDiff);
 }
 
 // -----------------------------------------------------------------------------
@@ -198,7 +228,9 @@ bool SumOfSquaredIntensityDifferences
   // Compute gradient of similarity w.r.t given moving image
   EvaluateSumOfSquaredDifferencesGradient eval(this);
   ParallelForEachVoxel(_Domain, (image == Target() ? Source() : Target()), image, gradient, eval);
-  if (_N > 0) *gradient /= _N * _MaxSqDiff;
+  if (_NumberOfForegroundVoxels > 0) {
+    *gradient /= _NumberOfForegroundVoxels * _MaxSqDiff;
+  }
 
   // Apply chain rule to obtain gradient w.r.t y = T(x)
   MultiplyByImageGradient(image, gradient);

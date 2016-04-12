@@ -345,6 +345,43 @@ inline ParameterList &Remove(ParameterList &params, string name)
 #define mirtkComponentMacro(type, name)                                        \
   mirtkDefineComponentMacro(protected, type, name)
 
+// -----------------------------------------------------------------------------
+/// Define pointer to component (cf. UML composition) which can also be set to
+/// an externally managed instance instead using the corresponding accessors
+///
+/// A loose component is a pointer that must never by a nullptr. It must be
+/// initialized during construction of an instance of the class which this
+/// component attribute belongs.
+///
+/// Unlike a regular component, a loose component can alternatively be set to an
+/// externally instantiated object of the component type. In this case, the class
+/// revokes ownership of the object which must be deleted by the client code.
+/// When a nullptr is given as argument to the setter of the loose component,
+/// the current pointer is replaced by a new copy that is owned by this class.
+/// It can thus be used to release the external object again before destruction
+/// in cases where the class that the loose component belongs to remains in use.
+#define mirtkLooseComponentMacro(type, name)                                   \
+  protected:                                                                   \
+    type *_##name;                                                             \
+    bool  _##name##Owner;                                                      \
+  public:                                                                      \
+    /** Set pointer to _##name attribute */                                    \
+    inline virtual void name(type *arg) {                                      \
+      if (_##name##Owner) delete _##name;                                      \
+      if (arg) {                                                               \
+        _##name        = arg;                                                  \
+        _##name##Owner = false;                                                \
+      } else {                                                                 \
+        _##name        = new type(*_##name);                                   \
+        _##name##Owner = true;                                                 \
+      }                                                                        \
+    }                                                                          \
+    /** Get pointer to _##name attribute */                                    \
+    inline type *name() { return _##name; }                                    \
+    /** Get const pointer to _##name attribute */                              \
+    inline const type *name() const { return _##name; }                        \
+  private:
+
 
 } // namespace mirtk
 

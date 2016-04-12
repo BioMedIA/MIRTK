@@ -62,12 +62,12 @@ IntensityCrossCorrelation::~IntensityCrossCorrelation()
 // -----------------------------------------------------------------------------
 double IntensityCrossCorrelation::Evaluate()
 {
-  VoxelType *tgt = Target()->GetPointerToVoxels();
-  VoxelType *src = Source()->GetPointerToVoxels();
+  VoxelType *tgt = Target()->Data();
+  VoxelType *src = Source()->Data();
 
   double x = .0, y = .0, xy = .0, x2 = .0, y2 = .0;
   int    n =  0;
-  for (int idx = 0; idx < NumberOfVoxels(); ++idx) {
+  for (int idx = 0; idx < NumberOfVoxels(); ++idx, ++tgt, ++src) {
     if (IsForeground(idx)) {
       x  += *tgt;
       y  += *src;

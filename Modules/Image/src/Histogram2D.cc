@@ -202,7 +202,7 @@ Histogram2D<HistogramType>::Histogram2D(int nbins_x, int nbins_y)
 // -----------------------------------------------------------------------------
 template <class HistogramType>
 Histogram2D<HistogramType>::Histogram2D(double min_x, double max_x, double width_x,
-                                                  double min_y, double max_y, double width_y)
+                                        double min_y, double max_y, double width_y)
 {
   _min_x   = min_x;
   _min_y   = min_y;
@@ -234,6 +234,32 @@ Histogram2D<HistogramType>::~Histogram2D()
   _width_x = 0;
   _width_y = 0;
   _nsamp   = 0;
+}
+
+// -----------------------------------------------------------------------------
+template <class HistogramType>
+void Histogram2D<HistogramType>::Initialize(double min_x, double max_x, double width_x,
+                                            double min_y, double max_y, double width_y)
+{
+  const int nbins_x = iround((max_x - min_x) / width_x);
+  const int nbins_y = iround((max_y - min_y) / width_y);
+  if (nbins_x < 1 || nbins_y < 1) {
+    cerr << "Histogram2D<HistogramType>::Histogram2D: Should have at least one bin" << endl;
+    exit(1);
+  }
+  if (_nbins_x != nbins_x || nbins_y != _nbins_y) {
+    Deallocate(_bins);
+    Allocate(_bins, nbins_x, nbins_y);
+  }
+  _min_x   = min_x;
+  _min_y   = min_y;
+  _max_x   = max_x;
+  _max_y   = max_y;
+  _nbins_x = nbins_x;
+  _nbins_y = nbins_y;
+  _width_x = (_max_x - _min_x) / double(_nbins_x);
+  _width_y = (_max_y - _min_y) / double(_nbins_y);
+  Reset();
 }
 
 // -----------------------------------------------------------------------------
@@ -617,7 +643,7 @@ double Histogram2D<HistogramType>::JointEntropy() const
   // Attention: Parallel summation yielded slightly different results each
   //            time this function was executed. This might be caused by a
   //            different summation of values, which causes different numerical
-  //            cancelations. Qhen used for NMI gradient computation, the
+  //            cancelations. When used for NMI gradient computation, the
   //            registration result could differ from run to run!
   double p, sum = .0;
   const HistogramType *bin = _bins[0];
@@ -753,7 +779,7 @@ double Histogram2D<HistogramType>::CrossCorrelation() const
     return 0;
   }
   return abs(this->Covariance() / (sqrt(this->VarianceX()) *
-                                        sqrt(this->VarianceY())));
+                                   sqrt(this->VarianceY())));
 }
 
 // -----------------------------------------------------------------------------
@@ -767,12 +793,10 @@ double Histogram2D<HistogramType>::SumsOfSquaredDifferences() const
     }
     return 0;
   }
-  double ssd   = 0;
-  double val_x = this->BinToValX(0);
-  double val_y = this->BinToValY(0);
-  for (int j = 0; j < _nbins_y; j++) {
+  double ssd = .0, val_x, val_y = this->BinToValY(0);
+  for (int j = 0; j < _nbins_y; ++j) {
     val_x = this->BinToValX(0);
-    for (int i = 0; i < _nbins_x; i++) {
+    for (int i = 0; i < _nbins_x; ++i) {
       ssd   += _bins[j][i] * (val_x - val_y) * (val_x - val_y);
       val_x += _width_x;
     }

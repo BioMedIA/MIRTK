@@ -44,11 +44,13 @@ enum SimilarityMeasure
   SIM_SSD     = EM_SSD,     ///< Sum of squared differences
   SIM_CR_XY   = EM_CR_XY,   ///< Correlation ratio
   SIM_CR_YX   = EM_CR_YX,   ///< Correlation ratio
-  SIM_LC      = EM_LC,
-  SIM_K       = EM_K,
-  SIM_ML      = EM_ML,
+  SIM_LC      = EM_LC,      ///< Label consistency
+  SIM_K       = EM_K,       ///< Kappa statistic
+  SIM_ML      = EM_ML,      ///< Maximum likelihood
   SIM_NGF_COS = EM_NGF_COS, ///< Cosine of normalzed gradient field
-  SIM_LNCC    = EM_LNCC     ///< Local normalized cross-correlation
+  SIM_LNCC    = EM_LNCC,    ///< Local normalized cross-correlation
+  SIM_CoVar   = EM_CoVar,   ///< Covariance
+  SIM_PSNR    = EM_PSNR     ///< Peak signal-to-noise ratio
 };
 
 // -----------------------------------------------------------------------------
@@ -58,6 +60,14 @@ inline string ToString(const SimilarityMeasure &sim, int w, char c, bool left)
   EnergyMeasure em = static_cast<EnergyMeasure>(sim);
   if (em <= SIM_Begin || em >= SIM_End) return ToString("Unknown", w, c, left);
   return ToString(em, w, c, left);
+}
+
+// -----------------------------------------------------------------------------
+inline string ToPrettyString(const SimilarityMeasure &sim, int w = 0, char c = ' ', bool left = true)
+{
+  EnergyMeasure em = static_cast<EnergyMeasure>(sim);
+  if (em <= SIM_Begin || em >= SIM_End) return ToString("Unknown", w, c, left);
+  return ToPrettyString(em, w, c, left);
 }
 
 // -----------------------------------------------------------------------------
