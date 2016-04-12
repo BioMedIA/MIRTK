@@ -48,8 +48,8 @@ else:                              libexec_ext = ['']
 # ----------------------------------------------------------------------------
 def path(argv, quiet=False):
     """Get full path of MIRTK command executable."""
-    if isinstance(argv, basestring): command = argv
-    else:                            command = argv[0]
+    if isinstance(argv, str): command = argv
+    else:                     command = argv[0]
     fpath = None
     for ext in libexec_ext:
         p = os.path.join(libexec_dir, config, command + ext)
