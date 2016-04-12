@@ -32,7 +32,7 @@ Arguments
 
 .. option:: input
 
-   Input transformation file.
+   Input  transformation file.
 
 .. option:: output
 
@@ -72,6 +72,15 @@ Command options
 
    Source image. Required for from/to FSL format conversion. (default: none)
 
+.. option:: -points <fname>
+
+   Input point set. Used for CSV/TSV and STAR-CCM+ output of transformed
+   points. By default, all target or FFD lattice points are transformed.
+
+.. option:: -Tt <time>
+
+   Time point of target image. Used by 3D+t, TD, and SV FFDs.
+
 .. option:: -Ts <time>
 
    Time point of source image. Used by 3D+t, TD, and SV FFDs.
@@ -92,6 +101,18 @@ Command options
 
    Output control point spacing in z dimension. (default: input spacing)
 
+.. option:: -dt <value>
+
+   Temporal sampling used for CSV/TSV and STAR-CCM+ output. (default: input spacing)
+
+.. option:: -t1, -tmin <value>
+
+   Lower time interval limit for output of CSV/TSV and STAR-CCM+ table. (default: -inf)
+
+.. option:: -t2, -tmax <value>
+
+   Upper time interval limit for output of CSV/TSV and STAR-CCM+ table. (default: +inf)
+
 .. option:: -scaling-steps <int>
 
    Number of scaling and squaring steps.
@@ -101,6 +122,10 @@ Command options
 
    Spatial units of original target NIfTI header
    if ignored by Nifty Reg's reg_f3d. (default: mm)
+
+.. option:: -delimiter <string>
+
+   Delimiting character sequence to use for CSV/TSV or STAR-CCM+ Table output.
 
 
 Standard options
