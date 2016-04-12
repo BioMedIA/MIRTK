@@ -61,26 +61,13 @@ MutualImageInformation::~MutualImageInformation()
 // -----------------------------------------------------------------------------
 double MutualImageInformation::Evaluate()
 {
-  return 2.0 - _Histogram->MutualInformation();
+  return -_Histogram->MutualInformation();
 }
 
 // -----------------------------------------------------------------------------
 double MutualImageInformation::RawValue(double value) const
 {
-  return 2.0 - ProbabilisticImageSimilarity::RawValue(value);
-}
-
-// -----------------------------------------------------------------------------
-bool MutualImageInformation
-::NonParametricGradient(const RegisteredImage *image, GradientImageType *gradient)
-{
-  // TODO Implement gradient computation of MI, using NMI as reference
-  cerr << "MutualImageInformation::NonParametricGradient: Not implemented" << endl;
-  exit(1);
-
-  // Apply chain rule to obtain gradient w.r.t y = T(x)
-  MultiplyByImageGradient(image, gradient);
-  return true;
+  return -ProbabilisticImageSimilarity::RawValue(value);
 }
 
 

@@ -56,9 +56,6 @@ protected:
   /// Evaluate similarity of images
   virtual double Evaluate();
 
-  /// Evaluate non-parametric similarity gradient w.r.t the given image
-  virtual bool NonParametricGradient(const RegisteredImage *, GradientImageType *);
-
   // ---------------------------------------------------------------------------
   // Debugging
 public:
