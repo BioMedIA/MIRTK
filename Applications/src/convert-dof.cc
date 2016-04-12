@@ -126,6 +126,7 @@ void PrintHelp(const char *name)
   cout << "  -xyz_units (m|mm|mu)       Spatial units of original target NIfTI header\n";
   cout << "                             if ignored by Nifty Reg's reg_f3d. (default: mm)\n";
   cout << "  -delimiter <string>        Delimiting character sequence to use for CSV/TSV or STAR-CCM+ Table output.\n";
+  cout << "  -precision <int>           Number of decimal digits for ASCII output of floating point values. (default: 5)\n";
   PrintStandardOptions(cout);
   cout << endl;
 }
@@ -1274,7 +1275,8 @@ bool WriteSTARCCMTable(const char *fname, const ImageAttributes &target, const T
                        double      dt            = .0,
                        bool        displacements = false,
                        const char *points_name   = nullptr,
-                       const char *delimiter     = " ")
+                       const char *delimiter     = " ",
+                       int         precision     = 5)
 {
   double t, t0 = target.LatticeToTime(0);
 
@@ -1308,6 +1310,9 @@ bool WriteSTARCCMTable(const char *fname, const ImageAttributes &target, const T
     Warning("Failed to open file " << fname << " for writing!");
     return false;
   }
+
+  table.precision(precision);
+  table.flags(ios::fixed);
 
   // ---------------------------------------------------------------------------
   // Write header
@@ -1470,6 +1475,7 @@ int main(int argc, char *argv[])
   double      tmin        = -numeric_limits<double>::infinity();
   double      tmax        = +numeric_limits<double>::infinity();
   const char *delimiter   = nullptr;
+  int         precision   = -1;
 
   #if MIRTK_IO_WITH_NIfTI
     xyz_units = NIFTI_UNITS_MM;
@@ -1498,6 +1504,7 @@ int main(int argc, char *argv[])
     else if (OPTION("-dz")) PARSE_ARGUMENT(dz);
     else if (OPTION("-dt")) PARSE_ARGUMENT(dt);
     else if (OPTION("-delimiter") || OPTION("-delim")) delimiter = ARGUMENT;
+    else if (OPTION("-precision")) PARSE_ARGUMENT(precision);
     else if (OPTION("-xyz_units")) {
       #if MIRTK_IO_WITH_NIfTI
         PARSE_ARGUMENT(xyz_units);
@@ -1507,6 +1514,8 @@ int main(int argc, char *argv[])
     }
     else HANDLE_STANDARD_OR_UNKNOWN_OPTION();
   }
+
+  if (precision < 0) precision = 5;
 
   const string ext_out       = Extension(output_name, EXT_LastWithoutGz);
   const bool   ext_out_nifti = (ext_out == ".nii" || ext_out == ".hdr" || ext_out == ".img");
@@ -1663,7 +1672,7 @@ int main(int argc, char *argv[])
       FatalError("Cannot read transformation from STAR-CCM+ file!");
     } break;
 
-    // Table
+    // CSV/TSV table
     case Format_CSV:
     case Format_CSV_XYZ:
     case Format_TSV:
@@ -1817,37 +1826,51 @@ int main(int argc, char *argv[])
     // STAR-CCM+
     case Format_STAR_CCM_Table: {
       const bool disps = true;
-      success = WriteSTARCCMTable(output_name, target_attr, dof.get(), tmin, tmax, dt, disps, points_name);
+      if (delimiter == nullptr) delimiter = " ";
+      success = WriteSTARCCMTable(output_name, target_attr, dof.get(),
+                                  tmin, tmax, dt, disps, points_name,
+                                  delimiter, precision);
     } break;
 
     case Format_STAR_CCM_Table_XYZ: {
       const bool disps = false;
-      success = WriteSTARCCMTable(output_name, target_attr, dof.get(), tmin, tmax, dt, disps, points_name);
+      if (delimiter == nullptr) delimiter = " ";
+      success = WriteSTARCCMTable(output_name, target_attr, dof.get(),
+                                  tmin, tmax, dt, disps, points_name,
+                                  delimiter, precision);
     } break;
 
-    // Table
+    // CSV/TSV table
     case Format_CSV: {
       const bool disps = true;
       if (delimiter == nullptr) delimiter = ",";
-      success = WriteSTARCCMTable(output_name, target_attr, dof.get(), tmin, tmax, dt, disps, points_name, delimiter);
+      success = WriteSTARCCMTable(output_name, target_attr, dof.get(),
+                                  tmin, tmax, dt, disps, points_name,
+                                  delimiter, precision);
     } break;
 
     case Format_CSV_XYZ: {
       const bool disps = false;
       if (delimiter == nullptr) delimiter = ",";
-      success = WriteSTARCCMTable(output_name, target_attr, dof.get(), tmin, tmax, dt, disps, points_name, delimiter);
+      success = WriteSTARCCMTable(output_name, target_attr, dof.get(),
+                                  tmin, tmax, dt, disps, points_name,
+                                  delimiter, precision);
     } break;
 
     case Format_TSV: {
       const bool disps = true;
       if (delimiter == nullptr) delimiter = "\t";
-      success = WriteSTARCCMTable(output_name, target_attr, dof.get(), tmin, tmax, dt, disps, points_name, delimiter);
+      success = WriteSTARCCMTable(output_name, target_attr, dof.get(),
+                                  tmin, tmax, dt, disps, points_name,
+                                  delimiter, precision);
     } break;
 
     case Format_TSV_XYZ: {
       const bool disps = false;
       if (delimiter == nullptr) delimiter = "\t";
-      success = WriteSTARCCMTable(output_name, target_attr, dof.get(), tmin, tmax, dt, disps, points_name, delimiter);
+      success = WriteSTARCCMTable(output_name, target_attr, dof.get(),
+                                  tmin, tmax, dt, disps, points_name,
+                                  delimiter, precision);
     } break;
 
     // Unknown?
