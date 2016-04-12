@@ -203,8 +203,9 @@ int main(int argc, char **argv)
   }
 
   if (metric.empty()) {
-    metric.reserve(8);
+    metric.reserve(9);
     metric.push_back(SIM_SSD);
+    metric.push_back(SIM_PSNR);
     metric.push_back(SIM_CoVar);
     metric.push_back(SIM_CC);
     metric.push_back(SIM_JE);
@@ -371,12 +372,15 @@ int main(int argc, char **argv)
   // Evaluate similarity of (transformed) source image(s)
   for (size_t n = 0; n < source_name.size(); ++n) {
 
+    Indent indent;
+
     // Print image IDs
     const string source_id = (full_path_id ? source_name[n] : FileName(source_name[n]));
 
     if (verbose > 0) {
       if (n > 0) cout << "\n";
-      cout << "Similarity of " << target_id << " and " << source_id << ":\n";
+      cout << "Similarity of target image " << target_id << " and source image " << source_id << ":\n";
+      ++indent;
     } else if (!no_image_id) {
       if (verbose == 0) cout << "Target = ";
       cout << target_id << delim;
@@ -384,8 +388,6 @@ int main(int argc, char **argv)
       cout << source_id;
     }
     cout.flush();
-
-    const Indent indent(verbose > 0 ? 1 : 0);
 
     // Read source image
     source_image.Read(source_name[n]);
