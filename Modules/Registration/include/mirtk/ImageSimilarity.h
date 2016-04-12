@@ -79,10 +79,10 @@ public:
   // Attributes
 
   /// (Transformed) Target image
-  mirtkPublicComponentMacro(RegisteredImage, Target);
+  mirtkLooseComponentMacro(RegisteredImage, Target);
 
   /// (Transformed) Source image
-  mirtkPublicComponentMacro(RegisteredImage, Source);
+  mirtkLooseComponentMacro(RegisteredImage, Source);
 
   /// Domain on which to evaluate similarity
   mirtkPublicAttributeMacro(ImageAttributes, Domain);
@@ -129,6 +129,9 @@ public:
 
   /// Whether Update has not been called since initialization
   mirtkAttributeMacro(bool, InitialUpdate);
+
+  /// Copy attributes of this class from another instance
+  void CopyAttributes(const ImageSimilarity &);
 
   // ---------------------------------------------------------------------------
   // Construction/Destruction

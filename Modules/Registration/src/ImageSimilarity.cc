@@ -277,8 +277,8 @@ using namespace ImageSimilarityUtils;
 ImageSimilarity::ImageSimilarity(const char *name, double weight)
 :
   DataFidelity(name, weight),
-  _Target                  (new RegisteredImage()),
-  _Source                  (new RegisteredImage()),
+  _Target(new RegisteredImage()), _TargetOwner(true),
+  _Source(new RegisteredImage()), _SourceOwner(true),
   _Mask                    (nullptr),
   _GradientWrtTarget       (nullptr),
   _GradientWrtSource       (nullptr),
@@ -300,60 +300,56 @@ ImageSimilarity::ImageSimilarity(const char *name, double weight)
 }
 
 // -----------------------------------------------------------------------------
-ImageSimilarity::ImageSimilarity(const ImageSimilarity &other)
-:
-  DataFidelity(other),
-  _Target(other._Target ? new RegisteredImage(*other._Target) : nullptr),
-  _Source(other._Source ? new RegisteredImage(*other._Source) : nullptr),
-  _Mask  (other._Mask),
-  _GradientWrtTarget       (nullptr),
-  _GradientWrtSource       (nullptr),
-  _Gradient                (nullptr),
-  _NumberOfVoxels          (other._NumberOfVoxels),
-  _UseApproximateGradient  (other._UseApproximateGradient),
-  _VoxelWisePreconditioning(other._VoxelWisePreconditioning),
-  _NodeBasedPreconditioning(other._NodeBasedPreconditioning),
-  _InitialUpdate           (other._InitialUpdate)
+void ImageSimilarity::CopyAttributes(const ImageSimilarity &other)
 {
-}
+  if (_TargetOwner) delete _Target;
+  _Target      = (other._TargetOwner ? new RegisteredImage(*other._Target) : other._Target);
+  _TargetOwner = other._TargetOwner;
 
-// -----------------------------------------------------------------------------
-ImageSimilarity &ImageSimilarity::operator =(const ImageSimilarity &other)
-{
-  DataFidelity::operator =(other);
-  Delete(_Target);
-  Delete(_Source);
+  if (_SourceOwner) delete _Source;
+  _Source      = (other._SourceOwner ? new RegisteredImage(*other._Source) : other._Source);
+  _SourceOwner = other._SourceOwner;
+
   Delete(_GradientWrtTarget);
   Delete(_GradientWrtSource);
   Deallocate(_Gradient);
-  _Target = other._Target ? new RegisteredImage(*other._Target) : nullptr;
-  _Source = other._Source ? new RegisteredImage(*other._Source) : nullptr;
-  _Mask   = other._Mask;
+
+  _Mask                     = other._Mask;
   _NumberOfVoxels           = other._NumberOfVoxels;
   _UseApproximateGradient   = other._UseApproximateGradient;
   _VoxelWisePreconditioning = other._VoxelWisePreconditioning;
   _NodeBasedPreconditioning = other._NodeBasedPreconditioning;
   _InitialUpdate            = other._InitialUpdate;
+}
+
+// -----------------------------------------------------------------------------
+ImageSimilarity::ImageSimilarity(const ImageSimilarity &other)
+:
+  DataFidelity(other),
+  _Target           (nullptr),
+  _Source           (nullptr),
+  _GradientWrtTarget(nullptr),
+  _GradientWrtSource(nullptr),
+  _Gradient         (nullptr)
+{
+  CopyAttributes(other);
+}
+
+// -----------------------------------------------------------------------------
+ImageSimilarity &ImageSimilarity::operator =(const ImageSimilarity &other)
+{
+  if (this != &other) {
+    DataFidelity::operator =(other);
+    CopyAttributes(other);
+  }
   return *this;
-}
-
-// -----------------------------------------------------------------------------
-void ImageSimilarity::ReleaseTarget()
-{
-  _Target = nullptr;
-}
-
-// -----------------------------------------------------------------------------
-void ImageSimilarity::ReleaseSource()
-{
-  _Source = nullptr;
 }
 
 // -----------------------------------------------------------------------------
 ImageSimilarity::~ImageSimilarity()
 {
-  Delete(_Target);
-  Delete(_Source);
+  if (_TargetOwner) Delete(_Target);
+  if (_SourceOwner) Delete(_Source);
   Delete(_GradientWrtTarget);
   Delete(_GradientWrtSource);
   Deallocate(_Gradient);
@@ -383,14 +379,8 @@ void ImageSimilarity::Initialize()
   Delete(_GradientWrtSource);
   Deallocate(_Gradient);
   // Check if all inputs are set
-  if (!_Target) {
-    cerr << "ImageSimilarity::Initialize: Missing target image" << endl;
-    exit(1);
-  }
-  if (!_Source) {
-    cerr << "ImageSimilarity::Initialize: Missing source image" << endl;
-    exit(1);
-  }
+  mirtkAssert(_Target != nullptr, "target image component cannot be nullptr");
+  mirtkAssert(_Source != nullptr, "source image component cannot be nullptr");
   if (( _Mask &&  _Mask->IsEmpty()) ||
       (!_Mask && (_Domain._x == 0 || _Domain._y == 0 || _Domain._z == 0))) {
     cerr << "ImageSimilarity::Initialize: No image domain specified" << endl;
