@@ -17,8 +17,8 @@
  * limitations under the License.
  */
 
-#ifndef MIRTK_ProbabilisticImageSimilarity_H
-#define MIRTK_ProbabilisticImageSimilarity_H
+#ifndef MIRTK_HistogramImageSimilarity_H
+#define MIRTK_HistogramImageSimilarity_H
 
 #include "mirtk/ImageSimilarity.h"
 
@@ -37,9 +37,9 @@ namespace mirtk {
  * An estimate of the probabilities is obtained using a joint histogram and
  * cubic B-spline Parzen Windows for a continuous representation.
  */
-class ProbabilisticImageSimilarity : public ImageSimilarity
+class HistogramImageSimilarity : public ImageSimilarity
 {
-  mirtkAbstractMacro(ProbabilisticImageSimilarity);
+  mirtkAbstractMacro(HistogramImageSimilarity);
 
   // ---------------------------------------------------------------------------
   // Types
@@ -83,23 +83,23 @@ public:
   mirtkPublicAttributeMacro(int, NumberOfSourceBins);
 
   /// Copy attributes of this class from another instance
-  void CopyAttributes(const ProbabilisticImageSimilarity &);
+  void CopyAttributes(const HistogramImageSimilarity &);
 
   // ---------------------------------------------------------------------------
   // Construction/Destruction
 protected:
 
   /// Constructor
-  ProbabilisticImageSimilarity(const char * = "", double = 1.0);
+  HistogramImageSimilarity(const char * = "", double = 1.0);
 
   /// Copy constructor
-  ProbabilisticImageSimilarity(const ProbabilisticImageSimilarity &);
+  HistogramImageSimilarity(const HistogramImageSimilarity &);
 
   /// Assignment operator
-  ProbabilisticImageSimilarity &operator =(const ProbabilisticImageSimilarity &);
+  HistogramImageSimilarity &operator =(const HistogramImageSimilarity &);
 
   /// Destructor
-  virtual ~ProbabilisticImageSimilarity();
+  virtual ~HistogramImageSimilarity();
 
   // ---------------------------------------------------------------------------
   // Parameters
@@ -154,4 +154,4 @@ public:
 
 } // namespace mirtk
 
-#endif // MIRTK_ProbabilisticImageSimilarity_H
+#endif // MIRTK_HistogramImageSimilarity_H

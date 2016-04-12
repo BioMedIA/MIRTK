@@ -36,14 +36,14 @@ mirtkAutoRegisterEnergyTermMacro(JointImageEntropy);
 // -----------------------------------------------------------------------------
 JointImageEntropy::JointImageEntropy(const char *name)
 :
-  ProbabilisticImageSimilarity(name)
+  HistogramImageSimilarity(name)
 {
 }
 
 // -----------------------------------------------------------------------------
 JointImageEntropy::JointImageEntropy(const JointImageEntropy &other)
 :
-  ProbabilisticImageSimilarity(other)
+  HistogramImageSimilarity(other)
 {
 }
 
@@ -65,7 +65,7 @@ double JointImageEntropy::Evaluate()
 // -----------------------------------------------------------------------------
 double JointImageEntropy::RawValue(double value) const
 {
-  return -ProbabilisticImageSimilarity::RawValue(value);
+  return -HistogramImageSimilarity::RawValue(value);
 }
 
 

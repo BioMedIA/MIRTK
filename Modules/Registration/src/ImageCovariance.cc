@@ -36,14 +36,14 @@ mirtkAutoRegisterEnergyTermMacro(ImageCovariance);
 // -----------------------------------------------------------------------------
 ImageCovariance::ImageCovariance(const char *name)
 :
-  ProbabilisticImageSimilarity(name)
+  HistogramImageSimilarity(name)
 {
 }
 
 // -----------------------------------------------------------------------------
 ImageCovariance::ImageCovariance(const ImageCovariance &other)
 :
-  ProbabilisticImageSimilarity(other)
+  HistogramImageSimilarity(other)
 {
 }
 
@@ -65,7 +65,7 @@ double ImageCovariance::Evaluate()
 // -----------------------------------------------------------------------------
 double ImageCovariance::RawValue(double value) const
 {
-  return -ProbabilisticImageSimilarity::RawValue(value);
+  return -HistogramImageSimilarity::RawValue(value);
 }
 
 

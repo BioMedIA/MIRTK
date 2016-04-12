@@ -27,7 +27,7 @@
 #include "mirtk/EnergyMeasure.h"
 #include "mirtk/SimilarityMeasure.h"
 #include "mirtk/ImageSimilarity.h"
-#include "mirtk/ProbabilisticImageSimilarity.h"
+#include "mirtk/HistogramImageSimilarity.h"
 #include "mirtk/NearestNeighborInterpolateImageFunction.h"
 
 using namespace mirtk;
@@ -118,7 +118,7 @@ int DefaultNumberOfBins(const BaseImage *, double min_intensity, double max_inte
 // -----------------------------------------------------------------------------
 int main(int argc, char **argv)
 {
-  typedef ProbabilisticImageSimilarity::JointHistogramType JointHistogram;
+  typedef HistogramImageSimilarity::JointHistogramType JointHistogram;
   typedef RegisteredImage::VoxelType                       VoxelType;
 
   // Check command line
@@ -346,8 +346,8 @@ int main(int argc, char **argv)
     sim[i]->DivideByInitialValue(false);
     sim[i]->SkipTargetInitialization(true);
     sim[i]->SkipSourceInitialization(true);
-    ProbabilisticImageSimilarity *p;
-    p = dynamic_cast<ProbabilisticImageSimilarity *>(sim[i].get());
+    HistogramImageSimilarity *p;
+    p = dynamic_cast<HistogramImageSimilarity *>(sim[i].get());
     if (p != nullptr) {
       p->Samples(&samples);
       p->UseParzenWindow(parzen_window);

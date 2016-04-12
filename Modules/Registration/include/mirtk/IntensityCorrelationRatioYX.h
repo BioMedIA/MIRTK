@@ -20,7 +20,7 @@
 #ifndef MIRTK_IntensityCorrelationRatioYX_H
 #define MIRTK_IntensityCorrelationRatioYX_H
 
-#include "mirtk/ProbabilisticImageSimilarity.h"
+#include "mirtk/HistogramImageSimilarity.h"
 
 
 namespace mirtk {
@@ -29,7 +29,7 @@ namespace mirtk {
 /**
  * Correlation ratio of target (X) and source (Y) image intensities
  */
-class IntensityCorrelationRatioYX : public ProbabilisticImageSimilarity
+class IntensityCorrelationRatioYX : public HistogramImageSimilarity
 {
   mirtkEnergyTermMacro(IntensityCorrelationRatioYX, EM_CR_YX);
 

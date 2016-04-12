@@ -20,7 +20,7 @@
 #ifndef MIRTK_ImageCovariance_H
 #define MIRTK_ImageCovariance_H
 
-#include "mirtk/ProbabilisticImageSimilarity.h"
+#include "mirtk/HistogramImageSimilarity.h"
 
 
 namespace mirtk {
@@ -29,7 +29,7 @@ namespace mirtk {
 /**
  * Joint entropy image similarity measure
  */
-class ImageCovariance : public ProbabilisticImageSimilarity
+class ImageCovariance : public HistogramImageSimilarity
 {
   mirtkEnergyTermMacro(ImageCovariance, EM_CoVar);
 
