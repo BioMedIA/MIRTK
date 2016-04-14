@@ -65,6 +65,9 @@ protected:
   /// Local transformations
   FreeFormTransformation *_LocalTransformation[MAX_TRANS];
 
+  /// Whether this class is responsible for destructing the local transformation
+  bool _LocalTransformationOwner[MAX_TRANS];
+
   /// Status of local transformations
   FFDStatus _LocalTransformationStatus[MAX_TRANS];
 
@@ -264,13 +267,13 @@ public:
   virtual const FreeFormTransformation *GetLocalTransformation(int) const;
 
   /// Put local transformation and return pointer to previous one (needs to be deleted if not used)
-  virtual FreeFormTransformation *PutLocalTransformation(FreeFormTransformation *, int);
+  virtual FreeFormTransformation *PutLocalTransformation(FreeFormTransformation *, int, bool = true);
 
   /// Push local transformation on stack (append transformation)
-  virtual void PushLocalTransformation(FreeFormTransformation *);
+  virtual void PushLocalTransformation(FreeFormTransformation *, bool = true);
 
   /// Insert local transformation
-  virtual void InsertLocalTransformation(FreeFormTransformation *, int = 0);
+  virtual void InsertLocalTransformation(FreeFormTransformation *, int = 0, bool = true);
 
   /// Pop local transformation from stack (remove last transformation)
   virtual FreeFormTransformation *PopLocalTransformation();

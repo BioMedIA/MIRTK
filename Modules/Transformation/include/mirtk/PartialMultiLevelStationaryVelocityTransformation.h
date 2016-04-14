@@ -85,13 +85,13 @@ public:
   const FreeFormTransformation *GetLocalTransformation(int) const;
 
   /// Put local transformation and return pointer to previous one (needs to be deleted if not used)
-  FreeFormTransformation *PutLocalTransformation(FreeFormTransformation *, int);
+  FreeFormTransformation *PutLocalTransformation(FreeFormTransformation *, int, bool = true);
 
   /// Push local transformation on stack (append transformation)
-  void PushLocalTransformation(FreeFormTransformation *);
+  void PushLocalTransformation(FreeFormTransformation *, bool = true);
 
   /// Insert local transformation
-  void InsertLocalTransformation(FreeFormTransformation *, int = 0);
+  void InsertLocalTransformation(FreeFormTransformation *, int = 0, bool = true);
 
   /// Pop local transformation from stack (remove last transformation)
   FreeFormTransformation *PopLocalTransformation();
