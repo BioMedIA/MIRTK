@@ -132,13 +132,13 @@ public:
   mirtkComponentMacro(DisplacementImageType, Displacement);
 
   /// Whether to use pre-computed world coordinates
-  mirtkAttributeMacro(bool, CacheWorldCoordinates);
+  mirtkPublicAttributeMacro(bool, CacheWorldCoordinates);
 
   /// Whether to use pre-computed fixed displacements
-  mirtkAttributeMacro(bool, CacheFixedDisplacement);
+  mirtkPublicAttributeMacro(bool, CacheFixedDisplacement);
 
   /// Whether to use pre-computed displacements
-  mirtkAttributeMacro(bool, CacheDisplacement);
+  mirtkPublicAttributeMacro(bool, CacheDisplacement);
 
   /// Whether self-update is enabled
   mirtkPublicAttributeMacro(bool, SelfUpdate);

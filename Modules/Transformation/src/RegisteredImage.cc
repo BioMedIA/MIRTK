@@ -953,12 +953,12 @@ void RegisteredImage::Update3(const blocked_range3d<int> &region,
   if (_ImageToWorld) {
     if (_ExternalDisplacement) {
       ParallelForEachVoxel(region, _ImageToWorld, _ExternalDisplacement, this, f);
+    } else if (_FixedDisplacement && _Displacement) {
+      ParallelForEachVoxel(region, _ImageToWorld, _FixedDisplacement, _Displacement, this, f);
     } else if (_Displacement) {
-      if (_FixedDisplacement) {
-        ParallelForEachVoxel(region, _ImageToWorld, _FixedDisplacement, _Displacement, this, f);
-      } else {
-        ParallelForEachVoxel(region, _ImageToWorld, _Displacement, this, f);
-      }
+      ParallelForEachVoxel(region, _ImageToWorld, _Displacement, this, f);
+    } else if (_FixedDisplacement) {
+      ParallelForEachVoxel(region, _ImageToWorld, _FixedDisplacement, this, f);
     } else {
       ParallelForEachVoxel(region, _ImageToWorld, this, f);
     }
@@ -1123,9 +1123,9 @@ void RegisteredImage::Update(const blocked_range3d<int> &region,
   // Do nothing if no output should be updated
   if (!intensity && !gradient && !hessian) return;
 
-  // Do nothing if no transformation is set or self-update is disabled
+  // Do nothing if no changing transformation is set or self-update is disabled
   // (i.e., external process is responsible for update of registered image)
-  if (!force && (!_Transformation || !_SelfUpdate)) return;
+  if (!force && (!(_Transformation && _NumberOfActiveLevels > 0) || !_SelfUpdate)) return;
 
   MIRTK_START_TIMING();
 
@@ -1189,81 +1189,80 @@ void RegisteredImage::Update(const blocked_range3d<int> &region,
       }
 
     // -------------------------------------------------------------------------
-    // Update fixed image
-    } else {
+    // Update fixed image (i.e. no transformation or no active levels)
+    } else if (_Transformation) {
 
-      // Copy input images if no transformation is set and the image attributes
-      // of the input images are identical to those of the output images
-      if (!_Transformation && this->HasSpatialAttributesOf(_InputImage)) {
+      // Pre-compute fixed transformation displacements if needed
+      if (!_FixedDisplacement) {
+        if (_CacheFixedDisplacement || _Transformation->RequiresCachingOfDisplacements()) {
+          _FixedDisplacement = new DisplacementImageType(_attr, 3);
+          _Transformation->Displacement(*_FixedDisplacement, t, t0, _ImageToWorld);
+        }
+      }
 
-        // Copy intensities
-        if (intensity) {
-          // Rescale foreground intensities to [_MinIntensity, _MaxIntensity]
-          if (!IsNaN(_MinIntensity) || !IsNaN(_MaxIntensity)) {
-            const int nvox = NumberOfVoxels();
-            if (nvox > 0) {
-              InputImageType::VoxelType *iptr = _InputImage->Data();
-              InputImageType::VoxelType  imin;
-              InputImageType::VoxelType  imax;
-              imin = voxel_limits<InputImageType::VoxelType>::max();
-              imax = voxel_limits<InputImageType::VoxelType>::min();
-              for (int idx = 0; idx < nvox; ++idx, ++iptr) {
-                if (_InputImage->IsForeground(idx)) {
-                  if (*iptr < imin) imin = *iptr;
-                  if (*iptr > imax) imax = *iptr;
-                }
+      // Apply fixed transformation
+      Update1<FixedTransformer>(region, intensity, gradient, hessian);
+
+      // Discard chached displacements when caching is disabled
+      if (!_CacheFixedDisplacement) Delete(_FixedDisplacement);
+
+    // Copy input images when no (fixed) transformation is set and the
+    // attributes of input image grid matches those of the output image grid
+    } else if (this->HasSpatialAttributesOf(_InputImage)) {
+
+      // Copy intensities
+      if (intensity) {
+        // Rescale foreground intensities to [_MinIntensity, _MaxIntensity]
+        if (!IsNaN(_MinIntensity) || !IsNaN(_MaxIntensity)) {
+          const int nvox = NumberOfVoxels();
+          if (nvox > 0) {
+            InputImageType::VoxelType *iptr = _InputImage->Data();
+            InputImageType::VoxelType  imin;
+            InputImageType::VoxelType  imax;
+            imin = voxel_limits<InputImageType::VoxelType>::max();
+            imax = voxel_limits<InputImageType::VoxelType>::min();
+            for (int idx = 0; idx < nvox; ++idx, ++iptr) {
+              if (_InputImage->IsForeground(idx)) {
+                if (*iptr < imin) imin = *iptr;
+                if (*iptr > imax) imax = *iptr;
               }
-              if (imin <= imax) {
-                double omin = _MinIntensity;
-                double omax = _MaxIntensity;
-                if (IsNaN(omin)) omin = imin;
-                if (IsNaN(omax)) omax = imax;
-                const double slope = (omax - omin) / static_cast<double>(imax - imin);
-                const double inter = omin - slope * static_cast<double>(imin);
-                iptr = _InputImage->Data();
-                VoxelType *optr = this->Data();
-                const VoxelType bg = voxel_cast<VoxelType>(this->_bg);
-                for (int idx = 0; idx < nvox; ++idx, ++iptr, ++optr) {
-                  if (_InputImage->IsForeground(idx)) {
-                    *optr = voxel_cast<VoxelType>(inter + slope * static_cast<double>(*iptr));
-                    if      (*optr < _MinIntensity) *optr = _MinIntensity;
-                    else if (*optr > _MaxIntensity) *optr = _MaxIntensity;
-                  } else {
-                    *optr = bg;
-                  }
+            }
+            if (imin <= imax) {
+              double omin = _MinIntensity;
+              double omax = _MaxIntensity;
+              if (IsNaN(omin)) omin = imin;
+              if (IsNaN(omax)) omax = imax;
+              const double slope = (omax - omin) / static_cast<double>(imax - imin);
+              const double inter = omin - slope * static_cast<double>(imin);
+              iptr = _InputImage->Data();
+              VoxelType *optr = this->Data();
+              const VoxelType bg = voxel_cast<VoxelType>(this->_bg);
+              for (int idx = 0; idx < nvox; ++idx, ++iptr, ++optr) {
+                if (_InputImage->IsForeground(idx)) {
+                  *optr = voxel_cast<VoxelType>(inter + slope * static_cast<double>(*iptr));
+                  if      (*optr < _MinIntensity) *optr = _MinIntensity;
+                  else if (*optr > _MaxIntensity) *optr = _MaxIntensity;
+                } else {
+                  *optr = bg;
                 }
               }
             }
-          } else {
-            CopyChannels(this, 0, _InputImage);
           }
+        } else {
+          CopyChannels(this, 0, _InputImage);
         }
-
-        // Copy derivatives
-        if (gradient) CopyChannels(this, 1, _InputGradient);
-        if (hessian)  CopyChannels(this, 4, _InputHessian);
-
-        // Copy background mask (if set)
-        this->PutMask(_InputImage->GetMask());
-
-      // Resample input images on (transformed) output image grid otherwise
-      } else {
-
-        Delete(_Displacement);
-        _Displacement      = _FixedDisplacement;
-        _FixedDisplacement = NULL;
-        if (_Transformation) {
-          const bool cache = _CacheDisplacement || _Transformation->RequiresCachingOfDisplacements();
-          if (cache && !_Displacement) {
-            _Displacement = new DisplacementImageType();
-            _Transformation->Displacement(*_Displacement, t, t0, _ImageToWorld);
-          }
-        }
-        Update1<FixedTransformer>(region, intensity, gradient, hessian);
-        Delete(_Displacement); // image usually only transformed once
-
       }
 
+      // Copy derivatives
+      if (gradient) CopyChannels(this, 1, _InputGradient);
+      if (hessian)  CopyChannels(this, 4, _InputHessian);
+
+      // Copy background mask (if set)
+      this->PutMask(_InputImage->GetMask());
+
+    // Otherwise, resample input images on output image grid
+    } else {
+      Update1<FixedTransformer>(region, intensity, gradient, hessian);
     }
   }
 
