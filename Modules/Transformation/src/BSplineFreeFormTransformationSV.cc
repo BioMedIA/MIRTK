@@ -1634,7 +1634,7 @@ void BSplineFreeFormTransformationSV::Print(Indent indent) const
   const streamsize    w = cout.width    (0);
   const streamsize    p = cout.precision(2);
   const ios::fmtflags f = cout.flags();
-  cout.setf(ios::floatfield);
+  cout.unsetf(ios::floatfield);
   // Print SV FFD parameters
   cout << indent << "Integration method:                " << setw(6) << ToString(_IntegrationMethod) << endl;
   cout << indent << "Cross-sectional time interval:     " << setw(6) << _T << endl;
