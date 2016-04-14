@@ -241,17 +241,23 @@ int main(int argc, char **argv)
   source.SelfUpdate(false);
 
   // Read target image
+  if (verbose > 1) cout << "Reading target image from " << target_name << "...", cout.flush();
   target_image.Read(target_name);
   target_image.PutBackgroundValueAsDouble(target_padding, true);
   if (target_image.T() > 1) {
+    if (verbose > 1) cout << " failed" << endl;
     FatalError("Target image must be a 2D or 3D image!");
   }
+  if (verbose > 1) cout << " done" << endl;
 
   // Read input transformation
   unique_ptr<Transformation> dofin;
   if (dofin_name) {
+    if (verbose > 1) cout << "Reading source transformation from " << dofin_name << "...", cout.flush();
     dofin.reset(Transformation::New(dofin_name));
     source.Transformation(dofin.get());
+    source.CacheFixedDisplacement(true);
+    if (verbose > 1) cout << " done" << endl;
   }
 
   // Target region of interest
@@ -279,18 +285,19 @@ int main(int argc, char **argv)
   const int nvox = target_region.NumberOfPoints();
 
   // Initializ (transformed) images
+  if (verbose > 1) cout << "Initializing registered images...", cout.flush();
   target.Initialize(target_region);
   source.Initialize(target_region);
-
   target.PutBackgroundValueAsDouble(target_padding);
   source.PutBackgroundValueAsDouble(source_padding);
-
   target.Recompute();
+  if (verbose > 1) cout << " done" << endl;
 
   // Target region of interest and image overlap masks
   BinaryImage mask(target_region), overlap(target_region);
 
   if (mask_name) {
+    if (verbose > 1) cout << "Reading target mask from " << mask_name << "...", cout.flush();
     BinaryImage input_mask(mask_name);
     if (input_mask.T() > 1) {
       FatalError("Mask image must be a 2D or 3D scalar image!");
@@ -310,6 +317,7 @@ int main(int argc, char **argv)
         mask(i, j, k) = nn.Evaluate(x, y, z);
       }
     }
+    if (verbose > 1) cout << " done" << endl;
   } else {
     const VoxelType *tgt = target.Data();
     if (IsNaN(target_padding)) {
@@ -333,6 +341,7 @@ int main(int argc, char **argv)
   }
 
   // Initialize similarity measures
+  if (verbose > 1) cout << "Initializing similarity measures...", cout.flush();
   Array<unique_ptr<ImageSimilarity> > sim(metric.size());
   bool use_shared_histogram = false;
   JointHistogram samples;
@@ -354,6 +363,7 @@ int main(int argc, char **argv)
       use_shared_histogram = true;
     }
   }
+  if (verbose > 1) cout << " done" << endl;
 
   // Print table header
   const string target_id = (full_path_id ? target_name : FileName(target_name));
@@ -373,12 +383,31 @@ int main(int argc, char **argv)
   for (size_t n = 0; n < source_name.size(); ++n) {
 
     Indent indent;
+    if (verbose > 0 && n > 0) cout << "\n";
+
+    // Read source image
+    if (verbose > 1) {
+      cout << "Reading source image from " << source_name[n] << "...";
+      cout.flush();
+    }
+    source_image.Read(source_name[n]);
+    source_image.PutBackgroundValueAsDouble(source_padding, true);
+    if (verbose > 1) {
+      cout << " done" << endl;
+      if (source.Transformation()) {
+        cout << "Transforming source image...";
+        cout.flush();
+      }
+    }
+    source.Recompute();
+    if (verbose > 1 && source.Transformation()) {
+      cout << " done\n" << endl;
+    }
 
     // Print image IDs
     const string source_id = (full_path_id ? source_name[n] : FileName(source_name[n]));
 
     if (verbose > 0) {
-      if (n > 0) cout << "\n";
       cout << "Similarity of target image " << target_id << " and source image " << source_id << ":\n";
       ++indent;
     } else if (!no_image_id) {
@@ -388,11 +417,6 @@ int main(int argc, char **argv)
       cout << source_id;
     }
     cout.flush();
-
-    // Read source image
-    source_image.Read(source_name[n]);
-    source_image.PutBackgroundValueAsDouble(source_padding, true);
-    source.Recompute();
 
     // Compute overlap mask
     overlap = mask;
