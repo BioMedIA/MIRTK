@@ -106,6 +106,9 @@ if (MIRTK_Registration_FOUND)
   if (MIRTK_Registration_WITH_Deformable)
     mirtk_target_dependencies(register LibDeformable)
   endif ()
+  if (TARGET TBB::tbb)
+    mirtk_target_dependencies(register TBB::tbb)
+  endif ()
 
 endif ()
 
@@ -138,8 +141,11 @@ if (MIRTK_Transformation_FOUND)
     add_image_transformation_command(init-dof)
     add_image_transformation_command(transform-image)
 
-    if (VTK_FOUND AND MIRTK_IO_WITH_VTK)
+    if (MIRTK_IO_WITH_VTK AND TARGET vtkCommonCore)
       mirtk_target_dependencies(init-dof vtkCommonCore)
+    endif ()
+    if (TARGET TBB::tbb)
+      mirtk_target_dependencies(evaluate-jacobian TBB::tbb)
     endif ()
 
   endif ()

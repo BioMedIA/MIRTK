@@ -65,6 +65,7 @@ basis_project (
     MIRTK{Transformation}
     MIRTK{Registration}
     PythonInterp
+    TBB{tbb}
     #<optional-dependency>
   TOOLS_DEPENDS
     PythonInterp
