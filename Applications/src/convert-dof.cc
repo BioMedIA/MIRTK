@@ -60,7 +60,11 @@ void PrintHelp(const char *name)
   cout << "  mirtk_similarity            Similarity MIRTK transformation file format (7 DoFs).\n";
   cout << "  mirtk_affine|affine         Affine MIRTK transformation file format (12 DoFs).\n";
   cout << "  mirtk_linear_ffd            Linear free-form deformation.\n";
+  cout << "  mirtk_linear_svffd          Linear free-form deformation parameterized by stationary velocity field.\n";
+  cout << "  mirtk_linear_tdffd          Linear free-form deformation parameterized by non-stationary velocity field.\n";
   cout << "  mirtk_bspline_ffd           Cubic B-spline free-form deformation.\n";
+  cout << "  mirtk_bspline_svffd         Cubic B-spline free-form deformation parameterized by stationary velocity field.\n";
+  cout << "  mirtk_bspline_tdffd         Cubic B-spline free-form deformation parameterized by non-stationary velocity field.\n";
   cout << "  irtk                        IRTK transformation file format.\n";
   cout << "  irtk_rigid                  Rigid IRTK transformation file format (6 DoFs).\n";
   cout << "  irtk_affine                 Affine IRTK transformation file format (12 DoFs).\n";
@@ -82,8 +86,8 @@ void PrintHelp(const char *name)
   cout << "  star_ccm                    Output file suitable for import in STAR CCM+.\n";
   cout << "  star_ccm_table              Point displacements as STAR CCM+ XYZ Table.\n";
   cout << "  star_ccm_table_xyz          Transformed points  as STAR CCM+ XYZ Table.\n";
-  cout << "  table|csv|tsv               Table of target point coordinates and displacement vectors.\n";
-  cout << "  table_xyz|csv_xyz|tsv_xyz   Table of transformed point coordinates.\n";
+  cout << "  table|csv|tsv               ASCII table of target point coordinates and displacement vectors.\n";
+  cout << "  table_xyz|csv_xyz|tsv_xyz   ASCII table of transformed point coordinates.\n";
   cout << "  =====================       =================================================================================\n";
 #if !MIRTK_IO_WITH_NIfTI
   cout << "\n";
@@ -169,7 +173,11 @@ enum TransformationFileFormat
   Format_MIRTK_Similarity,
   Format_MIRTK_Affine,
   Format_MIRTK_LinearFFD,
+  Format_MIRTK_LinearSVFFD,
+  Format_MIRTK_LinearTDFFD,
   Format_MIRTK_BSplineFFD,
+  Format_MIRTK_BSplineSVFFD,
+  Format_MIRTK_BSplineTDFFD,
   // IRTK
   Format_IRTK,
   Format_IRTK_Rigid,
@@ -226,7 +234,11 @@ inline string ToString(const TransformationFileFormat &format, int w, char c, bo
     case Format_MIRTK_Similarity:         str = "mirtk_similarity"; break;
     case Format_MIRTK_Affine:             str = "mirtk_affine"; break;
     case Format_MIRTK_LinearFFD:          str = "mirtk_linear_ffd"; break;
+    case Format_MIRTK_LinearSVFFD:        str = "mirtk_linear_svffd"; break;
+    case Format_MIRTK_LinearTDFFD:        str = "mirtk_linear_tdffd"; break;
     case Format_MIRTK_BSplineFFD:         str = "mirtk_bspline_ffd"; break;
+    case Format_MIRTK_BSplineSVFFD:       str = "mirtk_bspline_svffd"; break;
+    case Format_MIRTK_BSplineTDFFD:       str = "mirtk_bspline_tdffd"; break;
     case Format_IRTK:                     str = "irtk"; break;
     case Format_IRTK_Rigid:               str = "irtk_rigid"; break;
     case Format_IRTK_Affine:              str = "irtk_affine"; break;
@@ -278,8 +290,14 @@ inline bool FromString(const char *str, TransformationFileFormat &format)
   else if (format_name == "similarity") format = Format_MIRTK_Similarity;
   else if (format_name == "affine") format = Format_MIRTK_Affine;
   else if (format_name == "linear_ffd") format = Format_MIRTK_LinearFFD;
+  else if (format_name == "linear_svffd") format = Format_MIRTK_LinearSVFFD;
+  else if (format_name == "linear_tdffd") format = Format_MIRTK_LinearTDFFD;
   else if (format_name == "bspline_ffd") format = Format_MIRTK_BSplineFFD;
-  else if (format_name == "mirtk_ffd" || format_name == "ffd") format = Format_MIRTK_BSplineFFD;
+  else if (format_name == "bspline_svffd") format = Format_MIRTK_BSplineSVFFD;
+  else if (format_name == "bspline_tdffd") format = Format_MIRTK_BSplineTDFFD;
+  else if (format_name == "mirtk_ffd"   || format_name == "ffd")   format = Format_MIRTK_BSplineFFD;
+  else if (format_name == "mirtk_svffd" || format_name == "svffd") format = Format_MIRTK_BSplineSVFFD;
+  else if (format_name == "mirtk_tdffd" || format_name == "tdffd") format = Format_MIRTK_BSplineTDFFD;
   else if (format_name == "fsl_warp" || format_name == "warp") format = Format_FSL_WarpRelative;
   else if (format_name == "flirt") format = Format_FSL_FLIRT;
   else if (format_name == "fnirt") format = Format_FSL_FNIRT_Displacement;
@@ -312,8 +330,12 @@ TransformationType ToMIRTKTransformationType(TransformationFileFormat format)
     case Format_MIRTK_Rigid:         return TRANSFORMATION_RIGID;
     case Format_MIRTK_Similarity:    return TRANSFORMATION_SIMILARITY;
     case Format_MIRTK_Affine:        return TRANSFORMATION_AFFINE;
-    case Format_MIRTK_BSplineFFD:    return TRANSFORMATION_BSPLINE_FFD_3D;
     case Format_MIRTK_LinearFFD:     return TRANSFORMATION_LINEAR_FFD_3D;
+    case Format_MIRTK_LinearSVFFD:   return TRANSFORMATION_LINEAR_FFD_SV;
+    case Format_MIRTK_LinearTDFFD:   return TRANSFORMATION_LINEAR_FFD_TD;
+    case Format_MIRTK_BSplineFFD:    return TRANSFORMATION_BSPLINE_FFD_3D;
+    case Format_MIRTK_BSplineSVFFD:  return TRANSFORMATION_BSPLINE_FFD_SV;
+    case Format_MIRTK_BSplineTDFFD:  return TRANSFORMATION_BSPLINE_FFD_TD;
     default:                         return TRANSFORMATION_UNKNOWN;
   }
 }
@@ -355,6 +377,82 @@ enum FSLIntentCode
   FSL_CUBIC_SPLINE_COEFFICIENTS     = 2007,
   FSL_DCT_COEFFICIENTS              = 2008,
   FSL_QUADRATIC_SPLINE_COEFFICIENTS = 2009
+};
+
+// -----------------------------------------------------------------------------
+/// Integration parameters of output SV/TD FFD
+struct FFDIMParams
+{
+  FFDIM  method;
+  double t1;
+  double t2;
+  int    minsteps;
+  int    maxsteps;
+  double tol;
+
+  FFDIMParams()
+  :
+    method(FFDIM_RKE2),
+    t1(.0), t2(1.0),
+    minsteps(0), maxsteps(0),
+    tol(1.0e-3)
+  {}
+
+  double T() const
+  {
+    return (fequal(t1, t2) ? 1.0 : (t2 - t1));
+  }
+
+  int MinNumberOfSteps() const
+  {
+    int n;
+    if (minsteps <= maxsteps) {
+      n = (minsteps > 0 ? minsteps : (maxsteps > 0 ? maxsteps : 0));
+    } else {
+      n = (maxsteps > 0 ? maxsteps : (minsteps > 0 ? minsteps : 0));
+    }
+    return (n > 0 ? n : 10);
+  }
+
+  int MaxNumberOfSteps() const
+  {
+    int n;
+    if (minsteps > maxsteps) {
+      n = (minsteps > 0 ? minsteps : (maxsteps > 0 ? maxsteps : 0));
+    } else {
+      n = (maxsteps > 0 ? maxsteps : (minsteps > 0 ? minsteps : 0));
+    }
+    return (n > 0 ? n : 100);
+  }
+
+  double MinTimeStep() const
+  {
+    return T() / MaxNumberOfSteps();
+  }
+
+  double MaxTimeStep() const
+  {
+    return T() / MinNumberOfSteps();
+  }
+
+  double Tolerance() const
+  {
+    return (tol > .0 ? tol : .0);
+  }
+};
+
+// -----------------------------------------------------------------------------
+/// Parameters of Baker-Campbell-Hausdorff (BCH) method
+///
+/// These parameters are used for converting a transformation parameterized
+/// by displacements into a transformation parameterized by velocities.
+struct BCHParams
+{
+  int  nsteps;
+  int  nterms;
+  bool smooth;
+
+  BCHParams() : nsteps(8), nterms(3), smooth(false) {}
 };
 
 
@@ -844,135 +942,567 @@ bool WriteVoxelDisplacement(const char *dx_name, const char *dy_name, const char
 // =============================================================================
 
 // -----------------------------------------------------------------------------
-/// Convert between MIRTK transformation types
-bool ConvertMIRTKTransformation(const Transformation  *dofin,
-                                Transformation        *dofout,
-                                const ImageAttributes *target = nullptr)
+/// Approximate a given MIRTK transformation by another
+///
+/// This function tries to approximate the input transformation by an output
+/// transformation of a given type. When the output transformation is a
+/// multi-level free-form deformation with global and local components,
+/// the input transformation is approximated by a combination of the global
+/// transformation and the active local transformations. Whenever possible,
+/// this function attempts to copy the global and/or local transformation
+/// parameters from the input to the output transformation in order to reduce
+/// the approximation error and not require a more costly approximation step.
+/// This generic function can be used to convert from one MIRTK transformation
+/// type to any other transformation type. Another use case would be the
+/// initialization of a registration output transformation given an initial
+/// guess (i.e., manual user input transformation or result of a previous step).
+///
+/// \returns RMS error of approximation or NaN in case of a failure.
+double ApproximateAsNew(const Transformation *dofin,
+                        Transformation       *dofout,
+                        ImageAttributes      *domain = nullptr,
+                        FFDIMParams           ffdim  = FFDIMParams(),
+                        BCHParams             bch    = BCHParams())
 {
+  unique_ptr<Transformation> itmp;
+
   // Just copy parameters whenever possible
-  if (dofout->CopyFrom(dofin)) return true;
+  if (dofout->CopyFrom(dofin)) return .0;
+
+  // Reset output transformation
+  dofout->Reset();
 
   // Input...
-  const HomogeneousTransformation        *ilin  = nullptr; // ...linear transformation
-  const FreeFormTransformation           *iffd  = nullptr; // or non-linear  FFD
-  const MultiLevelFreeFormTransformation *imffd = nullptr; // or multi-level FFD
+  const HomogeneousTransformation *ilin  = nullptr; // ...linear transformation
+  const FreeFormTransformation    *iffd  = nullptr; // or non-linear  FFD
+  const MultiLevelTransformation  *imffd = nullptr; // or multi-level FFD
 
-  ( ilin = dynamic_cast<const HomogeneousTransformation        *>(dofin)) ||
-  ( iffd = dynamic_cast<const FreeFormTransformation           *>(dofin)) ||
-  (imffd = dynamic_cast<const MultiLevelFreeFormTransformation *>(dofin));
+  ( ilin = dynamic_cast<const HomogeneousTransformation *>(dofin)) ||
+  ( iffd = dynamic_cast<const FreeFormTransformation    *>(dofin)) ||
+  (imffd = dynamic_cast<const MultiLevelTransformation  *>(dofin));
 
-  if (imffd && imffd->NumberOfLevels() == 0) {
-    ilin  = imffd->GetGlobalTransformation();
-    imffd = nullptr;
+  if (imffd) {
+    if (imffd->NumberOfLevels() == 0) {
+      dofin = ilin = imffd->GetGlobalTransformation();
+      imffd = nullptr;
+    } else if (imffd->NumberOfLevels() == 1 && imffd->GetGlobalTransformation()->IsIdentity()) {
+      dofin = iffd = imffd->GetLocalTransformation(0);
+      imffd = nullptr;
+    }
   }
 
   // Output...
-  HomogeneousTransformation        *olin  = nullptr; // ...linear transformation
-  FreeFormTransformation           *offd  = nullptr; // or non-linear FFD
-  MultiLevelTransformation         *omffd = nullptr; // or multi-level FFD
-  MultiLevelFreeFormTransformation *osum  = nullptr; // (i.e., additive MFFD)
+  HomogeneousTransformation *olin  = nullptr; // ...linear transformation
+  FreeFormTransformation    *offd  = nullptr; // or non-linear FFD
+  MultiLevelTransformation  *omffd = nullptr; // or multi-level FFD
 
   ( olin = dynamic_cast<HomogeneousTransformation *>(dofout)) ||
   ( offd = dynamic_cast<FreeFormTransformation    *>(dofout)) ||
   (omffd = dynamic_cast<MultiLevelTransformation  *>(dofout));
 
-  if (omffd) {
-    const int nactive = omffd->NumberOfActiveLevels();
-    if (nactive == 0) {
-      FatalError("ConvertMIRTKTransformation: Expected output MFFD to have at least one active level!");
-    } else if (nactive == 1) {
-      for (int l = omffd->NumberOfLevels(); l >= 0; --l) {
-        if (!omffd->LocalTransformationIsActive(l)) continue;
-        offd = omffd->GetLocalTransformation(l);
-      }
-    }
-    osum = dynamic_cast<MultiLevelFreeFormTransformation *>(omffd);
+  if (omffd && omffd->NumberOfActiveLevels() == 0) {
+    dofout = olin = omffd->GetGlobalTransformation();
+    omffd  = nullptr;
   }
 
-  // Copy global transformation
+  // When input is a single-level MFFD and the output is a free-form deformation
+  // which has the same type as the FFD of the input transformation,
+  // merge the global component of the input transformation into its local
+  // component before proceeding.
+  if (imffd && imffd->NumberOfLevels() == 1 && offd &&
+      offd->TypeOfClass() == imffd->GetLocalTransformation(0)->TypeOfClass()) {
+    MultiLevelTransformation *mffd;
+    FreeFormTransformation   *affd;
+    itmp.reset(Transformation::New(imffd));
+    mffd = dynamic_cast<MultiLevelTransformation *>(itmp.get());
+    mirtkAssert(mffd != nullptr, "copy must also be a multi-level transformation");
+    mffd->MergeGlobalIntoLocalDisplacement();
+    itmp.reset(affd = mffd->PopLocalTransformation());
+    imffd = mffd = nullptr;
+    dofin = iffd = affd;
+  }
+
+  // When both input and output transformation are a MFFD of the same type
+  // and the output MFFD has only a single active FFD level, copy the global
+  // component from the input MFFD to the output MFFD and approximate the local
+  // component of the input MFFD by the output FFD.
+  if (imffd && omffd && omffd->NumberOfActiveLevels() == 1 && imffd->TypeOfClass() == omffd->TypeOfClass()) {
+    // Copy global component
+    omffd->GetGlobalTransformation()->CopyFrom(imffd->GetGlobalTransformation());
+    // Remaining local component of output MFFD
+    offd = nullptr;
+    for (int n = 0; n < omffd->NumberOfLevels(); ++n) {
+      if (omffd->LocalTransformationIsActive(n)) {
+        offd = omffd->GetLocalTransformation(n);
+        break;
+      }
+    }
+    mirtkAssert(offd != nullptr, "multi-level transformation claimed to have one active level");
+    dofout = offd;
+    omffd  = nullptr;
+    // Remaining local component of input MFFD
+    if (imffd->NumberOfLevels() == 1) {
+      dofin = iffd = imffd->GetLocalTransformation(0);
+      imffd = nullptr;
+    } else {
+      MultiLevelTransformation *mffd;
+      FreeFormTransformation   *affd;
+      itmp.reset(Transformation::New(imffd->TypeOfClass()));
+      mffd = dynamic_cast<MultiLevelTransformation *>(itmp.get());
+      mirtkAssert(mffd != nullptr, "copy must also be a multi-level transformation");
+      for (int n = 0; n < imffd->NumberOfLevels(); ++n) {
+        affd = const_cast<FreeFormTransformation *>(imffd->GetLocalTransformation(n));
+        mffd->PushLocalTransformation(affd, /* transfer_ownership = */ false);
+      }
+      dofin = imffd = mffd;
+    }
+  }
+
+  // Case 1: Input is linear homogeneous coordinate transformation
   if (ilin) {
     if (olin) {
       olin->CopyFrom(ilin);
-      return true;
-    } else if (omffd) {
+      // No error when input transformation is subtype of output transformation
+      if ( ilin->TypeOfClass() == TRANSFORMATION_RIGID ||
+          (ilin->TypeOfClass() == TRANSFORMATION_SIMILARITY && olin->TypeOfClass() != TRANSFORMATION_RIGID) ||
+          (ilin->TypeOfClass() == /*TRANSFORMATION_AFFINE == */ olin->TypeOfClass())) {
+        return .0;
+      }
+      // Otherwise, compute RMS error after possible loss of linear component
+      if (domain) {
+        ImageAttributes lattice(*domain);
+        Matrix   i2w = lattice.GetImageToWorldMatrix();
+        lattice._i2w = &i2w;
+        double x, y, z, x1, y1, z1, x2, y2, z2, error = .0;
+        for (int k = 0; k < lattice._z; ++k)
+        for (int j = 0; j < lattice._y; ++j)
+        for (int i = 0; i < lattice._x; ++i) {
+          x = i, y = j, z = k;
+          lattice.LatticeToWorld(x, y, z);
+          x1 = x2 = x;
+          y1 = y2 = y;
+          z1 = z2 = z;
+          ilin->Transform(x1, y1, z1);
+          olin->Transform(x2, y2, z2);
+          error += pow(x2 - x1, 2) + pow(y2 - y1, 2) + pow(z2 - z1, 2);
+        }
+        return sqrt(error);
+      }
+      return .0;
+    }
+    if (omffd) {
       omffd->GetGlobalTransformation()->CopyFrom(ilin);
-      return true;
+      return .0;
     }
-  // Copy local transformation
-  } else if (iffd && offd) {
-    if (offd->CopyFrom(iffd)) return true;
-  // Copy global and local transformation (additive MFFD only!)
-  } else if (imffd && imffd->NumberOfLevels() == 1 && osum && offd) {
-    osum->GetGlobalTransformation()->CopyFrom(imffd->GetGlobalTransformation());
-    if (offd->CopyFrom(imffd->GetLocalTransformation(0))) return true;
+  // Case 2: Input is a single free-form deformation
+  } else if (iffd) {
+    if (offd && offd->CopyFrom(iffd)) return .0;
+  }
+  // Case 3: Input is multi-level free-form deformation with global and local components
+  //         or parameters of input transformation in case 1 & 2 could not just
+  //         be copied over to the output transformation...
+  double error = numeric_limits<double>::quiet_NaN();
+
+  // ...determine discrete lattice on which to perform approximation
+  ImageAttributes lattice;
+  if (domain) lattice = *domain;
+  if (iffd && iffd->Attributes().NumberOfPoints() > lattice.NumberOfPoints()) {
+    lattice = iffd->Attributes();
+  }
+  if (imffd) {
+    const FreeFormTransformation *affd;
+    for (int n = 0; n < imffd->NumberOfLevels(); ++n) {
+      affd = imffd->GetLocalTransformation(n);
+      if (affd && affd->Attributes().NumberOfPoints() > lattice.NumberOfPoints()) {
+        lattice = affd->Attributes();
+      }
+    }
+  }
+  if (offd && offd->Attributes().NumberOfPoints() > lattice.NumberOfPoints()) {
+    lattice = offd->Attributes();
+  }
+  if (omffd) {
+    const FreeFormTransformation *affd;
+    for (int n = 0; n < omffd->NumberOfLevels(); ++n) {
+      affd = omffd->GetLocalTransformation(n);
+      if (affd && affd->Attributes().NumberOfPoints() > lattice.NumberOfPoints()) {
+        lattice = affd->Attributes();
+      }
+    }
+  }
+  mirtkAssert(lattice.NumberOfPoints() > 0, "approximation domain valid");
+  if (lattice.NumberOfPoints() == 0) return error;
+
+  // ...when possible, use specialized approximation methods
+  if (offd) {
+    LinearFreeFormTransformationTD  *ltdffd = nullptr;
+    BSplineFreeFormTransformationSV *bsvffd = nullptr;
+    BSplineFreeFormTransformationTD *btdffd = nullptr;
+
+    (ltdffd = dynamic_cast<LinearFreeFormTransformationTD  *>(offd)) ||
+    (bsvffd = dynamic_cast<BSplineFreeFormTransformationSV *>(offd)) ||
+    (btdffd = dynamic_cast<BSplineFreeFormTransformationTD *>(offd));
+
+    if (ltdffd || bsvffd || btdffd) {
+      // Get input displacements at lattice points of approximation domain
+      GenericImage<double> disp(lattice, 3);
+      dofin->Displacement(disp);
+      // Approximate displacements
+      if (bsvffd) {
+        error = bsvffd->ApproximateAsNew(disp, bch.smooth, bch.nterms, bch.nsteps);
+      } else if (ltdffd) {
+        GenericImage<double> *disps[1] = { &disp };
+        error = ltdffd->ApproximateAsNew(disps, &ffdim.t1, &ffdim.t2, 1,
+                                         bch.smooth, bch.nterms, bch.nsteps);
+      } else if (btdffd) {
+        GenericImage<double> *disps[1] = { &disp };
+        error = btdffd->ApproximateAsNew(disps, &ffdim.t1, &ffdim.t2, 1,
+                                         bch.smooth, bch.nterms, bch.nsteps);
+      }
+    }
   }
 
-  // Domain for approximation
-  ImageAttributes domain;
-  if (target) {
-    domain = *target;
-  }
-  if (!domain) {
-    if      (iffd) domain = iffd->Attributes();
-    else if (offd) domain = offd->Attributes();
-    else {
-      Warning("Cannot convert transformation without input -target image.");
-      return false;
-    }
+  // ...otherwise, use generic approximation interface
+  if (IsNaN(error)) {
+    error = dofout->ApproximateAsNew(lattice, dofin);
   }
 
-  // Otherwise, approximate the input transformation
-  double error = dofout->ApproximateAsNew(domain, dofin);
-  if (verbose) cout << "RMS error of approximation = " << error << endl;
-  return true;
+  if (domain) *domain = lattice;
+  return error;
 }
 
 // -----------------------------------------------------------------------------
-/// Write (M)IRTK transformation file
-bool WriteMIRTK(const char *fname, const Transformation *dof,
-                                   ImageAttributes target = ImageAttributes(),
-                                   double dx = .0, double dy = .0, double dz = .0,
-                                   TransformationType type = TRANSFORMATION_UNKNOWN)
+/// Report approximation error
+void PrintApproximationError(const Transformation  *dofin,
+                             const Transformation  *dofout,
+                             const ImageAttributes &domain,
+                             Indent                 indent = Indent())
 {
-  const FreeFormTransformation   *ffd  = dynamic_cast<const FreeFormTransformation    *>(dof);
-  const MultiLevelTransformation *mffd = dynamic_cast<const MultiLevelTransformation  *>(dof);
-  if (mffd) ffd = mffd->GetLocalTransformation(-1);
+  if (!domain) return;
 
-  if (ffd) {
-    if (dx <= .0) dx = ffd->GetXSpacing();
-    if (dy <= .0) dy = ffd->GetYSpacing();
-    if (dz <= .0) dz = ffd->GetZSpacing();
-    if (!target) target = ffd->Attributes();
+#if 0
+
+  // Evaluate error over whole image domain
+  double dx1, dy1, dz1;
+  double dx2, dy2, dz2;
+  double error, mag;
+  double avg_dispin  = 0;
+  double max_dispin  = 0;
+  double avg_dispout = 0;
+  double max_dispout = 0;
+  double avg_error   = 0;
+  double max_error   = 0;
+
+  for (int k = 0; k < domain._z; ++k)
+  for (int j = 0; j < domain._y; ++j)
+  for (int i = 0; i < domain._x; ++i) {
+    // Get local input FFD
+    dx1 = local(i, j, k, 0);
+    dy1 = local(i, j, k, 1);
+    dz1 = local(i, j, k, 2);
+    mag = sqrt(dx1 * dx1 + dy1 * dy1 + dz1 * dz1);
+    avg_dispin += mag;
+    if (mag > max_dispin) max_dispin = mag;
+    // World coordinates of control point
+    dx2 = i;
+    dy2 = j;
+    dz2 = k;
+    local.ImageToWorld(dx2, dy2, dz2);
+    // Local displacement
+    mffd.GetLocalTransformation(0)->Displacement(dx2, dy2, dz2, t1, t2);
+    mag = sqrt(dx2 * dx2 + dy2 * dy2 + dz2 * dz2);
+    avg_dispout += mag;
+    if (mag > max_dispout) max_dispout = mag;
+    // Compute error
+    error = sqrt((dx2 - dx1) * (dx2 - dx1) +
+                 (dy2 - dy1) * (dy2 - dy1) +
+                 (dz2 - dz1) * (dz2 - dz1));
+    avg_error += error;
+    if (error > max_error) max_error = error;
+  }
+  avg_dispout /= static_cast<double>(local.GetX() * local.GetY() * local.GetZ());
+  avg_dispin  /= static_cast<double>(local.GetX() * local.GetY() * local.GetZ());
+  avg_error   /= static_cast<double>(local.GetX() * local.GetY() * local.GetZ());
+
+  cout << "Approximation error (incl. boundary):" << endl;
+  cout << "  Average input displacement:  " << avg_dispin  << endl;
+  cout << "  Maximum input displacement:  " << max_dispin  << endl;
+  cout << "  Average output displacement: " << avg_dispout << endl;
+  cout << "  Maximum output displacement: " << max_dispout << endl;
+  cout << "  Average RMS error:           " << avg_error  << endl;
+  cout << "  Maximum RMS error:           " << max_error  << endl;
+
+  // Evaluate error ignoring boundary
+  avg_dispin  = 0;
+  max_dispin  = 0;
+  avg_dispout = 0;
+  max_dispout = 0;
+  avg_error   = 0;
+  max_error   = 0;
+
+  int mini = 2;
+  int maxi = local.GetX() - 3;
+  int minj = 2;
+  int maxj = local.GetY() - 3;
+  int mink = 2;
+  int maxk = local.GetZ() - 3;
+
+  if (mini <= maxi || minj <= maxj || mink <= maxk) {
+    for (int k = mink; k <= maxk; ++k)
+    for (int j = minj; j <= maxj; ++j)
+    for (int i = mini; i <= maxi; ++i) {
+      // Get local input FFD
+      dx1 = local(i, j, k, 0);
+      dy1 = local(i, j, k, 1);
+      dz1 = local(i, j, k, 2);
+      mag = sqrt(dx1 * dx1 + dy1 * dy1 + dz1 * dz1);
+      avg_dispin += mag;
+      if (mag > max_dispin) max_dispin = mag;
+      // World coordinates of control point
+      dx2 = i;
+      dy2 = j;
+      dz2 = k;
+      local.ImageToWorld(dx2, dy2, dz2);
+      // Local displacement
+      mffd.GetLocalTransformation(0)->Displacement(dx2, dy2, dz2, t1, t2);
+      mag = sqrt(dx2 * dx2 + dy2 * dy2 + dz2 * dz2);
+      avg_dispout += mag;
+      if (mag > max_dispout) max_dispout = mag;
+      // Compute error
+      error = sqrt((dx2 - dx1) * (dx2 - dx1) +
+                   (dy2 - dy1) * (dy2 - dy1) +
+                   (dz2 - dz1) * (dz2 - dz1));
+      avg_error += error;
+      if (error > max_error) max_error = error;
+    }
+    avg_dispout /= static_cast<double>((maxi - mini) * (maxj - minj) * (maxk - mink));
+    avg_dispin  /= static_cast<double>((maxi - mini) * (maxj - minj) * (maxk - mink));
+    avg_error   /= static_cast<double>((maxi - mini) * (maxj - minj) * (maxk - mink));
+
+    cout << endl;
+    cout << "Approximation error (excl. boundary):" << endl;
+    cout << "  Average input displacement:  " << avg_dispin  << endl;
+    cout << "  Maximum input displacement:  " << max_dispin  << endl;
+    cout << "  Average output displacement: " << avg_dispout << endl;
+    cout << "  Maximum output displacement: " << max_dispout << endl;
+    cout << "  Average RMS error:           " << avg_error  << endl;
+    cout << "  Maximum RMS error:           " << max_error  << endl;
+  }
+#endif
+}
+
+// -----------------------------------------------------------------------------
+/// Write MIRTK transformation file
+bool WriteMIRTK(const char *fname, Transformation *dof,
+                ImageAttributes target_attr = ImageAttributes(),
+                double dx = .0, double dy = .0, double dz = .0, double dt = .0,
+                TransformationType type      = TRANSFORMATION_UNKNOWN,
+                MFFDMode           mffd_type = MFFD_Default,
+                FFDIMParams        ffdim     = FFDIMParams(),
+                BCHParams          bch       = BCHParams())
+{
+  // Output transformation is a homogeneous coordinate transformation
+  const bool type_is_linear = (type == TRANSFORMATION_RIGID      ||
+                               type == TRANSFORMATION_SIMILARITY ||
+                               type == TRANSFORMATION_AFFINE);
+
+  // Determine type of input transformation
+  TransformationType dof_type = dof->TypeOfClass();
+
+  HomogeneousTransformation *aff  = dynamic_cast<HomogeneousTransformation *>(dof);
+  FreeFormTransformation    *ffd  = dynamic_cast<FreeFormTransformation    *>(dof);
+  MultiLevelTransformation  *mffd = dynamic_cast<MultiLevelTransformation  *>(dof);
+
+  if (mffd) {
+    aff = mffd->GetGlobalTransformation();
+    // Case 1: MFFD only has global component
+    if (mffd->NumberOfLevels() == 0) {
+      dof      = aff;
+      dof_type = TRANSFORMATION_AFFINE;
+      mffd     = nullptr;
+    } else {
+      // Merge global transformation into local transformation when output type
+      // is a local transformation without explicit global component
+      if (!type_is_linear && mffd_type == MFFD_None) {
+        mffd->MergeGlobalIntoLocalDisplacement();
+      }
+      // Get local transformation with highest resolution (i.e., most #DoFs)
+      // and determine common type of all local transformations (if unique)
+      ffd      = mffd->GetLocalTransformation(0);
+      dof_type = ffd ->TypeOfClass();
+      if (mffd->NumberOfLevels() > 1) {
+        for (int n = 1; n < mffd->NumberOfLevels(); ++n) {
+          FreeFormTransformation *affd = mffd->GetLocalTransformation(0);
+          if (affd->TypeOfClass() != dof_type) {
+            dof_type = TRANSFORMATION_UNKNOWN;
+            break;
+          }
+          if (affd->NumberOfDOFs() > ffd->NumberOfDOFs()) ffd = affd;
+        }
+      // Case 2: MFFD has only a single local component
+      } else if (mffd->GetGlobalTransformation()->IsIdentity()) {
+        dof  = ffd;
+        mffd = nullptr;
+      }
+      // Case 3: MFFD has both global and local components
+    }
   }
 
-  bool type_is_linear = (type == TRANSFORMATION_RIGID ||
-                         type == TRANSFORMATION_SIMILARITY ||
-                         type == TRANSFORMATION_AFFINE);
+  // Attributes of output FFD (if output is not only a homogeneous transformation)
+  if (!target_attr && ffd) {
+    target_attr = ffd->Attributes();
+  }
+  if (target_attr) {
+    if (dx <= .0) dx = target_attr._dx;
+    if (dy <= .0) dy = target_attr._dy;
+    if (dz <= .0) dz = target_attr._dz;
+    if (dt <= .0) dt = target_attr._dt;
+  }
 
-  bool resample = ffd && !type_is_linear && (!fequal(ffd->GetXSpacing(), dx) ||
-                                             !fequal(ffd->GetYSpacing(), dy) ||
-                                             !fequal(ffd->GetZSpacing(), dz));
+  // Check if requested spacing of output FFD differs from input transformation
+  // Always resample a MFFD with multiple levels such that output has single level
+  bool resample_ffd;
+  if (mffd && mffd->NumberOfLevels() > 1) {
+    resample_ffd = true;
+  } else if (!type_is_linear && ffd) {
+    resample_ffd = ( !fequal(ffd->GetXSpacing(), dx) ||
+                     !fequal(ffd->GetYSpacing(), dy) ||
+                    (!fequal(ffd->GetZSpacing(), dz) && ffd->Z() > 1) ||
+                    (!fequal(ffd->GetTSpacing(), dt) && ffd->T() > 1));
+  } else {
+    resample_ffd = false;
+  }
 
-  if (resample || (type != TRANSFORMATION_UNKNOWN && dof->TypeOfClass() != type)) {
-    unique_ptr<Transformation> dofout(Transformation::New(type));
-    FreeFormTransformation *ffdout = dynamic_cast<FreeFormTransformation *>(dofout.get());
-    if (ffdout) {
-      if (!target) {
-        Warning("Cannot convert linear transformation to FFD without input -target image!");
+  // Instantiate output MFFD (if any)
+  unique_ptr<MultiLevelTransformation> omffd;
+  switch (mffd_type) {
+    case MFFD_None:
+      break;
+    case MFFD_Default:
+      if (!type_is_linear) {
+        omffd.reset(new MultiLevelFreeFormTransformation());
+      }
+      break;
+    case MFFD_Sum:
+      omffd.reset(new MultiLevelFreeFormTransformation());
+      break;
+    case MFFD_Fluid:
+      omffd.reset(new FluidFreeFormTransformation());
+      break;
+    case MFFD_LogSum:
+      if (type != TRANSFORMATION_BSPLINE_FFD_SV) {
+        Warning("Multi-level mode " << ToString(MFFD_LogSum) << " only suitable for a B-spline SV FFD output transformation!");
         return false;
       }
-      ffdout->Initialize(target, dx, dy, dz);
-    }
-    if (ConvertMIRTKTransformation(dof, dofout.get(), bool(target) ? &target : nullptr)) {
-      dofout->Write(fname);
+      omffd.reset(new MultiLevelStationaryVelocityTransformation());
+      break;
+    default:
+      Warning("The " << ToString(mffd_type) << " multi-level transformation mode is not supported!");
+      return false;
+  }
+
+  // Write input transformation directly when possible
+  if (!resample_ffd && (dof_type == type || type == TRANSFORMATION_UNKNOWN)) {
+    if (omffd) {
+      if (mffd) {
+        if (omffd->TypeOfClass() == mffd->TypeOfClass()) {
+          dof->Write(fname);
+          return true;
+        }
+      } else if (ffd) {
+        const bool transfer_ownership = false;
+        omffd->PushLocalTransformation(ffd, transfer_ownership);
+        omffd->Write(fname);
+        omffd->PopLocalTransformation();
+        return true;
+      } else if (aff) {
+        omffd->GetGlobalTransformation()->CopyFrom(aff);
+        omffd->Write(fname);
+        return true;
+      }
+    } else {
+      dof->Write(fname);
       return true;
     }
-  } else {
-    dof->Write(fname);
+  }
+
+  // Otherwise, approximate input transformation by new output transformation
+  unique_ptr<Transformation> odof(Transformation::New(type));
+
+  // When output type is a homogeneous coordinate transformation,
+  // convert input transformation such that only global part remains
+  // and write resulting transformation either as MFFD without local
+  // component or a plain homogeneous coordinate transformation
+  HomogeneousTransformation *oaff = dynamic_cast<HomogeneousTransformation *>(odof.get());
+  if (oaff) {
+    double rms = ApproximateAsNew(dof, oaff, &target_attr, ffdim, bch);
+    if (IsNaN(rms)) return false;
+    if (verbose > 1 && target_attr) {
+      PrintApproximationError(dof, oaff, target_attr);
+    } else if (verbose > 0) {
+      cout << "RMS error of approximation = " << rms << endl;
+    }
+    if (omffd) {
+      omffd->GetGlobalTransformation()->CopyFrom(oaff);
+      omffd->Write(fname);
+    } else {
+      oaff->Write(fname);
+    }
     return true;
   }
 
-  return false;
+  // Otherwise, when output type is a FFD, set the requested lattice attributes and
+  // insert FFD into desired output MFFD or write plain FFD without global component.
+  // In case of a FFD parameterized by velocities, also set the parameters of
+  // the integration method used to obtain the displacement vectors.
+  FreeFormTransformation *offd = dynamic_cast<FreeFormTransformation *>(odof.get());
+  if (offd) {
+    if (!target_attr) {
+      Warning("Cannot convert linear transformation to FFD without input -target image!");
+      return false;
+    }
+    offd->Initialize(target_attr, dx, dy, dz, dt);
+    if (omffd) {
+      omffd->PushLocalTransformation(offd);
+      odof.release();
+      odof.reset(omffd.release());
+    }
+
+    BSplineFreeFormTransformationSV *bsvffd = nullptr;
+    LinearFreeFormTransformationTD  *ltdffd = nullptr;
+    BSplineFreeFormTransformationTD *btdffd = nullptr;
+
+    (bsvffd = dynamic_cast<BSplineFreeFormTransformationSV *>(offd)) ||
+    (ltdffd = dynamic_cast<LinearFreeFormTransformationTD  *>(offd)) ||
+    (btdffd = dynamic_cast<BSplineFreeFormTransformationTD *>(offd));
+
+    if (bsvffd) {
+      bsvffd->IntegrationMethod(ffdim.method);
+      if (ffdim.minsteps > 0) bsvffd->NumberOfSteps(ffdim.minsteps);
+    } else if (ltdffd) {
+      ltdffd->MinTimeStep(ffdim.MinTimeStep());
+      ltdffd->MaxTimeStep(ffdim.MaxTimeStep());
+    } else if (btdffd) {
+      btdffd->IntegrationMethod(ffdim.method);
+      btdffd->MinTimeStep(ffdim.MinTimeStep());
+      btdffd->MaxTimeStep(ffdim.MaxTimeStep());
+      btdffd->Tolerance  (ffdim.Tolerance());
+    }
+  }
+
+  // Approximate input transformation by (M)FFD
+  double rms = ApproximateAsNew(dof, odof.get(), &target_attr, ffdim, bch);
+  if (IsNaN(rms)) return false;
+
+  if (verbose > 1 && target_attr) {
+    PrintApproximationError(dof, odof.get(), target_attr);
+  } else if (verbose > 0) {
+    cout << "RMS error of approximation = " << rms << endl;
+  }
+
+  // Write (M)FFD of requested FFD and MFFD types
+  odof->Write(fname);
+  return true;
 }
 
 // =============================================================================
@@ -1278,7 +1808,7 @@ bool WriteSTARCCMTable(const char *fname, const ImageAttributes &target, const T
                        const char *delimiter     = " ",
                        int         precision     = 5)
 {
-  double t, t0 = target.LatticeToTime(0);
+  double t, t0 = target._torigin;
 
   // ---------------------------------------------------------------------------
   // Sampling grid
@@ -1459,40 +1989,72 @@ int main(int argc, char *argv[])
 
   TransformationFileFormat format_in  = Format_Unknown;
   TransformationFileFormat format_out = Format_Unknown;
+  MFFDMode                 mffd_type  = MFFD_Default;
 
   const char *dofin_name  = nullptr;
   const char *target_name = nullptr;
   const char *source_name = nullptr;
   const char *points_name = nullptr;
-  int         steps       = 0;
   int         xyz_units   = 0;
   double      dx          = .0;
   double      dy          = .0;
   double      dz          = .0;
   double      dt          = .0;
   double      t0          = numeric_limits<double>::quiet_NaN();
-  double      ts          = .0;
+  double      ts          = numeric_limits<double>::quiet_NaN();
   double      tmin        = -numeric_limits<double>::infinity();
   double      tmax        = +numeric_limits<double>::infinity();
   const char *delimiter   = nullptr;
   int         precision   = -1;
+  FFDIMParams ffdim;
+  BCHParams   bchparam;
 
   #if MIRTK_IO_WITH_NIfTI
     xyz_units = NIFTI_UNITS_MM;
   #endif 
 
   for (ALL_OPTIONS) {
-    if (OPTION("-input-format")) PARSE_ARGUMENT(format_in);
+    if (OPTION("-input-format")) {
+      PARSE_ARGUMENT(format_in);
+    }
     else if (OPTION("-format") || OPTION("-output-format")) {
       PARSE_ARGUMENT(format_out);
     }
-    else if (OPTION("-dofin")) dofin_name = ARGUMENT;
+    else if (OPTION("-dofin")) {
+      dofin_name = ARGUMENT;
+    }
+    else if (OPTION("-nomffd")) {
+      mffd_type = MFFD_None;
+    }
+    else if (OPTION("-mffd")) {
+      if (HAS_ARGUMENT) PARSE_ARGUMENT(mffd_type);
+      else              mffd_type = MFFD_Sum;
+    }
+    else if (OPTION("-fluid")) {
+      mffd_type = MFFD_Fluid;
+    }
+    else if (OPTION("-msvffd")) {
+      mffd_type  = MFFD_LogSum;
+      format_out = Format_MIRTK_BSplineSVFFD;
+    }
     else if (OPTION("-target")) target_name = ARGUMENT;
     else if (OPTION("-source")) source_name = ARGUMENT;
     else if (OPTION("-points")) points_name = ARGUMENT;
-    else if (OPTION("-steps")) PARSE_ARGUMENT(steps);
-    else if (OPTION("-Tt")) PARSE_ARGUMENT(t0);
-    else if (OPTION("-Ts")) PARSE_ARGUMENT(ts);
+    else if (OPTION("-integration-method") || OPTION("-im") || OPTION("-ffdim")) {
+      PARSE_ARGUMENT(ffdim.method);
+    }
+    else if (OPTION("-steps")) {
+      PARSE_ARGUMENT(ffdim.minsteps);
+      ffdim.maxsteps = ffdim.minsteps;
+    }
+    else if (OPTION("-min-steps") || OPTION("-minsteps")) {
+      PARSE_ARGUMENT(ffdim.minsteps);
+    }
+    else if (OPTION("-max-steps") || OPTION("-maxsteps")) {
+      PARSE_ARGUMENT(ffdim.maxsteps);
+    }
+    else if (OPTION("-Tt")   || OPTION("-t0")) PARSE_ARGUMENT(t0);
+    else if (OPTION("-Ts")   || OPTION("-tT") || OPTION("-ts")) PARSE_ARGUMENT(ts);
     else if (OPTION("-tmin") || OPTION("-t1")) PARSE_ARGUMENT(tmin);
     else if (OPTION("-tmax") || OPTION("-t2")) PARSE_ARGUMENT(tmax);
     else if (OPTION("-ds")) {
@@ -1503,9 +2065,12 @@ int main(int argc, char *argv[])
     else if (OPTION("-dy")) PARSE_ARGUMENT(dy);
     else if (OPTION("-dz")) PARSE_ARGUMENT(dz);
     else if (OPTION("-dt")) PARSE_ARGUMENT(dt);
+    else if (OPTION("-bch-smooth")) bchparam.smooth = true;
+    else if (OPTION("-bch-terms")) PARSE_ARGUMENT(bchparam.nterms);
+    else if (OPTION("-bch-steps")) PARSE_ARGUMENT(bchparam.nsteps);
     else if (OPTION("-delimiter") || OPTION("-delim")) delimiter = ARGUMENT;
     else if (OPTION("-precision")) PARSE_ARGUMENT(precision);
-    else if (OPTION("-xyz_units")) {
+    else if (OPTION("-xyz-units") || OPTION("-xyz_units")) {
       #if MIRTK_IO_WITH_NIfTI
         PARSE_ARGUMENT(xyz_units);
       #else
@@ -1533,23 +2098,38 @@ int main(int argc, char *argv[])
   }
 
   if (format_out == Format_IRTK_LinearFFD || format_out == Format_IRTK_BSplineFFD) {
-    FatalError("Cannot write deformable IRTK transformation file!");
+    FatalError("Cannot yet write deformable IRTK transformation file!");
+  }
+  if (format_out == Format_MIRTK_LinearSVFFD) {
+    FatalError("Cannot yet write linear SV FFD file!");
   }
 
-  // Read target/source attributes
-  ImageAttributes target_attr, source_attr;
+  // Read target image attributes
+  ImageAttributes target_attr;
   if (target_name) {
     InitializeIOLibrary();
     BinaryImage target(target_name);
     target_attr = target.Attributes();
-    if (!IsNaN(t0)) target_attr._torigin = t0;
+  } else {
+    if (IsNaN(t0)) t0 = .0;
   }
+  if (IsNaN(t0)) t0 = target_attr._torigin;
+  else           target_attr._torigin = t0;
+
+  // Read source image attributes
+  ImageAttributes source_attr;
   if (source_name) {
     InitializeIOLibrary();
     BinaryImage source(source_name);
     source_attr = source.Attributes();
-    if (!IsNaN(ts)) source_attr._torigin = ts;
+  } else {
+    if (IsNaN(ts)) ts = 1.0;
   }
+  if (IsNaN(ts)) ts = source_attr._torigin;
+  else           source_attr._torigin = ts;
+
+  ffdim.t1 = t0;
+  ffdim.t2 = ts;
 
   // Guess input file format
   const string ext_in = Extension(input_name, EXT_LastWithoutGz); 
@@ -1627,8 +2207,20 @@ int main(int argc, char *argv[])
     } break;
 
     // MIRTK
-    case Format_MIRTK: {
+    case Format_MIRTK:
+    case Format_MIRTK_Rigid:
+    case Format_MIRTK_Similarity:
+    case Format_MIRTK_Affine:
+    case Format_MIRTK_LinearFFD:
+    case Format_MIRTK_LinearSVFFD:
+    case Format_MIRTK_LinearTDFFD:
+    case Format_MIRTK_BSplineFFD:
+    case Format_MIRTK_BSplineSVFFD:
+    case Format_MIRTK_BSplineTDFFD: {
       dof.reset(ReadMIRTK(input_name));
+      if (format_in != Format_MIRTK && dof && dof->TypeOfClass() != ToMIRTKTransformationType(format_in)) {
+        Warning("Type of input transformation differs from specified -input-format! Ignoring option.");
+      }
     } break;
 
     // IRTK
@@ -1657,7 +2249,8 @@ int main(int argc, char *argv[])
     case Format_F3D_DEF_VEL_FIELD:
     case Format_F3D_DISP_VEL_FIELD:
     case Format_F3D_SPLINE_VEL_GRID: {
-      dof.reset(ReadF3D(input_name, dofin_name, xyz_units, steps, ToF3DTransformationType(format_in)));
+      dof.reset(ReadF3D(input_name, dofin_name, xyz_units, ffdim.minsteps,
+                        ToF3DTransformationType(format_in)));
     } break;
 
     // FreeSurfer
@@ -1760,17 +2353,28 @@ int main(int argc, char *argv[])
     case Format_MIRTK_Similarity:
     case Format_MIRTK_Affine:
     case Format_MIRTK_LinearFFD:
-    case Format_MIRTK_BSplineFFD: {
-      success = WriteMIRTK(output_name, dof.get(), target_attr, dx, dy, dz,
-                           ToMIRTKTransformationType(format_out));
+    case Format_MIRTK_LinearTDFFD:
+    case Format_MIRTK_BSplineFFD:
+    case Format_MIRTK_BSplineSVFFD:
+    case Format_MIRTK_BSplineTDFFD: {
+      success = WriteMIRTK(output_name, dof.get(), target_attr, dx, dy, dz, dt,
+                           ToMIRTKTransformationType(format_out), mffd_type,
+                           ffdim, bchparam);
+    } break;
+
+    case Format_MIRTK_LinearSVFFD: {
+      // FIXME: Once LinearFreeFormTransformationSV is implemented!
+      FatalError("Cannot create linear MIRTK SV FFD transformation file!");
     } break;
 
     // IRTK
     case Format_IRTK_Rigid: {
-      success = WriteMIRTK(output_name, dof.get(), target_attr, dx, dy, dz, TRANSFORMATION_RIGID);
+      success = WriteMIRTK(output_name, dof.get(), target_attr, dx, dy, dz, dt,
+                           TRANSFORMATION_RIGID, MFFD_None);
     } break;
     case Format_IRTK_Affine: {
-      success = WriteMIRTK(output_name, dof.get(), target_attr, dx, dy, dz, TRANSFORMATION_AFFINE);
+      success = WriteMIRTK(output_name, dof.get(), target_attr, dx, dy, dz, dt,
+                           TRANSFORMATION_AFFINE, MFFD_None);
     } break;
     case Format_IRTK: {
       const RigidTransformation      *rig;
@@ -1780,16 +2384,20 @@ int main(int argc, char *argv[])
       sim = dynamic_cast<const SimilarityTransformation *>(dof.get());
       aff = dynamic_cast<const AffineTransformation     *>(dof.get());
       if (aff || sim) {
-        success = WriteMIRTK(output_name, dof.get(), target_attr, dx, dy, dz, TRANSFORMATION_AFFINE);
+        success = WriteMIRTK(output_name, dof.get(), target_attr, dx, dy, dz, dt,
+                             TRANSFORMATION_AFFINE, MFFD_None);
       } else if (rig) {
-        success = WriteMIRTK(output_name, dof.get(), target_attr, dx, dy, dz, TRANSFORMATION_RIGID);
+        success = WriteMIRTK(output_name, dof.get(), target_attr, dx, dy, dz, dt,
+                             TRANSFORMATION_RIGID, MFFD_None);
       } else {
+        // TODO: Write (M)FFD in old IRTK format
         FatalError("Cannot write deformable IRTK transformation!");
       }
     } break;
 
     case Format_IRTK_LinearFFD:
     case Format_IRTK_BSplineFFD: {
+      // TODO: Write (M)FFD in old IRTK format
       FatalError("Cannot write deformable IRTK transformation!");
     } break;
 
