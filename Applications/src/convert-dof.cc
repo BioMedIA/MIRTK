@@ -1176,131 +1176,103 @@ double ApproximateAsNew(const Transformation *dofin,
 void PrintApproximationError(const Transformation  *dofin,
                              const Transformation  *dofout,
                              const ImageAttributes &domain,
+                             double                 ts     = .0,
+                             int                    margin = 0,
                              Indent                 indent = Indent())
 {
-  if (!domain) return;
-
-#if 0
-
-  // Evaluate error over whole image domain
+  double x, y, z, error, mag;
   double dx1, dy1, dz1;
   double dx2, dy2, dz2;
-  double error, mag;
-  double avg_dispin  = 0;
-  double max_dispin  = 0;
-  double avg_dispout = 0;
-  double max_dispout = 0;
-  double avg_error   = 0;
-  double max_error   = 0;
+  double avg_idisp = .0;
+  double max_idisp = .0;
+  double avg_odisp = .0;
+  double max_odisp = .0;
+  double avg_error = .0;
+  double max_error = .0;
 
-  for (int k = 0; k < domain._z; ++k)
-  for (int j = 0; j < domain._y; ++j)
-  for (int i = 0; i < domain._x; ++i) {
-    // Get local input FFD
-    dx1 = local(i, j, k, 0);
-    dy1 = local(i, j, k, 1);
-    dz1 = local(i, j, k, 2);
-    mag = sqrt(dx1 * dx1 + dy1 * dy1 + dz1 * dz1);
-    avg_dispin += mag;
-    if (mag > max_dispin) max_dispin = mag;
-    // World coordinates of control point
-    dx2 = i;
-    dy2 = j;
-    dz2 = k;
-    local.ImageToWorld(dx2, dy2, dz2);
-    // Local displacement
-    mffd.GetLocalTransformation(0)->Displacement(dx2, dy2, dz2, t1, t2);
-    mag = sqrt(dx2 * dx2 + dy2 * dy2 + dz2 * dz2);
-    avg_dispout += mag;
-    if (mag > max_dispout) max_dispout = mag;
-    // Compute error
+  // Lattice to world coordinate transformation matrix
+  const Matrix i2w = domain.GetImageToWorldMatrix();
+
+  // Whether to pre-compute displacements for entire spatial domain
+  const bool use_idisp = dofin ->RequiresCachingOfDisplacements();
+  const bool use_odisp = dofout->RequiresCachingOfDisplacements();
+
+  // Initialize displacement caches
+  GenericImage<double> idisp, odisp;
+  if (use_idisp) idisp.Initialize(domain, 3);
+  if (use_odisp) odisp.Initialize(domain, 3);
+
+  // Time point of source image
+  const double t0 = domain.LatticeToTime(0);
+
+  // Pre-compute displacements for entire volume domain
+  if (idisp) dofin ->Displacement(idisp, ts, t0);
+  if (odisp) dofout->Displacement(odisp, ts, t0);
+
+  // Evaluate approximation error for source image
+  for (int k = margin; k < domain._z - margin; ++k)
+  for (int j = margin; j < domain._y - margin; ++j)
+  for (int i = margin; i < domain._x - margin; ++i) {
+    x = i, y = j, z = k;
+    Transform(i2w, x, y, z);
+
+    if (idisp) {
+      dx1 = idisp(i, j, k, 0);
+      dy1 = idisp(i, j, k, 1);
+      dz1 = idisp(i, j, k, 2);
+    } else {
+      dx1 = x, dy1 = y, dz1 = z;
+      dofin->Displacement(dx1, dy1, dz1, ts, t0);
+    }
+    mag = sqrt(dx1*dx1 + dy1*dy1 + dz1*dz1);
+    avg_idisp += mag;
+    if (mag > max_idisp) max_idisp = mag;
+
+    if (idisp) {
+      dx2 = odisp(i, j, k, 0);
+      dy2 = odisp(i, j, k, 1);
+      dz2 = odisp(i, j, k, 2);
+    } else {
+      dx2 = x, dy2 = y, dz2 = z;
+      dofout->Displacement(dx2, dy2, dz2, ts, t0);
+    }
+    mag = sqrt(dx2*dx2 + dy2*dy2 + dz2*dz2);
+    avg_odisp += mag;
+    if (mag > max_odisp) max_odisp = mag;
+
     error = sqrt((dx2 - dx1) * (dx2 - dx1) +
                  (dy2 - dy1) * (dy2 - dy1) +
                  (dz2 - dz1) * (dz2 - dz1));
     avg_error += error;
     if (error > max_error) max_error = error;
   }
-  avg_dispout /= static_cast<double>(local.GetX() * local.GetY() * local.GetZ());
-  avg_dispin  /= static_cast<double>(local.GetX() * local.GetY() * local.GetZ());
-  avg_error   /= static_cast<double>(local.GetX() * local.GetY() * local.GetZ());
 
-  cout << "Approximation error (incl. boundary):" << endl;
-  cout << "  Average input displacement:  " << avg_dispin  << endl;
-  cout << "  Maximum input displacement:  " << max_dispin  << endl;
-  cout << "  Average output displacement: " << avg_dispout << endl;
-  cout << "  Maximum output displacement: " << max_dispout << endl;
-  cout << "  Average RMS error:           " << avg_error  << endl;
-  cout << "  Maximum RMS error:           " << max_error  << endl;
+  const int n = domain.NumberOfPoints();
+  avg_idisp /= n;
+  avg_odisp /= n;
+  avg_error /= n;
 
-  // Evaluate error ignoring boundary
-  avg_dispin  = 0;
-  max_dispin  = 0;
-  avg_dispout = 0;
-  max_dispout = 0;
-  avg_error   = 0;
-  max_error   = 0;
-
-  int mini = 2;
-  int maxi = local.GetX() - 3;
-  int minj = 2;
-  int maxj = local.GetY() - 3;
-  int mink = 2;
-  int maxk = local.GetZ() - 3;
-
-  if (mini <= maxi || minj <= maxj || mink <= maxk) {
-    for (int k = mink; k <= maxk; ++k)
-    for (int j = minj; j <= maxj; ++j)
-    for (int i = mini; i <= maxi; ++i) {
-      // Get local input FFD
-      dx1 = local(i, j, k, 0);
-      dy1 = local(i, j, k, 1);
-      dz1 = local(i, j, k, 2);
-      mag = sqrt(dx1 * dx1 + dy1 * dy1 + dz1 * dz1);
-      avg_dispin += mag;
-      if (mag > max_dispin) max_dispin = mag;
-      // World coordinates of control point
-      dx2 = i;
-      dy2 = j;
-      dz2 = k;
-      local.ImageToWorld(dx2, dy2, dz2);
-      // Local displacement
-      mffd.GetLocalTransformation(0)->Displacement(dx2, dy2, dz2, t1, t2);
-      mag = sqrt(dx2 * dx2 + dy2 * dy2 + dz2 * dz2);
-      avg_dispout += mag;
-      if (mag > max_dispout) max_dispout = mag;
-      // Compute error
-      error = sqrt((dx2 - dx1) * (dx2 - dx1) +
-                   (dy2 - dy1) * (dy2 - dy1) +
-                   (dz2 - dz1) * (dz2 - dz1));
-      avg_error += error;
-      if (error > max_error) max_error = error;
-    }
-    avg_dispout /= static_cast<double>((maxi - mini) * (maxj - minj) * (maxk - mink));
-    avg_dispin  /= static_cast<double>((maxi - mini) * (maxj - minj) * (maxk - mink));
-    avg_error   /= static_cast<double>((maxi - mini) * (maxj - minj) * (maxk - mink));
-
-    cout << endl;
-    cout << "Approximation error (excl. boundary):" << endl;
-    cout << "  Average input displacement:  " << avg_dispin  << endl;
-    cout << "  Maximum input displacement:  " << max_dispin  << endl;
-    cout << "  Average output displacement: " << avg_dispout << endl;
-    cout << "  Maximum output displacement: " << max_dispout << endl;
-    cout << "  Average RMS error:           " << avg_error  << endl;
-    cout << "  Maximum RMS error:           " << max_error  << endl;
-  }
-#endif
+  cout << indent << "Average input displacement:  " << avg_idisp << endl;
+  cout << indent << "Maximum input displacement:  " << max_idisp << endl;
+  cout << indent << "Average output displacement: " << avg_odisp << endl;
+  cout << indent << "Maximum output displacement: " << max_odisp << endl;
+  cout << indent << "Average RMS error:           " << avg_error << endl;
+  cout << indent << "Maximum RMS error:           " << max_error << endl;
 }
 
 // -----------------------------------------------------------------------------
 /// Write MIRTK transformation file
 bool WriteMIRTK(const char *fname, Transformation *dof,
-                ImageAttributes target_attr = ImageAttributes(),
-                double dx = .0, double dy = .0, double dz = .0, double dt = .0,
+                ImageAttributes target_attr = ImageAttributes(), double ts = .0,
+                double dx = .0, double dy = .0, double dz = .0,  double dt = .0,
                 TransformationType type      = TRANSFORMATION_UNKNOWN,
                 MFFDMode           mffd_type = MFFD_Default,
                 FFDIMParams        ffdim     = FFDIMParams(),
                 BCHParams          bch       = BCHParams())
 {
+  // Boundary margin to exclude from approximation error evaluation
+  const int rms_excl_margin = 2;
+
   // Output transformation is a homogeneous coordinate transformation
   const bool type_is_linear = (type == TRANSFORMATION_RIGID      ||
                                type == TRANSFORMATION_SIMILARITY ||
@@ -1438,7 +1410,7 @@ bool WriteMIRTK(const char *fname, Transformation *dof,
     double rms = ApproximateAsNew(dof, oaff, &target_attr, ffdim, bch);
     if (IsNaN(rms)) return false;
     if (verbose > 1 && target_attr) {
-      PrintApproximationError(dof, oaff, target_attr);
+      PrintApproximationError(dof, oaff, target_attr, ts, rms_excl_margin);
     } else if (verbose > 0) {
       cout << "RMS error of approximation = " << rms << endl;
     }
@@ -1495,7 +1467,7 @@ bool WriteMIRTK(const char *fname, Transformation *dof,
   if (IsNaN(rms)) return false;
 
   if (verbose > 1 && target_attr) {
-    PrintApproximationError(dof, odof.get(), target_attr);
+    PrintApproximationError(dof, odof.get(), target_attr, ts, rms_excl_margin);
   } else if (verbose > 0) {
     cout << "RMS error of approximation = " << rms << endl;
   }
@@ -2357,7 +2329,7 @@ int main(int argc, char *argv[])
     case Format_MIRTK_BSplineFFD:
     case Format_MIRTK_BSplineSVFFD:
     case Format_MIRTK_BSplineTDFFD: {
-      success = WriteMIRTK(output_name, dof.get(), target_attr, dx, dy, dz, dt,
+      success = WriteMIRTK(output_name, dof.get(), target_attr, ts, dx, dy, dz, dt,
                            ToMIRTKTransformationType(format_out), mffd_type,
                            ffdim, bchparam);
     } break;
@@ -2369,11 +2341,11 @@ int main(int argc, char *argv[])
 
     // IRTK
     case Format_IRTK_Rigid: {
-      success = WriteMIRTK(output_name, dof.get(), target_attr, dx, dy, dz, dt,
+      success = WriteMIRTK(output_name, dof.get(), target_attr, ts, dx, dy, dz, dt,
                            TRANSFORMATION_RIGID, MFFD_None);
     } break;
     case Format_IRTK_Affine: {
-      success = WriteMIRTK(output_name, dof.get(), target_attr, dx, dy, dz, dt,
+      success = WriteMIRTK(output_name, dof.get(), target_attr, ts, dx, dy, dz, dt,
                            TRANSFORMATION_AFFINE, MFFD_None);
     } break;
     case Format_IRTK: {
@@ -2384,10 +2356,10 @@ int main(int argc, char *argv[])
       sim = dynamic_cast<const SimilarityTransformation *>(dof.get());
       aff = dynamic_cast<const AffineTransformation     *>(dof.get());
       if (aff || sim) {
-        success = WriteMIRTK(output_name, dof.get(), target_attr, dx, dy, dz, dt,
+        success = WriteMIRTK(output_name, dof.get(), target_attr, ts, dx, dy, dz, dt,
                              TRANSFORMATION_AFFINE, MFFD_None);
       } else if (rig) {
-        success = WriteMIRTK(output_name, dof.get(), target_attr, dx, dy, dz, dt,
+        success = WriteMIRTK(output_name, dof.get(), target_attr, ts, dx, dy, dz, dt,
                              TRANSFORMATION_RIGID, MFFD_None);
       } else {
         // TODO: Write (M)FFD in old IRTK format
