@@ -43,9 +43,9 @@
 # ============================================================================
 
 if (WIN32)
-  set(WINDOWS 1)
+  set(WINDOWS_DEFINE WINDOWS)
 else ()
-  set(WINDOWS 0)
+  set(WINDOWS_DEFINE)
 endif ()
 
 basis_find_package(Doxygen REQUIRED)
@@ -62,7 +62,7 @@ basis_add_doc (
                                                                 # such as with the breathe Sphinx extension in particular
   # compile definitions
   PREDEFINED
-    WINDOWS=${WINDOWS}
+    ${WINDOWS_DEFINE}
   # exclude CMake BASIS Module groups and CMake files
   EXCLUDE_BASIS_MODULES
   EXCLUDE_BASIS_UTILITIES
