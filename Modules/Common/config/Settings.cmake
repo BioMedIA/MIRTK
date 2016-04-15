@@ -36,8 +36,6 @@
 # @ingroup BasisSettings
 ################################################################################
 
-set(BIG_ENDIAN_CONFIG 0)
-
 basis_set_config_option(WITH_MATLAB_CONFIG "${MATLAB_FOUND}")
 basis_set_config_option(WITH_VTK_CONFIG    "${VTK_FOUND}")
 basis_set_config_option(WITH_ZLIB_CONFIG   "${ZLIB_FOUND}")

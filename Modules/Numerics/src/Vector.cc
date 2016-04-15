@@ -54,53 +54,57 @@ void Vector::PermuteRows(Array<int> idx)
 // -----------------------------------------------------------------------------
 ostream &operator <<(ostream &os, const Vector &v)
 {
-  // Write keyword
-  os << "Vector " << v._rows << endl;
-
-#if !MIRTK_Numerics_BIG_ENDIAN
-  swap64((char *)v._vector, (char *)v._vector, v._rows);
-#endif
-
-  // Write binary data
-  os.write((char *) &(v._vector[0]), v._rows*sizeof(double));
-
-#if !MIRTK_Numerics_BIG_ENDIAN
-  swap64((char *)v._vector, (char *)v._vector, v._rows);
-#endif
-
+  os << "irtkVector " << max(0, v._rows) << endl;
+  if (v._rows > 0) {
+    const bool swapped = (GetByteOrder() == LittleEndian);
+    if (swapped) {
+      swap64((char *)v._vector, (char *)v._vector, v._rows);
+    }
+    os.write((char *)v._vector, v._rows * sizeof(double));
+    if (swapped) {
+      swap64((char *)v._vector, (char *)v._vector, v._rows);
+    }
+  }
   return os;
 }
 
 // -----------------------------------------------------------------------------
 istream &operator >> (istream &is, Vector &v)
 {
-  int rows;
-  char buffer[255];
-
-  // Read header
-  is >> buffer;
-  if (strcmp(buffer, "Vector") != 0) {
-    cerr << "Vector: Can't read file " << buffer << endl;
+  // Read file type identifier
+  char keyword[11];
+  is.read(keyword, 11);
+  if (strncmp(keyword, "irtkVector ", 11) != 0) {
+    cerr << "Vector: File does not appear to be a binary (M)IRTK Vector file" << endl;
     exit(1);
   }
 
-  // Read size
+  // Read vector size
+  int rows = 0;
   is >> rows;
+  if (!is || rows < 0) {
+    cerr << "Vector: Failed to read vector size from binary file" << endl;
+    exit(1);
+  }
 
-  // Allocate matrix
-  v = Vector(rows);
+  // Skip remaining characters (e.g., comment) on first line
+  char buffer[256];
+  while (is.get() != '\n')  {
+    is.get(buffer, 256);
+  }
 
-  // Read header, skip comments
-  is.get(buffer, 255);
-  is.clear();
-  is.seekg(1, ios::cur);
-
-  // Read matrix
-  is.read((char *) &(v._vector[0]), rows*sizeof(double));
-
-#if !MIRTK_Numerics_BIG_ENDIAN
-  swap64((char *)v._vector, (char *)v._vector, v._rows);
-#endif
+  // Read vector data
+  v.Initialize(rows);
+  if (rows > 0) {
+    is.read((char *)v._vector, rows * sizeof(double));
+    if (is.fail()) {
+      cerr << "Vector: File contains fewer values than expected: #rows = " << rows << endl;
+      exit(1);
+    }
+    if (GetByteOrder() == LittleEndian) {
+      swap64((char *)v._vector, (char *)v._vector, v._rows);
+    }
+  }
 
   return is;
 }
@@ -108,9 +112,10 @@ istream &operator >> (istream &is, Vector &v)
 // -----------------------------------------------------------------------------
 Cofstream &operator <<(Cofstream& to, const Vector &v)
 {
-  to.WriteAsChar("Vector", 11);
-  to.WriteAsInt(&v._rows, 1);
-  to.WriteAsDouble(v._vector, v._rows);
+  to.WriteAsChar("irtkVector", 11);
+  const int rows = max(0, v._rows);
+  to.WriteAsInt(&rows, 1);
+  if (v._rows > 0) to.WriteAsDouble(v._vector, v._rows);
   return to;
 }
 
@@ -119,17 +124,23 @@ Cifstream &operator >>(Cifstream &from, Vector &v)
 {
   char keyword[11];
   from.ReadAsChar(keyword, 11);
-  if (strncmp(keyword, "Vector", 11) != 0) {
-    keyword[10] = '\0'; // ensure it is null terminated
-    cerr << "Vector: Can't read file " << keyword << endl;
+  keyword[10] = '\0';
+  if (strcmp(keyword, "irtkVector") != 0) {
+    cerr << "Vector: File does not appear to be a binary (M)IRTK Vector file" << endl;
     exit(1);
   }
 
   int rows = 0;
-  from.ReadAsInt(&rows, 1);
+  if (!from.ReadAsInt(&rows, 1) || rows < 0) {
+    cerr << "Vector: Failed to read vector size from binary file" << endl;
+    exit(1);
+  }
 
   v.Initialize(rows);
-  from.ReadAsDouble(v._vector, rows);
+  if (rows > 0 && !from.ReadAsDouble(v._vector, rows)) {
+    cerr << "Vector: File contains fewer values than expected: #rows = " << rows << endl;
+    exit(1);
+  }
 
   return from;
 }

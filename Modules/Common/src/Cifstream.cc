@@ -20,7 +20,7 @@
 #include "mirtk/Cifstream.h"
 
 #include "mirtk/Config.h"       // WINDOWS
-#include "mirtk/CommonConfig.h" // MIRTK_Common_BIG_ENDIAN, MIRTK_Common_WITH_ZLIB
+#include "mirtk/CommonConfig.h" // MIRTK_Common_WITH_ZLIB
 #include "mirtk/Memory.h"       // swap16, swap32
 
 #if MIRTK_Common_WITH_ZLIB
@@ -36,13 +36,9 @@ namespace mirtk {
 // -----------------------------------------------------------------------------
 Cifstream::Cifstream(const char *fname)
 :
-  _File(nullptr)
+  _File(nullptr),
+  _Swapped(GetByteOrder() == LittleEndian)
 {
-  #if MIRTK_Common_BIG_ENDIAN
-    _Swapped = false;
-  #else
-    _Swapped = true;
-  #endif
   if (fname) Open(fname);
 }
 

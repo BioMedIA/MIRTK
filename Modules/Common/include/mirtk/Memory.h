@@ -41,8 +41,24 @@ using std::memmove;
 using std::memcmp;
 using std::swap;
 
+/// Byte order of each word in memory
+enum ByteOrder
+{
+  UnknownByteOrder,
+  LittleEndian,
+  BigEndian
+};
+
+/// Get byte order of this system
+ByteOrder GetByteOrder();
+
+/// Swap bytes of a single word
 void swap16(char *, char *, long);
+
+/// Swap bytes of two word
 void swap32(char *, char *, long);
+
+/// Swap bytes of four word
 void swap64(char *, char *, long);
 
 

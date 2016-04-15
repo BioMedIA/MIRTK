@@ -1891,25 +1891,30 @@ void Transformation::ParametricGradient(const PointSet &pos, const Vector3D<doub
 // -----------------------------------------------------------------------------
 bool Transformation::CheckHeader(const char *name)
 {
+  Cifstream from(name);
   unsigned int magic_no;
-  Cifstream from;
-  from.Open(name);
   from.ReadAsUInt(&magic_no, 1);
   from.Close();
+  if (magic_no != TRANSFORMATION_MAGIC) {
+    swap32((char *)&magic_no, (char *)&magic_no, 1);
+  }
   return magic_no == TRANSFORMATION_MAGIC;
 }
 
 // -----------------------------------------------------------------------------
 void Transformation::Read(const char *name)
 {
-  unsigned int  magic_no;
-  Cifstream from;
-  from.Open(name);
+  Cifstream from(name);
+  unsigned int magic_no;
   from.ReadAsUInt(&magic_no, 1);
   if (magic_no != TRANSFORMATION_MAGIC) {
-    from.Close();
-    cerr << "Transformation::Read: Not a transformation file" << endl;
-    exit(1);
+    swap32((char *)&magic_no, (char *)&magic_no, 1);
+    if (magic_no == TRANSFORMATION_MAGIC) {
+      from.Swapped(!from.Swapped());
+    } else {
+      cerr << "Transformation::Read: Not a (M)IRTK transformation file" << endl;
+      exit(1);
+    }
   }
   from.Seek(0);
   Read(from);
@@ -1919,8 +1924,7 @@ void Transformation::Read(const char *name)
 // -----------------------------------------------------------------------------
 void Transformation::Write(const char *name) const
 {
-  Cofstream to;
-  to.Open(name);
+  Cofstream to(name);
   Write(to);
   to.Close();
 }
@@ -1934,16 +1938,21 @@ bool Transformation::CanRead(TransformationType type) const
 // -----------------------------------------------------------------------------
 Cifstream &Transformation::Read(Cifstream &from)
 {
-  unsigned int magic_no, trans_type;
-
   // Read magic no. for transformations
+  unsigned int magic_no;
   from.ReadAsUInt(&magic_no, 1);
   if (magic_no != TRANSFORMATION_MAGIC) {
-    cerr << this->NameOfClass() << "::Read: Not a valid transformation file" << endl;
-    exit(1);
+    swap32((char *)&magic_no, (char *)&magic_no, 1);
+    if (magic_no == TRANSFORMATION_MAGIC) {
+      from.Swapped(!from.Swapped());
+    } else {
+      cerr << this->NameOfClass() << "::Read: Not a (M)IRTK transformation file" << endl;
+      exit(1);
+    }
   }
 
   // Read transformation type
+  unsigned int trans_type;
   from.ReadAsUInt(&trans_type, 1);
   TransformationType format = static_cast<TransformationType>(trans_type);
   if (!this->CanRead(format)) {
@@ -1959,11 +1968,11 @@ Cifstream &Transformation::Read(Cifstream &from)
 Cofstream &Transformation::Write(Cofstream &to) const
 {
   // Write magic no. for transformations
-  unsigned int magic_no = TRANSFORMATION_MAGIC;
+  const unsigned int magic_no = TRANSFORMATION_MAGIC;
   to.WriteAsUInt(&magic_no, 1);
 
   // Write transformation type
-  unsigned int trans_type = this->TypeOfClass();
+  const unsigned int trans_type = this->TypeOfClass();
   to.WriteAsUInt(&trans_type, 1);
 
   // Write transformation parameters
@@ -2019,11 +2028,13 @@ Cofstream &Transformation::WriteDOFs(Cofstream &to) const
 // -----------------------------------------------------------------------------
 bool IsTransformation(const char *name)
 {
+  Cifstream from(name);
   unsigned int magic_no;
-  Cifstream from;
-  from.Open(name);
   from.ReadAsUInt(&magic_no, 1);
   from.Close();
+  if (magic_no != TRANSFORMATION_MAGIC) {
+    swap32((char *)&magic_no, (char *)&magic_no, 1);
+  }
   return (magic_no == TRANSFORMATION_MAGIC);
 }
 

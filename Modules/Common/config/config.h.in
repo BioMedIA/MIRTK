@@ -21,9 +21,6 @@
 #define MIRTK_CommonConfig_H
 
 
-/// Whether MIRTK Common module was built on big endian system
-#define MIRTK_Common_BIG_ENDIAN @BIG_ENDIAN_CONFIG@
-
 /// Whether MIRTK Common module was built with MATLAB support
 #define MIRTK_Common_WITH_MATLAB @WITH_MATLAB_CONFIG@
 

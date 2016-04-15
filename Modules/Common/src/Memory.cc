@@ -27,6 +27,19 @@ namespace mirtk {
 // Swap bytes
 // ========================================================================
 
+// -----------------------------------------------------------------------------
+// See nifti_short_order implementation
+ByteOrder GetByteOrder()
+{
+  union {
+    unsigned char bb[2];
+    short         ss;
+  } fred;
+  fred.bb[0] = 1;
+  fred.bb[1] = 0;
+  return (fred.ss == 1 ? LittleEndian : BigEndian);
+}
+
 // ------------------------------------------------------------------------
 void swap16(char *a, char *b, long n)
 {
