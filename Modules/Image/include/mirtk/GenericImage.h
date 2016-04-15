@@ -163,6 +163,9 @@ public:
   template <class TVoxel2>
   GenericImage<VoxelType>& operator= (const GenericImage<TVoxel2> &);
 
+  /// Cast to bool, checks if this image has been initialized and ready for use
+  operator bool() const;
+
   /// Clear an image
   void Clear();
 
@@ -503,6 +506,13 @@ GenericImage<VoxelType>& GenericImage<VoxelType>::operator=(const GenericImage<V
     this->PutBackgroundValueAsDouble(image.GetBackgroundValueAsDouble());
   }
   return *this;
+}
+
+// -----------------------------------------------------------------------------
+template <class VoxelType>
+GenericImage<VoxelType>::operator bool() const
+{
+  return bool(_attr) && _matrix != nullptr;
 }
 
 // =============================================================================
