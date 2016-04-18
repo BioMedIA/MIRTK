@@ -5,7 +5,7 @@
 # All rights reserved.
 #
 # See COPYING file for license information or visit
-# http://opensource.andreasschuh.com/cmake-basis/download.html#license
+# https://cmake-basis.github.io/download.html#license
 # ============================================================================
 
 ##############################################################################
@@ -194,11 +194,10 @@ endfunction ()
 # @retval &lt;PACKAGE&gt;_FOUND            Whether the given package was found.
 # @retval &lt;PACKAGE&gt;_COMPONENTS_FOUND Names of found components.
 #                                          Optional components are only included when
-#                                          <tt>&lt;PACKAGE&gt;_&lt;COMPONENT&gt;_FOUND</tt>
-#                                          is set to @c TRUE for each found component by
-#                                          the find_package call, i.e., either the
-#                                          <tt>Find&lt;PACKAGE&gt;</tt> module or the
-#                                          <tt>&lt;PACKAGE&gt;Config</tt> file.
+#                                          "<PACKAGE>_<COMPONENT>_FOUND" is set to @c TRUE
+#                                          for each found component by the find_package call,
+#                                          i.e., either the "Find<PACKAGE>" module or the
+#                                          "<PACKAGE>Config" file.
 #
 # @sa https://cmake.org/cmake/help/v2.8.12/cmake.html#command:find_package
 #
@@ -1877,7 +1876,7 @@ endmacro ()
 # @sa basis_list_to_delimited_string()
 function (basis_list_to_string STR)
   set (OUT)
-  foreach (ELEM ${ARGN})
+  foreach (ELEM IN LISTS ARGN)
     set (OUT "${OUT}${ELEM}")
   endforeach ()
   set ("${STR}" "${OUT}" PARENT_SCOPE)
@@ -3022,7 +3021,7 @@ endmacro ()
 #         format exists for the specific scripting language. For example,
 #         Python modules can be compiled.</td>
 #   </tr>
-#     @tp @b CONFIGURATION <name> @endtp
+#     @tp @b CONFIGURATION name @endtp
 #     <td>Name of build configuration.</td>
 #   </tr>
 #   <tr>

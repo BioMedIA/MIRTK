@@ -4,7 +4,7 @@
 # All rights reserved.
 #
 # See COPYING file for license information or visit
-# http://opensource.andreasschuh.com/cmake-basis/download.html#license
+# https://cmake-basis.github.io/download.html#license
 # ============================================================================
 
 ##############################################################################
@@ -765,7 +765,7 @@ function (basis_add_mex_file TARGET_NAME)
   endif ()
   # finalize target
   if (ARGN_FINAL)
-    basis_build_mex_file(${TARGET_UID})
+    basis_finalize_targets (${TARGET_UID})
   endif ()
   # add target to list of targets
   basis_set_project_property (APPEND PROPERTY TARGETS "${TARGET_UID}")
@@ -1149,7 +1149,7 @@ function (basis_add_mcc_target TARGET_NAME)
   )
   # finalize target
   if (ARGN_FINAL)
-    basis_build_mcc_target(${TARGET_UID})
+    basis_finalize_targets (${TARGET_UID})
   endif ()
   # add target to list of targets
   basis_set_project_property (APPEND PROPERTY TARGETS "${TARGET_UID}")
@@ -1376,7 +1376,7 @@ function (basis_build_mex_file TARGET_UID)
     get_filename_component (LINK_LIB "${LIBRARY}" NAME)
     string (REGEX REPLACE "\\.(so|dylib)(\\.[0-9]+)*$" "" LINK_LIB "${LINK_LIB}")
     if (CMAKE_SYSTEM_NAME MATCHES "Darwin")
-      # cf. https://github.com/schuhschuh/cmake-basis/issues/443
+      # cf. https://github.com/cmake-basis/BASIS/issues/443
       string (REGEX REPLACE "\\.a(\\.[0-9]+)*$" "" LINK_LIB "${LINK_LIB}")
     endif ()
     string (REGEX REPLACE "^-l" "" LINK_LIB "${LINK_LIB}")
@@ -1404,7 +1404,7 @@ function (basis_build_mex_file TARGET_UID)
   endif ()
   # do not remove duplicate entries in MEX_LIBS which may be needed
   # to resolve (cyclic) dependencies between statically linked libraries
-  # (cf. https://github.com/schuhschuh/cmake-basis/issues/444)
+  # (cf. https://github.com/cmake-basis/BASIS/issues/444)
   if (MEX_LIBPATH OR MEX_LIBS)
     if (WIN32)
       basis_list_to_delimited_string (MEX_LIBPATH " " NOAUTOQUOTE ${MEX_LIBPATH})
@@ -1595,12 +1595,12 @@ function (basis_build_mcc_target TARGET_UID)
   get_filename_component (OUTPUT_NAME_WE "${OUTPUT_NAME}" NAME_WE)
   # MCC only allows alpha-numeric characters and underscores
   # TODO: Figure out how to build a shared library without this restriction
-  #       (cf. https://github.com/schuhschuh/cmake-basis/issues/410).
+  #       (cf. https://github.com/cmake-basis/BASIS/issues/410).
   if (NOT OUTPUT_NAME MATCHES "[a-zA-Z][_a-zA-Z0-9]*")
     message (FATAL_ERROR "Target ${TARGET_UID} has invalid output name ${OUTPUT_NAME}."
                          "MCC only allows alpha-numeric characters and underscores. "
                          "See GitHub issue #410 for updates on this restriction at\n"
-                         "https://github.com/schuhschuh/cmake-basis/issues/410")
+                         "https://github.com/cmake-basis/BASIS/issues/410")
   endif ()
   set (MCC_OUTPUT_NAME    "${OUTPUT_NAME}")
   set (MCC_OUTPUT_NAME_WE "${OUTPUT_NAME_WE}")

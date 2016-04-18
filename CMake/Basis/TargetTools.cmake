@@ -4,7 +4,7 @@
 # All rights reserved.
 #
 # See COPYING file for license information or visit
-# http://opensource.andreasschuh.com/cmake-basis/download.html#license
+# https://cmake-basis.github.io/download.html#license
 # ============================================================================
 
 ##############################################################################
@@ -1153,7 +1153,7 @@ endfunction ()
 #
 # Certain CMake variables within the source file are replaced during the
 # built of the script. See the
-# <a href="http://opensource.andreasschuh.com/cmake-basis/scripttargets/>
+# <a href="https://cmake-basis.github.io/scripttargets/>
 # Build System Standard</a> for details.
 # Note, however, that source files are only configured if the file name
 # ends in the <tt>.in</tt> suffix.
@@ -1200,7 +1200,7 @@ endfunction ()
 #     <td>CMake code which is evaluated after the inclusion of the default script
 #         configuration files. This code can be used to set the replacement text of the
 #         CMake variables ("@VAR@" patterns) used in the source file.
-#         See <a href="http://opensource.andreasschuh.com/cmake-basis/standard/scripttargets.html#script-configuration">
+#         See <a href="https://cmake-basis.github.io/standard/scripttargets.html#script-configuration">
 #         Build System Standard</a> for details. (default: "")</td>
 #   </tr>
 #   <tr>
@@ -1571,7 +1571,7 @@ function (basis_add_script TARGET_NAME)
   )
   # finalize target
   if (ARGN_FINAL)
-    basis_build_script(${TARGET_UID})
+    basis_finalize_targets (${TARGET_UID})
   endif ()
   # add target to list of targets
   basis_set_project_property (APPEND PROPERTY TARGETS "${TARGET_UID}")
@@ -1611,27 +1611,49 @@ function (basis_finalize_targets)
     endforeach ()
   else ()
     basis_get_project_property (TARGETS PROPERTY TARGETS)
+    # targets of BASIS utilities are finalized separately
+    # because some properties still have to be set by
+    # basis_configure_utilities, see UtilitiesTools module
+    basis_make_target_uid (TARGET_UID_basis_sh basis_sh)
+    basis_make_target_uid (TARGET_UID_basis_py basis_py)
+    basis_make_target_uid (TARGET_UID_Basis_pm Basis_pm)
+    list (REMOVE_ITEM TARGETS
+      ${TARGET_UID_basis_sh}
+      ${TARGET_UID_basis_py}
+      ${TARGET_UID_Basis_pm}
+    )
+  endif ()
+  basis_get_project_property (FINALIZED_TARGETS PROPERTY FINALIZED_TARGETS)
+  if (FINALIZED_TARGETS)
+    list (REMOVE_ITEM TARGETS ${FINALIZED_TARGETS})
+  endif ()
+  if (BASIS_DEBUG)
+    message (
+      "** basis_finalize_targets:"
+      "\n     TARGETS:   [${TARGETS}]"
+      "\n     FINALIZED: [${FINALIZED_TARGETS}]"
+    )
   endif ()
   foreach (TARGET_UID ${TARGETS})
-    if (NOT TARGET _${TARGET_UID})
-      get_target_property (BASIS_TYPE ${TARGET_UID} BASIS_TYPE)
-      if (BASIS_TYPE MATCHES "^EXECUTABLE$|^(SHARED|MODULE)_LIBRARY$")
-        if (BASIS_INSTALL_RPATH AND NOT CMAKE_SKIP_RPATH)
-          # Only if BASIS is allowed to take care of the INSTALL_RPATH property
-          # and the use of this property was not disabled by the project
-          basis_set_target_install_rpath (${TARGET_UID})
-        endif ()
-      elseif (BASIS_TYPE MATCHES "SCRIPT_LIBRARY")
-        basis_build_script_library (${TARGET_UID})
-      elseif (BASIS_TYPE MATCHES "SCRIPT")
-        basis_build_script (${TARGET_UID})
-      elseif (BASIS_TYPE MATCHES "MEX")
-        basis_build_mex_file (${TARGET_UID})
-      elseif (BASIS_TYPE MATCHES "MCC")
-        basis_build_mcc_target (${TARGET_UID})
+    get_target_property (BASIS_TYPE ${TARGET_UID} BASIS_TYPE)
+    if (BASIS_TYPE MATCHES "^EXECUTABLE$|^(SHARED|MODULE)_LIBRARY$")
+      if (BASIS_INSTALL_RPATH AND NOT CMAKE_SKIP_RPATH)
+        # Only if BASIS is allowed to take care of the INSTALL_RPATH property
+        # and the use of this property was not disabled by the project
+        basis_set_target_install_rpath (${TARGET_UID})
       endif ()
+    elseif (BASIS_TYPE MATCHES "SCRIPT_LIBRARY")
+      basis_build_script_library (${TARGET_UID})
+    elseif (BASIS_TYPE MATCHES "SCRIPT")
+      basis_build_script (${TARGET_UID})
+    elseif (BASIS_TYPE MATCHES "MEX")
+      basis_build_mex_file (${TARGET_UID})
+    elseif (BASIS_TYPE MATCHES "MCC")
+      basis_build_mcc_target (${TARGET_UID})
     endif ()
+    list (APPEND FINALIZED_TARGETS ${TARGET_UID})
   endforeach ()
+  basis_set_project_property (PROPERTY FINALIZED_TARGETS ${FINALIZED_TARGETS})
 endfunction ()
 
 # ============================================================================
@@ -2218,7 +2240,7 @@ endfunction ()
 #     <td>CMake code which is evaluated after the inclusion of the default script
 #         configuration files. This code can be used to set the replacement text of the
 #         CMake variables ("@VAR@" patterns) used in the source files.
-#         See <a href="http://opensource.andreasschuh.com/cmake-basis/standard/scripttargets.html#script-configuration">
+#         See <a href="https://cmake-basis.github.io/standard/scripttargets.html#script-configuration">
 #         Build System Standard</a> for details. (default: "")</td>
 #   </tr>
 #   <tr>
@@ -2548,7 +2570,7 @@ function (basis_add_script_library TARGET_NAME)
   endif ()
   # finalize target
   if (ARGN_FINAL)
-    basis_build_script_library(${TARGET_UID})
+    basis_finalize_targets (${TARGET_UID})
   endif ()
   # add target to list of targets
   basis_set_project_property (APPEND PROPERTY TARGETS "${TARGET_UID}")
@@ -2619,12 +2641,15 @@ function (basis_set_target_install_rpath TARGET_NAME)
   foreach (LINK_DEPEND ${LINK_DEPENDS})
     set (DEPEND_LOCATION)
     if (TARGET "${LINK_DEPEND}")
-      basis_get_target_property (BUNDLED  ${LINK_DEPEND} BUNDLED)
-      basis_get_target_property (IMPORTED ${LINK_DEPEND} IMPORTED)
-      if (NOT IMPORTED OR BUNDLED)
-        basis_get_target_location (DEPEND_LOCATION ${LINK_DEPEND} POST_INSTALL_PATH)
-        if (BASIS_DEBUG AND BASIS_VERBOSE)
-          message ("**    LOCATION(${LINK_DEPEND}): ${DEPEND_LOCATION}")
+      basis_get_target_type (LINK_TYPE ${LINK_DEPEND})
+      if ("^${LINK_TYPE}$" STREQUAL "^SHARED_LIBRARY$")
+        basis_get_target_property (BUNDLED  ${LINK_DEPEND} BUNDLED)
+        basis_get_target_property (IMPORTED ${LINK_DEPEND} IMPORTED)
+        if (NOT IMPORTED OR BUNDLED)
+          basis_get_target_location (DEPEND_LOCATION ${LINK_DEPEND} POST_INSTALL_PATH)
+          if (BASIS_DEBUG AND BASIS_VERBOSE)
+            message ("**    LOCATION(${LINK_DEPEND}): ${DEPEND_LOCATION}")
+          endif ()
         endif ()
       endif ()
     elseif (IS_ABSOLUTE "${LINK_DEPEND}")

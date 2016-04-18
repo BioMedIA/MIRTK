@@ -4,7 +4,7 @@
 # All rights reserved.
 #
 # See COPYING file for license information or visit
-# http://opensource.andreasschuh.com/cmake-basis/download.html#license
+# https://cmake-basis.github.io/download.html#license
 # ============================================================================
 
 ##############################################################################
@@ -242,6 +242,7 @@ function (basis_add_python_utilities_library UID)
   if (NOT TARGET ${TARGET_UID})
     basis_library_prefix (PREFIX PYTHON)
     basis_add_library (.${TARGET_UID} "${BASIS_PYTHON_TEMPLATES_DIR}/basis.py")
+    basis_set_target_properties (.${TARGET_UID} PROPERTIES PREFIX ${PREFIX})
     basis_target_link_libraries (.${TARGET_UID} ${BASIS_PYTHON_UTILITIES_LIBRARY})
   endif ()
   basis_set_project_property (PROPERTY PROJECT_USES_PYTHON_UTILITIES TRUE)
@@ -269,6 +270,7 @@ function (basis_add_perl_utilities_library UID)
   if (NOT TARGET ${TARGET_UID})
     basis_library_prefix (PREFIX PERL)
     basis_add_library (.${TARGET_UID} "${BASIS_PERL_TEMPLATES_DIR}/Basis.pm")
+    basis_set_target_properties (.${TARGET_UID} PROPERTIES PREFIX ${PREFIX})
     basis_target_link_libraries (.${TARGET_UID} ${BASIS_PERL_UTILITIES_LIBRARY})
   endif ()
   basis_set_project_property (PROPERTY PROJECT_USES_PERL_UTILITIES TRUE)
@@ -322,6 +324,7 @@ function (basis_add_bash_utilities_library UID)
   if (NOT TARGET ${TARGET_UID})
     basis_library_prefix (PREFIX BASH)
     basis_add_library (.${TARGET_UID} "${BASIS_BASH_TEMPLATES_DIR}/basis.sh")
+    basis_set_target_properties (.${TARGET_UID} PROPERTIES PREFIX ${PREFIX})
     basis_target_link_libraries (.${TARGET_UID} ${BASIS_BASH_UTILITIES_LIBRARY})
   endif ()
   basis_set_project_property (PROPERTY PROJECT_USES_BASH_UTILITIES TRUE)

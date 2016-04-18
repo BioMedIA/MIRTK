@@ -97,7 +97,7 @@ basis_project (
   OPTIONAL_DEPENDS
     #<optional-dependency>
   TOOLS_DEPENDS
-    PythonInterp
+    Python{Interp}
   TEST_DEPENDS
     #<test-dependency>
   OPTIONAL_TEST_DEPENDS

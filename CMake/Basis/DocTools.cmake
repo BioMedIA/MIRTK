@@ -5,7 +5,7 @@
 # All rights reserved.
 #
 # See COPYING file for license information or visit
-# http://opensource.andreasschuh.com/cmake-basis/download.html#license
+# https://cmake-basis.github.io/download.html#license
 # ============================================================================
 
 ##############################################################################
@@ -605,7 +605,7 @@ function (basis_add_doxygen_doc TARGET_NAME)
           list (REMOVE_AT SOURCES 0)
         endif ()
         get_target_property (BUILD_DIR ${T} BUILD_DIRECTORY)
-        list (APPEND DOXYGEN_INPUT "${BUILD_DIR}.dir/build")
+        list (APPEND DOXYGEN_INPUT "${BUILD_DIR}.dir/install")
         foreach (S IN LISTS SOURCES)
           list (APPEND DOXYGEN_EXCLUDE_PATTERNS "${S}")
         endforeach ()

@@ -4,7 +4,7 @@
 # All rights reserved.
 #
 # See COPYING file for license information or visit
-# http://opensource.andreasschuh.com/cmake-basis/download.html#license
+# https://cmake-basis.github.io/download.html#license
 # ============================================================================
 
 ##############################################################################
@@ -679,6 +679,29 @@ mark_as_advanced (BASIS_REGISTER)
 option (BASIS_SUPERBUILD_MODULES "EXPERIMENTAL - Build project modules as part of a superbuild. May improve configure speed." OFF)
 mark_as_advanced (BASIS_SUPERBUILD_MODULES)
 
+## @brief Enable/disable import of targets using the BASIS ImportTools.
+#
+# Issues/limitations of CMake's "function" command complicate the definition
+# of a custom set_target_properties function which can be used to collect
+# "global" information about targets imported from the CMake package
+# configuration of project dependencies. The workaround in the custom
+# set_target_properties function defined in the ImportTools.cmake is
+# extremely inefficient and slows down the configuration step a lot
+# (cf. https://github.com/cmake-basis/BASIS/issues/494).
+# 
+# The only need for collecting this information for all (executable)
+# targets imported from dependencies is for generating the executable
+# target info table for the BASIS Utilities (cf. UtilitiesTools.cmake).
+# Hence, when these are not used, the ImportTools.cmake are not needed.
+# Further, when a project does not consist of modules, the imported
+# targets are available in the scope of the project.
+#
+# A project has to set BASIS_IMPORT_TARGETS to TRUE in its root CMakeLists.txt
+# file before basis_project_begin() or basis_project_impl(), respectively,
+# which in turn include the BASISUse.cmake file. This file includes the
+# BASIS ImportTools module when BASIS_IMPORT_TARGETS is true.
+basis_set_if_not_set (BASIS_IMPORT_TARGETS FALSE)
+
 # ============================================================================
 # programming language specific settings
 # ============================================================================
@@ -773,9 +796,8 @@ set (BASIS_BASH_LIBRARY_TARGET "bashlib")
 # documentation
 # ============================================================================
 
-## @brief Advanced option to request build of documentation targets as part of ALL target.
-option (BASIS_ALL_DOC  "Request build of documentation targets as part of ALL target."  OFF)
-mark_as_advanced (BASIS_ALL_DOC)
+## @brief Advanced non-cached variable to request build of documentation targets as part of ALL target.
+basis_set_if_not_set (BASIS_ALL_DOC OFF)
 
 ## @brief Default Doxygen configuration.
 set (BASIS_DOXYGEN_DOXYFILE "${CMAKE_CURRENT_LIST_DIR}/Doxyfile.in")

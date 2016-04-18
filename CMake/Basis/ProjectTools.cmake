@@ -5,7 +5,7 @@
 # All rights reserved.
 #
 # See COPYING file for license information or visit
-# http://opensource.andreasschuh.com/cmake-basis/download.html#license
+# https://cmake-basis.github.io/download.html#license
 # ============================================================================
 
 ##############################################################################
@@ -2010,6 +2010,8 @@ macro (basis_project_initialize)
   basis_set_project_property (PROPERTY BUNDLE_LINK_DIRS  "")
   # see add_executable(), add_library()
   basis_set_project_property (PROPERTY TARGETS "")
+  # see basis_finalize_targets()
+  basis_set_project_property (PROPERTY FINALIZED_TARGETS "")
   # see basis_add_*() functions
   basis_set_project_property (PROPERTY EXPORT_TARGETS                "")
   basis_set_project_property (PROPERTY INSTALL_EXPORT_TARGETS        "")
@@ -2416,9 +2418,7 @@ macro (basis_project_begin)
   # any package use file must be included after PROJECT_NAME was set as the
   # imported targets are added to the <Project>_IMPORTED_TARGETS property
   # using basis_set_project_property() in add_executable() and add_library()
-  if (NOT BASIS_MODULE_PATH)
-    basis_use_package (BASIS)
-  endif ()
+  basis_use_package (BASIS)
   basis_find_packages ()
 
   if (BASIS_DEBUG)
@@ -2566,14 +2566,15 @@ macro (basis_project_end)
   if (NOT PROJECT_IS_MODULE)
     # copy properties of modules
     foreach (M IN LISTS PROJECT_MODULES_ENABLED)
-      foreach (P IN ITEMS IMPORTED_TARGETS
+      foreach (P IN ITEMS TARGETS
+                          FINALIZED_TARGETS
+                          IMPORTED_TARGETS
                           IMPORTED_TYPES
                           IMPORTED_LOCATIONS
                           IMPORTED_RANKS
                           PROJECT_INCLUDE_DIRS
                           PROJECT_LINK_DIRS
-                          BUNDLE_LINK_DIRS
-                          TARGETS)
+                          BUNDLE_LINK_DIRS)
         basis_get_project_property (V ${M} ${P})
         basis_set_project_property (APPEND PROPERTY ${P} ${V})
       endforeach ()

@@ -4,7 +4,7 @@
 # All rights reserved.
 #
 # See COPYING file for license information or visit
-# http://opensource.andreasschuh.com/cmake-basis/download.html#license
+# https://cmake-basis.github.io/download.html#license
 # ============================================================================
 
 ##############################################################################
@@ -81,7 +81,7 @@ set (NS \"${PROJECT_CONFIG_PREFIX}_\")
 
 # allow caller to change namespace - used by projects with modules
 if (\${NS}CONFIG_PREFIX)
-  set (NS \"\${\${NS}CONFIG_PREFIX}\")
+  set (NS \"\${\${NS}CONFIG_PREFIX}_\")
 endif ()"
 )
 
@@ -146,7 +146,7 @@ if (NOT BASIS_BUILD_ONLY)
   
   # --------------------------------------------------------------------------
   # install project configuration file
-
+  
   install (
     FILES       "${BINARY_CONFIG_DIR}/${CONFIG_FILE}"
     DESTINATION "${INSTALL_CONFIG_DIR}"

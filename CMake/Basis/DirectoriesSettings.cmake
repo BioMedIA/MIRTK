@@ -4,7 +4,7 @@
 # All rights reserved.
 #
 # See COPYING file for license information or visit
-# http://opensource.andreasschuh.com/cmake-basis/download.html#license
+# https://cmake-basis.github.io/download.html#license
 # ============================================================================
 
 ##############################################################################
@@ -14,7 +14,7 @@
 # This file configures the project directory structure as defined by the
 # Filesystem Hierarchy Standard for BASIS packages.
 #
-# @sa http://opensource.andreasschuh.com/cmake-basis/standard/fhs/
+# @sa https://cmake-basis.github.io/standard/fhs/
 #
 # The project must follow the directory structure as defined by the
 # <tt>PROJECT_&lt;*&gt;_DIR</tt> variables.
