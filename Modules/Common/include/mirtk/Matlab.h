@@ -21,19 +21,14 @@
 #define MIRTK_Matlab_H
 
 // Disable "Private field 'dependency' is not used" warning
-#if defined(__GNUG__)
-  #pragma GCC diagnostic push
-  #pragma GCC diagnostic ignored "-Wunused-private-field"
-#elif defined __clang__
+#if defined __clang__
   #pragma clang diagnostic push
   #pragma clang diagnostic ignored "-Wunused-private-field"
 #endif
 // Include MATLAB Compiler Runtime header
 #include <mclmcrrt.h>
 // Enable warnings again
-#if defined(__GNUG__)
-  #pragma GCC diagnostic pop
-#elif defined __clang__
+#if defined __clang__
   #pragma clang diagnostic pop
 #endif
 
