@@ -22,6 +22,7 @@
 
 #include "mirtk/Matrix.h"
 #include "mirtk/Matlab.h"
+#include "mirtk/PointSetIO.h"
 #include "mirtk/PointSetUtils.h"
 
 #include "vtkSmartPointer.h"
