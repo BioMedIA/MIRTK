@@ -1,0 +1,6 @@
+/**
+@defgroup BasisCxxUtilities C++ Utilities
+@brief    Auxiliary implementations for use in C++ source code.
+
+@ingroup BasisUtilities
+*/

@@ -1,0 +1,272 @@
+##############################################################################
+# @file  @CONFIG_FILE@
+# @brief CMake package configuration file of BASIS.
+#
+# @note The @CONFIG_FILE@ file is automatically generated
+#       by BASIS from the template file Config.cmake.in which is part of the
+#       BASIS installation.
+#
+# @ingroup BasisConfig
+##############################################################################
+
+# ============================================================================
+# namespace
+# ============================================================================
+
+@BASIS_NS@
+
+# ----------------------------------------------------------------------------
+macro (basis_set_config NAME)
+  set (${NS}${NAME} ${ARGN})
+endmacro ()
+
+# ----------------------------------------------------------------------------
+macro (basis_copy_config NAME SRC)
+  set (${NS}${NAME} ${${NS}${SRC}})
+endmacro ()
+
+# ----------------------------------------------------------------------------
+macro (basis_append_config NAME)
+  list (APPEND ${NS}${NAME} ${ARGN})
+endmacro ()
+
+# ----------------------------------------------------------------------------
+macro (basis_find_config NAME VALUE IDX)
+  list (FIND ${NS}${NAME} "${VALUE}" ${IDX})
+endmacro ()
+
+# ----------------------------------------------------------------------------
+macro (basis_remove_duplicates_config NAME)
+  if (${NS}${NAME})
+    list (REMOVE_DUPLICATES ${NS}${NAME})
+  endif ()
+endmacro ()
+
+# ----------------------------------------------------------------------------
+macro (basis_remove_item_config NAME ITEM)
+  if (${NS}${NAME})
+    list (REMOVE_ITEM ${NS}${NAME} "${ITEM}")
+  endif ()
+endmacro ()
+
+# ----------------------------------------------------------------------------
+if (NOT COMMAND basis_is_cached)
+  macro (basis_is_cached VAR ENTRY)
+    if (DEFINED ${ENTRY})
+      get_property (${VAR} CACHE ${ENTRY} PROPERTY TYPE SET)
+    else ()
+      set (${VAR} FALSE)
+    endif ()
+  endmacro ()
+endif ()
+
+# ----------------------------------------------------------------------------
+if (NOT COMMAND basis_set_or_update_value)
+  macro (basis_set_or_update_value VAR)
+    basis_is_cached (_CACHED ${VAR})
+    if (_CACHED)
+      if (${ARGC} GREATER 1)
+        set_property (CACHE ${VAR} PROPERTY VALUE ${ARGN})
+      else ()
+        set (${VAR} "" CACHE INTERNAL "" FORCE)
+      endif ()
+    else ()
+      set (${VAR} ${ARGN})
+    endif ()
+    unset (_CACHED)
+  endmacro ()
+endif ()
+
+# ============================================================================
+# general
+# ============================================================================
+
+## @brief Installation prefix or root of build tree.
+basis_set_config (INSTALL_PREFIX "@INSTALL_PREFIX_CONFIG@")
+get_filename_component (${NS}INSTALL_PREFIX "${${NS}INSTALL_PREFIX}" ABSOLUTE)
+
+## @brief Project use file to be included by other projects.
+basis_set_config (USE_FILE "${CMAKE_CURRENT_LIST_DIR}/@USE_FILE@")
+
+## @brief Directory of example files.
+basis_set_config (EXAMPLE_DIR "@EXAMPLE_DIR_CONFIG@")
+
+# ============================================================================
+# libraries
+# ============================================================================
+
+## @brief Directory of header files.
+basis_set_config (INCLUDE_DIR "@INCLUDE_DIR_CONFIG@")
+
+## @brief Directory of header files including dependencies.
+basis_set_config    (INCLUDE_DIRS) # to have a set recognized by Doxygen filter
+basis_copy_config   (INCLUDE_DIRS INCLUDE_DIR)
+basis_append_config (INCLUDE_DIRS "@INCLUDE_DIRS_CONFIG@")
+
+## @brief Directory of libraries.
+basis_set_config (LIBRARY_DIR "@LIBRARY_DIR_CONFIG@")
+
+## @brief Directory of libraries including dependencies.
+basis_set_config    (LIBRARY_DIRS) # to have a set() recognized by Doxygen filter
+basis_copy_config   (LIBRARY_DIRS LIBRARY_DIR)
+basis_append_config (LIBRARY_DIRS "@LIBRARY_DIRS_CONFIG@")
+
+## @brief Search path for Python modules.
+basis_set_config (PYTHONPATH "@PYTHONPATH_CONFIG@")
+
+## @brief Search path for Jython modules.
+basis_set_config (JYTHONPATH "@JYTHONPATH_CONFIG@")
+
+## @brief Search path for Perl modules.
+basis_set_config (PERL5LIB "@PERL5LIB_CONFIG@")
+
+## @brief Search path for MATLAB modules.
+basis_set_config (MATLABPATH "@MATLABPATH_CONFIG@")
+
+## @brief Search path for Bash modules.
+#
+# See the import() function of the BASIS Bash utilities.
+basis_set_config (BASHPATH "@BASHPATH_CONFIG@")
+
+# ============================================================================
+# exports
+# ============================================================================
+
+## @brief Absolute path of exports file to be included by other projects.
+basis_set_config (EXPORTS_FILE "${CMAKE_CURRENT_LIST_DIR}/@EXPORTS_FILE@")
+
+## @brief Absolute path of custom exports file to be included by other projects.
+basis_set_config (CUSTOM_EXPORTS_FILE "${CMAKE_CURRENT_LIST_DIR}/@CUSTOM_EXPORTS_FILE@")
+
+# ============================================================================
+# modules
+# ============================================================================
+
+## @brief Directory containing module configuration files
+basis_set_config (MODULES_DIR "@MODULES_DIR_CONFIG@")
+
+## @brief List of known project modules.
+basis_set_config (MODULES "@PROJECT_MODULES@")
+
+## @brief List of found requested modules.
+basis_set_config (MODULES_FOUND)
+
+## @brief List of not found optional modules.
+basis_set_config (MODULES_NOTFOUND)
+
+## @brief List of available project modules.
+basis_set_config (MODULES_ENABLED)
+file (GLOB _CONFIG_FILES "${${NS}MODULES_DIR}/@TOPLEVEL_PROJECT_PACKAGE_CONFIG_PREFIX@*Config.cmake")
+foreach (_CONFIG_FILE IN LISTS _CONFIG_FILES)
+  if (_CONFIG_FILE MATCHES "/@TOPLEVEL_PROJECT_PACKAGE_CONFIG_PREFIX@([^ /][^ /]*)Config.cmake")
+    set (_MODULE_NAME ${CMAKE_MATCH_1})
+    basis_append_config (MODULES         ${_MODULE_NAME})
+    basis_append_config (MODULES_ENABLED ${_MODULE_NAME})
+  endif ()
+endforeach ()
+
+basis_remove_duplicates_config (MODULES)
+basis_remove_duplicates_config (MODULES_ENABLED)
+
+unset (_CONFIG_FILES)
+unset (_CONFIG_FILE)
+
+## @brief List of modules requested by external package using the
+#         @c COMPONENTS argument of
+#         <a href="http://www.cmake.org/cmake/help/cmake-2-8-docs.html#command:find_package">
+#         find_package()</a>.
+if (NOT DEFINED ${NS}MODULES_REQUESTED)
+  if (${NS}FIND_COMPONENTS)
+    basis_copy_config (MODULES_REQUESTED FIND_COMPONENTS)
+  endif ()
+  if (NOT ${NS}MODULES_REQUESTED)
+    basis_copy_config (MODULES_REQUESTED MODULES_ENABLED)
+  endif ()
+endif ()
+basis_remove_duplicates_config (MODULES_REQUESTED)
+
+set (_PACKAGE_NS "${NS}")
+foreach (_MODULE_NAME IN LISTS ${NS}MODULES_REQUESTED)
+  # check if requested module is available
+  basis_find_config (MODULES_ENABLED ${_MODULE_NAME} _MODULE_IDX)
+  if (_MODULE_IDX EQUAL -1)
+    # set <Pkg>_<Module>_FOUND = FALSE
+    basis_set_config (${_MODULE_NAME}_FOUND FALSE)
+    # append to list of not found requested modules
+    basis_append_config (MODULES_NOTFOUND ${_MODULE_NAME})
+  else ()
+    set (_MODULE_NS "${NS}${_MODULE_NAME}_")
+    # include configuration file of module
+    set (${_MODULE_NAME}_CONFIG_PREFIX "${_MODULE_NS}")
+    include ("${${NS}MODULES_DIR}/@TOPLEVEL_PROJECT_PACKAGE_CONFIG_PREFIX@${_MODULE_NAME}Config.cmake")
+    unset (${_MODULE_NAME}_CONFIG_PREFIX)
+    set (NS "${_PACKAGE_NS}") # restore NS of this package config
+    # append include directories
+    if (${_MODULE_NS}INCLUDE_DIRS)
+      basis_append_config (INCLUDE_DIRS ${${_MODULE_NS}INCLUDE_DIRS})
+    elseif (${_MODULE_NS}INCLUDE_DIR)
+      basis_append_config (INCLUDE_DIRS ${${_MODULE_NS}INCLUDE_DIR})
+    endif ()
+    # append library directories
+    if (${_MODULE_NS}LIBRARY_DIRS)
+      basis_append_config (LIBRARY_DIRS ${${_MODULE_NS}LIBRARY_DIRS})
+    elseif (${_MODULE_NS}LIBARY_DIR)
+      basis_append_config (LIBRARY_DIRS ${${_MODULE_NS}LIBRARY_DIR})
+    endif ()
+    # set <Pkg>_<Module>_FOUND = TRUE
+    basis_set_config (${_MODULE_NAME}_FOUND TRUE)
+    # append to list of found requested modules
+    basis_append_config (MODULES_FOUND ${_MODULE_NAME})
+  endif ()
+endforeach ()
+unset (_PACKAGE_NS)
+
+if (${NS}MODULES_NOTFOUND)
+  set (_REQUIRED)
+  set (_OPTIONAL)
+  set (_MISSING)
+  foreach (_MODULE_NAME IN LISTS ${NS}MODULES_REQUESTED)
+    if (${NS}FIND_REQUIRED_${_MODULE_NAME})
+      list (APPEND _REQUIRED ${_MODULE_NAME})
+      if (NOT ${NS}${_MODULE_NAME}_FOUND)
+        list (APPEND _MISSING ${_MODULE_NAME})
+      endif ()
+    else ()
+      list (APPEND _OPTIONAL ${_MODULE_NAME})
+    endif ()
+  endforeach ()
+  if (_MISSING)
+    message(FATAL_ERROR "Could not find all required @PROJECT_NAME@ components!"
+                        " Rebuild and/or install the @PROJECT_NAME@ package with"
+                        " the following modules enabled by setting MODULE_<name>"
+                        " to ON when configuring the build of the package with CMake."
+                        "\nOptional modules = [${_OPTIONAL}]"
+                        "\nRequired modules = [${_REQUIRED}]"
+                        "\nMissing  modules = [${_MISSING}]\n")
+  endif ()
+  unset (_REQUIRED)
+  unset (_OPTIONAL)
+  unset (_MISSING)
+endif ()
+
+unset (_MODULE_NAME)
+unset (_MODULE_IDX)
+unset (_MODULE_NS)
+
+# ============================================================================
+# clean INCLUDE_DIRS and LIBRARY_DIRS
+# ============================================================================
+
+basis_remove_duplicates_config (INCLUDE_DIR)
+basis_remove_duplicates_config (INCLUDE_DIRS)
+basis_remove_duplicates_config (LIBRARY_DIR)
+basis_remove_duplicates_config (LIBRARY_DIRS)
+
+basis_remove_item_config (INCLUDE_DIRS "")
+basis_remove_item_config (LIBRARY_DIRS "")
+
+# ============================================================================
+# dependencies
+# ============================================================================
+
+@DEPENDS_CONFIG@

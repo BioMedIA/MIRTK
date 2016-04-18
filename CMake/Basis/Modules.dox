@@ -1,0 +1,36 @@
+/**
+@defgroup BasisModules BASIS Modules
+@brief    BASIS CMake modules.
+*/
+
+/**
+@defgroup BasisSettings Settings
+@brief    CMake modules defining settings for BASIS.
+
+@ingroup BasisModules
+*/
+
+/**
+@defgroup BasisConfig Package Configuration
+@brief    CMake package configuration.
+
+@ingroup BasisModules
+*/
+
+/**
+@defgroup BasisDirectories Project Directories
+@brief    CMake variables of project directories.
+
+@sa http://www.rad.upenn.edu/sbia/software/basis/standard/fhs/
+
+@ingroup BasisModules
+*/
+
+/**
+@defgroup BasisScriptConfig Script Configuration
+@brief    Script configuration as used for the build of script targets.
+
+@sa http://www.rad.upenn.edu/sbia/software/basis/standard/scripttargets/
+
+@ingroup BasisModules
+*/
