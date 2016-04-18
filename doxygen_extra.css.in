@@ -1,0 +1,106 @@
+.title {
+    font-size: 150%;
+    font-weight: bold;
+    margin: 10px 2px;
+}
+
+body {
+    color: black;
+    background-color: #F3F1E9;
+    padding: 0;
+    margin: 0px 80px 0px 80px;
+    min-width: 740px;
+}
+
+#main {
+    background-color: white;
+    border: 1px solid #AAAAAA;
+    padding: 0px 0px 30px 0px;
+    margin-top: 8px;
+}
+
+div.contents {
+    margin-top: 10px;
+    margin-left: 10px;
+    margin-right: 5px;
+}
+
+#titlearea
+{
+  padding: 20px 0px 10px 0px;
+  margin: 0;
+  width: 100%;
+  border-bottom: 1px solid #5373B4;
+}
+
+#titletable
+{
+  float:  left;
+  margin: 0px 12px;
+}
+
+#projectlogo img
+{
+  display: @DOXYGEN_PROJECT_LOGO_DISPLAY@;
+}
+
+#projectname a
+{
+  text-decoration: none;
+  display:         @DOXYGEN_PROJECT_NAME_DISPLAY@;
+}
+
+#projectname img
+{
+  height: 60px;
+}
+
+#providerlogo
+{
+  height:          60px;
+  margin-left:     20px;
+  margin-right:    20px;
+  float:           right;
+  vertical-align:  bottom;
+  border-collapse: separate;
+}
+
+#providerlogo img
+{
+  border:  0px none;
+  display: @DOXYGEN_PROVIDER_LOGO_DISPLAY@;
+}
+
+#divisionlogo
+{
+  vertical-align:  bottom;
+  border-collapse: separate;
+}
+
+#divisionlogo img
+{
+  height:       60px;
+  margin-left:  20px;
+  margin-right: 20px;
+  border:       0px none;
+  float:        right;
+  display:      @DOXYGEN_DIVISION_LOGO_DISPLAY@;
+}
+
+#titleendoffloat
+{
+  clear: both;
+}
+
+#MSearchBox {
+  position: absolute;
+  right:    80px;
+}
+
+div.footer {
+  color:      #86989B;
+  padding:    3px 8px 3px 0;
+  font-size:  0.8em;
+  text-align: right;
+  clear:      both;
+}
