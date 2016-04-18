@@ -64,11 +64,11 @@ basis_project (
     MIRTK{PointSet}
     MIRTK{Transformation}
     MIRTK{Registration}
-    PythonInterp
+    Python{Interp}
     TBB{tbb}
     #<optional-dependency>
   TOOLS_DEPENDS
-    PythonInterp
+    Python{Interp}
   TEST_DEPENDS
     #<test-dependency>
   OPTIONAL_TEST_DEPENDS
