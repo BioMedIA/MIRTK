@@ -2566,14 +2566,15 @@ macro (basis_project_end)
   if (NOT PROJECT_IS_MODULE)
     # copy properties of modules
     foreach (M IN LISTS PROJECT_MODULES_ENABLED)
-      foreach (P IN ITEMS IMPORTED_TARGETS
+      foreach (P IN ITEMS TARGETS
+                          FINALIZED_TARGETS
+                          IMPORTED_TARGETS
                           IMPORTED_TYPES
                           IMPORTED_LOCATIONS
                           IMPORTED_RANKS
                           PROJECT_INCLUDE_DIRS
                           PROJECT_LINK_DIRS
-                          BUNDLE_LINK_DIRS
-                          TARGETS)
+                          BUNDLE_LINK_DIRS)
         basis_get_project_property (V ${M} ${P})
         basis_set_project_property (APPEND PROPERTY ${P} ${V})
       endforeach ()
