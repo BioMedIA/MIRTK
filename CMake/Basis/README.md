@@ -13,12 +13,8 @@ complete [CMake BASIS project][3].
 License
 =======
 
-Copyright 2011-2013 University of Pennsylvania   <br />
-Copyright 2013-2016 Andreas Schuh                <br />
-Copyright 2013-2014 Carnegie Mellon University
-
-CMake BASIS Modules are distributed under the OSI-approved BSD License (the "License");
-see accompanying file [COPYING.txt](/COPYING.txt) for details.
+The CMake BASIS Modules are distributed under the OSI-approved BSD License.
+See accompanying file [COPYING.txt](/COPYING.txt) for details.
 
 This software is distributed WITHOUT ANY WARRANTY; without even the
 implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
@@ -32,32 +28,32 @@ Developers requiring only the CMake BASIS Modules are encouraged to include the
 [CMake BASIS Modules][2] files directly in their own Git controlled project source
 tree, either as Git subtree or (shallow) submodule.
 
-To utilize these modules, we recommend the use of the `basis-modules` project
-template instead of the `basis` template which requires a separate build of
-the entire [CMake BASIS project][3].
+To only utilize these modules, we recommend the use of the `basis-modules`
+project template instead of the `basis` template which requires a separate
+build of the entire [CMake BASIS project][3].
 
-**TODO**: Add template files to CMake BASIS and link them here.
+**TODO**: Add `basis-modules` project template to CMake BASIS and link them here.
 
 
 Using CMake modules as subtree (recommended)
 --------------------------------------------
 
-To add the CMake BASIS Modules as subtree to your project under the subdirectory path `basis/`,
-use the following two commands. The first adds a new remote which simplifies the following
-commands:
+To add the CMake BASIS Modules as subtree to your project under the subdirectory
+path `basis/`, use the following two commands. The first adds a new remote which
+simplifies the consecutive commands:
 
 ```bash
-git remote add -f cmake-basis-modules https://github.com/cmake-basis/modules.git
-git subtree add --prefix=basis cmake-basis-modules master --squash
+git remote add -f basis-modules https://github.com/cmake-basis/modules.git
+git subtree add --prefix=basis basis-modules master --squash
 ```
 
-In order to update the modules at a later date to incorporate changes of the CMake
-BASIS Modules into your project, use the following commands:
+In order to update the modules at a later time to incorporate changes of
+the CMake BASIS Modules into your project, use the following commands:
 
 
 ```bash
-git fetch cmake-basis-modules master
-git subtree pull --prefix=basis cmake-basis-modules master --squash
+git fetch basis-modules master
+git subtree pull --prefix=basis basis-modules master --squash
 ```
 
 
@@ -68,9 +64,9 @@ An alternative to the `git subtree` command to add the CMake BASIS Modules to
 your project, you can use `git submodule` instead. For a comparison of the two
 commands and their ups and downs, read some of the many tutorials available online.
 
-To add the CMake BASIS Modules as submodule to your project under the subdirectory path `basis/`,
-use the following commands. The `.gitmodules` file which records the added submodules
-and the URL of the remote repository must be committed to your project.
+To add the CMake BASIS Modules as submodule to your project under the subdirectory
+path `basis/`, use the following commands. The `.gitmodules` file which records the
+added submodules and the URL of the remote repository must be committed to your project.
 
 ```bash
 git submodule add --depth=1 https://github.com/cmake-basis/modules.git basis
@@ -78,8 +74,8 @@ git add .gitmodules
 git commit -m 'add: CMake BASIS Modules'
 ```
 
-In order to update the modules at a later date to incorporate changes of the CMake
-BASIS Modules into your project, use the following commands:
+In order to update the modules at a later time to incorporate changes of the
+CMake BASIS Modules into your project, use the following commands:
 
 ```bash
 cd basis/                                        # change to submodule directory
