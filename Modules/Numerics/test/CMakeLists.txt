@@ -22,5 +22,6 @@ macro(add_numerics_test class_name)
 endmacro ()
 
 
+add_numerics_test(Vector)
 add_numerics_test(Matrix)
 add_numerics_test(Polynomial)
