@@ -678,7 +678,7 @@ inline bool Vector::operator==(const Vector &v) const
 {
   if (_rows != v._rows) return false;
   for (int i = 0; i < _rows; ++i) {
-    if (_vector[i] != v._vector[i]) return false;
+    if (!fequal(_vector[i], v._vector[i])) return false;
   }
   return true;
 }
