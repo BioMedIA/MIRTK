@@ -44,8 +44,6 @@ elseif (NOT WITH_ARPACK AND WITH_UMFPACK)
   set(WITH_ARPACK ON CACHE BOOL "Request build with ARPACK library" FORCE)
 endif ()
 
-set(BIG_ENDIAN_CONFIG 0)
-
 basis_set_config_option(WITH_ARPACK_CONFIG  "${ARPACK_FOUND}")
 basis_set_config_option(WITH_UMFPACK_CONFIG "${UMFPACK_FOUND}")
 basis_set_config_option(WITH_MATLAB_CONFIG  "${MATLAB_FOUND}")

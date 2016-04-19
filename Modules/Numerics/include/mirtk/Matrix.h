@@ -733,7 +733,7 @@ inline bool Matrix::operator ==(const Matrix &m) const
   const double *ptr1 = m   . RawPointer();
   const double *ptr2 = this->RawPointer();
   for (int i = 0; i < n; ++i, ++ptr1, ++ptr2) {
-    if ((*ptr2) != (*ptr1)) return false;
+    if (!fequal(*ptr2, *ptr1)) return false;
   }
   return true;
 }

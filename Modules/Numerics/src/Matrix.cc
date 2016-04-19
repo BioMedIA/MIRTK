@@ -1006,75 +1006,66 @@ void Matrix::MakeSymmetric()
 // -----------------------------------------------------------------------------
 ostream& operator <<(ostream& os, const Matrix &m)
 {
-  // Write header in ascii
-  os << "Matrix " << m._rows << " x " << m._cols << endl;
-
-  // Allocate temporary memory
-  double *data  = new double [m._rows*m._cols];
-
-  // Convert data
+  const int n = m._rows * m._cols;
+  os << "irtkMatrix " << m._rows << " x " << m._cols << endl;
+  double *data  = new double[n];
   int index = 0;
   for (int j = 0; j < m._cols; ++j)
   for (int i = 0; i < m._rows; ++i, ++index) {
     data[index] = m._matrix[j][i];
   }
-
-#if !MIRTK_Numerics_BIG_ENDIAN
-  swap64((char *)data, (char *)data, m._rows*m._cols);
-#endif
-
-  // Write binary data
-  os.write((char *)data, m._rows * m._cols * sizeof(double));
-
-  // Free temporary memory
+  if (GetByteOrder() == LittleEndian) {
+    swap64((char *)data, (char *)data, n);
+  }
+  os.write((char *)data, n * sizeof(double));
   delete[] data;
-
   return os;
 }
 
 // -----------------------------------------------------------------------------
 istream& operator >>(istream& is, Matrix &m)
 {
-  // Read header
-  char buffer[255];
-  is >> buffer;
-  if (strcmp(buffer, "Matrix") != 0) {
-    cerr << "Matrix: Can't read file " << buffer << endl;
+  // Read keyword
+  char keyword[11];
+  is.read(keyword, 11);
+  if (strncmp(keyword, "irtkMatrix ", 11) != 0) {
+    cerr << "Matrix: File does not appear to be a binary (M)IRTK Matrix file" << endl;
     exit(1);
   }
 
-  // Read size
-  int cols, rows;
-  is >> rows;
-  is >> buffer;
-  is >> cols;
+  // Read matrix size
+  int cols = 0, rows = 0;
+  if (!(is >> rows) || is.get() != ' ' || is.get() != 'x' || is.get() != ' ' || !(is >> cols) || cols <= 0 || rows <= 0) {
+    cerr << "Matrix: Could not read matrix size from binary file" << endl;
+    exit(1);
+  }
+  const int n = rows * cols;
 
-  // Allocate matrix
-  m = Matrix(rows, cols);
-
-  // Read header, skip comments
-  is.get(buffer, 255);
-  is.clear();
-  is.seekg(1, ios::cur);
-
-  // Allocate temporary memory
-  double *data  = new double[m._rows*m._cols];
+  // Skip remaining characters (e.g., comment) on first line
+  char buffer[256];
+  while (is.get() != '\n')  {
+    is.get(buffer, 256);
+  }
 
   // Read binary data
-  is.read((char *)data, m._rows * m._cols * sizeof(double));
-
-#if !MIRTK_Numerics_BIG_ENDIAN
-  swap64((char *)data, (char *)data, m._rows*m._cols);
-#endif
+  double *data  = new double[n];
+  is.read((char *)data, n * sizeof(double));
+  if (is.fail()) {
+    delete[] data;
+    cerr << "Matrix: File contains fewer values than expected: #rows = " << rows << ", #cols = " << cols << endl;
+    exit(1);
+  }
+  if (GetByteOrder() == LittleEndian) {
+    swap64((char *)data, (char *)data, n);
+  }
 
   // Convert data
+  m.Initialize(rows, cols);
   int index = 0;
   for (int j = 0; j < m._cols; ++j)
   for (int i = 0; i < m._rows; ++i, ++index) {
     m._matrix[j][i] = data[index];
   }
-
-  // Free temporary memory
   delete[] data;
 
   return is;
@@ -1083,7 +1074,7 @@ istream& operator >>(istream& is, Matrix &m)
 // -----------------------------------------------------------------------------
 Cofstream& operator <<(Cofstream &to, const Matrix &m)
 {
-  to.WriteAsChar("Matrix", 11);
+  to.WriteAsChar("irtkMatrix", 11);
   to.WriteAsInt(&m._rows, 1);
   to.WriteAsInt(&m._cols, 1);
   to.WriteAsDouble(m.RawPointer(), m._rows * m._cols);
@@ -1094,20 +1085,22 @@ Cofstream& operator <<(Cofstream &to, const Matrix &m)
 Cifstream& operator >>(Cifstream &from, Matrix &m)
 {
   char keyword[11];
-  from.ReadAsChar(keyword, 11);
-  if (strncmp(keyword, "Matrix", 11) != 0) {
-    keyword[10] = '\0'; // ensure it is null terminated
-    cerr << "Matrix: Can't read file " << keyword << endl;
+  if (!from.ReadAsChar(keyword, 11) || strncmp(keyword, "irtkMatrix", 11) != 0) {
+    cerr << "Matrix: File does not appear to be a binary (M)IRTK Matrix file" << endl;
     exit(1);
   }
 
   int rows = 0, cols = 0;
-  from.ReadAsInt(&rows, 1);
-  from.ReadAsInt(&cols, 1);
+  if (!from.ReadAsInt(&rows, 1) || !from.ReadAsInt(&cols, 1) || rows <= 0 || cols <= 0) {
+    cerr << "Matrix: Could not read matrix size from binary file" << endl;
+    exit(1);
+  }
 
   m.Initialize(rows, cols);
-
-  from.ReadAsDouble(m.RawPointer(), rows * cols);
+  if (!from.ReadAsDouble(m.RawPointer(), rows * cols)) {
+    cerr << "Matrix: File contains fewer values than expected: #rows = " << rows << ", #cols = " << cols << endl;
+    exit(1);
+  }
 
   return from;
 }

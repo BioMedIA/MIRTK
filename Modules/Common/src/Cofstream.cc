@@ -20,7 +20,7 @@
 #include "mirtk/Cofstream.h"
 
 #include "mirtk/Config.h"       // WINDOWS
-#include "mirtk/CommonConfig.h" // MIRTK_Common_BIG_ENDIAN, MIRTK_Common_WITH_ZLIB
+#include "mirtk/CommonConfig.h" // MIRTK_Common_WITH_ZLIB
 #include "mirtk/Memory.h"       // swap16, swap32
 
 #if MIRTK_Common_WITH_ZLIB
@@ -33,17 +33,14 @@ namespace mirtk {
 
 // -----------------------------------------------------------------------------
 Cofstream::Cofstream(const char *fname)
+:
+  _File(nullptr),
+  #if MIRTK_Common_WITH_ZLIB
+    _ZFile(nullptr),
+  #endif
+  _Compressed(false),
+  _Swapped(GetByteOrder() == LittleEndian)
 {
-  _File = nullptr;
-#if MIRTK_Common_WITH_ZLIB
-  _ZFile = nullptr;
-#endif
-#if MIRTK_Common_BIG_ENDIAN
-  _Swapped = false;
-#else
-  _Swapped = true;
-#endif // MIRTK_Common_BIG_ENDIAN
-  _Compressed = false;
   if (fname) Open(fname);
 }
 
