@@ -69,7 +69,7 @@ void PrintHelp(const char *name)
 // =============================================================================
 
 // Implemented (segmentation) overlap metrics
-enum OverlapMetric { Unknown, Sensitivity, Specificity, Dice, Jaccard };
+enum OverlapMetric { UnknownMetric, Sensitivity, Specificity, Dice, Jaccard };
 
 // -----------------------------------------------------------------------------
 istream &operator >>(istream &is, OverlapMetric &metric)
@@ -81,7 +81,7 @@ istream &operator >>(istream &is, OverlapMetric &metric)
   else if (str == "Dice coefficient"   || str == "Dice")    metric = Dice;
   else if (str == "Jaccard similarity" || str == "Jaccard") metric = Jaccard;
   else {
-    metric = Unknown;
+    metric = UnknownMetric;
     is.setstate(ios::failbit);
   }
   return is;
@@ -123,7 +123,7 @@ int main(int argc, char **argv)
   --nposarg;
 
   // Parse optional arguments
-  OverlapMetric metric  = Unknown;
+  OverlapMetric metric  = UnknownMetric;
   GreyPixel     padding = MIN_GREY;
   GreyPixel     label   = -1;
   const char   *delim   = ",";
@@ -190,7 +190,7 @@ int main(int argc, char **argv)
     if (label > -1) {
 
       // Default metric
-      if (metric == Unknown) metric = Dice;
+      if (metric == UnknownMetric) metric = Dice;
 
       // Determine TP, FP, TN, FN
       int tp = 0, fp = 0, tn = 0, fn = 0;
@@ -239,7 +239,7 @@ int main(int argc, char **argv)
     } else {
 
       // Default metric
-      if (metric != Unknown) {
+      if (metric != UnknownMetric) {
         FatalError(metric << " not suitable for intensity images");
         exit(1);
       }
