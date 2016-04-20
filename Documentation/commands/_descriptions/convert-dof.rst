@@ -12,7 +12,11 @@ mirtk_rigid|rigid           Rigid MIRTK transformation file format (6 DoFs).
 mirtk_similarity            Similarity MIRTK transformation file format (7 DoFs).
 mirtk_affine|affine         Affine MIRTK transformation file format (12 DoFs).
 mirtk_linear_ffd            Linear free-form deformation.
+mirtk_linear_svffd          Linear free-form deformation parameterized by stationary velocity field.
+mirtk_linear_tdffd          Linear free-form deformation parameterized by non-stationary velocity field.
 mirtk_bspline_ffd           Cubic B-spline free-form deformation.
+mirtk_bspline_svffd         Cubic B-spline free-form deformation parameterized by stationary velocity field.
+mirtk_bspline_tdffd         Cubic B-spline free-form deformation parameterized by non-stationary velocity field.
 irtk                        IRTK transformation file format.
 irtk_rigid                  Rigid IRTK transformation file format (6 DoFs).
 irtk_affine                 Affine IRTK transformation file format (12 DoFs).
@@ -34,6 +38,6 @@ f3d_spline_vel_grid         Nifty Reg reg_f3d output control point velocity fiel
 star_ccm                    Output file suitable for import in STAR CCM+.
 star_ccm_table              Point displacements as STAR CCM+ XYZ Table.
 star_ccm_table_xyz          Transformed points  as STAR CCM+ XYZ Table.
-table|csv|tsv               Table of target point coordinates and displacement vectors.
-table_xyz|csv_xyz|tsv_xyz   Table of transformed point coordinates.
+table|csv|tsv               ASCII table of target point coordinates and displacement vectors.
+table_xyz|csv_xyz|tsv_xyz   ASCII table of transformed point coordinates.
 =====================       =================================================================================
