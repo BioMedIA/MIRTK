@@ -56,10 +56,14 @@
   // Disable "Unused typedef 'ElementType'" in flann/ground_truth.h
   #elif defined(__GNUG__)
     #pragma GCC diagnostic push
-    #pragma GCC diagnostic ignored "-Wunused-local-typedefs"
-  #elif defined __clang__
+    #if __GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ > 7)
+      #pragma GCC diagnostic ignored "-Wunused-local-typedefs"
+    #endif
+  #elif defined(__clang__)
     #pragma clang diagnostic push
-    #pragma clang diagnostic ignored "-Wunused-local-typedefs"
+    #if __clang_major__ > 3 || (__clang_major == 3 && __clang_minor > 5)
+      #pragma clang diagnostic ignored "-Wunused-local-typedefs"
+    #endif
   #endif
   // Include FLANN
   #include "flann/flann.hpp"
@@ -68,7 +72,7 @@
     #pragma warning(pop)
   #elif defined(__GNUG__)
     #pragma GCC diagnostic pop
-  #elif defined __clang__
+  #elif defined(__clang__)
     #pragma clang diagnostic pop
   #endif
 #endif // HAVE_FLANN
