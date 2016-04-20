@@ -64,6 +64,7 @@ basis_project (
     LibLBFGS
     MATLAB{mwmclmcrrt}
     VTK-7|6{vtkCommonCore,vtkCommonDataModel,vtkIOGeometry,vtkIOLegacy,vtkIOPLY,vtkIOXML}
+    TBB{tbb} # transitive dependency of MIRTK{Common}
     #<optional-dependency>
   TEST_DEPENDS
     GTest
