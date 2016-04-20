@@ -22,6 +22,10 @@
 
 #include "mirtk/PointSetIO.h"
 
+// included mirtk/vtkMath.h with fix for VTK 6.0 isinf ambiguity
+// needed because vtkTriangle.h otherwise includes vtkMath.h
+#include "mirtk/vtkMath.h"
+
 #include "vtkSmartPointer.h"
 #include "vtkPolyData.h"
 #include "vtkCellData.h"
