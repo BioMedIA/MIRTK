@@ -33,16 +33,13 @@ To download the latest MIRTK source files using Git_, use the following
 
 .. code-block:: bash
 
-    git clone --branch master --depth 1 -- https://github.com/BioMedIA/MIRTK.git
+    git clone --depth 1 -- https://github.com/BioMedIA/MIRTK.git
     MIRTK_SOURCE_DIR="$PWD/MIRTK"
 
-where the ``--branch master --depth 1`` options request a shallow clone of the current
-stable version of the source files excluding previous revisions in order to save bandwidth,
+where the ``--depth 1`` options request a shallow clone of the current development
+version of the source files excluding previous revisions in order to save bandwidth,
 download time, and disk space. The ``--depth`` option may be omitted if you want to
-see the development history and contribute to the MIRTK. To download the latest
-development version, use the ``--branch develop`` option. Note that branches can be
-switched also after the initial clone command using the
-`git checkout <https://git-scm.com/docs/git-checkout>`__ command. To update an existing
+see the development history and contribute to the MIRTK. To update an existing
 copy of the BioMedIA/MIRTK repository, use the `git pull <https://git-scm.com/docs/git-pull>`__
 command. Note that submodules also have to be updated in this case using the commands below.
 
