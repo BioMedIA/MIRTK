@@ -21,7 +21,7 @@
 # @file  CMakeLists.txt
 # @brief Root build configuration file.
 #
-# @sa <a href="http://opensource.andreasschuh.com/cmake-basis">CMake BASIS</a>
+# @sa <a href="https://cmake-basis.github.io">CMake BASIS</a>
 ##############################################################################
 
 # ----------------------------------------------------------------------------
