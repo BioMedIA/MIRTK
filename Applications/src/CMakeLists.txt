@@ -24,7 +24,7 @@
 
 # ----------------------------------------------------------------------------
 # Help re-formatting tools
-if (PythonInterp_FOUND)
+if (Python_FOUND)
   mirtk_add_executable(help-rst)
 endif ()
 
@@ -178,9 +178,9 @@ if (MIRTK_PointSet_FOUND)
     mirtk_target_dependencies(evaluate-surface-overlap ${FLANN_CPP_LIBRARY})
   endif ()
 
-  if (PythonInterp_FOUND)
+  if (Python_FOUND)
     # requires Python VTK modules and FreeSurfer installation
-    add_pointset_command(convert-mris)
+    mirtk_add_executable(convert-mris)
   endif ()
 
   if (MIRTK_Image_FOUND)
