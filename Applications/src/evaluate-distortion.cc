@@ -24,7 +24,7 @@
 
 // included mirtk/vtkMath.h with fix for VTK 6.0 isinf ambiguity
 // needed because vtkTriangle.h otherwise includes vtkMath.h
-#include "mirtk/vtkMath.h"
+#include "mirtk/VtkMath.h"
 
 #include "vtkSmartPointer.h"
 #include "vtkPolyData.h"
