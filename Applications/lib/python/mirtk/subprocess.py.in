@@ -50,7 +50,8 @@ def path(argv, quiet=False):
     """Get full path of MIRTK command executable."""
     if isinstance(argv, str): command = argv
     else:                     command = argv[0]
-    if command == 'convert-dof2csv': command = 'convert-dof'
+    if   command == 'convert-dof2csv':  command = 'convert-dof'
+    elif command == 'convert-dof2velo': command = 'convert-dof'
     fpath = None
     for ext in libexec_ext:
         p = os.path.join(libexec_dir, config, command + ext)

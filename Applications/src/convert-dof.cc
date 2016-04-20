@@ -392,7 +392,7 @@ struct FFDIMParams
 
   FFDIMParams()
   :
-    method(FFDIM_RKE2),
+    method(FFDIM_Unknown),
     t1(.0), t2(1.0),
     minsteps(0), maxsteps(0),
     tol(1.0e-3)
@@ -1449,13 +1449,19 @@ bool WriteMIRTK(const char *fname, Transformation *dof,
     (btdffd = dynamic_cast<BSplineFreeFormTransformationTD *>(offd));
 
     if (bsvffd) {
-      bsvffd->IntegrationMethod(ffdim.method);
-      if (ffdim.minsteps > 0) bsvffd->NumberOfSteps(ffdim.minsteps);
+      if (ffdim.method != FFDIM_Unknown) {
+        bsvffd->IntegrationMethod(ffdim.method);
+      }
+      if (ffdim.minsteps > 0) {
+        bsvffd->NumberOfSteps(ffdim.minsteps);
+      }
     } else if (ltdffd) {
       ltdffd->MinTimeStep(ffdim.MinTimeStep());
       ltdffd->MaxTimeStep(ffdim.MaxTimeStep());
     } else if (btdffd) {
-      btdffd->IntegrationMethod(ffdim.method);
+      if (ffdim.method != FFDIM_Unknown) {
+        btdffd->IntegrationMethod(ffdim.method);
+      }
       btdffd->MinTimeStep(ffdim.MinTimeStep());
       btdffd->MaxTimeStep(ffdim.MaxTimeStep());
       btdffd->Tolerance  (ffdim.Tolerance());
