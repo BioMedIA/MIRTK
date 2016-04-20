@@ -17,6 +17,7 @@
 # limitations under the License.
 # ==============================================================================
 
+include("${CMAKE_CURRENT_LIST_DIR}/mirtkTargetDependencies.cmake")
 include("${CMAKE_CURRENT_LIST_DIR}/mirtkAddExecutable.cmake")
 include("${CMAKE_CURRENT_LIST_DIR}/mirtkAddLibrary.cmake")
 include("${CMAKE_CURRENT_LIST_DIR}/mirtkAddTest.cmake")

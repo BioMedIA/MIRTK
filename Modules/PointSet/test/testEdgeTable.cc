@@ -17,16 +17,16 @@
  * limitations under the License.
  */
 
-#include <mirtkCommon.h>
-#include <mirtkOptions.h>
+#include "mirtk/Common.h"
+#include "mirtk/Options.h"
 
-#include <mirtkEdgeTable.h>
-#include <mirtkPointSetUtils.h>
+#include "mirtk/EdgeTable.h"
+#include "mirtk/PointSetIO.h"
 
-#include <vtkSmartPointer.h>
-#include <vtkPolyData.h>
+#include "vtkSmartPointer.h"
+#include "vtkPolyData.h"
 
-#include <gtest/gtest.h>
+#include "gtest/gtest.h"
 
 using namespace mirtk;
 

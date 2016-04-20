@@ -5,7 +5,7 @@
 # All rights reserved.
 #
 # See COPYING file for license information or visit
-# http://opensource.andreasschuh.com/cmake-basis/download.html#license
+# https://cmake-basis.github.io/download.html#license
 # ============================================================================
 
 ##############################################################################
@@ -87,14 +87,15 @@ endmacro ()
 # NAME option instead to declare its name, it can be either an independent
 # project or a (tighly coupled) "submodule" of another project. A project is
 # regarded a "submodule" when it is not a subproject but specifies a PACKAGE
-# it belongs to. Otherwise, when only a project has only a NAME, but no PACKAGE
+# it belongs to. Otherwise, when a project has only a NAME but no PACKAGE,
 # the PACKAGE name is set equal the project NAME and the project is regarded
 # as neither a subproject nor a submodule. When either a subproject or submodule
 # is built as part of a top-level project (usually the PACKAGE it belongs to),
 # the CMake variable PROJECT_IS_MODULE is furthermore set to TRUE by the
-# basis_add_module command. The PROJECT_IS_SUBPROJECT and PROJECT_IS_SUBMODULE
-# flags are used by the BASIS commands to decide to which "namespace" the
-# targets of a project belong to and what components to install.
+# basis_add_module and basis_add_subdirectory command, respectively.
+# The boolean PROJECT_IS_SUBPROJECT and PROJECT_IS_SUBMODULE variables are
+# used by the BASIS commands to decide to which "namespace" the targets of a
+# project belong to and what components to install.
 #
 # @sa basis_project()
 # @sa basis_slicer_module()
@@ -387,6 +388,14 @@ macro (basis_project_check_metadata)
       message (FATAL_ERROR "EXCLUDE_FROM_ALL option only valid for project modules.")
     endif ()
   endif ()
+  # prefix used for CMake variables in <Pkg>[<Module>]Config.cmake (cf. GenerateConfig.cmake)
+  if (PROJECT_IS_SUBMODULE)
+    set (PROJECT_CONFIG_PREFIX "${PROJECT_PACKAGE_NAME}_${PROJECT_NAME}")
+  elseif (PROJECT_IS_MODULE OR PROJECT_IS_SUBPROJECT)
+    set (PROJECT_CONFIG_PREFIX "${PROJECT_NAME}")
+  else ()
+    set (PROJECT_CONFIG_PREFIX "${PROJECT_PACKAGE_NAME}")
+  endif ()
   # source tree directories aliases
   if (PROJECT_INCLUDE_DIR)
     list (INSERT PROJECT_INCLUDE_DIRS 0 "${PROJECT_INCLUDE_DIR}")
@@ -422,6 +431,9 @@ macro (basis_project_check_metadata)
   list (GET PROJECT_INCLUDE_DIRS 0 PROJECT_INCLUDE_DIR)
   list (GET PROJECT_CODE_DIRS    0 PROJECT_CODE_DIR)
   list (GET PROJECT_TOOLS_DIRS   0 PROJECT_TOOLS_DIR)
+  # deprecated SUBDIRS argument -- use OTHER_DIRS instead
+  list (APPEND PROJECT_OTHER_DIRS ${PROJECT_SUBDIRS})
+  unset(PROJECT_SUBDIRS)
   # let basis_project_begin() know that basis_project() was called
   set (BASIS_basis_project_CALLED TRUE)
 endmacro ()
@@ -742,6 +754,10 @@ endmacro ()
 #     @tp @b TESTING_DIR path @endtp
 #     <td>The root diretory of the testing source tree containing test data and implementations. (default: test)</td>
 #   </tr>
+#   <tr>
+#     @tp @b OTHER_DIRS path... @endtp
+#     <td>List of other project directories with CMakeLists.txt files in them. (default: none)</td>
+#   </tr>
 # </table>
 #
 # @returns Sets the following non-cached CMake variables.
@@ -787,6 +803,7 @@ endmacro ()
 # @retval PROJECT_MODULE_DIRS             See @c MODULE_DIRS.
 # @retval PROJECT_MODULES_DIR             See @c MODULES_DIR.
 # @retval PROJECT_TESTING_DIR             See @c TESTING_DIR.
+# @retval PROJECT_OTHER_DIRS              See @c OTHER_DIRS.
 #
 # @retval PROJECT_HAS_APPLICATIONS Whether any of the PROJECT_TOOLS_DIRS has a CMakeLists.txt file.
 #
@@ -862,6 +879,82 @@ function (basis_installtree_asserts)
 endfunction ()
 
 # ----------------------------------------------------------------------------
+# @brief Obtain module info from BasisProject.cmake file
+#
+# Use function scope to avoid overwriting of this project's variables.
+function (basis_get_module_info MODULE_NAME F)
+  # clean path without // to fix issue with UNC paths on Windows
+  get_filename_component (F "${F}" ABSOLUTE)
+  # include BasisProject.cmake file
+  set (PROJECT_IS_MODULE TRUE)
+  get_filename_component (PROJECT_SOURCE_DIR "${F}" PATH)
+  set (BASIS_basis_project_CALLED FALSE)
+  include ("${F}")
+  # make sure that basis_project() was called
+  if (NOT BASIS_basis_project_CALLED)
+    message (FATAL_ERROR "basis_module_info(): Missing basis_project() command in ${F}!")
+  endif ()
+  # remember dependencies
+  foreach (V IN ITEMS DEPENDS OPTIONAL_DEPENDS TOOLS_DEPENDS OPTIONAL_TOOLS_DEPENDS TEST_DEPENDS OPTIONAL_TEST_DEPENDS)
+    set (${V})
+    foreach (D ${PROJECT_${V}})
+      basis_tokenize_dependency ("${D}" PKG VER CMPS)
+      if ("^${PKG}$" STREQUAL "^${TOPLEVEL_PROJECT_NAME}$")
+        list (APPEND ${V} ${CMPS})
+      else ()
+        list (APPEND ${V} "${PKG}")
+      endif ()
+    endforeach ()
+  endforeach ()
+  # do not use MODULE instead of PROJECT_NAME in this function as it is not
+  # set in the scope of this function but its parent scope only
+  set (${PROJECT_NAME}_DEPENDS                "${DEPENDS}"                PARENT_SCOPE)
+  set (${PROJECT_NAME}_OPTIONAL_DEPENDS       "${OPTIONAL_DEPENDS}"       PARENT_SCOPE)
+  set (${PROJECT_NAME}_TOOLS_DEPENDS          "${TOOLS_DEPENDS}"          PARENT_SCOPE)
+  set (${PROJECT_NAME}_OPTIONAL_TOOLS_DEPENDS "${OPTIONAL_TOOLS_DEPENDS}" PARENT_SCOPE)
+  set (${PROJECT_NAME}_TEST_DEPENDS           "${TEST_DEPENDS}"           PARENT_SCOPE)
+  set (${PROJECT_NAME}_OPTIONAL_TEST_DEPENDS  "${OPTIONAL_TEST_DEPENDS}"  PARENT_SCOPE)
+  set (${PROJECT_NAME}_DECLARED               TRUE                        PARENT_SCOPE)
+  set (${PROJECT_NAME}_MISSING                FALSE                       PARENT_SCOPE)
+  set (${PROJECT_NAME}_IS_SUBPROJECT          "${PROJECT_IS_SUBPROJECT}"  PARENT_SCOPE)
+  set (${PROJECT_NAME}_IS_SUBMODULE           "${PROJECT_IS_SUBMODULE}"   PARENT_SCOPE)
+  set (${PROJECT_NAME}_CONFIG_PREFIX          "${PROJECT_CONFIG_PREFIX}"  PARENT_SCOPE)
+  # remember source directories - used by basis_add_doxygen_doc()
+  set (${PROJECT_NAME}_INCLUDE_DIRS "${PROJECT_INCLUDE_DIRS}" PARENT_SCOPE)
+  set (${PROJECT_NAME}_CODE_DIRS    "${PROJECT_CODE_DIRS}"    PARENT_SCOPE)
+  # remember if module depends on Slicer - used by basis_find_packages()
+  if (PROJECT_IS_SLICER_MODULE)
+    foreach (_D IN LISTS BASIS_SLICER_METADATA_LIST)
+        if (DEFINED PROJECT_${_D})
+          set (${PROJECT_NAME}_${_D} "${PROJECT_${_D}}" PARENT_SCOPE)
+        endif ()
+    endforeach ()
+    set (${PROJECT_NAME}_IS_SLICER_MODULE TRUE PARENT_SCOPE)
+  else ()
+    set (${PROJECT_NAME}_IS_SLICER_MODULE FALSE PARENT_SCOPE)
+  endif ()
+  # whether to always exclude module from BUILD_ALL_MODULES
+  set (${PROJECT_NAME}_EXCLUDE_FROM_ALL "${PROJECT_EXCLUDE_FROM_ALL}" PARENT_SCOPE)
+  # module name
+  set (${MODULE_NAME} "${PROJECT_NAME}" PARENT_SCOPE)
+endfunction ()
+
+# ----------------------------------------------------------------------------
+## @brief Manually add project module to list of modules
+macro (basis_add_module_info MODULE_NAME F)
+  # clean path without // to fix issue with UNC paths on Windows
+  get_filename_component (F "${F}" ABSOLUTE)
+  basis_get_module_info (_MODULE ${F})
+  list (APPEND PROJECT_MODULES ${_MODULE})
+  get_filename_component (${_MODULE}_BASE ${F} PATH)
+  basis_get_relative_path (${_MODULE}_BASE_REL "${CMAKE_CURRENT_SOURCE_DIR}" "${${_MODULE}_BASE}")
+  set (MODULE_${_MODULE}_SOURCE_DIR "${${_MODULE}_BASE}")
+  set (MODULE_${_MODULE}_BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}/${${_MODULE}_BASE_REL}")
+  set (${MODULE_NAME} ${_MODULE})
+  unset(_MODULE)
+endmacro ()
+
+# ----------------------------------------------------------------------------
 ## @brief Initialize project modules.
 #
 # Most parts of this macro were copied from the ITK4 project
@@ -902,68 +995,10 @@ macro (basis_project_modules)
   endforeach ()
   unset (_PATH)
 
-  # use function scope to avoid overwriting of this project's variables
-  function (basis_module_info F)
-    set (PROJECT_IS_MODULE TRUE)
-    get_filename_component (PROJECT_SOURCE_DIR "${F}" PATH)
-    set (BASIS_basis_project_CALLED FALSE)
-    include ("${F}")
-    # make sure that basis_project() was called
-    if (NOT BASIS_basis_project_CALLED)
-      message (FATAL_ERROR "basis_module_info(): Missing basis_project() command in ${F}!")
-    endif ()
-    # remember dependencies
-    foreach (V IN ITEMS DEPENDS OPTIONAL_DEPENDS TOOLS_DEPENDS OPTIONAL_TOOLS_DEPENDS TEST_DEPENDS OPTIONAL_TEST_DEPENDS)
-      set (${V})
-      foreach (D ${PROJECT_${V}})
-        basis_tokenize_dependency ("${D}" PKG VER CMPS)
-        if ("^${PKG}$" STREQUAL "^${TOPLEVEL_PROJECT_NAME}$")
-          list (APPEND ${V} ${CMPS})
-        else ()
-          list (APPEND ${V} "${PKG}")
-        endif ()
-      endforeach ()
-    endforeach ()
-    # do not use MODULE instead of PROJECT_NAME in this function as it is not
-    # set in the scope of this function but its parent scope only
-    set (${PROJECT_NAME}_DEPENDS                "${DEPENDS}"                PARENT_SCOPE)
-    set (${PROJECT_NAME}_OPTIONAL_DEPENDS       "${OPTIONAL_DEPENDS}"       PARENT_SCOPE)
-    set (${PROJECT_NAME}_TOOLS_DEPENDS          "${TOOLS_DEPENDS}"          PARENT_SCOPE)
-    set (${PROJECT_NAME}_OPTIONAL_TOOLS_DEPENDS "${OPTIONAL_TOOLS_DEPENDS}" PARENT_SCOPE)
-    set (${PROJECT_NAME}_TEST_DEPENDS           "${TEST_DEPENDS}"           PARENT_SCOPE)
-    set (${PROJECT_NAME}_OPTIONAL_TEST_DEPENDS  "${OPTIONAL_TEST_DEPENDS}"  PARENT_SCOPE)
-    set (${PROJECT_NAME}_DECLARED               TRUE                        PARENT_SCOPE)
-    set (${PROJECT_NAME}_MISSING                FALSE                       PARENT_SCOPE)
-    # remember source directories - used by basis_add_doxygen_doc()
-    set (${PROJECT_NAME}_INCLUDE_DIRS "${PROJECT_INCLUDE_DIRS}" PARENT_SCOPE)
-    set (${PROJECT_NAME}_CODE_DIRS    "${PROJECT_CODE_DIRS}"    PARENT_SCOPE)
-    # remember if module depends on Slicer - used by basis_find_packages()
-    if (PROJECT_IS_SLICER_MODULE)
-      foreach (_D IN LISTS BASIS_SLICER_METADATA_LIST)
-          if (DEFINED PROJECT_${_D})
-            set (${PROJECT_NAME}_${_D} "${PROJECT_${_D}}" PARENT_SCOPE)
-          endif ()
-      endforeach ()
-      set (${PROJECT_NAME}_IS_SLICER_MODULE TRUE PARENT_SCOPE)
-    else ()
-      set (${PROJECT_NAME}_IS_SLICER_MODULE FALSE PARENT_SCOPE)
-    endif ()
-    # whether to always exclude module from BUILD_ALL_MODULES
-    set (${PROJECT_NAME}_EXCLUDE_FROM_ALL "${PROJECT_EXCLUDE_FROM_ALL}" PARENT_SCOPE)
-    # module name
-    set (MODULE "${PROJECT_NAME}" PARENT_SCOPE)
-  endfunction ()
-
   set (PROJECT_MODULES)
   foreach (F IN LISTS MODULE_INFO_FILES)
-    # clean path without // to fix issue with UNC paths on Windows
-    get_filename_component (F "${F}" ABSOLUTE)
-    basis_module_info (${F})
-    list (APPEND PROJECT_MODULES ${MODULE})
-    get_filename_component (${MODULE}_BASE ${F} PATH)
-    basis_get_relative_path (${MODULE}_BASE_REL "${CMAKE_CURRENT_SOURCE_DIR}" "${${MODULE}_BASE}")
-    set (MODULE_${MODULE}_SOURCE_DIR "${${MODULE}_BASE}")
-    set (MODULE_${MODULE}_BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}/${${MODULE}_BASE_REL}")
+    # import module info into current scope
+    basis_add_module_info (MODULE ${F})
     # help modules to find each other using basis_find_package()
     set (${MODULE}_DIR "${MODULE_${MODULE}_BINARY_DIR}")
     # only set EXCLUDE_<MODULE>_FROM_ALL when not specified on command-line using -D switch
@@ -1188,6 +1223,93 @@ macro (basis_project_modules)
 endmacro ()
 
 # ----------------------------------------------------------------------------
+## @brief Check if named project module depends on the specified package
+#
+# @param[out] result  Name of boolean return variable.
+# @param[in]  module  Name of project module.
+# @param[in]  package Name of (external) package.
+#
+# @returns Sets @p result variable to either @c TRUE or @c FALSE.
+function (basis_check_if_module_depends_on_package result module package)
+  if (ARGN)
+    cmake_parse_arguments(ARGN "REQUIRED;OPTIONAL" "" "" ${ARGN})
+    if (ARGN_UNPARSED_ARGUMENTS)
+      message(FATAL_ERROR "Too many arguments: ${ARGN_UNPARSED_ARGUMENTS}")
+    endif ()
+  else ()
+    set(ARGN_REQUIRED TRUE)
+    set(ARGN_OPTIONAL TRUE)
+  endif ()
+  basis_tokenize_dependency ("${package}" pkg_name pkg_version pkg_comps)
+  set(depends)
+  if (ARGN_REQUIRED)
+    list(APPEND depends ${${module}_DEPENDS})
+    if (BUILD_APPLICATIONS)
+      list(APPEND depends ${${module}_TOOLS_DEPENDS})
+    endif ()
+    if (BUILD_TESTING)
+      list(APPEND depends ${${module}_TEST_DEPENDS})
+    endif ()
+  endif ()
+  if (ARGN_OPTIONAL)
+    set(depends ${${module}_OPTIONAL_DEPENDS})
+    if (BUILD_APPLICATIONS)
+      list(APPEND depends ${${module}_OPTIONAL_TOOLS_DEPENDS})
+    endif ()
+    if (BUILD_TESTING)
+      list(APPEND depends ${${module}_OPTIONAL_TEST_DEPENDS})
+    endif ()
+  endif ()
+  set(pkg_found FALSE)
+  foreach (dep IN LISTS depends)
+    basis_tokenize_dependency ("${dep}" dep_name dep_version dep_comps)
+    if ("^${dep_name}$" STREQUAL "^${pkg_name}$")
+      if (pkg_comps)
+        foreach (comp IN LISTS pkg_comps)
+          list(FIND dep_comps ${comp} idx)
+          if (NOT idx EQUAL -1)
+            set(pkg_found TRUE)
+            break()
+          endif ()
+        endforeach ()
+        if (pkg_found)
+          break()
+        endif ()
+      else ()
+        set(pkg_found TRUE)
+        break()
+      endif ()
+    endif ()
+  endforeach ()
+  set(${result} ${pkg_found} PARENT_SCOPE)
+endfunction ()
+
+# ----------------------------------------------------------------------------
+## @brief Check if any of the named/enabled modules depends on the specified package
+#
+# @param[out] result  Name of boolean return variable.
+# @param[in]  package Name of (external) package.
+# @param[in]  ARGN    Names of project modules. If none specified,
+#                     the list of enabled modules is used instead.
+#
+# @returns Sets @p result variable to either @c TRUE or @c FALSE.
+function (basis_check_if_package_is_needed_by_modules result package)
+  if (ARGN)
+    set(modules ${ARGN})
+  else ()
+    set(modules ${PROJECT_MODULES_ENABLED})
+  endif ()
+  set(pkg_found FALSE)
+  foreach (module IN LISTS modules)
+    basis_check_if_module_depends_on_package(pkg_found ${module} ${package})
+    if (pkg_found)
+      break()
+    endif ()
+  endforeach ()
+  set(${result} ${pkg_found} PARENT_SCOPE)
+endfunction ()
+
+# ----------------------------------------------------------------------------
 ## @brief Configure public header files.
 function (basis_configure_public_headers)
   # --------------------------------------------------------------------------
@@ -1402,7 +1524,7 @@ endfunction ()
 # This function configures ("builds") the library modules in the
 # @c PROJECT_LIBRARY_DIR that are written in a scripting language such as
 # Python or Perl. The names of the added library targets can be modified using
-# the <tt>&lt;LANG&gt;_LIBRARY_TARGET</tt> variables, which are set to their
+# the <tt>BASIS_&lt;LANG&gt;_LIBRARY_TARGET</tt> variables, which are set to their
 # default values in the @c BasisSettings.cmake file.
 function (basis_configure_script_libraries)
   # Python
@@ -1485,7 +1607,13 @@ function (basis_configure_script_libraries)
           message (WARNING "Failed to auto-detect scripting language of modules in ${LIB_DIR}!"
                            " Skipping source files matching one of the extensions [${${LANGUAGE}_EXT}].")
         elseif (SOURCE_LANGUAGE MATCHES "${LANGUAGE}")
-          set (TARGET_NAME "${${LANGUAGE}_LIBRARY_TARGET}")
+          if (DEFINED ${LANGUAGE}_LIBRARY_TARGET)
+            message (FATAL_ERROR "Variable ${LANGUAGE}_LIBRARY_TARGET is obsolete, use BASIS_${LANGUAGE}_LIBRARY_TARGET instead!")
+          endif ()
+          set (TARGET_NAME "${BASIS_${LANGUAGE}_LIBRARY_TARGET}")
+          if (NOT TARGET_NAME)
+            message (FATAL_ERROR "Variable BASIS_${LANGUAGE}_LIBRARY_TARGET not set (cf. BasisSettings module)!")
+          endif ()
           basis_add_library (${TARGET_NAME} ${EXPRESSIONS} LANGUAGE ${LANGUAGE})
           basis_set_target_properties (
             ${TARGET_NAME}
@@ -1677,7 +1805,7 @@ endfunction()
 macro (basis_project_initialize)
   # --------------------------------------------------------------------------
   # CMake version and policies
-  cmake_minimum_required (VERSION 2.8.4)
+  cmake_minimum_required (VERSION 2.8.12 FATAL_ERROR)
 
   # Add policies introduced with CMake versions newer than the one specified
   # above. These policies would otherwise trigger a policy not set warning by
@@ -1744,22 +1872,30 @@ macro (basis_project_initialize)
   # C++ standard
   if (PROJECT_LANGUAGES MATCHES "CXX-?([0-9][0-9x]*)")
     set (CXX_VERSION ${CMAKE_MATCH_1})
-    if (CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-      include(CheckCXXCompilerFlag)
-      CHECK_CXX_COMPILER_FLAG("-std=c++${CXX_VERSION}" COMPILER_SUPPORTS_CXX${CXX_VERSION})
-      if (CXX_VERSION STREQUAL "11" AND NOT COMPILER_SUPPORTS_CXX${CXX_VERSION})
-        CHECK_CXX_COMPILER_FLAG("-std=c++0x" COMPILER_SUPPORTS_CXX${CXX_VERSION})
-      endif ()
-      if (COMPILER_SUPPORTS_CXX${CXX_VERSION})
-        if (NOT CMAKE_CXX_FLAGS MATCHES "-std=c\\+\\+${CXX_VERSION}")
-          if (CMAKE_CXX_FLAGS)
-          set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ")
-          endif ()
-          set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}-std=c++${CXX_VERSION}")
+    if (CMAKE_VERSION VERSION_LESS 3.1)
+      # no automatic C++ standard compiler flag support before CMake 3.1
+      if (CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+        include(CheckCXXCompilerFlag)
+        CHECK_CXX_COMPILER_FLAG("-std=c++${CXX_VERSION}" COMPILER_SUPPORTS_CXX${CXX_VERSION})
+        if (CXX_VERSION STREQUAL "11" AND NOT COMPILER_SUPPORTS_CXX${CXX_VERSION})
+          CHECK_CXX_COMPILER_FLAG("-std=c++0x" COMPILER_SUPPORTS_CXX${CXX_VERSION})
         endif ()
-      else ()
-        message(FATAL_ERROR "The compiler ${CMAKE_CXX_COMPILER} has no C++${CXX_VERSION} support. Please use a different C++ compiler.")
+        if (COMPILER_SUPPORTS_CXX${CXX_VERSION})
+          if (NOT CMAKE_CXX_FLAGS MATCHES "-std=c\\+\\+${CXX_VERSION}")
+            if (CMAKE_CXX_FLAGS)
+            set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ")
+            endif ()
+            set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}-std=c++${CXX_VERSION}")
+          endif ()
+        else ()
+          message(FATAL_ERROR "The compiler ${CMAKE_CXX_COMPILER} has no C++${CXX_VERSION} support. Please use a different C++ compiler.")
+        endif ()
       endif ()
+    else ()
+      # default values for C++ standard related target properties
+      set (CMAKE_CXX_STANDARD          ${CXX_VERSION})
+      set (CMAKE_CXX_STANDARD_REQUIRED TRUE)
+      set (CMAKE_CXX_EXTENSIONS        FALSE)
     endif ()
     unset (CXX_VERSION)
   endif ()
@@ -1874,6 +2010,8 @@ macro (basis_project_initialize)
   basis_set_project_property (PROPERTY BUNDLE_LINK_DIRS  "")
   # see add_executable(), add_library()
   basis_set_project_property (PROPERTY TARGETS "")
+  # see basis_finalize_targets()
+  basis_set_project_property (PROPERTY FINALIZED_TARGETS "")
   # see basis_add_*() functions
   basis_set_project_property (PROPERTY EXPORT_TARGETS                "")
   basis_set_project_property (PROPERTY INSTALL_EXPORT_TARGETS        "")
@@ -1985,16 +2123,6 @@ macro (basis_find_packages)
   set (CMAKE_MODULE_PATH "${PROJECT_CONFIG_DIR}" ${CMAKE_MODULE_PATH})
 
   # --------------------------------------------------------------------------
-  # Depends.cmake
-
-  # This file is in particular of interest if a dependency is required if
-  # certain modules are enabled, but not others.
-
-  # Attention: This function is used before the Directories.cmake.in and
-  #            Settings.cmake.in files were configured and included.
-  include ("${PROJECT_CONFIG_DIR}/Depends.cmake" OPTIONAL)
-
-  # --------------------------------------------------------------------------
   # required dependencies
   foreach (P IN LISTS PROJECT_DEPENDS)
     basis_find_package ("${P}" REQUIRED)
@@ -2004,7 +2132,7 @@ macro (basis_find_packages)
   # --------------------------------------------------------------------------
   # optional dependencies
   foreach (P IN LISTS PROJECT_OPTIONAL_DEPENDS)
-    basis_find_package ("${P}" QUIET)
+    basis_find_package ("${P}")
     basis_use_package  ("${P}")
   endforeach ()
 
@@ -2040,7 +2168,7 @@ macro (basis_find_packages)
     endforeach ()
     # optional application dependencies
     foreach (P IN LISTS PROJECT_OPTIONAL_TOOLS_DEPENDS)
-      basis_find_package ("${P}" QUIET)
+      basis_find_package ("${P}")
       basis_use_package ("${P}")
     endforeach ()
   endif ()
@@ -2077,12 +2205,20 @@ macro (basis_find_packages)
     endforeach ()
     # optional test dependencies
     foreach (P IN LISTS PROJECT_OPTIONAL_TEST_DEPENDS)
-      basis_find_package ("${P}" QUIET)
+      basis_find_package ("${P}")
       basis_use_package ("${P}")
     endforeach ()
   endif ()
 
   unset (P)
+
+  # --------------------------------------------------------------------------
+  # Depends.cmake
+  #
+  # This file is in particular of interest if an additional dependency is
+  # required or may optionally be used if certain modules are enabled or
+  # an optional dependency was found.
+  include ("${PROJECT_CONFIG_DIR}/Depends.cmake" OPTIONAL)
 
   set (BASIS_SET_TARGET_PROPERTIES_IMPORT FALSE) # see set_target_properties()
 endmacro ()
@@ -2160,11 +2296,19 @@ endmacro ()
 ## @brief Add subdirectory or ignore it if it does not exist.
 macro (basis_add_subdirectory SUBDIR)
   get_filename_component(_SUBDIR "${SUBDIR}" ABSOLUTE)
-  if (IS_DIRECTORY "${_SUBDIR}")
-    add_subdirectory ("${_SUBDIR}")
+  if (EXISTS "${_SUBDIR}/CMakeLists.txt")
+    if (EXISTS "${_SUBDIR}/BasisProject.cmake")
+      basis_add_module_info (MODULE "${_SUBDIR}/BasisProject.cmake")
+      list(APPEND PROJECT_MODULES_ENABLED ${MODULE})
+      basis_add_module (${MODULE})
+      unset(MODULE)
+    else ()
+      add_subdirectory ("${_SUBDIR}")
+    endif ()
   elseif (BASIS_VERBOSE)
-    message (WARNING "Skipping non-existing subdirectory ${SUBDIR}.")
+    message (WARNING "Skipping subdirectory ${SUBDIR}.")
   endif ()
+  unset(_SUBDIR)
 endmacro ()
 
 # ----------------------------------------------------------------------------
@@ -2190,14 +2334,14 @@ macro (basis_add_module MODULE)
     message (STATUS "Configuring module ${MODULE}... - done")
   endif ()
   set (PROJECT_IS_MODULE FALSE)
-  include ("${CMAKE_BINARY_DIR}/${TOPLEVEL_PROJECT_PACKAGE_CONFIG_PREFIX}${MODULE}Config.cmake")
+  include ("${BINARY_LIBCONF_DIR}/${TOPLEVEL_PROJECT_PACKAGE_CONFIG_PREFIX}${MODULE}Config.cmake")
 endmacro ()
 
 # ----------------------------------------------------------------------------
 ## @brief Use a previously added project module.
 macro (basis_use_module MODULE)
   set (NO_${MODULE}_IMPORTS TRUE)
-  include ("${${MODULE}_USE_FILE}")
+  include ("${${${MODULE}_CONFIG_PREFIX}_USE_FILE}")
   add_definitions(-DHAVE_${PROJECT_PACKAGE_NAME}_${MODULE})
 endmacro ()
 
@@ -2274,9 +2418,7 @@ macro (basis_project_begin)
   # any package use file must be included after PROJECT_NAME was set as the
   # imported targets are added to the <Project>_IMPORTED_TARGETS property
   # using basis_set_project_property() in add_executable() and add_library()
-  if (NOT BASIS_MODULE_PATH)
-    basis_use_package (BASIS)
-  endif ()
+  basis_use_package (BASIS)
   basis_find_packages ()
 
   if (BASIS_DEBUG)
@@ -2367,41 +2509,34 @@ macro (basis_project_begin)
   # --------------------------------------------------------------------------
   # subdirectories
 
-  # add default project directories to list of subdirectories
-  # (in reverse order always at beginning of list)
-  if (EXISTS "${PROJECT_EXAMPLE_DIR}/CMakeLists.txt" AND BUILD_EXAMPLE)
-    list (INSERT PROJECT_SUBDIRS 0 "${PROJECT_EXAMPLE_DIR}")
-  endif ()
-  if (EXISTS "${PROJECT_TESTING_DIR}/CMakeLists.txt" AND BUILD_TESTING)
-    list (INSERT PROJECT_SUBDIRS 0 "${PROJECT_TESTING_DIR}")
-  endif ()
-  if (EXISTS "${PROJECT_DATA_DIR}/CMakeLists.txt")
-    list (INSERT PROJECT_SUBDIRS 0 "${PROJECT_DATA_DIR}")
-  endif ()
-  if (BUILD_APPLICATIONS)
-    set (_TOOLS_DIRS)
-    foreach (_TOOLS_DIR IN LISTS PROJECT_TOOLS_DIRS)
-      if (EXISTS "${_TOOLS_DIR}/CMakeLists.txt")
-        list (APPEND _TOOLS_DIRS "${_TOOLS_DIR}")
-      endif ()
-    endforeach ()
-    if (_TOOLS_DIRS)
-      list (INSERT PROJECT_SUBDIRS 0 "${_TOOLS_DIRS}")
-    endif ()
-    unset (_TOOLS_DIR)
-    unset (_TOOLS_DIRS)
-  endif ()
-  set (_CODE_DIRS)
-  foreach (_CODE_DIR IN LISTS PROJECT_CODE_DIRS)
-    if (EXISTS "${_CODE_DIR}/CMakeLists.txt")
-      list (APPEND _CODE_DIRS "${_CODE_DIR}")
+  set(PROJECT_SUBDIRS)
+  foreach (_SUBDIR IN LISTS PROJECT_CODE_DIRS)
+    if (EXISTS "${_SUBDIR}/CMakeLists.txt")
+      list (APPEND PROJECT_SUBDIRS "${_SUBDIR}")
     endif ()
   endforeach ()
-  if (_CODE_DIRS)
-    list (INSERT PROJECT_SUBDIRS 0 "${_CODE_DIRS}")
+  if (BUILD_APPLICATIONS)
+    foreach (_SUBDIR IN LISTS PROJECT_TOOLS_DIRS)
+      if (EXISTS "${_SUBDIR}/CMakeLists.txt")
+        list (APPEND PROJECT_SUBDIRS "${_SUBDIR}")
+      endif ()
+    endforeach ()
   endif ()
-  unset (_CODE_DIR)
-  unset (_CODE_DIRS)
+  if (EXISTS "${PROJECT_DATA_DIR}/CMakeLists.txt")
+    list (APPEND PROJECT_SUBDIRS "${PROJECT_DATA_DIR}")
+  endif ()
+  if (EXISTS "${PROJECT_TESTING_DIR}/CMakeLists.txt" AND BUILD_TESTING)
+    list (APPEND PROJECT_SUBDIRS "${PROJECT_TESTING_DIR}")
+  endif ()
+  if (EXISTS "${PROJECT_EXAMPLE_DIR}/CMakeLists.txt" AND BUILD_EXAMPLE)
+    list (APPEND PROJECT_SUBDIRS "${PROJECT_EXAMPLE_DIR}")
+  endif ()
+  foreach (_SUBDIR IN LISTS PROJECT_OTHER_DIRS)
+    if (EXISTS "${_SUBDIR}/CMakeLists.txt")
+      list (APPEND PROJECT_SUBDIRS "${_SUBDIR}")
+    endif ()
+  endforeach ()
+  unset(_SUBDIR)
 
   if (BASIS_DEBUG)
     basis_dump_variables ("${PROJECT_BINARY_DIR}/VariablesAfterInitialization.cmake")
@@ -2431,14 +2566,15 @@ macro (basis_project_end)
   if (NOT PROJECT_IS_MODULE)
     # copy properties of modules
     foreach (M IN LISTS PROJECT_MODULES_ENABLED)
-      foreach (P IN ITEMS IMPORTED_TARGETS
+      foreach (P IN ITEMS TARGETS
+                          FINALIZED_TARGETS
+                          IMPORTED_TARGETS
                           IMPORTED_TYPES
                           IMPORTED_LOCATIONS
                           IMPORTED_RANKS
                           PROJECT_INCLUDE_DIRS
                           PROJECT_LINK_DIRS
-                          BUNDLE_LINK_DIRS
-                          TARGETS)
+                          BUNDLE_LINK_DIRS)
         basis_get_project_property (V ${M} ${P})
         basis_set_project_property (APPEND PROPERTY ${P} ${V})
       endforeach ()
@@ -2459,14 +2595,17 @@ macro (basis_project_end)
   #
   # Note: Must be done *after* the TARGETS project properties of the modules
   #       were copied as basis_finalize_targets() iterates over this list.
+
+  # add missing build commands for custom targets
+  basis_finalize_targets ()
   if (NOT PROJECT_IS_MODULE OR PROJECT_IS_SUBPROJECT)
     # configure the BASIS utilities
     basis_configure_utilities ()
-    # add missing build commands for custom targets
-    basis_finalize_targets ()
     # add build target for missing __init__.py files of Python package
-    if (PythonInterp_FOUND OR JythonInterp_FOUND)
-      basis_add_init_py_target ()
+    if (BASIS_PYTHON_TEMPLATES_DIR)
+      if (PythonInterp_FOUND OR JythonInterp_FOUND)
+        basis_add_init_py_target ()
+      endif ()
     endif ()
   endif ()
 

@@ -1,10 +1,10 @@
 # ============================================================================
 # Copyright (c) 2011-2012 University of Pennsylvania
-# Copyright (c) 2013-2014 Andreas Schuh
+# Copyright (c) 2013-2016 Andreas Schuh
 # All rights reserved.
 #
 # See COPYING file for license information or visit
-# http://opensource.andreasschuh.com/cmake-basis/download.html#license
+# https://cmake-basis.github.io/download.html#license
 # ============================================================================
 
 ##############################################################################
@@ -404,9 +404,9 @@ function (basis_register_package)
        endif ()"
     )
   elseif (IS_DIRECTORY "$ENV{HOME}")
-    file (WRITE "${PROJECT_BINARY_DIR}/${PROJECT_PACKAGE_CONFIG_PREFIX}RegistryFile" "${PKGDIR}")
+    file (WRITE "${BINARY_CONFIG_DIR}/${PROJECT_PACKAGE_CONFIG_PREFIX}RegistryFile" "${PKGDIR}")
     install (
-      FILES       "${PROJECT_BINARY_DIR}/${PROJECT_PACKAGE_CONFIG_PREFIX}RegistryFile"
+      FILES       "${BINARY_CONFIG_DIR}/${PROJECT_PACKAGE_CONFIG_PREFIX}RegistryFile"
       DESTINATION "$ENV{HOME}/.cmake/packages/${PROJECT_PACKAGE_CONFIG_PREFIX}"
       RENAME      "${PKGUID}"
     )

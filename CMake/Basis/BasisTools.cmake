@@ -1,10 +1,10 @@
 # ============================================================================
 # Copyright (c) 2011-2012 University of Pennsylvania
-# Copyright (c) 2013-2014 Andreas Schuh
+# Copyright (c) 2013-2016 Andreas Schuh
 # All rights reserved.
 #
 # See COPYING file for license information or visit
-# http://opensource.andreasschuh.com/cmake-basis/download.html#license
+# https://cmake-basis.github.io/download.html#license
 # ============================================================================
 
 ##############################################################################
@@ -28,10 +28,6 @@ if (__BASIS_TOOLS_INCLUDED)
 else ()
   set (__BASIS_TOOLS_INCLUDED TRUE)
 endif ()
-
-# ----------------------------------------------------------------------------
-# append CMake module path of BASIS to CMAKE_MODULE_PATH
-set (CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}" ${CMAKE_MODULE_PATH})
 
 # ----------------------------------------------------------------------------
 # externally developed modules
@@ -63,7 +59,7 @@ include ("${CMAKE_CURRENT_LIST_DIR}/UtilitiesTools.cmake")
 # configuration of project dependencies. The workaround in the custom
 # set_target_properties function defined in the ImportTools.cmake is
 # extremely inefficient and slows down the configuration step a lot
-# (cf. https://github.com/schuhschuh/cmake-basis/issues/494).
+# (cf. https://github.com/cmake-basis/BASIS/issues/494).
 # 
 # The only need for collecting this information for all (executable)
 # targets imported from dependencies is for generating the executable
@@ -72,6 +68,5 @@ include ("${CMAKE_CURRENT_LIST_DIR}/UtilitiesTools.cmake")
 # Further, when a project does not consist of modules, the imported
 # targets are available in the scope of the project.
 #
-# Therefore, a project has to include the ImportTools.cmake file explicitly
-# in its root CMakeLists.txt file before basis_project_begin() or
-# basis_project_impl(), respectively.
+# A project has to set BASIS_IMPORT_TARGETS to TRUE in its root CMakeLists.txt
+# file before basis_project_begin() or basis_project_impl(), respectively.

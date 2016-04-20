@@ -25,240 +25,251 @@
 # ------------------------------------------------------------------------------
 # Source files
 set(HEADERS
-  mirtkBaseImage.h
-  mirtkBinaryVoxelFunction.h
-  mirtkBSplineInterpolateImageFunction.h
-  mirtkBSplineInterpolateImageFunction.hxx
-  mirtkBSplineInterpolateImageFunction2D.h
-  mirtkBSplineInterpolateImageFunction2D.hxx
-  mirtkBSplineInterpolateImageFunction3D.h
-  mirtkBSplineInterpolateImageFunction3D.hxx
-  mirtkBSplineInterpolateImageFunction4D.h
-  mirtkBSplineInterpolateImageFunction4D.hxx
-  mirtkCityBlockDistanceTransform.h
-  mirtkConnectedComponents.h
-  mirtkConstExtrapolateImageFunction.h
-  mirtkConstExtrapolateImageFunctionWithPeriodicTime.h
-  mirtkConstGenericImageIterator.h
-  mirtkConstImageIterator.h
-  mirtkConvolutionFunction.h
-  mirtkCSplineInterpolateImageFunction.h
-  mirtkCSplineInterpolateImageFunction.hxx
-  mirtkCSplineInterpolateImageFunction2D.h
-  mirtkCSplineInterpolateImageFunction2D.hxx
-  mirtkCSplineInterpolateImageFunction3D.h
-  mirtkCSplineInterpolateImageFunction3D.hxx
-  mirtkCSplineInterpolateImageFunction4D.h
-  mirtkCSplineInterpolateImageFunction4D.hxx
-  mirtkCubicBSplineInterpolateImageFunction.h
-  mirtkCubicBSplineInterpolateImageFunction.hxx
-  mirtkCubicBSplineInterpolateImageFunction2D.h
-  mirtkCubicBSplineInterpolateImageFunction2D.hxx
-  mirtkCubicBSplineInterpolateImageFunction3D.h
-  mirtkCubicBSplineInterpolateImageFunction3D.hxx
-  mirtkCubicBSplineInterpolateImageFunction4D.h
-  mirtkCubicBSplineInterpolateImageFunction4D.hxx
-  mirtkDataFunctions.h
-  mirtkDataOp.h
-  mirtkDataStatistics.h
-  mirtkDifferenceOfCompositionLieBracketImageFilter3D.h
-  mirtkDilation.h
-  mirtkDisplacementFieldExp.h
-  mirtkDisplacementToVelocityField.h
-  mirtkDisplacementToVelocityFieldBCH.h
-  mirtkDownsampling.h
-  mirtkErosion.h
-  mirtkEuclideanDistanceTransform.h
-  mirtkExtrapolateImageFunction.h
-  mirtkExtrapolationMode.h
-  mirtkFastCubicBSplineInterpolateImageFunction.h
-  mirtkFastCubicBSplineInterpolateImageFunction.hxx
-  mirtkFastCubicBSplineInterpolateImageFunction2D.h
-  mirtkFastCubicBSplineInterpolateImageFunction2D.hxx
-  mirtkFastCubicBSplineInterpolateImageFunction3D.h
-  mirtkFastCubicBSplineInterpolateImageFunction3D.hxx
-  mirtkFastCubicBSplineInterpolateImageFunction4D.h
-  mirtkFastCubicBSplineInterpolateImageFunction4D.hxx
-  mirtkFastLinearImageGradientFunction.h
-  mirtkFastLinearImageGradientFunction.hxx
-  mirtkFastLinearImageGradientFunction2D.h
-  mirtkFastLinearImageGradientFunction2D.hxx
-  mirtkFastLinearImageGradientFunction3D.h
-  mirtkFastLinearImageGradientFunction3D.hxx
-  mirtkGaussianBlurring.h
-  mirtkGaussianBlurring2D.h
-  mirtkGaussianBlurring4D.h
-  mirtkGaussianBlurringWithPadding.h
-  mirtkGaussianBlurringWithPadding2D.h
-  mirtkGaussianInterpolateImageFunction.h
-  mirtkGaussianInterpolateImageFunction.hxx
-  mirtkGaussianInterpolateImageFunction2D.h
-  mirtkGaussianInterpolateImageFunction2D.hxx
-  mirtkGaussianInterpolateImageFunction3D.h
-  mirtkGaussianInterpolateImageFunction3D.hxx
-  mirtkGaussianInterpolateImageFunction4D.h
-  mirtkGaussianInterpolateImageFunction4D.hxx
-  mirtkGaussianPyramidFilter.h
-  mirtkGenericImage.h
-  mirtkGenericImageIterator.h
-  mirtkGradientImageFilter.h
-  mirtkHashImage.h
-  mirtkHashImage.hxx
-  mirtkHessianImageFilter.h
-  mirtkHistogram1D.h
-  mirtkHistogram2D.h
-  mirtkImage.h
-  mirtkImageAttributes.h
-  mirtkImageFunction.h
-  mirtkImageGradientFunction.h
-  mirtkImageGradientFunction.hxx
-  mirtkImageIterator.h
-  mirtkImageReader.h
-  mirtkImageReaderFactory.h
-  mirtkImageRegion.h
-  mirtkImageSequence.h
-  mirtkImageSequence.hh
-  mirtkImageToImage.h
-  mirtkImageToInterpolationCoefficients.h
-  mirtkImageWriter.h
-  mirtkImageWriterFactory.h
-  mirtkInterpolateImageFunction.h
-  mirtkInterpolateImageFunction.hxx
-  mirtkInterpolationMode.h
-  mirtkLieBracketImageFilter.h
-  mirtkLieBracketImageFilter2D.h
-  mirtkLieBracketImageFilter3D.h
-  mirtkLinearImageGradientFunction.h
-  mirtkLinearImageGradientFunction.hxx
-  mirtkLinearImageGradientFunction2D.h
-  mirtkLinearImageGradientFunction2D.hxx
-  mirtkLinearImageGradientFunction3D.h
-  mirtkLinearImageGradientFunction3D.hxx
-  mirtkLinearInterpolateImageFunction.h
-  mirtkLinearInterpolateImageFunction.hxx
-  mirtkLinearInterpolateImageFunction2D.h
-  mirtkLinearInterpolateImageFunction2D.hxx
-  mirtkLinearInterpolateImageFunction3D.h
-  mirtkLinearInterpolateImageFunction3D.hxx
-  mirtkLinearInterpolateImageFunction4D.h
-  mirtkLinearInterpolateImageFunction4D.hxx
-  mirtkMirrorExtrapolateImageFunction.h
-  mirtkNaryVoxelFunction.h
-  mirtkNearestNeighborExtrapolateImageFunction.h
-  mirtkNearestNeighborInterpolateImageFunction.h
-  mirtkNearestNeighborInterpolateImageFunction.hxx
-  mirtkNeighborhoodOffsets.h
-  mirtkRepeatExtrapolateImageFunction.h
-  mirtkResampling.h
-  mirtkResamplingWithPadding.h
-  mirtkScalarFunctionToImage.h
-  mirtkScalingAndSquaring.h
-  mirtkShapeBasedInterpolateImageFunction.h
-  mirtkSincInterpolateImageFunction.h
-  mirtkSincInterpolateImageFunction.hxx
-  mirtkSincInterpolateImageFunction2D.h
-  mirtkSincInterpolateImageFunction2D.hxx
-  mirtkSincInterpolateImageFunction3D.h
-  mirtkSincInterpolateImageFunction3D.hxx
-  mirtkSincInterpolateImageFunction4D.h
-  mirtkSincInterpolateImageFunction4D.hxx
-  mirtkTernaryVoxelFunction.h
-  mirtkUnaryVoxelFunction.h
-  mirtkVelocityFieldExp.h
-  mirtkVelocityToDisplacementField.h
-  mirtkVelocityToDisplacementFieldEuler.h
-  mirtkVelocityToDisplacementFieldSS.h
-  mirtkVoxel.h
-  mirtkVoxelCast.h
-  mirtkVoxelDomain.h
-  mirtkVoxelFunction.h
+  ${BINARY_INCLUDE_DIR}/mirtk/ImageConfig.h
+  ${BINARY_INCLUDE_DIR}/mirtk/ImageExport.h
+  BaseImage.h
+  BinaryVoxelFunction.h
+  BSplineInterpolateImageFunction.h
+  BSplineInterpolateImageFunction.hxx
+  BSplineInterpolateImageFunction2D.h
+  BSplineInterpolateImageFunction2D.hxx
+  BSplineInterpolateImageFunction3D.h
+  BSplineInterpolateImageFunction3D.hxx
+  BSplineInterpolateImageFunction4D.h
+  BSplineInterpolateImageFunction4D.hxx
+  CityBlockDistanceTransform.h
+  ConnectedComponents.h
+  ConstExtrapolateImageFunction.h
+  ConstExtrapolateImageFunctionWithPeriodicTime.h
+  ConstGenericImageIterator.h
+  ConstImageIterator.h
+  ConvolutionFunction.h
+  CSplineInterpolateImageFunction.h
+  CSplineInterpolateImageFunction.hxx
+  CSplineInterpolateImageFunction2D.h
+  CSplineInterpolateImageFunction2D.hxx
+  CSplineInterpolateImageFunction3D.h
+  CSplineInterpolateImageFunction3D.hxx
+  CSplineInterpolateImageFunction4D.h
+  CSplineInterpolateImageFunction4D.hxx
+  CubicBSplineInterpolateImageFunction.h
+  CubicBSplineInterpolateImageFunction.hxx
+  CubicBSplineInterpolateImageFunction2D.h
+  CubicBSplineInterpolateImageFunction2D.hxx
+  CubicBSplineInterpolateImageFunction3D.h
+  CubicBSplineInterpolateImageFunction3D.hxx
+  CubicBSplineInterpolateImageFunction4D.h
+  CubicBSplineInterpolateImageFunction4D.hxx
+  DataFunctions.h
+  DataOp.h
+  DataStatistics.h
+  DifferenceOfCompositionLieBracketImageFilter3D.h
+  Dilation.h
+  DisplacementFieldExp.h
+  DisplacementToVelocityField.h
+  DisplacementToVelocityFieldBCH.h
+  Downsampling.h
+  Erosion.h
+  EuclideanDistanceTransform.h
+  ExtrapolateImageFunction.h
+  ExtrapolationMode.h
+  FastCubicBSplineInterpolateImageFunction.h
+  FastCubicBSplineInterpolateImageFunction.hxx
+  FastCubicBSplineInterpolateImageFunction2D.h
+  FastCubicBSplineInterpolateImageFunction2D.hxx
+  FastCubicBSplineInterpolateImageFunction3D.h
+  FastCubicBSplineInterpolateImageFunction3D.hxx
+  FastCubicBSplineInterpolateImageFunction4D.h
+  FastCubicBSplineInterpolateImageFunction4D.hxx
+  FastLinearImageGradientFunction.h
+  FastLinearImageGradientFunction.hxx
+  FastLinearImageGradientFunction2D.h
+  FastLinearImageGradientFunction2D.hxx
+  FastLinearImageGradientFunction3D.h
+  FastLinearImageGradientFunction3D.hxx
+  GaussianBlurring.h
+  GaussianBlurring2D.h
+  GaussianBlurring4D.h
+  GaussianBlurringWithPadding.h
+  GaussianBlurringWithPadding2D.h
+  GaussianInterpolateImageFunction.h
+  GaussianInterpolateImageFunction.hxx
+  GaussianInterpolateImageFunction2D.h
+  GaussianInterpolateImageFunction2D.hxx
+  GaussianInterpolateImageFunction3D.h
+  GaussianInterpolateImageFunction3D.hxx
+  GaussianInterpolateImageFunction4D.h
+  GaussianInterpolateImageFunction4D.hxx
+  GaussianPyramidFilter.h
+  GenericImage.h
+  GenericImageIterator.h
+  GradientImageFilter.h
+  HashImage.h
+  HashImage.hxx
+  HessianImageFilter.h
+  Histogram1D.h
+  Histogram2D.h
+  Image.h
+  ImageAttributes.h
+  ImageFunction.h
+  ImageGradientFunction.h
+  ImageGradientFunction.hxx
+  ImageIterator.h
+  ImageReader.h
+  ImageReaderFactory.h
+  ImageRegion.h
+  ImageSequence.h
+  ImageSequence.hh
+  ImageToImage.h
+  ImageToInterpolationCoefficients.h
+  ImageWriter.h
+  ImageWriterFactory.h
+  InterpolateImageFunction.h
+  InterpolateImageFunction.hxx
+  InterpolationMode.h
+  LieBracketImageFilter.h
+  LieBracketImageFilter2D.h
+  LieBracketImageFilter3D.h
+  LinearImageGradientFunction.h
+  LinearImageGradientFunction.hxx
+  LinearImageGradientFunction2D.h
+  LinearImageGradientFunction2D.hxx
+  LinearImageGradientFunction3D.h
+  LinearImageGradientFunction3D.hxx
+  LinearInterpolateImageFunction.h
+  LinearInterpolateImageFunction.hxx
+  LinearInterpolateImageFunction2D.h
+  LinearInterpolateImageFunction2D.hxx
+  LinearInterpolateImageFunction3D.h
+  LinearInterpolateImageFunction3D.hxx
+  LinearInterpolateImageFunction4D.h
+  LinearInterpolateImageFunction4D.hxx
+  MirrorExtrapolateImageFunction.h
+  NaryVoxelFunction.h
+  NearestNeighborExtrapolateImageFunction.h
+  NearestNeighborInterpolateImageFunction.h
+  NearestNeighborInterpolateImageFunction.hxx
+  NeighborhoodOffsets.h
+  RepeatExtrapolateImageFunction.h
+  Resampling.h
+  ResamplingWithPadding.h
+  ScalarFunctionToImage.h
+  ScalingAndSquaring.h
+  ShapeBasedInterpolateImageFunction.h
+  SincInterpolateImageFunction.h
+  SincInterpolateImageFunction.hxx
+  SincInterpolateImageFunction2D.h
+  SincInterpolateImageFunction2D.hxx
+  SincInterpolateImageFunction3D.h
+  SincInterpolateImageFunction3D.hxx
+  SincInterpolateImageFunction4D.h
+  SincInterpolateImageFunction4D.hxx
+  TernaryVoxelFunction.h
+  UnaryVoxelFunction.h
+  VelocityFieldExp.h
+  VelocityToDisplacementField.h
+  VelocityToDisplacementFieldEuler.h
+  VelocityToDisplacementFieldSS.h
+  Voxel.h
+  VoxelCast.h
+  VoxelDomain.h
+  VoxelFunction.h
 )
 
 set(SOURCES
-  mirtkBaseImage.cc
-  mirtkCityBlockDistanceTransform.cc
-  mirtkDataOp.cc
-  mirtkDifferenceOfCompositionLieBracketImageFilter3D.cc
-  mirtkDilation.cc
-  mirtkDisplacementToVelocityFieldBCH.cc
-  mirtkConnectedComponents.cc
-  mirtkDownsampling.cc
-  mirtkErosion.cc
-  mirtkEuclideanDistanceTransform.cc
-  mirtkExtrapolateImageFunction.cc
-  mirtkGaussianBlurring.cc
-  mirtkGaussianBlurring2D.cc
-  mirtkGaussianBlurring4D.cc
-  mirtkGaussianBlurringWithPadding.cc
-  mirtkGaussianBlurringWithPadding2D.cc
-  mirtkGaussianPyramidFilter.cc
-  mirtkGenericImage.cc
-  mirtkGradientImageFilter.cc
-  mirtkHessianImageFilter.cc
-  mirtkHistogram1D.cc
-  mirtkHistogram2D.cc
-  mirtkImageAttributes.cc
-  mirtkImageFunction.cc
-  mirtkImageGradientFunction.cc
-  mirtkImageReader.cc
-  mirtkImageReaderFactory.cc
-  mirtkImageToImage.cc
-  mirtkImageWriter.cc
-  mirtkImageWriterFactory.cc
-  mirtkInterpolateImageFunction.cc
-  mirtkNeighborhoodOffsets.cc
-  mirtkResampling.cc
-  mirtkResamplingWithPadding.cc
-  mirtkScalarFunctionToImage.cc
-  mirtkScalingAndSquaring.cc
-  mirtkShapeBasedInterpolateImageFunction.cc
-  mirtkVelocityToDisplacementField.cc
-  mirtkVelocityToDisplacementFieldEuler.cc
-  mirtkVelocityToDisplacementFieldSS.cc
-  mirtkVoxel.cc
+  BaseImage.cc
+  CityBlockDistanceTransform.cc
+  DataOp.cc
+  DifferenceOfCompositionLieBracketImageFilter3D.cc
+  Dilation.cc
+  DisplacementToVelocityFieldBCH.cc
+  ConnectedComponents.cc
+  Downsampling.cc
+  Erosion.cc
+  EuclideanDistanceTransform.cc
+  ExtrapolateImageFunction.cc
+  GaussianBlurring.cc
+  GaussianBlurring2D.cc
+  GaussianBlurring4D.cc
+  GaussianBlurringWithPadding.cc
+  GaussianBlurringWithPadding2D.cc
+  GaussianPyramidFilter.cc
+  GenericImage.cc
+  GradientImageFilter.cc
+  HessianImageFilter.cc
+  Histogram1D.cc
+  Histogram2D.cc
+  ImageAttributes.cc
+  ImageFunction.cc
+  ImageGradientFunction.cc
+  ImageReader.cc
+  ImageReaderFactory.cc
+  ImageToImage.cc
+  ImageWriter.cc
+  ImageWriterFactory.cc
+  InterpolateImageFunction.cc
+  NeighborhoodOffsets.cc
+  Resampling.cc
+  ResamplingWithPadding.cc
+  ScalarFunctionToImage.cc
+  ScalingAndSquaring.cc
+  ShapeBasedInterpolateImageFunction.cc
+  VelocityToDisplacementField.cc
+  VelocityToDisplacementFieldEuler.cc
+  VelocityToDisplacementFieldSS.cc
+  Voxel.cc
 )
 
-set(DEPENDS LibCommon LibNumerics)
-if (TBB_FOUND)
-  list(APPEND DEPENDS ${TBB_LIBRARIES})
+set(DEPENDS
+  LibCommon
+  LibNumerics
+)
+
+if (TARGET TBB::tbb)
+  list(APPEND DEPENDS TBB::tbb)
+endif ()
+
+if (VTK_FOUND)
+  list(APPEND DEPENDS ${VTK_LIBRARIES})
 endif ()
 
 # ------------------------------------------------------------------------------
 # ForEachVoxel*Function headers
-set(FOREACHVOXELFUNCTIONS
-  ForEachUnaryVoxelFunction
-  ForEachBinaryVoxelFunction
-  ForEachTernaryVoxelFunction
-  ForEachQuaternaryVoxelFunction
-  ForEachQuinaryVoxelFunction
-  ForEachSenaryVoxelFunction
-  ForEachSeptenaryVoxelFunction
-  ForEachOctaryVoxelFunction
-  ForEachNonaryVoxelFunction
-)
-
-foreach(f IN LISTS FOREACHVOXELFUNCTIONS)
-  find_package(PythonInterp REQUIRED)
-  string(REGEX REPLACE "ForEach|VoxelFunction" "" arity "${f}")
-  string(TOLOWER "${arity}" arity)
-  add_custom_command(
-    OUTPUT  "${PROJECT_INCLUDE_DIR}/mirtk${f}.h"
-    COMMAND "${PYTHON_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/mirtkForEachVoxelFunction.py"
-            ${arity} "${PROJECT_INCLUDE_DIR}/mirtk${f}.h"
-    DEPENDS mirtkForEachVoxelFunction.py
-    COMMENT "Generating source file mirtk${f}.h"
+if (PythonInterp_FOUND)
+  set(FOREACHVOXELFUNCTIONS
+    ForEachUnaryVoxelFunction
+    ForEachBinaryVoxelFunction
+    ForEachTernaryVoxelFunction
+    ForEachQuaternaryVoxelFunction
+    ForEachQuinaryVoxelFunction
+    ForEachSenaryVoxelFunction
+    ForEachSeptenaryVoxelFunction
+    ForEachOctaryVoxelFunction
+    ForEachNonaryVoxelFunction
   )
-  add_custom_target(foreachvoxel_${arity} DEPENDS "${PROJECT_INCLUDE_DIR}/mirtk${f}.h")
-  list(APPEND FOREACHVOXELDEPENDS foreachvoxel_${arity})
-  list(APPEND HEADERS mirtk${f}.h)
-endforeach()
-
-add_custom_target(foreachvoxel
-  DEPENDS ${FOREACHVOXELDEPENDS}
-  SOURCES mirtkForEachVoxelFunction.py
-)
-
-list(APPEND DEPENDS foreachvoxel)
+  
+  foreach(f IN LISTS FOREACHVOXELFUNCTIONS)
+    string(REGEX REPLACE "ForEach|VoxelFunction" "" arity "${f}")
+    string(TOLOWER "${arity}" arity)
+    add_custom_command(
+      OUTPUT  "${PROJECT_INCLUDE_DIR}/mirtk/${f}.h"
+      COMMAND "${PYTHON_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/ForEachVoxelFunction.py"
+              ${arity} "${PROJECT_INCLUDE_DIR}/mirtk/${f}.h"
+      DEPENDS ForEachVoxelFunction.py
+      COMMENT "Generating source file mirtk/${f}.h"
+    )
+    add_custom_target(foreachvoxel_${arity} DEPENDS "${PROJECT_INCLUDE_DIR}/mirtk/${f}.h")
+    list(APPEND FOREACHVOXELDEPENDS foreachvoxel_${arity})
+    list(APPEND HEADERS ${f}.h)
+  endforeach()
+  
+  add_custom_target(foreachvoxel
+    DEPENDS ${FOREACHVOXELDEPENDS}
+    SOURCES ForEachVoxelFunction.py
+  )
+  
+  list(APPEND DEPENDS foreachvoxel)
+endif ()
 
 # ------------------------------------------------------------------------------
 # Add library target

@@ -1,0 +1,74 @@
+# ==============================================================================
+# Medical Image Registration ToolKit (MIRTK)
+#
+# Copyright 2013-2016 Imperial College London
+# Copyright 2013-2016 Andreas Schuh
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# ==============================================================================
+
+##############################################################################
+# @file  @CONFIG_FILE@
+# @brief CMake package configuration file.
+#
+# @note The @CONFIG_FILE@ file is automatically generated
+#       by BASIS from the template file Config.cmake.in which is part of
+#       the BASIS package.
+#
+# Variables in this file have to be prefixed by the name of this package.
+# In the default package configuration file of BASIS, which can be included
+# here using the \@BASIS_CONFIG\@ variable, this prefix is defined as @c NS
+# variable. Moreover, the macro basis_set_config() should be used for
+# convenience to set any configuration variable, e.g.,
+#
+# @code
+# basis_set_config (INCLUDE_DIR "\@INCLUDE_DIR_CONFIG\@")
+# @endcode
+#
+# where the variable @c INCLUDE_DIR_CONFIG is set in the ConfigSettings.cmake
+# file of the BASIS installation. Note that this statement will set the
+# variable ${NS}INCLUDE_DIR, where by default @c NS is the package name
+# followed by an underscore (_).
+#
+# See the Config.cmake.in file of BASIS for details.
+#
+# @ingroup BasisConfig
+##############################################################################
+
+## @addtogroup BasisConfig
+# @{
+
+
+@BASIS_CONFIG@
+
+
+## @brief Whether this library was built with NIfTI support
+basis_set_config(WITH_NIFTI 1)
+basis_copy_config(WITH_NIfTI WITH_NIFTI)
+
+## @brief Whether this library was built with GIFTI support
+basis_set_config(WITH_GIFTI @WITH_GIFTI_CONFIG@)
+
+## @brief Whether this library was built with PNG support
+basis_set_config(WITH_PNG @WITH_PNG_CONFIG@)
+
+## @brief Whether this library was built with VTK support
+basis_set_config(WITH_VTK @WITH_VTK_CONFIG@)
+
+## @brief Whether this library was built with ZLIB support
+basis_set_config(WITH_ZLIB @WITH_ZLIB_CONFIG@)
+
+
+
+## @}
+# end of Doxygen group - keep at end of file

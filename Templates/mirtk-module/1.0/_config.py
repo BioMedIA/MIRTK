@@ -18,6 +18,10 @@ options = {
     'path' : [ 'README.md', 'LICENSE.txt' ]
   }
   # additional configuration files
+  'find-mirtk' : {
+    'desc' : 'Include/exclude FindMIRTK.cmake file.',
+    'path' : [ 'config/FindMIRTK.cmake' ]
+  },
   'config-settings' : {
     'desc' : 'Include/exclude custom Settings.cmake file.',
     'path' : [ 'config/Settings.cmake' ]
@@ -45,7 +49,10 @@ options = {
   # testing tree
   'test' : {
     'desc' : 'Add/remove support for testing.',
-    'path' : [ 'test/CMakeLists.txt' ]
+    'path' : [
+               'test/CMakeLists.txt',
+               'test/testClassName.cc'
+             ]
   }
 }
 
@@ -62,7 +69,7 @@ presets = {
   }
   'package' : {
     'desc' : 'Choose external package template.',
-    'args' : [ 'readme', 'config', 'include', 'src', 'test' ]
+    'args' : [ 'readme', 'find-mirtk', 'config', 'include', 'src', 'test' ]
   }
 }
 

@@ -15,7 +15,7 @@
 # @c CONFIG_FILE option of the basis_add_executable() or basis_add_library()
 # command, respectively.
 #
-# @sa http://opensource.andreasschuh.com/cmake-basis/standard/scripttargets.html#script-configuration
+# @sa https://cmake-basis.github.io/standard/scripttargets.html#script-configuration
 #
 # @ingroup BasisScriptConfig
 ##############################################################################

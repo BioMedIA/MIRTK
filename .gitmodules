@@ -10,3 +10,6 @@
 [submodule "Packages/VolumetricMapping"]
 	path = Packages/VolumetricMapping
 	url = https://github.com/MIRTK/VolumetricMapping.git
+[submodule "ThirdParty/LBFGS"]
+	path = ThirdParty/LBFGS
+	url = https://github.com/MIRTK/LBFGS.git

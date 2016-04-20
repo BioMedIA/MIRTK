@@ -65,18 +65,20 @@ if (MODULE_PointSet)
   endif ()
 endif ()
 
-# Always use ImageIO module when Image module and Applications enabled
-if (BUILD_APPLICATIONS AND MODULE_Image)
-  if (NOT MODULE_ImageIO)
-    message("ImageIO module required by Applications using the enabled MODULE_Image,"
-            " setting also MODULE_ImageIO to ON")
-    basis_update_value(MODULE_ImageIO ON)
+# Always use IO module when Image or PointSet module and Applications enabled
+if (BUILD_APPLICATIONS AND (MODULE_Image OR MODULE_PointSet))
+  if (NOT MODULE_IO)
+    message("I/O module required by Applications using the enabled MODULE_Image or MODULE_PointSet,"
+            " setting also MODULE_IO to ON")
+    basis_update_value(MODULE_IO ON)
   endif ()
 endif ()
 
 # Installation directories
 if (WIN32)
   set(INSTALL_CMAKE_MODULES_DIR "${INSTALL_SHARE_DIR}/CMake")
+  set(MIRTK_TOOLS_DIR           "${INSTALL_LIBEXEC_DIR}/Tools")
 else ()
   set(INSTALL_CMAKE_MODULES_DIR "${INSTALL_SHARE_DIR}/cmake")
+  set(MIRTK_TOOLS_DIR           "${INSTALL_LIBEXEC_DIR}/tools")
 endif ()

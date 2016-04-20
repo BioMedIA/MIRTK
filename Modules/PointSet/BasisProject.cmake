@@ -54,7 +54,7 @@ basis_project (
   # ----------------------------------------------------------------------------
   # dependencies
   DEPENDS
-    MIRTK{Common,Numerics,Image,Transformation}
+    MIRTK{Common,Numerics,Image,Transformation,IO}
     Boost-1.48 # {random} used, but headers only
     Eigen3
     "VTK-7|6{
@@ -67,16 +67,12 @@ basis_project (
       vtkFiltersGeneral,
       vtkFiltersGeometry,
       vtkFiltersParallel,
-      vtkImagingStencil,
-      vtkIOGeometry,
-      vtkIOLegacy,
-      vtkIOPLY,
-      vtkIOXML
+      vtkImagingStencil
     }"
     #<dependency>
   OPTIONAL_DEPENDS
-    FLANN
-    TBB
+    FLANN{cpp_static}
+    TBB{tbb}
     #<optional-dependency>
   TEST_DEPENDS
     GTest

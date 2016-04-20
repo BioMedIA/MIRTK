@@ -21,4 +21,4 @@
 # @brief Build configuration of MIRTK <project> tools.
 ##############################################################################
 
-#mirtk_add_executable(foo DEPENDS LibImage OPTIONAL ${VTK_LIBRARIES})
+#mirtk_add_executable(foo DEPENDS LibImage OPTIONAL LibPointSet)

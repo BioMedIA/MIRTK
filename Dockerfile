@@ -23,6 +23,11 @@ FROM biomedia/ubuntu:mirtk
 MAINTAINER Andreas Schuh <andreas.schuh.84@gmail.com>
 LABEL Description="Medical Image Registration ToolKit (MIRTK)" Vendor="BioMedIA"
 
+# No. of threads to use for build (--build-arg THREADS=8)
+# By default, all available CPUs are used. When a Docker Machine is used,
+# set the number of CPUs in the VirtualBox VM Settings.
+ARG THREADS
+
 # Whether to build and run MIRTK tests before installation
 # Override default with docker build --build-arg BUILD_TESTING=ON
 ARG BUILD_TESTING=OFF
@@ -30,6 +35,8 @@ ARG BUILD_TESTING=OFF
 # Build and install MIRTK
 COPY . /usr/src/MIRTK
 RUN ls /usr/src/MIRTK \
+    && NUM_CPUS=${THREADS:-`cat /proc/cpuinfo | grep processor | wc -l`} \
+    && echo "Maximum number of build threads = $NUM_CPUS" \
     && mkdir /usr/src/MIRTK/Build \
     && cd /usr/src/MIRTK/Build \
     && cmake \
@@ -52,8 +59,8 @@ RUN ls /usr/src/MIRTK \
       -D WITH_VTK=ON \
       -D WITH_ZLIB=ON \
       .. \
-    && if [ ${BUILD_TESTING} = ON ]; then make && make test; fi \
-    && make install \
+    && if [ ${BUILD_TESTING} = ON ]; then make -j $NUM_CPUS && make test; fi \
+    && make -j $NUM_CPUS install \
     && cd /usr/src \
     && rm -rf /usr/src/MIRTK
 

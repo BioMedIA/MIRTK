@@ -1,10 +1,10 @@
 # ============================================================================
 # Copyright (c) 2011-2012 University of Pennsylvania
-# Copyright (c) 2013-2014 Andreas Schuh
+# Copyright (c) 2013-2016 Andreas Schuh
 # All rights reserved.
 #
 # See COPYING file for license information or visit
-# http://opensource.andreasschuh.com/cmake-basis/download.html#license
+# https://cmake-basis.github.io/download.html#license
 # ============================================================================
 
 ##############################################################################
@@ -429,6 +429,9 @@ endif ()
 # Another reason is the mapping of build target names to fully-qualified
 # build target names as used by BASIS (see basis_get_target_uid()).
 #
+# Only link dependencies added with this function are considered for the setting
+# of the INSTALL_RPATH of executable targets (see basis_set_target_install_rpath()).
+#
 # Example:
 # @code
 # basis_add_library (MyMEXFunc MEX myfunc.c)
@@ -697,6 +700,17 @@ endmacro ()
 #         and hence a link dependency on the BASIS utilities has to be added.
 #         (default: @c BASIS_UTILITIES)</td>
 #   </tr>
+#   <tr>
+#     @tp @b FINAL @endtp
+#     <td>Finalize custom targets immediately. Any following target property changes
+#         will have no effect. When this option is used, the custom target which
+#         executes the custom build command is added in the current working directory.
+#         Otherwise it will be added in the top-level source directory of the project.
+#         Which with the Visual Studio generators adds the corresponding Visual Studio
+#         Project files directly to the top-level build directory. This can be avoided
+#         using this option or calling basis_finalize_targets() at the end of each
+#         CMakeLists.txt file.</td>
+#   </tr>
 # </table>
 #
 # @returns Adds an executable build target. In case of an executable which is
@@ -714,7 +728,7 @@ function (basis_add_executable TARGET_NAME)
   # parse arguments
   CMAKE_PARSE_ARGUMENTS (
     ARGN
-      "EXECUTABLE;LIBEXEC;NO_BASIS_UTILITIES;USE_BASIS_UTILITIES;EXPORT;NOEXPORT"
+      "EXECUTABLE;LIBEXEC;NO_BASIS_UTILITIES;USE_BASIS_UTILITIES;EXPORT;NOEXPORT;FINAL"
       "COMPONENT;DESTINATION;LANGUAGE"
       ""
     ${ARGN}
@@ -974,6 +988,17 @@ endfunction ()
 #         and hence a link dependency on the BASIS utilities has to be added.
 #         (default: @c BASIS_UTILITIES)</td>
 #   </tr>
+#   <tr>
+#     @tp @b FINAL @endtp
+#     <td>Finalize custom targets immediately. Any following target property changes
+#         will have no effect. When this option is used, the custom target which
+#         executes the custom build command is added in the current working directory.
+#         Otherwise it will be added in the top-level source directory of the project.
+#         Which with the Visual Studio generators adds the corresponding Visual Studio
+#         Project files directly to the top-level build directory. This can be avoided
+#         using this option or calling basis_finalize_targets() at the end of each
+#         CMakeLists.txt file.</td>
+#   </tr>
 # </table>
 #
 # @returns Adds a library build target. In case of a library not written in C++
@@ -992,7 +1017,7 @@ function (basis_add_library TARGET_NAME)
   # parse arguments
   CMAKE_PARSE_ARGUMENTS (
     ARGN
-      "STATIC;SHARED;MODULE;MEX;USE_BASIS_UTILITIES;NO_BASIS_UTILITIES;EXPORT;NOEXPORT"
+      "STATIC;SHARED;MODULE;MEX;USE_BASIS_UTILITIES;NO_BASIS_UTILITIES;EXPORT;NOEXPORT;FINAL"
       "COMPONENT;RUNTIME_COMPONENT;LIBRARY_COMPONENT;DESTINATION;RUNTIME_DESTINATION;LIBRARY_DESTINATION;LANGUAGE"
       ""
     ${ARGN}
@@ -1128,7 +1153,7 @@ endfunction ()
 #
 # Certain CMake variables within the source file are replaced during the
 # built of the script. See the
-# <a href="http://opensource.andreasschuh.com/cmake-basis/scripttargets/>
+# <a href="https://cmake-basis.github.io/scripttargets/>
 # Build System Standard</a> for details.
 # Note, however, that source files are only configured if the file name
 # ends in the <tt>.in</tt> suffix.
@@ -1175,7 +1200,7 @@ endfunction ()
 #     <td>CMake code which is evaluated after the inclusion of the default script
 #         configuration files. This code can be used to set the replacement text of the
 #         CMake variables ("@VAR@" patterns) used in the source file.
-#         See <a href="http://opensource.andreasschuh.com/cmake-basis/standard/scripttargets.html#script-configuration">
+#         See <a href="https://cmake-basis.github.io/standard/scripttargets.html#script-configuration">
 #         Build System Standard</a> for details. (default: "")</td>
 #   </tr>
 #   <tr>
@@ -1329,6 +1354,17 @@ endfunction ()
 #         script or if the programming language is unknown, respectively, not detected
 #         correctly. In this case, consider the use of the @p LANGUAGE argument.</td>
 #   </tr>
+#   <tr>
+#     @tp @b FINAL @endtp
+#     <td>Finalize custom targets immediately. Any following target property changes
+#         will have no effect. When this option is used, the custom target which
+#         executes the custom build command is added in the current working directory.
+#         Otherwise it will be added in the top-level source directory of the project.
+#         Which with the Visual Studio generators adds the corresponding Visual Studio
+#         Project files directly to the top-level build directory. This can be avoided
+#         using this option or calling basis_finalize_targets() at the end of each
+#         CMakeLists.txt file.</td>
+#   </tr>
 # </table>
 #
 # @returns Adds a custom CMake target with the documented properties. The actual custom
@@ -1339,7 +1375,7 @@ function (basis_add_script TARGET_NAME)
   # parse arguments
   CMAKE_PARSE_ARGUMENTS (
     ARGN
-      "MODULE;EXECUTABLE;LIBEXEC;NO_BASIS_UTILITIES;USE_BASIS_UTILITIES;EXPORT;NOEXPORT"
+      "MODULE;EXECUTABLE;LIBEXEC;NO_BASIS_UTILITIES;USE_BASIS_UTILITIES;EXPORT;NOEXPORT;FINAL"
       "COMPONENT;DESTINATION;LANGUAGE"
       ""
     ${ARGN}
@@ -1404,7 +1440,7 @@ function (basis_add_script TARGET_NAME)
   add_custom_target (${TARGET_UID} ALL SOURCES ${SOURCES})
   # dump CMake variables for configuration of script
   set (BUILD_DIR "${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/${TARGET_UID}")
-  basis_dump_variables ("${BUILD_DIR}.dir/cache.cmake.in")
+  basis_dump_variables ("${BUILD_DIR}.dir/cache.cmake.tmp")
   # auto-detect programming language (may be as well UNKNOWN)
   if (ARGN_LANGUAGE)
     string (TOUPPER "${ARGN_LANGUAGE}" ARGN_LANGUAGE)
@@ -1533,9 +1569,91 @@ function (basis_add_script TARGET_NAME)
       TEST                     ${IS_TEST}
       LIBEXEC                  ${ARGN_LIBEXEC}
   )
+  # finalize target
+  if (ARGN_FINAL)
+    basis_finalize_targets (${TARGET_UID})
+  endif ()
   # add target to list of targets
   basis_set_project_property (APPEND PROPERTY TARGETS "${TARGET_UID}")
   message (STATUS "Adding ${type} script ${TARGET_UID}... - done")
+endfunction ()
+
+# ----------------------------------------------------------------------------
+## @brief Finalize custom targets by adding the missing build commands.
+#
+# This function is called by basis_project_end() in order to finalize the
+# addition of the custom build targets such as, for example, build targets
+# for the build of executable scripts, Python packages, MATLAB Compiler
+# executables and shared libraries, and MEX-files. It can, however, also
+# be called explicitly either at the end of each CMakeLists.txt file that
+# adds new build targets or with the name of the target(s) to finalize in
+# some of the CMakeLists.txt files. This is to ensure that the custom target
+# which executes the actual build command is added in the same directory as
+# the original custom target with the respective target properties.
+#
+# @param[in] ARGN List of targets to finalize. If none specified, all custom
+#                 targets that were added before and are not finalized already
+#                 will be finalized using the current binary directory.
+#
+# @returns Generates the CMake build scripts and adds custom build commands
+#          and corresponding targets for the execution of these scripts.
+#
+# @sa basis_build_script()
+# @sa basis_build_script_library()
+# @sa basis_build_mcc_target()
+# @sa basis_build_mex_file()
+function (basis_finalize_targets)
+  if (ARGN)
+    set (TARGETS)
+    foreach (TARGET_NAME ${ARGN})
+      basis_get_target_uid (TARGET_UID ${TARGET_NAME})
+      list (APPEND TARGETS ${TARGET_UID})
+    endforeach ()
+  else ()
+    basis_get_project_property (TARGETS PROPERTY TARGETS)
+    # targets of BASIS utilities are finalized separately
+    # because some properties still have to be set by
+    # basis_configure_utilities, see UtilitiesTools module
+    basis_make_target_uid (TARGET_UID_basis_sh basis_sh)
+    basis_make_target_uid (TARGET_UID_basis_py basis_py)
+    basis_make_target_uid (TARGET_UID_Basis_pm Basis_pm)
+    list (REMOVE_ITEM TARGETS
+      ${TARGET_UID_basis_sh}
+      ${TARGET_UID_basis_py}
+      ${TARGET_UID_Basis_pm}
+    )
+  endif ()
+  basis_get_project_property (FINALIZED_TARGETS PROPERTY FINALIZED_TARGETS)
+  if (FINALIZED_TARGETS)
+    list (REMOVE_ITEM TARGETS ${FINALIZED_TARGETS})
+  endif ()
+  if (BASIS_DEBUG)
+    message (
+      "** basis_finalize_targets:"
+      "\n     TARGETS:   [${TARGETS}]"
+      "\n     FINALIZED: [${FINALIZED_TARGETS}]"
+    )
+  endif ()
+  foreach (TARGET_UID ${TARGETS})
+    get_target_property (BASIS_TYPE ${TARGET_UID} BASIS_TYPE)
+    if (BASIS_TYPE MATCHES "^EXECUTABLE$|^(SHARED|MODULE)_LIBRARY$")
+      if (BASIS_INSTALL_RPATH AND NOT CMAKE_SKIP_RPATH)
+        # Only if BASIS is allowed to take care of the INSTALL_RPATH property
+        # and the use of this property was not disabled by the project
+        basis_set_target_install_rpath (${TARGET_UID})
+      endif ()
+    elseif (BASIS_TYPE MATCHES "SCRIPT_LIBRARY")
+      basis_build_script_library (${TARGET_UID})
+    elseif (BASIS_TYPE MATCHES "SCRIPT")
+      basis_build_script (${TARGET_UID})
+    elseif (BASIS_TYPE MATCHES "MEX")
+      basis_build_mex_file (${TARGET_UID})
+    elseif (BASIS_TYPE MATCHES "MCC")
+      basis_build_mcc_target (${TARGET_UID})
+    endif ()
+    list (APPEND FINALIZED_TARGETS ${TARGET_UID})
+  endforeach ()
+  basis_set_project_property (PROPERTY FINALIZED_TARGETS ${FINALIZED_TARGETS})
 endfunction ()
 
 # ============================================================================
@@ -2122,7 +2240,7 @@ endfunction ()
 #     <td>CMake code which is evaluated after the inclusion of the default script
 #         configuration files. This code can be used to set the replacement text of the
 #         CMake variables ("@VAR@" patterns) used in the source files.
-#         See <a href="http://opensource.andreasschuh.com/cmake-basis/standard/scripttargets.html#script-configuration">
+#         See <a href="https://cmake-basis.github.io/standard/scripttargets.html#script-configuration">
 #         Build System Standard</a> for details. (default: "")</td>
 #   </tr>
 #   <tr>
@@ -2266,6 +2384,17 @@ endfunction ()
 #         of this script or if the programming language is unknown, respectively, not
 #         detected correctly. In this case, consider the use of the @p LANGUAGE argument.</td>
 #   </tr>
+#   <tr>
+#     @tp @b FINAL @endtp
+#     <td>Finalize custom targets immediately. Any following target property changes
+#         will have no effect. When this option is used, the custom target which
+#         executes the custom build command is added in the current working directory.
+#         Otherwise it will be added in the top-level source directory of the project.
+#         Which with the Visual Studio generators adds the corresponding Visual Studio
+#         Project files directly to the top-level build directory. This can be avoided
+#         using this option or calling basis_finalize_targets() at the end of each
+#         CMakeLists.txt file.</td>
+#   </tr>
 # </table>
 #
 # @returns Adds a custom CMake target with the documented properties. The actual custom
@@ -2279,11 +2408,11 @@ function (basis_add_script_library TARGET_NAME)
   message (STATUS "Adding script library ${TARGET_UID}...")
   # dump CMake variables for configuration of script
   set (BUILD_DIR "${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/${TARGET_UID}")
-  basis_dump_variables ("${BUILD_DIR}.dir/cache.cmake.in")
+  basis_dump_variables ("${BUILD_DIR}.dir/cache.cmake.tmp")
   # parse arguments
   CMAKE_PARSE_ARGUMENTS (
     ARGN
-      "NO_BASIS_UTILITIES;USE_BASIS_UTILITIES;EXPORT;NOEXPORT"
+      "NO_BASIS_UTILITIES;USE_BASIS_UTILITIES;EXPORT;NOEXPORT;FINAL"
       "COMPONENT;DESTINATION;LANGUAGE"
       ""
     ${ARGN}
@@ -2439,6 +2568,10 @@ function (basis_add_script_library TARGET_NAME)
       message ("** Target ${TARGET_UID} uses the BASIS utilities for ${UTILITIES_LANGUAGE}.")
     endif ()
   endif ()
+  # finalize target
+  if (ARGN_FINAL)
+    basis_finalize_targets (${TARGET_UID})
+  endif ()
   # add target to list of targets
   basis_set_project_property (APPEND PROPERTY TARGETS "${TARGET_UID}")
   message (STATUS "Adding script library ${TARGET_UID}... - done")
@@ -2447,45 +2580,6 @@ endfunction ()
 # ============================================================================
 # custom build commands
 # ============================================================================
-
-# ----------------------------------------------------------------------------
-## @brief Finalize custom targets by adding the missing build commands.
-#
-# This function is called by basis_project_end() in order to finalize the
-# addition of the custom build targets such as, for example, build targets
-# for the build of executable scripts, Python packages, MATLAB Compiler
-# executables and shared libraries, and MEX-files.
-#
-# @returns Generates the CMake build scripts and adds custom build commands
-#          and corresponding targets for the execution of these scripts.
-#
-# @sa basis_build_script()
-# @sa basis_build_script_library()
-# @sa basis_build_mcc_target()
-# @sa basis_build_mex_file()
-function (basis_finalize_targets)
-  basis_get_project_property (TARGETS PROPERTY TARGETS)
-  foreach (TARGET_UID ${TARGETS})
-    if (NOT TARGET _${TARGET_UID})
-      get_target_property (BASIS_TYPE ${TARGET_UID} BASIS_TYPE)
-      if (BASIS_TYPE MATCHES "^EXECUTABLE$|^(SHARED|MODULE)_LIBRARY$")
-        if (BASIS_INSTALL_RPATH AND NOT CMAKE_SKIP_RPATH)
-          # Only if BASIS is allowed to take care of the INSTALL_RPATH property
-          # and the use of this property was not disabled by the project
-          basis_set_target_install_rpath (${TARGET_UID})
-        endif ()
-      elseif (BASIS_TYPE MATCHES "SCRIPT_LIBRARY")
-        basis_build_script_library (${TARGET_UID})
-      elseif (BASIS_TYPE MATCHES "SCRIPT")
-        basis_build_script (${TARGET_UID})
-      elseif (BASIS_TYPE MATCHES "MEX")
-        basis_build_mex_file (${TARGET_UID})
-      elseif (BASIS_TYPE MATCHES "MCC")
-        basis_build_mcc_target (${TARGET_UID})
-      endif ()
-    endif ()
-  endforeach ()
-endfunction ()
 
 # ----------------------------------------------------------------------------
 ## @brief Set INSTALL_RPATH property of executable or shared library target.
@@ -2547,12 +2641,15 @@ function (basis_set_target_install_rpath TARGET_NAME)
   foreach (LINK_DEPEND ${LINK_DEPENDS})
     set (DEPEND_LOCATION)
     if (TARGET "${LINK_DEPEND}")
-      basis_get_target_property (BUNDLED  ${LINK_DEPEND} BUNDLED)
-      basis_get_target_property (IMPORTED ${LINK_DEPEND} IMPORTED)
-      if (NOT IMPORTED OR BUNDLED)
-        basis_get_target_location (DEPEND_LOCATION ${LINK_DEPEND} POST_INSTALL_PATH)
-        if (BASIS_DEBUG AND BASIS_VERBOSE)
-          message ("**    LOCATION(${LINK_DEPEND}): ${DEPEND_LOCATION}")
+      basis_get_target_type (LINK_TYPE ${LINK_DEPEND})
+      if ("^${LINK_TYPE}$" STREQUAL "^SHARED_LIBRARY$")
+        basis_get_target_property (BUNDLED  ${LINK_DEPEND} BUNDLED)
+        basis_get_target_property (IMPORTED ${LINK_DEPEND} IMPORTED)
+        if (NOT IMPORTED OR BUNDLED)
+          basis_get_target_location (DEPEND_LOCATION ${LINK_DEPEND} POST_INSTALL_PATH)
+          if (BASIS_DEBUG AND BASIS_VERBOSE)
+            message ("**    LOCATION(${LINK_DEPEND}): ${DEPEND_LOCATION}")
+          endif ()
         endif ()
       endif ()
     elseif (IS_ABSOLUTE "${LINK_DEPEND}")
@@ -2579,7 +2676,6 @@ function (basis_set_target_install_rpath TARGET_NAME)
     list (REMOVE_DUPLICATES INSTALL_RPATH)
   endif ()
   # set INSTALL_RPATH property
-  string (REPLACE ";" ":" INSTALL_RPATH "${INSTALL_RPATH}")
   set_target_properties (${TARGET_UID} PROPERTIES INSTALL_RPATH "${INSTALL_RPATH}")
   if (BASIS_DEBUG)
     message ("**    INSTALL_RPATH: [${INSTALL_RPATH}]")
@@ -2668,7 +2764,7 @@ function (basis_build_script TARGET_UID)
   endif ()
   set (SOURCE_FILE "${SOURCES}")
   set (BUILD_DIR   "${BUILD_DIRECTORY}.dir")
-  # output name
+  # output directory and name
   if (NOT OUTPUT_NAME)
     basis_get_target_name (OUTPUT_NAME ${TARGET_UID})
   endif ()
@@ -2678,15 +2774,24 @@ function (basis_build_script TARGET_UID)
   if (SUFFIX)
     set (OUTPUT_NAME "${OUTPUT_NAME}${SUFFIX}")
   endif ()
+  if (CMAKE_GENERATOR MATCHES "Visual Studio|Xcode")
+    set (OUTPUT_FILE "${BUILD_DIR}/build/${OUTPUT_NAME}")
+    set (OUTPUT_DIR  "${OUTPUT_DIRECTORY}/$<CONFIGURATION>")
+  elseif (MODULE AND COMPILE)
+    set (OUTPUT_FILE "${BUILD_DIR}/build/${OUTPUT_NAME}")
+    set (OUTPUT_DIR  "${OUTPUT_DIRECTORY}")
+  else ()
+    set (OUTPUT_FILE "${OUTPUT_DIRECTORY}/${OUTPUT_NAME}")
+    unset (OUTPUT_DIR)
+  endif ()
   # arguments of build script
-  set (OUTPUT_FILE "${OUTPUT_DIRECTORY}/${OUTPUT_NAME}")
   if (INSTALL_DIRECTORY)
     if (MODULE)
       get_filename_component (SOURCE_NAME "${SOURCE_FILE}" NAME)
-      set (INSTALL_FILE "${BUILD_DIR}/build/${SOURCE_NAME}")
+      set (INSTALL_FILE "${BUILD_DIR}/install/${SOURCE_NAME}")
       string (REGEX REPLACE "\\.in$" "" INSTALL_FILE "${INSTALL_FILE}")
     else ()
-      set (INSTALL_FILE "${BUILD_DIR}/build/${OUTPUT_NAME}")
+      set (INSTALL_FILE "${BUILD_DIR}/install/${OUTPUT_NAME}")
     endif ()
     set (DESTINATION "${INSTALL_DIRECTORY}")
     if (NOT IS_ABSOLUTE "${DESTINATION}")
@@ -2705,20 +2810,14 @@ function (basis_build_script TARGET_UID)
   endif ()
   if (SCRIPT_DEFINITIONS)
     set (SCRIPT_CONFIG_FILE "${BUILD_DIR}/ScriptConfig.cmake")
-    file (WRITE "${SCRIPT_CONFIG_FILE}.in" "# DO NOT edit. Automatically generated by BASIS.\n${SCRIPT_DEFINITIONS}\n")
-    add_custom_command (
-      OUTPUT "${SCRIPT_CONFIG_FILE}"
-      COMMAND "${CMAKE_COMMAND}" -E copy_if_different
-              "${SCRIPT_CONFIG_FILE}.in" "${SCRIPT_CONFIG_FILE}"
-    )
+    file (WRITE "${SCRIPT_CONFIG_FILE}.tmp" "# DO NOT edit. Automatically generated by BASIS.\n${SCRIPT_DEFINITIONS}\n")
+    execute_process (COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${SCRIPT_CONFIG_FILE}.tmp" "${SCRIPT_CONFIG_FILE}")
+    file (REMOVE "${SCRIPT_CONFIG_FILE}.tmp")
     list (APPEND CONFIG_FILES "${SCRIPT_CONFIG_FILE}")
   endif ()
   set (CACHE_FILE "${BUILD_DIR}/cache.cmake")
-  add_custom_command (
-    OUTPUT  "${CACHE_FILE}"
-    COMMAND "${CMAKE_COMMAND}" -E copy_if_different
-            "${CACHE_FILE}.in" "${CACHE_FILE}"
-  )
+  execute_process (COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${CACHE_FILE}.tmp" "${CACHE_FILE}")
+  file (REMOVE "${CACHE_FILE}.tmp")
   set (OPTIONS)
   foreach (FLAG IN ITEMS COMPILE EXECUTABLE)
     if (${FLAG})
@@ -2842,10 +2941,9 @@ function (basis_build_script TARGET_UID)
   endif ()
   add_custom_command (
     OUTPUT          ${OUTPUT_FILES}
-    COMMAND         "${CMAKE_COMMAND}" -P "${BUILD_SCRIPT}"
+    COMMAND         "${CMAKE_COMMAND}" -D "CONFIGURATION:STRING=$<CONFIGURATION>" -P "${BUILD_SCRIPT}"
     MAIN_DEPENDENCY "${SOURCE_FILE}"
     DEPENDS         "${BUILD_SCRIPT}" "${BASIS_MODULE_PATH}/CommonTools.cmake" # basis_configure_script() definition
-                    "${CACHE_FILE}" ${CONFIG_FILES}
     COMMENT         "${COMMENT}"
     VERBATIM
   )
@@ -2868,6 +2966,31 @@ function (basis_build_script TARGET_UID)
       endif ()
     endif ()
   endforeach ()
+  # copy configured (and compiled) script to (configuration specific) output directory
+  if (OUTPUT_DIR)
+    if (OUTPUT_CFILE)
+      get_filename_component (OUTPUT_CNAME "${OUTPUT_CFILE}" NAME)
+      add_custom_command (
+        TARGET _${TARGET_UID} POST_BUILD
+        COMMAND "${CMAKE_COMMAND}" -E copy "${OUTPUT_CFILE}" "${OUTPUT_DIR}/${OUTPUT_CNAME}"
+      )
+      set_property (DIRECTORY APPEND PROPERTY ADDITIONAL_MAKE_CLEAN_FILES "${OUTPUT_DIR}/${OUTPUT_CNAME}")
+      if (JYTHON_OUTPUT_CFILE)
+        get_filename_component (OUTPUT_CNAME "${JYTHON_OUTPUT_CFILE}" NAME)
+        add_custom_command (
+          TARGET _${TARGET_UID} POST_BUILD
+          COMMAND "${CMAKE_COMMAND}" -E copy "${JYTHON_OUTPUT_CFILE}" "${OUTPUT_DIR}/${OUTPUT_CNAME}"
+        )
+        set_property (DIRECTORY APPEND PROPERTY ADDITIONAL_MAKE_CLEAN_FILES "${OUTPUT_DIR}/${OUTPUT_CNAME}")
+      endif ()
+    else ()
+      add_custom_command (
+        TARGET _${TARGET_UID} POST_BUILD
+        COMMAND "${CMAKE_COMMAND}" -E copy "${OUTPUT_FILE}" "${OUTPUT_DIR}/${OUTPUT_NAME}"
+      )
+      set_property (DIRECTORY APPEND PROPERTY ADDITIONAL_MAKE_CLEAN_FILES "${OUTPUT_DIR}/${OUTPUT_NAME}")
+    endif ()
+  endif ()
   # export target
   if (EXPORT)
     basis_add_custom_export_target (${TARGET_UID} "${IS_TEST}")
@@ -3002,28 +3125,30 @@ function (basis_build_script_library TARGET_UID)
   endif ()
   if (SCRIPT_DEFINITIONS)
     set (SCRIPT_CONFIG_FILE "${BUILD_DIR}/ScriptConfig.cmake")
-    file (WRITE "${SCRIPT_CONFIG_FILE}.in" "# DO NOT edit. Automatically generated by BASIS.\n${SCRIPT_DEFINITIONS}\n")
-    add_custom_command (
-      OUTPUT  "${SCRIPT_CONFIG_FILE}"
-      COMMAND "${CMAKE_COMMAND}" -E copy_if_different
-              "${SCRIPT_CONFIG_FILE}.in" "${SCRIPT_CONFIG_FILE}"
-    )
+    file (WRITE "${SCRIPT_CONFIG_FILE}.tmp" "# DO NOT edit. Automatically generated by BASIS.\n${SCRIPT_DEFINITIONS}\n")
+    execute_process (COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${SCRIPT_CONFIG_FILE}.tmp" "${SCRIPT_CONFIG_FILE}")
+    file (REMOVE "${SCRIPT_CONFIG_FILE}.tmp")
     list (APPEND CONFIG_FILES "${SCRIPT_CONFIG_FILE}")
   endif ()
   set (CACHE_FILE "${BUILD_DIR}/cache.cmake")
-  add_custom_command (
-    OUTPUT  "${CACHE_FILE}"
-    COMMAND "${CMAKE_COMMAND}" -E copy_if_different
-            "${CACHE_FILE}.in" "${CACHE_FILE}"
-  )
+  execute_process (COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${CACHE_FILE}.tmp" "${CACHE_FILE}")
+  file (REMOVE "${CACHE_FILE}.tmp")
   set (OPTIONS) # no additional options
   if (COMPILE)
     list (APPEND OPTIONS COMPILE)
   endif ()
   # add build command for each module
-  set (OUTPUT_FILES)                                  # list of all output files
-  set (FILES_TO_INSTALL)                              # list of output files for installation
-  set (BINARY_INSTALL_DIRECTORY "${BUILD_DIR}/build") # common base directory for files to install 
+  set (OUTPUT_FILES)                                    # list of all output files
+  set (FILES_TO_COPY)                                   # relative paths of build tree modules
+  set (FILES_TO_INSTALL)                                # list of output files for installation
+  set (BINARY_INSTALL_DIRECTORY "${BUILD_DIR}/install") # common base directory for files to install 
+  if (COMPILE OR CMAKE_GENERATOR MATCHES "Visual Studio|Xcode") # post-build copy to <libdir>/<config>/
+    set (BINARY_OUTPUT_DIRECTORY "${BUILD_DIR}/build")  # common base directory for build tree files
+    set (POST_BUILD_COPY TRUE)
+  else ()
+    set (BINARY_OUTPUT_DIRECTORY "${LIBRARY_OUTPUT_DIRECTORY}")
+    set (POST_BUILD_COPY FALSE)
+  endif ()
   foreach (SOURCE_FILE IN LISTS SOURCES)
     file (RELATIVE_PATH S "${SOURCE_DIRECTORY}" "${SOURCE_FILE}")
     string (REGEX REPLACE "\\.in$" "" S "${S}")
@@ -3032,7 +3157,8 @@ function (basis_build_script_library TARGET_UID)
     if (PREFIX)
       set (S "${PREFIX}${S}")
     endif ()
-    set (OUTPUT_FILE    "${LIBRARY_OUTPUT_DIRECTORY}/${S}")
+    set (OUTPUT_FILE "${BINARY_OUTPUT_DIRECTORY}/${S}")
+    get_filename_component (OUTPUT_DIR "${LIBRARY_OUTPUT_DIRECTORY}/${S}" PATH)
     if (LIBRARY_INSTALL_DIRECTORY)
       set (INSTALL_FILE "${BINARY_INSTALL_DIRECTORY}/${S}")
       set (DESTINATION  "${LIBRARY_INSTALL_DIRECTORY}/${S}")
@@ -3075,6 +3201,18 @@ function (basis_build_script_library TARGET_UID)
         endif ()
       endif ()
     endif ()
+    if (POST_BUILD_COPY)
+      if (OUTPUT_CFILE)
+        file (RELATIVE_PATH _file "${BINARY_OUTPUT_DIRECTORY}" "${OUTPUT_CFILE}")
+        list (APPEND FILES_TO_COPY "${_file}")
+        if (JYTHON_OUTPUT_CFILE)
+          file (RELATIVE_PATH _file "${BINARY_OUTPUT_DIRECTORY}" "${JYTHON_OUTPUT_CFILE}")
+          list (APPEND FILES_TO_COPY "${_file}")
+        endif ()
+      else ()
+        list (APPEND FILES_TO_COPY "${S}")
+      endif ()
+    endif ()
     if (INSTALL_CFILE)
       list (APPEND FILES_TO_INSTALL "${INSTALL_CFILE}")
     elseif (INSTALL_FILE)
@@ -3089,10 +3227,9 @@ function (basis_build_script_library TARGET_UID)
     set (COMMENT "Building ${LANGUAGE} module ${REL}...")
     add_custom_command (
       OUTPUT          ${_OUTPUT_FILES}
-      COMMAND         "${CMAKE_COMMAND}" -P "${BUILD_SCRIPT}"
+      COMMAND         "${CMAKE_COMMAND}" -D "CONFIGURATION=$<CONFIGURATION>" -P "${BUILD_SCRIPT}"
       MAIN_DEPENDENCY "${SOURCE_FILE}"
       DEPENDS         "${BUILD_SCRIPT}" "${BASIS_MODULE_PATH}/CommonTools.cmake" # basis_configure_script() definition
-                      "${CACHE_FILE}" ${CONFIG_FILES}
       COMMENT         "${COMMENT}"
       VERBATIM
     )
@@ -3107,6 +3244,13 @@ function (basis_build_script_library TARGET_UID)
     endif ()
   endforeach ()
   add_dependencies (${TARGET_UID} _${TARGET_UID})
+  # copy configured modules to output directory
+  foreach (OUTPUT_FILE IN LISTS FILES_TO_COPY)
+    add_custom_command (
+      TARGET _${TARGET_UID} POST_BUILD
+      COMMAND "${CMAKE_COMMAND}" -E copy "${BINARY_OUTPUT_DIRECTORY}/${OUTPUT_FILE}" "${LIBRARY_OUTPUT_DIRECTORY}/${OUTPUT_FILE}"
+    )
+  endforeach ()
   # cleanup on "make clean" - including compiled files regardless of COMPILE flag
   set_property (DIRECTORY APPEND PROPERTY ADDITIONAL_MAKE_CLEAN_FILES ${OUTPUT_FILES})
   foreach (OUTPUT_FILE IN LISTS OUTPUT_FILES)
@@ -3162,6 +3306,10 @@ endfunction ()
 # ----------------------------------------------------------------------------
 # @brief Add target to build/install __init__.py files.
 function (basis_add_init_py_target)
+  if (NOT BASIS_PYTHON_TEMPLATES_DIR)
+    message (WARNING "BASIS_PYTHON_TEMPLATES_DIR not set, skipping basis_add_init_py_target")
+    return ()
+  endif ()
   # constants
   set (BUILD_DIR "${PROJECT_BINARY_DIR}/CMakeFiles/_initpy.dir")
   basis_sanitize_for_regex (BINARY_PYTHON_LIBRARY_DIR_RE  "${BINARY_PYTHON_LIBRARY_DIR}")
@@ -3337,10 +3485,7 @@ function (basis_add_init_py_target)
   set (BUILD_SCRIPT "${BUILD_DIR}/build.cmake")
   if (EXISTS "${BUILD_SCRIPT}")
     file (WRITE "${BUILD_SCRIPT}.tmp" "${C}")
-    execute_process (
-      COMMAND "${CMAKE_COMMAND}" -E copy_if_different
-          "${BUILD_SCRIPT}.tmp" "${BUILD_SCRIPT}"
-    )
+    execute_process (COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${BUILD_SCRIPT}.tmp" "${BUILD_SCRIPT}")
     file (REMOVE "${BUILD_SCRIPT}.tmp")
   else ()
     file (WRITE "${BUILD_SCRIPT}" "${C}")

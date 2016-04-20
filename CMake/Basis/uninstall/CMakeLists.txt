@@ -1,10 +1,10 @@
 # ============================================================================
 # Copyright (c) 2011-2012 University of Pennsylvania
-# Copyright (c) 2013-2014 Andreas Schuh
+# Copyright (c) 2013-2016 Andreas Schuh
 # All rights reserved.
 #
 # See COPYING file for license information or visit
-# http://opensource.andreasschuh.com/cmake-basis/download.html#license
+# https://cmake-basis.github.io/download.html#license
 # ============================================================================
 
 ##############################################################################
@@ -44,7 +44,7 @@ if (NOT PROJECT_IS_SUBMODULE)
       message (\"-- Installing: \${UNINSTALLER}\")
       file (WRITE \"\${UNINSTALLER}\" \"\")
       if (UNIX)
-        file (APPEND \"\${UNINSTALLER}\" \"#! /bin/sh\n\")
+        file (APPEND \"\${UNINSTALLER}\" \"#! /bin/sh\nexec \")
       endif ()
       file (APPEND \"\${UNINSTALLER}\" \"\\\"${CMAKE_COMMAND}\\\" -P \\\"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${INSTALL_CONFIG_DIR}/${PROJECT_PACKAGE_CONFIG_PREFIX}Uninstall.cmake\\\"\")
       if (UNIX)

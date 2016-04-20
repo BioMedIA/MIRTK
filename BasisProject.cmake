@@ -68,6 +68,7 @@ basis_project (
   DOC_DIR     Documentation
   MODULES_DIR Modules
   TOOLS_DIR   Applications
+  OTHER_DIRS  CMake
 
   MODULE_DIRS
     Packages/Deformable
@@ -79,7 +80,7 @@ basis_project (
     Common
     Numerics
     Image
-    ImageIO
+    IO
     Transformation
     Registration
 
@@ -96,7 +97,7 @@ basis_project (
   OPTIONAL_DEPENDS
     #<optional-dependency>
   TOOLS_DEPENDS
-    PythonInterp
+    Python{Interp}
   TEST_DEPENDS
     #<test-dependency>
   OPTIONAL_TEST_DEPENDS

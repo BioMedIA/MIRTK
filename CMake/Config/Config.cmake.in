@@ -77,18 +77,48 @@ endif ()
 ## @brief Directory containing the CMake BASIS Modules
 set(BASIS_MODULE_PATH "@BASIS_MODULE_PATH_CONFIG@")
 
+if (EXISTS "${BASIS_MODULE_PATH}/BasisTools.cmake")
+  set(MIRTK_BASIS_FOUND TRUE)
+else ()
+  set(MIRTK_BASIS_FOUND FALSE)
+endif ()
+if (NOT MIRTK_BASIS_FOUND AND (MIRTK_FIND_REQUIRED_BASIS OR MIRTK_FIND_REQUIRED_CMake))
+  message (FATAL_ERROR "Required CMake BASIS Modules of package MIRTK"
+                       " could not be found in ${BASIS_MODULE_PATH}!")
+endif ()
+
 ## @brief Directory containing the MIRTK CMake Modules
 set(MIRTK_MODULE_PATH "@MIRTK_MODULE_PATH_CONFIG@")
 
+if (EXISTS "${MIRTK_MODULE_PATH}/mirtkTools.cmake")
+  set(MIRTK_CMake_FOUND TRUE)
+else ()
+  set(MIRTK_CMake_FOUND FALSE)
+endif ()
+if (NOT MIRTK_CMake_FOUND AND MIRTK_FIND_REQUIRED_CMake)
+  message (FATAL_ERROR "Required CMake Modules of package MIRTK"
+                       " could not be found in ${MIRTK_MODULE_PATH}!")
+endif ()
+if (NOT MIRTK_BASIS_FOUND)
+  set(MIRTK_CMake_FOUND FALSE)
+endif ()
+
 # include requested CMake modules
 if (_INCLUDE_BASIS_MODULES OR _INCLUDE_CMake_MODULES)
-  list(APPEND CMAKE_MODULE_PATH "${MIRTK_MODULE_PATH}" "${BASIS_MODULE_PATH}")
-  if (_INCLUDE_CMake_MODULES)
+  if (MIRTK_CMake_FOUND)
+    list(APPEND CMAKE_MODULE_PATH "${MIRTK_MODULE_PATH}")
+  endif ()
+  if (MIRTK_BASIS_FOUND)
+    list(APPEND CMAKE_MODULE_PATH "${BASIS_MODULE_PATH}")
+  endif ()
+  if (_INCLUDE_CMake_MODULES AND MIRTK_CMake_FOUND)
     include(mirtkPolicies NO_POLICY_SCOPE)
   endif ()
-  include(BasisSettings)
-  include(BasisTools)
-  if (_INCLUDE_CMake_MODULES)
+  if (MIRTK_BASIS_FOUND)
+    include(BasisSettings)
+    include(BasisTools)
+  endif ()
+  if (_INCLUDE_CMake_MODULES AND MIRTK_CMake_FOUND)
     include(mirtkTools)
   endif ()
 endif ()
@@ -99,6 +129,9 @@ unset(_INCLUDE_CMake_MODULES)
 # ============================================================================
 # Common settings
 # ============================================================================
+
+## @brief Directory containing the MIRTK command executables
+set(MIRTK_TOOLS_DIR "@MIRTK_TOOLS_DIR_CONFIG@")
 
 ## @brief Whether to build shared libraries by default
 if (NOT DEFINED BUILD_SHARED_LIBS_DEFAULT)

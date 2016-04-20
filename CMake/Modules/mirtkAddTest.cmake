@@ -21,9 +21,6 @@ if (COMMAND mirtk_add_test)
   return()
 endif ()
 
-include(CMakeParseArguments)
-include("${CMAKE_CURRENT_LIST_DIR}/mirtkGetTargetName.cmake")
-
 # ------------------------------------------------------------------------------
 ## Add build target for executable MIRTK command
 function(mirtk_add_test target_name)
@@ -31,11 +28,17 @@ function(mirtk_add_test target_name)
   if (NOT PROJECT_NAME)
     message(FATAL_ERROR "mirtk_add_test called outside project scope!")
   endif ()
+  if (NOT COMMAND cmake_parse_arguments)
+    include("${CMAKE_ROOT}/Modules/CMakeParseArguments.cmake")
+  endif ()
   cmake_parse_arguments(TARGET "" "" "SOURCES;DEPENDS;OPTIONAL" ${ARGN})
   if (TARGET_UNPARSED_ARGUMENTS)
     message(FATAL_ERROR "mirtk_add_test called with unrecognized arguments: ${TARGET_UNPARSED_ARGUMENTS}!")
   endif ()
   # Add optional dependencies if targets exist
+  if (NOT COMMAND mirtk_get_target_name)
+    include("${MIRTK_MODULE_PATH}/mirtkGetTargetName.cmake")
+  endif ()
   foreach (dep IN LISTS TARGET_OPTIONAL)
     mirtk_get_target_name(dep_name ${dep})
     if (TARGET ${dep_name})

@@ -1,8 +1,8 @@
 # ==============================================================================
 # Medical Image Registration ToolKit (MIRTK)
 #
-# Copyright 2013-2015 Imperial College London
-# Copyright 2013-2015 Andreas Schuh
+# Copyright 2013-2016 Imperial College London
+# Copyright 2013-2016 Andreas Schuh
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -52,57 +52,38 @@
 # @ingroup BasisSettings
 ##############################################################################
 
-# By default, require these optional dependencies such that the library
-# features which depend on these external libraries are available
-set(WITH_ZLIB_DEFAULT ON)
+# Directory with source files of third-party libraries
+set(MIRTK_THIRDPARTY_DIR "${MIRTK_SOURCE_DIR}/ThirdParty")
 
-# By default, use included Eigen header files
-if (Eigen3_INCLUDE_DIR)
-  set(Eigen3_DIR "${Eigen3_INCLUDE_DIR}")
-endif ()
-if (NOT Eigen3_DIR AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/Eigen/signature_of_eigen3_matrix_library")
-  set(Eigen3_DIR "${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/Eigen")
-endif ()
-
-# By default, use included subset of required Boost header files
-# (extracted using the bcp tool of Boost 1.60.0)
-if (BOOST_INCLUDEDIR)
-  set(Boost_DIR "${BOOST_INCLUDEDIR}")
-elseif (BOOST_ROOT)
-  set(Boost_DIR "${BOOST_ROOT}/include")
-elseif (BOOSTROOT)
-  set(Boost_DIR "${BOOSTROOT}/include")
-endif ()
-if (NOT Boost_DIR AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/Boost/boost/version.hpp")
-  set(Boost_DIR "${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/Boost")
-endif ()
 
 # ------------------------------------------------------------------------------
-# Additional dependencies of applications
-if (BUILD_APPLICATIONS)
-  if (MODULE_PointSet)
-    basis_find_package(
-      "VTK-7|6{
-        vtkCommonCore,
-        vtkCommonDataModel,
-        vtkFiltersCore,
-        vtkFiltersFlowPaths,
-        vtkFiltersGeometry,
-        vtkFiltersGeneral,
-        vtkFiltersHybrid,
-        vtkFiltersModeling,
-        vtkIOGeometry,
-        vtkIOLegacy,
-        vtkIOPLY,
-        vtkIOXML
-      }"
-      REQUIRED
-    )
-    if (WITH_FLANN)
-      basis_find_package(FLANN)
+# libLBFGS (optional)
+set(LibLBFGS_SOURCE_DIR "${MIRTK_THIRDPARTY_DIR}/LBFGS")
+
+# Set default for WITH_LibLBFGS option
+if (NOT DEFINED WITH_LibLBFGS_DEFAULT AND EXISTS "${LibLBFGS_SOURCE_DIR}/CMakeLists.txt")
+  set(WITH_LibLBFGS_DEFAULT ON)
+endif ()
+
+# When third-party submodule is available and library is needed
+if ((DEFINED WITH_LibLBFGS AND WITH_LibLBFGS) OR (NOT DEFINED WITH_LibLBFGS AND WITH_LibLBFGS_DEFAULT))
+  basis_check_if_package_is_needed_by_modules(is_needed LibLBFGS)
+  if (is_needed AND EXISTS "${LibLBFGS_SOURCE_DIR}/CMakeLists.txt")
+    message(STATUS "Configuring module ThirdParty/LBFGS...")
+    set(LibLBFGS_TARGET_NAME         liblbfgs)
+    set(LibLBFGS_INSTALL_STATIC_LIBS TRUE) # needed because of CMake install(EXPORT)
+    basis_add_export_target(export_args ${LibLBFGS_TARGET_NAME} FALSE ${LibLBFGS_INSTALL_STATIC_LIBS})
+    if (export_args)
+      list(GET export_args 1 LibLBFGS_EXPORT_NAME)
+    else ()
+      set(LibLBFGS_EXPORT_NAME)
     endif ()
-    if (WITH_MATLAB)
-      basis_find_package(MATLAB{mwmclmcrrt})
-    endif ()
+    add_subdirectory("${LibLBFGS_SOURCE_DIR}" "${MIRTK_BINARY_DIR}/ThirdParty/LBFGS")
+    set(LibLBFGS_FOUND       TRUE)
+    set(LibLBFGS_INCLUDE_DIR "${LibLBFGS_SOURCE_DIR}/include")
+    set(LibLBFGS_LIBRARIES   ${LibLBFGS_TARGET_NAME})
+    set(LibLBFGS_DIR        "${MIRTK_BINARY_DIR}/ThirdParty/LBFGS")
+    message(STATUS "Configuring module ThirdParty/LBFGS... - done")
   endif ()
+  unset(is_needed)
 endif ()

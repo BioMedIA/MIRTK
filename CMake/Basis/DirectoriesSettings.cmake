@@ -1,10 +1,10 @@
 # ============================================================================
 # Copyright (c) 2011-2012 University of Pennsylvania
-# Copyright (c) 2013-2014 Andreas Schuh
+# Copyright (c) 2013-2016 Andreas Schuh
 # All rights reserved.
 #
 # See COPYING file for license information or visit
-# http://opensource.andreasschuh.com/cmake-basis/download.html#license
+# https://cmake-basis.github.io/download.html#license
 # ============================================================================
 
 ##############################################################################
@@ -14,7 +14,7 @@
 # This file configures the project directory structure as defined by the
 # Filesystem Hierarchy Standard for BASIS packages.
 #
-# @sa http://opensource.andreasschuh.com/cmake-basis/standard/fhs/
+# @sa https://cmake-basis.github.io/standard/fhs/
 #
 # The project must follow the directory structure as defined by the
 # <tt>PROJECT_&lt;*&gt;_DIR</tt> variables.
@@ -136,6 +136,12 @@ set (BINARY_RUNTIME_DIR "${TOPLEVEL_PROJECT_BINARY_DIR}/bin")
 set (BINARY_LIBEXEC_DIR "${TOPLEVEL_PROJECT_BINARY_DIR}/lib${_MODULE}")
 set (BINARY_LIBRARY_DIR "${TOPLEVEL_PROJECT_BINARY_DIR}/lib${_MODULE}")
 set (BINARY_ARCHIVE_DIR "${TOPLEVEL_PROJECT_BINARY_DIR}/lib${_MODULE}")
+
+if (WIN32)
+  set (BINARY_LIBCONF_DIR "${TOPLEVEL_PROJECT_BINARY_DIR}/CMake")
+else ()
+  set (BINARY_LIBCONF_DIR "${TOPLEVEL_PROJECT_BINARY_DIR}/lib/cmake${_PACKAGE}")
+endif ()
 
 foreach (_L IN ITEMS python jython perl matlab bash)
   string (TOUPPER "${_L}" _U)
@@ -489,7 +495,7 @@ if (NOT PROJECT_IS_MODULE)
     set (TOPLEVEL_PROJECT_${_D}_DIR "${PROJECT_${_D}_DIR}")
   endforeach ()
   # build tree
-  foreach (_D CODE CONFIG DATA DOC EXAMPLE INCLUDE MODULES TESTING RUNTIME LIBEXEC LIBRARY ARCHIVE)
+  foreach (_D CODE CONFIG DATA DOC EXAMPLE INCLUDE MODULES TESTING RUNTIME LIBEXEC LIBRARY ARCHIVE LIBCONF)
     set (TOPLEVEL_BINARY_${_D}_DIR "${BINARY_${_D}_DIR}")
   endforeach ()
   foreach (_L IN ITEMS PYTHON JYTHON PERL MATLAB BASH)

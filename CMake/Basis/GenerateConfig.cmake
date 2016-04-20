@@ -4,7 +4,7 @@
 # All rights reserved.
 #
 # See COPYING file for license information or visit
-# http://opensource.andreasschuh.com/cmake-basis/download.html#license
+# https://cmake-basis.github.io/download.html#license
 # ============================================================================
 
 ##############################################################################
@@ -75,21 +75,13 @@ endif ()
 
 # code used at top of package configuration and use files to set package
 # namespace prefix used for configuration variables
-if (PROJECT_IS_MODULE OR PROJECT_IS_SUBPROJECT)
-  set (BASIS_NS "${PROJECT_NAME}")
-elseif (PROJECT_IS_SUBMODULE)
-  set (BASIS_NS "${PROJECT_PACKAGE_NAME}_${PROJECT_NAME}")
-else ()
-  set (BASIS_NS "${PROJECT_PACKAGE_NAME}")
-endif ()
-
 set (BASIS_NS
 "# prefix used for variable names
-set (NS \"${BASIS_NS}_\")
+set (NS \"${PROJECT_CONFIG_PREFIX}_\")
 
 # allow caller to change namespace - used by projects with modules
 if (\${NS}CONFIG_PREFIX)
-  set (NS \"\${\${NS}CONFIG_PREFIX}\")
+  set (NS \"\${\${NS}CONFIG_PREFIX}_\")
 endif ()"
 )
 
@@ -135,7 +127,7 @@ include ("${PROJECT_CONFIG_DIR}/ConfigSettings.cmake" OPTIONAL)
 # configure project configuration file for build tree
 
 string (CONFIGURE "${BASIS_TEMPLATE}" BASIS_CONFIG @ONLY)
-configure_file ("${TEMPLATE}" "${CMAKE_BINARY_DIR}/${CONFIG_FILE}" @ONLY)
+configure_file ("${TEMPLATE}" "${BINARY_LIBCONF_DIR}/${CONFIG_FILE}" @ONLY)
 
 if (NOT BASIS_BUILD_ONLY)
 
@@ -154,7 +146,7 @@ if (NOT BASIS_BUILD_ONLY)
   
   # --------------------------------------------------------------------------
   # install project configuration file
-
+  
   install (
     FILES       "${BINARY_CONFIG_DIR}/${CONFIG_FILE}"
     DESTINATION "${INSTALL_CONFIG_DIR}"
@@ -179,14 +171,14 @@ if (NOT PROJECT_IS_SUBMODULE)
   # --------------------------------------------------------------------------
   # configure project configuration version file
   
-  configure_file ("${TEMPLATE}" "${CMAKE_BINARY_DIR}/${VERSION_FILE}" @ONLY)
+  configure_file ("${TEMPLATE}" "${BINARY_LIBCONF_DIR}/${VERSION_FILE}" @ONLY)
   
   # --------------------------------------------------------------------------
   # install project configuration version file
   
   if (NOT BASIS_BUILD_ONLY)
     install (
-      FILES       "${PROJECT_BINARY_DIR}/${VERSION_FILE}"
+      FILES       "${BINARY_LIBCONF_DIR}/${VERSION_FILE}"
       DESTINATION "${INSTALL_CONFIG_DIR}"
     )
   endif ()
@@ -229,14 +221,14 @@ endif ()
 # configure project use file
 
 string (CONFIGURE "${BASIS_USE}" BASIS_USE @ONLY)
-configure_file ("${TEMPLATE}" "${CMAKE_BINARY_DIR}/${USE_FILE}" @ONLY)
+configure_file ("${TEMPLATE}" "${BINARY_LIBCONF_DIR}/${USE_FILE}" @ONLY)
 
 # ----------------------------------------------------------------------------
 # install project use file
 
 if (NOT BASIS_BUILD_ONLY)
   install (
-    FILES       "${CMAKE_BINARY_DIR}/${USE_FILE}"
+    FILES       "${BINARY_LIBCONF_DIR}/${USE_FILE}"
     DESTINATION "${INSTALL_CONFIG_DIR}"
   )
 endif ()

@@ -10,8 +10,8 @@ Table Of Contents
     :maxdepth: 4
 
     getstarted
-    modules
     commands
+    modules
     apidoc
     changelog
     download

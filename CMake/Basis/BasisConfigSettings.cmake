@@ -1,10 +1,10 @@
 # ============================================================================
 # Copyright (c) 2011-2012 University of Pennsylvania
-# Copyright (c) 2013-2014 Andreas Schuh
+# Copyright (c) 2013-2016 Andreas Schuh
 # All rights reserved.
 #
 # See COPYING file for license information or visit
-# http://opensource.andreasschuh.com/cmake-basis/download.html#license
+# https://cmake-basis.github.io/download.html#license
 # ============================================================================
 
 ##############################################################################
@@ -81,7 +81,7 @@ if (BUILD_CONFIG_SETTINGS)
   set (PERL5LIB_CONFIG    "${BINARY_PERL_LIBRARY_DIR}")
   set (MATLABPATH_CONFIG  "${BINARY_MATLAB_LIBRARY_DIR}")
   set (BASHPATH_CONFIG    "${BINARY_BASH_LIBRARY_DIR}")
-  set (MODULES_DIR_CONFIG "${CMAKE_BINARY_DIR}")
+  set (MODULES_DIR_CONFIG "${BINARY_LIBCONF_DIR}")
   return ()
 endif ()
 

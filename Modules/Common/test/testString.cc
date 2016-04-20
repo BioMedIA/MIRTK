@@ -17,9 +17,9 @@
  * limitations under the License.
  */
 
-#include <gtest/gtest.h>
+#include "gtest/gtest.h"
 
-#include <mirtkString.h>
+#include "mirtk/String.h"
 using namespace mirtk;
 
 
@@ -35,11 +35,11 @@ TEST(String, FromString)
     EXPECT_FALSE(FromString("1.0", b));
     EXPECT_FALSE(FromString("a", b));
     EXPECT_TRUE(FromString("1", b));
-    EXPECT_EQ(true, b);
+    EXPECT_TRUE(b);
     EXPECT_TRUE(FromString("0", b));
-    EXPECT_EQ(false, b);
+    EXPECT_FALSE(b);
     EXPECT_TRUE(FromString("On", b));
-    EXPECT_EQ(true, b);
+    EXPECT_TRUE(b);
   }
   {
     double v;
@@ -163,6 +163,16 @@ TEST(String, ParameterUnits)
     EXPECT_EQ(string("mm"), ParameterUnits("  Resolution    [MM]", &name));
     EXPECT_EQ("Resolution", name);
   }
+  {
+    string name;
+    EXPECT_EQ(string(""), ParameterUnits("Resolution", &name));
+    EXPECT_EQ("Resolution", name);
+  }
+  {
+    string name;
+    EXPECT_EQ(string(""), ParameterUnits("Resolution of image 1", &name));
+    EXPECT_EQ("Resolution of image 1", name);
+  }
   EXPECT_EQ(string("rel"), ParameterUnits("Resolution [relative]  \t"));
 }
 
@@ -181,6 +191,11 @@ TEST(String, ValueUnits)
     string value;
     EXPECT_EQ(string("mm"), ValueUnits("  1 2 3mm", &value));
     EXPECT_EQ(string("1 2 3"), value);
+  }
+  {
+    string value;
+    EXPECT_EQ(string("mm"), ValueUnits("  1.5mm", &value));
+    EXPECT_EQ(string("1.5"), value);
   }
   {
     string value;

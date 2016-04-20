@@ -1,8 +1,8 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2013-2015 Imperial College London
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2013-2016 Imperial College London
+ * Copyright 2013-2016 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,9 +17,9 @@
  * limitations under the License.
  */
 
-#include "mirtkNumericsTest.h"
+#include "NumericsTest.h"
 
-#include <mirtkMatrix.h>
+#include "mirtk/Matrix.h"
 using namespace mirtk;
 
 // =============================================================================
@@ -298,6 +298,72 @@ TEST(Matrix, TranslationRotationScalingAndShearingToAffineParameters)
   EXPECT_DOUBLE_EQ( 0.7, sxy);
   EXPECT_DOUBLE_EQ(-1.1, sxz);
   EXPECT_DOUBLE_EQ( 1.5, syz);
+}
+
+// =============================================================================
+// I/O
+// =============================================================================
+
+// -----------------------------------------------------------------------------
+TEST(Matrix, IO)
+{
+  // Using STL streams
+  {
+    // Write matrix to binary file
+    ofstream ofs("testMatrix1.bin", ios::binary);
+    ASSERT_TRUE(ofs.is_open());
+    Matrix m1 = AffineTestMatrix();
+    ofs << m1;
+    ASSERT_FALSE(ofs.fail());
+    ofs.close();
+    ASSERT_FALSE(ofs.is_open());
+    // Read binary file and check first few binary bytes to see if data
+    // is in big-endian order as expected
+    ifstream tmp("testMatrix1.bin", ios::binary);
+    ASSERT_TRUE(tmp.is_open());
+    char buffer[32];
+    tmp.read(buffer, 32);
+    tmp.close();
+    ASSERT_TRUE(strncmp(buffer, "irtkMatrix 4 x 4\n", 17) == 0);
+    EXPECT_EQ(buffer[17], (char) 63); // 3F
+    EXPECT_EQ(buffer[18], (char)234); // EA
+    EXPECT_EQ(buffer[19], (char)109); // 6D
+    // Read matrix from binary file stream
+    ifstream ifs("testMatrix1.bin", ios::binary);
+    ASSERT_TRUE(ifs.is_open());
+    Matrix m2;
+    ifs >> m2;
+    ASSERT_FALSE(ifs.fail());
+    ifs.close();
+    // Check that read matrix is the same that we saved before
+    ASSERT_TRUE(m1 == m2);
+  }
+  // Using MIRTK streams
+  {
+    // Write matrix to binary file
+    Cofstream ofs("testMatrix2.bin");
+    Matrix m1 = AffineTestMatrix();
+    ofs << m1;
+    ofs.Close();
+    // Read binary file and check first few binary bytes to see if data
+    ifstream tmp("testMatrix2.bin", ios::binary);
+    ASSERT_TRUE(tmp.is_open());
+    char buffer[32];
+    tmp.read(buffer, 32);
+    tmp.close();
+    ASSERT_TRUE(strncmp(buffer, "irtkMatrix", 11) == 0);
+    EXPECT_EQ(buffer[14], (char)4);
+    EXPECT_EQ(buffer[18], (char)4);
+    EXPECT_EQ(buffer[19], (char) 63); // 3F
+    EXPECT_EQ(buffer[20], (char)234); // EA
+    EXPECT_EQ(buffer[21], (char)109); // 6D
+    // Read matrix from binary file again
+    Cifstream ifs("testMatrix2.bin");
+    Matrix m2;
+    ifs >> m2;
+    ifs.Close();
+    ASSERT_TRUE(m1 == m2);
+  }
 }
 
 // =============================================================================

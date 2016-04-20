@@ -23,45 +23,58 @@
 ##############################################################################
 
 set(HEADERS
-  ${BINARY_INCLUDE_DIR}/mirtkRegistrationConfig.h
-  mirtkCosineOfNormalizedGradientField.h
-  mirtkDataFidelity.h
-  mirtkGenericRegistrationDebugger.h
-  mirtkGenericRegistrationFilter.h
-  mirtkGenericRegistrationLogger.h
-  mirtkGradientFieldSimilarity.h
-  mirtkImageSimilarity.h
-  mirtkIntensityCrossCorrelation.h
-  mirtkMutualImageInformation.h
-  mirtkNormalizedGradientFieldSimilarity.h
-  mirtkNormalizedIntensityCrossCorrelation.h
-  mirtkNormalizedMutualImageInformation.h
-  mirtkProbabilisticImageSimilarity.h
-  mirtkRegistration.h
-  mirtkRegistrationEnergy.h
-  mirtkRegistrationFilter.h
-  mirtkSimilarityMeasure.h
-  mirtkSumOfSquaredIntensityDifferences.h
+  ${BINARY_INCLUDE_DIR}/mirtk/RegistrationConfig.h
+  ${BINARY_INCLUDE_DIR}/mirtk/RegistrationExport.h
+  CosineOfNormalizedGradientField.h
+  DataFidelity.h
+  GenericRegistrationDebugger.h
+  GenericRegistrationFilter.h
+  GenericRegistrationLogger.h
+  GradientFieldSimilarity.h
+  HistogramImageSimilarity.h
+  ImageCovariance.h
+  ImageSimilarity.h
+  IntensityCorrelationRatioXY.h
+  IntensityCorrelationRatioYX.h
+  IntensityCrossCorrelation.h
+  JointImageEntropy.h
+  LabelConsistency.h
+  MutualImageInformation.h
+  NormalizedGradientFieldSimilarity.h
+  NormalizedIntensityCrossCorrelation.h
+  NormalizedMutualImageInformation.h
+  PeakSignalToNoiseRatio.h
+  Registration.h
+  RegistrationEnergy.h
+  RegistrationFilter.h
+  SimilarityMeasure.h
+  SumOfSquaredIntensityDifferences.h
 )
 
 set(SOURCES
-  mirtkCosineOfNormalizedGradientField.cc
-  mirtkDataFidelity.cc
-  mirtkGenericRegistrationDebugger.cc
-  mirtkGenericRegistrationFilter.cc
-  mirtkGenericRegistrationLogger.cc
-  mirtkGradientFieldSimilarity.cc
-  mirtkImageSimilarity.cc
-  mirtkIntensityCrossCorrelation.cc
-  mirtkMutualImageInformation.cc
-  mirtkNormalizedGradientFieldSimilarity.cc
-  mirtkNormalizedIntensityCrossCorrelation.cc
-  mirtkNormalizedMutualImageInformation.cc
-  mirtkProbabilisticImageSimilarity.cc
-  mirtkRegistrationConfig.cc
-  mirtkRegistrationEnergy.cc
-  mirtkRegistrationEnergyParser.h
-  mirtkSumOfSquaredIntensityDifferences.cc
+  CosineOfNormalizedGradientField.cc
+  DataFidelity.cc
+  GenericRegistrationDebugger.cc
+  GenericRegistrationFilter.cc
+  GenericRegistrationLogger.cc
+  GradientFieldSimilarity.cc
+  HistogramImageSimilarity.cc
+  ImageCovariance.cc
+  ImageSimilarity.cc
+  IntensityCorrelationRatioXY.cc
+  IntensityCorrelationRatioYX.cc
+  IntensityCrossCorrelation.cc
+  JointImageEntropy.cc
+  LabelConsistency.cc
+  MutualImageInformation.cc
+  NormalizedGradientFieldSimilarity.cc
+  NormalizedIntensityCrossCorrelation.cc
+  NormalizedMutualImageInformation.cc
+  PeakSignalToNoiseRatio.cc
+  RegistrationConfig.cc
+  RegistrationEnergy.cc
+  RegistrationEnergyParser.h
+  SumOfSquaredIntensityDifferences.cc
 )
 
 set(DEPENDS
@@ -73,24 +86,28 @@ set(DEPENDS
 
 if (TARGET LibPointSet AND VTK_FOUND)
   list(APPEND HEADERS
-    mirtkCurrentsDistance.h
-    mirtkFiducialRegistrationError.h
-    mirtkPointCorrespondenceDistance.h
-    mirtkPointSetDistance.h
-    mirtkPointSetDistanceMeasure.h
-    mirtkSurfaceDistance.h
+    CurrentsDistance.h
+    FiducialRegistrationError.h
+    PointCorrespondenceDistance.h
+    PointSetDistance.h
+    PointSetDistanceMeasure.h
+    SurfaceDistance.h
   )
   list(APPEND SOURCES
-    mirtkCurrentsDistance.cc
-    mirtkFiducialRegistrationError.cc
-    mirtkPointCorrespondenceDistance.cc
-    mirtkPointSetDistance.cc
-    mirtkSurfaceDistance.cc
+    CurrentsDistance.cc
+    FiducialRegistrationError.cc
+    PointCorrespondenceDistance.cc
+    PointSetDistance.cc
+    SurfaceDistance.cc
   )
   list(APPEND DEPENDS LibPointSet ${VTK_LIBRARIES})
   if (TARGET LibDeformable)
     list(APPEND DEPENDS LibDeformable)
   endif ()
+endif ()
+
+if (TARGET TBB::tbb)
+  list(APPEND DEPENDS TBB::tbb)
 endif ()
 
 mirtk_add_library(AUTO_REGISTER)

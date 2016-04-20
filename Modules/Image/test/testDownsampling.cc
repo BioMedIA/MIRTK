@@ -19,17 +19,17 @@
 
 // TODO: Compare downsampled images to expected result instead of just writing files.
 
-#include <gtest/gtest.h>
+#include "gtest/gtest.h"
 
-#include <mirtkGenericImage.h>
-#include <mirtkDownsampling.h>
-#include <mirtkGaussianBlurring.h>
-#include <mirtkResampling.h>
-#include <mirtkScalarGaussian.h>
-//#include <mirtkScalarGaussianDx.h>
-#include <mirtkScalarFunctionToImage.h>
-#include <mirtkConvolutionFunction.h>
-#include <mirtkInterpolateImageFunction.h>
+#include "mirtk/GenericImage.h"
+#include "mirtk/Downsampling.h"
+#include "mirtk/GaussianBlurring.h"
+#include "mirtk/Resampling.h"
+#include "mirtk/ScalarGaussian.h"
+//#include "mirtk/ScalarGaussianDx.h"
+#include "mirtk/ScalarFunctionToImage.h"
+#include "mirtk/ConvolutionFunction.h"
+#include "mirtk/InterpolateImageFunction.h"
 
 #include <cmath>
 #include <cstdlib>
@@ -158,7 +158,7 @@ int main(int argc, char *argv[])
   }
   test_file   = argv[1];
   result_file = argv[2];
-  if (argc > 3) factor  = atof(argv[3]);
+  if (argc > 3) factor  = atoi(argv[3]);
   if (argc > 4) sigma   = atof(argv[4]);
   if (argc > 5) bgvalue = atof(argv[5]);
   return RUN_ALL_TESTS();

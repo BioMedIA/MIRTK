@@ -6,6 +6,7 @@
 
    /commands/average-dofs
    /commands/average-images
+   /commands/bisect-dof
    /commands/calculate
    /commands/calculate-distance-map
    /commands/calculate-exponential-map
@@ -17,7 +18,6 @@
    /commands/concatenate-dofs
    /commands/concatenate-images
    /commands/convert-dof
-   /commands/convert-dof2csv
    /commands/convert-dof2velo
    /commands/convert-image
    /commands/convert-pointset
@@ -37,6 +37,7 @@
    /commands/evaluate-dof
    /commands/evaluate-jacobian
    /commands/evaluate-overlap
+   /commands/evaluate-similarity
    /commands/evaluate-surface-overlap
    /commands/extract-connected-components
    /commands/extract-connected-points
@@ -44,6 +45,7 @@
    /commands/extract-pointset-surface
    /commands/extract-surface
    /commands/flip-image
+   /commands/help-rst
    /commands/info
    /commands/init-dof
    /commands/invert-dof
@@ -66,6 +68,7 @@ Command                        Description
 ============================== ================================================
 |average-dofs|                 |average-dofs-brief-description|
 |average-images|               |average-images-brief-description|
+|bisect-dof|                   |bisect-dof-brief-description|
 |calculate|                    |calculate-brief-description|
 |calculate-distance-map|       |calculate-distance-map-brief-description|
 |calculate-exponential-map|    |calculate-exponential-map-brief-description|
@@ -77,7 +80,6 @@ Command                        Description
 |concatenate-dofs|             |concatenate-dofs-brief-description|
 |concatenate-images|           |concatenate-images-brief-description|
 |convert-dof|                  |convert-dof-brief-description|
-|convert-dof2csv|              |convert-dof2csv-brief-description|
 |convert-dof2velo|             |convert-dof2velo-brief-description|
 |convert-image|                |convert-image-brief-description|
 |convert-pointset|             |convert-pointset-brief-description|
@@ -97,6 +99,7 @@ Command                        Description
 |evaluate-dof|                 |evaluate-dof-brief-description|
 |evaluate-jacobian|            |evaluate-jacobian-brief-description|
 |evaluate-overlap|             |evaluate-overlap-brief-description|
+|evaluate-similarity|          |evaluate-similarity-brief-description|
 |evaluate-surface-overlap|     |evaluate-surface-overlap-brief-description|
 |extract-connected-components| |extract-connected-components-brief-description|
 |extract-connected-points|     |extract-connected-points-brief-description|
@@ -104,6 +107,7 @@ Command                        Description
 |extract-pointset-surface|     |extract-pointset-surface-brief-description|
 |extract-surface|              |extract-surface-brief-description|
 |flip-image|                   |flip-image-brief-description|
+|help-rst|                     |help-rst-brief-description|
 |info|                         |info-brief-description|
 |init-dof|                     |init-dof-brief-description|
 |invert-dof|                   |invert-dof-brief-description|
@@ -124,6 +128,7 @@ Command                        Description
 
 .. |average-dofs|                 replace:: :doc:`/commands/average-dofs`
 .. |average-images|               replace:: :doc:`/commands/average-images`
+.. |bisect-dof|                   replace:: :doc:`/commands/bisect-dof`
 .. |calculate|                    replace:: :doc:`/commands/calculate`
 .. |calculate-distance-map|       replace:: :doc:`/commands/calculate-distance-map`
 .. |calculate-exponential-map|    replace:: :doc:`/commands/calculate-exponential-map`
@@ -135,7 +140,6 @@ Command                        Description
 .. |concatenate-dofs|             replace:: :doc:`/commands/concatenate-dofs`
 .. |concatenate-images|           replace:: :doc:`/commands/concatenate-images`
 .. |convert-dof|                  replace:: :doc:`/commands/convert-dof`
-.. |convert-dof2csv|              replace:: :doc:`/commands/convert-dof2csv`
 .. |convert-dof2velo|             replace:: :doc:`/commands/convert-dof2velo`
 .. |convert-image|                replace:: :doc:`/commands/convert-image`
 .. |convert-pointset|             replace:: :doc:`/commands/convert-pointset`
@@ -155,6 +159,7 @@ Command                        Description
 .. |evaluate-dof|                 replace:: :doc:`/commands/evaluate-dof`
 .. |evaluate-jacobian|            replace:: :doc:`/commands/evaluate-jacobian`
 .. |evaluate-overlap|             replace:: :doc:`/commands/evaluate-overlap`
+.. |evaluate-similarity|          replace:: :doc:`/commands/evaluate-similarity`
 .. |evaluate-surface-overlap|     replace:: :doc:`/commands/evaluate-surface-overlap`
 .. |extract-connected-components| replace:: :doc:`/commands/extract-connected-components`
 .. |extract-connected-points|     replace:: :doc:`/commands/extract-connected-points`
@@ -162,6 +167,7 @@ Command                        Description
 .. |extract-pointset-surface|     replace:: :doc:`/commands/extract-pointset-surface`
 .. |extract-surface|              replace:: :doc:`/commands/extract-surface`
 .. |flip-image|                   replace:: :doc:`/commands/flip-image`
+.. |help-rst|                     replace:: :doc:`/commands/help-rst`
 .. |info|                         replace:: :doc:`/commands/info`
 .. |init-dof|                     replace:: :doc:`/commands/init-dof`
 .. |invert-dof|                   replace:: :doc:`/commands/invert-dof`
@@ -181,6 +187,7 @@ Command                        Description
 
 .. include:: /commands/_summaries/average-dofs.rst
 .. include:: /commands/_summaries/average-images.rst
+.. include:: /commands/_summaries/bisect-dof.rst
 .. include:: /commands/_summaries/calculate.rst
 .. include:: /commands/_summaries/calculate-distance-map.rst
 .. include:: /commands/_summaries/calculate-exponential-map.rst
@@ -192,7 +199,6 @@ Command                        Description
 .. include:: /commands/_summaries/concatenate-dofs.rst
 .. include:: /commands/_summaries/concatenate-images.rst
 .. include:: /commands/_summaries/convert-dof.rst
-.. include:: /commands/_summaries/convert-dof2csv.rst
 .. include:: /commands/_summaries/convert-dof2velo.rst
 .. include:: /commands/_summaries/convert-image.rst
 .. include:: /commands/_summaries/convert-pointset.rst
@@ -212,6 +218,7 @@ Command                        Description
 .. include:: /commands/_summaries/evaluate-dof.rst
 .. include:: /commands/_summaries/evaluate-jacobian.rst
 .. include:: /commands/_summaries/evaluate-overlap.rst
+.. include:: /commands/_summaries/evaluate-similarity.rst
 .. include:: /commands/_summaries/evaluate-surface-overlap.rst
 .. include:: /commands/_summaries/extract-connected-components.rst
 .. include:: /commands/_summaries/extract-connected-points.rst
@@ -219,6 +226,7 @@ Command                        Description
 .. include:: /commands/_summaries/extract-pointset-surface.rst
 .. include:: /commands/_summaries/extract-surface.rst
 .. include:: /commands/_summaries/flip-image.rst
+.. include:: /commands/_summaries/help-rst.rst
 .. include:: /commands/_summaries/info.rst
 .. include:: /commands/_summaries/init-dof.rst
 .. include:: /commands/_summaries/invert-dof.rst

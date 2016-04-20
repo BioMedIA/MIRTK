@@ -17,9 +17,9 @@
  * limitations under the License.
  */
 
-#include "mirtkNumericsTest.h"
+#include "NumericsTest.h"
 
-#include <mirtkPolynomial.h>
+#include "mirtk/Polynomial.h"
 using namespace mirtk;
 
 // =============================================================================

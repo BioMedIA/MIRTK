@@ -1,10 +1,10 @@
 # ============================================================================
 # Copyright (c) 2011-2012 University of Pennsylvania
-# Copyright (c) 2013-2014 Andreas Schuh
+# Copyright (c) 2013-2016 Andreas Schuh
 # All rights reserved.
 #
 # See COPYING file for license information or visit
-# http://opensource.andreasschuh.com/cmake-basis/download.html#license
+# https://cmake-basis.github.io/download.html#license
 # ============================================================================
 
 ##############################################################################
@@ -35,20 +35,30 @@ endif ()
 #
 # @param[out] EXPORT_OPTION Export option for install() command including
 #                           the EXPORT option name. Set to an empty string
-#                           if target is not installed.
+#                           if target is not installed (see @p ARGN).
 # @param[in]  TARGET_UID    UID of target to be exported.
 # @param[in]  IS_TEST       Whether given target is a test executable or library.
-# @param[in]  ARGN          Optional installation destinations.
+# @param[in]  ARGN          Optional installation destinations. The actual
+#                           values are ignored and argument @c TRUE should
+#                           be used if no specific destination paths are given,
+#                           but the target is also to be included in the export
+#                           set used for installation. If ARGN is empty, the
+#                           target is only added to the build tree export set.
+#                           When @p ARGN is @c 0, @c FALSE or @c OFF, the target
+#                           is not added to list of installation exports.
 function (basis_add_export_target EXPORT_OPTION TARGET_UID IS_TEST)
   set (EXPORT_SET "${TOPLEVEL_PROJECT_NAME}")
   if (IS_TEST)
     basis_set_project_property (PROJECT "${EXPORT_SET}" APPEND PROPERTY TEST_EXPORT_TARGETS "${TARGET_UID}")
+    set (${EXPORT_OPTION} "" PARENT_SCOPE)
   else ()
     basis_set_project_property (PROJECT "${EXPORT_SET}" APPEND PROPERTY EXPORT_TARGETS "${TARGET_UID}")
-    if (ARGN)
+    if (ARGN AND NOT "^${ARGN}$" STREQUAL "^(0|false|FALSE|off|OFF)$")
       basis_set_project_property (PROJECT "${EXPORT_SET}" APPEND PROPERTY INSTALL_EXPORT_TARGETS "${TARGET_UID}")
+      set (${EXPORT_OPTION} "EXPORT;${EXPORT_SET}" PARENT_SCOPE)
+    else ()
+      set (${EXPORT_OPTION} "" PARENT_SCOPE)
     endif ()
-    set (${EXPORT_OPTION} "EXPORT;${EXPORT_SET}" PARENT_SCOPE)
   endif ()
 endfunction ()
 
@@ -271,16 +281,42 @@ function (basis_export_targets)
   # export non-custom targets
   basis_get_project_property (EXPORT_TARGETS)
   if (EXPORT_TARGETS)
+    # add link dependencies to build tree export set
+    foreach (EXPORT_TARGET IN LISTS EXPORT_TARGETS)
+      get_target_property (LINK_DEPENDS ${EXPORT_TARGET} BASIS_LINK_DEPENDS)
+      foreach (LINK_DEPEND IN LISTS LINK_DEPENDS)
+        if (TARGET ${LINK_DEPEND})
+          list (FIND  EXPORT_TARGETS ${LINK_DEPEND} IDX)
+          if (IDX EQUAL -1)
+            get_target_property (IMPORTED ${LINK_DEPEND} IMPORTED)
+            if (NOT IMPORTED)
+              message (AUTHOR_WARNING
+                "Adding missing link dependency ${LINK_DEPEND} of ${EXPORT_TARGET} to list of export() targets."
+                " Add the target ${LINK_DEPEND} to the export set using basis_add_export_target() after the"
+                " add_library(${LINK_DEPEND}) command and before basis_project_end(). If the target is added"
+                " using basis_add_library(${LINK_DEPEND}), remove the NOEXPORT option or add EXPORT instead when"
+                " the global variable BASIS_EXPORT_DEFAULT is set to FALSE (actual value is ${BASIS_EXPORT_DEFAULT})."
+              )
+              list (APPEND EXPORT_TARGETS ${LINK_DEPEND})
+            endif ()
+          endif ()
+        endif ()
+      endforeach ()
+    endforeach ()
+    list (REMOVE_DUPLICATES EXPORT_TARGETS)
+    # set namespace of exported import targets
     if (BASIS_USE_TARGET_UIDS AND BASIS_USE_FULLY_QUALIFIED_UIDS)
       set (NAMESPACE_OPT)
     elseif (TOPLEVEL_PROJECT_NAMESPACE_CMAKE)
       set (NAMESPACE_OPT NAMESPACE "${TOPLEVEL_PROJECT_NAMESPACE_CMAKE}${BASIS_NAMESPACE_DELIMITER_CMAKE}")
     endif ()
+    # export build tree targets
     export (
       TARGETS   ${EXPORT_TARGETS}
-      FILE      "${CMAKE_BINARY_DIR}/${ARGN_FILE}"
+      FILE      "${BINARY_LIBCONF_DIR}/${ARGN_FILE}"
       ${NAMESPACE_OPT}
     )
+    # install export set
     basis_get_project_property (INSTALL_EXPORT_TARGETS)
     if (INSTALL_EXPORT_TARGETS AND NOT BASIS_BUILD_ONLY)
       foreach (COMPONENT "${BASIS_RUNTIME_COMPONENT}" "${BASIS_LIBRARY_COMPONENT}")
@@ -303,12 +339,12 @@ function (basis_export_targets)
   if (CUSTOM_EXPORT_TARGETS OR TEST_EXPORT_TARGETS)
 
     # write exports for build tree
-    basis_export_header (CONTENT)
-    basis_export_import_targets (CONTENT ${CUSTOM_EXPORT_TARGETS} ${TEST_EXPORT_TARGETS})
-    basis_export_build_properties (CONTENT ${CUSTOM_EXPORT_TARGETS}  ${TEST_EXPORT_TARGETS})
-    basis_export_footer (CONTENT)
+    basis_export_header           (CONTENT)
+    basis_export_import_targets   (CONTENT ${CUSTOM_EXPORT_TARGETS} ${TEST_EXPORT_TARGETS})
+    basis_export_build_properties (CONTENT ${CUSTOM_EXPORT_TARGETS} ${TEST_EXPORT_TARGETS})
+    basis_export_footer           (CONTENT)
 
-    file (WRITE "${CMAKE_BINARY_DIR}/${ARGN_CUSTOM_FILE}" "${CONTENT}")
+    file (WRITE "${BINARY_LIBCONF_DIR}/${ARGN_CUSTOM_FILE}" "${CONTENT}")
     unset (CONTENT)
 
     # write exports for installation - excluding test targets

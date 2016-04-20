@@ -1,11 +1,11 @@
 # ============================================================================
 # Copyright (c) 2011-2012 University of Pennsylvania
 # Copyright (c) 2013-2014 Carnegie Mellon University
-# Copyright (c) 2013-2014 Andreas Schuh
+# Copyright (c) 2013-2016 Andreas Schuh
 # All rights reserved.
 #
 # See COPYING file for license information or visit
-# http://opensource.andreasschuh.com/cmake-basis/download.html#license
+# https://cmake-basis.github.io/download.html#license
 # ============================================================================
 
 ##############################################################################
@@ -569,9 +569,9 @@ function (basis_add_doxygen_doc TARGET_NAME)
       list (APPEND DOXYGEN_INPUT "${PROJECT_BINARY_DIR}/CTestCustom.cmake")
     endif ()
     # package configuration files - only exist *after* this function executed
-    list (APPEND DOXYGEN_INPUT "${BINARY_CONFIG_DIR}/${PROJECT_PACKAGE_CONFIG_PREFIX}Config.cmake")
-    list (APPEND DOXYGEN_INPUT "${PROJECT_BINARY_DIR}/${PROJECT_PACKAGE_CONFIG_PREFIX}ConfigVersion.cmake")
-    list (APPEND DOXYGEN_INPUT "${PROJECT_BINARY_DIR}/${PROJECT_PACKAGE_CONFIG_PREFIX}Use.cmake")
+    list (APPEND DOXYGEN_INPUT "${BINARY_LIBCONF_DIR}/${PROJECT_PACKAGE_CONFIG_PREFIX}Config.cmake")
+    list (APPEND DOXYGEN_INPUT "${BINARY_LIBCONF_DIR}/${PROJECT_PACKAGE_CONFIG_PREFIX}ConfigVersion.cmake")
+    list (APPEND DOXYGEN_INPUT "${BINARY_LIBCONF_DIR}/${PROJECT_PACKAGE_CONFIG_PREFIX}Use.cmake")
     # add .dox files with definition of BASIS Modules groups
     if (BASIS_DIR)
       list (APPEND DOXYGEN_INPUT "${BASIS_MODULE_PATH}/Modules.dox")
@@ -605,7 +605,7 @@ function (basis_add_doxygen_doc TARGET_NAME)
           list (REMOVE_AT SOURCES 0)
         endif ()
         get_target_property (BUILD_DIR ${T} BUILD_DIRECTORY)
-        list (APPEND DOXYGEN_INPUT "${BUILD_DIR}.dir/build")
+        list (APPEND DOXYGEN_INPUT "${BUILD_DIR}.dir/install")
         foreach (S IN LISTS SOURCES)
           list (APPEND DOXYGEN_EXCLUDE_PATTERNS "${S}")
         endforeach ()

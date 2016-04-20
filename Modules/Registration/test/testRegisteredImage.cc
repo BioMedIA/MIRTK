@@ -18,17 +18,17 @@
  */
 
 // TODO: Compare transformed image to expected result
-#include <gtest/gtest.h>
+#include "gtest/gtest.h"
 
-#include <mirtkRegisteredImage.h>
+#include "mirtk/RegisteredImage.h"
 
-#include <mirtkProfiling.h>
-#include <mirtkGenericImage.h>
-#include <mirtkRigidTransformation.h>
-#include <mirtkBSplineFreeFormTransformation3D.h>
-#include <mirtkMultiLevelFreeFormTransformation.h>
+#include "mirtk/Profiling.h"
+#include "mirtk/GenericImage.h"
+#include "mirtk/RigidTransformation.h"
+#include "mirtk/BSplineFreeFormTransformation3D.h"
+#include "mirtk/MultiLevelFreeFormTransformation.h"
 
-using namespace mirtk;
+namespace mirtk {
 
 
 // ===========================================================================
@@ -41,7 +41,7 @@ template <class TVoxel>
 void fill_test_image(GenericImage<TVoxel> &image)
 {
   const int numvox = image.GetNumberOfVoxels();
-  if (static_cast<double>(numvox-1) > voxel_limits<TVoxel>::max()) {
+  if (static_cast<double>(numvox - 1) > voxel_limits<TVoxel>::max()) {
     cerr << "fill_test_image: Overflow!" << endl;
     exit(1);
   }
@@ -98,6 +98,9 @@ TEST(RegisteredImage, GlobalAndLocalTransformation)
   }
   mffd.PopLocalTransformation();
 }
+
+
+} // namespace mirtk
 
 // ===========================================================================
 // Main

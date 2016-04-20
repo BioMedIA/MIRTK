@@ -21,9 +21,6 @@ if (COMMAND mirtk_configure_module)
   return()
 endif ()
 
-include("${CMAKE_CURRENT_LIST_DIR}/mirtkProjectBegin.cmake")
-include("${CMAKE_CURRENT_LIST_DIR}/mirtkProjectEnd.cmake")
-
 # ------------------------------------------------------------------------------
 ## Configure MIRTK module, to be called in top-level CMakeLists.txt of module
 #
@@ -35,6 +32,12 @@ include("${CMAKE_CURRENT_LIST_DIR}/mirtkProjectEnd.cmake")
 # replace this macro call by custom CMake code enclosed by the mirtk_project_begin
 # and mirtk_project_end calls.
 macro(mirtk_configure_module)
+  if (NOT COMMAND mirtk_project_begin)
+    include("${MIRTK_MODULE_PATH}/mirtkProjectBegin.cmake")
+  endif ()
+  if (NOT COMMAND mirtk_project_end)
+    include("${MIRTK_MODULE_PATH}/mirtkProjectEnd.cmake")
+  endif ()
   mirtk_project_begin()
   if (GTest_FOUND AND UNIX)
     option(GTest_NO_PTHREADS "Whether gtest library does not require pthreads" OFF)

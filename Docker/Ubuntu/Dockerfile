@@ -18,6 +18,11 @@ FROM ubuntu:14.04
 MAINTAINER Andreas Schuh <andreas.schuh.84@gmail.com>
 LABEL Description="Ubuntu with prerequisits for MIRTK installed" Vendor="BioMedIA"
 
+# No. of threads to use for build (--build-arg THREADS=8)
+# By default, all available CPUs are used. When a Docker Machine is used,
+# set the number of CPUs in the VirtualBox VM Settings.
+ARG THREADS
+
 # When VTK_VERSION='', the official libvtk6-dev package is used.
 # Note, however, that this results in a Docker image that is about twice
 # the size of the image when a custom VTK build without Qt, wrappers,
@@ -25,7 +30,9 @@ LABEL Description="Ubuntu with prerequisits for MIRTK installed" Vendor="BioMedI
 ARG VTK_VERSION=6.3.0
 
 # Install prerequisites for MIRTK build
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN NUM_CPUS=${THREADS:-`cat /proc/cpuinfo | grep processor | wc -l`} \
+    && echo "Maximum number of build threads = $NUM_CPUS" \
+    && apt-get update && apt-get install -y --no-install-recommends \
       gcc \
       g++ \
       make \
@@ -43,7 +50,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && mkdir /usr/src/gtest/build \
     && cd /usr/src/gtest/build \
     && cmake .. \
-    && make \
+    && make -j $NUM_CPUS \
     && mv -f libgtest.a libgtest_main.a /usr/lib \
     && cd /usr/src \
     && rm -rf /usr/src/gtest/build \
@@ -70,7 +77,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         -D BUILD_TESTING=OFF \
         -D BUILD_DOCUMENTATION=OFF \
         .. \
-      && make install \
+      && make -j $NUM_CPUS install \
       && cd /usr/src \
       && rm -rf /usr/src/VTK-${VTK_VERSION} \
       && ldconfig; \

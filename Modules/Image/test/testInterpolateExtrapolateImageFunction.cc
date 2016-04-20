@@ -19,9 +19,9 @@
 
 // TODO: Rewrite test using GTest library. -as12312
 
-#include <mirtkGenericImage.h>
-#include <mirtkInterpolateImageFunction.h>
-#include <mirtkExtrapolateImageFunction.h>
+#include "mirtk/GenericImage.h"
+#include "mirtk/InterpolateImageFunction.h"
+#include "mirtk/ExtrapolateImageFunction.h"
 
 using namespace mirtk;
 

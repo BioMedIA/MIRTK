@@ -21,9 +21,6 @@
 #define MIRTK_NumericsConfig_H
 
 
-/// Whether MIRTK Numerics module was built on big endian system
-#define MIRTK_Numerics_BIG_ENDIAN @BIG_ENDIAN_CONFIG@
-
 /// Whether MIRTK Numerics module was built with VTK
 #define MIRTK_Numerics_WITH_VTK @WITH_VTK_CONFIG@
 
