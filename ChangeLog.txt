@@ -6,13 +6,22 @@
 
 .. _v1.1.0:
 
-Release 1.1.0 (Apr 15)
+Release 1.1.0 (Apr 21)
 ~~~~~~~~~~~~~~~~~~~~~~
 
-- Enhanced basis_find_package of CMake BASIS Modules.
+- Use `CMake BASIS Modules 3.3.0 <http://cmake-basis.github.io/changelog.html#release-3-3-0-apr-19-2016>`_.
+- Fixed build with VTK 7.
+- Fixed Python scripts to run with both Python 2 and 3.
 - Fixed Visual Studio build warnings and errors.
 - Enabled build as shared libraries on Windows.
 - Renamed ``Image I/O`` module to :doc:`I/O </modules/io>`.
+- Read/Write both NIfTI-1 and NIfTI-2 image files.
+- Read/Write point sets and surfaces from GIFTI files.
+- Always save binary files in big-endian order.
+- Added Python package for execution of MIRTK commands.
+- Provide Docker image with MIRTK installation.
+- Refactored Applications module.
+- Various minor fixes of commands.
 
 
 .. _v1.0.0:
