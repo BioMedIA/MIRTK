@@ -1,5 +1,8 @@
 language: cpp
-compiler: g++
+
+compiler:
+  - g++
+  - clang
 
 os:
   - linux
@@ -10,9 +13,6 @@ sudo: required
 
 before_install: Testing/Travis/before_install.sh
 script:         Testing/Travis/script.sh
-
-env:
-  - tests=off
 
 notifications:
   email: false
