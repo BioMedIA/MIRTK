@@ -46,7 +46,7 @@ basis_project (
   PACKAGE     "MIRTK"
   AUTHORS     "Andreas Schuh"
   DESCRIPTION "Transformation library of the Medical Image Registration ToolKit."
-  COPYRIGHT   "2013-2015 Imperial College London, Andreas Schuh"
+  COPYRIGHT   "2013-2016 Imperial College London, Andreas Schuh"
   LICENSE     "Apache License Version 2.0"
   CONTACT     "Andreas Schuh <andreas.schuh.84@gmail.com>"
   TEMPLATE    "mirtk-module/1.0"
