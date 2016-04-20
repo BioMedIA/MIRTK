@@ -53,15 +53,15 @@
     #pragma warning(disable: 4291) // no matching operator delete found
     #pragma warning(disable: 4996) // _CRT_SECURE_NO_WARNINGS
   // Disable "Unused typedef 'ElementType'" in flann/ground_truth.h
+  #elif defined(__clang__) // *also* defines __GNUG__!
+    #pragma clang diagnostic push
+    #if !defined(__has_warning) || __has_warning("-Wunused-local-typedefs")
+      #pragma clang diagnostic ignored "-Wunused-local-typedefs"
+    #endif
   #elif defined(__GNUG__)
     #pragma GCC diagnostic push
     #if __GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ > 7)
       #pragma GCC diagnostic ignored "-Wunused-local-typedefs"
-    #endif
-  #elif defined __clang__
-    #pragma clang diagnostic push
-    #if __clang_major__ > 3 || (__clang_major == 3 && __clang_minor > 5)
-      #pragma clang diagnostic ignored "-Wunused-local-typedefs"
     #endif
   #endif
   // Include FLANN
@@ -69,10 +69,10 @@
   // Enable warnings again
   #if defined(_MSC_VER)
     #pragma warning(pop)
+  #elif defined(__clang__)
+    #pragma clang diagnostic pop
   #elif defined(__GNUG__)
     #pragma GCC diagnostic pop
-  #elif defined __clang__
-    #pragma clang diagnostic pop
   #endif
 #endif // HAVE_FLANN
 
