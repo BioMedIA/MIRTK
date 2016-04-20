@@ -18,7 +18,6 @@
    /commands/concatenate-dofs
    /commands/concatenate-images
    /commands/convert-dof
-   /commands/convert-dof2csv
    /commands/convert-dof2velo
    /commands/convert-image
    /commands/convert-pointset
@@ -81,7 +80,6 @@ Command                        Description
 |concatenate-dofs|             |concatenate-dofs-brief-description|
 |concatenate-images|           |concatenate-images-brief-description|
 |convert-dof|                  |convert-dof-brief-description|
-|convert-dof2csv|              |convert-dof2csv-brief-description|
 |convert-dof2velo|             |convert-dof2velo-brief-description|
 |convert-image|                |convert-image-brief-description|
 |convert-pointset|             |convert-pointset-brief-description|
@@ -142,7 +140,6 @@ Command                        Description
 .. |concatenate-dofs|             replace:: :doc:`/commands/concatenate-dofs`
 .. |concatenate-images|           replace:: :doc:`/commands/concatenate-images`
 .. |convert-dof|                  replace:: :doc:`/commands/convert-dof`
-.. |convert-dof2csv|              replace:: :doc:`/commands/convert-dof2csv`
 .. |convert-dof2velo|             replace:: :doc:`/commands/convert-dof2velo`
 .. |convert-image|                replace:: :doc:`/commands/convert-image`
 .. |convert-pointset|             replace:: :doc:`/commands/convert-pointset`
@@ -202,7 +199,6 @@ Command                        Description
 .. include:: /commands/_summaries/concatenate-dofs.rst
 .. include:: /commands/_summaries/concatenate-images.rst
 .. include:: /commands/_summaries/convert-dof.rst
-.. include:: /commands/_summaries/convert-dof2csv.rst
 .. include:: /commands/_summaries/convert-dof2velo.rst
 .. include:: /commands/_summaries/convert-image.rst
 .. include:: /commands/_summaries/convert-pointset.rst

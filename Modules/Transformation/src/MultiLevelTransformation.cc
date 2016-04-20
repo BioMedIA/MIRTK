@@ -26,8 +26,13 @@
 #include "mirtk/Parallel.h"
 #include "mirtk/Profiling.h"
 
+#include "mirtk/CommonExport.h"
+
 
 namespace mirtk {
+
+/// Verbosity of output messages (cf. mirtk/Options.h)
+MIRTK_Common_EXPORT extern int verbose;
 
 
 // =============================================================================
@@ -460,42 +465,45 @@ int MultiLevelTransformation::NumberOfActiveCPs() const
 }
 
 // -----------------------------------------------------------------------------
-void MultiLevelTransformation::CheckTransformation(FreeFormTransformation *transformation) const
+void MultiLevelTransformation::CheckTransformation(FreeFormTransformation *ffd) const
 {
-  if (transformation == NULL) {
-    cerr << this->NameOfClass() << "::CheckTransformation: NULL pointer given" << endl;
+  if (ffd == nullptr) {
+    cerr << this->NameOfType() << "::CheckTransformation: NULL pointer given" << endl;
     exit(1);
   }
 }
 
 // -----------------------------------------------------------------------------
-FreeFormTransformation *MultiLevelTransformation::PutLocalTransformation(FreeFormTransformation *transformation, int i)
+FreeFormTransformation *MultiLevelTransformation
+::PutLocalTransformation(FreeFormTransformation *ffd, int i, bool transfer_ownership)
 {
-  this->CheckTransformation(transformation);
+  this->CheckTransformation(ffd);
   if (i < 0 || i >= _NumberOfLevels) {
-    cerr << this->NameOfClass() << "::PutLocalTransformation: No such transformation: " << i << endl;
+    cerr << this->NameOfType() << "::PutLocalTransformation: No such transformation: " << i << endl;
     exit(1);
   }
-  FreeFormTransformation * const old = _LocalTransformation[i];
+  FreeFormTransformation * const offd = _LocalTransformation[i];
+  // Set new transformation
+  _LocalTransformation     [i] = ffd;
+  _LocalTransformationOwner[i] = transfer_ownership;
   // Copy status of transformation if it is part of stack at different
   // location. This is the case when this method is used to rearrange the
   // local transformations within the stack.
   for (int l = 0; l < _NumberOfLevels; ++l) {
-    if (transformation == _LocalTransformation[l]) {
+    if (l != i && _LocalTransformation[l] == ffd) {
       _LocalTransformationStatus[i] = _LocalTransformationStatus[l];
     }
   }
-  // Set new transformation
-  _LocalTransformation[i] = transformation;
-  return old;
+  return offd;
 }
 
 // -----------------------------------------------------------------------------
-void MultiLevelTransformation::PushLocalTransformation(FreeFormTransformation *transformation)
+void MultiLevelTransformation
+::PushLocalTransformation(FreeFormTransformation *ffd, bool transfer_ownership)
 {
-  this->CheckTransformation(transformation);
+  this->CheckTransformation(ffd);
   if (_NumberOfLevels == MAX_TRANS) {
-    cerr << "MultiLevelTransformation::PushLocalTransformation: Stack overflow" << endl;
+    cerr << this->NameOfType() << "::PushLocalTransformation: Stack overflow" << endl;
     exit(1);
   }
   // Change status of transformation that is currently on top of stack
@@ -508,103 +516,102 @@ void MultiLevelTransformation::PushLocalTransformation(FreeFormTransformation *t
     _LocalTransformationStatus[_NumberOfLevels-1] = Passive;
   }
   // Add transformation at top of stack
-  _LocalTransformation      [_NumberOfLevels] = transformation;
+  _LocalTransformation      [_NumberOfLevels] = ffd;
+  _LocalTransformationOwner [_NumberOfLevels] = transfer_ownership;
   _LocalTransformationStatus[_NumberOfLevels] = Active;
-  _NumberOfLevels++;
+  ++_NumberOfLevels;
 }
 
 // -----------------------------------------------------------------------------
-void MultiLevelTransformation::InsertLocalTransformation(FreeFormTransformation *transformation, int pos)
+void MultiLevelTransformation
+::InsertLocalTransformation(FreeFormTransformation *ffd, int pos, bool transfer_ownership)
 {
-  this->CheckTransformation(transformation);
+  this->CheckTransformation(ffd);
   if (_NumberOfLevels == MAX_TRANS) {
-    cerr << "MultiLevelTransformation::InsertLocalTransformation: Stack overflow" << endl;
+    cerr << this->NameOfType() << "::InsertLocalTransformation: Stack overflow" << endl;
     exit(1);
   }
-  _NumberOfLevels++;
+  ++_NumberOfLevels;
   for (int l = pos; l < _NumberOfLevels; ++l) {
     _LocalTransformation      [l+1] = _LocalTransformation      [l];
+    _LocalTransformationOwner [l+1] = _LocalTransformationOwner [l];
     _LocalTransformationStatus[l+1] = _LocalTransformationStatus[l];
   }
-  _LocalTransformation      [pos] = transformation;
+  _LocalTransformation      [pos] = ffd;
+  _LocalTransformationOwner [pos] = transfer_ownership;
   _LocalTransformationStatus[pos] = Passive;
 }
 
 // -----------------------------------------------------------------------------
 FreeFormTransformation *MultiLevelTransformation::PopLocalTransformation()
 {
-  FreeFormTransformation *localTransformation = NULL;
-  if (_NumberOfLevels > 0) {
-    // Change status of transformation that is now on top of stack
-    // to active if no more than one transformation was active before
-    int nactive = 0;
-    for (int l = 0; l < _NumberOfLevels; ++l) {
-      if (_LocalTransformationStatus[l] == Active) ++nactive;
-    }
-    if (_NumberOfLevels > 1 && nactive == 1) {
-      _LocalTransformationStatus[_NumberOfLevels-2] = Active;
-    }
-    // Remove transformation at top of stack
-    _NumberOfLevels--;
-    localTransformation = _LocalTransformation[_NumberOfLevels];
-    _LocalTransformation      [_NumberOfLevels] = NULL;
-    _LocalTransformationStatus[_NumberOfLevels] = Passive;
+  if (_NumberOfLevels == 0) return nullptr;
+  // Change status of transformation that is afterwards on top of stack
+  // to active if no more than one transformation was active before
+  if (_NumberOfLevels > 1 && this->NumberOfActiveLevels() == 1) {
+    _LocalTransformationStatus[_NumberOfLevels-2] = Active;
   }
-  return localTransformation;
+  // Remove transformation at top of stack
+  --_NumberOfLevels;
+  FreeFormTransformation * const offd = _LocalTransformation[_NumberOfLevels];
+  _LocalTransformation      [_NumberOfLevels] = nullptr;
+  _LocalTransformationOwner [_NumberOfLevels] = false;
+  _LocalTransformationStatus[_NumberOfLevels] = Passive;
+  return offd;
 }
 
 // -----------------------------------------------------------------------------
 FreeFormTransformation *MultiLevelTransformation::RemoveLocalTransformation(int pos)
 {
-  FreeFormTransformation *localTransformation;
-  if (0 <= pos && pos < _NumberOfLevels) {
-    localTransformation = _LocalTransformation[pos];
-    for (int l = pos; l < _NumberOfLevels; ++l) {
-      _LocalTransformation      [l] = _LocalTransformation      [l+1];
-      _LocalTransformationStatus[l] = _LocalTransformationStatus[l+1];
-    }
-    _NumberOfLevels--;
-    _LocalTransformation      [_NumberOfLevels] = NULL;
-    _LocalTransformationStatus[_NumberOfLevels] = Passive;
-  } else {
-    cerr << "MultiLevelTransformation::RemoveLocalTransformation: No such transformation: " << pos << endl;
+  if (pos < 0 || pos >= _NumberOfLevels) {
+    cerr << this->NameOfType() << "::RemoveLocalTransformation: No such transformation: " << pos << endl;
     exit(1);
   }
-  return localTransformation;
+  FreeFormTransformation * const offd = _LocalTransformation[pos];
+  for (int l = pos; l < _NumberOfLevels; ++l) {
+    _LocalTransformation      [l] = _LocalTransformation      [l+1];
+    _LocalTransformationOwner [l] = _LocalTransformationOwner [l+1];
+    _LocalTransformationStatus[l] = _LocalTransformationStatus[l+1];
+  }
+  --_NumberOfLevels;
+  _LocalTransformation      [_NumberOfLevels] = nullptr;
+  _LocalTransformationOwner [_NumberOfLevels] = false;
+  _LocalTransformationStatus[_NumberOfLevels] = Passive;
+  return offd;
 }
 
 // -----------------------------------------------------------------------------
 void MultiLevelTransformation::CombineLocalTransformation()
 {
-  cerr << this->NameOfClass() << "::CombineLocalTransformation: Not implemented for this transformation" << endl;
+  cerr << this->NameOfClass() << "::CombineLocalTransformation: Not implemented" << endl;
   exit(1);
 }
 
 // -----------------------------------------------------------------------------
 void MultiLevelTransformation::MergeGlobalIntoLocalDisplacement()
 {
-  cerr << this->NameOfClass() << "::MergeGlobalIntoLocalDisplacement: Not implemented for this transformation" << endl;
+  cerr << this->NameOfClass() << "::MergeGlobalIntoLocalDisplacement: Not implemented" << endl;
   exit(1);
 }
 
 // -----------------------------------------------------------------------------
-void MultiLevelTransformation::InterpolateGlobalDisplacement(FreeFormTransformation *f)
+void MultiLevelTransformation::InterpolateGlobalDisplacement(FreeFormTransformation *ffd)
 {
   double x, y, z;
 
-  const int no = f->NumberOfDOFs() / 3;
+  const int no = ffd->NumberOfDOFs() / 3;
 
   double *dx = new double[no];
   double *dy = new double[no];
   double *dz = new double[no];
 
   int idx = 0;
-  for (int l = 0; l < f->T(); ++l)
-  for (int k = 0; k < f->Z(); ++k)
-  for (int j = 0; j < f->Y(); ++j)
-  for (int i = 0; i < f->X(); ++i) {
+  for (int l = 0; l < ffd->T(); ++l)
+  for (int k = 0; k < ffd->Z(); ++k)
+  for (int j = 0; j < ffd->Y(); ++j)
+  for (int i = 0; i < ffd->X(); ++i) {
     x = i, y = j, z = k;
-    f->LatticeToWorld(x, y, z);
+    ffd->LatticeToWorld(x, y, z);
     _GlobalTransformation.Displacement(x, y, z);
     dx[idx] = x;
     dy[idx] = y;
@@ -612,33 +619,35 @@ void MultiLevelTransformation::InterpolateGlobalDisplacement(FreeFormTransformat
     idx++;
   }
 
-  f->Interpolate(dx, dy, dz);
+  ffd->Interpolate(dx, dy, dz);
 
   delete[] dx;
   delete[] dy;
   delete[] dz;
 
-  if (f->X() < 4 || f->Y() < 4 || f->Z() < 4) {
+  if (ffd->X() < 4 || ffd->Y() < 4 || ffd->Z() < 4) {
     cerr << "MultiLevelTransformation::InterpolateGlobalDisplacement: ";
     cerr << "Very small lattice for interpolation. Result likely to be inaccurate." << endl;
     return;
   }
 
-  double totVol =  f->X()    * f->GetXSpacing() +  f->Y()    * f->GetYSpacing() +  f->Z()    * f->GetZSpacing();
-  double effVol = (f->X()-4) * f->GetXSpacing() + (f->Y()-4) * f->GetYSpacing() + (f->Z()-4) * f->GetZSpacing();
+  double totVol =  ffd->X()    * ffd->GetXSpacing() +  ffd->Y()    * ffd->GetYSpacing() +  ffd->Z()    * ffd->GetZSpacing();
+  double effVol = (ffd->X()-4) * ffd->GetXSpacing() + (ffd->Y()-4) * ffd->GetYSpacing() + (ffd->Z()-4) * ffd->GetZSpacing();
 /*
   Not sure if the temporal lattice should be considered here as the global transformation is only defined in 3D.
   Probably this method is best only applied to 3D MFFD's, but not 3D+t MFFD's.
   -as12321
 
-  if (f->GetT() > 1) {
-    totVol +=  f->T()    * f->GetTSpacing();
-    effVol += (f->T()-4) * f->GetTSpacing();
+  if (ffd->GetT() > 1) {
+    totVol +=  ffd->T()    * ffd->GetTSpacing();
+    effVol += (ffd->T()-4) * ffd->GetTSpacing();
   }
 */
-  cout << "MultiLevelTransformation::InterpolateGlobalDisplacement: ";
-  cout << "Accurate interpolation of affine transformation over ";
-  printf("% .1f %% of lattice volume\n", 100.0 * effVol / totVol);
+  if (verbose) {
+    cout << this->NameOfType() << "::InterpolateGlobalDisplacement: ";
+    cout << "Accurate interpolation of affine transformation over ";
+    printf("% .1f %% of lattice volume\n", 100.0 * effVol / totVol);
+  }
 }
 
 // =============================================================================

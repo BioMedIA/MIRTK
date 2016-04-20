@@ -37,10 +37,12 @@ enum FFDIntegrationMethod
   FFDIM_Last                                                           // keep at end
 };
 
+typedef FFDIntegrationMethod FFDIM;
+
 // ---------------------------------------------------------------------------
 /// Convert FFD integration method enumeration value to string
 template <>
-inline string ToString(const FFDIntegrationMethod &m, int w, char c, bool left)
+inline string ToString(const FFDIM &m, int w, char c, bool left)
 {
   const char *str;
   switch (m) {
@@ -63,7 +65,7 @@ inline string ToString(const FFDIntegrationMethod &m, int w, char c, bool left)
 // ---------------------------------------------------------------------------
 /// Convert FFD integration method string to enumeration value
 template <>
-inline bool FromString(const char *str, FFDIntegrationMethod &value)
+inline bool FromString(const char *str, FFDIM &value)
 {
   // Aliases of methods
   const string lstr = ToLower(str);
@@ -90,10 +92,10 @@ inline bool FromString(const char *str, FFDIntegrationMethod &value)
   else                                          value = FFDIM_Unknown;
   // Default names
   if (value == FFDIM_Unknown) {
-    value = static_cast<FFDIntegrationMethod>(FFDIM_Last - 1);
+    value = static_cast<FFDIM>(FFDIM_Last - 1);
     while (value != FFDIM_Unknown) {
       if (iequal(ToString(value).c_str(), str)) break;
-      value = static_cast<FFDIntegrationMethod>(value - 1);
+      value = static_cast<FFDIM>(value - 1);
     }
   }
   // Return whether conversion was successful

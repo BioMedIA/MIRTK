@@ -53,67 +53,78 @@ int PartialMultiLevelStationaryVelocityTransformation::NumberOfLevels() const
 }
 
 // -----------------------------------------------------------------------------
-AffineTransformation *PartialMultiLevelStationaryVelocityTransformation::GetGlobalTransformation()
+AffineTransformation *PartialMultiLevelStationaryVelocityTransformation
+::GetGlobalTransformation()
 {
   return _Transformation->GetGlobalTransformation();
 }
 
 // -----------------------------------------------------------------------------
-const AffineTransformation *PartialMultiLevelStationaryVelocityTransformation::GetGlobalTransformation() const
+const AffineTransformation *PartialMultiLevelStationaryVelocityTransformation
+::GetGlobalTransformation() const
 {
   return _Transformation->GetGlobalTransformation();
 }
 
 // -----------------------------------------------------------------------------
-FreeFormTransformation *PartialMultiLevelStationaryVelocityTransformation::GetLocalTransformation(int pos)
+FreeFormTransformation *PartialMultiLevelStationaryVelocityTransformation
+::GetLocalTransformation(int pos)
 {
   return _Transformation->GetLocalTransformation(pos);
 }
 
 // -----------------------------------------------------------------------------
-const FreeFormTransformation *PartialMultiLevelStationaryVelocityTransformation::GetLocalTransformation(int pos) const
+const FreeFormTransformation *PartialMultiLevelStationaryVelocityTransformation
+::GetLocalTransformation(int pos) const
 {
   return _Transformation->GetLocalTransformation(pos);
 }
 
 // ---------------------------------------------------------------------------
-FreeFormTransformation *PartialMultiLevelStationaryVelocityTransformation::PutLocalTransformation(FreeFormTransformation *transformation, int pos)
+FreeFormTransformation *PartialMultiLevelStationaryVelocityTransformation
+::PutLocalTransformation(FreeFormTransformation *ffd, int pos, bool transfer_ownership)
 {
-  return _Transformation->PutLocalTransformation(transformation, pos);
+  return _Transformation->PutLocalTransformation(ffd, pos, transfer_ownership);
 }
 
 // ---------------------------------------------------------------------------
-void PartialMultiLevelStationaryVelocityTransformation::PushLocalTransformation(FreeFormTransformation *transformation)
+void PartialMultiLevelStationaryVelocityTransformation
+::PushLocalTransformation(FreeFormTransformation *ffd, bool transfer_ownership)
 {
-  _Transformation->PushLocalTransformation(transformation);
+  _Transformation->PushLocalTransformation(ffd, transfer_ownership);
 }
 
 // ---------------------------------------------------------------------------
-void PartialMultiLevelStationaryVelocityTransformation::InsertLocalTransformation(FreeFormTransformation *transformation, int pos)
+void PartialMultiLevelStationaryVelocityTransformation
+::InsertLocalTransformation(FreeFormTransformation *ffd, int pos, bool transfer_ownership)
 {
-  _Transformation->InsertLocalTransformation(transformation);
+  _Transformation->InsertLocalTransformation(ffd, pos, transfer_ownership);
 }
 
 // ---------------------------------------------------------------------------
-FreeFormTransformation *PartialMultiLevelStationaryVelocityTransformation::PopLocalTransformation()
+FreeFormTransformation *PartialMultiLevelStationaryVelocityTransformation
+::PopLocalTransformation()
 {
   return _Transformation->PopLocalTransformation();
 }
 
 // ---------------------------------------------------------------------------
-FreeFormTransformation *PartialMultiLevelStationaryVelocityTransformation::RemoveLocalTransformation(int pos)
+FreeFormTransformation *PartialMultiLevelStationaryVelocityTransformation
+::RemoveLocalTransformation(int pos)
 {
   return _Transformation->RemoveLocalTransformation(pos);
 }
 
 // ---------------------------------------------------------------------------
-void PartialMultiLevelStationaryVelocityTransformation::CombineLocalTransformation()
+void PartialMultiLevelStationaryVelocityTransformation
+::CombineLocalTransformation()
 {
   _Transformation->CombineLocalTransformation();
 }
 
 // ---------------------------------------------------------------------------
-void PartialMultiLevelStationaryVelocityTransformation::MergeGlobalIntoLocalDisplacement()
+void PartialMultiLevelStationaryVelocityTransformation
+::MergeGlobalIntoLocalDisplacement()
 {
   _Transformation->MergeGlobalIntoLocalDisplacement();
 }
