@@ -81,7 +81,8 @@ if __name__ == '__main__':
     if len(argv) == 0:
         print_help()
         sys.exit(1)
-    if argv[0] == 'help':
+    command = argv[0]
+    if command == 'help':
         if len(argv) == 1:
             print_help()
         else:
@@ -92,4 +93,7 @@ if __name__ == '__main__':
     else:
         if verbose > 1:
             print('\nHost: ' + socket.gethostname() + '\n')
-        sys.exit(mirtk.call(argv, verbose=verbose))
+        exit_code = mirtk.call(argv, verbose=verbose);
+        if exit_code != 0:
+            sys.stderr.write('Error: ' + command + ' command returned non-zero exit status ' + str(exit_code) + '\n')
+        sys.exit(exit_code)
