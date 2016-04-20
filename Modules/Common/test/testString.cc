@@ -35,11 +35,11 @@ TEST(String, FromString)
     EXPECT_FALSE(FromString("1.0", b));
     EXPECT_FALSE(FromString("a", b));
     EXPECT_TRUE(FromString("1", b));
-    EXPECT_EQ(true, b);
+    EXPECT_TRUE(b);
     EXPECT_TRUE(FromString("0", b));
-    EXPECT_EQ(false, b);
+    EXPECT_FALSE(b);
     EXPECT_TRUE(FromString("On", b));
-    EXPECT_EQ(true, b);
+    EXPECT_TRUE(b);
   }
   {
     double v;
