@@ -127,6 +127,10 @@ Command options
 
    Delimiting character sequence to use for CSV/TSV or STAR-CCM+ Table output.
 
+.. option:: -precision <int>
+
+   Number of decimal digits for ASCII output of floating point values. (default: 5)
+
 
 Standard options
 ----------------
