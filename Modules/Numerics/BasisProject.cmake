@@ -61,7 +61,7 @@ basis_project (
   OPTIONAL_DEPENDS
     ARPACK
     UMFPACK
-    LibLBFGS
+    LBFGS
     MATLAB{mwmclmcrrt}
     VTK-7|6{vtkCommonCore,vtkCommonDataModel,vtkIOGeometry,vtkIOLegacy,vtkIOPLY,vtkIOXML}
     TBB{tbb} # transitive dependency of MIRTK{Common}
