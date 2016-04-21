@@ -11,8 +11,8 @@ os:
 dist: trusty
 sudo: required
 
-before_install: Testing/Travis/before_install.sh
-script:         Testing/Travis/script.sh
+before_install: Scripts/install_depends.sh
+script:         Scripts/travis.sh
 
 notifications:
   email: false

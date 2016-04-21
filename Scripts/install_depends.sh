@@ -1,8 +1,14 @@
-## Travis CI before_install script for Ubuntu 14.04 (Trusty) environment
+## Install dependencies on Ubuntu or OS X (using Homebrew)
 set -e
 
+if [ $TRAVIS = true ]; then
+  os="$TRAVIS_OS_NAME"
+else
+  os=${1:-`uname`}
+fi
+
 # install pre-requisites on Ubuntu
-if [ $TRAVIS_OS_NAME = linux ]; then
+if [ $os = linux ] || [ $os = Linux ]; then
 
   sudo apt-get update -qq
   sudo apt-get install -y --no-install-recommends \
@@ -16,12 +22,13 @@ if [ $TRAVIS_OS_NAME = linux ]; then
     libtbb-dev \
     libvtk6-dev
 
-  mkdir $HOME/gtest-build && cd $HOME/gtest-build
+  mkdir "$HOME/gtest-build" && cd "$HOME/gtest-build"
   cmake /usr/src/gtest && make
   sudo mv -f libgtest.a libgtest_main.a /usr/lib
+  rm -rf "$HOME/gtest-build"
 
 # install pre-requisites on OS X
-elif [ $TRAVIS_OS_NAME = osx ]; then
+elif [ $os = osx ] || [ $os = Darwin ]; then
 
   brew update
   brew tap homebrew/science
@@ -32,9 +39,10 @@ elif [ $TRAVIS_OS_NAME = osx ]; then
     tbb \
     vtk
 
-  git clone --depth=1 https://github.com/google/googletest.git $HOME/gtest-source
-  mkdir $HOME/gtest-build && cd $HOME/gtest-build
+  git clone --depth=1 https://github.com/google/googletest.git "$HOME/gtest-source"
+  mkdir "$HOME/gtest-build" && cd "$HOME/gtest-build"
   cmake -DCMAKE_CXX_FLAGS=-std=c++11 -DBUILD_GMOCK=OFF -DBUILD_GTEST=ON ../gtest-source && make
   sudo make install
+  rm -rf "$HOME/gtest-source" "$HOME/gtest-build"
 
 fi
