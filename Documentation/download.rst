@@ -112,4 +112,5 @@ with the MIRTK license. See the following links for details:
 - `ThirdParty/Boost <https://github.com/MIRTK/Boost>`__: `Boost Software License Version 1.0 <http://www.boost.org/users/license.html>`__
 - `ThirdParty/Eigen <https://github.com/MIRTK/Eigen>`__: `Mozilla Public License Version 2.0 <https://www.mozilla.org/en-US/MPL/2.0/>`__
 - `ThirdParty/LBFGS <https://github.com/BioMedIA/MIRTK/tree/master/ThirdParty/LBFGS>`__: `The MIT License <https://opensource.org/licenses/MIT>`__
-- `ThirdParty/NIfTI <https://github.com/BioMedIA/MIRTK/tree/master/ThirdParty/NIfTI>`__: `Public domain <https://en.wikipedia.org/wiki/Public_domain>`__
+- `NIfTI C library <https://www.nitrc.org/projects/nifti>`__: `Public domain <https://en.wikipedia.org/wiki/Public_domain>`__
+- `GIFTI C library <https://www.nitrc.org/projects/gifti/>`__: `Public domain <https://en.wikipedia.org/wiki/Public_domain>`__
