@@ -17,13 +17,13 @@ Technical support may also be requested by speaking with the team directly via
 ## Code contributions
 
 The MIRTK maintainers welcome code contributions from MIRTK users, preferrably via
-[pull requests](https://github.com/BioMedIA/MIRTK/pulls) against the develop branch.
+[pull requests](https://github.com/BioMedIA/MIRTK/pulls) against the master branch.
 Please provide as much information as possible to help with the code review, such as why
 this change is needed, what it does and how to check whether the code works as intended.
 
 If you intend to contribute your applications to the MIRTK distribution, develop your tools
-either in a fork of the MIRTK Git repository or a your own MIRTK Package
-with the common file organization for MIRTK Packages and the appropriate CMake_ configuration
+either in a fork of the MIRTK Git repository or your own MIRTK Package in a separate Git repository
+with the common file organization and the appropriate [CMake](https://cmake.org) configuration
 files. See some of the already available modules in the `Packages/` directory of the
 MIRTK source tree as reference. Examples of MIRTK Packages are the
 [Deformable](https://github.com/MIRTK/Deformable) and
@@ -34,4 +34,4 @@ Template files for the creation of a new MIRTK Package can be found in the
 the [basisproject](https://cmake-basis.github.io/howto/use-and-customize-templates.html#use-a-template)
 tool of [CMake BASIS](https://cmake-basis.github.io), but can also
 simply be copied and edited by hand. But do not copy the `_conf.py` file from the
-`Templates/mirtk-module/v*/` directory.
+`Templates/mirtk-module/*/` directory.
