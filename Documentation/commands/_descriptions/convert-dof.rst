@@ -3,7 +3,7 @@
 
 Converts between different transformation file formats:
 
-=====================       =================================================================================
+=========================   =========================================================================================
 unknown                     Unknown, try to guess it from file header/type.
 disp_world|disp|image       Dense displacement field image with world space displacement vectors [mm].
 disp_voxel                  Dense displacement field image with target space displacement vectors [voxel].
@@ -40,4 +40,4 @@ star_ccm_table              Point displacements as STAR CCM+ XYZ Table.
 star_ccm_table_xyz          Transformed points  as STAR CCM+ XYZ Table.
 table|csv|tsv               ASCII table of target point coordinates and displacement vectors.
 table_xyz|csv_xyz|tsv_xyz   ASCII table of transformed point coordinates.
-=====================       =================================================================================
+=========================   =========================================================================================
