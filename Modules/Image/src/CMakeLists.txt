@@ -235,7 +235,7 @@ endif ()
 
 # ------------------------------------------------------------------------------
 # ForEachVoxel*Function headers
-if (PythonInterp_FOUND)
+if (PYTHON_EXECUTABLE AND BUILD_FOREACHVOXELFUNCTION_SOURCE)
   set(FOREACHVOXELFUNCTIONS
     ForEachUnaryVoxelFunction
     ForEachBinaryVoxelFunction

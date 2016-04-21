@@ -36,6 +36,9 @@
 # @ingroup BasisSettings
 ################################################################################
 
+# Option to (re-)generate ForEach(Unary|Binary|...)VoxelFunction.h files
+set (BUILD_FOREACHVOXELFUNCTION_SOURCE OFF)
+
 # Default output image file name extension/format
 if (WITH_ZLIB)
   set(DEFAULT_IMAGE_EXT_CONFIG ".nii.gz")
