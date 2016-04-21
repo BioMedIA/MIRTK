@@ -51,7 +51,7 @@ void PrintHelp(const char *name)
   cout << "Description:\n";
   cout << "  Converts between different transformation file formats:\n";
   cout << "\n";
-  cout << "  =====================       =================================================================================\n";
+  cout << "  =========================   =========================================================================================\n";
   cout << "  unknown                     Unknown, try to guess it from file header/type.\n";
   cout << "  disp_world|disp|image       Dense displacement field image with world space displacement vectors [mm].\n";
   cout << "  disp_voxel                  Dense displacement field image with target space displacement vectors [voxel].\n";
@@ -88,7 +88,7 @@ void PrintHelp(const char *name)
   cout << "  star_ccm_table_xyz          Transformed points  as STAR CCM+ XYZ Table.\n";
   cout << "  table|csv|tsv               ASCII table of target point coordinates and displacement vectors.\n";
   cout << "  table_xyz|csv_xyz|tsv_xyz   ASCII table of transformed point coordinates.\n";
-  cout << "  =====================       =================================================================================\n";
+  cout << "  =========================   =========================================================================================\n";
 #if !MIRTK_IO_WITH_NIfTI
   cout << "\n";
   cout << "  Cannot convert from/to the following formats because the I/O module is missing NIfTI support:\n";
