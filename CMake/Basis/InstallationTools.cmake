@@ -35,14 +35,38 @@ endif ()
 ## @brief Specify rules to run at install time.
 #
 # This function replaces CMake's
-# <a href="http://www.cmake.org/cmake/help/cmake-2-8-docs.html#command:install">
-# install()</a> command.
+# <a href="https://cmake.org/cmake/help/v3.5/command/install.html">install()</a> command.
 #
-# @sa http://www.cmake.org/cmake/help/cmake-2-8-docs.html#command:install
+# @sa https://cmake.org/cmake/help/v3.5/command/install.html
 #
 # @ingroup CMakeAPI
 function (basis_install)
-  install (${ARGN})
+  include(CMakeParseArguments)
+  cmake_parse_arguments (ARGN "" "DIRECTORY" "TARGETS;FILES;PROGRAMS" ${ARGN})
+  set (_errmsg "Options TARGETS, FILES, PROGRAMS, and DIRECTORY are mutually exclusive!")
+  if (ARGN_DIRECTORY)
+    if (ARGN_FILES OR ARGN_PROGRAMS OR ARGN_TARGETS)
+      message (FATAL_ERROR "${_errmsg}")
+    endif ()
+    install (DIRECTORY ${ARGN_DIRECTORY} ${ARGN_UNPARSED_ARGUMENTS})
+  elseif (ARGN_FILES)
+    if (ARGN_PROGRAMS OR ARGN_TARGETS OR  ARGN_DIRECTORY)
+      message (FATAL_ERROR "${_errmsg}")
+    endif ()
+    install (FILES ${ARGN_FILES} ${ARGN_UNPARSED_ARGUMENTS})
+  elseif (ARGN_PROGRAMS)
+    if (ARGN_FILES OR ARGN_TARGETS OR  ARGN_DIRECTORY)
+      message (FATAL_ERROR "${_errmsg}")
+    endif ()
+    install (PROGRAMS ${ARGN_PROGRAMS} ${ARGN_UNPARSED_ARGUMENTS})
+  elseif (ARGN_TARGETS)
+    if (ARGN_FILES OR ARGN_PROGRAMS OR ARGN_DIRECTORY)
+      message (FATAL_ERROR "${_errmsg}")
+    endif ()
+    install (TARGETS ${ARGN_TARGETS} ${ARGN_UNPARSED_ARGUMENTS})
+  else ()
+    install (${ARGN_UNPARSED_ARGUMENTS})
+  endif ()
 endfunction ()
 
 # ----------------------------------------------------------------------------
