@@ -2776,7 +2776,7 @@ function (basis_build_script TARGET_UID)
   endif ()
   if (CMAKE_GENERATOR MATCHES "Visual Studio|Xcode")
     set (OUTPUT_FILE "${BUILD_DIR}/build/${OUTPUT_NAME}")
-    set (OUTPUT_DIR  "${OUTPUT_DIRECTORY}/$<CONFIGURATION>")
+    set (OUTPUT_DIR  "${OUTPUT_DIRECTORY}/$<${BASIS_GE_CONFIG}>")
   elseif (MODULE AND COMPILE)
     set (OUTPUT_FILE "${BUILD_DIR}/build/${OUTPUT_NAME}")
     set (OUTPUT_DIR  "${OUTPUT_DIRECTORY}")
@@ -2941,7 +2941,7 @@ function (basis_build_script TARGET_UID)
   endif ()
   add_custom_command (
     OUTPUT          ${OUTPUT_FILES}
-    COMMAND         "${CMAKE_COMMAND}" -D "CONFIGURATION:STRING=$<CONFIGURATION>" -P "${BUILD_SCRIPT}"
+    COMMAND         "${CMAKE_COMMAND}" -D "CONFIGURATION:STRING=$<${BASIS_GE_CONFIG}>" -P "${BUILD_SCRIPT}"
     MAIN_DEPENDENCY "${SOURCE_FILE}"
     DEPENDS         "${BUILD_SCRIPT}" "${BASIS_MODULE_PATH}/CommonTools.cmake" # basis_configure_script() definition
     COMMENT         "${COMMENT}"
@@ -3227,7 +3227,7 @@ function (basis_build_script_library TARGET_UID)
     set (COMMENT "Building ${LANGUAGE} module ${REL}...")
     add_custom_command (
       OUTPUT          ${_OUTPUT_FILES}
-      COMMAND         "${CMAKE_COMMAND}" -D "CONFIGURATION=$<CONFIGURATION>" -P "${BUILD_SCRIPT}"
+      COMMAND         "${CMAKE_COMMAND}" -D "CONFIGURATION=$<${BASIS_GE_CONFIG}>" -P "${BUILD_SCRIPT}"
       MAIN_DEPENDENCY "${SOURCE_FILE}"
       DEPENDS         "${BUILD_SCRIPT}" "${BASIS_MODULE_PATH}/CommonTools.cmake" # basis_configure_script() definition
       COMMENT         "${COMMENT}"
