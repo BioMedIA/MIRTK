@@ -70,6 +70,10 @@ before configuring the MIRTK build:
 
 .. code-block:: bash
 
+    # Either download all third-party modules at once
+    git submodule update --init -- ThirdParty
+
+    # Or download one or more of the following modules only
     git submodule update --init -- ThirdParty/Boost
     git submodule update --init -- ThirdParty/Eigen
     git submodule update --init -- ThirdParty/LBFGS
@@ -82,8 +86,12 @@ update the desired Git submodules before (re-)configuring the build files, e.g.:
 
 .. code-block:: bash
 
+    # Either download all additional packages at once
+    git submodule update --init -- Packages
+
+    # Or download one or more of the following packages only
     git submodule update --init -- Packages/Deformable
-    git submodule update --init -- Packages/VolumetricMapping
+    git submodule update --init -- Packages/Mapping
 
 
 .. _Git:   https://git-scm.com

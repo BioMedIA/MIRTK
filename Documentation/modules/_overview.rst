@@ -10,7 +10,7 @@ Module               Brief Description
 |Transformation|     Image and point set transformation types and regularization terms.
 |Registration|       Image and point set registration library.
 |Deformable|         Library for Euler integration of deformable meshes such as cortical surfaces.
-|VolumetricMapping|  Filters for the volumetric mapping of brain volumes.
+|Mapping|            Filters for the mapping of brain surfaces and volumes.
 ===================  ==============================================================================
 
 .. include:: /modules/_refs.rst
