@@ -38,9 +38,9 @@ Third-party library   Version  Included as              Required by module(s)   
 ====================  =======  =======================  =============================================  ==================
 `Intel TBB`_          any      System                   No module                                      All modules
 Boost_                1.48     System or Git submodule  |Numerics|, |PointSet|, |Transformation|
-Eigen_                3.0      System or Git submodule  |Numerics|, |VolumetricMapping|
+Eigen_                3.0      System or Git submodule  |Numerics|, |Mapping|
 ARPACK_ / UMFPACK_    any      System                   No module                                      |Numerics|
-VTK_                  6.0      System                   |PointSet|, |Deformable|, |VolumetricMapping|  |Common|, |Image|, |Registration|
+VTK_                  6.0      System                   |PointSet|, |Deformable|, |Mapping|            |Common|, |Image|, |Registration|
 libpng_               any      System                   No module                                      |Image|
 NiftiCLib_            any      System or Source code    No module                                      |IO|
 libLBFGS_             any      Source code              No module                                      |IO|
@@ -69,7 +69,7 @@ Module               Requires module(s)                                         
 |PointSet|           |Common|, |Numerics|, |Image|, |Transformation|
 |Registration|       |Common|, |Numerics|, |Image|, |Transformation|               |PointSet|, |Deformable|
 |Deformable|         |Common|, |Numerics|, |Image|, |Transformation|, |PointSet|
-|VolumetricMapping|  |Common|, |Numerics|, |Image|, |PointSet|
+|Mapping|            |Common|, |Numerics|, |Image|, |PointSet|
 ===================  ===========================================================   ========================================
 
 .. note::
