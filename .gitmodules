@@ -7,9 +7,9 @@
 [submodule "Packages/Deformable"]
 	path = Packages/Deformable
 	url = https://github.com/MIRTK/Deformable.git
-[submodule "Packages/VolumetricMapping"]
-	path = Packages/VolumetricMapping
-	url = https://github.com/MIRTK/VolumetricMapping.git
+[submodule "Packages/Mapping"]
+	path = Packages/Mapping
+	url = https://github.com/MIRTK/Mapping.git
 [submodule "ThirdParty/LBFGS"]
 	path = ThirdParty/LBFGS
 	url = https://github.com/MIRTK/LBFGS.git

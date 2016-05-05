@@ -72,7 +72,7 @@ basis_project (
 
   MODULE_DIRS
     Packages/Deformable
-    Packages/VolumetricMapping
+    Packages/Mapping
 
   # --------------------------------------------------------------------------
   # list of modules enabled by default
@@ -88,7 +88,7 @@ basis_project (
   # list of external modules
   EXTERNAL_MODULES
     Deformable
-    VolumetricMapping
+    Mapping
 
   # --------------------------------------------------------------------------
   # dependencies

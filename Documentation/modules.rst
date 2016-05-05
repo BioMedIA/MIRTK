@@ -16,7 +16,7 @@ Modules
    modules/transformation
    modules/registration
    modules/deformable
-   modules/volumetricmapping
+   modules/mapping
 
 .. Replacements for use by descriptions included below to refer to other modules
 
@@ -106,9 +106,9 @@ Deformable
 :doc:`[more] <modules/deformable>`
 
 
-Volumetric Mapping
-------------------
+Mapping
+-------
 
-.. include:: modules/_descriptions/volumetricmapping.rst
+.. include:: modules/_descriptions/mapping.rst
 
-:doc:`[more] <modules/volumetricmapping>`
+:doc:`[more] <modules/mapping>`
