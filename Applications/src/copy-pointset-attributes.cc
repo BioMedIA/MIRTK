@@ -251,6 +251,7 @@ int main(int argc, char **argv)
         info._SourceIndex = -1;
       }
       info._TargetIndex = -2;
+      pd.push_back(info);
     }
     else if (OPTION("-pointmask")) point_mask_name = ARGUMENT;
     else if (OPTION("-cellmask"))  cell_mask_name  = ARGUMENT;
@@ -311,8 +312,9 @@ int main(int argc, char **argv)
         double p[3] = {.0};
         vtkPoints *points = target->GetPoints();
         vtkIdType end = min(npoints, source->GetNumberOfPoints());
+        int       dim = min(3,       array->GetNumberOfComponents());
         for (vtkIdType ptId = 0; ptId < end; ++ptId) {
-          for (int i = 0; i < 3; ++i) p[i] = array->GetComponent(ptId, i);
+          for (int i = 0; i < dim; ++i) p[i] = array->GetComponent(ptId, i);
           points->SetPoint(ptId, p);
         }
         copy = NULL;
