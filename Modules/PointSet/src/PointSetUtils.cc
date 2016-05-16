@@ -34,6 +34,8 @@
 #include "mirtk/Matrix3x3.h"
 #include "mirtk/Vector3.h"
 #include "mirtk/Algorithm.h"
+#include "mirtk/UnorderedSet.h"
+#include "mirtk/List.h"
 
 #include "vtkCellArray.h"
 #include "vtkPolyData.h"
@@ -46,11 +48,14 @@
 #include "vtkCellData.h"
 #include "vtkDataSetAttributes.h"
 #include "vtkCell.h"
+#include "vtkCellIterator.h"
 #include "vtkTriangle.h"
 #include "vtkTetra.h"
 #include "vtkGenericCell.h"
 #include "vtkImageData.h"
 #include "vtkImageStencilData.h"
+#include "vtkConnectivityFilter.h"
+#include "vtkPolyDataConnectivityFilter.h"
 
 #include "vtkImageStencilIterator.h"
 #include "vtkPolyDataToImageStencil.h"
@@ -86,6 +91,17 @@ void AddPoints(PointSet &oset, vtkPointSet *iset)
 // =============================================================================
 // Point set domain
 // =============================================================================
+
+// -----------------------------------------------------------------------------
+int Dimension(vtkDataSet *dataset)
+{
+  double bounds[6];
+  dataset->GetBounds(bounds);
+  double sx = bounds[1] - bounds[0];
+  double sy = bounds[3] - bounds[2];
+  double sz = bounds[5] - bounds[4];
+  return ((sx > .0 ? 1 : 0) + (sy > .0 ? 1 : 0) + (sz > .0 ? 1 : 0));
+}
 
 // -----------------------------------------------------------------------------
 ImageAttributes PointSetDomain(vtkPointSet *data, double dx, double dy, double dz)
@@ -323,6 +339,207 @@ void Scale(vtkSmartPointer<vtkPointSet> pointset, double scale)
 // =============================================================================
 // Surface meshes
 // =============================================================================
+
+// -----------------------------------------------------------------------------
+UnorderedSet<int> BoundaryPoints(vtkDataSet *dataset, const EdgeTable *edgeTable)
+{
+  UniquePtr<EdgeTable> tmpEdgeTable;
+  if (edgeTable == nullptr) {
+    tmpEdgeTable.reset(new EdgeTable(dataset));
+    edgeTable = tmpEdgeTable.get();
+  }
+  UnorderedSet<int> boundaryPtIds;
+  vtkSmartPointer<vtkIdList> cellIds1 = vtkSmartPointer<vtkIdList>::New();
+  vtkSmartPointer<vtkIdList> cellIds2 = vtkSmartPointer<vtkIdList>::New();
+  vtkIdType ptId1, ptId2;
+  EdgeIterator edgeIt(*edgeTable);
+  for (edgeIt.InitTraversal(); edgeIt.GetNextEdge(ptId1, ptId2) != -1;) {
+    dataset->GetPointCells(ptId1, cellIds1);
+    dataset->GetPointCells(ptId2, cellIds2);
+    cellIds1->IntersectWith(cellIds2);
+    if (cellIds1->GetNumberOfIds() < 2) {
+      boundaryPtIds.insert(static_cast<int>(ptId1));
+      boundaryPtIds.insert(static_cast<int>(ptId2));
+    }
+  }
+  return boundaryPtIds;
+}
+
+// -----------------------------------------------------------------------------
+List<Pair<int, int> > BoundaryEdges(vtkDataSet *dataset, const EdgeTable &edgeTable)
+{
+  List<Pair<int, int> > boundaryEdges;
+  vtkSmartPointer<vtkIdList> cellIds1 = vtkSmartPointer<vtkIdList>::New();
+  vtkSmartPointer<vtkIdList> cellIds2 = vtkSmartPointer<vtkIdList>::New();
+  vtkIdType ptId1, ptId2;
+  EdgeIterator edgeIt(edgeTable);
+  for (edgeIt.InitTraversal(); edgeIt.GetNextEdge(ptId1, ptId2) != -1;) {
+    dataset->GetPointCells(ptId1, cellIds1);
+    dataset->GetPointCells(ptId2, cellIds2);
+    cellIds1->IntersectWith(cellIds2);
+    if (cellIds1->GetNumberOfIds() < 2) {
+      boundaryEdges.push_back(MakePair(ptId1, ptId2));
+    }
+  }
+  return boundaryEdges;
+}
+
+// -----------------------------------------------------------------------------
+vtkSmartPointer<vtkCellArray> BoundarySegments(vtkDataSet *dataset, const EdgeTable *edgeTable)
+{
+  UniquePtr<EdgeTable> tmpEdgeTable;
+  if (edgeTable == nullptr) {
+    tmpEdgeTable.reset(new EdgeTable(dataset));
+    edgeTable = tmpEdgeTable.get();
+  }
+  int ptId1, ptId2;
+  UnorderedSet<int> boundaryPtIds;
+  List<Pair<int, int> > boundaryEdges = BoundaryEdges(dataset, *edgeTable);
+  for (auto edge = boundaryEdges.begin(); edge != boundaryEdges.end(); ++edge) {
+    boundaryPtIds.insert(edge->first);
+    boundaryPtIds.insert(edge->second);
+  }
+  vtkSmartPointer<vtkCellArray> boundaries = vtkSmartPointer<vtkCellArray>::New();
+  vtkSmartPointer<vtkIdList>    ptIds      = vtkSmartPointer<vtkIdList>::New();
+  ptIds->Allocate(static_cast<vtkIdType>(boundaryPtIds.size()));
+  while (!boundaryPtIds.empty()) {
+    ptId1 = *boundaryPtIds.begin();
+    ptIds->Reset();
+    do {
+      ptIds->InsertNextId(static_cast<vtkIdType>(ptId1));
+      boundaryPtIds.erase(ptId1);
+      ptId2 = -1;
+      for (auto edge = boundaryEdges.begin(); edge != boundaryEdges.end(); ++edge) {
+        if (edge->first == ptId1) {
+          if (boundaryPtIds.find(edge->second) != boundaryPtIds.end()) {
+            ptId2 = edge->second;
+            boundaryEdges.erase(edge);
+            break;
+          }
+        } else if (edge->second == ptId1) {
+          if (boundaryPtIds.find(edge->first) != boundaryPtIds.end()) {
+            ptId2 = edge->first;
+            boundaryEdges.erase(edge);
+            break;
+          }
+        }
+      }
+      ptId1 = ptId2;
+    } while (ptId1 != -1);
+    boundaries->InsertNextCell(ptIds);
+  }
+  return boundaries;
+}
+
+// -----------------------------------------------------------------------------
+int NumberOfPoints(vtkDataSet *dataset)
+{
+  return static_cast<int>(dataset->GetNumberOfPoints());
+}
+
+// -----------------------------------------------------------------------------
+int NumberOfEdges(vtkDataSet *dataset, const EdgeTable *edgeTable)
+{
+  if (edgeTable == nullptr) {
+    EdgeTable edgeTable(dataset);
+    return edgeTable.NumberOfEdges();
+  } else {
+    return edgeTable->NumberOfEdges();
+  }
+}
+
+// -----------------------------------------------------------------------------
+int NumberOfFaces(vtkDataSet *dataset)
+{
+  int nfaces = 0;
+  for (vtkIdType cellId = 0; cellId < dataset->GetNumberOfCells(); ++cellId) {
+    switch (dataset->GetCellType(cellId)) {
+      case VTK_TRIANGLE:
+      case VTK_QUAD:
+      case VTK_POLYGON: {
+        nfaces += 1;
+      } break;
+      case VTK_TRIANGLE_STRIP: {
+        nfaces += dataset->GetCell(cellId)->GetNumberOfFaces();
+      } break;
+    }
+  }
+  return nfaces;
+}
+
+// -----------------------------------------------------------------------------
+int NumberOfConnectedComponents(vtkDataSet *dataset)
+{
+  vtkPolyData *polydata = vtkPolyData::SafeDownCast(dataset);
+  if (polydata != nullptr) {
+    vtkNew<vtkPolyDataConnectivityFilter> connectivity;
+    connectivity->SetExtractionModeToAllRegions();
+    connectivity->ScalarConnectivityOff();
+    SetVTKInput(connectivity, polydata);
+    connectivity->Update();
+    return connectivity->GetNumberOfExtractedRegions();
+  } else {
+    vtkNew<vtkConnectivityFilter> connectivity;
+    connectivity->SetExtractionModeToAllRegions();
+    connectivity->ScalarConnectivityOff();
+    SetVTKInput(connectivity, dataset);
+    connectivity->Update();
+    return connectivity->GetNumberOfExtractedRegions();
+  }
+}
+
+// -----------------------------------------------------------------------------
+int NumberOfBoundarySegments(vtkDataSet *dataset, const EdgeTable *edgeTable)
+{
+  vtkSmartPointer<vtkCellArray> bounds = BoundarySegments(dataset, edgeTable);
+  return static_cast<int>(bounds->GetNumberOfCells());
+}
+
+// -----------------------------------------------------------------------------
+int EulerCharacteristic(vtkDataSet *dataset, const EdgeTable &edgeTable,
+                        int *npoints, int *nedges, int *nfaces)
+{
+  int num_points = NumberOfPoints(dataset);
+  int num_edges  = NumberOfEdges(dataset, &edgeTable);
+  int num_faces  = NumberOfFaces(dataset);
+  if (npoints != nullptr) *npoints = num_points;
+  if (nedges  != nullptr) *nedges  = num_edges;
+  if (nfaces  != nullptr) *nfaces  = num_faces;
+  return num_points - num_edges + num_faces;
+}
+
+// -----------------------------------------------------------------------------
+int EulerCharacteristic(vtkDataSet *dataset, int *npoints, int *nedges, int *nfaces)
+{
+  EdgeTable edgeTable(dataset);
+  return EulerCharacteristic(dataset, edgeTable, npoints, nedges, nfaces);
+}
+
+// -----------------------------------------------------------------------------
+double Genus(vtkDataSet *dataset, const EdgeTable &edgeTable,
+             int *npoints, int *nedges, int *nfaces, int *nbounds, int *ncomps, int *euler)
+{
+  int num_points = NumberOfPoints(dataset);
+  int num_edges  = NumberOfEdges(dataset);
+  int num_faces  = NumberOfFaces(dataset);
+  int num_comps  = NumberOfConnectedComponents(dataset);
+  int num_bounds = NumberOfBoundarySegments(dataset, &edgeTable);
+  int chi        = num_points - num_edges + num_faces;
+  if (npoints != nullptr) *npoints = num_points;
+  if (nedges  != nullptr) *nedges  = num_edges;
+  if (nfaces  != nullptr) *nfaces  = num_faces;
+  if (nbounds != nullptr) *nbounds = num_bounds;
+  if (ncomps  != nullptr) *ncomps  = num_comps;
+  if (euler   != nullptr) *euler   = chi;
+  return double(2 * num_comps - num_bounds - chi) / 2.0;
+}
+
+// -----------------------------------------------------------------------------
+double Genus(vtkDataSet *dataset, int *npoints, int *nedges, int *nfaces, int *nbounds, int *ncomps, int *euler)
+{
+  EdgeTable edgeTable(dataset);
+  return Genus(dataset, edgeTable, npoints, nedges, nfaces, nbounds, ncomps, euler);
+}
 
 // -----------------------------------------------------------------------------
 namespace AreaUtils {

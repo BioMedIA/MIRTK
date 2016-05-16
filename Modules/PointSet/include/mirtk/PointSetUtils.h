@@ -23,6 +23,7 @@
 #include "mirtk/Math.h"
 #include "mirtk/Vtk.h"
 #include "mirtk/VtkMath.h"
+#include "mirtk/UnorderedSet.h"
 
 class vtkDataSet;
 class vtkDataSetAttributes;
@@ -32,6 +33,7 @@ class vtkImageData;
 class vtkImageStencilData;
 class vtkDataArray;
 class vtkCell;
+class vtkCellArray;
 
 
 namespace mirtk {
@@ -58,6 +60,9 @@ void AddPoints(PointSet &oset, vtkPointSet *iset);
 // =============================================================================
 // Point set domain
 // =============================================================================
+
+/// Determine dimension of data set
+int Dimension(vtkDataSet *);
 
 /// Determine bounding box of point set
 ///
@@ -237,6 +242,59 @@ bool IsTriangularMesh(vtkDataSet *);
 
 /// Check whether given point set is a tetrahedral mesh
 bool IsTetrahedralMesh(vtkDataSet *);
+
+/// Get IDs of end points of boundary edges
+UnorderedSet<int> BoundaryPoints(vtkDataSet *, const EdgeTable * = nullptr);
+
+/// Get connected boundary segments as (closed) line strips
+vtkSmartPointer<vtkCellArray> BoundarySegments(vtkDataSet *, const EdgeTable * = nullptr);
+
+/// Number of points
+int NumberOfPoints(vtkDataSet *);
+
+/// Number of edges
+int NumberOfEdges(vtkDataSet *, const EdgeTable * = nullptr);
+
+/// Number of faces
+int NumberOfFaces(vtkDataSet *);
+
+/// Number of connected components
+int NumberOfConnectedComponents(vtkDataSet *);
+
+/// Number of connected boundary components
+int NumberOfBoundarySegments(vtkDataSet *, const EdgeTable * = nullptr);
+
+/// Euler characeteristic, i.e., V - E + F
+int EulerCharacteristic(vtkDataSet *dataset,
+                        const EdgeTable &,
+                        int *npoints = nullptr,
+                        int *nedges  = nullptr,
+                        int *nfaces  = nullptr);
+
+/// Euler characeteristic, i.e., V - E + F
+int EulerCharacteristic(vtkDataSet *dataset,
+                        int *npoints = nullptr,
+                        int *nedges  = nullptr,
+                        int *nfaces  = nullptr);
+
+/// Genus of surface mesh
+double Genus(vtkDataSet *dataset,
+             const EdgeTable &,
+             int *npoints = nullptr,
+             int *nedges  = nullptr,
+             int *nfaces  = nullptr,
+             int *nbounds = nullptr,
+             int *ncomps  = nullptr,
+             int *euler   = nullptr);
+
+/// Genus of surface mesh
+double Genus(vtkDataSet *dataset,
+             int *npoints = nullptr,
+             int *nedges  = nullptr,
+             int *nfaces  = nullptr,
+             int *nbounds = nullptr,
+             int *ncomps  = nullptr,
+             int *euler   = nullptr);
 
 /// Area of surface mesh
 double Area(vtkSmartPointer<vtkPolyData>, bool per_cell = false);
