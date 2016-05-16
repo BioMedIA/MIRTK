@@ -225,6 +225,9 @@ public:
   // ---------------------------------------------------------------------------
   // Other vector functions
 
+  /// Returns sum of a vector components
+  double Sum() const;
+
   /// Returns norm of a vector
   double Norm() const;
 
@@ -761,6 +764,14 @@ inline Vector CrossProduct(const Vector &a, const Vector &b)
 // =============================================================================
 // Functions
 // =============================================================================
+
+// -----------------------------------------------------------------------------
+inline double Vector::Sum() const
+{
+  double sum = .0;
+  for (int i = 0; i < _rows; i++) sum += _vector[i];
+  return sum;
+}
 
 // -----------------------------------------------------------------------------
 inline double Vector::Norm() const
