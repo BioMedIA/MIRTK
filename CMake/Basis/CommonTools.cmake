@@ -3193,7 +3193,7 @@ function (basis_configure_script INPUT OUTPUT)
         set (FUTURE_STATEMENTS)
         if (SCRIPT MATCHES "^(.*from[ \t]+__future__[ \t]+import[ \t]+[a-z_]+[^\n]*\n)(.*)$")
           set (FUTURE_STATEMENTS "${CMAKE_MATCH_1}")
-          set (SCRIPT            "${CMAKE_MATCH_3}")
+          set (SCRIPT            "${CMAKE_MATCH_2}")
         endif ()
         basis_remove_blank_line (SCRIPT) # remove a blank line therefore
         set (SCRIPT "${FUTURE_STATEMENTS}${PYTHON_CODE} # <-- added by BASIS\n${SCRIPT}")
