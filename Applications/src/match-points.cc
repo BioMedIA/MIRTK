@@ -164,7 +164,7 @@ int main(int argc, char **argv)
   if (verbose) cout << " done" << endl;
 
   // Read target transformation
-  unique_ptr<Transformation> dof;
+  UniquePtr<Transformation> dof;
   if (dofin_name) {
     if (verbose) cout << "Reading transformation...", cout.flush();
     dof.reset(Transformation::New(dofin_name));
@@ -190,7 +190,7 @@ int main(int argc, char **argv)
 
   // Initialize point correspondence map
   if (verbose) cout << "Initialize correspondence map...", cout.flush();
-  unique_ptr<PointCorrespondence> cmap(PointCorrespondence::New(ctype));
+  UniquePtr<PointCorrespondence> cmap(PointCorrespondence::New(ctype));
   cmap->FromTargetToSource(true);
   cmap->FromSourceToTarget(false);
   cmap->Parameter(param);

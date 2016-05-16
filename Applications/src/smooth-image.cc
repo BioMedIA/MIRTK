@@ -93,7 +93,7 @@ int main(int argc, char *argv[])
 
   // Determine input image data type
   InitializeIOLibrary();
-  unique_ptr<ImageReader> reader(ImageReader::New(input_name));
+  UniquePtr<ImageReader> reader(ImageReader::New(input_name));
   int data_type = reader->DataType();
 
   // Parse and discard options

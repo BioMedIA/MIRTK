@@ -251,7 +251,7 @@ int main(int argc, char **argv)
   if (verbose > 1) cout << " done" << endl;
 
   // Read input transformation
-  unique_ptr<Transformation> dofin;
+  UniquePtr<Transformation> dofin;
   if (dofin_name) {
     if (verbose > 1) cout << "Reading source transformation from " << dofin_name << "...", cout.flush();
     dofin.reset(Transformation::New(dofin_name));
@@ -342,7 +342,7 @@ int main(int argc, char **argv)
 
   // Initialize similarity measures
   if (verbose > 1) cout << "Initializing similarity measures...", cout.flush();
-  Array<unique_ptr<ImageSimilarity> > sim(metric.size());
+  Array<UniquePtr<ImageSimilarity> > sim(metric.size());
   bool use_shared_histogram = false;
   JointHistogram samples;
 

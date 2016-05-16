@@ -90,12 +90,12 @@ int main(int argc, char **argv)
   // Read input image
   if (verbose) cout << "Reading image ... "; cout.flush();
   InitializeIOLibrary();
-  unique_ptr<BaseImage> input(BaseImage::New(input_name));
+  UniquePtr<BaseImage> input(BaseImage::New(input_name));
   if (verbose) cout << "done." << endl;
 
   // Downsample image
   if (verbose) cout << "Downsampling image ... ";
-  unique_ptr<BaseImage> output;
+  UniquePtr<BaseImage> output;
   for (int i = 0; i < iter; ++i) {
     if (i > 0) input.swap(output);
     switch (input->GetScalarType()) {

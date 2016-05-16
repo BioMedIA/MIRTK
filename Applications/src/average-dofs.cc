@@ -402,7 +402,7 @@ int main(int argc, char **argv)
 
   // Average displacement fields sampled in specified target image domain
   if (!avgdofs && target_name) {
-    unique_ptr<BaseImage> target(BaseImage::New(target_name));
+    UniquePtr<BaseImage> target(BaseImage::New(target_name));
     attr = target->GetImageAttributes();
   // Otherwise, determine common type of local input transformations
   // if a mix of transformations is given, use attributes of first FFD
@@ -411,7 +411,7 @@ int main(int argc, char **argv)
     if (verbose) cout << "Checking type of input transformations...", cout.flush();
     for (size_t i = 0; i < dofin.size(); ++i) {
       if (dofin[i] == identity_name) continue;
-      unique_ptr<Transformation> t(Transformation::New(dofin[i].c_str()));
+      UniquePtr<Transformation> t(Transformation::New(dofin[i].c_str()));
       Transformation           *p    = t.get();
       MultiLevelTransformation *mffd = dynamic_cast<MultiLevelTransformation *>(t.get());
       if (mffd) {
@@ -496,7 +496,7 @@ int main(int argc, char **argv)
   for (size_t i = 0; i < dofin.size(); ++i) {
     if (dofin[i] == identity_name) continue;
     // Read transformation from file
-    unique_ptr<Transformation> t(Transformation::New(dofin[i].c_str()));
+    UniquePtr<Transformation> t(Transformation::New(dofin[i].c_str()));
     // Determine actual type of transformation
     HomogeneousTransformation   *global     = NULL;
     RigidTransformation         *rigid      = NULL;

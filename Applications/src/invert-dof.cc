@@ -67,7 +67,7 @@ int main(int argc, char **argv)
   }
 
   // Read transformation
-  unique_ptr<Transformation> dof(Transformation::New(dofin_name));
+  UniquePtr<Transformation> dof(Transformation::New(dofin_name));
 
   HomogeneousTransformation                  *lin    = NULL;
   BSplineFreeFormTransformationSV            *svffd  = NULL;

@@ -66,7 +66,7 @@ int main(int argc, char *argv[])
   const char *output_name = POSARG(2);
 
   InitializeIOLibrary();
-  unique_ptr<BaseImage> image(BaseImage::New(input_name));
+  UniquePtr<BaseImage> image(BaseImage::New(input_name));
 
   for (ALL_OPTIONS) {
     if      (OPTION("-x")) image->ReflectX();

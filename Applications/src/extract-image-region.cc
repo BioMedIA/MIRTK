@@ -148,7 +148,7 @@ int main(int argc, char **argv)
 
   // Read input image
   InitializeIOLibrary();
-  unique_ptr<BaseImage> in(BaseImage::New(input_name));
+  UniquePtr<BaseImage> in(BaseImage::New(input_name));
 
   // Parse optional arguments and adjust image region accordingly
   int    xmargin = 0, ymargin = 0, zmargin = 0, tmargin = 0;
@@ -330,7 +330,7 @@ int main(int argc, char **argv)
   attr._yorigin = .0;
   attr._zorigin = .0;
   attr._torigin = in->ImageToTime(t1);
-  unique_ptr<BaseImage> out(BaseImage::New(in->GetDataType()));
+  UniquePtr<BaseImage> out(BaseImage::New(in->GetDataType()));
   out->Initialize(attr);
 
   // Adjust spatial origin (i.e., image center)

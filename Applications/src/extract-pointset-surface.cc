@@ -338,7 +338,7 @@ int main(int argc, char *argv[])
       max_shock_dist = abs(max_shock_dist) * AverageEdgeLength(surface);
     }
     if (verbose > 1) cout << "  Maximum shock distance = " << max_shock_dist << endl;
-    unique_ptr<DistanceImage> dmap;
+    UniquePtr<DistanceImage> dmap;
     if (shock_dmap_name) dmap.reset(new DistanceImage(shock_dmap_name));
     RemoveShocks(surface, max_shock_dist, dmap.get());
     if (verbose) {

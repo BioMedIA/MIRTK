@@ -809,7 +809,7 @@ inline Array<int> PointLocator
                    vtkPointSet *dataset2, const Array<int> *sample2, const FeatureList *features2,
                    Array<double> *dist2)
 {
-  unique_ptr<PointLocator> locator(PointLocator::New(dataset2, sample2, features2));
+  UniquePtr<PointLocator> locator(PointLocator::New(dataset2, sample2, features2));
   return locator->FindClosestPoint(dataset1, sample1, features1, dist2);
 }
 
@@ -879,7 +879,7 @@ inline Array<Array<int> > PointLocator
                             vtkPointSet *dataset2, const Array<int> *sample2, const FeatureList *features2,
                      Array<Array<double> > *dist2)
 {
-  unique_ptr<PointLocator> locator(PointLocator::New(dataset2, sample2, features2));
+  UniquePtr<PointLocator> locator(PointLocator::New(dataset2, sample2, features2));
   return locator->FindClosestNPoints(k, dataset1, sample1, features1, dist2);
 }
 
@@ -950,7 +950,7 @@ inline Array<Array<int> > PointLocator
                                         vtkPointSet *dataset2, const Array<int> *sample2, const FeatureList *features2,
                          Array<Array<double> > *dist2)
 {
-  unique_ptr<PointLocator> locator(PointLocator::New(dataset2, sample2, features2));
+  UniquePtr<PointLocator> locator(PointLocator::New(dataset2, sample2, features2));
   return locator->FindPointsWithinRadius(radius, dataset1, sample1, features1, dist2);
 }
 

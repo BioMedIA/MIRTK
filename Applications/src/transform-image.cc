@@ -87,9 +87,9 @@ int main(int argc, char **argv)
 
   // Read image
   InitializeIOLibrary();
-  unique_ptr<ImageReader> input_reader(ImageReader::New(input_name));
+  UniquePtr<ImageReader> input_reader(ImageReader::New(input_name));
   int source_type = input_reader->DataType();
-  unique_ptr<BaseImage> source(input_reader->Run());
+  UniquePtr<BaseImage> source(input_reader->Run());
 
   // Parse optional arguments
   const char       *dof_name      = NULL;
@@ -135,7 +135,7 @@ int main(int argc, char **argv)
 
   // Apply affine header transformation
   if (dof_name) {
-    unique_ptr<Transformation> t(Transformation::New(dof_name));
+    UniquePtr<Transformation> t(Transformation::New(dof_name));
     HomogeneousTransformation *lin = dynamic_cast<HomogeneousTransformation *>(t.get());
     if (lin) {
       Matrix mat = lin->GetMatrix();
@@ -147,22 +147,22 @@ int main(int argc, char **argv)
   }
 
   // Read target image
-  unique_ptr<BaseImage> target;
+  UniquePtr<BaseImage> target;
   int target_type = -1;
   if (target_name) {
-    unique_ptr<ImageReader> target_reader(ImageReader::New(target_name));
+    UniquePtr<ImageReader> target_reader(ImageReader::New(target_name));
     target_type = target_reader->DataType();
     target.reset(target_reader->Run());
   }
 
   // Instantiate interpolator
-  unique_ptr<InterpolateImageFunction> interpolator(InterpolateImageFunction::New(interpolation));
+  UniquePtr<InterpolateImageFunction> interpolator(InterpolateImageFunction::New(interpolation));
 
   // Initialize output image
   if (target.get()) {
     // Ensure that output image has same number of channels/frames than input
     if (target->T() != source->T()) {
-      unique_ptr<BaseImage> tmp(BaseImage::New(target_type));
+      UniquePtr<BaseImage> tmp(BaseImage::New(target_type));
       tmp->Initialize(target->Attributes(), source->T());
       tmp->PutTSize(source->GetTSize());
       for (int l = 0; l < tmp->T(); ++l)
@@ -183,7 +183,7 @@ int main(int argc, char **argv)
   if (!IsNaN(source_t)) source->PutTOrigin(source_t);
 
   // Instantiate image transformation
-  unique_ptr<Transformation> transformation;
+  UniquePtr<Transformation> transformation;
   if (dofin_name == NULL || strcmp(dofin_name, "identity") == 0
                          || strcmp(dofin_name, "Identity") == 0
                          || strcmp(dofin_name, "Id")       == 0) {
@@ -218,7 +218,7 @@ int main(int argc, char **argv)
 
   // Change type of target image to source image type
   if (source_type != target_type) {
-    unique_ptr<BaseImage> tmp(BaseImage::New(source_type));
+    UniquePtr<BaseImage> tmp(BaseImage::New(source_type));
     *tmp = *target;
     target.reset(tmp.release());
   }

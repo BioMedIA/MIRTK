@@ -138,7 +138,7 @@ int main(int argc, char *argv[])
   }
 
   InitializeIOLibrary();
-  unique_ptr<BaseImage> image(BaseImage::New(input_name));
+  UniquePtr<BaseImage> image(BaseImage::New(input_name));
 
   if (verbose) cout << "Closing ... ", cout.flush();
   switch (image->GetDataType()) {

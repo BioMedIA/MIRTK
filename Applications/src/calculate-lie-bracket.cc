@@ -124,14 +124,14 @@ int main(int argc, char **argv)
   }
 
   // Read input vector fields
-  unique_ptr<ImageType> x, y;
+  UniquePtr<ImageType> x, y;
 
   if (x_fname) {
     x.reset(new ImageType(x_fname));
   } else {
     ImageType xx(xx_fname);
     ImageType xy(xy_fname);
-    unique_ptr<ImageType> xz(xz_fname ? new ImageType(xz_fname) : NULL);
+    UniquePtr<ImageType> xz(xz_fname ? new ImageType(xz_fname) : NULL);
 
     ImageAttributes attr = xx.Attributes();
     if (attr._t > 1) {
@@ -160,7 +160,7 @@ int main(int argc, char **argv)
   } else {
     ImageType yx(yx_fname);
     ImageType yy(yy_fname);
-    unique_ptr<Image> yz(yz_fname ? new ImageType(yz_fname) : NULL);
+    UniquePtr<Image> yz(yz_fname ? new ImageType(yz_fname) : NULL);
 
     ImageAttributes attr = yx.Attributes();
     if (attr._t > 1) {

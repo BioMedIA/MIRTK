@@ -150,14 +150,14 @@ int main(int argc, char *argv[])
   }
 
   // Read input displacements
-  unique_ptr<RealImage> d;
+  UniquePtr<RealImage> d;
 
   if (disp_fname) {
     d.reset(new RealImage(disp_fname));
   } else {
     RealImage dx(dx_fname);
     RealImage dy(dy_fname);
-    unique_ptr<RealImage> dz(dz_fname ? new RealImage(dz_fname) : nullptr);
+    UniquePtr<RealImage> dz(dz_fname ? new RealImage(dz_fname) : nullptr);
 
     ImageAttributes attr = dx.Attributes();
     if (attr._t > 1) {
@@ -179,7 +179,7 @@ int main(int argc, char *argv[])
   }
 
   // Instantiate exponential filter
-  unique_ptr<VelocityToDisplacementField<RealPixel> > exp;
+  UniquePtr<VelocityToDisplacementField<RealPixel> > exp;
   if (strcmp(IntegrationMethod, "SS") == 0) {
     exp.reset(new VelocityToDisplacementFieldSS<RealPixel>());
   } else if (strcmp(IntegrationMethod, "RKE1")         == 0 ||

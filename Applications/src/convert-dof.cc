@@ -526,7 +526,7 @@ Transformation *ToLinearFFD(const GenericImage<double> &disp,
 
   double xaxis[3], yaxis[3], zaxis[3];
   disp.GetOrientation(xaxis, yaxis, zaxis);
-  unique_ptr<LinearFreeFormTransformation> ffd;
+  UniquePtr<LinearFreeFormTransformation> ffd;
   ffd.reset(new LinearFreeFormTransformation3D(0, 0, 0, disp.X() - 1, disp.Y() - 1, disp.Z() - 1,
                                                dx, dy, dz, xaxis, yaxis, zaxis));
 
@@ -552,7 +552,7 @@ Transformation *ToLinearFFD(const GenericImage<double> &disp,
     }
   }
 
-  unique_ptr<MultiLevelFreeFormTransformation> dof;
+  UniquePtr<MultiLevelFreeFormTransformation> dof;
   dof.reset(new MultiLevelFreeFormTransformation());
   dof->PushLocalTransformation(ffd.release());
   return dof.release();
@@ -652,7 +652,7 @@ Transformation *ReadFLIRT(const char *fname, const ImageAttributes &target,
   S2(2, 2) = 1.0 / source._dz;
   S2(3, 3) = 1.0;
 
-  unique_ptr<AffineTransformation> dof(new AffineTransformation());
+  UniquePtr<AffineTransformation> dof(new AffineTransformation());
   dof->PutMatrix(s2w * S2 * A.Inverse() * S1 * w2t);
   return dof.release();
 }
@@ -689,7 +689,7 @@ Transformation *ReadAladin(const char *fname)
   #endif // WINDOWS
   m(3, 0) = m(3, 1) = m(3, 2) = .0; m(3, 3) = 1.0;
   fclose(f);
-  unique_ptr<AffineTransformation> dof(new AffineTransformation);
+  UniquePtr<AffineTransformation> dof(new AffineTransformation);
   dof->PutMatrix(m);
   return dof.release();
 }
@@ -737,7 +737,7 @@ Transformation *ReadF3D(const char *fname, const char *dofin_name = NULL,
     }
 
     // Initialize output transformation
-    unique_ptr<MultiLevelFreeFormTransformation> mffd(new MultiLevelFreeFormTransformation());
+    UniquePtr<MultiLevelFreeFormTransformation> mffd(new MultiLevelFreeFormTransformation());
 
     // Subtract -dofin displacement
     if (dofin_name) {
@@ -824,7 +824,7 @@ Transformation *ReadXFM(const char *fname)
   }
   m(3, 0) = m(3, 1) = m(3, 2) = .0; m(3, 3) = 1.0;
   ifs.close();
-  unique_ptr<AffineTransformation> dof(new AffineTransformation);
+  UniquePtr<AffineTransformation> dof(new AffineTransformation);
   dof->PutMatrix(m);
   return dof.release();
 }
@@ -964,7 +964,7 @@ double ApproximateAsNew(const Transformation *dofin,
                         FFDIMParams           ffdim  = FFDIMParams(),
                         BCHParams             bch    = BCHParams())
 {
-  unique_ptr<Transformation> itmp;
+  UniquePtr<Transformation> itmp;
 
   // Just copy parameters whenever possible
   if (dofout->CopyFrom(dofin)) return .0;
@@ -1346,7 +1346,7 @@ bool WriteMIRTK(const char *fname, Transformation *dof,
   }
 
   // Instantiate output MFFD (if any)
-  unique_ptr<MultiLevelTransformation> omffd;
+  UniquePtr<MultiLevelTransformation> omffd;
   switch (mffd_type) {
     case MFFD_None:
       break;
@@ -1399,7 +1399,7 @@ bool WriteMIRTK(const char *fname, Transformation *dof,
   }
 
   // Otherwise, approximate input transformation by new output transformation
-  unique_ptr<Transformation> odof(Transformation::New(type));
+  UniquePtr<Transformation> odof(Transformation::New(type));
 
   // When output type is a homogeneous coordinate transformation,
   // convert input transformation such that only global part remains
@@ -1724,7 +1724,7 @@ bool WriteF3D(const char *fname, const Transformation *dof,
   (ffd  = dynamic_cast<const BSplineFreeFormTransformation3D  *>(dof)) ||
   (mffd = dynamic_cast<const MultiLevelFreeFormTransformation *>(dof));
 
-  unique_ptr<MultiLevelFreeFormTransformation> new_mffd;
+  UniquePtr<MultiLevelFreeFormTransformation> new_mffd;
   if (lin) {
     new_mffd.reset(new MultiLevelFreeFormTransformation());
     new_mffd->GetGlobalTransformation()->PutMatrix(lin->GetMatrix());
@@ -2165,7 +2165,7 @@ int main(int argc, char *argv[])
   }
 
   // Read input transformation
-  unique_ptr<Transformation> dof;
+  UniquePtr<Transformation> dof;
   switch (format_in) {
 
     // Image

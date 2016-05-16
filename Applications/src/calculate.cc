@@ -345,7 +345,7 @@ int main(int argc, char **argv)
   Array<string> header;
   Array<string> prefix;
 
-  Array<unique_ptr<Op> > ops;
+  Array<UniquePtr<Op> > ops;
 
   for (ARGUMENTS_AFTER(1)) {
     if (OPTION("-append")) {
@@ -365,7 +365,7 @@ int main(int argc, char **argv)
       while (HAS_ARGUMENT) header.push_back(ARGUMENT);
     // Masking
     } else if (OPTION("-label")) {
-      ops.push_back(unique_ptr<Op>(new ResetMask(true)));
+      ops.push_back(UniquePtr<Op>(new ResetMask(true)));
       do {
         const char *arg = ARGUMENT;
         const Array<string> parts = Split(arg, "..");
@@ -382,160 +382,160 @@ int main(int argc, char **argv)
         if (IsNaN(a) || IsNaN(b)) {
           FatalError("Invalid -label argument: " << arg);
         }
-        ops.push_back(unique_ptr<Op>(new MaskInsideInterval(a, b)));
+        ops.push_back(UniquePtr<Op>(new MaskInsideInterval(a, b)));
       } while (HAS_ARGUMENT);
-      ops.push_back(unique_ptr<Op>(new InvertMask()));
+      ops.push_back(UniquePtr<Op>(new InvertMask()));
     } else if (OPTION("-mask-all")) {
-      ops.push_back(unique_ptr<Op>(new ResetMask(false)));
+      ops.push_back(UniquePtr<Op>(new ResetMask(false)));
     } else if (OPTION("-reset-mask")) {
-      ops.push_back(unique_ptr<Op>(new ResetMask(true)));
+      ops.push_back(UniquePtr<Op>(new ResetMask(true)));
     } else if (OPTION("-invert-mask")) {
-      ops.push_back(unique_ptr<Op>(new InvertMask()));
+      ops.push_back(UniquePtr<Op>(new InvertMask()));
     } else if (OPTION("-mask")) {
       double c;
       do {
         const char *arg = ARGUMENT;
-        if (FromString(arg, c)) ops.push_back(unique_ptr<Op>(new Mask(c)));
-        else                    ops.push_back(unique_ptr<Op>(new Mask(arg)));
+        if (FromString(arg, c)) ops.push_back(UniquePtr<Op>(new Mask(c)));
+        else                    ops.push_back(UniquePtr<Op>(new Mask(arg)));
       } while (HAS_ARGUMENT);
     } else if (OPTION("-threshold-outside") || OPTION("-mask-outside")) {
       PARSE_ARGUMENT(a);
       PARSE_ARGUMENT(b);
-      ops.push_back(unique_ptr<Op>(new MaskOutsideOpenInterval(a, b)));
+      ops.push_back(UniquePtr<Op>(new MaskOutsideOpenInterval(a, b)));
     } else if (OPTION("-threshold-outside-percentiles") || OPTION("-threshold-outside-pcts") ||
                OPTION("-mask-outside-percentiles")      || OPTION("-mask-outside-pcts")) {
       PARSE_ARGUMENT(p);
       Statistic *a = new Percentile(p);
       a->Hidden(verbose < 1);
-      ops.push_back(unique_ptr<Op>(a));
+      ops.push_back(UniquePtr<Op>(a));
       PARSE_ARGUMENT(p);
       Statistic *b = new Percentile(p);
       b->Hidden(verbose < 1);
-      ops.push_back(unique_ptr<Op>(b));
+      ops.push_back(UniquePtr<Op>(b));
       Op *op = new MaskOutsideOpenInterval(&a->Value(), &b->Value());
-      ops.push_back(unique_ptr<Op>(op));
+      ops.push_back(UniquePtr<Op>(op));
     } else if (OPTION("-threshold")) {
       PARSE_ARGUMENT(a);
       if (HAS_ARGUMENT) PARSE_ARGUMENT(b);
       else b = inf;
-      ops.push_back(unique_ptr<Op>(new MaskOutsideInterval(a, b)));
+      ops.push_back(UniquePtr<Op>(new MaskOutsideInterval(a, b)));
     } else if (OPTION("-percentile-threshold") || OPTION("-pct-threshold")) {
       PARSE_ARGUMENT(p);
       Statistic *a = new Percentile(p);
       a->Hidden(verbose < 1);
-      ops.push_back(unique_ptr<Op>(a));
+      ops.push_back(UniquePtr<Op>(a));
       Op *op = new MaskOutsideInterval(&a->Value(), inf);
-      ops.push_back(unique_ptr<Op>(op));
+      ops.push_back(UniquePtr<Op>(op));
     } else if (OPTION("-threshold-percentiles") || OPTION("-threshold-pcts")) {
       PARSE_ARGUMENT(p);
       Statistic *a = new Percentile(p);
       a->Hidden(verbose < 1);
-      ops.push_back(unique_ptr<Op>(a));
+      ops.push_back(UniquePtr<Op>(a));
       PARSE_ARGUMENT(p);
       Statistic *b = new Percentile(p);
       b->Hidden(verbose < 1);
-      ops.push_back(unique_ptr<Op>(b));
+      ops.push_back(UniquePtr<Op>(b));
       Op *op = new MaskOutsideInterval(&a->Value(), &b->Value());
-      ops.push_back(unique_ptr<Op>(op));
+      ops.push_back(UniquePtr<Op>(op));
     } else if (OPTION("-threshold-inside") || OPTION("-mask-inside")) {
       PARSE_ARGUMENT(a);
       PARSE_ARGUMENT(b);
-      ops.push_back(unique_ptr<Op>(new MaskInsideInterval(a, b)));
+      ops.push_back(UniquePtr<Op>(new MaskInsideInterval(a, b)));
     } else if (OPTION("-threshold-inside-percentiles") || OPTION("-threshold-inside-pcts") ||
                OPTION("-mask-inside-percentiles")      || OPTION("-mask-inside-pcts")) {
       PARSE_ARGUMENT(p);
       Statistic *a = new Percentile(p);
       a->Hidden(verbose < 1);
-      ops.push_back(unique_ptr<Op>(a));
+      ops.push_back(UniquePtr<Op>(a));
       PARSE_ARGUMENT(p);
       Statistic *b = new Percentile(p);
       b->Hidden(verbose < 1);
-      ops.push_back(unique_ptr<Op>(b));
+      ops.push_back(UniquePtr<Op>(b));
       Op *op = new MaskInsideInterval(&a->Value(), &b->Value());
-      ops.push_back(unique_ptr<Op>(op));
+      ops.push_back(UniquePtr<Op>(op));
     } else if (OPTION("-threshold-lt") || OPTION("-lower-threshold") || OPTION("-mask-lt")) {
       PARSE_ARGUMENT(a);
-      ops.push_back(unique_ptr<Op>(new MaskOutsideInterval(a, inf)));
+      ops.push_back(UniquePtr<Op>(new MaskOutsideInterval(a, inf)));
     } else if (OPTION("-threshold-lt-percentile")    || OPTION("-threshold-lt-pct") ||
                OPTION("-lower-percentile-threshold") || OPTION("-lower-pct-threshold") ||
                OPTION("-mask-lt-percentile")         || OPTION("-mask-lt-pct")) {
       PARSE_ARGUMENT(p);
       Statistic *a = new Percentile(p);
       a->Hidden(verbose < 1);
-      ops.push_back(unique_ptr<Op>(a));
-      ops.push_back(unique_ptr<Op>(new MaskOutsideInterval(&a->Value(), inf)));
+      ops.push_back(UniquePtr<Op>(a));
+      ops.push_back(UniquePtr<Op>(new MaskOutsideInterval(&a->Value(), inf)));
     } else if (OPTION("-threshold-le") || OPTION("-mask-below") || OPTION("-mask-le")) {
       PARSE_ARGUMENT(a);
-      ops.push_back(unique_ptr<Op>(new MaskOutsideOpenInterval(a, inf)));
+      ops.push_back(UniquePtr<Op>(new MaskOutsideOpenInterval(a, inf)));
     } else if (OPTION("-threshold-le-percentile") || OPTION("-threshold-le-pct") ||
                OPTION("-mask-below-percentile")   || OPTION("-mask-below-pct") ||
                OPTION("-mask-le-percentile")      || OPTION("-mask-le-pct")) {
       PARSE_ARGUMENT(p);
       Statistic *a = new Percentile(p);
       a->Hidden(verbose < 1);
-      ops.push_back(unique_ptr<Op>(a));
-      ops.push_back(unique_ptr<Op>(new MaskOutsideOpenInterval(&a->Value(), inf)));
+      ops.push_back(UniquePtr<Op>(a));
+      ops.push_back(UniquePtr<Op>(new MaskOutsideOpenInterval(&a->Value(), inf)));
     } else if (OPTION("-threshold-ge") || OPTION("-mask-above") || OPTION("-mask-ge")) {
       PARSE_ARGUMENT(b);
-      ops.push_back(unique_ptr<Op>(new MaskOutsideOpenInterval(-inf, b)));
+      ops.push_back(UniquePtr<Op>(new MaskOutsideOpenInterval(-inf, b)));
     } else if (OPTION("-threshold-ge-percentile") || OPTION("-threshold-ge-pct") ||
                OPTION("-mask-above-percentile")   || OPTION("-mask-above-pct") ||
                OPTION("-mask-ge-percentile")      || OPTION("-mask-ge-pct")) {
       PARSE_ARGUMENT(p);
       Statistic *b = new Percentile(p);
       b->Hidden(verbose < 1);
-      ops.push_back(unique_ptr<Op>(b));
-      ops.push_back(unique_ptr<Op>(new MaskOutsideOpenInterval(-inf, &b->Value())));
+      ops.push_back(UniquePtr<Op>(b));
+      ops.push_back(UniquePtr<Op>(new MaskOutsideOpenInterval(-inf, &b->Value())));
     } else if (OPTION("-threshold-gt") || OPTION("-upper-threshold") || OPTION("-mask-gt")) {
       PARSE_ARGUMENT(b);
-      ops.push_back(unique_ptr<Op>(new MaskOutsideInterval(-inf, b)));
+      ops.push_back(UniquePtr<Op>(new MaskOutsideInterval(-inf, b)));
     } else if (OPTION("-threshold-gt-percentile")    || OPTION("-threshold-gt-pct") ||
                OPTION("-upper-percentile-threshold") || OPTION("-upper-pct-threshold") ||
                OPTION("-mask-gt-percentile")         || OPTION("-mask-gt-pct")) {
       PARSE_ARGUMENT(p);
       Statistic *b = new Percentile(p);
       b->Hidden(verbose < 1);
-      ops.push_back(unique_ptr<Op>(b));
-      ops.push_back(unique_ptr<Op>(new MaskOutsideInterval(-inf, &b->Value())));
+      ops.push_back(UniquePtr<Op>(b));
+      ops.push_back(UniquePtr<Op>(new MaskOutsideInterval(-inf, &b->Value())));
     } else if (OPTION("-even")) {
-      ops.push_back(unique_ptr<Op>(new MaskOddValues()));
+      ops.push_back(UniquePtr<Op>(new MaskOddValues()));
     } else if (OPTION("-odd")) {
-      ops.push_back(unique_ptr<Op>(new MaskEvenValues()));
+      ops.push_back(UniquePtr<Op>(new MaskEvenValues()));
     // Clamping
     } else if (OPTION("-clamp")) {
       PARSE_ARGUMENT(a);
       PARSE_ARGUMENT(b);
-      ops.push_back(unique_ptr<Op>(new Clamp(a, b)));
+      ops.push_back(UniquePtr<Op>(new Clamp(a, b)));
     } else if (OPTION("-clamp-percentiles") || OPTION("-clamp-pcts")) {
       PARSE_ARGUMENT(p);
       Statistic *a = new Percentile(p);
       a->Hidden(verbose < 1);
-      ops.push_back(unique_ptr<Op>(a));
+      ops.push_back(UniquePtr<Op>(a));
       PARSE_ARGUMENT(p);
       Statistic *b = new Percentile(p);
       b->Hidden(verbose < 1);
-      ops.push_back(unique_ptr<Op>(b));
-      ops.push_back(unique_ptr<Op>(new Clamp(&a->Value(), &b->Value())));
+      ops.push_back(UniquePtr<Op>(b));
+      ops.push_back(UniquePtr<Op>(new Clamp(&a->Value(), &b->Value())));
     } else if (OPTION("-clamp-lt") || OPTION("-clamp-below")) {
       PARSE_ARGUMENT(a);
-      ops.push_back(unique_ptr<Op>(new LowerThreshold(a)));
+      ops.push_back(UniquePtr<Op>(new LowerThreshold(a)));
     } else if (OPTION("-clamp-lt-percentile")    || OPTION("-clamp-lt-pct") ||
                OPTION("-clamp-below-percentile") || OPTION("-clamp-below-pct")) {
       PARSE_ARGUMENT(p);
       Statistic *a = new Percentile(p);
       a->Hidden(verbose < 1);
-      ops.push_back(unique_ptr<Op>(a));
-      ops.push_back(unique_ptr<Op>(new LowerThreshold(&a->Value())));
+      ops.push_back(UniquePtr<Op>(a));
+      ops.push_back(UniquePtr<Op>(new LowerThreshold(&a->Value())));
     } else if (OPTION("-clamp-gt") || OPTION("-clamp-above")) {
       PARSE_ARGUMENT(b);
-      ops.push_back(unique_ptr<Op>(new UpperThreshold(b)));
+      ops.push_back(UniquePtr<Op>(new UpperThreshold(b)));
     } else if (OPTION("-clamp-gt-percentile")    || OPTION("-clamp-gt-pct") ||
                OPTION("-clamp-above-percentile") || OPTION("-clamp-above-pct")) {
       PARSE_ARGUMENT(p);
       Statistic *b = new Percentile(p);
       b->Hidden(verbose < 1);
-      ops.push_back(unique_ptr<Op>(b));
-      ops.push_back(unique_ptr<Op>(new UpperThreshold(&b->Value())));
+      ops.push_back(UniquePtr<Op>(b));
+      ops.push_back(UniquePtr<Op>(new UpperThreshold(&b->Value())));
     } else if (OPTION("-rescale")) {
       double min, max;
       if (!FromString(ARGUMENT, min)) {
@@ -546,50 +546,50 @@ int main(int argc, char **argv)
         cerr << "Invalid -rescale maximum, must be a number!" << endl;
         exit(1);
       }
-      ops.push_back(unique_ptr<Op>(new Rescale(min, max)));
+      ops.push_back(UniquePtr<Op>(new Rescale(min, max)));
     } else if (OPTION("-set") || OPTION("-inside")) {
       double inside_value;
       if (!FromString(ARGUMENT, inside_value)) {
         cerr << "Invalid -inside value, must be a number!" << endl;
         exit(1);
       }
-      ops.push_back(unique_ptr<Op>(new SetInsideValue(inside_value)));
+      ops.push_back(UniquePtr<Op>(new SetInsideValue(inside_value)));
     } else if (OPTION("-pad") || OPTION("-outside")) {
       double outside_value;
       if (!FromString(ARGUMENT, outside_value)) {
         cerr << "Invalid -outside value, must be a number!" << endl;
         exit(1);
       }
-      ops.push_back(unique_ptr<Op>(new SetOutsideValue(outside_value)));
+      ops.push_back(UniquePtr<Op>(new SetOutsideValue(outside_value)));
     // Data transformations
     } else if (OPTION("-binarize")) {
       PARSE_ARGUMENT(a);
       if (HAS_ARGUMENT) PARSE_ARGUMENT(b);
       else b = inf;
-      ops.push_back(unique_ptr<Op>(new Binarize(a, b)));
+      ops.push_back(UniquePtr<Op>(new Binarize(a, b)));
     } else if (OPTION("-add") || OPTION("-plus") || OPTION("+")) {
       const char *arg = ARGUMENT;
       double c;
       if (FromString(arg, c)) {
-        ops.push_back(unique_ptr<Op>(new Add(c)));
+        ops.push_back(UniquePtr<Op>(new Add(c)));
       } else {
-        ops.push_back(unique_ptr<Op>(new Add(arg)));
+        ops.push_back(UniquePtr<Op>(new Add(arg)));
       }
     } else if (OPTION("-sub") || OPTION("-subtract") || OPTION("-minus") || OPTION("-")) {
       const char *arg = ARGUMENT;
       double c;
       if (FromString(arg, c)) {
-        ops.push_back(unique_ptr<Op>(new Sub(c)));
+        ops.push_back(UniquePtr<Op>(new Sub(c)));
       } else {
-        ops.push_back(unique_ptr<Op>(new Sub(arg)));
+        ops.push_back(UniquePtr<Op>(new Sub(arg)));
       }
     } else if (OPTION("-mul") || OPTION("-multiply-by") || OPTION("-times") || OPTION("*")) {
       const char *arg = ARGUMENT;
       double c;
       if (FromString(arg, c)) {
-        ops.push_back(unique_ptr<Op>(new Mul(c)));
+        ops.push_back(UniquePtr<Op>(new Mul(c)));
       } else {
-        ops.push_back(unique_ptr<Op>(new Mul(arg)));
+        ops.push_back(UniquePtr<Op>(new Mul(arg)));
       }
     } else if (OPTION("-div") || OPTION("-divide-by") || OPTION("-over") || OPTION("/")) {
       const char *arg = ARGUMENT;
@@ -599,14 +599,14 @@ int main(int argc, char **argv)
           cerr << "Invalid -div argument, value must not be zero!" << endl;
           exit(1);
         }
-        ops.push_back(unique_ptr<Op>(new Div(c)));
+        ops.push_back(UniquePtr<Op>(new Div(c)));
       } else {
-        ops.push_back(unique_ptr<Op>(new Div(arg)));
+        ops.push_back(UniquePtr<Op>(new Div(arg)));
       }
     } else if (OPTION("-div-with-zero")) {
-      ops.push_back(unique_ptr<Op>(new DivWithZero(ARGUMENT)));
+      ops.push_back(UniquePtr<Op>(new DivWithZero(ARGUMENT)));
     } else if (OPTION("-abs")) {
-      ops.push_back(unique_ptr<Op>(new Abs()));
+      ops.push_back(UniquePtr<Op>(new Abs()));
     } else if (OPTION("-pow") || OPTION("-power")) {
       const char *arg = ARGUMENT;
       double exponent;
@@ -614,13 +614,13 @@ int main(int argc, char **argv)
         cerr << "Invalid -power value, must be a number!" << endl;
         exit(1);
       }
-      ops.push_back(unique_ptr<Op>(new Pow(exponent)));
+      ops.push_back(UniquePtr<Op>(new Pow(exponent)));
     } else if (OPTION("-sqrt")) {
-      ops.push_back(unique_ptr<Op>(new Pow(.5)));
+      ops.push_back(UniquePtr<Op>(new Pow(.5)));
     } else if (OPTION("-square") || OPTION("-sq")) {
-      ops.push_back(unique_ptr<Op>(new Pow(2.0)));
+      ops.push_back(UniquePtr<Op>(new Pow(2.0)));
     } else if (OPTION("-exp")) {
-      ops.push_back(unique_ptr<Op>(new Exp()));
+      ops.push_back(UniquePtr<Op>(new Exp()));
     } else if (OPTION("-log") || OPTION("-log2") || OPTION("-loge") || OPTION("-log10") || OPTION("-lb") || OPTION("-ln") || OPTION("-lg")) {
       a = numeric_limits<double>::min();
       if (HAS_ARGUMENT) {
@@ -654,7 +654,7 @@ int main(int argc, char **argv)
       } else if (strcmp(OPTNAME, "-loge")  == 0 || strcmp(OPTNAME, "-ln") == 0) {
         op = new Ln(a);
       }
-      ops.push_back(unique_ptr<Op>(op));
+      ops.push_back(UniquePtr<Op>(op));
     } else if (OPTION("-o") || OPTION("-out") || OPTION("-output") || OPTION("=")) {
       const char *fname = ARGUMENT;
       int dtype = datatype;
@@ -667,34 +667,34 @@ int main(int argc, char **argv)
         }
       }
       #if MIRTK_Image_WITH_VTK
-        ops.push_back(unique_ptr<Op>(new Write(fname, dtype, attr, dataset, scalars_name)));
+        ops.push_back(UniquePtr<Op>(new Write(fname, dtype, attr, dataset, scalars_name)));
       #else
-        ops.push_back(unique_ptr<Op>(new Write(fname, dtype, attr)));
+        ops.push_back(UniquePtr<Op>(new Write(fname, dtype, attr)));
       #endif
     // Data statistics
     } else if (OPTION("-mean") || OPTION("-average") || OPTION("-avg")) {
-      ops.push_back(unique_ptr<Op>(new Mean()));
+      ops.push_back(UniquePtr<Op>(new Mean()));
     } else if (OPTION("-sigma") || OPTION("-stddev") || OPTION("-stdev") || OPTION("-std") || OPTION("-sd")) {
-      ops.push_back(unique_ptr<Op>(new StDev()));
+      ops.push_back(UniquePtr<Op>(new StDev()));
     } else if (OPTION("-normal-distribution") ||
                OPTION("-mean+sigma") || OPTION("-mean+stddev") || OPTION("-mean+stdev") || OPTION("-mean+std") || OPTION("-mean+sd") ||
                OPTION("-avg+sigma")  || OPTION("-avg+stddev")  || OPTION("-avg+stdev")  || OPTION("-avg+std")  || OPTION("-avg+sd")) {
-      ops.push_back(unique_ptr<Op>(new NormalDistribution()));
+      ops.push_back(UniquePtr<Op>(new NormalDistribution()));
     } else if (OPTION("-variance") || OPTION("-var")) {
-      ops.push_back(unique_ptr<Op>(new Var()));
+      ops.push_back(UniquePtr<Op>(new Var()));
     } else if (OPTION("-minimum")  || OPTION("-min")) {
-      ops.push_back(unique_ptr<Op>(new Min()));
+      ops.push_back(UniquePtr<Op>(new Min()));
     } else if (OPTION("-maximum")  || OPTION("-max")) {
-      ops.push_back(unique_ptr<Op>(new Max()));
+      ops.push_back(UniquePtr<Op>(new Max()));
     } else if (OPTION("-extrema") || OPTION("-minmax")) {
-      ops.push_back(unique_ptr<Op>(new Extrema()));
+      ops.push_back(UniquePtr<Op>(new Extrema()));
     } else if (OPTION("-range")) {
-      ops.push_back(unique_ptr<Op>(new Range()));
+      ops.push_back(UniquePtr<Op>(new Range()));
     } else if (OPTION("-percentile") || OPTION("-pct") || OPTION("-p")) {
       do {
         int p;
         if (FromString(ARGUMENT, p) && 0 <= p && p <= 100) {
-          ops.push_back(unique_ptr<Op>(new Percentile(p)));
+          ops.push_back(UniquePtr<Op>(new Percentile(p)));
         } else {
           cerr << "Invalid -percentile value, must be integer in the range [0, 100]!" << endl;
           exit(1);
@@ -704,7 +704,7 @@ int main(int argc, char **argv)
       do {
         int p;
         if (FromString(ARGUMENT, p) && 0 <= p && p <= 100) {
-          ops.push_back(unique_ptr<Op>(new LowerPercentileMean(p)));
+          ops.push_back(UniquePtr<Op>(new LowerPercentileMean(p)));
         } else {
           cerr << "Invalid -lower-percentile-mean value, must be integer in the range [0, 100]!" << endl;
           exit(1);
@@ -714,7 +714,7 @@ int main(int argc, char **argv)
       do {
         int p;
         if (FromString(ARGUMENT, p) && 0 <= p && p <= 100) {
-          ops.push_back(unique_ptr<Op>(new UpperPercentileMean(p)));
+          ops.push_back(UniquePtr<Op>(new UpperPercentileMean(p)));
         } else {
           cerr << "Invalid -upper-percentile-mean value, must be integer in the range [0, 100]!" << endl;
           exit(1);
@@ -737,10 +737,10 @@ int main(int argc, char **argv)
 
   // Default statistics to compute
   if (ops.empty()) {
-    ops.push_back(unique_ptr<Statistic>(new Mean()));
-    ops.push_back(unique_ptr<Statistic>(new StDev()));
-    ops.push_back(unique_ptr<Statistic>(new Extrema()));
-    ops.push_back(unique_ptr<Statistic>(new Range()));
+    ops.push_back(UniquePtr<Statistic>(new Mean()));
+    ops.push_back(UniquePtr<Statistic>(new StDev()));
+    ops.push_back(UniquePtr<Statistic>(new Extrema()));
+    ops.push_back(UniquePtr<Statistic>(new Range()));
   }
 
   // Initial data mask

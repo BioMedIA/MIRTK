@@ -505,7 +505,7 @@ int main(int argc, char **argv)
     // Write affine transformation as free-form deformation
     } else if (nonrigid) {
 
-      unique_ptr<FreeFormTransformation3D> ffd;
+      UniquePtr<FreeFormTransformation3D> ffd;
       if (diffeomorphic) ffd.reset(BSplineSVFFD(dof, attr, sx, sy, sz));
       else               ffd.reset(BSplineFFD  (dof, attr, sx, sy, sz));
       if (verbose) {
@@ -745,7 +745,7 @@ int main(int argc, char **argv)
 
       } else {
 
-        unique_ptr<FreeFormTransformation3D> ffd;
+        UniquePtr<FreeFormTransformation3D> ffd;
         if (diffeomorphic) ffd.reset(new BSplineFreeFormTransformationSV(attr, sx, sy, sz));
         else               ffd.reset(new BSplineFreeFormTransformation3D(attr, sx, sy, sz));
 
