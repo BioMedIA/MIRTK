@@ -149,26 +149,6 @@ vtkSmartPointer<vtkPolyData> CleanPolyData(vtkSmartPointer<vtkPolyData> polydata
 }
 
 // -----------------------------------------------------------------------------
-/// Get number of edges
-int NumberOfEdges(vtkDataSet *polydata)
-{
-  EdgeTable edgeTable(polydata);
-  return edgeTable.NumberOfEdges();
-}
-
-// -----------------------------------------------------------------------------
-/// Determine number of connected components
-int NumberOfComponents(vtkPolyData *polydata)
-{
-  vtkSmartPointer<vtkPolyDataConnectivityFilter> connectivity;
-  connectivity = vtkSmartPointer<vtkPolyDataConnectivityFilter>::New();
-  connectivity->SetExtractionModeToAllRegions();
-  SetVTKInput(connectivity, polydata);
-  connectivity->Update();
-  return connectivity->GetNumberOfExtractedRegions();
-}
-
-// -----------------------------------------------------------------------------
 /// Get center point and radius of bounding sphere
 inline double GetBoundingSphereRadius(vtkGenericCell *cell, double c[3])
 {
@@ -416,9 +396,9 @@ int main(int argc, char *argv[])
   const char *fname = POSARG(1);
   const string fext = Extension(fname, EXT_LastWithoutGz);
 
-  unique_ptr<ImageReader> image_reader;
+  UniquePtr<ImageReader> image_reader;
   #ifdef HAVE_MIRTK_Transformation
-    unique_ptr<Transformation> dof;
+    UniquePtr<Transformation> dof;
     if (Transformation::CheckHeader(fname)) {
       dof.reset(Transformation::New(fname));
       dof_info = true;
@@ -461,7 +441,7 @@ int main(int argc, char *argv[])
       else HANDLE_STANDARD_OR_UNKNOWN_OPTION();
     }
 
-    unique_ptr<BaseImage> image(image_reader->Run());
+    UniquePtr<BaseImage> image(image_reader->Run());
     if (!attributes) {
       cout << "Information from ImageReader::Print\n\n";
       image_reader->Print();
@@ -680,24 +660,35 @@ int main(int argc, char *argv[])
 
       // Euler characteristic / Genus
       if (print_surface_summary) {
-        const int    noOfVerts = polydata->GetNumberOfPoints();
-        const int    noOfFaces = polydata->GetNumberOfCells();
-        const int    noOfComps = NumberOfComponents(polydata);
-        const int    noOfEdges = edgeTable.NumberOfEdges();
-        const int    euler     = noOfVerts - noOfEdges + noOfFaces;
-        const double genus     = 0.5 * (2 * noOfComps - euler);
 
+        int npoints, nedges, nfaces, nbounds, ncomps, euler;
+        double genus = Genus(polydata, edgeTable, &npoints, &nedges, &nfaces,
+                                                  &nbounds, &ncomps, &euler);
         cout << "\n";
         cout << "Surface mesh:\n";
-        cout << "  V " << noOfVerts << "\n";
-        cout << "  E " << noOfEdges << "\n";
-        cout << "  F " << noOfFaces << "\n";
-        cout << "  C " << noOfComps << "\n";
+        cout << "  V " << npoints << "\n";
+        cout << "  E " << nedges << "\n";
+        cout << "  F " << nfaces << "\n";
+        cout << "  B " << nbounds << "\n";
+        cout << "  C " << ncomps << "\n";
         cout << "\n";
-        cout << "  Euler characteristic / Genus (V - E + F = 2C - 2g)\n";
+        cout << "  Euler characteristic / Genus (V - E + F = 2C - 2g - B)\n";
         cout << "    Euler: " << euler << "\n";
         cout << "    Genus: " << genus << "\n";
         cout.flush();
+
+        if (nbounds > 0 && output_surface_name) {
+          UnorderedSet<int> boundaryPtIds = BoundaryPoints(polydata);
+          vtkSmartPointer<vtkDataArray> boundaryMask = NewVTKDataArray(VTK_UNSIGNED_CHAR);
+          boundaryMask->SetName("BoundaryMask");
+          boundaryMask->SetNumberOfComponents(1);
+          boundaryMask->SetNumberOfTuples(polydata->GetNumberOfPoints());
+          boundaryMask->FillComponent(0, .0);
+          for (auto it = boundaryPtIds.begin(); it != boundaryPtIds.end(); ++it) {
+            boundaryMask->SetComponent(*it, 0, 1.0);
+          }
+          polydata->GetPointData()->AddArray(boundaryMask);
+        }
       }
 
       if (report_edge_lengths) {
