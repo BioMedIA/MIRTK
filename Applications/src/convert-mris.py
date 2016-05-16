@@ -78,7 +78,10 @@ def convert_mris(input_name, output_name):
   if output_name.endswith('.vtp'): writer = vtkXMLPolyDataWriter()
   else:                            writer = vtkPolyDataWriter()
   writer.SetFileName(output_name)
-  writer.SetInput(surface)
+  try:
+    writer.SetInputData(surface)
+  except:
+    writer.SetInput(surface)
   writer.Write()
   if temp_name != output_name:
     remove(temp_name)
