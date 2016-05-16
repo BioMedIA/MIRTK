@@ -152,7 +152,7 @@ int main(int argc, char *argv[])
 
   // Read image
   InitializeIOLibrary();
-  unique_ptr<BaseImage> image(BaseImage::New(input_name));
+  UniquePtr<BaseImage> image(BaseImage::New(input_name));
 
   // Parse optional arguments
   InterpolationMode interpolation_mode  = Interpolation_NN;
@@ -208,7 +208,7 @@ int main(int argc, char *argv[])
   }
 
   // Create interpolator
-  unique_ptr<InterpolateImageFunction> interpolator;
+  UniquePtr<InterpolateImageFunction> interpolator;
   interpolator.reset(InterpolateImageFunction::New(interpolation_mode, extrapolation_mode, image.get()));
 
   // TODO: The actual type of the templated GenericGaussianInterpolateImageFunction's is not known.

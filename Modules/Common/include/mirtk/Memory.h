@@ -1,8 +1,8 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2013-2015 Imperial College London
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2013-2016 Imperial College London
+ * Copyright 2013-2016 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,8 +32,20 @@
 namespace mirtk {
 
 
-using std::unique_ptr;
-using std::shared_ptr;
+template <class T>
+using UniquePtr = std::unique_ptr<T>;
+
+template <class T>
+using SharedPtr = std::shared_ptr<T>;
+
+template <class T>
+using WeakPtr = std::weak_ptr<T>;
+
+template <class T, class... Args>
+SharedPtr<T> NewShared(Args&&... args)
+{
+  return std::make_shared<T>(args...);
+}
 
 using std::memset;
 using std::memcpy;

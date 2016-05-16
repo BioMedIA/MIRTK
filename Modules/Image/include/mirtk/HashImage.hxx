@@ -1235,7 +1235,7 @@ void HashImage<VoxelType>::Write(const char *fname) const
 {
   string name(fname);
   if (Extension(fname).empty()) name += MIRTK_Image_DEFAULT_EXT;
-  unique_ptr<ImageWriter> writer(ImageWriter::New(name.c_str()));
+  UniquePtr<ImageWriter> writer(ImageWriter::New(name.c_str()));
   GenericImage<VoxelType> img=this->ToGenericImage();
   writer->Input(&img);
   writer->Run();

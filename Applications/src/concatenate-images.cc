@@ -125,7 +125,7 @@ int main(int argc, char *argv[])
   InitializeIOLibrary();
  
   // Get attributes of first input image
-  unique_ptr<BaseImage> ref(BaseImage::New(input_names[0]));
+  UniquePtr<BaseImage> ref(BaseImage::New(input_names[0]));
   if (ref->T() > 1) {
     FatalError("Input images must be either 2D (nz == 1) or 3D (nz == 1 and nt == 1)!");
   }
@@ -152,7 +152,7 @@ int main(int argc, char *argv[])
       origin[0] = ref->GetTOrigin();
     }
     for (int i = 1; i < n; ++i) {
-      unique_ptr<BaseImage> image(BaseImage::New(input_names[i]));
+      UniquePtr<BaseImage> image(BaseImage::New(input_names[i]));
       p = image->GetOrigin();
       if (twod) {
         Point p = image->GetOrigin();
@@ -179,7 +179,7 @@ int main(int argc, char *argv[])
   ImageAttributes out_attr = ref->Attributes();
   if (twod) out_attr._z = n; // spacing and origin set later below
   else      out_attr._t = n;
-  unique_ptr<BaseImage> output(BaseImage::New(ref->GetDataType()));
+  UniquePtr<BaseImage> output(BaseImage::New(ref->GetDataType()));
   output->Initialize(out_attr);
 
   // Concatenate images
@@ -193,7 +193,7 @@ int main(int argc, char *argv[])
       output->PutAsDouble(i, j, 0, 0, ref->GetAsDouble(i, j));
     }
     for (int k = 1; k < n; ++k) {
-      unique_ptr<BaseImage> image(BaseImage::New(input_names[pos[k]]));
+      UniquePtr<BaseImage> image(BaseImage::New(input_names[pos[k]]));
       if (image->Z() != 1 || image->T() != 1) {
         if (verbose) cout << " failed" << endl;
         FatalError("Input image " << k+1 << " is not 2D!");
@@ -230,7 +230,7 @@ int main(int argc, char *argv[])
       output->PutAsDouble(i, j, k, 0, ref->GetAsDouble(i, j, k));
     }
     for (int l = 1; l < n; ++l) {
-      unique_ptr<BaseImage> image(BaseImage::New(input_names[pos[l]]));
+      UniquePtr<BaseImage> image(BaseImage::New(input_names[pos[l]]));
       if (image->T() != 1) {
         if (verbose) cout << " failed" << endl;
         FatalError("Input image " << l+1 << " is not 3D!");

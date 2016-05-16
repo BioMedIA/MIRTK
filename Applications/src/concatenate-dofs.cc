@@ -209,7 +209,7 @@ int main(int argc, char **argv)
     if (verbose) {
       cout << "Reading transformation " << n << ": " << POSARG(n) << endl;
     }
-    unique_ptr<Transformation> dof(Transformation::New(POSARG(n)));
+    UniquePtr<Transformation> dof(Transformation::New(POSARG(n)));
     if ((aff = dynamic_cast<HomogeneousTransformation *>(dof.get()))) {
       post->PutMatrix(post->GetMatrix() * aff->GetMatrix());
       --N; // remove transformation from composition chain
@@ -231,7 +231,7 @@ int main(int argc, char **argv)
     if (verbose) {
       cout << "Reading transformation " << n << " from " << POSARG(n) << endl;
     }
-    unique_ptr<Transformation> dof(Transformation::New(POSARG(n)));
+    UniquePtr<Transformation> dof(Transformation::New(POSARG(n)));
     aff    = dynamic_cast<HomogeneousTransformation                  *>(dof.get());
     ffd    = dynamic_cast<FreeFormTransformation                     *>(dof.get());
     mffd   = dynamic_cast<MultiLevelFreeFormTransformation           *>(dof.get());

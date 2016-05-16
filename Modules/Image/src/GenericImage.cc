@@ -1745,8 +1745,8 @@ template <class VoxelType>
 void GenericImage<VoxelType>::Read(const char *fname)
 {
   // Read image
-  unique_ptr<ImageReader> reader(ImageReader::New(fname));
-  unique_ptr<BaseImage>   image(reader->Run());
+  UniquePtr<ImageReader> reader(ImageReader::New(fname));
+  UniquePtr<BaseImage>   image(reader->Run());
   // Convert image
   switch (image->GetDataType()) {
     case MIRTK_VOXEL_CHAR:           { *this = *(dynamic_cast<GenericImage<char>           *>(image.get())); } break;
@@ -1787,7 +1787,7 @@ void GenericImage<VoxelType>::Write(const char *fname) const
 {
   string name(fname);
   if (Extension(fname).empty()) name += MIRTK_Image_DEFAULT_EXT;
-  unique_ptr<ImageWriter> writer(ImageWriter::New(name.c_str()));
+  UniquePtr<ImageWriter> writer(ImageWriter::New(name.c_str()));
   writer->Input(this);
   writer->Run();
 }

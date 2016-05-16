@@ -310,7 +310,7 @@ int main(int argc, char *argv[])
 
   // Transform first surface by specified transformation
   if (dofin_name) {
-    unique_ptr<Transformation> dof(Transformation::New(dofin_name));
+    UniquePtr<Transformation> dof(Transformation::New(dofin_name));
     RegisteredSurface transformed;
     transformed.InputSurface(surface[0]);
     transformed.Transformation(dof.get());
@@ -399,7 +399,7 @@ int main(int argc, char *argv[])
     target.Update();
     source.Update();
 
-    unique_ptr<PointCorrespondence> cmap(PointCorrespondence::New(ctype));
+    UniquePtr<PointCorrespondence> cmap(PointCorrespondence::New(ctype));
     cmap->FromTargetToSource(true);
     cmap->FromSourceToTarget(true);
     cmap->Parameter(cparam);

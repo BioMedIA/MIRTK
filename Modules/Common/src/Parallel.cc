@@ -23,9 +23,6 @@
 #include "mirtk/Stream.h"
 #include "mirtk/Options.h"
 
-#include <memory>
-
-
 namespace mirtk {
 
 
@@ -43,7 +40,7 @@ int debug_gpu = 0;
 int tbb_debug = 0;
 
 #ifdef HAVE_TBB
-std::unique_ptr<task_scheduler_init> tbb_scheduler;
+UniquePtr<task_scheduler_init> tbb_scheduler;
 #endif
 
 // =============================================================================

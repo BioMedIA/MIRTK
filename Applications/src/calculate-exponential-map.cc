@@ -138,14 +138,14 @@ int main(int argc, char **argv)
   }
 
   // Read input velocities
-  unique_ptr<RealImage> v;
+  UniquePtr<RealImage> v;
 
   if (velo_fname) {
     v.reset(new RealImage(velo_fname));
   } else {
     RealImage vx(vx_fname);
     RealImage vy(vy_fname);
-    unique_ptr<RealImage> vz(vz_fname ? new RealImage(vz_fname) : nullptr);
+    UniquePtr<RealImage> vz(vz_fname ? new RealImage(vz_fname) : nullptr);
 
     ImageAttributes attr = vx.Attributes();
     if (attr._t > 1) {
@@ -168,7 +168,7 @@ int main(int argc, char **argv)
   }
 
   // Instantiate filter which implements the desired integration method
-  unique_ptr<VelocityToDisplacementField<RealPixel> > vtod;
+  UniquePtr<VelocityToDisplacementField<RealPixel> > vtod;
 
   if (strcmp(IntegrationMethod, "SS") == 0) {
     vtod.reset(new VelocityToDisplacementFieldSS<RealPixel>());

@@ -95,7 +95,7 @@ BaseImage::~BaseImage()
 // -----------------------------------------------------------------------------
 BaseImage *BaseImage::New(const char *fname)
 {
-  unique_ptr<ImageReader> reader(ImageReader::New(fname));
+  UniquePtr<ImageReader> reader(ImageReader::New(fname));
   return reader->Run();
 }
 

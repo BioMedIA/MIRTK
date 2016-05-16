@@ -246,7 +246,7 @@ int main(int argc, char *argv[])
 
   // Read input image
   InitializeIOLibrary();
-  unique_ptr<BaseImage> image(BaseImage::New(image_name));
+  UniquePtr<BaseImage> image(BaseImage::New(image_name));
 
   // Compute parameters of cutting plane
   BinaryImage hemi;
@@ -272,11 +272,11 @@ int main(int argc, char *argv[])
 
   // Write left/right hemisphere
   if (left_name) {
-    unique_ptr<BaseImage> left(Pad(image.get(), hemi, mask, b, n, RH, padding));
+    UniquePtr<BaseImage> left(Pad(image.get(), hemi, mask, b, n, RH, padding));
     left->Write(left_name);
   }
   if (right_name) {
-    unique_ptr<BaseImage> right(Pad(image.get(), hemi, mask, b, n, LH, padding));
+    UniquePtr<BaseImage> right(Pad(image.get(), hemi, mask, b, n, LH, padding));
     right->Write(right_name);
   }
 

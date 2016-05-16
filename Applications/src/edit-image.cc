@@ -93,7 +93,7 @@ int main(int argc, char *argv[])
   const char *output_name = POSARG(2);
 
   InitializeIOLibrary();
-  unique_ptr<BaseImage> image(BaseImage::New(input_name));
+  UniquePtr<BaseImage> image(BaseImage::New(input_name));
 
   double origin[4];
   double xsize, ysize, zsize, tsize;
@@ -166,7 +166,7 @@ int main(int argc, char *argv[])
     #ifdef HAVE_MIRTK_Transformation
     else if (OPTION("-dofin") || OPTION("-dofin_i") || OPTION("-putdof") || OPTION("-putdof_i")) {
       Matrix m;
-      unique_ptr<Transformation> dof(Transformation::New(ARGUMENT));
+      UniquePtr<Transformation> dof(Transformation::New(ARGUMENT));
       HomogeneousTransformation *lin  = dynamic_cast<HomogeneousTransformation *>(dof.get());
       MultiLevelTransformation  *mffd = dynamic_cast<MultiLevelTransformation  *>(dof.get());
       if      (lin)  m = lin->GetMatrix();

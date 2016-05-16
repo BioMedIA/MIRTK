@@ -23,8 +23,7 @@
 #include "mirtk/CommonExport.h"
 
 #include "mirtk/Stream.h"
-
-#include <memory>
+#include "mirtk/Memory.h"
 
 #ifdef HAVE_TBB
 // TBB includes windows header which defines min/max macros otherwise
@@ -110,8 +109,8 @@ using tbb::split;
 // which can be used to limit the number of threads, a global task scheduler
 // instance is created and the -threads argument passed on to its initialize
 // method by ParseParallelOption. There should be no task scheduler created/
-// terminated in any of the IRTK libraries functions and classes.
-MIRTK_Common_EXPORT extern std::unique_ptr<task_scheduler_init> tbb_scheduler;
+// terminated in any of the MIRTK library functions and classes.
+MIRTK_Common_EXPORT extern UniquePtr<task_scheduler_init> tbb_scheduler;
 
 
 // -----------------------------------------------------------------------------

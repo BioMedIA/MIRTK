@@ -214,7 +214,7 @@ int main(int argc, char **argv)
 
   // Transform first pnumber points
   for (size_t i = 0; i < dofin_name.size(); ++i) {
-    unique_ptr<Transformation> dofin(Transformation::New(dofin_name[i]));
+    UniquePtr<Transformation> dofin(Transformation::New(dofin_name[i]));
     if (dofin_invert[i]) {
       if (verbose) cout << "Apply inverse of " << dofin_name[i] << endl;
       for (int i = 0; i < pnumber; ++i) dofin->Inverse(points(i), ts, tt);

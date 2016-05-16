@@ -84,7 +84,7 @@ int main(int argc, char *argv[])
 
   // Read image
   InitializeIOLibrary();
-  unique_ptr<BaseImage> input(BaseImage::New(input_name));
+  UniquePtr<BaseImage> input(BaseImage::New(input_name));
   if (voxel_type == MIRTK_VOXEL_UNKNOWN) {
     voxel_type = input->GetDataType();
   }
@@ -105,7 +105,7 @@ int main(int argc, char *argv[])
   }
 
   // Convert image
-  unique_ptr<BaseImage> output(BaseImage::New(voxel_type));
+  UniquePtr<BaseImage> output(BaseImage::New(voxel_type));
   *output = *input;
 
   // Write image

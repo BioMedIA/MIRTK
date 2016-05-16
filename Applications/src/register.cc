@@ -434,11 +434,11 @@ struct ConcurrentImageReader
   {
     HomogeneousTransformation *lin;
     for (size_t n = re.begin(); n != re.end(); ++n) {
-      unique_ptr<BaseImage> &image = (*_Image)[n];
+      UniquePtr<BaseImage> &image = (*_Image)[n];
       if (image.get() == NULL) {
         image.reset(BaseImage::New(_ImageName[n].c_str()));
         if (!IsIdentity(_DoFName[n])) {
-          unique_ptr<Transformation> dof(Transformation::New(_DoFName[n].c_str()));
+          UniquePtr<Transformation> dof(Transformation::New(_DoFName[n].c_str()));
           lin = dynamic_cast<HomogeneousTransformation *>(dof.get());
           if (lin) {
             Matrix mat = lin->GetMatrix();
@@ -456,7 +456,7 @@ struct ConcurrentImageReader
   static void Run(const Array<string>           &fname,
                   const Array<string>           &tname,
                   const Array<bool>             &tinv,
-                  Array<unique_ptr<BaseImage> > &image,
+                  Array<UniquePtr<BaseImage> > &image,
                   Error                         *error)
   {
     ConcurrentImageReader body;
@@ -475,7 +475,7 @@ private:
   Array<string>                  _ImageName;
   Array<string>                  _DoFName;
   Array<bool>                    _DoFInvert;
-  Array<unique_ptr<BaseImage> > *_Image;
+  Array<UniquePtr<BaseImage> > *_Image;
   Error                         *_Error;
 };
 
@@ -507,7 +507,7 @@ public:
           _Error[n] = EmptyPointSet;
         } else {
           if (!IsIdentity(_DoFName[n])) {
-            unique_ptr<Transformation> t(Transformation::New(_DoFName[n].c_str()));
+            UniquePtr<Transformation> t(Transformation::New(_DoFName[n].c_str()));
             for (vtkIdType i = 0; i < points->GetNumberOfPoints(); ++i) {
               points->GetPoint(i, p);
               if (_DoFInvert[n]) t->Inverse  (p[0], p[1], p[2]);
@@ -751,10 +751,10 @@ int main(int argc, char **argv)
   // ---------------------------------------------------------------------------
   // Determine number of input images
   Array<double>                 image_times;
-  Array<unique_ptr<BaseImage> > images;
+  Array<UniquePtr<BaseImage> > images;
 
   if (image_names.size() == 1) {
-    unique_ptr<BaseImage> sequence(BaseImage::New(image_names[0].c_str()));
+    UniquePtr<BaseImage> sequence(BaseImage::New(image_names[0].c_str()));
     const int nframes = sequence->GetT();
     if (nframes < 2) {
       if (verbose > 1) cout << " failed\n" << endl;
@@ -916,7 +916,7 @@ int main(int argc, char **argv)
 
   // ---------------------------------------------------------------------------
   // Read initial transformation
-  unique_ptr<Transformation> dofin;
+  UniquePtr<Transformation> dofin;
   if (dofin_name) {
     if (IsIdentity(dofin_name)) dofin.reset(new RigidTransformation());
     else                        dofin.reset(Transformation::New(dofin_name));
@@ -925,7 +925,7 @@ int main(int argc, char **argv)
 
   // ---------------------------------------------------------------------------
   // Read mask which defines domain on which similarity is evaluated
-  unique_ptr<BinaryImage> mask;
+  UniquePtr<BinaryImage> mask;
   if (mask_name) {
     mask.reset(new BinaryImage(mask_name));
     registration.Domain(mask.get());

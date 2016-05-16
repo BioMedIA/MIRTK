@@ -199,7 +199,7 @@ void liebracket(GenericImage<VoxelType> *ov,
                 GenericImage<VoxelType> *rv, bool usejac = true)
 {
   typedef LieBracketImageFilter<VoxelType> LieBracketFilter;
-  unique_ptr<LieBracketFilter> filter(LieBracketFilter::New(ov, usejac));
+  UniquePtr<LieBracketFilter> filter(LieBracketFilter::New(ov, usejac));
   filter->Input(0, lv);
   filter->Input(1, rv);
   filter->Output(ov);

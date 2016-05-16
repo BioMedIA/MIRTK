@@ -126,7 +126,7 @@ int Read(const char *name, double *&data, int *dtype, ImageAttributes *attr)
       exit(1);
 #endif // MIRTK_Image_WITH_VTK
     case IMAGE: {
-      unique_ptr<BaseImage> image(BaseImage::New(name));
+      UniquePtr<BaseImage> image(BaseImage::New(name));
       if (attr) *attr = image->Attributes();
       if (dtype) *dtype = image->GetDataType();
       n = image->NumberOfVoxels();
@@ -213,7 +213,7 @@ void Write::Process(int n, double *data, bool *)
         cerr << "Cannot write data series to file! Length of data series changed." << endl;
         exit(1);
       }
-      unique_ptr<BaseImage> image(BaseImage::New(_DataType));
+      UniquePtr<BaseImage> image(BaseImage::New(_DataType));
       image->Initialize(_Attributes);
       for (int i = 0; i < n; ++i) image->PutAsDouble(i, data[i]);
       image->Write(_FileName.c_str());

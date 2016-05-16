@@ -758,7 +758,7 @@ double BSplineFreeFormTransformationSV
   } else {    
     double x, y, z, vec[3] = {.0, .0, .0};
 
-    unique_ptr<InterpolateImageFunction> f;
+    UniquePtr<InterpolateImageFunction> f;
     f.reset(InterpolateImageFunction::New(Interpolation_Linear, Extrapolation_NN, &disp));
     f->Input(&disp);
     f->Initialize();
