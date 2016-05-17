@@ -185,7 +185,7 @@ int main(int argc, char **argv)
     exit(1);
   }
 
-  Array<shared_ptr<Transformation> > dofs;
+  Array<SharedPtr<Transformation> > dofs;
   if      (metric == InverseConsistency) dofs.resize(2);
   else if (metric == Transitivity)       dofs.resize(3);
   else                                   dofs.resize(1);
@@ -196,7 +196,7 @@ int main(int argc, char **argv)
   }
 
   // Read first transformation
-  shared_ptr<Transformation> dof(Transformation::New(dofin_name[0].c_str()));
+  SharedPtr<Transformation> dof(Transformation::New(dofin_name[0].c_str()));
 
   // Read target, foreground mask, and/or determine attributes for voxel-wise metrics
   GreyImage        target;
