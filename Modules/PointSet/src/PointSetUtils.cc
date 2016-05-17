@@ -48,7 +48,6 @@
 #include "vtkCellData.h"
 #include "vtkDataSetAttributes.h"
 #include "vtkCell.h"
-#include "vtkCellIterator.h"
 #include "vtkTriangle.h"
 #include "vtkTetra.h"
 #include "vtkGenericCell.h"
