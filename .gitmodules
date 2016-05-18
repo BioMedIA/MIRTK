@@ -10,6 +10,9 @@
 [submodule "Packages/Mapping"]
 	path = Packages/Mapping
 	url = https://github.com/MIRTK/Mapping.git
+[submodule "Packages/DrawEM"]
+	path = Packages/DrawEM
+	url = https://github.com/MIRTK/DrawEM
 [submodule "ThirdParty/LBFGS"]
 	path = ThirdParty/LBFGS
 	url = https://github.com/MIRTK/LBFGS.git
