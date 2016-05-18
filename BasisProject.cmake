@@ -73,6 +73,7 @@ basis_project (
   MODULE_DIRS
     Packages/Deformable
     Packages/Mapping
+    Packages/DrawEM
 
   # --------------------------------------------------------------------------
   # list of modules enabled by default
@@ -89,6 +90,7 @@ basis_project (
   EXTERNAL_MODULES
     Deformable
     Mapping
+    DrawEM
 
   # --------------------------------------------------------------------------
   # dependencies

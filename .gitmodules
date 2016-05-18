@@ -4,12 +4,15 @@
 [submodule "ThirdParty/Eigen"]
 	path = ThirdParty/Eigen
 	url = https://github.com/MIRTK/Eigen.git
+[submodule "ThirdParty/LBFGS"]
+	path = ThirdParty/LBFGS
+	url = https://github.com/MIRTK/LBFGS.git
 [submodule "Packages/Deformable"]
 	path = Packages/Deformable
 	url = https://github.com/MIRTK/Deformable.git
 [submodule "Packages/Mapping"]
 	path = Packages/Mapping
 	url = https://github.com/MIRTK/Mapping.git
-[submodule "ThirdParty/LBFGS"]
-	path = ThirdParty/LBFGS
-	url = https://github.com/MIRTK/LBFGS.git
+[submodule "Packages/DrawEM"]
+	path = Packages/DrawEM
+	url = https://github.com/MIRTK/DrawEM
