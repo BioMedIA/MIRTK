@@ -419,7 +419,7 @@ inline double Histogram1D<HistogramType>::ValToCDF(double val) const
 template <class HistogramType>
 inline int Histogram1D<HistogramType>::CDFToBin(double p) const
 {
-  if (p < .0 || p > .1) {
+  if (p < .0 || p > 1.0) {
     cerr << "Histogram1D<HistogramType>::CDFToBin: Must be between 0 and 1" << endl;
     exit(1);
   }
