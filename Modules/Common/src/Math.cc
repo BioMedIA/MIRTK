@@ -26,6 +26,8 @@
 namespace mirtk {
 
 
+const double inf         = numeric_limits<double>::infinity();
+const double nan         = numeric_limits<double>::quiet_NaN();
 const double pi          = double(M_PI);
 const double pi_half     = 0.5 * pi;
 const double two_pi      = 2.0 * pi;
