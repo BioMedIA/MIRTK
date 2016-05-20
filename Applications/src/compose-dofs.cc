@@ -180,7 +180,7 @@ void PushTransformation(FluidFreeFormTransformation &t1,
 int main(int argc, char **argv)
 {
   REQUIRES_POSARGS(3);
-  int N = NUM_POSARGS;
+  int N = NUM_POSARGS - 1;
 
   ImageAttributes attr;
   FluidFreeFormTransformation t;
@@ -205,7 +205,7 @@ int main(int argc, char **argv)
     cout << "Compose affine transformations at end..." << endl;
   }
   AffineTransformation *post = t.GetAffineTransformation();
-  for (int n = N - 1; n >= 1; --n) {
+  for (int n = N; n >= 1; --n) {
     if (verbose) {
       cout << "Reading transformation " << n << ": " << POSARG(n) << endl;
     }
@@ -225,7 +225,7 @@ int main(int argc, char **argv)
   if (verbose) {
     cout << "\nCompose remaining transformations..." << endl;
   }
-  for (int n = 1; n < N; ++n) {
+  for (int n = 1; n <= N; ++n) {
 
     // Read n-th transformation
     if (verbose) {
@@ -239,7 +239,7 @@ int main(int argc, char **argv)
     fluid  = dynamic_cast<FluidFreeFormTransformation                *>(dof.get());
 
     // Compose current composite transformation with n-th transformation
-    const bool last = (n == N - 1);
+    const bool last = (n == N);
     if      (aff   ) PushTransformation(t, aff,    attr, last);
     else if (mffd  ) PushTransformation(t, mffd,   attr, last);
     else if (svmffd) PushTransformation(t, svmffd, attr, last);
