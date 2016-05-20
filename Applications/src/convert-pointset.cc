@@ -34,6 +34,7 @@
 #include "vtkCellData.h"
 #include "vtkAppendFilter.h"
 #include "vtkAppendPolyData.h"
+#include "vtkCleanPolyData.h"
 
 using namespace mirtk;
 
@@ -45,40 +46,42 @@ using namespace mirtk;
 // -----------------------------------------------------------------------------
 void PrintHelp(const char *name)
 {
-  cout << endl;
-  cout << "Usage: " << name << " <input>... <output> [options]" << endl;
-  cout << endl;
-  cout << "Description:" << endl;
-  cout << "  Convert point set from one (file) format to another." << endl;
-  cout << endl;
-  cout << "  If more than one input point sets is given, all input point sets" << endl;
-  cout << "  are appended into a single point set before conversion. When all" << endl;
-  cout << "  input point sets are of type vtkPolyData, the output point set" << endl;
-  cout << "  is of type vtkPolyData. If more than one input point set is given" << endl;
-  cout << "  and not all are of type vtkPolyData, the output point set is of type" << endl;
-  cout << "  vtkUnstructuredGrid." << endl;
-  cout << endl;
-  cout << "  The current implementation can only convert between different" << endl;
-  cout << "  point set file formats based on the file name extension." << endl;
-  cout << "  Besides the common formats supported by VTK, it can also read/write" << endl;
-  cout << "  BrainSuite .dfs files and write a Piecewise Linear Complex (PLC)" << endl;
-  cout << "  B-Rep description in the TetGen formats .poly and .smesh. It also supports" << endl;
-  cout << "  the Object File Format (.off) used by the CGAL library." << endl;
-  cout << endl;
-  cout << "Arguments:" << endl;
-  cout << "  input    Input  point set file (.vtk, .vtp, .vtu, .stl, .ply, .off, .dfs, .obj)." << endl;
-  cout << "  output   Output point set file (.vtk, .vtp, .vtu, .stl, .ply, .off, .dfs, .node, .poly, .smesh)." << endl;
-  cout << endl;
-  cout << "Optional arguments:" << endl;
-  cout << "  -merge         Merge points of non-polygonal input point sets. (default: off)" << endl;
-  cout << "  -holes         Add a point inside the input surface meshes, except off the first input mesh," << endl;
-  cout << "                 to the hole list of the output .poly or .smesh file. (default: no holes)" << endl;
-  cout << "  -nocelldata    Do not write cell  data to output file. (default: off)" << endl;
-  cout << "  -nopointdata   Do not write point data to output file. (default: off)" << endl;
-  cout << "  -ascii         Write legacy VTK files encoded in ASCII. (default: off)" << endl;
-  cout << "  -binary        Write legacy VTK files in binary form. (default: on)" << endl;
-  cout << "  -compress      Compress XML VTK files. (default: on)" << endl;
-  cout << "  -nocompress    Do not compress XML VTK files. (default: off)" << endl;
+  cout << "\n";
+  cout << "Usage: " << name << " <input>... <output> [options]\n";
+  cout << "\n";
+  cout << "Description:\n";
+  cout << "  Convert point set from one (file) format to another.\n";
+  cout << "\n";
+  cout << "  If more than one input point sets is given, all input point sets\n";
+  cout << "  are appended into a single point set before conversion. When all\n";
+  cout << "  input point sets are of type vtkPolyData, the output point set\n";
+  cout << "  is of type vtkPolyData. If more than one input point set is given\n";
+  cout << "  and not all are of type vtkPolyData, the output point set is of type\n";
+  cout << "  vtkUnstructuredGrid.\n";
+  cout << "\n";
+  cout << "  The current implementation can only convert between different\n";
+  cout << "  point set file formats based on the file name extension.\n";
+  cout << "  Besides the common formats supported by VTK, it can also read/write\n";
+  cout << "  BrainSuite .dfs files and write a Piecewise Linear Complex (PLC)\n";
+  cout << "  B-Rep description in the TetGen formats .poly and .smesh. It also\n";
+  cout << "  supports the Object File Format (.off) used by the CGAL library.\n";
+  cout << "\n";
+  cout << "Arguments:\n";
+  cout << "  input    Input  point set file (.vtk, .vtp, .vtu, .stl, .ply, .off, .dfs, .obj).\n";
+  cout << "  output   Output point set file (.vtk, .vtp, .vtu, .stl, .ply, .off, .dfs, .node, .poly, .smesh).\n";
+  cout << "\n";
+  cout << "Optional arguments:\n";
+  cout << "  -merge [<tol>]   Merge points of non-polygonal input point sets.\n";
+  cout << "                   When only vtkPolyData are merged, the maximum distance between\n";
+  cout << "                   points to be merged can be optionally given as argument. (default: off)\n";
+  cout << "  -holes           Add a point inside the input surface meshes, except off the first input mesh,\n";
+  cout << "                   to the hole list of the output .poly or .smesh file. (default: no holes)\n";
+  cout << "  -nocelldata      Do not write cell  data to output file. (default: off)\n";
+  cout << "  -nopointdata     Do not write point data to output file. (default: off)\n";
+  cout << "  -ascii           Write legacy VTK files encoded in ASCII. (default: off)\n";
+  cout << "  -binary          Write legacy VTK files in binary form. (default: on)\n";
+  cout << "  -compress        Compress XML VTK files. (default: on)\n";
+  cout << "  -nocompress      Do not compress XML VTK files. (default: off)\n";
   PrintStandardOptions(cout);
   cout << endl;
 }
@@ -206,11 +209,15 @@ int main(int argc, char *argv[])
   bool compress   = true;
   bool merge      = false;
   bool with_holes = false;
+  double merge_tol = 1e-6;
 
   for (ALL_OPTIONS) {
     if      (OPTION("-nopointdata")) pointdata = false;
     else if (OPTION("-nocelldata"))  celldata  = false;
-    else if (OPTION("-merge"))       merge = true;
+    else if (OPTION("-merge")) {
+      merge = true;
+      if (HAS_ARGUMENT) PARSE_ARGUMENT(merge_tol);
+    }
     else if (OPTION("-holes"))       with_holes = true;
     else if (OPTION("-ascii"))       ascii = true;
     else if (OPTION("-binary"))      ascii = false;
@@ -245,6 +252,18 @@ int main(int argc, char *argv[])
       }
       append->Update();
       output = append->GetOutput();
+      if (merge) {
+        vtkNew<vtkCleanPolyData> merger;
+        merger->ConvertLinesToPointsOff();
+        merger->ConvertPolysToLinesOff();
+        merger->ConvertStripsToPolysOn();
+        merger->PointMergingOn();
+        merger->ToleranceIsAbsoluteOn();
+        merger->SetAbsoluteTolerance(merge_tol);
+        SetVTKInput(merger, output);
+        merger->Update();
+        output = merger->GetOutput();
+      }
     } else {
       vtkNew<vtkAppendFilter> append;
       for (size_t i = 0; i < pointsets.size(); ++i) {
