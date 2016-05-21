@@ -118,6 +118,6 @@ Mapping
 Draw-EM
 -------
 
-The Developing brain Region Annotation with Expectation-Maximization (Draw-EM) module
-provides command-line tools and Bash scripts for the automatic segmentation of neonatal
-brain MR images. It is developed by Antonios Makropolous.
+.. include:: modules/_descriptions/drawem.rst
+
+:doc:`[more] <modules/drawem>`
