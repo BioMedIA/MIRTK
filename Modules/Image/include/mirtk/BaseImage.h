@@ -705,12 +705,12 @@ public:
   /// Convert image to VTK structured points
   ///
   /// \note Use only when MIRTK_Image_WITH_VTK is 1.
-  virtual void ImageToVTK(vtkStructuredPoints *) const = 0;
+  virtual void ImageToVTK(vtkStructuredPoints *) const;
 
   /// Convert VTK structured points to image
   ///
   /// \note Use only when MIRTK_Image_WITH_VTK is 1.
-  virtual void VTKToImage(vtkStructuredPoints *) = 0;
+  virtual void VTKToImage(vtkStructuredPoints *);
 
   #endif // MIRTK_Image_WITH_VTK
   // ---------------------------------------------------------------------------

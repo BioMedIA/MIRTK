@@ -31,6 +31,10 @@
 
 #include "mirtk/GaussianBlurring.h" // GaussianBlurring::KernelSize
 
+#if MIRTK_Image_WITH_VTK
+  #include "vtkStructuredPoints.h"
+#endif
+
 
 namespace mirtk {
 
@@ -894,6 +898,34 @@ ImageAttributes BaseImage::ForegroundDomain(double padding, double sigma, bool o
 int BaseImage::ImageToVTKScalarType() const
 {
   return ToVTKDataType(this->GetDataType());
+}
+
+// -----------------------------------------------------------------------------
+void BaseImage::ImageToVTK(vtkStructuredPoints *vtk) const
+{
+  if (this->ImageToVTKScalarType() == VTK_VOID) {
+    cerr << this->NameOfType() << "::ImageToVTK: Cannot convert image to VTK structured points" << endl;
+    exit(1);
+  }
+  double x = .0, y = .0, z = .0;
+  this->ImageToWorld(x, y, z);
+  vtk->SetOrigin    (x, y, z);
+  vtk->SetDimensions(_attr._x,  _attr._y,  _attr._z);
+  vtk->SetSpacing   (_attr._dx, _attr._dy, _attr._dz);
+  vtk->AllocateScalars(this->ImageToVTKScalarType(), _attr._t);
+  for (int l = 0; l < _attr._t; ++l)
+  for (int k = 0; k < _attr._z; ++k)
+  for (int j = 0; j < _attr._y; ++j)
+  for (int i = 0; i < _attr._x; ++i) {
+    vtk->SetScalarComponentFromDouble(i, j, k, l, this->GetAsDouble(i, j, k, l));
+  }
+}
+
+// -----------------------------------------------------------------------------
+void BaseImage::VTKToImage(vtkStructuredPoints *)
+{
+  cerr << this->NameOfClass() << "::VTKToImage: Not implemented" << endl;
+  exit(1);
 }
 
 #endif // MIRTK_Image_WITH_VTK

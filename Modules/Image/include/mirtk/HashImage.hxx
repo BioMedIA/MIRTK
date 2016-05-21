@@ -33,7 +33,7 @@
 #include "mirtk/ImageWriter.h"
 
 
-#if MIRTK_Image_WITH_VTK
+#if defined(HAVE_VTK) && MIRTK_Image_WITH_VTK
 #  include "vtkStructuredPoints.h"
 #endif
 
@@ -1156,7 +1156,7 @@ void HashImage<VoxelType>::FlipZT(bool modifyOrigin)
 // =============================================================================
 // VTK interface
 // =============================================================================
-#if MIRTK_Image_WITH_VTK
+#if defined(HAVE_VTK) && MIRTK_Image_WITH_VTK
 
 // -----------------------------------------------------------------------------
 template <class VoxelType>
@@ -1198,7 +1198,7 @@ void HashImage<Type>::VTKToImage(vtkStructuredPoints *)
   exit(1);
 }
 
-#endif // MIRTK_Image_WITH_VTK
+#endif // defined(HAVE_VTK) && MIRTK_Image_WITH_VTK
 // =============================================================================
 // I/O
 // =============================================================================
