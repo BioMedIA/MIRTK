@@ -15,8 +15,9 @@
    /commands/calculate-surface-attributes
    /commands/calculate-surface-spectrum
    /commands/close-image
-   /commands/concatenate-dofs
-   /commands/concatenate-images
+   /commands/combine-images
+   /commands/compose-dofs
+   /commands/compose-maps
    /commands/convert-dof
    /commands/convert-image
    /commands/convert-pointset
@@ -37,6 +38,7 @@
    /commands/evaluate-distortion
    /commands/evaluate-dof
    /commands/evaluate-jacobian
+   /commands/evaluate-map
    /commands/evaluate-overlap
    /commands/evaluate-similarity
    /commands/evaluate-surface-overlap
@@ -50,7 +52,9 @@
    /commands/info
    /commands/init-dof
    /commands/invert-dof
-   /commands/map
+   /commands/map-boundary
+   /commands/map-surface
+   /commands/map-volume
    /commands/match-points
    /commands/offset-surface
    /commands/open-image
@@ -78,8 +82,9 @@ Command                             Description
 |calculate-surface-attributes|      |calculate-surface-attributes-brief-description|
 |calculate-surface-spectrum|        |calculate-surface-spectrum-brief-description|
 |close-image|                       |close-image-brief-description|
-|concatenate-dofs|                  |concatenate-dofs-brief-description|
-|concatenate-images|                |concatenate-images-brief-description|
+|combine-images|                    |combine-images-brief-description|
+|compose-dofs|                      |compose-dofs-brief-description|
+|compose-maps|                      |compose-maps-brief-description|
 |convert-dof|                       |convert-dof-brief-description|
 |convert-image|                     |convert-image-brief-description|
 |convert-pointset|                  |convert-pointset-brief-description|
@@ -100,6 +105,7 @@ Command                             Description
 |evaluate-distortion|               |evaluate-distortion-brief-description|
 |evaluate-dof|                      |evaluate-dof-brief-description|
 |evaluate-jacobian|                 |evaluate-jacobian-brief-description|
+|evaluate-map|                      |evaluate-map-brief-description|
 |evaluate-overlap|                  |evaluate-overlap-brief-description|
 |evaluate-similarity|               |evaluate-similarity-brief-description|
 |evaluate-surface-overlap|          |evaluate-surface-overlap-brief-description|
@@ -113,7 +119,9 @@ Command                             Description
 |info|                              |info-brief-description|
 |init-dof|                          |init-dof-brief-description|
 |invert-dof|                        |invert-dof-brief-description|
-|map|                               |map-brief-description|
+|map-boundary|                      |map-boundary-brief-description|
+|map-surface|                       |map-surface-brief-description|
+|map-volume|                        |map-volume-brief-description|
 |match-points|                      |match-points-brief-description|
 |offset-surface|                    |offset-surface-brief-description|
 |open-image|                        |open-image-brief-description|
@@ -139,8 +147,9 @@ Command                             Description
 .. |calculate-surface-attributes|      replace:: :doc:`/commands/calculate-surface-attributes`
 .. |calculate-surface-spectrum|        replace:: :doc:`/commands/calculate-surface-spectrum`
 .. |close-image|                       replace:: :doc:`/commands/close-image`
-.. |concatenate-dofs|                  replace:: :doc:`/commands/concatenate-dofs`
-.. |concatenate-images|                replace:: :doc:`/commands/concatenate-images`
+.. |combine-images|                    replace:: :doc:`/commands/combine-images`
+.. |compose-dofs|                      replace:: :doc:`/commands/compose-dofs`
+.. |compose-maps|                      replace:: :doc:`/commands/compose-maps`
 .. |convert-dof|                       replace:: :doc:`/commands/convert-dof`
 .. |convert-image|                     replace:: :doc:`/commands/convert-image`
 .. |convert-pointset|                  replace:: :doc:`/commands/convert-pointset`
@@ -161,6 +170,7 @@ Command                             Description
 .. |evaluate-distortion|               replace:: :doc:`/commands/evaluate-distortion`
 .. |evaluate-dof|                      replace:: :doc:`/commands/evaluate-dof`
 .. |evaluate-jacobian|                 replace:: :doc:`/commands/evaluate-jacobian`
+.. |evaluate-map|                      replace:: :doc:`/commands/evaluate-map`
 .. |evaluate-overlap|                  replace:: :doc:`/commands/evaluate-overlap`
 .. |evaluate-similarity|               replace:: :doc:`/commands/evaluate-similarity`
 .. |evaluate-surface-overlap|          replace:: :doc:`/commands/evaluate-surface-overlap`
@@ -174,7 +184,9 @@ Command                             Description
 .. |info|                              replace:: :doc:`/commands/info`
 .. |init-dof|                          replace:: :doc:`/commands/init-dof`
 .. |invert-dof|                        replace:: :doc:`/commands/invert-dof`
-.. |map|                               replace:: :doc:`/commands/map`
+.. |map-boundary|                      replace:: :doc:`/commands/map-boundary`
+.. |map-surface|                       replace:: :doc:`/commands/map-surface`
+.. |map-volume|                        replace:: :doc:`/commands/map-volume`
 .. |match-points|                      replace:: :doc:`/commands/match-points`
 .. |offset-surface|                    replace:: :doc:`/commands/offset-surface`
 .. |open-image|                        replace:: :doc:`/commands/open-image`
@@ -199,8 +211,9 @@ Command                             Description
 .. include:: /commands/_summaries/calculate-surface-attributes.rst
 .. include:: /commands/_summaries/calculate-surface-spectrum.rst
 .. include:: /commands/_summaries/close-image.rst
-.. include:: /commands/_summaries/concatenate-dofs.rst
-.. include:: /commands/_summaries/concatenate-images.rst
+.. include:: /commands/_summaries/combine-images.rst
+.. include:: /commands/_summaries/compose-dofs.rst
+.. include:: /commands/_summaries/compose-maps.rst
 .. include:: /commands/_summaries/convert-dof.rst
 .. include:: /commands/_summaries/convert-image.rst
 .. include:: /commands/_summaries/convert-pointset.rst
@@ -221,6 +234,7 @@ Command                             Description
 .. include:: /commands/_summaries/evaluate-distortion.rst
 .. include:: /commands/_summaries/evaluate-dof.rst
 .. include:: /commands/_summaries/evaluate-jacobian.rst
+.. include:: /commands/_summaries/evaluate-map.rst
 .. include:: /commands/_summaries/evaluate-overlap.rst
 .. include:: /commands/_summaries/evaluate-similarity.rst
 .. include:: /commands/_summaries/evaluate-surface-overlap.rst
@@ -234,7 +248,9 @@ Command                             Description
 .. include:: /commands/_summaries/info.rst
 .. include:: /commands/_summaries/init-dof.rst
 .. include:: /commands/_summaries/invert-dof.rst
-.. include:: /commands/_summaries/map.rst
+.. include:: /commands/_summaries/map-boundary.rst
+.. include:: /commands/_summaries/map-surface.rst
+.. include:: /commands/_summaries/map-volume.rst
 .. include:: /commands/_summaries/match-points.rst
 .. include:: /commands/_summaries/offset-surface.rst
 .. include:: /commands/_summaries/open-image.rst
