@@ -391,7 +391,7 @@ public:
 
   // ---------------------------------------------------------------------------
   // VTK interface
-  #if MIRTK_Image_WITH_VTK
+  #if defined(HAVE_VTK) && MIRTK_Image_WITH_VTK
 
   /// Convert image to VTK structured points
   ///
