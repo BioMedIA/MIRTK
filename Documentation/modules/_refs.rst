@@ -7,3 +7,4 @@
 .. |Registration|    replace:: :doc:`Registration   </modules/registration>`
 .. |Deformable|      replace:: :doc:`Deformable     </modules/deformable>`
 .. |Mapping|         replace:: :doc:`Mapping        </modules/mapping>`
+.. |DrawEM|          replace:: :doc:`Draw-EM        </modules/drawem>`

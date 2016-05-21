@@ -11,6 +11,7 @@ Module               Brief Description
 |Registration|       Image and point set registration library.
 |Deformable|         Library for Euler integration of deformable meshes such as cortical surfaces.
 |Mapping|            Filters for the mapping of brain surfaces and volumes.
+|DrawEM|             Structural and tissue segmentation of neonatal brain MR images.
 ===================  ==============================================================================
 
 .. include:: /modules/_refs.rst

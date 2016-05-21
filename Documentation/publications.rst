@@ -73,6 +73,12 @@ in the following workshop paper.
             In 3rd MICCAI Workshop on Spatiotemporal Image Analysis for Longitudinal and Time-Series Image Data (STIA),
             LNCS 8682, pp. 27-37, Boston, MA (2014)
 
+**Draw-EM: Developing brain Region Annotation With Expectation-Maximization**
+
+.. [TMI14] `Automatic whole brain MRI segmentation of the developing neonatal brain <http://ieeexplore.ieee.org/xpl/articleDetails.jsp?arnumber=6810848>`__. |br|
+           A. Makropoulos, I. S. Gousias, C. Ledig, P. Aljabar, A. Serag, J. V. Hajnal, A. D. Edwards, S. J. Counsell, D. Rueckert.
+           IEEE Transactions on Medical Imaging, vol. 33 (9), pp. 1818-1831, 2014.
+
 **Spectral surface matching**
 
 The spectral surface matching implementations are based on the MATLAB code provided by
