@@ -70,6 +70,7 @@ Module               Requires module(s)                                         
 |Registration|       |Common|, |Numerics|, |Image|, |Transformation|               |PointSet|, |Deformable|
 |Deformable|         |Common|, |Numerics|, |Image|, |Transformation|, |PointSet|
 |Mapping|            |Common|, |Numerics|, |Image|, |PointSet|
+|DrawEM|             |Common|, |Numerics|, |Image|, |IO|
 ===================  ===========================================================   ========================================
 
 .. note::

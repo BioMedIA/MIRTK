@@ -17,6 +17,7 @@ Modules
    modules/registration
    modules/deformable
    modules/mapping
+   modules/drawem
 
 .. Replacements for use by descriptions included below to refer to other modules
 
@@ -112,3 +113,11 @@ Mapping
 .. include:: modules/_descriptions/mapping.rst
 
 :doc:`[more] <modules/mapping>`
+
+
+Draw-EM
+-------
+
+The Developing brain Region Annotation with Expectation-Maximization (Draw-EM) module
+provides command-line tools and Bash scripts for the automatic segmentation of neonatal
+brain MR images. It is developed by Antonios Makropolous.

@@ -92,6 +92,7 @@ update the desired Git submodules before (re-)configuring the build files, e.g.:
     # Or download one or more of the following packages only
     git submodule update --init -- Packages/Deformable
     git submodule update --init -- Packages/Mapping
+    git submodule update --init -- Packages/DrawEM
 
 
 .. _Git:   https://git-scm.com
