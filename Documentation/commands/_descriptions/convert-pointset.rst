@@ -14,5 +14,5 @@ The current implementation can only convert between different
 point set file formats based on the file name extension.
 Besides the common formats supported by VTK, it can also read/write
 BrainSuite .dfs files and write a Piecewise Linear Complex (PLC)
-B-Rep description in the TetGen formats .poly and .smesh. It also supports
-the Object File Format (.off) used by the CGAL library.
+B-Rep description in the TetGen formats .poly and .smesh. It also
+supports the Object File Format (.off) used by the CGAL library.

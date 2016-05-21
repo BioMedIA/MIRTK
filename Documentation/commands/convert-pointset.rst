@@ -38,9 +38,11 @@ Arguments
 Command options
 ---------------
 
-.. option:: -merge
+.. option:: -merge [<tol>]
 
-   Merge points of non-polygonal input point sets. (default: off)
+   Merge points of non-polygonal input point sets.
+   When only vtkPolyData are merged, the maximum distance between
+   points to be merged can be optionally given as argument. (default: off)
 
 .. option:: -holes
 

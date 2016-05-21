@@ -40,6 +40,14 @@ Arguments
 Command options
 ---------------
 
+.. option:: -white
+
+   Input surface is cortical WM/GM boundary.
+
+.. option:: -pial
+
+   Input surface is cortical GM/CSF boundary.
+
 .. option:: -image <file>
 
    Input real-valued scalar/vector image.
@@ -60,25 +68,24 @@ Command options
 
    Assign values to points of input surface. (default: on)
 
-.. option:: -write-dilated-labels <file>
+.. option:: -fill, -nofill
 
-   Write image of dilated labels.
-
-.. option:: -pial
-
-   Input surface is cortical cGM/CSF boundary.
-
-.. option:: -white
-
-   Input surface is cortical WM/cGM boundary.
+   Fill holes in projected surface parcellation.
 
 .. option:: -min-size <n>
 
    Surface patches with less than n points are removed. (default: 0)
 
-.. option:: -fill, -nofill
+.. option:: -boundary
 
-   Fill holes in projected surface parcellation.
+   Output boundary lines between surface parcels. (default: off)
+   When no :option:`-image` or :option:`-labels` input file is
+   specified, the boundaries of the input parcellation given by
+   the labels array with the specified :option:`-name` are extracted.
+
+.. option:: -write-dilated-labels <file>
+
+   Write image of dilated labels.
 
 
 Standard options

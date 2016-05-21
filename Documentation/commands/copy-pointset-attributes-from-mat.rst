@@ -34,9 +34,7 @@ Arguments
 
    File name of MAT file.
 
-.. option:: output
-
-   File name of output dataset.
+.. option:: output  File name of output dataset.
 
 
 
