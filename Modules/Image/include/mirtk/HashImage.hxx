@@ -293,8 +293,7 @@ void HashImage<VoxelType>::CopyFrom(const HashImage<VoxelType2> &image)
   _Data.clear();
   _DefaultValue = voxel_cast<VoxelType>(image.DefaultValue());
 
-  VoxelType value;
-  for ( auto it = image.Begin(); it != image.End(); ++it ){
+  for (auto it = image.Begin(); it != image.End(); ++it) {
     Put(it->first, voxel_cast<VoxelType>(it->second));
   }
 
@@ -318,7 +317,7 @@ void HashImage<VoxelType>::CopyTo(GenericImage<VoxelType2> &image) const
 {
   image.Initialize(_attr);
   image = voxel_cast<VoxelType2>(_DefaultValue);
-  for ( auto it = Begin(); it != End(); ++it ){
+  for (auto it = Begin(); it != End(); ++it) {
     image.Put(it->first, voxel_cast<VoxelType2>(it->second));
   }
 }
@@ -377,8 +376,6 @@ bool HashImage<VoxelType>::operator==(const HashImage<VoxelType2> &image) const
   if (this->GetImageAttributes() != image.GetImageAttributes()) return false;
   if (_DefaultValue != image.DefaultValue()) return false;
   if (_Data.size() != image.NumberOfNonDefaultVoxels()) return false;
-
-  int idx;
   for (int idx = 0; idx < _NumberOfVoxels; ++idx) {
     if (IsForeground(idx) && image.IsForeground(idx)){
       if(Get(idx)!= voxel_cast<VoxelType>(image.Get(idx)))
