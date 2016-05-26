@@ -251,6 +251,15 @@ string TrimAll(const string &str, const string &what = " \t\r\n");
 /// @returns Parts of the string.
 Array<string> Split(string s, const char *d, int n = 0, bool e = false);
 
+/// Convert (upper) camel case string to space separated string
+///
+/// \param[in] s Camel case string.
+///
+/// \return String starting with uppercase letter followed by lowercase letters
+///         only and a space character before each uppercase letter in the
+///         camel case string.
+string CamelCaseToPrettyParameterName(const string &s);
+
 /// Convert units specification to standard lowercase string
 ///
 /// For example, this function returns "vox" for any units specification allowed

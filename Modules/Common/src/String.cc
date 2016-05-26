@@ -183,6 +183,23 @@ Array<string> Split(string s, const char *d, int n, bool discard_empty)
 }
 
 // ------------------------------------------------------------------------
+string CamelCaseToPrettyParameterName(const string &s)
+{
+  string param;
+  param.reserve(s.length() + 10);
+  for (auto c = s.begin(); c != s.end(); ++c) {
+    if (param.empty()) {
+      param += toupper(*c);
+    } else {
+      if (isupper(*c)) param += ' ';
+      param += tolower(*c);
+    }
+  }
+  param.shrink_to_fit();
+  return param;
+}
+
+// ------------------------------------------------------------------------
 string StandardUnits(const string &str)
 {
   if (str.empty()) return str;
