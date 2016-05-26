@@ -507,9 +507,9 @@ void PolyDataCurvature::CopyAttributes(const PolyDataCurvature &other)
 }
 
 // -----------------------------------------------------------------------------
-PolyDataCurvature::PolyDataCurvature()
+PolyDataCurvature::PolyDataCurvature(int type)
 :
-  _CurvatureType(Scalars),
+  _CurvatureType(type),
   _VtkCurvatures(false),
   _TensorAveraging(3),
   _Normalize(false),
