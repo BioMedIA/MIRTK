@@ -258,6 +258,9 @@ int NumberOfEdges(vtkDataSet *, const EdgeTable * = nullptr);
 /// Number of faces
 int NumberOfFaces(vtkDataSet *);
 
+/// Number of empty/deleted cells
+int NumberOfEmptyCells(vtkDataSet *);
+
 /// Number of connected components
 int NumberOfConnectedComponents(vtkDataSet *);
 

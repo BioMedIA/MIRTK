@@ -467,6 +467,18 @@ int NumberOfFaces(vtkDataSet *dataset)
 }
 
 // -----------------------------------------------------------------------------
+int NumberOfEmptyCells(vtkDataSet *dataset)
+{
+  int n = 0;
+  for (vtkIdType cellId = 0; cellId < dataset->GetNumberOfCells(); ++cellId) {
+    if (dataset->GetCellType(cellId) == VTK_EMPTY_CELL) {
+      ++n;
+    }
+  }
+  return n;
+}
+
+// -----------------------------------------------------------------------------
 int NumberOfConnectedComponents(vtkDataSet *dataset)
 {
   vtkPolyData *polydata = vtkPolyData::SafeDownCast(dataset);
