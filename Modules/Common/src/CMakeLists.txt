@@ -49,6 +49,7 @@ set(HEADERS
   List.h
   Math.h
   Memory.h
+  Numeric.h
   Object.h
   ObjectFactory.h
   Observable.h
