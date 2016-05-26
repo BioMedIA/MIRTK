@@ -85,6 +85,9 @@ public:
   template <class IdType>
   int NumberOfAdjacentPoints(IdType) const;
 
+  /// Get maximum number of adjacent points
+  int MaxNumberOfAdjacentPoints() const;
+
   /// Access list of adjacent nodes (thread-safe)
   void GetAdjacentPoints(int, int &, const int *&) const;
 

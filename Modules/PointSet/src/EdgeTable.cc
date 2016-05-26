@@ -144,5 +144,15 @@ void EdgeTable::Initialize(vtkDataSet *mesh)
   MIRTK_DEBUG_TIMING(5, "initialization of edge table");
 }
 
+// -----------------------------------------------------------------------------
+int EdgeTable::MaxNumberOfAdjacentPoints() const
+{
+  int n = 0;
+  for (int i = 0; i < NumberOfPoints(); ++i) {
+    n = max(n, NumberOfAdjacentPoints(i));
+  }
+  return n;
+}
+
 
 } // namespace mirtk
