@@ -433,7 +433,23 @@ vtkSmartPointer<vtkCellArray> BoundarySegments(vtkDataSet *dataset, const EdgeTa
 // -----------------------------------------------------------------------------
 int NumberOfPoints(vtkDataSet *dataset)
 {
-  return static_cast<int>(dataset->GetNumberOfPoints());
+  int n = 0;
+  bool deleted;
+  vtkSmartPointer<vtkIdList> cellIds = vtkSmartPointer<vtkIdList>::New();
+  for (vtkIdType ptId = 0; ptId < dataset->GetNumberOfPoints(); ++ptId) {
+    dataset->GetPointCells(ptId, cellIds);
+    deleted = true;
+    for (vtkIdType i = 0; i < cellIds->GetNumberOfIds(); ++i) {
+      if (dataset->GetCellType(cellIds->GetId(i)) != VTK_EMPTY_CELL) {
+        deleted = false;
+        break;
+      }
+    }
+    if (!deleted) {
+      ++n;
+    }
+  }
+  return n;
 }
 
 // -----------------------------------------------------------------------------
@@ -464,6 +480,18 @@ int NumberOfFaces(vtkDataSet *dataset)
     }
   }
   return nfaces;
+}
+
+// -----------------------------------------------------------------------------
+int NumberOfEmptyCells(vtkDataSet *dataset)
+{
+  int n = 0;
+  for (vtkIdType cellId = 0; cellId < dataset->GetNumberOfCells(); ++cellId) {
+    if (dataset->GetCellType(cellId) == VTK_EMPTY_CELL) {
+      ++n;
+    }
+  }
+  return n;
 }
 
 // -----------------------------------------------------------------------------

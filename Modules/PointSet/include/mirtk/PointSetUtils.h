@@ -203,6 +203,25 @@ inline bool ComputeTangents(const double n[3], double e1[3], double e2[3], doubl
   return true;
 }
 
+// -----------------------------------------------------------------------------
+/// Compute cotangent of angle ABC
+///
+/// \param[in] a Position of triangle vertex A.
+/// \param[in] b Position of triangle vertex B.
+/// \param[in] c Position of triangle vertex C.
+///
+/// \returns Cotangent of angle ABC (equals cotangent of angle CBA).
+///
+/// \sa Meyer et al. (2002). Generalized Barycentric Coordinates on Irregular Polygons.
+inline double Cotangent(double posA[3], double posB[3], double posC[3])
+{
+  double vecBA[3], vecBC[3], n[3];
+  vtkMath::Subtract(posA, posB, vecBA);
+  vtkMath::Subtract(posC, posB, vecBC);
+  vtkMath::Cross(vecBA, vecBC, n);
+  return vtkMath::Dot(vecBA, vecBC) / vtkMath::Norm(n);
+}
+
 // =============================================================================
 // Basic point set manipulation
 // =============================================================================
@@ -257,6 +276,9 @@ int NumberOfEdges(vtkDataSet *, const EdgeTable * = nullptr);
 
 /// Number of faces
 int NumberOfFaces(vtkDataSet *);
+
+/// Number of empty/deleted cells
+int NumberOfEmptyCells(vtkDataSet *);
 
 /// Number of connected components
 int NumberOfConnectedComponents(vtkDataSet *);
