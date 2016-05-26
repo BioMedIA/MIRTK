@@ -141,7 +141,7 @@ public:
   // Construction/Destruction
 
   /// Default constructor
-  PolyDataCurvature();
+  PolyDataCurvature(int type = Scalars);
 
   /// Copy constructor
   PolyDataCurvature(const PolyDataCurvature &);
