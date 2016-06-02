@@ -159,6 +159,12 @@ public:
   /// \deprecated Use RawPointer instead.
   const double *GetPointerToElements(int r = 0, int c = 0) const;
 
+  /// Get pointer to matrix entries in specified column
+  double *Col(int c);
+
+  /// Get pointer to matrix entries in specified column
+  const double *Col(int c) const;
+
   /// Get reference to element with specified linear index
   double &operator ()(int);
 
@@ -567,6 +573,18 @@ inline double *Matrix::GetPointerToElements(int r, int c)
 inline const double *Matrix::GetPointerToElements(int r, int c) const
 {
   return &_matrix[c][r];
+}
+
+// -----------------------------------------------------------------------------
+inline double *Matrix::Col(int c)
+{
+  return _matrix[c];
+}
+
+// -----------------------------------------------------------------------------
+inline const double *Matrix::Col(int c) const
+{
+  return _matrix[c];
 }
 
 // -----------------------------------------------------------------------------
