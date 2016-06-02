@@ -174,15 +174,15 @@ template <class VoxelType>
 void ConnectedComponents<VoxelType>::Finalize()
 {
   if (_Ordering != CC_NoOrdering) {
-    Array<VoxelType> perm(_NumberOfComponents);
-    for (int i = 0; i < _NumberOfComponents; ++i) {
-      perm[i] = voxel_cast<VoxelType>(i);
+    Array<int> order;
+    if (_Ordering == CC_SmallestFirst) {
+      order = IncreasingOrder(_ComponentSize);
+    } else {
+      order = DecreasingOrder(_ComponentSize);
     }
-    sort(perm.begin(), perm.end(), SortIndicesOfArray<int>(_ComponentSize));
-    if (_Ordering == CC_LargestFirst) reverse(perm.begin(), perm.end());
     Array<VoxelType> new_label(_NumberOfComponents);
     for (int i = 0; i < _NumberOfComponents; ++i) {
-      new_label[perm[i]] = voxel_cast<VoxelType>(i + 1);
+      new_label[order[i]] = voxel_cast<VoxelType>(i + 1);
     }
     GenericImage<VoxelType> &output = *this->Output();
     const Array<int> new_size = _ComponentSize; // make copy

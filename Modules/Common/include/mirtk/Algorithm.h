@@ -1,8 +1,8 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2013-2015 Imperial College London
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2013-2016 Imperial College London
+ * Copyright 2013-2016 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,36 +23,172 @@
 #include "mirtk/Array.h"
 
 #include <algorithm>
+#include <iterator>
 
 
 namespace mirtk {
 
 
+using std::find;
+using std::binary_search;
 using std::sort;
 using std::partial_sort;
 using std::transform;
 using std::reverse;
 using std::shuffle;
 
+using std::copy;
+using std::back_inserter;
+using std::front_inserter;
+using std::inserter;
 
-/**
- * Compare functor used to sort array indices based on some element attribute
- *
- * http://stackoverflow.com/questions/3909272/sorting-two-corresponding-arrays
- */
+
+/// Compare functor used to sort array indices increasing element attribute
 template <class AttributeType>
-class SortIndicesOfArray
+class CompareIndicesOfArrayByIncreasingValue
 {
   const Array<AttributeType> &_Values;
 
 public:
-  SortIndicesOfArray(const Array<AttributeType> &values) : _Values(values) {}
+
+  CompareIndicesOfArrayByIncreasingValue(const Array<AttributeType> &values)
+  :
+    _Values(values)
+  {}
 
   template <class IndexType>
-  bool operator ()(IndexType i, IndexType j) const {
+  bool operator ()(IndexType i, IndexType j) const
+  {
     return _Values[i] < _Values[j];
   }
 };
+
+/// Compare functor used to sort array indices by decreasing element attribute
+template <class AttributeType>
+class CompareIndicesOfArrayByDecreasingValue
+{
+  const Array<AttributeType> &_Values;
+
+public:
+
+  CompareIndicesOfArrayByDecreasingValue(const Array<AttributeType> &values)
+  :
+    _Values(values)
+  {}
+
+  template <class IndexType>
+  bool operator ()(IndexType i, IndexType j) const
+  {
+    return _Values[i] < _Values[j];
+  }
+};
+
+/// Sort values in array
+template <class T>
+void Sort(Array<T> &values)
+{
+  sort(values.begin(), values.end());
+}
+
+/// Sort values in array using custom comparator
+template <class T, class Compare>
+void Sort(Array<T> &values, Compare comp)
+{
+  sort(values.begin(), values.end(), comp);
+}
+
+/// Get permutation of array indices corresponding to sorted order of values
+template <class T>
+Array<int> IncreasingOrder(const Array<T> &values)
+{
+  Array<int> indices(values.size());
+  for (size_t i = 0; i < values.size(); ++i) {
+    indices[i] = static_cast<int>(i);
+  }
+  Sort(indices, CompareIndicesOfArrayByIncreasingValue<T>(values));
+  return indices;
+}
+
+/// Get permutation of array indices corresponding to sorted order of values
+template <class T>
+Array<int> DecreasingOrder(const Array<T> &values)
+{
+  Array<int> indices(values.size());
+  for (size_t i = 0; i < values.size(); ++i) {
+    indices[i] = static_cast<int>(i);
+  }
+  Sort(indices, CompareIndicesOfArrayByDecreasingValue<T>(values));
+  return indices;
+}
+
+/// Get permutation of array values given a permutation of array indices
+///
+/// \sa IncreasingOrder, DecreasingOrder
+template <class T>
+Array<T> Permutation(const Array<int> &order, const Array<T> &values)
+{
+  Array<T> permuted_values;
+  permuted_values.reserve(values.size());
+  for (auto i : order) permuted_values.push_back(values[i]);
+  return permuted_values;
+}
+
+/// Find value in unsorted Array
+template <class T>
+typename Array<T>::iterator
+Find(Array<T> &values, const T &value)
+{
+  return find(values.begin(), values.end(), value);
+}
+
+/// Find value in unsorted Array
+template <class T>
+typename Array<T>::const_iterator
+Find(const Array<T> &values, const T &value)
+{
+  return find(values.begin(), values.end(), value);
+}
+
+/// Find value in unsorted Array
+template <class T>
+int FindIndex(const Array<T> &values, const T &value)
+{
+  auto it = find(values.begin(), values.end(), value);
+  if (it == values.end()) return -1;
+  return static_cast<int>(std::distance(values.begin(), it));
+}
+
+/// Find value in sorted Array using binary search
+template <class T>
+typename Array<T>::iterator
+BinarySearch(Array<T> &values, const T &value)
+{
+  return binary_search(values.begin(), values.end(), value);
+}
+
+/// Find value in sorted Array using binary search
+template <class T>
+typename Array<T>::const_iterator
+BinarySearch(const Array<T> &values, const T &value)
+{
+  return binary_search(values.begin(), values.end(), value);
+}
+
+/// Find value in sorted Array using binary search with custom comparator
+template <class T, class Compare>
+typename Array<T>::iterator
+BinarySearch(Array<T> &values, const T &value, Compare comp)
+{
+  return binary_search(values.begin(), values.end(), value, comp);
+}
+
+/// Find value in sorted Array using binary search with custom comparator
+template <class T, class Compare>
+typename Array<T>::const_iterator
+BinarySearch(const Array<T> &values, const T &value, Compare comp)
+{
+  return binary_search(values.begin(), values.end(), value, comp);
+}
 
 
 } // namespace mirtk
