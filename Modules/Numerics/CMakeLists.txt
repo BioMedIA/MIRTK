@@ -17,4 +17,12 @@
 # limitations under the License.
 # ============================================================================
 
+if (WITH_ARPACK AND NOT WITH_UMFPACK)
+  message("${PROJECT_NAME} module WITH_ARPACK, setting also WITH_UMFPACK to ON")
+  set(WITH_UMFPACK ON CACHE BOOL "Request build with SuiteSparse library" FORCE)
+elseif (NOT WITH_ARPACK AND WITH_UMFPACK)
+  message("${PROJECT_NAME} module WITH_UMFPACK, setting also WITH_ARPACK to ON")
+  set(WITH_ARPACK ON CACHE BOOL "Request build with ARPACK library" FORCE)
+endif ()
+
 mirtk_configure_module()

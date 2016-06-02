@@ -19,14 +19,13 @@
 
 #include "mirtk/SparseMatrix.h"
 
+#include "mirtk/NumericsConfig.h"
 #if MIRTK_Numerics_WITH_eigs
 #  include "mirtk/Arpack.h"
 #  include "mirtk/Umfpack.h"
 #  include "boost/random/mersenne_twister.hpp"
 #  include "boost/random/uniform_01.hpp"
 #endif // MIRTK_Numerics_WITH_eigs
-
-#include <algorithm>
 
 
 namespace mirtk {
@@ -293,7 +292,7 @@ int eigs(const GenericSparseMatrix<double> &A, Matrix *E, Vector &v,
   Deallocate(basis);
 
 #else // MIRTK_Numerics_WITH_eigs
-  cerr << "eigs: Only available when Numerics module was built WITH_ARPACK and WITH_UMFPACK" << endl;
+  cerr << "eigs: Only available when Numerics module was built with ARPACK and UMFPACK" << endl;
   exit(1);
 #endif // MIRTK_Numerics_WITH_eigs
 

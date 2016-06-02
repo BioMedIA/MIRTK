@@ -55,6 +55,8 @@ the NiftiCLib_ and libLBFGS_ libraries are included in the basic download packag
 not be installed. The WITH_NiftiCLib build option can be used, however, to force the use
 of an existing NiftiCLib installation. See :ref:`build configuration steps below <ConfigurationSteps>`.
 
+The UMFPACK library is part of the `SuiteSparse <http://faculty.cse.tamu.edu/davis/suitesparse.html>`__ installation.
+
 The intra-module dependencies are as follows. When a module is enabled,
 all modules required by this module are automatically enabled as well.
 
