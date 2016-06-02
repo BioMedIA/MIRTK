@@ -1,60 +1,49 @@
-# Umfpack lib usually requires linking to a blas library.
-# It is up to the user of this module to find a BLAS and link to it.
+#.rst
+# FindUMFPACK
+# -----------
+#
+# Find UMFPACK library which is part of SuiteSparse.
+#
+# This uses find_package(SuiteSparse COMPONENTS UMFPACK MODULE).
 
-if (UMFPACK_INCLUDE_DIR AND UMFPACK_LIBRARIES)
-  set(UMFPACK_FIND_QUIETLY TRUE)
+#=============================================================================
+# Copyright 2016 Andreas Schuh <andreas.schuh.84@gmail.com>
+#
+# Distributed under the OSI-approved BSD License (the "License");
+# see accompanying file Copyright.txt for details.
+#
+# This software is distributed WITHOUT ANY WARRANTY; without even the
+# implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+# See the License for more information.
+#=============================================================================
+# (To distribute this file outside of CMake, substitute the full
+#  License text for the above reference.)
+
+# ------------------------------------------------------------------------------
+# Look for UMFPACK library which is part of SuiteSparse
+if (UMFPACK_ROOT)
+  set(SuiteSparse_ROOT ${UMFPACK_ROOT})
+elseif (UMFPACK_DIR)
+  set(SuiteSparse_ROOT ${UMFPACK_DIR})
 endif ()
 
-find_path(UMFPACK_INCLUDE_DIR
-  NAMES
-    umfpack.h
-  PATHS
-    ${UMFPACK_DIR}/include
-    $ENV{UMFPACKDIR}/include
-    ${INCLUDE_INSTALL_DIR}
-  PATH_SUFFIXES
-    suitesparse
-    ufsparse
-)
+find_package(SuiteSparse COMPONENTS UMFPACK MODULE QUIET)
 
-find_library(UMFPACK_LIBRARIES
-  NAMES umfpack
-  PATHS
-    ${UMFPACK_DIR}/lib
-    $ENV{UMFPACKDIR}/lib
-    ${LIB_INSTALL_DIR}
-)
+set(UMFPACK_VERSION        ${SuiteSparse_VERSION})
+set(UMFPACK_VERSION_MAJOR  ${SuiteSparse_VERSION_MAJOR})
+set(UMFPACK_VERSION_MINOR  ${SuiteSparse_VERSION_MINOR})
+set(UMFPACK_VERSION_PATCH  ${SuiteSparse_VERSION_PATCH})
+set(UMFPACK_VERSION_STRING ${SuiteSparse_VERSION_STRING})
 
-if (UMFPACK_LIBRARIES)
-
-  if (NOT UMFPACK_LIBDIR)
-    get_filename_component(UMFPACK_LIBDIR ${UMFPACK_LIBRARIES} PATH)
-  endif(NOT UMFPACK_LIBDIR)
-
-  find_library(COLAMD_LIBRARY colamd PATHS ${UMFPACK_LIBDIR} $ENV{UMFPACKDIR}/lib ${LIB_INSTALL_DIR})
-  if (COLAMD_LIBRARY)
-    set(UMFPACK_LIBRARIES ${UMFPACK_LIBRARIES} ${COLAMD_LIBRARY})
-  endif (COLAMD_LIBRARY)
-  
-  find_library(AMD_LIBRARY amd PATHS ${UMFPACK_LIBDIR} $ENV{UMFPACKDIR}/lib ${LIB_INSTALL_DIR})
-  if (AMD_LIBRARY)
-    set(UMFPACK_LIBRARIES ${UMFPACK_LIBRARIES} ${AMD_LIBRARY})
-  endif (AMD_LIBRARY)
-
-  find_library(SUITESPARSE_LIBRARY SuiteSparse PATHS ${UMFPACK_LIBDIR} $ENV{UMFPACKDIR}/lib ${LIB_INSTALL_DIR})
-  if (SUITESPARSE_LIBRARY)
-    set(UMFPACK_LIBRARIES ${UMFPACK_LIBRARIES} ${SUITESPARSE_LIBRARY})
-  endif (SUITESPARSE_LIBRARY)
-
-endif ()
-
+# ------------------------------------------------------------------------------
+# Handle QUIET, REQUIRED, and [EXACT] VERSION arguments and set SuiteSparse_FOUND
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(UMFPACK DEFAULT_MSG
-                                  UMFPACK_INCLUDE_DIR UMFPACK_LIBRARIES)
-
-if (UMFPACK_FOUND)
-  string (REGEX REPLACE "/(suitesparse|ufsparse)/?" "" UMFPACK_DIR "${UMFPACK_INCLUDE_DIR}")
-  get_filename_component(UMFPACK_DIR "${UMFPACK_DIR}" PATH)
-endif ()
-
-mark_as_advanced(UMFPACK_INCLUDE_DIR UMFPACK_LIBRARIES AMD_LIBRARY COLAMD_LIBRARY SUITESPARSE_LIBRARY)
+find_package_handle_standard_args(
+  UMFPACK
+  VERSION_VAR
+    UMFPACK_VERSION
+  REQUIRED_VARS
+    SuiteSparse_FOUND
+    UMFPACK_INCLUDE_DIR
+    UMFPACK_LIBRARY
+)
