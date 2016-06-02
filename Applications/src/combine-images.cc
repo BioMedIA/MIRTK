@@ -163,7 +163,7 @@ int main(int argc, char *argv[])
       }
     }
     // Determine order of images sorted by ascending distance value
-    sort(pos.begin(), pos.end(), SortIndicesOfArray<double>(origin));
+    pos = IncreasingOrder(origin);
     if (pos[0] != 0) ref.reset(BaseImage::New(input_names[pos[0]]));
     if (verbose) cout << " done\n";
   }
