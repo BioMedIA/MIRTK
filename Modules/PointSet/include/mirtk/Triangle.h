@@ -263,8 +263,8 @@ inline int coplanar_tri_tri(const double N[3],
 // See article "A Fast Triangle-Triangle Intersection Test",
 // Journal of Graphics Tools, 2(2), 1997
 #define MIRTK_NoDivTriTriIsect_USE_EPSILON_TEST 0
-int NoDivTriTriIsect(const double V0[3], const double V1[3], const double V2[3],
-                     const double U0[3], const double U1[3], const double U2[3])
+inline int NoDivTriTriIsect(const double V0[3], const double V1[3], const double V2[3],
+                            const double U0[3], const double U1[3], const double U2[3])
 {
 #if MIRTK_NoDivTriTriIsect_USE_EPSILON_TEST
   const double EPSILON = 0.000001;
@@ -389,8 +389,10 @@ int NoDivTriTriIsect(const double V0[3], const double V1[3], const double V2[3],
 /// D1,D2,D3 are the vertices of triangle B. Q1,Q2 are the two edges originating from D1.
 ///
 /// @return Zero for disjoint triangles and non-zero for intersection.
-int tri_tri_intersect3D(const double *C1, const double *C2, const double *C3, const double *P1, const double *P2,
-	                    const double *D1, const double *D2, const double *D3, const double *Q1, const double *Q2)
+inline int tri_tri_intersect3D(const double *C1, const double *C2, const double *C3,
+                               const double *P1, const double *P2,
+	                             const double *D1, const double *D2, const double *D3,
+                               const double *Q1, const double *Q2)
 {
 	double t[3],p1[3], p2[3],r[3],r4[3];
 	double beta1, beta2, beta3;
