@@ -47,6 +47,7 @@
 #include "mirtk/FastDelegate.h"
 #include "mirtk/Status.h"
 #include "mirtk/Algorithm.h"
+#include "mirtk/Numeric.h"
 #include "mirtk/Random.h"
 
 // Base classes
