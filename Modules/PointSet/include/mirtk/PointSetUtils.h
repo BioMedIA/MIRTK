@@ -20,10 +20,14 @@
 #ifndef MIRTK_PointSetUtils_H
 #define MIRTK_PointSetUtils_H
 
+#include "mirtk/UnorderedSet.h"
+#include "mirtk/Array.h"
+#include "mirtk/List.h"
+#include "mirtk/Pair.h"
+
 #include "mirtk/Math.h"
 #include "mirtk/Vtk.h"
 #include "mirtk/VtkMath.h"
-#include "mirtk/UnorderedSet.h"
 
 class vtkDataSet;
 class vtkDataSetAttributes;
@@ -33,7 +37,6 @@ class vtkImageData;
 class vtkImageStencilData;
 class vtkDataArray;
 class vtkCell;
-class vtkCellArray;
 
 
 namespace mirtk {
@@ -265,8 +268,11 @@ bool IsTetrahedralMesh(vtkDataSet *);
 /// Get IDs of end points of boundary edges
 UnorderedSet<int> BoundaryPoints(vtkDataSet *, const EdgeTable * = nullptr);
 
+/// Get list of boundary edges
+List<Pair<int, int> > BoundaryEdges(vtkDataSet *, const EdgeTable &);
+
 /// Get connected boundary segments as (closed) line strips
-vtkSmartPointer<vtkCellArray> BoundarySegments(vtkDataSet *, const EdgeTable * = nullptr);
+Array<Array<int> > BoundarySegments(vtkDataSet *, const EdgeTable * = nullptr);
 
 /// Number of points
 int NumberOfPoints(vtkDataSet *);
