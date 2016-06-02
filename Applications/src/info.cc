@@ -568,6 +568,11 @@ int main(int argc, char *argv[])
       else HANDLE_STANDARD_OR_UNKNOWN_OPTION();
     }
 
+    // Read input dataset
+    vtkSmartPointer<vtkPointSet> pointset = ReadPointSet(POSARG(1));
+    vtkSmartPointer<vtkPolyData> polydata = ConvertToPolyData(pointset);
+    polydata->BuildLinks();
+
     // What info to print by default
     if (!check_intersections &&
         !report_bounds &&
@@ -581,15 +586,10 @@ int main(int argc, char *argv[])
         !list_celldata_arrays &&
         point_indices.empty()) {
       print_summary         = true;
-      print_surface_summary = true;
+      print_surface_summary = (polydata->GetNumberOfPolys() != 0);
       list_pointdata_arrays = true;
       list_celldata_arrays  = true;
     }
-
-    // Read input dataset
-    vtkSmartPointer<vtkPointSet> pointset = ReadPointSet(POSARG(1));
-    vtkSmartPointer<vtkPolyData> polydata = ConvertToPolyData(pointset);
-    polydata->BuildLinks();
 
     if (max_point_index >= pointset->GetNumberOfPoints()) {
       FatalError("Invalid -point ID, point set has only " << pointset->GetNumberOfPoints() << " points!");
