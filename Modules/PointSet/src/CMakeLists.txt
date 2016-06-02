@@ -24,6 +24,7 @@
 
 set(HEADERS
   ${BINARY_INCLUDE_DIR}/mirtk/PointSetExport.h
+  BoundarySegment.h
   ClosestCell.h
   ClosestPoint.h
   ClosestPointLabel.h
@@ -46,11 +47,13 @@ set(HEADERS
   RobustPointMatch.h
   SpectralDecomposition.h
   SpectralMatch.h
+  SurfaceBoundary.h
   SurfaceCollisions.h
   Triangle.h
 )
 
 set(SOURCES
+  BoundarySegment.cc
   ClosestCell.cc
   ClosestPoint.cc
   ClosestPointLabel.cc
@@ -75,6 +78,7 @@ set(SOURCES
   RobustPointMatch.cc
   SpectralDecomposition.cc
   SpectralMatch.cc
+  SurfaceBoundary.cc
   SurfaceCollisions.cc
 )
 

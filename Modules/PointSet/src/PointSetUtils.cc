@@ -37,7 +37,6 @@
 #include "mirtk/UnorderedSet.h"
 #include "mirtk/List.h"
 
-#include "vtkCellArray.h"
 #include "vtkPolyData.h"
 #include "vtkUnstructuredGrid.h"
 #include "vtkStructuredGrid.h"
@@ -384,8 +383,9 @@ List<Pair<int, int> > BoundaryEdges(vtkDataSet *dataset, const EdgeTable &edgeTa
 }
 
 // -----------------------------------------------------------------------------
-vtkSmartPointer<vtkCellArray> BoundarySegments(vtkDataSet *dataset, const EdgeTable *edgeTable)
+Array<Array<int> > BoundarySegments(vtkDataSet *dataset, const EdgeTable *edgeTable)
 {
+  Array<Array<int> > boundaries;
   UniquePtr<EdgeTable> tmpEdgeTable;
   if (edgeTable == nullptr) {
     tmpEdgeTable.reset(new EdgeTable(dataset));
@@ -398,14 +398,13 @@ vtkSmartPointer<vtkCellArray> BoundarySegments(vtkDataSet *dataset, const EdgeTa
     boundaryPtIds.insert(edge->first);
     boundaryPtIds.insert(edge->second);
   }
-  vtkSmartPointer<vtkCellArray> boundaries = vtkSmartPointer<vtkCellArray>::New();
-  vtkSmartPointer<vtkIdList>    ptIds      = vtkSmartPointer<vtkIdList>::New();
-  ptIds->Allocate(static_cast<vtkIdType>(boundaryPtIds.size()));
+  Array<int> ptIds;
+  ptIds.reserve(boundaryPtIds.size());
   while (!boundaryPtIds.empty()) {
     ptId1 = *boundaryPtIds.begin();
-    ptIds->Reset();
+    ptIds.clear();
     do {
-      ptIds->InsertNextId(static_cast<vtkIdType>(ptId1));
+      ptIds.push_back(ptId1);
       boundaryPtIds.erase(ptId1);
       ptId2 = -1;
       for (auto edge = boundaryEdges.begin(); edge != boundaryEdges.end(); ++edge) {
@@ -425,7 +424,8 @@ vtkSmartPointer<vtkCellArray> BoundarySegments(vtkDataSet *dataset, const EdgeTa
       }
       ptId1 = ptId2;
     } while (ptId1 != -1);
-    boundaries->InsertNextCell(ptIds);
+    boundaries.reserve(boundaries.size() + 1);
+    boundaries.push_back(ptIds);
   }
   return boundaries;
 }
@@ -518,8 +518,7 @@ int NumberOfConnectedComponents(vtkDataSet *dataset)
 // -----------------------------------------------------------------------------
 int NumberOfBoundarySegments(vtkDataSet *dataset, const EdgeTable *edgeTable)
 {
-  vtkSmartPointer<vtkCellArray> bounds = BoundarySegments(dataset, edgeTable);
-  return static_cast<int>(bounds->GetNumberOfCells());
+  return static_cast<int>(BoundarySegments(dataset, edgeTable).size());
 }
 
 // -----------------------------------------------------------------------------
