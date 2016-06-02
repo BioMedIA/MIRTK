@@ -48,7 +48,7 @@ basis_set_config_option(WITH_ARPACK_CONFIG  "${ARPACK_FOUND}")
 basis_set_config_option(WITH_UMFPACK_CONFIG "${UMFPACK_FOUND}")
 basis_set_config_option(WITH_MATLAB_CONFIG  "${MATLAB_FOUND}")
 basis_set_config_option(WITH_VTK_CONFIG     "${VTK_FOUND}")
-basis_set_config_option(WITH_LBFGS_CONFIG   "${LibLBFGS_FOUND}")
+basis_set_config_option(WITH_LBFGS_CONFIG   "${LBFGS_FOUND}")
 
 configure_file(
   "${PROJECT_CONFIG_DIR}/config.h.in"

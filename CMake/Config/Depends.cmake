@@ -83,7 +83,7 @@ if ((DEFINED WITH_LBFGS AND WITH_LBFGS) OR (NOT DEFINED WITH_LBFGS AND WITH_LBFG
     add_subdirectory("${LBFGS_SOURCE_DIR}" "${MIRTK_BINARY_DIR}/ThirdParty/LBFGS")
     set_target_properties(${LBFGS_lib_TARGET_NAME} PROPERTIES OUTPUT_NAME MIRTKlbfgs)
     set(LBFGS_FOUND       TRUE)
-    set(LBFGS_LIBRARIES   LBFGS::lib)
+    set(LBFGS_LIBRARIES   ${LBFGS_lib_TARGET_NAME})
     set(LBFGS_INCLUDE_DIR "${LBFGS_SOURCE_DIR}/include")
     set(LBFGS_DIR         "${MIRTK_BINARY_DIR}/ThirdParty/LBFGS")
     message(STATUS "Configuring module ThirdParty/LBFGS... - done")

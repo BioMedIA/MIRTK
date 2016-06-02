@@ -1,8 +1,8 @@
 # ============================================================================
 # Medical Image Registration ToolKit (MIRTK)
 #
-# Copyright 2013-2015 Imperial College London
-# Copyright 2013-2015 Andreas Schuh
+# Copyright 2013-2016 Imperial College London
+# Copyright 2013-2016 Andreas Schuh
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -100,10 +100,10 @@ set(SOURCES
 
 set(DEPENDS LibCommon)
 
-if (LibLBFGS_FOUND)
+if (LBFGS_FOUND)
   list(APPEND HEADERS LimitedMemoryBFGSDescent.h)
   list(APPEND SOURCES LimitedMemoryBFGSDescent.cc)
-  list(APPEND DEPENDS ${LibLBFGS_LIBRARIES})
+  list(APPEND DEPENDS ${LBFGS_LIBRARIES})
 endif ()
 
 if (MATLAB_FOUND)
