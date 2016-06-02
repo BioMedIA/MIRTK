@@ -52,9 +52,9 @@ void PrintHelp(const char *name)
   cout << "  -vectors                    Delete VECTORS attribute(s)." << endl;
   cout << "  -normals                    Delete NORMALS attribute(s)." << endl;
   cout << "  -tcoords                    Delete TCOORDS attribute(s)." << endl;
-  cout << "  -name <name>                Name of point/cell data array to remove." << endl;
-  cout << "  -pointdata <name>|<index>   Name of point data array to remove." << endl;
-  cout << "  -celldata  <name>|<index>   Name of cell data array to remove." << endl;
+  cout << "  -name <name>                Case-sensitive name of data array to remove." << endl;
+  cout << "  -pointdata <name>|<index>   Case-sensitive name of point data array to remove." << endl;
+  cout << "  -celldata  <name>|<index>   Case-sensitive name of cell data array to remove." << endl;
   PrintStandardOptions(cout);
   cout << endl;
 }
@@ -104,22 +104,22 @@ int main(int argc, char *argv[])
     } else if (OPTION("-celldata")) {
       const char *arg = ARGUMENT;
       if (FromString(arg, index)) {
-        pointset->GetPointData()->RemoveArray(index);
+        pointset->GetCellData()->RemoveArray(index);
       } else {
-        pointset->GetPointData()->RemoveArray(arg);
+        pointset->GetCellData()->RemoveArray(arg);
       }
     } else if (OPTION("-scalars")) {
-      pointset->GetPointData()->SetScalars(NULL);
-      pointset->GetCellData ()->SetScalars(NULL);
+      pointset->GetPointData()->SetScalars(nullptr);
+      pointset->GetCellData ()->SetScalars(nullptr);
     } else if (OPTION("-vectors")) {
-      pointset->GetPointData()->SetVectors(NULL);
-      pointset->GetCellData ()->SetVectors(NULL);
+      pointset->GetPointData()->SetVectors(nullptr);
+      pointset->GetCellData ()->SetVectors(nullptr);
     } else if (OPTION("-normals")) {
-      pointset->GetPointData()->SetNormals(NULL);
-      pointset->GetCellData ()->SetNormals(NULL);
+      pointset->GetPointData()->SetNormals(nullptr);
+      pointset->GetCellData ()->SetNormals(nullptr);
     } else if (OPTION("-tcoords")) {
-      pointset->GetPointData()->SetTCoords(NULL);
-      pointset->GetCellData ()->SetTCoords(NULL);
+      pointset->GetPointData()->SetTCoords(nullptr);
+      pointset->GetCellData ()->SetTCoords(nullptr);
     } else {
       HANDLE_COMMON_OR_UNKNOWN_OPTION();
     }
