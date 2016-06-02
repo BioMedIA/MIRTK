@@ -22,7 +22,7 @@
 
 #include "mirtk/Memory.h"
 #include "mirtk/Math.h"
-#include "mirtk/VtkMath.h" // vtkMath.h otherwise included by vtkTriangle.h
+#include "mirtk/VtkMath.h"
 
 #include "vtkLine.h"
 #include "vtkPlane.h"
@@ -38,6 +38,15 @@ namespace mirtk {
 class Triangle
 {
 public:
+
+  /// Compute cotangent of angle ABC
+  ///
+  /// \param[in] a Position of triangle vertex A.
+  /// \param[in] b Position of triangle vertex B.
+  /// \param[in] c Position of triangle vertex C.
+  ///
+  /// \returns Cotangent of angle ABC (equals cotangent of angle CBA).
+  static double Cotangent(double a[3], double b[3], double c[3]);
 
   /// Tests whether two triangles intersect each other
   ///
@@ -71,6 +80,21 @@ public:
 
 // Copy 3D point coordinates stored in plain C array
 #define MIRTK_RETURN_POINT(a, b) if (a) memcpy((a), (b), 3 * sizeof(double))
+
+// =============================================================================
+// Angles
+// =============================================================================
+
+// -----------------------------------------------------------------------------
+// Meyer et al. (2002). Generalized Barycentric Coordinates on Irregular Polygons.
+inline double Triangle::Cotangent(double a[3], double b[3], double c[3])
+{
+  double ba[3], bc[3], n[3];
+  vtkMath::Subtract(a, b, ba);
+  vtkMath::Subtract(c, b, bc);
+  vtkMath::Cross(ba, bc, n);
+  return vtkMath::Dot(ba, bc) / vtkMath::Norm(n);
+}
 
 // =============================================================================
 // Triangle/triangle intersection test
