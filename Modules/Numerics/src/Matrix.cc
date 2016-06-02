@@ -177,16 +177,6 @@ Matrix::~Matrix()
 }
 
 // -----------------------------------------------------------------------------
-Matrix& Matrix::operator =(double s)
-{
-  for (int c = 0; c < _cols; ++c)
-  for (int r = 0; r < _rows; ++r) {
-    _matrix[c][r] = s;
-  }
-  return *this;
-}
-
-// -----------------------------------------------------------------------------
 Matrix& Matrix::operator =(const Matrix& m)
 {
   if (_rows != m._rows || _cols != m._cols) {

@@ -204,32 +204,29 @@ public:
   /// Scale column by a scalar
   Matrix &ScaleCol(int, double);
 
-  /// Scalar assignment operator
-  Matrix &operator =(const double&);
-
   /// Subtraction of a double
-  Matrix &operator -=(const double&);
+  Matrix &operator -=(double);
 
   /// Addition of a double
-  Matrix &operator +=(const double&);
+  Matrix &operator +=(double);
 
   /// Multiplication with a double
-  Matrix &operator *=(const double&);
+  Matrix &operator *=(double);
 
   /// Division by a double
-  Matrix &operator /=(const double&);
+  Matrix &operator /=(double);
 
   /// Return result of subtraction of a double
-  Matrix operator -(const double&) const;
+  Matrix operator -(double) const;
 
   /// Return result of addition of a double
-  Matrix operator +(const double&) const;
+  Matrix operator +(double) const;
 
   /// Return result of multiplication with a double
-  Matrix operator *(const double&) const;
+  Matrix operator *(double) const;
 
   /// Return result of division by a double
-  Matrix operator /(const double&) const;
+  Matrix operator /(double) const;
 
   // ---------------------------------------------------------------------------
   // Matrix-vector operations
@@ -653,16 +650,16 @@ inline Matrix &Matrix::ScaleCol(int c, double s)
 }
 
 // -----------------------------------------------------------------------------
-inline Matrix &Matrix::operator =(const double &v)
+inline Matrix &Matrix::operator =(double s)
 {
   const int n = this->NumberOfElements();
   double   *p = this->RawPointer();
-  for (int i = 0; i < n; ++i, ++p) (*p) = v;
+  for (int i = 0; i < n; ++i, ++p) (*p) = s;
   return *this;
 }
 
 // -----------------------------------------------------------------------------
-inline Matrix &Matrix::operator -=(const double &x)
+inline Matrix &Matrix::operator -=(double x)
 {
   const int n = this->NumberOfElements();
   double   *p = this->RawPointer();
@@ -671,7 +668,7 @@ inline Matrix &Matrix::operator -=(const double &x)
 }
 
 // -----------------------------------------------------------------------------
-inline Matrix &Matrix::operator +=(const double &x)
+inline Matrix &Matrix::operator +=(double x)
 {
   const int n = this->NumberOfElements();
   double   *p = this->RawPointer();
@@ -680,7 +677,7 @@ inline Matrix &Matrix::operator +=(const double &x)
 }
 
 // -----------------------------------------------------------------------------
-inline Matrix &Matrix::operator *=(const double &x)
+inline Matrix &Matrix::operator *=(double x)
 {
   const int n = this->NumberOfElements();
   double   *p = this->RawPointer();
@@ -689,7 +686,7 @@ inline Matrix &Matrix::operator *=(const double &x)
 }
 
 // -----------------------------------------------------------------------------
-inline Matrix &Matrix::operator /=(const double &x)
+inline Matrix &Matrix::operator /=(double x)
 {
   const int n = this->NumberOfElements();
   double   *p = this->RawPointer();
@@ -698,25 +695,25 @@ inline Matrix &Matrix::operator /=(const double &x)
 }
 
 // -----------------------------------------------------------------------------
-inline Matrix Matrix::operator -(const double &x) const
+inline Matrix Matrix::operator -(double x) const
 {
   return Matrix(*this) -= x;
 }
 
 // -----------------------------------------------------------------------------
-inline Matrix Matrix::operator +(const double &x) const
+inline Matrix Matrix::operator +(double x) const
 {
   return Matrix(*this) += x;
 }
 
 // -----------------------------------------------------------------------------
-inline Matrix Matrix::operator *(const double &x) const
+inline Matrix Matrix::operator *(double x) const
 {
   return Matrix(*this) *= x;
 }
 
 // -----------------------------------------------------------------------------
-inline Matrix Matrix::operator /(const double &x) const
+inline Matrix Matrix::operator /(double x) const
 {
   return Matrix(*this) /= x;
 }
