@@ -51,7 +51,7 @@ if (MIRTK_Image_FOUND)
   endmacro()
 
   add_image_command(average-images)
-  add_image_command(calculate)
+  add_image_command(calculate-element-wise)
   add_image_command(calculate-distance-map)
   add_image_command(calculate-exponential-map)
   add_image_command(calculate-lie-bracket)
@@ -80,7 +80,7 @@ if (MIRTK_Image_FOUND)
   endif ()
 
   if (MIRTK_Image_WITH_VTK)
-    mirtk_target_dependencies(calculate vtkCommonCore)
+    mirtk_target_dependencies(calculate-element-wise vtkCommonCore)
   endif ()
 
   if (MIRTK_Transformation_FOUND AND MIRTK_Registration_FOUND)
