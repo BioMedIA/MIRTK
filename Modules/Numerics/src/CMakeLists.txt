@@ -50,6 +50,7 @@ set(HEADERS
   PointSamples.h
   PointSet.h
   Polynomial.h
+  PolynomialSolvers.h
   RadialErrorFunction.h
   ScalarFunction.h
   ScalarGaussian.h
@@ -87,6 +88,7 @@ set(SOURCES
   PointSamples.cc
   PointSet.cc
   Polynomial.cc
+  PolynomialSolvers.cc
   RadialErrorFunction.cc
   ScalarGaussian.cc
   Sinc.cc
