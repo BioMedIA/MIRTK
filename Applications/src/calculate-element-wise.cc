@@ -1,8 +1,8 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2013-2015 Imperial College London
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2015-2016 Imperial College London
+ * Copyright 2015-2016 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,8 +28,8 @@
 #include "mirtk/DataFunctions.h"
 
 #if MIRTK_Image_WITH_VTK
-#  include "vtkDataSet.h"
-#  include "vtkSmartPointer.h"
+  #include "vtkDataSet.h"
+  #include "vtkSmartPointer.h"
 #endif
 
 using namespace mirtk;
