@@ -80,6 +80,8 @@ set(SOURCES
   SpectralMatch.cc
   SurfaceBoundary.cc
   SurfaceCollisions.cc
+  Triangle.cc
+  triangle_triangle_intersection.h
 )
 
 set(DEPENDS
