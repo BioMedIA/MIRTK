@@ -50,7 +50,8 @@ def path(argv, quiet=False):
     """Get full path of MIRTK command executable."""
     if isinstance(argv, str): command = argv
     else:                     command = argv[0]
-    if   command == 'convert-dof2csv':    command = 'convert-dof'
+    if   command == 'calculate':          command = 'calculate-element-wise'
+    elif command == 'convert-dof2csv':    command = 'convert-dof'
     elif command == 'convert-dof2velo':   command = 'convert-dof'
     elif command == 'concatenate-dofs':   command = 'compose-dofs'
     elif command == 'concatenate-images': command = 'combine-images'
