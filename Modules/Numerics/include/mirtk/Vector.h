@@ -228,6 +228,9 @@ public:
   /// Returns sum of a vector components
   double Sum() const;
 
+  /// Compute mean value of vector components
+  double Mean() const;
+
   /// Returns norm of a vector
   double Norm() const;
 
@@ -771,6 +774,12 @@ inline double Vector::Sum() const
   double sum = .0;
   for (int i = 0; i < _rows; i++) sum += _vector[i];
   return sum;
+}
+
+// -----------------------------------------------------------------------------
+inline double Vector::Mean() const
+{
+  return Sum() / _rows;
 }
 
 // -----------------------------------------------------------------------------
