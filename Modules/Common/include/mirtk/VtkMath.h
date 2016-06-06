@@ -36,5 +36,28 @@
 #  undef isfinite
 #endif
 
+namespace mirtk { namespace vtkmath {
+
+
+// -----------------------------------------------------------------------------
+/// Subtract two 2D vectors
+inline void Subtract2D(const double a[2], const double b[2], double c[2])
+{
+  c[0] = a[0] - b[0];
+  c[1] = a[1] - b[1];
+}
+
+// -----------------------------------------------------------------------------
+/// Compute squared distance between 2D points
+inline double Distance2BetweenPoints2D(const double a[2], const double b[2])
+{
+  const double dx = b[0] - a[0];
+  const double dy = b[1] - a[1];
+  return dx * dx + dy * dy;
+}
+
+
+} } // namespace mirtk::vtkmath
+
 
 #endif // MIRTK_VtkMath_H
