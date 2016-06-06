@@ -30,6 +30,7 @@
 #include "mirtk/PointSet.h"
 #include "mirtk/Voxel.h"
 #include "mirtk/BaseImage.h"
+#include "mirtk/Vector.h"
 #include "mirtk/Vector3D.h"
 #include "mirtk/Matrix3x3.h"
 #include "mirtk/Vector3.h"
@@ -64,8 +65,6 @@
 #include "vtkMaskPoints.h"
 #include "vtkDelaunay3D.h"
 #include "vtkMassProperties.h"
-
-#include <algorithm>
 
 
 namespace mirtk {
@@ -619,7 +618,7 @@ struct ComputeSurfaceArea
 } // namespace AreaUtils
 
 // -----------------------------------------------------------------------------
-double Area(vtkSmartPointer<vtkPolyData> polydata, bool per_cell)
+double Area(vtkPolyData *polydata, bool per_cell)
 {
   vtkSmartPointer<vtkDataArray> area;
   if (per_cell) {
@@ -645,7 +644,7 @@ double Area(vtkSmartPointer<vtkPointSet> pointset)
 namespace EdgeLengthUtils {
 
 // -----------------------------------------------------------------------------
-/// Compute lengths of all edges
+/// Compute lengths of all edges and store it in C array
 struct ComputeEdgeLength
 {
   vtkPoints       *_Points;
@@ -662,6 +661,28 @@ struct ComputeEdgeLength
       _Points->GetPoint(ptId1, p1);
       _Points->GetPoint(ptId2, p2);
       _EdgeLength[edgeId] = sqrt(vtkMath::Distance2BetweenPoints(p1, p2));
+    }
+  }
+};
+
+// -----------------------------------------------------------------------------
+/// Compute squared lengths of all edges and store it in C array
+struct ComputeSquaredEdgeLength
+{
+  vtkPoints       *_Points;
+  const EdgeTable *_EdgeTable;
+  double          *_EdgeLength;
+
+  void operator ()(const blocked_range<int> &re) const
+  {
+    int    ptId1, ptId2, edgeId;
+    double p1[3], p2[3];
+
+    EdgeIterator it(*_EdgeTable);
+    for (it.InitTraversal(re); (edgeId = it.GetNextEdge(ptId1, ptId2)) != -1;) {
+      _Points->GetPoint(ptId1, p1);
+      _Points->GetPoint(ptId2, p2);
+      _EdgeLength[edgeId] = vtkMath::Distance2BetweenPoints(p1, p2);
     }
   }
 };
@@ -784,6 +805,34 @@ struct SumEdgeLengthsWithDuplicates
 
 
 } // namespace EdgeLengthUtils
+
+// -----------------------------------------------------------------------------
+Vector EdgeLengths(vtkSmartPointer<vtkPoints> points, const EdgeTable &edgeTable)
+{
+  const int n = edgeTable.NumberOfEdges();
+  Vector edgeLengths(n);
+  if (n == 0) return edgeLengths;
+  EdgeLengthUtils::ComputeEdgeLength eval;
+  eval._Points     = points;
+  eval._EdgeTable  = &edgeTable;
+  eval._EdgeLength = edgeLengths.RawPointer();
+  parallel_for(blocked_range<int>(0, n), eval);
+  return edgeLengths;
+}
+
+// -----------------------------------------------------------------------------
+Vector SquaredEdgeLengths(vtkSmartPointer<vtkPoints> points, const EdgeTable &edgeTable)
+{
+  const int n = edgeTable.NumberOfEdges();
+  Vector edgeLengths(n);
+  if (n == 0) return edgeLengths;
+  EdgeLengthUtils::ComputeSquaredEdgeLength eval;
+  eval._Points     = points;
+  eval._EdgeTable  = &edgeTable;
+  eval._EdgeLength = edgeLengths.RawPointer();
+  parallel_for(blocked_range<int>(0, n), eval);
+  return edgeLengths;
+}
 
 // -----------------------------------------------------------------------------
 double AverageEdgeLength(vtkSmartPointer<vtkPoints> points, const EdgeTable &edgeTable)

@@ -46,6 +46,7 @@ struct ImageAttributes;
 class BaseImage;
 class PointSet;
 class EdgeTable;
+class Vector;
 
 template <typename> struct Vector3D;
 
@@ -306,10 +307,23 @@ double Genus(vtkDataSet *dataset,
              int *euler   = nullptr);
 
 /// Area of surface mesh
-double Area(vtkSmartPointer<vtkPolyData>, bool per_cell = false);
+double Area(vtkPolyData *, bool per_cell = false);
+
+/// Area of surface mesh
+inline double Area(vtkSmartPointer<vtkPolyData> surface, bool per_cell = false)
+{
+  return Area(surface.GetPointer(), per_cell);
+}
+
 
 /// Area of point set surface
 double Area(vtkSmartPointer<vtkPointSet>);
+
+/// Compute edge lengths of point set given a precomputed edge table
+Vector EdgeLengths(vtkSmartPointer<vtkPoints>, const EdgeTable &);
+
+/// Compute squared edge lengths of point set given a precomputed edge table
+Vector SquaredEdgeLengths(vtkSmartPointer<vtkPoints>, const EdgeTable &);
 
 /// Determine average edge length of point set given a precomputed edge table
 double AverageEdgeLength(vtkSmartPointer<vtkPoints>, const EdgeTable &);
