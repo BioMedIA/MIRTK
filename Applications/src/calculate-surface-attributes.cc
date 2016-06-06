@@ -221,7 +221,6 @@ int main(int argc, char *argv[])
   vtkSmartPointer<vtkPolyData> surface;
   if (curvature_type != 0) surface = Triangulate(input);
   else                     surface = input;
-  surface->BuildLinks();
 
   // Calculate normals
   if (point_normals || cell_normals) {
@@ -242,6 +241,9 @@ int main(int argc, char *argv[])
   // Calculate curvatures
   if (curvature_type != 0) {
     if (verbose) cout << "Calculating surface curvature measure(s)...", cout.flush();
+
+    // Build surface links
+    surface->BuildLinks();
 
     // Compute curvature
     PolyDataCurvature curvature;
