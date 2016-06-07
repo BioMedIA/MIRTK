@@ -290,6 +290,7 @@ gifti_image * gxml_read_image(const char * fname, int read_data,
     if( !xd->gim ) {
         fprintf(stderr,"** failed to alloc initial gifti_image\n");
         free(buf);
+        fclose(fp);
         return NULL;
     }
 
