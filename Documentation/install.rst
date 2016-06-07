@@ -37,8 +37,8 @@ The MIRTK source code makes use of the following third-party libraries:
 Third-party library   Version  Included as              Required by module(s)                          Optionally used by
 ====================  =======  =======================  =============================================  ==================
 `Intel TBB`_          any      System                   No module                                      All modules
-Boost_                1.48     System or Git submodule  |Numerics|, |PointSet|, |Transformation|
-Eigen_                3.0      System or Git submodule  |Numerics|, |Mapping|
+Boost_                1.48     System                   |Numerics|, |PointSet|, |Transformation|
+Eigen_                3.0      System                   |Numerics|, |Mapping|
 ARPACK_ / UMFPACK_    any      System                   No module                                      |Numerics|
 VTK_                  6.0      System                   |PointSet|, |Deformable|, |Mapping|            |Common|, |Image|, |Registration|
 libpng_               any      System                   No module                                      |Image|
@@ -46,14 +46,10 @@ NiftiCLib_            any      System or Source code    No module               
 libLBFGS_             any      Source code              No module                                      |IO|
 ====================  =======  =======================  =============================================  ==================
 
-Only libraries marked as "Included as" **System** alone which are required by the modules
-to be build must be installed separately before building the MIRTK libraries and command-line
-tools. Boost_ and Eigen_ are a minimum requirement to build MIRTK. The needed source files of
-these header-only libraries can optionally be copied into the MIRTK `ThirdParty/` directory
-as described in the :ref:`download instructions <DownloadSources>`. The source code of
-the NiftiCLib_ and libLBFGS_ libraries are included in the basic download package and need
-not be installed. The WITH_NiftiCLib build option can be used, however, to force the use
-of an existing NiftiCLib installation. See :ref:`build configuration steps below <ConfigurationSteps>`.
+Boost_ and Eigen_ are a minimum requirement to build MIRTK. The source code of the NiftiCLib_ and
+libLBFGS_ libraries are included in the basic download package and need not be installed.
+The WITH_NiftiCLib build option can be used, however, to force the use of an existing NiftiCLib
+installation. See :ref:`build configuration steps below <ConfigurationSteps>`.
 
 The UMFPACK library is part of the `SuiteSparse <http://faculty.cse.tamu.edu/davis/suitesparse.html>`__ installation.
 
