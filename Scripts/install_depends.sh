@@ -10,6 +10,9 @@ fi
 # install pre-requisites on Ubuntu
 if [ $os = linux ] || [ $os = Linux ]; then
 
+  # see https://bugs.launchpad.net/ubuntu/+source/suitesparse/+bug/1333214
+  sudo add-apt-repository -y ppa:bzindovic/suitesparse-bugfix-1319687
+
   sudo apt-get update -qq
   sudo apt-get install -y --no-install-recommends \
     freeglut3-dev \
