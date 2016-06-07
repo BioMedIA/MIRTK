@@ -20,6 +20,8 @@
 #ifndef MIRTK_VtkMath_H
 #define MIRTK_VtkMath_H
 
+#include "vtkConfigure.h" // VTK version macros 
+
 
 // See http://www.paraview.org/Bug/view.php?id=14164
 #if VTK_MAJOR_VERSION == 6 && VTK_MINOR_VERSION == 0 && VTK_PATCH_VERSION == 0
@@ -28,7 +30,8 @@
 #  define isfinite ::std::isfinite
 #endif
 
-#include <vtkMath.h>
+#include <vtkMath.h> // DO NOT use double quotes which would cause endless recursive
+                     // include of this file when filesystem is not case sensitive!
 
 #if VTK_MAJOR_VERSION == 6 && VTK_MINOR_VERSION == 0 && VTK_PATCH_VERSION == 0
 #  undef isnan
