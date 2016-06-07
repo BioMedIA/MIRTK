@@ -83,6 +83,11 @@
 # and variables UMFPACK_FOUND, UMFPACK_INCLUDE_DIRS, and UMFPACK_LIBRARIES can be used
 # to refer to the found UMFPACK installation. These variables would otherwise be set by
 # a custom FindUMFPACK.cmake module.
+#
+# To debug the discovery of SuiteSparse libraries, set `SuiteSparse_DEBUG` to
+# a true value before the find_package call. This Find module will then output
+# additional diagnostic messages which help to identify problems finding a
+# SuiteSparse installation.
 
 #=============================================================================
 # Copyright 2016 Andreas Schuh <andreas.schuh.84@gmail.com>
@@ -96,6 +101,14 @@
 #=============================================================================
 # (To distribute this file outside of CMake, substitute the full
 #  License text for the above reference.)
+
+# ------------------------------------------------------------------------------
+# Print debug message when debugging of this Find module is enabled
+macro (_suitesparse_debug_message msg)
+  if (SuiteSparse_DEBUG)
+    message("** FindSuiteSparse: ${msg}")
+  endif ()
+endmacro ()
 
 # ------------------------------------------------------------------------------
 # Get SuiteSparse component include path suffixes
@@ -122,7 +135,10 @@ macro (_suitesparse_get_library_suffixes varname component)
     ${varname}
       "${component}"
       "${component}/Lib"
-      "lib" "lib64" "lib32"
+      "lib/x86_64-linux-gnu"
+      "lib"
+      "lib64"
+      "lib32"
   )
 endmacro ()
 
@@ -161,16 +177,32 @@ endforeach ()
 _suitesparse_remove_duplicate_libraries(SuiteSparse_COMPONENTS)
 
 # ------------------------------------------------------------------------------
+# Status message
+if (NOT SuiteSparse_FIND_QUIETLY)
+  set(_suitesparse_find_status "Looking for SuiteSparse")
+  if (SuiteSparse_FIND_COMPONENTS)
+    set(_suitesparse_find_status "${_suitesparse_find_status} [${SuiteSparse_COMPONENTS}]")
+  endif ()
+  if (NOT SuiteSparse_FIND_REQUIRED)
+    set(_suitesparse_find_status "${_suitesparse_find_status} (optional)")
+  endif ()
+  message(STATUS "${_suitesparse_find_status}...")
+endif ()
+
+# ------------------------------------------------------------------------------
 # Find "config" and set SuiteSparse_ROOT (if unset) used to find other components
 if (NOT SuiteSparse_ROOT)
   file(TO_CMAKE_PATH "$ENV{SuiteSparse_ROOT}" SuiteSparse_ROOT)
 endif ()
 
+_suitesparse_debug_message("Hints:")
+_suitesparse_debug_message("- SuiteSparse_ROOT = ${SuiteSparse_ROOT}")
+
 _suitesparse_get_include_suffixes(_suitesparse_include_suffixes SuiteSparse_config)
 if (SuiteSparse_ROOT)
   find_path(SuiteSparse_config_INCLUDE_DIR
     NAMES SuiteSparse_config.h UFconfig.h
-    PATHS ${SuiteSparse_ROOT}
+    PATHS "${SuiteSparse_ROOT}"
     PATH_SUFFIXES ${_suitesparse_include_suffixes}
     NO_DEFAULT_PATH
   )
@@ -182,40 +214,53 @@ else ()
   if (SuiteSparse_config_INCLUDE_DIR)
     foreach (_suitesparse_include_suffix IN LISTS _suitesparse_include_suffixes)
       if (SuiteSparse_config_INCLUDE_DIR MATCHES "^(.*)/+${_suitesparse_include_suffix}/*$")
-        set(SuiteSparse_ROOT "${CMAKE_MATCH_1}")
+        string(REGEX REPLACE "/[iI]nclude" "" SuiteSparse_ROOT "${CMAKE_MATCH_1}")
         break()
       endif ()
     endforeach ()
   endif ()
 endif ()
-set(SuiteSparse_config_INCLUDE_DIRS ${SuiteSparse_config_INCLUDE_DIR})
 mark_as_advanced(SuiteSparse_config_INCLUDE_DIR)
 
 _suitesparse_get_library_suffixes(_suitesparse_library_suffixes SuiteSparse_config)
 find_library(SuiteSparse_config_LIBRARY
   NAMES suitesparseconfig
-  PATHS ${SuiteSparse_ROOT}
+  PATHS "${SuiteSparse_ROOT}"
   PATH_SUFFIXES ${_suitesparse_library_suffixes}
   NO_DEFAULT_PATH
 )
-set(SuiteSparse_config_LIBRARIES ${SuiteSparse_config_LIBRARY})
-get_filename_component(SuiteSparse_LIBRARY_DIR "${SuiteSparse_config_LIBRARY}" PATH)
 mark_as_advanced(SuiteSparse_config_LIBRARY)
 
 if (SuiteSparse_config_INCLUDE_DIR AND SuiteSparse_config_LIBRARY)
   set(SuiteSparse_config_FOUND 1)
+  set(SuiteSparse_config_INCLUDE_DIRS ${SuiteSparse_config_INCLUDE_DIR})
+  set(SuiteSparse_config_LIBRARIES    ${SuiteSparse_config_LIBRARY})
+  set(SuiteSparse_INCLUDE_DIR         ${SuiteSparse_config_INCLUDE_DIR})
+  get_filename_component(SuiteSparse_LIBRARY_DIR "${SuiteSparse_config_LIBRARY}" PATH)
 else ()
   set(SuiteSparse_config_FOUND 0)
+  set(SuiteSparse_config_INCLUDE_DIRS)
+  set(SuiteSparse_config_LIBRARIES)
+  set(SuiteSparse_INCLUDE_DIR)
+  set(SuiteSparse_LIBRARY_DIR)
 endif ()
+
+_suitesparse_debug_message("Config (FOUND=${SuiteSparse_config_FOUND}):")
+_suitesparse_debug_message("- SuiteSparse_ROOT               = ${SuiteSparse_ROOT}")
+_suitesparse_debug_message("- SuiteSparse_INCLUDE_DIR        = ${SuiteSparse_INCLUDE_DIR}")
+_suitesparse_debug_message("- SuiteSparse_LIBRARY_DIR        = ${SuiteSparse_LIBRARY_DIR}")
+_suitesparse_debug_message("- SuiteSparse_config_INCLUDE_DIR = ${SuiteSparse_config_INCLUDE_DIR}")
+_suitesparse_debug_message("- SuiteSparse_config_LIBRARY     = ${SuiteSparse_config_LIBRARY}")
 
 # ------------------------------------------------------------------------------
 # Extract version information
 if (SuiteSparse_config_FOUND)
   if (EXISTS "${SuiteSparse_config_INCLUDE_DIR}/SuiteSparse_config.h")
-    file(READ "${SuiteSparse_config_INCLUDE_DIR}/SuiteSparse_config.h" _suitesparse_config)
+    set(_suitesparse_config_file "${SuiteSparse_config_INCLUDE_DIR}/SuiteSparse_config.h")
   else ()
-    file(READ "${SuiteSparse_config_INCLUDE_DIR}/UFconfig.h" _suitesparse_config)
+    set(_suitesparse_config_file "${SuiteSparse_config_INCLUDE_DIR}/UFconfig.h")
   endif ()
+  file(READ "${_suitesparse_config_file}" _suitesparse_config)
   if (_suitesparse_config MATCHES "#define SUITESPARSE_MAIN_VERSION ([0-9]+)")
     set(SuiteSparse_VERSION_MAJOR "${CMAKE_MATCH_1}")
     if (_suitesparse_config MATCHES "#define SUITESPARSE_SUB_VERSION ([0-9]+)")
@@ -243,7 +288,15 @@ if (SuiteSparse_config_FOUND)
     set(SuiteSparse_VERSION_PATCH)
     set(SuiteSparse_VERSION_STRING)
   endif ()
+
+  _suitesparse_debug_message("Version information from ${_suitesparse_config_file}")
+  _suitesparse_debug_message("- SuiteSparse_VERSION_STRING = ${SuiteSparse_VERSION_STRING}")
+  _suitesparse_debug_message("- SuiteSparse_VERSION_MAJOR  = ${SuiteSparse_VERSION_MAJOR}")
+  _suitesparse_debug_message("- SuiteSparse_VERSION_MINOR  = ${SuiteSparse_VERSION_MINOR}")
+  _suitesparse_debug_message("- SuiteSparse_VERSION_PATCH  = ${SuiteSparse_VERSION_PATCH}")
+
   unset(_suitesparse_config)
+  unset(_suitesparse_config_file)
 endif ()
 
 # ------------------------------------------------------------------------------
@@ -262,37 +315,41 @@ foreach (_suitesparse_component IN LISTS SuiteSparse_COMPONENTS)
 
     find_path(SuiteSparse_${_suitesparse_component}_INCLUDE_DIR
       NAMES ${_suitesparse_component_header}
-      HINTS ${SuiteSparse_INCLUDE_DIR}
-      PATHS ${SuiteSparse_ROOT}
+      HINTS "${SuiteSparse_INCLUDE_DIR}"
+      PATHS "${SuiteSparse_ROOT}"
       PATH_SUFFIXES ${_suitesparse_include_suffixes}
       NO_DEFAULT_PATH
-    )
-    set(SuiteSparse_${_suitesparse_component}_INCLUDE_DIRS
-      ${SuiteSparse_${_suitesparse_component}_INCLUDE_DIR}
     )
     mark_as_advanced(SuiteSparse_${_suitesparse_component}_INCLUDE_DIR)
 
     # Find component library file
+    set(SuiteSparse_${_suitesparse_component}_LIBRARIES)
     _suitesparse_get_library_suffixes(_suitesparse_library_suffixes ${_suitesparse_component})
     find_library(SuiteSparse_${_suitesparse_component}_LIBRARY
       NAMES ${_suitesparse_component_lower}
-      HINTS ${SuiteSparse_LIBRARY_DIR}
-      PATHS ${SuiteSparse_ROOT}
+      HINTS "${SuiteSparse_LIBRARY_DIR}"
+      PATHS "${SuiteSparse_ROOT}"
       PATH_SUFFIXES ${_suitesparse_library_suffixes}
       NO_DEFAULT_PATH
     )
-    set(SuiteSparse_${_suitesparse_component}_LIBRARIES
-      ${SuiteSparse_${_suitesparse_component}_LIBRARY}
-    )
     mark_as_advanced(SuiteSparse_${_suitesparse_component}_LIBRARY)
 
-    # Mark component as either found or not
+    # Mark component as either found or not and init aggregates
     if (SuiteSparse_${_suitesparse_component}_INCLUDE_DIR AND
         SuiteSparse_${_suitesparse_component}_LIBRARY)
       set(SuiteSparse_${_suitesparse_component}_FOUND 1)
+      set(SuiteSparse_${_suitesparse_component}_INCLUDE_DIRS
+        ${SuiteSparse_${_suitesparse_component}_INCLUDE_DIR}
+      )
+      set(SuiteSparse_${_suitesparse_component}_LIBRARIES
+        ${SuiteSparse_${_suitesparse_component}_LIBRARY}
+      )
     else ()
       set(SuiteSparse_${_suitesparse_component}_FOUND 0)
+      set(SuiteSparse_${_suitesparse_component}_INCLUDE_DIRS)
+      set(SuiteSparse_${_suitesparse_component}_LIBRARIES)
     endif ()
+
   endif ()
 endforeach ()
 
@@ -388,21 +445,31 @@ endif ()
 foreach (_suitesparse_component IN LISTS SuiteSparse_COMPONENTS)
   _suitesparse_remove_duplicate_paths(SuiteSparse_${_suitesparse_component}_INCLUDE_DIRS)
   _suitesparse_remove_duplicate_libraries(SuiteSparse_${_suitesparse_component}_LIBRARIES)
+
+  _suitesparse_debug_message("${_suitesparse_component} (FOUND=${SuiteSparse_${_suitesparse_component}_FOUND}):")
+  _suitesparse_debug_message("- SuiteSparse_${_suitesparse_component}_INCLUDE_DIR  = ${SuiteSparse_${_suitesparse_component}_INCLUDE_DIR}")
+  _suitesparse_debug_message("- SuiteSparse_${_suitesparse_component}_INCLUDE_DIRS = [${SuiteSparse_${_suitesparse_component}_INCLUDE_DIRS}]")
+  _suitesparse_debug_message("- SuiteSparse_${_suitesparse_component}_LIBRARY      = ${SuiteSparse_${_suitesparse_component}_LIBRARY}")
+  _suitesparse_debug_message("- SuiteSparse_${_suitesparse_component}_LIBRARIES    = [${SuiteSparse_${_suitesparse_component}_LIBRARIES}]")
 endforeach ()
 
 # ------------------------------------------------------------------------------
 # Aggregate found libraries
-set(SuiteSparse_INCLUDE_DIR  ${SuiteSparse_config_INCLUDE_DIR})
-set(SuiteSparse_INCLUDE_DIRS ${SuiteSparse_config_INCLUDE_DIRS})
-set(SuiteSparse_LIBRARIES    ${SuiteSparse_config_LIBRARIES})
-foreach (_suitesparse_component IN LISTS SuiteSparse_COMPONENTS)
-  if (SuiteSparse_${_suitesparse_component}_FOUND)
-    list(APPEND SuiteSparse_INCLUDE_DIRS SuiteSparse_${_suitesparse_component}_INCLUDE_DIRS)
-    list(APPEND SuiteSparse_LIBRARIES    SuiteSparse_${_suitesparse_component}_LIBRARIES)
-  endif ()
-endforeach ()
-_suitesparse_remove_duplicate_paths(SuiteSparse_INCLUDE_DIRS)
-_suitesparse_remove_duplicate_libraries(SuiteSparse_LIBRARIES)
+if (SuiteSparse_config_FOUND)
+  set(SuiteSparse_INCLUDE_DIRS ${SuiteSparse_config_INCLUDE_DIRS})
+  set(SuiteSparse_LIBRARIES    ${SuiteSparse_config_LIBRARIES})
+  foreach (_suitesparse_component IN LISTS SuiteSparse_COMPONENTS)
+    if (SuiteSparse_${_suitesparse_component}_FOUND)
+      list(APPEND SuiteSparse_INCLUDE_DIRS SuiteSparse_${_suitesparse_component}_INCLUDE_DIRS)
+      list(APPEND SuiteSparse_LIBRARIES    SuiteSparse_${_suitesparse_component}_LIBRARIES)
+    endif ()
+  endforeach ()
+  _suitesparse_remove_duplicate_paths(SuiteSparse_INCLUDE_DIRS)
+  _suitesparse_remove_duplicate_libraries(SuiteSparse_LIBRARIES)
+else ()
+  set(SuiteSparse_INCLUDE_DIRS)
+  set(SuiteSparse_LIBRARIES)
+endif ()
 
 # ------------------------------------------------------------------------------
 # Handle QUIET, REQUIRED, and [EXACT] VERSION arguments and set SuiteSparse_FOUND
@@ -419,6 +486,14 @@ find_package_handle_standard_args(
     SuiteSparse_config_LIBRARY
   HANDLE_COMPONENTS
 )
+
+if (NOT SuiteSparse_FIND_QUIETLY)
+  if (SuiteSparse_FOUND)
+    message(STATUS "${_suitesparse_find_status}... - found v${SuiteSparse_VERSION_STRING}")
+  else ()
+    message(STATUS "${_suitesparse_find_status}... - not found")
+  endif ()
+endif ()
 
 # ------------------------------------------------------------------------------
 # Set uncached variables without "SuiteSparse_" prefix for components which
@@ -471,3 +546,4 @@ unset(_suitesparse_include_suffixes)
 unset(_suitesparse_library_suffixes)
 unset(_suitesparse_varname_suffixes)
 unset(_suitesparse_varname_suffix)
+unset(_suitesparse_find_status)
