@@ -57,7 +57,7 @@
 #  include "mirtk/RegisteredPointSet.h"
 #  include "mirtk/PointSetUtils.h"
 #  include "mirtk/PointSetDistance.h"
-#  include "mirtk/PolyDataRemeshing.h"
+#  include "mirtk/SurfaceRemeshing.h"
 #  if MIRTK_Registration_WITH_Deformable
 #    include "mirtk/InternalForce.h"
 #  endif
@@ -517,11 +517,11 @@ public:
       if (IsSurfaceMesh((*_Input)[n]) &&
           (_MinEdgeLength[_Level][n] > .0 ||
            _MaxEdgeLength[_Level][n] < numeric_limits<double>::infinity())) {
-        PolyDataRemeshing remesher;
+        SurfaceRemeshing remesher;
         remesher.Input(vtkPolyData::SafeDownCast((*_Output)[_Level-1][n]));
         remesher.MinEdgeLength(_MinEdgeLength[_Level][n]);
         remesher.MaxEdgeLength(_MaxEdgeLength[_Level][n]);
-        remesher.MeltingOrder(PolyDataRemeshing::AREA);
+        remesher.MeltingOrder(SurfaceRemeshing::AREA);
         remesher.MeltNodesOn();
         remesher.MeltTrianglesOn();
         remesher.Run();
@@ -3951,10 +3951,10 @@ void GenericRegistrationFilter::PreUpdateCallback(bool gradient)
           const double dmax = _MaxEdgeLength[_CurrentLevel][j];
           if (_AdaptiveRemeshing && IsSurfaceMesh(_PointSetInput[j]) && (dmin > .0 || !IsInf(dmax))) {
             MIRTK_START_TIMING();
-            PolyDataRemeshing remesher;
+            SurfaceRemeshing remesher;
             remesher.Input(vtkPolyData::SafeDownCast(_PointSetOutput[i]->InputPointSet()));
             remesher.Transformation(_PointSetOutput[i]->Transformation());
-            remesher.MeltingOrder(PolyDataRemeshing::AREA);
+            remesher.MeltingOrder(SurfaceRemeshing::AREA);
             remesher.MeltNodesOff();
             remesher.MeltTrianglesOn();
             remesher.MinEdgeLength(dmin);

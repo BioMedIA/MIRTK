@@ -1,8 +1,8 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2013-2015 Imperial College London
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2013-2016 Imperial College London
+ * Copyright 2013-2016 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,20 +22,27 @@
 #include "mirtk/Assert.h"
 #include "mirtk/Memory.h"
 #include "mirtk/Pair.h"
-#include "mirtk/Algorithm.h" // sort
+#include "mirtk/Algorithm.h" // Sort
 
-#include "vtkSmartPointer.h"
 #include "vtkGenericCell.h"
-#include "vtkDataSet.h"
 
 
 namespace mirtk {
 
 
 // -----------------------------------------------------------------------------
-EdgeTable::EdgeTable(vtkDataSet *mesh)
+void EdgeTable::CopyAttributes(const EdgeTable &other)
 {
-  if (mesh) Initialize(mesh);
+  _Mesh          = other._Mesh;
+  _NumberOfEdges = other._NumberOfEdges;
+}
+
+// -----------------------------------------------------------------------------
+EdgeTable::EdgeTable(vtkDataSet *mesh)
+:
+  _NumberOfEdges(0)
+{
+  Initialize(mesh);
 }
 
 // -----------------------------------------------------------------------------
@@ -43,12 +50,16 @@ EdgeTable::EdgeTable(const EdgeTable &other)
 :
   GenericSparseMatrix(other)
 {
+  CopyAttributes(other);
 }
 
 // -----------------------------------------------------------------------------
 EdgeTable &EdgeTable::operator =(const EdgeTable &other)
 {
-  GenericSparseMatrix::operator =(other);
+  if (this != &other) {
+    GenericSparseMatrix::operator =(other);
+    CopyAttributes(other);
+  }
   return *this;
 }
 
@@ -60,9 +71,11 @@ EdgeTable::~EdgeTable()
 // -----------------------------------------------------------------------------
 void EdgeTable::Initialize(vtkDataSet *mesh)
 {
-  MIRTK_START_TIMING();
-
+  _Mesh          = mesh;
   _NumberOfEdges = 0;
+
+  if (mesh == nullptr) return;
+  MIRTK_START_TIMING();
 
   const int       numPts   = static_cast<int>(mesh->GetNumberOfPoints());
   const vtkIdType numCells = mesh->GetNumberOfCells();
@@ -108,13 +121,14 @@ void EdgeTable::Initialize(vtkDataSet *mesh)
           }
         }
       } else {
-        cerr << "WARNING: EdgeTable::Initialize: Only linear edges supported" << endl;
+        cerr << this->NameOfType() << "::Initialize: Only linear edges supported" << endl;
+        exit(1);
       }
     }
   }
 
   for (int i = 0; i < numPts; ++i) {
-    sort(entries[i].begin(), entries[i].end());
+    Sort(entries[i]);
   }
 
   GenericSparseMatrix::Initialize(numPts, numPts, entries, true);

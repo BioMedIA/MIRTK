@@ -1,8 +1,8 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2013-2015 Imperial College London
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2013-2016 Imperial College London
+ * Copyright 2013-2016 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,6 +25,7 @@
 #include "mirtk/Memory.h"
 #include "mirtk/Parallel.h"
 
+#include "vtkSmartPointer.h"
 #include "vtkDataSet.h"
 
 
@@ -44,13 +45,19 @@ class EdgeTable : public GenericSparseMatrix<int>
 {
   mirtkObjectMacro(EdgeTable);
 
+  /// Pointer to data set which this edge table was computed from
+  mirtkReadOnlyAttributeMacro(vtkSmartPointer<vtkDataSet>, Mesh);
+
   /// Number of undirected edges
   mirtkReadOnlyAttributeMacro(int, NumberOfEdges);
+
+  /// Copy attributes of this class from another instance
+  void CopyAttributes(const EdgeTable &);
 
 public:
 
   /// Construct edge table for given dataset
-  EdgeTable(vtkDataSet * = NULL);
+  EdgeTable(vtkDataSet * = nullptr);
 
   /// Copy constructor
   EdgeTable(const EdgeTable &);

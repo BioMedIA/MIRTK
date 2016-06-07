@@ -17,17 +17,19 @@
  * limitations under the License.
  */
 
-#include "mirtk/PolyDataCurvature.h"
+#include "mirtk/SurfaceCurvature.h"
 
-#include "mirtk/Vtk.h"
 #include "mirtk/Math.h"
 #include "mirtk/Memory.h"
-#include "mirtk/Matrix3x3.h"
-#include "mirtk/EdgeTable.h"
-#include "mirtk/PolyDataSmoothing.h"
 #include "mirtk/Parallel.h"
 #include "mirtk/Profiling.h"
+
+#include "mirtk/Matrix3x3.h"
+#include "mirtk/EdgeTable.h"
+#include "mirtk/MeshSmoothing.h"
 #include "mirtk/PointSetUtils.h"
+
+#include "mirtk/Vtk.h"
 #include "mirtk/VtkMath.h"
 
 #include "vtkPointData.h"
@@ -49,36 +51,23 @@ namespace mirtk {
 // Names of output point data arrays
 // =============================================================================
 
-MIRTK_PointSet_EXPORT const char *PolyDataCurvature::MINIMUM            = "Minimum_Curvature";
-MIRTK_PointSet_EXPORT const char *PolyDataCurvature::MAXIMUM            = "Maximum_Curvature";
-MIRTK_PointSet_EXPORT const char *PolyDataCurvature::MEAN               = "Mean_Curvature";
-MIRTK_PointSet_EXPORT const char *PolyDataCurvature::GAUSS              = "Gauss_Curvature";
-MIRTK_PointSet_EXPORT const char *PolyDataCurvature::CURVEDNESS         = "Curvedness";
-MIRTK_PointSet_EXPORT const char *PolyDataCurvature::MINIMUM_DIRECTION  = "Minimum_Curvature_Direction";
-MIRTK_PointSet_EXPORT const char *PolyDataCurvature::MAXIMUM_DIRECTION  = "Maximum_Curvature_Direction";
-MIRTK_PointSet_EXPORT const char *PolyDataCurvature::TENSOR             = "Curvature_Tensor";
-MIRTK_PointSet_EXPORT const char *PolyDataCurvature::INVERSE_TENSOR     = "Inverse_Curvature_Tensor";
-MIRTK_PointSet_EXPORT const char *PolyDataCurvature::NORMALS            = "Normals";
+MIRTK_PointSet_EXPORT const char *SurfaceCurvature::MINIMUM            = "Minimum_Curvature";
+MIRTK_PointSet_EXPORT const char *SurfaceCurvature::MAXIMUM            = "Maximum_Curvature";
+MIRTK_PointSet_EXPORT const char *SurfaceCurvature::MEAN               = "Mean_Curvature";
+MIRTK_PointSet_EXPORT const char *SurfaceCurvature::GAUSS              = "Gauss_Curvature";
+MIRTK_PointSet_EXPORT const char *SurfaceCurvature::CURVEDNESS         = "Curvedness";
+MIRTK_PointSet_EXPORT const char *SurfaceCurvature::MINIMUM_DIRECTION  = "Minimum_Curvature_Direction";
+MIRTK_PointSet_EXPORT const char *SurfaceCurvature::MAXIMUM_DIRECTION  = "Maximum_Curvature_Direction";
+MIRTK_PointSet_EXPORT const char *SurfaceCurvature::TENSOR             = "Curvature_Tensor";
+MIRTK_PointSet_EXPORT const char *SurfaceCurvature::INVERSE_TENSOR     = "Inverse_Curvature_Tensor";
+MIRTK_PointSet_EXPORT const char *SurfaceCurvature::NORMALS            = "Normals";
 
 // =============================================================================
 // Auxiliary functors
 // =============================================================================
 
-namespace PolyDataCurvatureUtils {
+namespace SurfaceCurvatureUtils {
 
-
-// ------------------------------------------------------------------------------
-/// Allocate new output data array
-vtkSmartPointer<vtkDataArray> NewArray(const char *name, vtkIdType n, int c, bool double_precision)
-{
-  vtkSmartPointer<vtkDataArray> array;
-  if (double_precision) array = vtkSmartPointer<vtkDoubleArray>::New();
-  else                  array = vtkSmartPointer<vtkFloatArray >::New();
-  array->SetName(name);
-  array->SetNumberOfComponents(c);
-  array->SetNumberOfTuples(n);
-  return array;
-}
 
 // -----------------------------------------------------------------------------
 /// Compute curvature tensors for each undirected edge
@@ -144,7 +133,7 @@ public:
   static vtkSmartPointer<vtkDataArray> Run(vtkPolyData *surface, const EdgeTable &edgeTable)
   {
     vtkSmartPointer<vtkDataArray> tensors = vtkSmartPointer<vtkDoubleArray>::New();
-    tensors->SetName(PolyDataCurvature::TENSOR);
+    tensors->SetName(SurfaceCurvature::TENSOR);
     tensors->SetNumberOfComponents(6);
     tensors->SetNumberOfTuples(edgeTable.NumberOfEdges());
     ComputeEdgeTensors body;
@@ -188,7 +177,7 @@ struct AverageEdgeTensors
   static void Run(vtkPolyData *surface, const EdgeTable &edgeTable, vtkDataArray *edgeTensors)
   {
     vtkSmartPointer<vtkDataArray> tensors = vtkSmartPointer<vtkDoubleArray>::New();
-    tensors->SetName(PolyDataCurvature::TENSOR);
+    tensors->SetName(SurfaceCurvature::TENSOR);
     tensors->SetNumberOfComponents(6);
     tensors->SetNumberOfTuples(surface->GetNumberOfPoints());
     AverageEdgeTensors body;
@@ -222,44 +211,44 @@ struct DecomposeTensors
 
   static void ComposeTensor(double T[6], EigenValues lambda, EigenVectors e, int i, int j, int k)
   {
-    T[PolyDataCurvature::XX] = lambda(i) * e(i, i) * e(i, i)
+    T[SurfaceCurvature::XX] = lambda(i) * e(i, i) * e(i, i)
                              + lambda(j) * e(i, j) * e(i, j)
                              + lambda(k) * e(i, k) * e(i, k);
-    T[PolyDataCurvature::YY] = lambda(i) * e(j, i) * e(j, i)
+    T[SurfaceCurvature::YY] = lambda(i) * e(j, i) * e(j, i)
                              + lambda(j) * e(j, j) * e(j, j)
                              + lambda(k) * e(j, k) * e(j, k);
-    T[PolyDataCurvature::ZZ] = lambda(i) * e(k, i) * e(k, i)
+    T[SurfaceCurvature::ZZ] = lambda(i) * e(k, i) * e(k, i)
                              + lambda(j) * e(k, j) * e(k, j)
                              + lambda(k) * e(k, k) * e(k, k);
-    T[PolyDataCurvature::XY] = lambda(i) * e(i, i) * e(j, i)
+    T[SurfaceCurvature::XY] = lambda(i) * e(i, i) * e(j, i)
                              + lambda(j) * e(i, j) * e(j, j)
                              + lambda(k) * e(i, k) * e(j, k);
-    T[PolyDataCurvature::YZ] = lambda(i) * e(j, i) * e(k, i)
+    T[SurfaceCurvature::YZ] = lambda(i) * e(j, i) * e(k, i)
                              + lambda(j) * e(j, j) * e(k, j)
                              + lambda(k) * e(j, k) * e(k, k);
-    T[PolyDataCurvature::XZ] = lambda(i) * e(i, i) * e(k, i)
+    T[SurfaceCurvature::XZ] = lambda(i) * e(i, i) * e(k, i)
                              + lambda(j) * e(i, j) * e(k, j)
                              + lambda(k) * e(i, k) * e(k, k);
   }
 
   static void ComposeTensor(double T[6], EigenValues lambda, double a[3], double b[3], double c[3], int i, int j, int k)
   {
-    T[PolyDataCurvature::XX] = lambda(i) * a[0] * a[0]
+    T[SurfaceCurvature::XX] = lambda(i) * a[0] * a[0]
                              + lambda(j) * b[0] * b[0]
                              + lambda(k) * c[0] * c[0];
-    T[PolyDataCurvature::YY] = lambda(i) * a[1] * a[1]
+    T[SurfaceCurvature::YY] = lambda(i) * a[1] * a[1]
                              + lambda(j) * b[1] * b[1]
                              + lambda(k) * c[1] * c[1];
-    T[PolyDataCurvature::ZZ] = lambda(i) * a[2] * a[2]
+    T[SurfaceCurvature::ZZ] = lambda(i) * a[2] * a[2]
                              + lambda(j) * b[2] * b[2]
                              + lambda(k) * c[2] * c[2];
-    T[PolyDataCurvature::XY] = lambda(i) * a[0] * a[1]
+    T[SurfaceCurvature::XY] = lambda(i) * a[0] * a[1]
                              + lambda(j) * b[0] * b[1]
                              + lambda(k) * c[0] * c[1];
-    T[PolyDataCurvature::YZ] = lambda(i) * a[1] * a[2]
+    T[SurfaceCurvature::YZ] = lambda(i) * a[1] * a[2]
                              + lambda(j) * b[1] * b[2]
                              + lambda(k) * c[1] * c[2];
-    T[PolyDataCurvature::XZ] = lambda(i) * a[0] * a[2]
+    T[SurfaceCurvature::XZ] = lambda(i) * a[0] * a[2]
                              + lambda(j) * b[0] * b[2]
                              + lambda(k) * c[0] * c[2];
   }
@@ -276,15 +265,15 @@ struct DecomposeTensors
     for (vtkIdType ptId = re.begin(); ptId != re.end(); ++ptId) {
       // Get 3x3 symmetric real curvature tensor
       _InputTensors->GetTuple(ptId, T);
-      tensor << T[PolyDataCurvature::XX],
-                T[PolyDataCurvature::XY],
-                T[PolyDataCurvature::XZ],
-                T[PolyDataCurvature::YX],
-                T[PolyDataCurvature::YY],
-                T[PolyDataCurvature::YZ],
-                T[PolyDataCurvature::ZX],
-                T[PolyDataCurvature::ZY],
-                T[PolyDataCurvature::ZZ];
+      tensor << T[SurfaceCurvature::XX],
+                T[SurfaceCurvature::XY],
+                T[SurfaceCurvature::XZ],
+                T[SurfaceCurvature::YX],
+                T[SurfaceCurvature::YY],
+                T[SurfaceCurvature::YZ],
+                T[SurfaceCurvature::ZX],
+                T[SurfaceCurvature::ZY],
+                T[SurfaceCurvature::ZZ];
       // Decompose symmetric 3x3 curvature tensor
       eigensolver.compute(tensor);
       const EigenValues  &lambda = eigensolver.eigenvalues();
@@ -356,22 +345,22 @@ struct DecomposeTensors
       if (_OutputTensors) _OutputTensors->SetTuple(ptId, T);
       // Compute inverse of (reordered and reoriented) curvature tensor
       if (_InverseTensors) {
-        tensor << T[PolyDataCurvature::XX],
-                  T[PolyDataCurvature::XY],
-                  T[PolyDataCurvature::XZ],
-                  T[PolyDataCurvature::YX],
-                  T[PolyDataCurvature::YY],
-                  T[PolyDataCurvature::YZ],
-                  T[PolyDataCurvature::ZX],
-                  T[PolyDataCurvature::ZY],
-                  T[PolyDataCurvature::ZZ];
+        tensor << T[SurfaceCurvature::XX],
+                  T[SurfaceCurvature::XY],
+                  T[SurfaceCurvature::XZ],
+                  T[SurfaceCurvature::YX],
+                  T[SurfaceCurvature::YY],
+                  T[SurfaceCurvature::YZ],
+                  T[SurfaceCurvature::ZX],
+                  T[SurfaceCurvature::ZY],
+                  T[SurfaceCurvature::ZZ];
         inverse = tensor.inverse();
-        T[PolyDataCurvature::XX] = inverse(0, 0);
-        T[PolyDataCurvature::YY] = inverse(1, 1);
-        T[PolyDataCurvature::ZZ] = inverse(2, 2);
-        T[PolyDataCurvature::XY] = inverse(0, 1);
-        T[PolyDataCurvature::YZ] = inverse(1, 2);
-        T[PolyDataCurvature::XZ] = inverse(0, 2);
+        T[SurfaceCurvature::XX] = inverse(0, 0);
+        T[SurfaceCurvature::YY] = inverse(1, 1);
+        T[SurfaceCurvature::ZZ] = inverse(2, 2);
+        T[SurfaceCurvature::XY] = inverse(0, 1);
+        T[SurfaceCurvature::YZ] = inverse(1, 2);
+        T[SurfaceCurvature::XZ] = inverse(0, 2);
         _InverseTensors->SetTuple(ptId, T);
       }
     }
@@ -488,15 +477,15 @@ struct MultiplyScalar
 };
 
 
-} // namespace PolyDataCurvatureUtils
-using namespace PolyDataCurvatureUtils;
+} // namespace SurfaceCurvatureUtils
+using namespace SurfaceCurvatureUtils;
 
 // =============================================================================
 // Construction/Destruction
 // =============================================================================
 
 // -----------------------------------------------------------------------------
-void PolyDataCurvature::CopyAttributes(const PolyDataCurvature &other)
+void SurfaceCurvature::CopyAttributes(const SurfaceCurvature &other)
 {
   _CurvatureType   = other._CurvatureType;
   _VtkCurvatures   = other._VtkCurvatures;
@@ -507,7 +496,7 @@ void PolyDataCurvature::CopyAttributes(const PolyDataCurvature &other)
 }
 
 // -----------------------------------------------------------------------------
-PolyDataCurvature::PolyDataCurvature(int type)
+SurfaceCurvature::SurfaceCurvature(int type)
 :
   _CurvatureType(type),
   _VtkCurvatures(false),
@@ -519,25 +508,25 @@ PolyDataCurvature::PolyDataCurvature(int type)
 }
 
 // -----------------------------------------------------------------------------
-PolyDataCurvature::PolyDataCurvature(const PolyDataCurvature &other)
+SurfaceCurvature::SurfaceCurvature(const SurfaceCurvature &other)
 :
-  PolyDataFilter(other)
+  SurfaceFilter(other)
 {
   CopyAttributes(other);
 }
 
 // -----------------------------------------------------------------------------
-PolyDataCurvature &PolyDataCurvature::operator =(const PolyDataCurvature &other)
+SurfaceCurvature &SurfaceCurvature::operator =(const SurfaceCurvature &other)
 {
   if (this != &other) {
-    PolyDataFilter::operator =(other);
+    SurfaceFilter::operator =(other);
     CopyAttributes(other);
   }
   return *this;
 }
 
 // -----------------------------------------------------------------------------
-PolyDataCurvature::~PolyDataCurvature()
+SurfaceCurvature::~SurfaceCurvature()
 {
 }
 
@@ -546,10 +535,10 @@ PolyDataCurvature::~PolyDataCurvature()
 // =============================================================================
 
 // -----------------------------------------------------------------------------
-void PolyDataCurvature::Initialize()
+void SurfaceCurvature::Initialize()
 {
   // Initialize base class
-  PolyDataFilter::Initialize();
+  SurfaceFilter::Initialize();
 
   // Check if vtkCurvatures can be used
   if (_CurvatureType > Curvedness) {
@@ -557,9 +546,8 @@ void PolyDataCurvature::Initialize()
   }
 
   // Compute face normals
-  if (!_VtkCurvatures && _Output->GetCellData()->GetNormals() == NULL) {
-    vtkSmartPointer<vtkPolyDataNormals> filter;
-    filter = vtkSmartPointer<vtkPolyDataNormals>::New();
+  if (!_VtkCurvatures && _Output->GetCellData()->GetNormals() == nullptr) {
+    vtkNew<vtkPolyDataNormals> filter;
     SetVTKInput(filter, _Output);
     filter->ComputePointNormalsOn();
     filter->ComputeCellNormalsOn();
@@ -590,42 +578,42 @@ void PolyDataCurvature::Initialize()
 }
 
 // -----------------------------------------------------------------------------
-vtkDataArray *PolyDataCurvature::GetMinimumCurvature()
+vtkDataArray *SurfaceCurvature::GetMinimumCurvature()
 {
   ComputeMinMaxCurvature(true, false);
   return _Output->GetPointData()->GetArray(MINIMUM);
 }
 
 // -----------------------------------------------------------------------------
-vtkDataArray *PolyDataCurvature::GetMaximumCurvature()
+vtkDataArray *SurfaceCurvature::GetMaximumCurvature()
 {
   ComputeMinMaxCurvature(false, true);
   return _Output->GetPointData()->GetArray(MAXIMUM);
 }
 
 // -----------------------------------------------------------------------------
-vtkDataArray *PolyDataCurvature::GetMeanCurvature()
+vtkDataArray *SurfaceCurvature::GetMeanCurvature()
 {
   ComputeMeanCurvature();
   return _Output->GetPointData()->GetArray(MEAN);
 }
 
 // -----------------------------------------------------------------------------
-vtkDataArray *PolyDataCurvature::GetGaussCurvature()
+vtkDataArray *SurfaceCurvature::GetGaussCurvature()
 {
   ComputeGaussCurvature();
   return _Output->GetPointData()->GetArray(GAUSS);
 }
 
 // -----------------------------------------------------------------------------
-vtkDataArray *PolyDataCurvature::GetCurvedness()
+vtkDataArray *SurfaceCurvature::GetCurvedness()
 {
   ComputeCurvedness();
   return _Output->GetPointData()->GetArray(CURVEDNESS);
 }
 
 // -----------------------------------------------------------------------------
-void PolyDataCurvature::Execute()
+void SurfaceCurvature::Execute()
 {
   // Compute curvature tensor field and its eigenvalues if needed
   if (!_VtkCurvatures) {
@@ -651,7 +639,7 @@ void PolyDataCurvature::Execute()
 }
 
 // -----------------------------------------------------------------------------
-void PolyDataCurvature::ComputeTensorField()
+void SurfaceCurvature::ComputeTensorField()
 {
   MIRTK_START_TIMING();
 
@@ -665,12 +653,12 @@ void PolyDataCurvature::ComputeTensorField()
   // Locally integrate edge tensors
   AverageEdgeTensors::Run(_Output, *_EdgeTable, tensors);
 
-  PolyDataSmoothing smoother;
+  MeshSmoothing smoother;
   smoother.Input(_Output);
   smoother.EdgeTable(_EdgeTable);
   smoother.SmoothPointsOff();
   smoother.SmoothArray(TENSOR);
-  smoother.Weighting(PolyDataSmoothing::Combinatorial);
+  smoother.Weighting(MeshSmoothing::Combinatorial);
   smoother.AdjacentValuesOnly(false);
   smoother.NumberOfIterations(_TensorAveraging);
   smoother.Sigma(.0);
@@ -682,7 +670,7 @@ void PolyDataCurvature::ComputeTensorField()
 }
 
 // -----------------------------------------------------------------------------
-void PolyDataCurvature::DecomposeTensorField()
+void SurfaceCurvature::DecomposeTensorField()
 {
   MIRTK_START_TIMING();
 
@@ -696,26 +684,26 @@ void PolyDataCurvature::DecomposeTensorField()
   tensors = _Output->GetPointData()->GetArray(TENSOR);
 
   if ((_CurvatureType & (Minimum | Mean | Gauss | Curvedness)) != 0) {
-    minimum = NewArray(MINIMUM, n, 1, _DoublePrecision);
+    minimum = NewArray(MINIMUM, n, 1);
     _Output->GetPointData()->AddArray(minimum);
   }
   if ((_CurvatureType & (Maximum | Mean | Gauss | Curvedness)) != 0) {
-    maximum = NewArray(MAXIMUM, n, 1, _DoublePrecision);
+    maximum = NewArray(MAXIMUM, n, 1);
     _Output->GetPointData()->AddArray(maximum);
   }
   if ((_CurvatureType & MinimumDirection) != 0) {
-    minimum_direction = NewArray(MINIMUM_DIRECTION, n, 3, _DoublePrecision);
+    minimum_direction = NewArray(MINIMUM_DIRECTION, n, 3);
     _Output->GetPointData()->AddArray(minimum_direction);
   }
   if ((_CurvatureType & MaximumDirection) != 0) {
-    maximum_direction = NewArray(MAXIMUM_DIRECTION, n, 3, _DoublePrecision);
+    maximum_direction = NewArray(MAXIMUM_DIRECTION, n, 3);
     _Output->GetPointData()->AddArray(maximum_direction);
   }
   input_normals = _Output->GetPointData()->GetNormals();
   if ((_CurvatureType & Normal) != 0) output_normals = input_normals;
   if ((_CurvatureType & InverseTensor) != 0) {
     if ((_CurvatureType & Tensor) != 0) {
-      inverse_tensors = NewArray(INVERSE_TENSOR, n, 6, _DoublePrecision);
+      inverse_tensors = NewArray(INVERSE_TENSOR, n, 6);
       _Output->GetPointData()->AddArray(inverse_tensors);
     } else {
       inverse_tensors = tensors;
@@ -744,7 +732,7 @@ void PolyDataCurvature::DecomposeTensorField()
 }
 
 // -----------------------------------------------------------------------------
-void PolyDataCurvature::ComputeMeanCurvature()
+void SurfaceCurvature::ComputeMeanCurvature()
 {
   const vtkIdType n = _Output->GetNumberOfPoints();
 
@@ -767,7 +755,7 @@ void PolyDataCurvature::ComputeMeanCurvature()
     output->SetName(MEAN);
     if (_Normalize) MultiplyScalar::Run(output, output, _Radius);
   } else {
-    output = NewArray(MEAN, n, 1, _DoublePrecision);
+    output = NewArray(MEAN, n, 1);
     CalculateMeanCurvature eval;
     eval._Minimum = minimum;
     eval._Maximum = maximum;
@@ -781,7 +769,7 @@ void PolyDataCurvature::ComputeMeanCurvature()
 }
 
 // -----------------------------------------------------------------------------
-void PolyDataCurvature::ComputeGaussCurvature()
+void SurfaceCurvature::ComputeGaussCurvature()
 {
   const vtkIdType n = _Output->GetNumberOfPoints();
 
@@ -804,7 +792,7 @@ void PolyDataCurvature::ComputeGaussCurvature()
     output->SetName(GAUSS);
     if (_Normalize) MultiplyScalar::Run(output, output, _Radius * _Radius);
   } else {
-    output = NewArray(GAUSS, n, 1, _DoublePrecision);
+    output = NewArray(GAUSS, n, 1);
     CalculateGaussCurvature eval;
     eval._Minimum = minimum;
     eval._Maximum = maximum;
@@ -818,7 +806,7 @@ void PolyDataCurvature::ComputeGaussCurvature()
 }
 
 // -----------------------------------------------------------------------------
-void PolyDataCurvature::ComputeMinMaxCurvature(bool min, bool max)
+void SurfaceCurvature::ComputeMinMaxCurvature(bool min, bool max)
 {
   const vtkIdType n = _Output->GetNumberOfPoints();
 
@@ -836,11 +824,11 @@ void PolyDataCurvature::ComputeMinMaxCurvature(bool min, bool max)
 
   // Allocate output arrays
   if (min) {
-    minimum = NewArray(MINIMUM, n, 1, _DoublePrecision);
+    minimum = NewArray(MINIMUM, n, 1);
     _Output->GetPointData()->AddArray(minimum);
   }
   if (max) {
-    maximum = NewArray(MAXIMUM, n, 1, _DoublePrecision);
+    maximum = NewArray(MAXIMUM, n, 1);
     _Output->GetPointData()->AddArray(maximum);
   }
 
@@ -856,7 +844,7 @@ void PolyDataCurvature::ComputeMinMaxCurvature(bool min, bool max)
 }
 
 // -----------------------------------------------------------------------------
-void PolyDataCurvature::ComputeCurvedness()
+void SurfaceCurvature::ComputeCurvedness()
 {
   const vtkIdType n = _Output->GetNumberOfPoints();
 
@@ -870,7 +858,7 @@ void PolyDataCurvature::ComputeCurvedness()
 
   MIRTK_START_TIMING();
 
-  output = NewArray(CURVEDNESS, n, 1, _DoublePrecision);
+  output = NewArray(CURVEDNESS, n, 1);
 
   CalculateCurvedness eval;
   eval._Minimum    = minimum;
@@ -884,7 +872,7 @@ void PolyDataCurvature::ComputeCurvedness()
 }
 
 // -----------------------------------------------------------------------------
-void PolyDataCurvature::Finalize()
+void SurfaceCurvature::Finalize()
 {
   // Remove not requested output which was needed to derive the requested output
   vtkPointData *pd = _Output->GetPointData();
@@ -899,7 +887,7 @@ void PolyDataCurvature::Finalize()
   if ((_CurvatureType & InverseTensor   ) == 0) pd->RemoveArray(INVERSE_TENSOR);
 
   // Finalize base class
-  PolyDataFilter::Finalize();
+  SurfaceFilter::Finalize();
 }
 
 

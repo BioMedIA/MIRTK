@@ -1,8 +1,8 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2013-2015 Imperial College London
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2013-2016 Imperial College London
+ * Copyright 2013-2016 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,11 +17,10 @@
  * limitations under the License.
  */
 
-#ifndef MIRTK_PolyDataCurvature_H
-#define MIRTK_PolyDataCurvature_H
+#ifndef MIRTK_SurfaceCurvature_H
+#define MIRTK_SurfaceCurvature_H
 
-#include "mirtk/PolyDataFilter.h"
-
+#include "mirtk/SurfaceFilter.h"
 #include "mirtk/PointSetExport.h"
 
 #include "vtkDataArray.h"
@@ -58,12 +57,10 @@ namespace mirtk {
  * by vtkCurvatures, to avoid the duplicate computation of these curvature
  * values when using the vtkCurvatures filter. This computation is identical to
  * vtkCurvatures::GetMinimumCurvature and vtkCurvatures::GetMaximumCurvature.
- *
- * @attention vtkPolyData::BuildLinks has to be called before filter execution.
  */
-class PolyDataCurvature : public PolyDataFilter
+class SurfaceCurvature : public SurfaceFilter
 {
-  mirtkObjectMacro(PolyDataCurvature);
+  mirtkObjectMacro(SurfaceCurvature);
 
   // ---------------------------------------------------------------------------
   // Types
@@ -133,7 +130,7 @@ protected:
   mirtkReadOnlyAttributeMacro(double, Radius);
 
   /// Copy attributes of this class from another instance
-  void CopyAttributes(const PolyDataCurvature &);
+  void CopyAttributes(const SurfaceCurvature &);
 
 public:
 
@@ -141,16 +138,16 @@ public:
   // Construction/Destruction
 
   /// Default constructor
-  PolyDataCurvature(int type = Scalars);
+  SurfaceCurvature(int type = Scalars);
 
   /// Copy constructor
-  PolyDataCurvature(const PolyDataCurvature &);
+  SurfaceCurvature(const SurfaceCurvature &);
 
   /// Assignment operator
-  PolyDataCurvature &operator =(const PolyDataCurvature &);
+  SurfaceCurvature &operator =(const SurfaceCurvature &);
 
   /// Destructor
-  virtual ~PolyDataCurvature();
+  virtual ~SurfaceCurvature();
 
   // ---------------------------------------------------------------------------
   // Execution
@@ -268,4 +265,4 @@ public:
 
 } // namespace mirtk
 
-#endif // MIRTK_PolyDataCurvature_H
+#endif // MIRTK_SurfaceCurvature_H

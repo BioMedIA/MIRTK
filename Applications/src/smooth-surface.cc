@@ -26,13 +26,12 @@
 #include "mirtk/Options.h"
 
 #include "mirtk/EdgeTable.h"
+#include "mirtk/MeshSmoothing.h"
+#include "mirtk/SurfaceCurvature.h"
 #include "mirtk/PointSetIO.h"
-#include "mirtk/PolyDataSmoothing.h"
-#include "mirtk/PolyDataCurvature.h"
 
 #include "mirtk/Vtk.h"
 #include "mirtk/VtkMath.h"
-
 #include "vtkSmartPointer.h"
 #include "vtkFloatArray.h"
 #include "vtkPointData.h"
@@ -554,10 +553,10 @@ void SmoothInMaximumCurvatureDirection(vtkSmartPointer<vtkPolyData> surface,
 // -----------------------------------------------------------------------------
 enum WeightFunction {
   Default,
-  Combinatorial       = PolyDataSmoothing::Combinatorial,
-  InverseDistance     = PolyDataSmoothing::InverseDistance,
-  Gaussian            = PolyDataSmoothing::Gaussian,
-  AnisotropicGaussian = PolyDataSmoothing::AnisotropicGaussian,
+  Combinatorial       = MeshSmoothing::Combinatorial,
+  InverseDistance     = MeshSmoothing::InverseDistance,
+  Gaussian            = MeshSmoothing::Gaussian,
+  AnisotropicGaussian = MeshSmoothing::AnisotropicGaussian,
   AreaWeighted,
   WindowedSinc,
   GyralWeights
@@ -671,16 +670,16 @@ int main(int argc, char *argv[])
               e1_name = e2_name;
               e2_name = ARGUMENT;
             } else {
-              if (polydata->GetPointData()->HasArray(PolyDataCurvature::MINIMUM_DIRECTION)) {
-                e1_name = PolyDataCurvature::MINIMUM_DIRECTION;
+              if (polydata->GetPointData()->HasArray(SurfaceCurvature::MINIMUM_DIRECTION)) {
+                e1_name = SurfaceCurvature::MINIMUM_DIRECTION;
               }
             }
           } else {
-            if (polydata->GetPointData()->HasArray(PolyDataCurvature::MINIMUM_DIRECTION)) {
-              e1_name = PolyDataCurvature::MINIMUM_DIRECTION;
+            if (polydata->GetPointData()->HasArray(SurfaceCurvature::MINIMUM_DIRECTION)) {
+              e1_name = SurfaceCurvature::MINIMUM_DIRECTION;
             }
-            if (polydata->GetPointData()->HasArray(PolyDataCurvature::MAXIMUM_DIRECTION)) {
-              e2_name = PolyDataCurvature::MAXIMUM_DIRECTION;
+            if (polydata->GetPointData()->HasArray(SurfaceCurvature::MAXIMUM_DIRECTION)) {
+              e2_name = SurfaceCurvature::MAXIMUM_DIRECTION;
             }
           }
         } else {
@@ -688,8 +687,8 @@ int main(int argc, char *argv[])
           tensor_name = ARGUMENT;
         }
       } else {
-        if (polydata->GetPointData()->HasArray(PolyDataCurvature::TENSOR)) {
-          tensor_name = PolyDataCurvature::TENSOR;
+        if (polydata->GetPointData()->HasArray(SurfaceCurvature::TENSOR)) {
+          tensor_name = SurfaceCurvature::TENSOR;
         }
       }
     }
@@ -746,9 +745,6 @@ int main(int argc, char *argv[])
     polydata = filter->GetOutput();
   }
 
-  // Build links
-  polydata->BuildLinks();
-
   // Smooth gyral points
   if (weighting == GyralWeights) {
 
@@ -780,14 +776,14 @@ int main(int argc, char *argv[])
     if (smooth_points && trackingOn) {
       FatalError("-track only implemented for -areaweighted Laplacian smoothing");
     }
-    PolyDataSmoothing smoother;
+    MeshSmoothing smoother;
     smoother.Input(polydata);
     smoother.NumberOfIterations(noOfIterations);
     smoother.Lambda(lambda);
     smoother.Mu(mu);
     smoother.Sigma(-sigma1); // negative: multiple of avg. edge length
     smoother.MaximumDirectionSigma(-sigma2);
-    smoother.Weighting(static_cast<PolyDataSmoothing::WeightFunction>(weighting));
+    smoother.Weighting(static_cast<MeshSmoothing::WeightFunction>(weighting));
     if (tensor_name) smoother.GeometryTensorName(tensor_name);
     if (e1_name    ) smoother.MinimumDirectionName(e1_name);
     if (e1_name    ) smoother.MaximumDirectionName(e2_name);

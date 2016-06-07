@@ -1,8 +1,8 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2013-2015 Imperial College London
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2013-2016 Imperial College London
+ * Copyright 2013-2016 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,10 +17,10 @@
  * limitations under the License.
  */
 
-#ifndef MIRTK_PolyDataSmoothing_H
-#define MIRTK_PolyDataSmoothing_H
+#ifndef MIRTK_MeshSmoothing_H
+#define MIRTK_MeshSmoothing_H
 
-#include "mirtk/PolyDataFilter.h"
+#include "mirtk/MeshFilter.h"
 
 #include "mirtk/Array.h"
 
@@ -33,9 +33,9 @@ namespace mirtk {
 /**
  * Smooth scalars and/or points of triangulated surface mesh
  */
-class PolyDataSmoothing : public PolyDataFilter
+class MeshSmoothing : public MeshFilter
 {
-  mirtkObjectMacro(PolyDataSmoothing);
+  mirtkObjectMacro(MeshSmoothing);
 
   // ---------------------------------------------------------------------------
   // Types
@@ -61,7 +61,7 @@ public:
   // ---------------------------------------------------------------------------
   // Attributes
 
-protected:
+private:
 
   /// Input point mask, only points with mask value != 0 are modified
   mirtkPublicAttributeMacro(vtkSmartPointer<vtkDataArray>, Mask);
@@ -162,7 +162,7 @@ protected:
   mirtkPublicAttributeMacro(int, Verbose);
 
   /// Copy attributes of this class from another instance
-  void CopyAttributes(const PolyDataSmoothing &);
+  void CopyAttributes(const MeshSmoothing &);
 
   // ---------------------------------------------------------------------------
   // Construction/Destruction
@@ -170,16 +170,16 @@ protected:
 public:
 
   /// Constructor
-  PolyDataSmoothing();
+  MeshSmoothing();
 
   /// Copy constructor
-  PolyDataSmoothing(const PolyDataSmoothing &);
+  MeshSmoothing(const MeshSmoothing &);
 
   /// Assignment operator
-  PolyDataSmoothing &operator =(const PolyDataSmoothing &);
+  MeshSmoothing &operator =(const MeshSmoothing &);
 
   /// Destructor
-  virtual ~PolyDataSmoothing();
+  virtual ~MeshSmoothing();
 
   /// Add named point data array to list of arrays to be smoothed
   void SmoothArray(const char *);
@@ -240,7 +240,7 @@ public:
 ////////////////////////////////////////////////////////////////////////////////
 
 // -----------------------------------------------------------------------------
-inline void PolyDataSmoothing::SmoothArray(const char *name)
+inline void MeshSmoothing::SmoothArray(const char *name)
 {
   _SmoothArrays.push_back(name);
 }
@@ -248,4 +248,4 @@ inline void PolyDataSmoothing::SmoothArray(const char *name)
 
 } // namespace mirtk
 
-#endif // MIRTK_PolyDataSmoothing_H
+#endif // MIRTK_MeshSmoothing_H

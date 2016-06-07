@@ -22,11 +22,10 @@
 
 #include "mirtk/PointSetIO.h"
 #include "mirtk/PointSetUtils.h"
-#include "mirtk/PolyDataSmoothing.h"
+#include "mirtk/MeshSmoothing.h"
 
 #include "mirtk/Vtk.h"
 #include "mirtk/VtkMath.h"
-
 #include "vtkSmartPointer.h"
 #include "vtkPolyData.h"
 #include "vtkPointData.h"
@@ -279,8 +278,7 @@ int main(int argc, char **argv)
     SetVTKConnection(extract, contours);
     extract->Update();
     if (extract->GetOutput()->GetNumberOfPoints() == 0) {
-      cerr << "Error: Failed to extract offset surface" << endl;
-      exit(1);
+      FatalError("Failed to extract offset surface");
     }
 
     extract->GetOutput()->GetPointData()->RemoveArray("ImageScalars");
@@ -288,10 +286,10 @@ int main(int argc, char **argv)
 
     // Smooth offset surface to reduce sampling artifacts
     if (smooth_iter > 0) {
-      PolyDataSmoothing smoother;
+      MeshSmoothing smoother;
       smoother.Input(offset_surface);
       smoother.NumberOfIterations(2 * smooth_iter);
-      smoother.Weighting(PolyDataSmoothing::Combinatorial);
+      smoother.Weighting(MeshSmoothing::Combinatorial);
       smoother.SmoothPointsOn();
       smoother.AdjacentValuesOnlyOn();
       smoother.Lambda(.33);
@@ -422,7 +420,7 @@ int main(int argc, char **argv)
 
   // Write output surface mesh
   if (!WritePolyData(output_name, output, compress, ascii)) {
-    FatalError("Error: Failed to write offset surface to " << output_name);
+    FatalError("Failed to write offset surface to " << output_name);
   }
   return 0;
 }

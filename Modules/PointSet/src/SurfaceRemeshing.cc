@@ -1,8 +1,8 @@
 /*
  * Medical Image Registration ToolKit (MMMIRTK)
  *
- * Copyright 2013-2015 Imperial College London
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2013-2016 Imperial College London
+ * Copyright 2013-2016 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,18 +17,20 @@
  * limitations under the License.
  */
 
-#include "mirtk/PolyDataRemeshing.h"
+#include "mirtk/SurfaceRemeshing.h"
 
-#include "mirtk/Config.h" // WINDOWS
-#include "mirtk/Vtk.h"
 #include "mirtk/Assert.h"
+#include "mirtk/Config.h" // WINDOWS
 #include "mirtk/Math.h"
 #include "mirtk/Profiling.h"
-#include "mirtk/PolyDataSmoothing.h"
-#include "mirtk/PointSetUtils.h"
-#include "mirtk/PointSetIO.h"
+
 #include "mirtk/DataStatistics.h"
 #include "mirtk/Transformation.h"
+#include "mirtk/MeshSmoothing.h"
+#include "mirtk/PointSetUtils.h"
+#include "mirtk/PointSetIO.h"
+
+#include "mirtk/Vtk.h"
 #include "mirtk/VtkMath.h"
 
 #include "vtkIdList.h"
@@ -53,7 +55,7 @@ namespace mirtk {
 // =============================================================================
 
 // -----------------------------------------------------------------------------
-void PolyDataRemeshing::CopyAttributes(const PolyDataRemeshing &other)
+void SurfaceRemeshing::CopyAttributes(const SurfaceRemeshing &other)
 {
   _Transformation          = other._Transformation;
   _MinFeatureAngle         = other._MinFeatureAngle;
@@ -79,7 +81,7 @@ void PolyDataRemeshing::CopyAttributes(const PolyDataRemeshing &other)
   _InvertTrianglesSharingOneLongEdge  = other._InvertTrianglesSharingOneLongEdge;
   _InvertTrianglesToIncreaseMinHeight = other._InvertTrianglesToIncreaseMinHeight;
 
-  // Get output point labels from _Output (copied by PolyDataFilter::Copy)
+  // Get output point labels from _Output (copied by SurfaceFilter::Copy)
   if (_Output) {
     _OutputPointLabels  = GetArrayByCaseInsensitiveName(_Output->GetPointData(), "labels");
     _MinEdgeLengthArray = _Output->GetPointData()->GetArray("MinEdgeLength");
@@ -92,7 +94,7 @@ void PolyDataRemeshing::CopyAttributes(const PolyDataRemeshing &other)
 }
 
 // -----------------------------------------------------------------------------
-PolyDataRemeshing::PolyDataRemeshing()
+SurfaceRemeshing::SurfaceRemeshing()
 :
   _Transformation(nullptr),
   _MinFeatureAngle(180.0),
@@ -101,8 +103,8 @@ PolyDataRemeshing::PolyDataRemeshing()
   _MaxFeatureAngleCos(cos(_MaxFeatureAngle * rad_per_deg)),
   _MinEdgeLength(.0),
   _MinEdgeLengthSquared(.0),
-  _MaxEdgeLength(numeric_limits<double>::infinity()),
-  _MaxEdgeLengthSquared(numeric_limits<double>::infinity()),
+  _MaxEdgeLength(inf),
+  _MaxEdgeLengthSquared(inf),
   _MeltingOrder(AREA),
   _MeltNodes(true),
   _MeltTriangles(false),
@@ -119,25 +121,25 @@ PolyDataRemeshing::PolyDataRemeshing()
 }
 
 // -----------------------------------------------------------------------------
-PolyDataRemeshing::PolyDataRemeshing(const PolyDataRemeshing &other)
+SurfaceRemeshing::SurfaceRemeshing(const SurfaceRemeshing &other)
 :
-  PolyDataFilter(other)
+  SurfaceFilter(other)
 {
   CopyAttributes(other);
 }
 
 // -----------------------------------------------------------------------------
-PolyDataRemeshing &PolyDataRemeshing::operator =(const PolyDataRemeshing &other)
+SurfaceRemeshing &SurfaceRemeshing::operator =(const SurfaceRemeshing &other)
 {
   if (this != &other) {
-    PolyDataFilter::operator =(other);
+    SurfaceFilter::operator =(other);
     CopyAttributes(other);
   }
   return *this;
 }
 
 // -----------------------------------------------------------------------------
-PolyDataRemeshing::~PolyDataRemeshing()
+SurfaceRemeshing::~SurfaceRemeshing()
 {
 }
 
@@ -146,14 +148,14 @@ PolyDataRemeshing::~PolyDataRemeshing()
 // =============================================================================
 
 // -----------------------------------------------------------------------------
-inline void PolyDataRemeshing::GetPoint(vtkIdType ptId, double p[3]) const
+inline void SurfaceRemeshing::GetPoint(vtkIdType ptId, double p[3]) const
 {
   _Output->GetPoint(ptId, p);
   if (_Transformation) _Transformation->Transform(p[0], p[1], p[2]);
 }
 
 // -----------------------------------------------------------------------------
-inline void PolyDataRemeshing::GetNormal(vtkIdType ptId, double n[3]) const
+inline void SurfaceRemeshing::GetNormal(vtkIdType ptId, double n[3]) const
 {
   // TODO: Need to compute normal of transformed surface if _Transformation != nullptr.
   //       Can be computed from normals of adjacent triangles which in turn
@@ -162,7 +164,7 @@ inline void PolyDataRemeshing::GetNormal(vtkIdType ptId, double n[3]) const
 }
 
 // -----------------------------------------------------------------------------
-inline double PolyDataRemeshing::ComputeArea(vtkIdType cellId) const
+inline double SurfaceRemeshing::ComputeArea(vtkIdType cellId) const
 {
   vtkIdType npts, *pts;
   _Output->GetCellPoints(cellId, npts, pts);
@@ -175,7 +177,7 @@ inline double PolyDataRemeshing::ComputeArea(vtkIdType cellId) const
 }
 
 // -----------------------------------------------------------------------------
-inline void PolyDataRemeshing::MiddlePoint(vtkIdType ptId1, vtkIdType ptId2, double p[3]) const
+inline void SurfaceRemeshing::MiddlePoint(vtkIdType ptId1, vtkIdType ptId2, double p[3]) const
 {
   double p2[3];
   _Output->GetPoint(ptId1, p);
@@ -185,7 +187,7 @@ inline void PolyDataRemeshing::MiddlePoint(vtkIdType ptId1, vtkIdType ptId2, dou
 }
 
 // -----------------------------------------------------------------------------
-inline Point PolyDataRemeshing::MiddlePoint(vtkIdType ptId1, vtkIdType ptId2) const
+inline Point SurfaceRemeshing::MiddlePoint(vtkIdType ptId1, vtkIdType ptId2) const
 {
   double p[3];
   MiddlePoint(ptId1, ptId2, p);
@@ -193,7 +195,7 @@ inline Point PolyDataRemeshing::MiddlePoint(vtkIdType ptId1, vtkIdType ptId2) co
 }
 
 // -----------------------------------------------------------------------------
-inline int PolyDataRemeshing::NodeConnectivity(vtkIdType ptId) const
+inline int SurfaceRemeshing::NodeConnectivity(vtkIdType ptId) const
 {
   unsigned short ncells;
   vtkIdType      *cells;
@@ -202,20 +204,20 @@ inline int PolyDataRemeshing::NodeConnectivity(vtkIdType ptId) const
 }
 
 // -----------------------------------------------------------------------------
-inline void PolyDataRemeshing::DeleteCell(vtkIdType cellId)
+inline void SurfaceRemeshing::DeleteCell(vtkIdType cellId)
 {
   _Output->RemoveCellReference(cellId); // before marking it as deleted!
   _Output->DeleteCell(cellId);
 }
 
 // -----------------------------------------------------------------------------
-inline void PolyDataRemeshing::DeleteCells(vtkIdList *cellIds)
+inline void SurfaceRemeshing::DeleteCells(vtkIdList *cellIds)
 {
   for (vtkIdType i = 0; i < cellIds->GetNumberOfIds(); ++i) DeleteCell(cellIds->GetId(i));
 }
 
 // -----------------------------------------------------------------------------
-inline void PolyDataRemeshing::ReplaceCellPoint(vtkIdType cellId, vtkIdType oldPtId, vtkIdType newPtId)
+inline void SurfaceRemeshing::ReplaceCellPoint(vtkIdType cellId, vtkIdType oldPtId, vtkIdType newPtId)
 {
   _Output->RemoveReferenceToCell(oldPtId, cellId); // NOT THREAD SAFE!
   _Output->ReplaceCellPoint(cellId, oldPtId, newPtId);
@@ -224,7 +226,7 @@ inline void PolyDataRemeshing::ReplaceCellPoint(vtkIdType cellId, vtkIdType oldP
 }
 
 // -----------------------------------------------------------------------------
-inline vtkIdType PolyDataRemeshing::GetCellEdgeNeighbor(vtkIdType cellId, vtkIdType ptId1, vtkIdType ptId2) const
+inline vtkIdType SurfaceRemeshing::GetCellEdgeNeighbor(vtkIdType cellId, vtkIdType ptId1, vtkIdType ptId2) const
 {
   vtkSmartPointer<vtkIdList> cellIds = vtkSmartPointer<vtkIdList>::New();
   _Output->GetCellEdgeNeighbors(cellId, ptId1, ptId2, cellIds);
@@ -239,7 +241,7 @@ inline vtkIdType PolyDataRemeshing::GetCellEdgeNeighbor(vtkIdType cellId, vtkIdT
 }
 
 // -----------------------------------------------------------------------------
-inline void PolyDataRemeshing
+inline void SurfaceRemeshing
 ::GetCellPointNeighbors(vtkIdType cellId, vtkIdType ptId, vtkIdList *ptIds) const
 {
   ptIds->Reset();
@@ -257,7 +259,7 @@ inline void PolyDataRemeshing
 }
 
 // -----------------------------------------------------------------------------
-inline vtkIdType PolyDataRemeshing
+inline vtkIdType SurfaceRemeshing
 ::GetCellEdgeNeighborPoint(vtkIdType cellId, vtkIdType ptId1, vtkIdType ptId2, bool mergeTriples)
 {
   unsigned short ncells;
@@ -358,7 +360,7 @@ inline vtkIdType PolyDataRemeshing
 }
 
 // -----------------------------------------------------------------------------
-inline double PolyDataRemeshing::MeltingPriority(vtkIdType cellId) const
+inline double SurfaceRemeshing::MeltingPriority(vtkIdType cellId) const
 {
   double priority = numeric_limits<double>::infinity();
   switch (_MeltingOrder) {
@@ -386,7 +388,7 @@ inline double PolyDataRemeshing::MeltingPriority(vtkIdType cellId) const
 }
 
 // -----------------------------------------------------------------------------
-inline void PolyDataRemeshing
+inline void SurfaceRemeshing
 ::InterpolatePointData(vtkIdType newId, vtkIdType ptId1, vtkIdType ptId2)
 {
   vtkPointData *pd = _Output->GetPointData();
@@ -401,7 +403,7 @@ inline void PolyDataRemeshing
 }
 
 // -----------------------------------------------------------------------------
-inline void PolyDataRemeshing
+inline void SurfaceRemeshing
 ::InterpolatePointData(vtkIdType newId, vtkIdList *ptIds, double *weights)
 {
   vtkPointData *pd = _Output->GetPointData();
@@ -416,7 +418,7 @@ inline void PolyDataRemeshing
 }
 
 // -----------------------------------------------------------------------------
-inline double PolyDataRemeshing
+inline double SurfaceRemeshing
 ::SquaredMinEdgeLength(vtkIdType ptId1, vtkIdType ptId2) const
 {
   if (_MinEdgeLengthArray) {
@@ -428,7 +430,7 @@ inline double PolyDataRemeshing
 }
 
 // -----------------------------------------------------------------------------
-inline double PolyDataRemeshing
+inline double SurfaceRemeshing
 ::SquaredMaxEdgeLength(vtkIdType ptId1, vtkIdType ptId2) const
 {
   if (_MaxEdgeLengthArray) {
@@ -444,7 +446,7 @@ inline double PolyDataRemeshing
 // =============================================================================
 
 // -----------------------------------------------------------------------------
-bool PolyDataRemeshing
+bool SurfaceRemeshing
 ::MeltEdge(vtkIdType cellId, vtkIdType ptId1, vtkIdType ptId2, vtkIdList *cellIds)
 {
   // Check/resolve node connectivity of adjacent points
@@ -487,7 +489,7 @@ bool PolyDataRemeshing
 }
 
 // -----------------------------------------------------------------------------
-bool PolyDataRemeshing::MeltTriangle(vtkIdType cellId, vtkIdList *cellIds)
+bool SurfaceRemeshing::MeltTriangle(vtkIdType cellId, vtkIdList *cellIds)
 {
   // Get triangle corners
   vtkSmartPointer<vtkIdList> ptIds = vtkSmartPointer<vtkIdList>::New();
@@ -556,7 +558,7 @@ bool PolyDataRemeshing::MeltTriangle(vtkIdType cellId, vtkIdList *cellIds)
 }
 
 // -----------------------------------------------------------------------------
-void PolyDataRemeshing::MeltingOfCells()
+void SurfaceRemeshing::MeltingOfCells()
 {
   MIRTK_START_TIMING();
 
@@ -661,7 +663,7 @@ void PolyDataRemeshing::MeltingOfCells()
 }
 
 // -----------------------------------------------------------------------------
-void PolyDataRemeshing::MeltingOfNodes()
+void SurfaceRemeshing::MeltingOfNodes()
 {
   MIRTK_START_TIMING();
 
@@ -719,7 +721,7 @@ void PolyDataRemeshing::MeltingOfNodes()
 }
 
 // -----------------------------------------------------------------------------
-void PolyDataRemeshing
+void SurfaceRemeshing
 ::Bisect(vtkIdType cellId, vtkIdType ptId1, vtkIdType ptId2, vtkIdType ptId3,
          vtkPoints *points, vtkCellArray *polys)
 {
@@ -743,7 +745,7 @@ void PolyDataRemeshing
 }
 
 // -----------------------------------------------------------------------------
-void PolyDataRemeshing
+void SurfaceRemeshing
 ::Trisect(vtkIdType cellId, vtkIdType ptId1, vtkIdType ptId2, vtkIdType ptId3,
           vtkPoints *points, vtkCellArray *polys)
 {
@@ -775,7 +777,7 @@ void PolyDataRemeshing
 }
 
 // -----------------------------------------------------------------------------
-void PolyDataRemeshing
+void SurfaceRemeshing
 ::Quadsect(vtkIdType cellId, vtkIdType ptId1, vtkIdType ptId2, vtkIdType ptId3,
            vtkPoints *points, vtkCellArray *polys)
 {
@@ -819,38 +821,31 @@ void PolyDataRemeshing
 // =============================================================================
 
 // -----------------------------------------------------------------------------
-void PolyDataRemeshing::Initialize()
+void SurfaceRemeshing::Initialize()
 {
   // Initialize base class
-  PolyDataFilter::Initialize();
+  SurfaceFilter::Initialize();
 
-  // Convert input cell edge length arrays to point data arrays
-  vtkSmartPointer<vtkPolyData> input = _Input;
-  if (!_AdaptiveEdgeLengthArray && (_MinCellEdgeLengthArray || _MaxCellEdgeLengthArray)) {
-    input = vtkSmartPointer<vtkPolyData>::New();
-    input->ShallowCopy(_Input);
-    input->GetCellData()->Initialize();
-    if (_MinCellEdgeLengthArray) input->GetCellData()->AddArray(_MinCellEdgeLengthArray);
-    if (_MaxCellEdgeLengthArray) input->GetCellData()->AddArray(_MaxCellEdgeLengthArray);
-    vtkNew<vtkCellDataToPointData> c2p;
-    SetVTKInput(c2p, input);
-    c2p->PassCellDataOff();
-    c2p->Update();
-    input = c2p->GetPolyDataOutput();
-
-    static int iter = 0; ++iter;
-    char fname[64];
-    #ifdef WINDOWS
-      sprintf_s(fname, 64, "remesh_input_%03d.vtp", iter);
-    #else
-      sprintf(fname, "remesh_input_%03d.vtp", iter);
-    #endif
-    WritePolyData(fname, input);
+  // Check input mesh
+  if (!IsTriangularMesh(_Input)) {
+    cerr << this->NameOfType() << "::Initialize: Input surface mesh must have triangular faces!" << endl;
+    exit(1);
   }
 
-  // Triangulate input surface if necessary and/or make shallow copy
-  // as we will modify the point data attribute set of the input
-  _TriangulatedInput = Triangulate(input);
+  // Make deep copy of input instead of shallow copy
+  _Output->DeepCopy(_Input);
+
+  // Convert input cell edge length arrays to point data arrays
+  if (!_AdaptiveEdgeLengthArray && (_MinCellEdgeLengthArray || _MaxCellEdgeLengthArray)) {
+    _Output->GetCellData()->Initialize();
+    if (_MinCellEdgeLengthArray) _Output->GetCellData()->AddArray(_MinCellEdgeLengthArray);
+    if (_MaxCellEdgeLengthArray) _Output->GetCellData()->AddArray(_MaxCellEdgeLengthArray);
+    vtkNew<vtkCellDataToPointData> c2p;
+    SetVTKInput(c2p, _Output);
+    c2p->PassCellDataOff();
+    c2p->Update();
+    _Output = c2p->GetPolyDataOutput();
+  }
 
   // Compute point normals if needed
   _MinFeatureAngle    = max(.0, min(_MinFeatureAngle, 180.0));
@@ -860,14 +855,13 @@ void PolyDataRemeshing::Initialize()
 
   if (_MinFeatureAngle < 180.0 || _MaxFeatureAngle < 180.0) {
     vtkNew<vtkPolyDataNormals> calc_normals;
-    SetVTKInput(calc_normals, _TriangulatedInput);
+    SetVTKInput(calc_normals, _Output);
     calc_normals->ComputeCellNormalsOff();
     calc_normals->ComputePointNormalsOn();
     calc_normals->AutoOrientNormalsOn();
     calc_normals->SplittingOff();
     calc_normals->Update();
-    vtkDataArray *normals = calc_normals->GetOutput()->GetPointData()->GetNormals();
-    _TriangulatedInput->GetPointData()->SetNormals(normals);
+    _Output = calc_normals->GetOutput();
   }
 
   // Initialize adaptive edge length range
@@ -876,14 +870,12 @@ void PolyDataRemeshing::Initialize()
   this->InitializeEdgeLengthRange();
 
   // Initialize output
-  _Output = vtkSmartPointer<vtkPolyData>::New();
-  _Output->DeepCopy(_TriangulatedInput);
-  vtkPointData *inputPD  = _TriangulatedInput->GetPointData();
+  vtkPointData *inputPD  = _Input ->GetPointData();
   vtkPointData *outputPD = _Output->GetPointData();
   vtkCellData  *outputCD = _Output->GetCellData();
   outputCD->Initialize(); // TODO: Interpolate cell data during remeshing
-  outputPD->InterpolateAllocate(inputPD, _TriangulatedInput->GetNumberOfPoints());
-  for (vtkIdType ptId = 0; ptId < _TriangulatedInput->GetNumberOfPoints(); ++ptId) {
+  outputPD->InterpolateAllocate(inputPD, _Input->GetNumberOfPoints());
+  for (vtkIdType ptId = 0; ptId < _Input->GetNumberOfPoints(); ++ptId) {
     outputPD->CopyData(inputPD, ptId, ptId);
   }
 
@@ -906,14 +898,14 @@ void PolyDataRemeshing::Initialize()
 }
 
 // -----------------------------------------------------------------------------
-void PolyDataRemeshing::InitializeEdgeLengthRange()
+void SurfaceRemeshing::InitializeEdgeLengthRange()
 {
   // Either derive per-node edge length range from scalar attribute (e.g., curvedness)
   if (_AdaptiveEdgeLengthArray) {
 
     // Remove previous edge length range arrays
-    _TriangulatedInput->GetPointData()->RemoveArray("MinEdgeLength");
-    _TriangulatedInput->GetPointData()->RemoveArray("MaxEdgeLength");
+    _Output->GetPointData()->RemoveArray("MinEdgeLength");
+    _Output->GetPointData()->RemoveArray("MaxEdgeLength");
 
     // Global edge length range
     double min_length = _MinEdgeLength;
@@ -939,18 +931,18 @@ void PolyDataRemeshing::InitializeEdgeLengthRange()
       _MinEdgeLengthArray->SetName("MinEdgeLength");
       _MinEdgeLengthArray->SetNumberOfComponents(1);
     }
-    _MinEdgeLengthArray->SetNumberOfTuples(_TriangulatedInput->GetNumberOfPoints());
+    _MinEdgeLengthArray->SetNumberOfTuples(_Output->GetNumberOfPoints());
 
     if (!_MaxEdgeLengthArray) {
       _MaxEdgeLengthArray = vtkSmartPointer<vtkFloatArray>::New();
       _MaxEdgeLengthArray->SetName("MaxEdgeLength");
       _MaxEdgeLengthArray->SetNumberOfComponents(1);
     }
-    _MaxEdgeLengthArray->SetNumberOfTuples(_TriangulatedInput->GetNumberOfPoints());
+    _MaxEdgeLengthArray->SetNumberOfTuples(_Output->GetNumberOfPoints());
 
     // Initialize edge length range
     double x, a, b;
-    for (vtkIdType ptId = 0; ptId < _TriangulatedInput->GetNumberOfPoints(); ++ptId) {
+    for (vtkIdType ptId = 0; ptId < _Output->GetNumberOfPoints(); ++ptId) {
       // Rescale adaptive factor to [0, 1]
       x = clamp(scale * _AdaptiveEdgeLengthArray->GetComponent(ptId, 0) + offset, .0, 1.0);
       // Compute lower logistic function interpolation coefficients
@@ -963,39 +955,39 @@ void PolyDataRemeshing::InitializeEdgeLengthRange()
 
     // Add edge length point data arrays such that these are
     // interpolated during the local remeshing operations
-    _TriangulatedInput->GetPointData()->AddArray(_MinEdgeLengthArray);
-    _TriangulatedInput->GetPointData()->AddArray(_MaxEdgeLengthArray);
+    _Output->GetPointData()->AddArray(_MinEdgeLengthArray);
+    _Output->GetPointData()->AddArray(_MaxEdgeLengthArray);
 
   // ...or use input cell/point data arrays
   } else {
-    _MinEdgeLengthArray = _TriangulatedInput->GetPointData()->GetArray("MinEdgeLength");
-    _MaxEdgeLengthArray = _TriangulatedInput->GetPointData()->GetArray("MaxEdgeLength");
+    _MinEdgeLengthArray = _Output->GetPointData()->GetArray("MinEdgeLength");
+    _MaxEdgeLengthArray = _Output->GetPointData()->GetArray("MaxEdgeLength");
   }
 
   // Smooth edge length ranges
   if (_MinEdgeLengthArray || _MaxEdgeLengthArray) {
-    PolyDataSmoothing smoother;
-    smoother.Input(_TriangulatedInput);
+    MeshSmoothing smoother;
+    smoother.Input(_Output);
     if (_MinEdgeLengthArray) smoother.SmoothArray(_MinEdgeLengthArray->GetName());
     if (_MaxEdgeLengthArray) smoother.SmoothArray(_MaxEdgeLengthArray->GetName());
     smoother.NumberOfIterations(_AdaptiveEdgeLengthArray ? 10 : 2);
     smoother.Run();
     vtkPointData * const smoothPD = smoother.Output()->GetPointData();
     if (_MinEdgeLengthArray) {
-      _TriangulatedInput->GetPointData()->RemoveArray(_MinEdgeLengthArray->GetName());
+      _Output->GetPointData()->RemoveArray(_MinEdgeLengthArray->GetName());
       _MinEdgeLengthArray = smoothPD->GetArray(_MinEdgeLengthArray->GetName());
-      _TriangulatedInput->GetPointData()->AddArray(_MinEdgeLengthArray);
+      _Output->GetPointData()->AddArray(_MinEdgeLengthArray);
     }
     if (_MaxEdgeLengthArray) {
-      _TriangulatedInput->GetPointData()->RemoveArray(_MaxEdgeLengthArray->GetName());
+      _Output->GetPointData()->RemoveArray(_MaxEdgeLengthArray->GetName());
       _MaxEdgeLengthArray = smoothPD->GetArray(_MaxEdgeLengthArray->GetName());
-      _TriangulatedInput->GetPointData()->AddArray(_MaxEdgeLengthArray);
+      _Output->GetPointData()->AddArray(_MaxEdgeLengthArray);
     }
   }
 }
 
 // -----------------------------------------------------------------------------
-void PolyDataRemeshing::Execute()
+void SurfaceRemeshing::Execute()
 {
   // Melting pass
   Melting();
@@ -1008,7 +1000,7 @@ void PolyDataRemeshing::Execute()
 }
 
 // -----------------------------------------------------------------------------
-void PolyDataRemeshing::Melting()
+void SurfaceRemeshing::Melting()
 {
   MIRTK_START_TIMING();
 
@@ -1035,7 +1027,7 @@ void PolyDataRemeshing::Melting()
 }
 
 // -----------------------------------------------------------------------------
-void PolyDataRemeshing::InversionOfTrianglesSharingOneLongEdge()
+void SurfaceRemeshing::InversionOfTrianglesSharingOneLongEdge()
 {
   MIRTK_START_TIMING();
 
@@ -1107,7 +1099,7 @@ void PolyDataRemeshing::InversionOfTrianglesSharingOneLongEdge()
 }
 
 // -----------------------------------------------------------------------------
-void PolyDataRemeshing::InversionOfTrianglesToIncreaseMinHeight()
+void SurfaceRemeshing::InversionOfTrianglesToIncreaseMinHeight()
 {
   MIRTK_START_TIMING();
 
@@ -1180,7 +1172,7 @@ void PolyDataRemeshing::InversionOfTrianglesToIncreaseMinHeight()
 }
 
 // -----------------------------------------------------------------------------
-void PolyDataRemeshing::Inversion()
+void SurfaceRemeshing::Inversion()
 {
   MIRTK_START_TIMING();
 
@@ -1197,7 +1189,7 @@ void PolyDataRemeshing::Inversion()
 }
 
 // -----------------------------------------------------------------------------
-void PolyDataRemeshing::Subdivision()
+void SurfaceRemeshing::Subdivision()
 {
   MIRTK_START_TIMING();
 
@@ -1285,10 +1277,10 @@ void PolyDataRemeshing::Subdivision()
 }
 
 // -----------------------------------------------------------------------------
-void PolyDataRemeshing::Finalize()
+void SurfaceRemeshing::Finalize()
 {
   // Finalize base class
-  PolyDataFilter::Finalize();
+  SurfaceFilter::Finalize();
 
   // If input surface mesh unchanged, set output equal to input
   // Users can check if this->Output() == this->Input() to see if something changed

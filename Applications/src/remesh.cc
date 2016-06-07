@@ -1,8 +1,8 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2013-2015 Imperial College London
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2013-2016 Imperial College London
+ * Copyright 2013-2016 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,8 +21,9 @@
 #include "mirtk/Options.h"
 
 #include "mirtk/EdgeTable.h"
+#include "mirtk/SurfaceRemeshing.h"
 #include "mirtk/PointSetIO.h"
-#include "mirtk/PolyDataRemeshing.h"
+
 #include "mirtk/VtkMath.h"
 
 #include "vtkSmartPointer.h"
@@ -42,7 +43,7 @@ using namespace mirtk;
 // -----------------------------------------------------------------------------
 void PrintHelp(const char *name)
 {
-  PolyDataRemeshing remesher; // with default settings
+  SurfaceRemeshing remesher; // with default settings
   cout << endl;
   cout << "Usage: " << name << " <input> <output> [options]" << endl;
   cout << endl;
@@ -70,9 +71,9 @@ void PrintHelp(const char *name)
   cout << "  -melting-order <none|area|shortest>" << endl;
   cout << "      Order in which to process cells in melting pass. (default: ";
   switch (remesher.MeltingOrder()) {
-    case PolyDataRemeshing::INDEX:         cout << "none"; break;
-    case PolyDataRemeshing::AREA:          cout << "area"; break;
-    case PolyDataRemeshing::SHORTEST_EDGE: cout << "shortest"; break;
+    case SurfaceRemeshing::INDEX:         cout << "none"; break;
+    case SurfaceRemeshing::AREA:          cout << "area"; break;
+    case SurfaceRemeshing::SHORTEST_EDGE: cout << "shortest"; break;
   }
   cout << ")" << endl;
   cout << "  -[no]melt-nodes" << endl;
@@ -111,7 +112,7 @@ void PrintHelp(const char *name)
 // -----------------------------------------------------------------------------
 int main(int argc, char *argv[])
 {
-  PolyDataRemeshing remesher;
+  SurfaceRemeshing remesher;
 
   // Parse positional arguments
   EXPECTS_POSARGS(2);
@@ -183,14 +184,14 @@ int main(int argc, char *argv[])
       string arg = ARGUMENT;
       transform(arg.begin(), arg.end(), arg.begin(), ::tolower);
       if (arg == "area" || arg == "smallest area" || arg == "smallestarea") {
-        remesher.MeltingOrder(PolyDataRemeshing::AREA);
+        remesher.MeltingOrder(SurfaceRemeshing::AREA);
       } else if (arg == "edge" ||
                arg == "shortest" ||
                arg == "shortest edge" ||
                arg == "shortestedge") {
-        remesher.MeltingOrder(PolyDataRemeshing::SHORTEST_EDGE);
+        remesher.MeltingOrder(SurfaceRemeshing::SHORTEST_EDGE);
       } else if (arg == "index" || arg == "none") {
-        remesher.MeltingOrder(PolyDataRemeshing::INDEX);
+        remesher.MeltingOrder(SurfaceRemeshing::INDEX);
       } else {
         cerr << "Invalid -meltorder: " << arg << endl;
         exit(1);
@@ -267,11 +268,9 @@ int main(int argc, char *argv[])
   }
 
   // Remesh to desired average edge length
-  EdgeTable edgeTable;
-  vtkIdType nedges;
+  SharedPtr<EdgeTable> edgeTable = NewShared<EdgeTable>(mesh);
+  vtkIdType nedges = edgeTable->NumberOfEdges();
   if (verbose) {
-    edgeTable.Initialize(mesh);
-    nedges = edgeTable.NumberOfEdges();
     vtkIdType euler = mesh->GetNumberOfPoints() - nedges + mesh->GetNumberOfCells();
     cout << "No. of input vertices  = " << npoints << "\n";
     cout << "No. of input triangles = " << ncells  << "\n";
@@ -286,12 +285,15 @@ int main(int argc, char *argv[])
       cout << endl;
     }
     remesher.Input(mesh);
+    remesher.EdgeTable(edgeTable);
     remesher.MinEdgeLength  (minlength[i]);
     remesher.MaxEdgeLength  (maxlength[i]);
     remesher.MinFeatureAngle(minangle [i]);
     remesher.MaxFeatureAngle(maxangle [i]);
     remesher.Run();
     mesh = remesher.Output();
+    edgeTable->Initialize(mesh);
+    nedges = edgeTable->NumberOfEdges();
     if (verbose > 1) {
       if (debug_time) cout << endl;
       cout << "\n";
@@ -304,15 +306,14 @@ int main(int argc, char *argv[])
       cout << "  No. of quadsections      = " << remesher.NumberOfQuadsections() << "\n";
     }
     if (verbose) {
-      edgeTable.Initialize(mesh);
-      vtkIdType euler = mesh->GetNumberOfPoints() - edgeTable.NumberOfEdges() + mesh->GetNumberOfCells();
+      vtkIdType euler = mesh->GetNumberOfPoints() - nedges + mesh->GetNumberOfCells();
       cout << "\n";
       cout << "  No. of output vertices   = " << mesh->GetNumberOfPoints()
            << " (" << (100.0 * mesh->GetNumberOfPoints() / npoints) << "%)" << "\n";
       cout << "  No. of output triangles  = " << mesh->GetNumberOfCells()
            << " (" << (100.0 * mesh->GetNumberOfCells() / ncells) << "%)" << "\n";
-      cout << "  No. of output edges      = " << edgeTable.NumberOfEdges()
-           << " (" << (100.0 * edgeTable.NumberOfEdges() / nedges) << "%)" << "\n";
+      cout << "  No. of output edges      = " << nedges
+           << " (" << (100.0 * nedges / nedges) << "%)" << "\n";
       cout << "  Euler characteristic     = " << euler << "\n";
       cout.flush();
     }
@@ -330,7 +331,7 @@ int main(int argc, char *argv[])
     vtkIdType ptId1, ptId2;
     double p1[3], p2[3], l, sum = .0, max = .0;
     double min = numeric_limits<double>::infinity();
-    EdgeIterator it(edgeTable);
+    EdgeIterator it(*edgeTable);
     for (it.InitTraversal(); it.GetNextEdge(ptId1, ptId2) != -1;) {
       mesh->GetPoint(ptId1, p1);
       mesh->GetPoint(ptId2, p2);
@@ -342,7 +343,7 @@ int main(int argc, char *argv[])
     cout << "\n";
     cout << "Minimum edge length = " << min << "\n";
     cout << "Maximum edge length = " << max << "\n";
-    cout << "Average edge length = " << sum / edgeTable.NumberOfEdges() << "\n";
+    cout << "Average edge length = " << sum / nedges << "\n";
     cout.flush();
   }
 

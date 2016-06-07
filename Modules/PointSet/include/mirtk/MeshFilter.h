@@ -1,8 +1,8 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2013-2015 Imperial College London
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2013-2016 Imperial College London
+ * Copyright 2013-2016 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,11 +17,15 @@
  * limitations under the License.
  */
 
-#ifndef MIRTK_PolyDataFilter_H
-#define MIRTK_PolyDataFilter_H
+#ifndef MIRTK_MeshFilter_H
+#define MIRTK_MeshFilter_H
 
 #include "mirtk/Object.h"
 
+#include "mirtk/EdgeTable.h"
+#include "mirtk/Memory.h"
+
+#include "vtkType.h"
 #include "vtkSmartPointer.h"
 #include "vtkPolyData.h"
 
@@ -29,55 +33,49 @@
 namespace mirtk {
 
 
-class EdgeTable;
-
-
 /**
- * Base class for filters which process polygonal surface meshes
+ * Base class for filters which process discrete surface and/or volumetric meshes
  */
-class PolyDataFilter : public Object
+class MeshFilter : public Object
 {
-  mirtkAbstractMacro(PolyDataFilter);
+  mirtkAbstractMacro(MeshFilter);
 
   // ---------------------------------------------------------------------------
   // Attributes
 
-  /// Input surface mesh
+  /// Input mesh
   mirtkPublicAttributeMacro(vtkSmartPointer<vtkPolyData>, Input);
 
   /// Precomputed edge table of input surface mesh
-  mirtkPublicAggregateMacro(const class EdgeTable, EdgeTable);
-
-  /// Whether edge table is to be destroyed by this filter
-  mirtkPublicAttributeMacro(bool, EdgeTableOwner);
+  mirtkPublicAttributeMacro(SharedPtr<const class EdgeTable>, EdgeTable);
 
   /// Output surface mesh (NULL if filter does not produce polygonal output)
   mirtkReadOnlyAttributeMacro(vtkSmartPointer<vtkPolyData>, Output);
 
   /// Whether to output floating point results in double precision
-  /// If \c true, output data arrays are of type vtkDoubleArray.
+  /// If \c true,  output data arrays are of type vtkDoubleArray.
   /// If \c false, output data arrays are of type vtkFloatArray.
   mirtkPublicAttributeMacro(bool, DoublePrecision);
+
+  /// Copy attributes of this filter from another instance
+  void CopyAttributes(const MeshFilter &);
 
   // ---------------------------------------------------------------------------
   // Construction/Destruction
 
-  /// Copy attributes of this filter from another instance
-  void CopyAttributes(const PolyDataFilter &);
-
 protected:
 
   /// Default constructor
-  PolyDataFilter();
+  MeshFilter();
 
   /// Copy constructor
-  PolyDataFilter(const PolyDataFilter &);
+  MeshFilter(const MeshFilter &);
 
   /// Assignment operator
-  PolyDataFilter &operator =(const PolyDataFilter &);
+  MeshFilter &operator =(const MeshFilter &);
 
   /// Destructor
-  virtual ~PolyDataFilter();
+  virtual ~MeshFilter();
 
   // ---------------------------------------------------------------------------
   // Execution
@@ -85,17 +83,9 @@ protected:
 public:
 
   /// Run filter
-  ///
-  /// \note Most filters assume that irtkPolyData::BuildLinks of the input
-  ///       surface mesh has been invoked before execution of the filter.
-  ///       See the documentation/implementation of each individual filter.
-  ///       Generally assume that this is required unless documented otherwise.
   virtual void Run();
 
 protected:
-
-  /// To be called by subclass in Initialize when _EdgeTable is needed
-  void InitializeEdgeTable();
 
   /// Initialize filter after input and parameters are set
   virtual void Initialize();
@@ -126,6 +116,27 @@ public:
   /// Get output surface mesh
   vtkPolyData *GetOutput();
 
+  // ---------------------------------------------------------------------------
+  // Auxiliaries
+
+protected:
+
+  /// To be called by subclass in Initialize when _EdgeTable is needed
+  virtual void InitializeEdgeTable();
+
+  /// Allocate new data set attributes array
+  ///
+  /// \param[in] name Name of data array.
+  /// \param[in] n    Number of tuples.
+  /// \param[in] c    Number of components.
+  /// \param[in] type Type of VTK array. When VTK_VOID, a floating point array
+  ///                 is allocated with either single or double precision depending
+  ///                 on the DoublePrecision flag of this mesh filter.
+  ///
+  /// \returns New floating point array
+  vtkSmartPointer<vtkDataArray> NewArray(const char *name, vtkIdType n, int c,
+                                         int type = VTK_VOID) const;
+
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -137,25 +148,25 @@ public:
 // =============================================================================
 
 // -----------------------------------------------------------------------------
-inline void PolyDataFilter::SetInputData(vtkPolyData *poly)
+inline void MeshFilter::SetInputData(vtkPolyData *poly)
 {
   this->Input(poly);
 }
 
 // -----------------------------------------------------------------------------
-inline void PolyDataFilter::SetInput(vtkPolyData *poly)
+inline void MeshFilter::SetInput(vtkPolyData *poly)
 {
   this->Input(poly);
 }
 
 // -----------------------------------------------------------------------------
-inline void PolyDataFilter::Update()
+inline void MeshFilter::Update()
 {
   this->Run();
 }
 
 // -----------------------------------------------------------------------------
-inline vtkPolyData *PolyDataFilter::GetOutput()
+inline vtkPolyData *MeshFilter::GetOutput()
 {
   return this->Output();
 }
@@ -163,4 +174,4 @@ inline vtkPolyData *PolyDataFilter::GetOutput()
 
 } // namespace mirtk
 
-#endif // MIRTK_PolyDataFilter
+#endif // MIRTK_MeshFilter_H

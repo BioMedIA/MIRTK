@@ -20,7 +20,7 @@
 #ifndef MIRTK_SurfaceCollisions_H
 #define MIRTK_SurfaceCollisions_H
 
-#include "mirtk/Object.h"
+#include "mirtk/SurfaceFilter.h"
 
 #include "mirtk/Math.h"
 #include "mirtk/Array.h"
@@ -45,7 +45,7 @@ namespace mirtk {
  * i.e., very close to each other. They are used to impose either hard or soft
  * non-self-intersection constraints on a deformable surface.
  */
-class SurfaceCollisions : public Object
+class SurfaceCollisions : public SurfaceFilter
 {
   mirtkObjectMacro(SurfaceCollisions);
 
@@ -181,14 +181,8 @@ public:
   // Attributes
 private:
 
-  /// Triangulated input surface mesh
-  mirtkPublicAttributeMacro(vtkSmartPointer<vtkPolyData>, Input);
-
   /// Optional mask of input triangles to check
   mirtkPublicAttributeMacro(vtkSmartPointer<vtkDataArray>, Mask);
-
-  /// Annotated output surface mesh
-  mirtkReadOnlyAttributeMacro(vtkSmartPointer<vtkPolyData>, Output);
 
   /// Use BoundingSphereCenter and BoundingSphereRadius cell data arrays of input
   mirtkPublicAttributeMacro(bool, UseInputBoundingSpheres);
@@ -245,20 +239,21 @@ private:
   /// \note Only non-empty after Run when _StoreCollisionDetails is \c true.
   mirtkReadOnlyAttributeMacro(CollisionsArray, Collisions);
 
+  /// Copy attributes of this class from another instance
+  void CopyAttributes(const SurfaceCollisions &);
+
   // ---------------------------------------------------------------------------
   // Construction/destruction
-private:
-
-  /// Copy constructor -- not implemented
-  SurfaceCollisions(const SurfaceCollisions &);
-
-  /// Assignment operator -- not implemented
-  SurfaceCollisions &operator =(const SurfaceCollisions &);
-
 public:
 
   /// Constructor
   SurfaceCollisions();
+
+  /// Copy constructor
+  SurfaceCollisions(const SurfaceCollisions &);
+
+  /// Assignment operator
+  SurfaceCollisions &operator =(const SurfaceCollisions &);
 
   /// Destructor
   virtual ~SurfaceCollisions();
@@ -267,13 +262,11 @@ public:
   // Execution
 protected:
 
-  /// Initialize filter execution
-  void Initialize();
+  /// Initialize filter after input and parameters are set
+  virtual void Initialize();
 
-public:
-
-  /// Detect self-collisions of input surface
-  void Run();
+  /// Execute filter
+  virtual void Execute();
 
   // ---------------------------------------------------------------------------
   // Output
