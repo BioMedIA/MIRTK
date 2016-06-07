@@ -220,7 +220,6 @@ else ()
     endforeach ()
   endif ()
 endif ()
-set(SuiteSparse_config_INCLUDE_DIRS ${SuiteSparse_config_INCLUDE_DIR})
 mark_as_advanced(SuiteSparse_config_INCLUDE_DIR)
 
 _suitesparse_get_library_suffixes(_suitesparse_library_suffixes SuiteSparse_config)
@@ -230,14 +229,18 @@ find_library(SuiteSparse_config_LIBRARY
   PATH_SUFFIXES ${_suitesparse_library_suffixes}
   NO_DEFAULT_PATH
 )
-set(SuiteSparse_config_LIBRARIES ${SuiteSparse_config_LIBRARY})
-get_filename_component(SuiteSparse_LIBRARY_DIR "${SuiteSparse_config_LIBRARY}" PATH)
 mark_as_advanced(SuiteSparse_config_LIBRARY)
 
 if (SuiteSparse_config_INCLUDE_DIR AND SuiteSparse_config_LIBRARY)
   set(SuiteSparse_config_FOUND 1)
+  set(SuiteSparse_config_INCLUDE_DIRS ${SuiteSparse_config_INCLUDE_DIR})
+  set(SuiteSparse_config_LIBRARIES    ${SuiteSparse_config_LIBRARY})
+  get_filename_component(SuiteSparse_LIBRARY_DIR "${SuiteSparse_config_LIBRARY}" PATH)
 else ()
   set(SuiteSparse_config_FOUND 0)
+  set(SuiteSparse_config_INCLUDE_DIRS)
+  set(SuiteSparse_config_LIBRARIES)
+  set(SuiteSparse_LIBRARY_DIR)
 endif ()
 
 _suitesparse_debug_message("Config (FOUND=${SuiteSparse_config_FOUND}):")
@@ -314,12 +317,10 @@ foreach (_suitesparse_component IN LISTS SuiteSparse_COMPONENTS)
       PATH_SUFFIXES ${_suitesparse_include_suffixes}
       NO_DEFAULT_PATH
     )
-    set(SuiteSparse_${_suitesparse_component}_INCLUDE_DIRS
-      ${SuiteSparse_${_suitesparse_component}_INCLUDE_DIR}
-    )
     mark_as_advanced(SuiteSparse_${_suitesparse_component}_INCLUDE_DIR)
 
     # Find component library file
+    set(SuiteSparse_${_suitesparse_component}_LIBRARIES)
     _suitesparse_get_library_suffixes(_suitesparse_library_suffixes ${_suitesparse_component})
     find_library(SuiteSparse_${_suitesparse_component}_LIBRARY
       NAMES ${_suitesparse_component_lower}
@@ -328,17 +329,22 @@ foreach (_suitesparse_component IN LISTS SuiteSparse_COMPONENTS)
       PATH_SUFFIXES ${_suitesparse_library_suffixes}
       NO_DEFAULT_PATH
     )
-    set(SuiteSparse_${_suitesparse_component}_LIBRARIES
-      ${SuiteSparse_${_suitesparse_component}_LIBRARY}
-    )
     mark_as_advanced(SuiteSparse_${_suitesparse_component}_LIBRARY)
 
-    # Mark component as either found or not
+    # Mark component as either found or not and init aggregates
     if (SuiteSparse_${_suitesparse_component}_INCLUDE_DIR AND
         SuiteSparse_${_suitesparse_component}_LIBRARY)
       set(SuiteSparse_${_suitesparse_component}_FOUND 1)
+      set(SuiteSparse_${_suitesparse_component}_INCLUDE_DIRS
+        ${SuiteSparse_${_suitesparse_component}_INCLUDE_DIR}
+      )
+      set(SuiteSparse_${_suitesparse_component}_LIBRARIES
+        ${SuiteSparse_${_suitesparse_component}_LIBRARY}
+      )
     else ()
       set(SuiteSparse_${_suitesparse_component}_FOUND 0)
+      set(SuiteSparse_${_suitesparse_component}_INCLUDE_DIRS)
+      set(SuiteSparse_${_suitesparse_component}_LIBRARIES)
     endif ()
 
   endif ()
@@ -446,17 +452,23 @@ endforeach ()
 
 # ------------------------------------------------------------------------------
 # Aggregate found libraries
-set(SuiteSparse_INCLUDE_DIR  ${SuiteSparse_config_INCLUDE_DIR})
-set(SuiteSparse_INCLUDE_DIRS ${SuiteSparse_config_INCLUDE_DIRS})
-set(SuiteSparse_LIBRARIES    ${SuiteSparse_config_LIBRARIES})
-foreach (_suitesparse_component IN LISTS SuiteSparse_COMPONENTS)
-  if (SuiteSparse_${_suitesparse_component}_FOUND)
-    list(APPEND SuiteSparse_INCLUDE_DIRS SuiteSparse_${_suitesparse_component}_INCLUDE_DIRS)
-    list(APPEND SuiteSparse_LIBRARIES    SuiteSparse_${_suitesparse_component}_LIBRARIES)
-  endif ()
-endforeach ()
-_suitesparse_remove_duplicate_paths(SuiteSparse_INCLUDE_DIRS)
-_suitesparse_remove_duplicate_libraries(SuiteSparse_LIBRARIES)
+if (SuiteSparse_config_FOUND)
+  set(SuiteSparse_INCLUDE_DIR  ${SuiteSparse_config_INCLUDE_DIR})
+  set(SuiteSparse_INCLUDE_DIRS ${SuiteSparse_config_INCLUDE_DIRS})
+  set(SuiteSparse_LIBRARIES    ${SuiteSparse_config_LIBRARIES})
+  foreach (_suitesparse_component IN LISTS SuiteSparse_COMPONENTS)
+    if (SuiteSparse_${_suitesparse_component}_FOUND)
+      list(APPEND SuiteSparse_INCLUDE_DIRS SuiteSparse_${_suitesparse_component}_INCLUDE_DIRS)
+      list(APPEND SuiteSparse_LIBRARIES    SuiteSparse_${_suitesparse_component}_LIBRARIES)
+    endif ()
+  endforeach ()
+  _suitesparse_remove_duplicate_paths(SuiteSparse_INCLUDE_DIRS)
+  _suitesparse_remove_duplicate_libraries(SuiteSparse_LIBRARIES)
+else ()
+  set(SuiteSparse_INCLUDE_DIR)
+  set(SuiteSparse_INCLUDE_DIRS)
+  set(SuiteSparse_LIBRARIES)
+endif ()
 
 # ------------------------------------------------------------------------------
 # Handle QUIET, REQUIRED, and [EXACT] VERSION arguments and set SuiteSparse_FOUND
