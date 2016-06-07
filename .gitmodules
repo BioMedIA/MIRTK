@@ -1,9 +1,6 @@
 [submodule "ThirdParty/Boost"]
 	path = ThirdParty/Boost
 	url = https://github.com/MIRTK/Boost.git
-[submodule "ThirdParty/Eigen"]
-	path = ThirdParty/Eigen
-	url = https://github.com/MIRTK/Eigen.git
 [submodule "ThirdParty/LBFGS"]
 	path = ThirdParty/LBFGS
 	url = https://github.com/MIRTK/LBFGS.git
