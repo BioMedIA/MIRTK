@@ -61,12 +61,17 @@ of the downloaded MIRTK repository:
    only selected additional files, run one or more of the following commands.
 
 The MIRTK group hosts Git submodule repositories with copies of the Boost_ and Eigen_
-library header files required to build some of the core modules of the MIRTK
+library header files required to build the core modules of the MIRTK
 (see `MIRTK/Boost <https://github.com/MIRTK/Boost>`__ and
-`MIRTK/Eigen <https://github.com/MIRTK/Eigen>`__ projects on GitHub).
-Either install a compatible version of these libraries using the official installation
-packages available for your operating system or initialize the desired Git submodules
-before configuring the MIRTK build:
+`MIRTK/Eigen <https://github.com/MIRTK/Eigen>`__ projects on GitHub). Note that
+these unofficial copies may not be suitable to build also the optional MIRTK Packages
+below if these require additional header files not included in these repositories.
+It is therefore recommended to install a compatible version of Boost and Eigen using
+the official installation packages available for your operating system instead.
+Other optional third-party libraries for which no binary installation packages for the
+supported operating systems exists are included as Git submodules under the ThirdParty/
+subdirectory of the MIRTK project. To download these third-party source files,
+run the following command(s):
 
 .. code-block:: bash
 
@@ -74,8 +79,6 @@ before configuring the MIRTK build:
     git submodule update --init -- ThirdParty
 
     # Or download one or more of the following modules only
-    git submodule update --init -- ThirdParty/Boost
-    git submodule update --init -- ThirdParty/Eigen
     git submodule update --init -- ThirdParty/LBFGS
 
 The source files of core MIRTK modules are included in the top-level MIRTK repository

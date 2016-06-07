@@ -17,6 +17,9 @@ if [ $os = linux ] || [ $os = Linux ]; then
   sudo apt-get install -y --no-install-recommends \
     freeglut3-dev \
     libarpack2-dev \
+    libboost-math-dev \
+    libboost-random-dev \
+    libeigen3-dev \
     libflann-dev \
     libgtest-dev \
     libnifti-dev \
@@ -37,6 +40,7 @@ elif [ $os = osx ] || [ $os = Darwin ]; then
   brew tap homebrew/science
   brew install \
     arpack \
+    eigen \
     flann \
     suite-sparse \
     tbb \
