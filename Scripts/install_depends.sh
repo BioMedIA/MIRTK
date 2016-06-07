@@ -40,7 +40,6 @@ elif [ $os = osx ] || [ $os = Darwin ]; then
   brew tap homebrew/science
   brew install \
     arpack \
-    boost \
     eigen \
     flann \
     suite-sparse \
