@@ -30,8 +30,16 @@ ARG THREADS
 ARG VTK_VERSION=6.3.0
 
 # Install prerequisites for MIRTK build
+#
+# The bzindovic/suitesparse-bugfix-1319687 PPA is required for building
+# shared libraries which link with the static SuiteSparse libraries due
+# to a bug in the official Ubuntu package:
+# https://bugs.launchpad.net/ubuntu/+source/suitesparse/+bug/1333214
 RUN NUM_CPUS=${THREADS:-`cat /proc/cpuinfo | grep processor | wc -l`} \
     && echo "Maximum number of build threads = $NUM_CPUS" \
+    && apt-get update && apt-get install -y --no-install-recommends \
+      software-properties-common \
+    && add-apt-repository -y ppa:bzindovic/suitesparse-bugfix-1319687 \
     && apt-get update && apt-get install -y --no-install-recommends \
       gcc \
       g++ \
@@ -40,6 +48,9 @@ RUN NUM_CPUS=${THREADS:-`cat /proc/cpuinfo | grep processor | wc -l`} \
       python \
       freeglut3-dev \
       libarpack2-dev \
+      libboost-math-dev \
+      libboost-random-dev \
+      libeigen3-dev \
       libflann-dev \
       libgtest-dev \
       libnifti-dev \
