@@ -27,7 +27,7 @@ ARG THREADS
 # Note, however, that this results in a Docker image that is about twice
 # the size of the image when a custom VTK build without Qt, wrappers,
 # and unused VTK modules is used instead!
-ARG VTK_VERSION=6.3.0
+ARG VTK_VERSION=7.0.0
 
 # Install prerequisites for MIRTK build
 #
