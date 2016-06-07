@@ -55,6 +55,7 @@ def path(argv, quiet=False):
     elif command == 'convert-dof2velo':   command = 'convert-dof'
     elif command == 'concatenate-dofs':   command = 'compose-dofs'
     elif command == 'concatenate-images': command = 'combine-images'
+    elif command == 'remesh':             command = 'remesh-surface'
     fpath = None
     for ext in libexec_ext:
         p = os.path.join(libexec_dir, config, command + ext)

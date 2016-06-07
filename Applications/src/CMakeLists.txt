@@ -169,7 +169,7 @@ if (MIRTK_PointSet_FOUND)
   add_pointset_command(extract-connected-points)
   add_pointset_command(offset-surface)
   add_pointset_command(project-onto-surface)
-  add_pointset_command(remesh)
+  add_pointset_command(remesh-surface)
   add_pointset_command(smooth-surface)
 
   if (FLANN_FOUND)
