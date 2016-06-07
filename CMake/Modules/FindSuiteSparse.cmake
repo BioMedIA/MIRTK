@@ -202,7 +202,7 @@ _suitesparse_get_include_suffixes(_suitesparse_include_suffixes SuiteSparse_conf
 if (SuiteSparse_ROOT)
   find_path(SuiteSparse_config_INCLUDE_DIR
     NAMES SuiteSparse_config.h UFconfig.h
-    PATHS ${SuiteSparse_ROOT}
+    PATHS "${SuiteSparse_ROOT}"
     PATH_SUFFIXES ${_suitesparse_include_suffixes}
     NO_DEFAULT_PATH
   )
@@ -225,7 +225,7 @@ mark_as_advanced(SuiteSparse_config_INCLUDE_DIR)
 _suitesparse_get_library_suffixes(_suitesparse_library_suffixes SuiteSparse_config)
 find_library(SuiteSparse_config_LIBRARY
   NAMES suitesparseconfig
-  PATHS ${SuiteSparse_ROOT}
+  PATHS "${SuiteSparse_ROOT}"
   PATH_SUFFIXES ${_suitesparse_library_suffixes}
   NO_DEFAULT_PATH
 )
@@ -235,16 +235,19 @@ if (SuiteSparse_config_INCLUDE_DIR AND SuiteSparse_config_LIBRARY)
   set(SuiteSparse_config_FOUND 1)
   set(SuiteSparse_config_INCLUDE_DIRS ${SuiteSparse_config_INCLUDE_DIR})
   set(SuiteSparse_config_LIBRARIES    ${SuiteSparse_config_LIBRARY})
+  set(SuiteSparse_INCLUDE_DIR         ${SuiteSparse_config_INCLUDE_DIR})
   get_filename_component(SuiteSparse_LIBRARY_DIR "${SuiteSparse_config_LIBRARY}" PATH)
 else ()
   set(SuiteSparse_config_FOUND 0)
   set(SuiteSparse_config_INCLUDE_DIRS)
   set(SuiteSparse_config_LIBRARIES)
+  set(SuiteSparse_INCLUDE_DIR)
   set(SuiteSparse_LIBRARY_DIR)
 endif ()
 
 _suitesparse_debug_message("Config (FOUND=${SuiteSparse_config_FOUND}):")
 _suitesparse_debug_message("- SuiteSparse_ROOT               = ${SuiteSparse_ROOT}")
+_suitesparse_debug_message("- SuiteSparse_INCLUDE_DIR        = ${SuiteSparse_INCLUDE_DIR}")
 _suitesparse_debug_message("- SuiteSparse_LIBRARY_DIR        = ${SuiteSparse_LIBRARY_DIR}")
 _suitesparse_debug_message("- SuiteSparse_config_INCLUDE_DIR = ${SuiteSparse_config_INCLUDE_DIR}")
 _suitesparse_debug_message("- SuiteSparse_config_LIBRARY     = ${SuiteSparse_config_LIBRARY}")
@@ -312,8 +315,8 @@ foreach (_suitesparse_component IN LISTS SuiteSparse_COMPONENTS)
 
     find_path(SuiteSparse_${_suitesparse_component}_INCLUDE_DIR
       NAMES ${_suitesparse_component_header}
-      HINTS ${SuiteSparse_INCLUDE_DIR}
-      PATHS ${SuiteSparse_ROOT}
+      HINTS "${SuiteSparse_INCLUDE_DIR}"
+      PATHS "${SuiteSparse_ROOT}"
       PATH_SUFFIXES ${_suitesparse_include_suffixes}
       NO_DEFAULT_PATH
     )
@@ -324,8 +327,8 @@ foreach (_suitesparse_component IN LISTS SuiteSparse_COMPONENTS)
     _suitesparse_get_library_suffixes(_suitesparse_library_suffixes ${_suitesparse_component})
     find_library(SuiteSparse_${_suitesparse_component}_LIBRARY
       NAMES ${_suitesparse_component_lower}
-      HINTS ${SuiteSparse_LIBRARY_DIR}
-      PATHS ${SuiteSparse_ROOT}
+      HINTS "${SuiteSparse_LIBRARY_DIR}"
+      PATHS "${SuiteSparse_ROOT}"
       PATH_SUFFIXES ${_suitesparse_library_suffixes}
       NO_DEFAULT_PATH
     )
@@ -453,7 +456,6 @@ endforeach ()
 # ------------------------------------------------------------------------------
 # Aggregate found libraries
 if (SuiteSparse_config_FOUND)
-  set(SuiteSparse_INCLUDE_DIR  ${SuiteSparse_config_INCLUDE_DIR})
   set(SuiteSparse_INCLUDE_DIRS ${SuiteSparse_config_INCLUDE_DIRS})
   set(SuiteSparse_LIBRARIES    ${SuiteSparse_config_LIBRARIES})
   foreach (_suitesparse_component IN LISTS SuiteSparse_COMPONENTS)
@@ -465,7 +467,6 @@ if (SuiteSparse_config_FOUND)
   _suitesparse_remove_duplicate_paths(SuiteSparse_INCLUDE_DIRS)
   _suitesparse_remove_duplicate_libraries(SuiteSparse_LIBRARIES)
 else ()
-  set(SuiteSparse_INCLUDE_DIR)
   set(SuiteSparse_INCLUDE_DIRS)
   set(SuiteSparse_LIBRARIES)
 endif ()
