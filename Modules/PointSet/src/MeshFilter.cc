@@ -17,13 +17,12 @@
  * limitations under the License.
  */
 
-#include "mirtk/PolyDataFilter.h"
+#include "mirtk/MeshFilter.h"
 
+#include "mirtk/Config.h" // MIRTK_USE_FLOAT_BY_DEFAULT
 #include "mirtk/Profiling.h"
-#include "mirtk/EdgeTable.h"
 
-#include "vtkSmartPointer.h"
-#include "vtkPolyData.h"
+#include "mirtk/Vtk.h"
 
 
 namespace mirtk {
@@ -34,45 +33,39 @@ namespace mirtk {
 // =============================================================================
 
 // -----------------------------------------------------------------------------
-PolyDataFilter::PolyDataFilter()
+MeshFilter::MeshFilter()
 :
-  _EdgeTable(NULL),
-  _EdgeTableOwner(false),
+#if MIRTK_USE_FLOAT_BY_DEFAULT
   _DoublePrecision(false)
+#else
+  _DoublePrecision(true)
+#endif
 {
 }
 
 // -----------------------------------------------------------------------------
-void PolyDataFilter::CopyAttributes(const PolyDataFilter &other)
+void MeshFilter::CopyAttributes(const MeshFilter &other)
 {
-  _Input = other._Input;
-
-  if (_EdgeTableOwner) delete _EdgeTable;
-  _EdgeTable      = NULL;
-  _EdgeTableOwner = false;
-  if (other._EdgeTable) {
-    _EdgeTableOwner = other._EdgeTableOwner;
-    _EdgeTable      = (_EdgeTableOwner ? new class EdgeTable(*other._EdgeTable) : other._EdgeTable);
-  }
+  _Input           = other._Input;
+  _EdgeTable       = other._EdgeTable;
+  _DoublePrecision = other._DoublePrecision;
 
   if (other._Output) {
-    _Output = vtkSmartPointer<vtkPolyData>::New();
-    _Output->DeepCopy(other._Output);
+    _Output = other._Output->NewInstance();
+    _Output->ShallowCopy(other._Output);
   } else {
-    _Output = NULL;
+    _Output = nullptr;
   }
-
-  _DoublePrecision = other._DoublePrecision;
 }
 
 // -----------------------------------------------------------------------------
-PolyDataFilter::PolyDataFilter(const PolyDataFilter &other)
+MeshFilter::MeshFilter(const MeshFilter &other)
 {
   CopyAttributes(other);
 }
 
 // -----------------------------------------------------------------------------
-PolyDataFilter &PolyDataFilter::operator =(const PolyDataFilter &other)
+MeshFilter &MeshFilter::operator =(const MeshFilter &other)
 {
   if (this != &other) {
     Object::operator =(other);
@@ -82,9 +75,8 @@ PolyDataFilter &PolyDataFilter::operator =(const PolyDataFilter &other)
 }
 
 // -----------------------------------------------------------------------------
-PolyDataFilter::~PolyDataFilter()
+MeshFilter::~MeshFilter()
 {
-  if (_EdgeTableOwner) Delete(_EdgeTable);
 }
 
 // =============================================================================
@@ -92,7 +84,7 @@ PolyDataFilter::~PolyDataFilter()
 // =============================================================================
 
 // -----------------------------------------------------------------------------
-void PolyDataFilter::Run()
+void MeshFilter::Run()
 {
   MIRTK_START_TIMING();
   {
@@ -114,36 +106,48 @@ void PolyDataFilter::Run()
 }
 
 // -----------------------------------------------------------------------------
-void PolyDataFilter::InitializeEdgeTable()
-{
-  if (_EdgeTable == NULL) {
-    _EdgeTable      = new class EdgeTable(_Input);
-    _EdgeTableOwner = true;
-  }
-}
-
-// -----------------------------------------------------------------------------
-void PolyDataFilter::Initialize()
+void MeshFilter::Initialize()
 {
   // Check input
   if (!_Input) {
-    cerr << this->NameOfClass() << "::Initialize: Input surface mesh not set!" << endl;
+    cerr << this->NameOfClass() << "::Initialize: Input mesh not set!" << endl;
     exit(1);
   }
 
+  // Build mesh links
+  _Input->BuildLinks();
+
   // By default, set output to be shallow copy of input
-  _Output = vtkSmartPointer<vtkPolyData>::New();
+  _Output = _Input->NewInstance();
   _Output->ShallowCopy(_Input);
 }
 
 // -----------------------------------------------------------------------------
-void PolyDataFilter::Finalize()
+void MeshFilter::Finalize()
 {
-  // Destroy edge table
-  if (_EdgeTableOwner) {
-    delete _EdgeTable;
-    _EdgeTable      = NULL;
-    _EdgeTableOwner = false;
+}
+
+// =============================================================================
+// Auxiliaries
+// =============================================================================
+
+// ------------------------------------------------------------------------------
+vtkSmartPointer<vtkDataArray>
+MeshFilter::NewArray(const char *name, vtkIdType n, int c, int type) const
+{
+  if (type == VTK_VOID) type = (_DoublePrecision ? VTK_DOUBLE : VTK_FLOAT);
+  vtkSmartPointer<vtkDataArray> array = NewVTKDataArray(type);
+  array->SetName(name);
+  array->SetNumberOfComponents(c);
+  array->SetNumberOfTuples(n);
+  return array;
+}
+
+// -----------------------------------------------------------------------------
+void MeshFilter::InitializeEdgeTable()
+{
+  if (_EdgeTable == nullptr || _EdgeTable->Mesh() != _Input) {
+    _EdgeTable = NewShared<class EdgeTable>(_Input);
   }
 }
 

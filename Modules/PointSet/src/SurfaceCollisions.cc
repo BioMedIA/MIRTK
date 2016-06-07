@@ -89,8 +89,8 @@ public:
 
       // Compute radius of bounding sphere
       radius = sqrt(max(max(vtkMath::Distance2BetweenPoints(a, origin),
-                                           vtkMath::Distance2BetweenPoints(b, origin)),
-                                           vtkMath::Distance2BetweenPoints(c, origin)));
+                            vtkMath::Distance2BetweenPoints(b, origin)),
+                            vtkMath::Distance2BetweenPoints(c, origin)));
       _Radius->SetTuple1(cellId, radius);
     }
   }
@@ -317,7 +317,7 @@ public:
         // If self-intersection check of non-adjacent triangles disabled or negative,
         // check for near miss collision if minimum distance set
         else if (coll_test) {
-          vtkTriangle::ComputeNormal(tri2[0], tri2[1], tri2[2], n2);
+          Triangle::Normal(tri2[0], tri2[1], tri2[2], n2);
           collision._Distance = Triangle::DistanceBetweenTriangles(
                                     tri1[0], tri1[1], tri1[2], n1,
                                     tri2[0], tri2[1], tri2[2], n2,
@@ -398,11 +398,31 @@ using namespace SurfaceCollisionsUtils;
 // =============================================================================
 
 // -----------------------------------------------------------------------------
+void SurfaceCollisions::CopyAttributes(const SurfaceCollisions &other)
+{
+  _Mask                        = other._Mask;
+  _UseInputBoundingSpheres     = other._UseInputBoundingSpheres;
+  _MinSearchRadius             = other._MinSearchRadius;
+  _MaxSearchRadius             = other._MaxSearchRadius;
+  _MinFrontfaceDistance        = other._MinFrontfaceDistance;
+  _MinBackfaceDistance         = other._MinBackfaceDistance;
+  _MaxAngle                    = other._MaxAngle;
+  _AdjacentIntersectionTest    = other._AdjacentIntersectionTest;
+  _NonAdjacentIntersectionTest = other._NonAdjacentIntersectionTest;
+  _FrontfaceCollisionTest      = other._FrontfaceCollisionTest;
+  _BackfaceCollisionTest       = other._BackfaceCollisionTest;
+  _StoreIntersectionDetails    = other._StoreIntersectionDetails;
+  _StoreCollisionDetails       = other._StoreCollisionDetails;
+  _Intersections               = other._Intersections;
+  _Collisions                  = other._Collisions;
+}
+
+// -----------------------------------------------------------------------------
 SurfaceCollisions::SurfaceCollisions()
 :
   _UseInputBoundingSpheres(false),
   _MinSearchRadius(.0),
-  _MaxSearchRadius(numeric_limits<double>::infinity()),
+  _MaxSearchRadius(inf),
   _MinFrontfaceDistance(.0),
   _MinBackfaceDistance(.0),
   _MaxAngle(90.0),
@@ -413,6 +433,24 @@ SurfaceCollisions::SurfaceCollisions()
   _StoreIntersectionDetails(true),
   _StoreCollisionDetails(true)
 {
+}
+
+// -----------------------------------------------------------------------------
+SurfaceCollisions::SurfaceCollisions(const SurfaceCollisions &other)
+:
+  SurfaceFilter(other)
+{
+  CopyAttributes(other);
+}
+
+// -----------------------------------------------------------------------------
+SurfaceCollisions &SurfaceCollisions::operator =(const SurfaceCollisions &other)
+{
+  if (this != &other) {
+    SurfaceFilter::operator =(other);
+    CopyAttributes(other);
+  }
+  return *this;
 }
 
 // -----------------------------------------------------------------------------
@@ -461,6 +499,23 @@ SurfaceCollisions::CollisionType SurfaceCollisions::GetCollisionType(vtkIdType c
 // -----------------------------------------------------------------------------
 void SurfaceCollisions::Initialize()
 {
+  // Initialize base class
+  SurfaceFilter::Initialize();
+
+  // Check input mesh
+  if (!IsTriangularMesh(_Input)) {
+    cerr << this->NameOfType() << "::Initialize: Input mesh must have triangular faces!" << endl;
+    exit(1);
+  }
+
+  // Check mask
+  if (_Mask != nullptr) {
+    if (_Mask->GetNumberOfTuples() != _Input->GetNumberOfCells() || _Mask->GetNumberOfComponents() == 0) {
+      cerr << this->NameOfType() << "::Initialize: Input mask must have one entry for each triangular face of input mesh" << endl;
+      exit(1);
+    }
+  }
+
   // Reset stored collisions from previous run
   _Intersections.clear();
   _Collisions.clear();
@@ -478,7 +533,7 @@ void SurfaceCollisions::Initialize()
   if (!_AdjacentIntersectionTest && !_NonAdjacentIntersectionTest &&
      (_MinFrontfaceDistance <= .0 || !_FrontfaceCollisionTest) &&
      (_MinBackfaceDistance  <= .0 || !_BackfaceCollisionTest)) {
-    cerr << "SurfaceCollisions::Initialize: No collision tests enabled or minimum distances not positive" << endl;
+    cerr << this->NameOfType() << "::Initialize: No collision tests enabled or minimum distances not positive" << endl;
     exit(1);
   }
 
@@ -486,18 +541,6 @@ void SurfaceCollisions::Initialize()
   if (_MinFrontfaceDistance < .0) _MinFrontfaceDistance = .0;
   if (_MinBackfaceDistance  < .0) _MinBackfaceDistance  = .0;
   if (_MinSearchRadius      < .0) _MinSearchRadius      = .0;
-
-  // Triangulate input surface (or make shallow copy for addition of internal cell attributes)
-  if (!_Input) {
-    cerr << "SurfaceCollisions::Initialize: Missing input surface" << endl;
-    exit(1);
-  }
-  if (_Mask && (_Mask->GetNumberOfTuples()     != _Input->GetNumberOfCells() ||
-                _Mask->GetNumberOfComponents() == 0)) {
-    cerr << "SurfaceCollisions::Initialize: Invalid input mask" << endl;
-    exit(1);
-  }
-  _Output = Triangulate(_Input);
 
   // Precompute bounding spheres and prepare auxiliary data arrays
   bool compute_bounding_spheres = !_UseInputBoundingSpheres;
@@ -540,18 +583,11 @@ void SurfaceCollisions::Initialize()
 }
 
 // -----------------------------------------------------------------------------
-void SurfaceCollisions::Run()
+void SurfaceCollisions::Execute()
 {
-  {
-    MIRTK_START_TIMING();
-    Initialize();
-    MIRTK_DEBUG_TIMING(6, "initializing collision detection");
-  }
   if (_Output->GetNumberOfCells() > 0) {
-    MIRTK_START_TIMING();
-    FindCollisions::Run(this, _StoreIntersectionDetails ? &_Intersections : NULL,
-                              _StoreCollisionDetails    ? &_Collisions    : NULL);
-    MIRTK_DEBUG_TIMING(5, "finding collisions");
+    FindCollisions::Run(this, _StoreIntersectionDetails ? &_Intersections : nullptr,
+                              _StoreCollisionDetails    ? &_Collisions    : nullptr);
   }
 }
 

@@ -1000,10 +1000,14 @@ double GetVolume(vtkSmartPointer<vtkPolyData> surface)
 // -----------------------------------------------------------------------------
 bool IsSurfaceMesh(vtkDataSet *dataset)
 {
-  vtkPolyData *poly = vtkPolyData::SafeDownCast(dataset);
-  return poly && poly->GetPolys() && poly->GetPolys()->GetNumberOfCells() > 0 &&
-         (!poly->GetLines() || poly->GetLines()->GetNumberOfCells() == 0) &&
-         (!poly->GetVerts() || poly->GetVerts()->GetNumberOfCells() == 0);
+  vtkPolyData *polydata = vtkPolyData::SafeDownCast(dataset);
+  if (polydata == nullptr) return false;
+  vtkSmartPointer<vtkGenericCell> cell = vtkSmartPointer<vtkGenericCell>::New();
+  for (vtkIdType cellId = 0; cellId < polydata->GetNumberOfCells(); ++cellId) {
+    polydata->GetCell(cellId, cell);
+    if (cell->GetCellDimension() != 2) return false;
+  }
+  return true;
 }
 
 // -----------------------------------------------------------------------------
@@ -1067,7 +1071,7 @@ vtkSmartPointer<vtkPolyData> ConvexHull(vtkSmartPointer<vtkPointSet> pointset, i
 // -----------------------------------------------------------------------------
 bool IsTriangularMesh(vtkDataSet *input)
 {
-  if (vtkPointSet::SafeDownCast(input) == NULL) return false;
+  if (vtkPointSet::SafeDownCast(input) == nullptr) return false;
   for (vtkIdType cellId = 0; cellId < input->GetNumberOfCells(); ++cellId) {
     int type = input->GetCellType(cellId);
     if (type != VTK_EMPTY_CELL && type != VTK_TRIANGLE) return false;
@@ -1078,7 +1082,7 @@ bool IsTriangularMesh(vtkDataSet *input)
 // -----------------------------------------------------------------------------
 bool IsTetrahedralMesh(vtkDataSet *input)
 {
-  if (vtkPointSet::SafeDownCast(input) == NULL) return false;
+  if (vtkPointSet::SafeDownCast(input) == nullptr) return false;
   for (vtkIdType cellId = 0; cellId < input->GetNumberOfCells(); ++cellId) {
     int type = input->GetCellType(cellId);
     if (type != VTK_EMPTY_CELL && type != VTK_TETRA) return false;

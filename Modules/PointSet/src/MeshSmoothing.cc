@@ -17,12 +17,11 @@
  * limitations under the License.
  */
 
-#include "mirtk/PolyDataSmoothing.h"
+#include "mirtk/MeshSmoothing.h"
 
 #include "mirtk/Math.h"
-#include "mirtk/EdgeTable.h"
-#include "mirtk/Matrix3x3.h"
 #include "mirtk/Vector3.h"
+#include "mirtk/Matrix3x3.h"
 #include "mirtk/PointSetUtils.h"
 
 #include "mirtk/Vtk.h"
@@ -43,7 +42,7 @@ namespace mirtk {
 // Auxiliary functors
 // =============================================================================
 
-namespace PolyDataSmoothingUtils {
+namespace MeshSmoothingUtils {
 
 // -----------------------------------------------------------------------------
 /// Uniform node weight of the so-called "umbrella operator"
@@ -220,7 +219,7 @@ public:
 template <class TKernel>
 struct SmoothData
 {
-  typedef PolyDataSmoothing::DataArrays DataArrays;
+  typedef MeshSmoothing::DataArrays DataArrays;
 
   vtkDataArray     *_Mask;
   const EdgeTable  *_EdgeTable;
@@ -397,7 +396,7 @@ struct SmoothData
 template <class TKernel>
 struct SmoothDataMagnitude
 {
-  typedef PolyDataSmoothing::DataArrays DataArrays;
+  typedef MeshSmoothing::DataArrays DataArrays;
 
   vtkDataArray     *_Mask;
   const EdgeTable  *_EdgeTable;
@@ -536,7 +535,7 @@ struct SmoothDataMagnitude
 template <class TKernel>
 struct SmoothSignedDataMagnitude
 {
-  typedef PolyDataSmoothing::DataArrays DataArrays;
+  typedef MeshSmoothing::DataArrays DataArrays;
 
   vtkDataArray     *_Mask;
   const EdgeTable  *_EdgeTable;
@@ -699,7 +698,7 @@ struct SmoothSignedDataMagnitude
 template <class TKernel>
 struct SmoothSignedData
 {
-  typedef PolyDataSmoothing::DataArrays DataArrays;
+  typedef MeshSmoothing::DataArrays DataArrays;
 
   vtkDataArray     *_Mask;
   const EdgeTable  *_EdgeTable;
@@ -858,19 +857,19 @@ struct SmoothSignedData
 };
 
 
-} // namespace PolyDataSmoothingUtils
-using namespace PolyDataSmoothingUtils;
+} // namespace MeshSmoothingUtils
+using namespace MeshSmoothingUtils;
 
 // =============================================================================
 // Construction/Destruction
 // =============================================================================
 
 // -----------------------------------------------------------------------------
-PolyDataSmoothing::PolyDataSmoothing()
+MeshSmoothing::MeshSmoothing()
 :
   _NumberOfIterations(1),
   _Lambda(1.0),
-  _Mu(numeric_limits<double>::quiet_NaN()),
+  _Mu(nan),
   _Sigma(.0),
   _MaximumDirectionSigma(.0),
   _Weighting(InverseDistance),
@@ -883,7 +882,7 @@ PolyDataSmoothing::PolyDataSmoothing()
 }
 
 // -----------------------------------------------------------------------------
-void PolyDataSmoothing::CopyAttributes(const PolyDataSmoothing &other)
+void MeshSmoothing::CopyAttributes(const MeshSmoothing &other)
 {
   _NumberOfIterations    = other._NumberOfIterations;
   _Lambda                = other._Lambda;
@@ -906,25 +905,25 @@ void PolyDataSmoothing::CopyAttributes(const PolyDataSmoothing &other)
 }
 
 // -----------------------------------------------------------------------------
-PolyDataSmoothing::PolyDataSmoothing(const PolyDataSmoothing &other)
+MeshSmoothing::MeshSmoothing(const MeshSmoothing &other)
 :
-  PolyDataFilter(other)
+  MeshFilter(other)
 {
   CopyAttributes(other);
 }
 
 // -----------------------------------------------------------------------------
-PolyDataSmoothing &PolyDataSmoothing::operator =(const PolyDataSmoothing &other)
+MeshSmoothing &MeshSmoothing::operator =(const MeshSmoothing &other)
 {
   if (this != &other) {
-    PolyDataFilter::operator =(other);
+    MeshFilter::operator =(other);
     CopyAttributes(other);
   }
   return *this;
 }
 
 // -----------------------------------------------------------------------------
-PolyDataSmoothing::~PolyDataSmoothing()
+MeshSmoothing::~MeshSmoothing()
 {
 }
 
@@ -933,10 +932,10 @@ PolyDataSmoothing::~PolyDataSmoothing()
 // =============================================================================
 
 // -----------------------------------------------------------------------------
-void PolyDataSmoothing::Initialize()
+void MeshSmoothing::Initialize()
 {
   // Initialize base class -- makes shallow copy of input
-  PolyDataFilter::Initialize();
+  MeshFilter::Initialize();
 
   // Construct edge table if none provided
   InitializeEdgeTable();
@@ -954,22 +953,22 @@ void PolyDataSmoothing::Initialize()
         if (!_MinimumDirectionName.empty()) {
           array = _Input->GetPointData()->GetArray(_MinimumDirectionName.c_str());
           if (!array) {
-            cerr << "PolyDataSmoothing::Initialize: Missing input point data array named " << _MinimumDirectionName << endl;
+            cerr << this->NameOfType() << "::Initialize: Missing input point data array named " << _MinimumDirectionName << endl;
             exit(1);
           }
           if (array->GetNumberOfComponents() != 3) {
-            cerr << "PolyDataSmoothing::Initialize: Invalid direction array. Must have 3 components." << endl;
+            cerr << this->NameOfType() << "::Initialize: Invalid direction array. Must have 3 components." << endl;
             exit(1);
           }
         }
         if (!_MaximumDirectionName.empty()) {
           array = _Input->GetPointData()->GetArray(_MaximumDirectionName.c_str());
           if (!array) {
-            cerr << "PolyDataSmoothing::Initialize: Missing input point data array named " << _MaximumDirectionName << endl;
+            cerr << this->NameOfType() << "::Initialize: Missing input point data array named " << _MaximumDirectionName << endl;
             exit(1);
           }
           if (array->GetNumberOfComponents() != 3) {
-            cerr << "PolyDataSmoothing::Initialize: Invalid direction array. Must have 3 components." << endl;
+            cerr << this->NameOfType() << "::Initialize: Invalid direction array. Must have 3 components." << endl;
             exit(1);
           }
         }
@@ -989,12 +988,12 @@ void PolyDataSmoothing::Initialize()
     } else {
       array = _Input->GetPointData()->GetArray(_GeometryTensorName.c_str());
       if (!array) {
-        cerr << "PolyDataSmoothing::Initialize: Missing input point data array named " << _GeometryTensorName << endl;
+        cerr << this->NameOfType() << "::Initialize: Missing input point data array named " << _GeometryTensorName << endl;
         exit(1);
       }
       if (array->GetNumberOfComponents() != 6 &&
           array->GetNumberOfComponents() != 9) {
-        cerr << "PolyDataSmoothing::Initialize: Invalid local geometry tensor array. Must have either 6 or 9 components." << endl;
+        cerr << this->NameOfType() << "::Initialize: Invalid local geometry tensor array. Must have either 6 or 9 components." << endl;
         exit(1);
       }
     }
@@ -1007,12 +1006,12 @@ void PolyDataSmoothing::Initialize()
   _InputArrays.resize(_SmoothArrays.size());
   for (size_t i = 0; i < _SmoothArrays.size(); ++i) {
     if (_SmoothArrays[i].empty()) {
-      cerr << "PolyDataSmoothing::Initialize: Empty input point data array name" << endl;
+      cerr << this->NameOfType() << "::Initialize: Empty input point data array name" << endl;
       exit(1);
     }
     _InputArrays[i] = _Input->GetPointData()->GetArray(_SmoothArrays[i].c_str());
     if (_InputArrays[i] == NULL) {
-      cerr << "PolyDataSmoothing::Initialize: Missing input point data array named " << _SmoothArrays[i] << endl;
+      cerr << this->NameOfType() << "::Initialize: Missing input point data array named " << _SmoothArrays[i] << endl;
       exit(1);
     }
   }
@@ -1035,7 +1034,7 @@ void PolyDataSmoothing::Initialize()
 }
 
 // -----------------------------------------------------------------------------
-void PolyDataSmoothing::Execute()
+void MeshSmoothing::Execute()
 {
   vtkSmartPointer<vtkPoints> ip = _Input->GetPoints();
   DataArrays                 ia = _InputArrays;
@@ -1094,38 +1093,38 @@ void PolyDataSmoothing::Execute()
       case Combinatorial: {
         typedef UniformWeightKernel Kernel;
         if (_SmoothArrays.empty() || (!_SmoothMagnitude && !_SignedSmoothing)) {
-          SmoothData<Kernel>::Run(_Mask, _EdgeTable, ip, op, ia, oa, Kernel(), lambda, incl_node);
+          SmoothData<Kernel>::Run(_Mask, _EdgeTable.get(), ip, op, ia, oa, Kernel(), lambda, incl_node);
         } else if (_SmoothMagnitude && !_SignedSmoothing) {
-          SmoothDataMagnitude<Kernel>::Run(_Mask, _EdgeTable, ip, op, ia, oa, Kernel(), lambda, incl_node);
+          SmoothDataMagnitude<Kernel>::Run(_Mask, _EdgeTable.get(), ip, op, ia, oa, Kernel(), lambda, incl_node);
         } else if (_SmoothMagnitude && _SignedSmoothing) {
-          SmoothSignedDataMagnitude<Kernel>::Run(_Mask, _EdgeTable, ip, op, ia, oa, Kernel(), lambda, incl_node);
+          SmoothSignedDataMagnitude<Kernel>::Run(_Mask, _EdgeTable.get(), ip, op, ia, oa, Kernel(), lambda, incl_node);
         } else if (_SignedSmoothing) {
-          SmoothSignedData<Kernel>::Run(_Mask, _EdgeTable, ip, op, ia, oa, Kernel(), lambda, incl_node);
+          SmoothSignedData<Kernel>::Run(_Mask, _EdgeTable.get(), ip, op, ia, oa, Kernel(), lambda, incl_node);
         }
       } break;
       case InverseDistance: {
         typedef InverseDistanceKernel Kernel;
         if (_SmoothArrays.empty() || (!_SmoothMagnitude && !_SignedSmoothing)) {
-          SmoothData<Kernel>::Run(_Mask, _EdgeTable, ip, op, ia, oa, Kernel(_Sigma), lambda, incl_node);
+          SmoothData<Kernel>::Run(_Mask, _EdgeTable.get(), ip, op, ia, oa, Kernel(_Sigma), lambda, incl_node);
         } else if (_SmoothMagnitude && !_SignedSmoothing) {
-          SmoothDataMagnitude<Kernel>::Run(_Mask, _EdgeTable, ip, op, ia, oa, Kernel(_Sigma), lambda, incl_node);
+          SmoothDataMagnitude<Kernel>::Run(_Mask, _EdgeTable.get(), ip, op, ia, oa, Kernel(_Sigma), lambda, incl_node);
         } else if (_SmoothMagnitude && _SignedSmoothing) {
-          SmoothSignedDataMagnitude<Kernel>::Run(_Mask, _EdgeTable, ip, op, ia, oa, Kernel(_Sigma), lambda, incl_node);
+          SmoothSignedDataMagnitude<Kernel>::Run(_Mask, _EdgeTable.get(), ip, op, ia, oa, Kernel(_Sigma), lambda, incl_node);
         } else if (_SignedSmoothing) {
-          SmoothSignedData<Kernel>::Run(_Mask, _EdgeTable, ip, op, ia, oa, Kernel(_Sigma), lambda, incl_node);
+          SmoothSignedData<Kernel>::Run(_Mask, _EdgeTable.get(), ip, op, ia, oa, Kernel(_Sigma), lambda, incl_node);
         }
       } break;
       case Default:
       case Gaussian: {
         typedef GaussianKernel Kernel;
         if (_SmoothArrays.empty() || (!_SmoothMagnitude && !_SignedSmoothing)) {
-          SmoothData<Kernel>::Run(_Mask, _EdgeTable, ip, op, ia, oa, Kernel(sigma1), lambda, incl_node);
+          SmoothData<Kernel>::Run(_Mask, _EdgeTable.get(), ip, op, ia, oa, Kernel(sigma1), lambda, incl_node);
         } else if (_SmoothMagnitude && !_SignedSmoothing) {
-          SmoothDataMagnitude<Kernel>::Run(_Mask, _EdgeTable, ip, op, ia, oa, Kernel(sigma1), lambda, incl_node);
+          SmoothDataMagnitude<Kernel>::Run(_Mask, _EdgeTable.get(), ip, op, ia, oa, Kernel(sigma1), lambda, incl_node);
         } else if (_SmoothMagnitude && _SignedSmoothing) {
-          SmoothSignedDataMagnitude<Kernel>::Run(_Mask, _EdgeTable, ip, op, ia, oa, Kernel(sigma1), lambda, incl_node);
+          SmoothSignedDataMagnitude<Kernel>::Run(_Mask, _EdgeTable.get(), ip, op, ia, oa, Kernel(sigma1), lambda, incl_node);
         } else if (_SignedSmoothing) {
-          SmoothSignedData<Kernel>::Run(_Mask, _EdgeTable, ip, op, ia, oa, Kernel(sigma1), lambda, incl_node);
+          SmoothSignedData<Kernel>::Run(_Mask, _EdgeTable.get(), ip, op, ia, oa, Kernel(sigma1), lambda, incl_node);
         }
       } break;
       case AnisotropicGaussian: {
@@ -1134,13 +1133,13 @@ void PolyDataSmoothing::Execute()
         if (!_GeometryTensorName.empty()) {
           Kernel kernel(pd->GetArray(_GeometryTensorName.c_str()), sigma1, sigma2);
           if (_SmoothArrays.empty() || (!_SmoothMagnitude && !_SignedSmoothing)) {
-            SmoothData<Kernel>::Run(_Mask, _EdgeTable, ip, op, ia, oa, kernel, lambda, incl_node);
+            SmoothData<Kernel>::Run(_Mask, _EdgeTable.get(), ip, op, ia, oa, kernel, lambda, incl_node);
           } else if (_SmoothMagnitude && !_SignedSmoothing) {
-            SmoothDataMagnitude<Kernel>::Run(_Mask, _EdgeTable, ip, op, ia, oa, kernel, lambda, incl_node);
+            SmoothDataMagnitude<Kernel>::Run(_Mask, _EdgeTable.get(), ip, op, ia, oa, kernel, lambda, incl_node);
           } else if (_SmoothMagnitude && _SignedSmoothing) {
-            SmoothSignedDataMagnitude<Kernel>::Run(_Mask, _EdgeTable, ip, op, ia, oa, kernel, lambda, incl_node);
+            SmoothSignedDataMagnitude<Kernel>::Run(_Mask, _EdgeTable.get(), ip, op, ia, oa, kernel, lambda, incl_node);
           } else if (_SignedSmoothing) {
-            SmoothSignedData<Kernel>::Run(_Mask, _EdgeTable, ip, op, ia, oa, kernel, lambda, incl_node);
+            SmoothSignedData<Kernel>::Run(_Mask, _EdgeTable.get(), ip, op, ia, oa, kernel, lambda, incl_node);
           }
         } else {
           Kernel kernel(pd->GetNormals(),
@@ -1148,13 +1147,13 @@ void PolyDataSmoothing::Execute()
                         pd->GetArray(_MaximumDirectionName.c_str()),
                         sigma1, sigma2);
           if (_SmoothArrays.empty() || (!_SmoothMagnitude && !_SignedSmoothing)) {
-            SmoothData<Kernel>::Run(_Mask, _EdgeTable, ip, op, ia, oa, kernel, lambda, incl_node);
+            SmoothData<Kernel>::Run(_Mask, _EdgeTable.get(), ip, op, ia, oa, kernel, lambda, incl_node);
           } else if (_SmoothMagnitude && !_SignedSmoothing) {
-            SmoothDataMagnitude<Kernel>::Run(_Mask, _EdgeTable, ip, op, ia, oa, kernel, lambda, incl_node);
+            SmoothDataMagnitude<Kernel>::Run(_Mask, _EdgeTable.get(), ip, op, ia, oa, kernel, lambda, incl_node);
           } else if (_SmoothMagnitude && _SignedSmoothing) {
-            SmoothSignedDataMagnitude<Kernel>::Run(_Mask, _EdgeTable, ip, op, ia, oa, kernel, lambda, incl_node);
+            SmoothSignedDataMagnitude<Kernel>::Run(_Mask, _EdgeTable.get(), ip, op, ia, oa, kernel, lambda, incl_node);
           } else if (_SignedSmoothing) {
-            SmoothSignedData<Kernel>::Run(_Mask, _EdgeTable, ip, op, ia, oa, kernel, lambda, incl_node);
+            SmoothSignedData<Kernel>::Run(_Mask, _EdgeTable.get(), ip, op, ia, oa, kernel, lambda, incl_node);
           }
         }
       } break;
@@ -1164,7 +1163,7 @@ void PolyDataSmoothing::Execute()
 }
 
 // -----------------------------------------------------------------------------
-void PolyDataSmoothing::Finalize()
+void MeshSmoothing::Finalize()
 {
   // Set output point data
   for (size_t i = 0; i < _OutputArrays.size(); ++i) {
@@ -1175,7 +1174,7 @@ void PolyDataSmoothing::Finalize()
   _OutputArrays.clear();
 
   // Finalize base class
-  PolyDataFilter::Finalize();
+  MeshFilter::Finalize();
 }
 
 

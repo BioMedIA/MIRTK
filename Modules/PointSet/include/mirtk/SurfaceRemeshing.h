@@ -17,10 +17,10 @@
  * limitations under the License.
  */
 
-#ifndef MIRTK_PolyDataRemeshing_H
-#define MIRTK_PolyDataRemeshing_H
+#ifndef MIRTK_SurfaceRemeshing_H
+#define MIRTK_SurfaceRemeshing_H
 
-#include "mirtk/PolyDataFilter.h"
+#include "mirtk/SurfaceFilter.h"
 
 #include "mirtk/Point.h"
 
@@ -46,9 +46,9 @@ class Transformation;
  * \todo Interpolate cell data during remeshing. The current implementation only
  *       preserves and interpolates point data arrays. Cell attributes are discarded.
  */
-class PolyDataRemeshing : public PolyDataFilter
+class SurfaceRemeshing : public SurfaceFilter
 {
-  mirtkObjectMacro(PolyDataRemeshing);
+  mirtkObjectMacro(SurfaceRemeshing);
 
   // ---------------------------------------------------------------------------
   // Types
@@ -67,9 +67,6 @@ protected:
 
   // ---------------------------------------------------------------------------
   // Attributes
-
-  /// Triangulated input mesh
-  mirtkAttributeMacro(vtkSmartPointer<vtkPolyData>, TriangulatedInput);
 
   /// Optional input transformation used to determine edge length and triangle area
   mirtkPublicAggregateMacro(const class Transformation, Transformation);
@@ -161,7 +158,7 @@ protected:
   mirtkReadOnlyAttributeMacro(int, NumberOfQuadsections);
 
   /// Copy attributes of this class from another instance
-  void CopyAttributes(const PolyDataRemeshing &);
+  void CopyAttributes(const SurfaceRemeshing &);
 
 public:
 
@@ -178,16 +175,16 @@ public:
   // Construction/Destruction
 
   /// Default constructor
-  PolyDataRemeshing();
+  SurfaceRemeshing();
 
   /// Copy constructor
-  PolyDataRemeshing(const PolyDataRemeshing &);
+  SurfaceRemeshing(const SurfaceRemeshing &);
 
   /// Assignment operator
-  PolyDataRemeshing &operator =(const PolyDataRemeshing &);
+  SurfaceRemeshing &operator =(const SurfaceRemeshing &);
 
   /// Destructor
-  virtual ~PolyDataRemeshing();
+  virtual ~SurfaceRemeshing();
 
   // ---------------------------------------------------------------------------
   // Inline auxiliary functions
@@ -334,23 +331,23 @@ public:
 ////////////////////////////////////////////////////////////////////////////////
 
 // -----------------------------------------------------------------------------
-int PolyDataRemeshing::NumberOfMeltings() const
+int SurfaceRemeshing::NumberOfMeltings() const
 {
   return _NumberOfMeltedNodes + _NumberOfMeltedEdges + _NumberOfMeltedCells;
 }
 
 // -----------------------------------------------------------------------------
-int PolyDataRemeshing::NumberOfSubdivisions() const
+int SurfaceRemeshing::NumberOfSubdivisions() const
 {
   return _NumberOfBisections + _NumberOfTrisections + _NumberOfQuadsections;
 }
 
 // -----------------------------------------------------------------------------
-int PolyDataRemeshing::NumberOfChanges() const
+int SurfaceRemeshing::NumberOfChanges() const
 {
   return NumberOfMeltings() + NumberOfInversions() + NumberOfSubdivisions();
 }
 
 } // namespace mirtk
 
-#endif // MIRTK_PolyDataRemeshing_H
+#endif // MIRTK_SurfaceRemeshing_H

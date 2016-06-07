@@ -22,8 +22,8 @@
 
 #include "mirtk/PointSetIO.h"
 #include "mirtk/PointSetUtils.h"
-#include "mirtk/PolyDataCurvature.h"
-#include "mirtk/PolyDataSmoothing.h"
+#include "mirtk/SurfaceCurvature.h"
+#include "mirtk/MeshSmoothing.h"
 
 #include "vtkSmartPointer.h"
 #include "vtkPolyData.h"
@@ -97,15 +97,15 @@ int main(int argc, char *argv[])
   const char *input_name  = POSARG(1);
   const char *output_name = POSARG(2);
 
-  const char *kmin_name       = PolyDataCurvature::MINIMUM;
-  const char *kmax_name       = PolyDataCurvature::MAXIMUM;
-  const char *gauss_name      = PolyDataCurvature::GAUSS;
-  const char *mean_name       = PolyDataCurvature::MEAN;
-  const char *curvedness_name = PolyDataCurvature::CURVEDNESS;
-  const char *e1_name         = PolyDataCurvature::MINIMUM_DIRECTION;
-  const char *e2_name         = PolyDataCurvature::MAXIMUM_DIRECTION;
-  const char *tensor_name     = PolyDataCurvature::TENSOR;
-  const char *inverse_name    = PolyDataCurvature::INVERSE_TENSOR;
+  const char *kmin_name       = SurfaceCurvature::MINIMUM;
+  const char *kmax_name       = SurfaceCurvature::MAXIMUM;
+  const char *gauss_name      = SurfaceCurvature::GAUSS;
+  const char *mean_name       = SurfaceCurvature::MEAN;
+  const char *curvedness_name = SurfaceCurvature::CURVEDNESS;
+  const char *e1_name         = SurfaceCurvature::MINIMUM_DIRECTION;
+  const char *e2_name         = SurfaceCurvature::MAXIMUM_DIRECTION;
+  const char *tensor_name     = SurfaceCurvature::TENSOR;
+  const char *inverse_name    = SurfaceCurvature::INVERSE_TENSOR;
 
   bool   point_normals        = false;
   bool   cell_normals         = false;
@@ -130,49 +130,49 @@ int main(int argc, char *argv[])
     else if (OPTION("-consistency"))   consistency = true;
     else if (OPTION("-noconsistency")) consistency = false;
     else if (OPTION("-k1")) {
-      curvatures |= PolyDataCurvature::Minimum;
+      curvatures |= SurfaceCurvature::Minimum;
       if (HAS_ARGUMENT) kmin_name = ARGUMENT;
     }
     else if (OPTION("-k2")) {
-      curvatures |= PolyDataCurvature::Maximum;
+      curvatures |= SurfaceCurvature::Maximum;
       if (HAS_ARGUMENT) kmax_name = ARGUMENT;
     }
     else if (OPTION("-k1k2")) {
-      curvatures |= (PolyDataCurvature::Minimum | PolyDataCurvature::Maximum);
+      curvatures |= (SurfaceCurvature::Minimum | SurfaceCurvature::Maximum);
       if (HAS_ARGUMENT) {
         kmin_name = ARGUMENT;
         kmax_name = ARGUMENT;
       }
     }
     else if (OPTION("-H")) {
-      curvatures |= PolyDataCurvature::Mean;
+      curvatures |= SurfaceCurvature::Mean;
       if (HAS_ARGUMENT) mean_name = ARGUMENT;
     }
     else if (OPTION("-K")) {
-      curvatures |= PolyDataCurvature::Gauss;
+      curvatures |= SurfaceCurvature::Gauss;
       if (HAS_ARGUMENT) gauss_name = ARGUMENT;
     }
     else if (OPTION("-C")) {
-      curvatures |= PolyDataCurvature::Curvedness;
+      curvatures |= SurfaceCurvature::Curvedness;
       if (HAS_ARGUMENT) curvedness_name = ARGUMENT;
     }
     else if (OPTION("-n") || OPTION("-normal")) {
-      curvatures |= PolyDataCurvature::Normal;
+      curvatures |= SurfaceCurvature::Normal;
     }
     else if (OPTION("-e1")) {
-      curvatures |= PolyDataCurvature::MinimumDirection;
+      curvatures |= SurfaceCurvature::MinimumDirection;
       if (HAS_ARGUMENT) e1_name = ARGUMENT;
     }
     else if (OPTION("-e2")) {
-      curvatures |= PolyDataCurvature::MaximumDirection;
+      curvatures |= SurfaceCurvature::MaximumDirection;
       if (HAS_ARGUMENT) e2_name = ARGUMENT;
     }
     else if (OPTION("-tensor")) {
-      curvatures |= PolyDataCurvature::Tensor;
+      curvatures |= SurfaceCurvature::Tensor;
       if (HAS_ARGUMENT) tensor_name = ARGUMENT;
     }
     else if (OPTION("-inverse-tensor")) {
-      curvatures |= PolyDataCurvature::InverseTensor;
+      curvatures |= SurfaceCurvature::InverseTensor;
       if (HAS_ARGUMENT) inverse_name = ARGUMENT;
     }
     else if (OPTION("-tensor-averaging")) {
@@ -203,15 +203,15 @@ int main(int argc, char *argv[])
 
   if (curvatures == 0 && !point_normals && !cell_normals) {
     point_normals = true;
-    curvatures = PolyDataCurvature::Scalars;
+    curvatures = SurfaceCurvature::Scalars;
   }
 
   int curvature_type = curvatures;
   if (smooth_along_tensor) {
-    curvature_type |= PolyDataCurvature::Tensor;
+    curvature_type |= SurfaceCurvature::Tensor;
   } else if (smooth_sigma2 != .0) {
-    curvature_type |= PolyDataCurvature::MinimumDirection;
-    curvature_type |= PolyDataCurvature::MaximumDirection;
+    curvature_type |= SurfaceCurvature::MinimumDirection;
+    curvature_type |= SurfaceCurvature::MaximumDirection;
   }
 
   // Read input surface
@@ -242,11 +242,8 @@ int main(int argc, char *argv[])
   if (curvature_type != 0) {
     if (verbose) cout << "Calculating surface curvature measure(s)...", cout.flush();
 
-    // Build surface links
-    surface->BuildLinks();
-
     // Compute curvature
-    PolyDataCurvature curvature;
+    SurfaceCurvature curvature;
     curvature.Input(surface);
     curvature.CurvatureType(curvature_type);
     curvature.VtkCurvatures(use_vtkCurvatures);
@@ -257,15 +254,15 @@ int main(int argc, char *argv[])
 
     // Get output arrays
     vtkPointData *pd         = surface->GetPointData();
-    vtkDataArray *kmin       = pd->GetArray(PolyDataCurvature::MINIMUM);
-    vtkDataArray *kmax       = pd->GetArray(PolyDataCurvature::MAXIMUM);
-    vtkDataArray *mean       = pd->GetArray(PolyDataCurvature::MEAN);
-    vtkDataArray *gauss      = pd->GetArray(PolyDataCurvature::GAUSS);
-    vtkDataArray *curvedness = pd->GetArray(PolyDataCurvature::CURVEDNESS);
-    vtkDataArray *e1         = pd->GetArray(PolyDataCurvature::MINIMUM_DIRECTION);
-    vtkDataArray *e2         = pd->GetArray(PolyDataCurvature::MAXIMUM_DIRECTION);
-    vtkDataArray *tensor     = pd->GetArray(PolyDataCurvature::TENSOR);
-    vtkDataArray *inverse    = pd->GetArray(PolyDataCurvature::INVERSE_TENSOR);
+    vtkDataArray *kmin       = pd->GetArray(SurfaceCurvature::MINIMUM);
+    vtkDataArray *kmax       = pd->GetArray(SurfaceCurvature::MAXIMUM);
+    vtkDataArray *mean       = pd->GetArray(SurfaceCurvature::MEAN);
+    vtkDataArray *gauss      = pd->GetArray(SurfaceCurvature::GAUSS);
+    vtkDataArray *curvedness = pd->GetArray(SurfaceCurvature::CURVEDNESS);
+    vtkDataArray *e1         = pd->GetArray(SurfaceCurvature::MINIMUM_DIRECTION);
+    vtkDataArray *e2         = pd->GetArray(SurfaceCurvature::MAXIMUM_DIRECTION);
+    vtkDataArray *tensor     = pd->GetArray(SurfaceCurvature::TENSOR);
+    vtkDataArray *inverse    = pd->GetArray(SurfaceCurvature::INVERSE_TENSOR);
 
     // Rename output arrays
     if (kmin)       kmin      ->SetName(kmin_name);
@@ -284,7 +281,7 @@ int main(int argc, char *argv[])
     if (smooth_iterations) {
       if (verbose) cout << "Smoothing scalar curvature measures...", cout.flush();
 
-      PolyDataSmoothing smoother;
+      MeshSmoothing smoother;
       smoother.Input(surface);
       smoother.SmoothPointsOff();
       if (kmin)       smoother.SmoothArray(kmin_name);
@@ -297,7 +294,7 @@ int main(int argc, char *argv[])
       smoother.NumberOfIterations(smooth_iterations);
       smoother.Sigma(-smooth_sigma); // negative: multiple of avg. edge length
       if (smooth_anisotropic) {
-        smoother.Weighting(PolyDataSmoothing::AnisotropicGaussian);
+        smoother.Weighting(MeshSmoothing::AnisotropicGaussian);
         if (smooth_along_tensor) {
           smoother.GeometryTensorName(tensor_name);
         } else {
@@ -306,7 +303,7 @@ int main(int argc, char *argv[])
         }
         smoother.MaximumDirectionSigma(-smooth_sigma2);
       } else {
-        smoother.Weighting(PolyDataSmoothing::Gaussian);
+        smoother.Weighting(MeshSmoothing::Gaussian);
       }
       smoother.Run();
       vtkPointData *pd = smoother.Output()->GetPointData();
@@ -323,13 +320,13 @@ int main(int argc, char *argv[])
   }
 
   // Remove not requested output arrays which were used for anisotropic smoothing
-  if ((curvatures & PolyDataCurvature::Tensor) == 0) {
+  if ((curvatures & SurfaceCurvature::Tensor) == 0) {
     surface->GetPointData()->RemoveArray(tensor_name);
   }
-  if ((curvatures & PolyDataCurvature::MinimumDirection) == 0) {
+  if ((curvatures & SurfaceCurvature::MinimumDirection) == 0) {
     surface->GetPointData()->RemoveArray(e1_name);
   }
-  if ((curvatures & PolyDataCurvature::MaximumDirection) == 0) {
+  if ((curvatures & SurfaceCurvature::MaximumDirection) == 0) {
     surface->GetPointData()->RemoveArray(e2_name);
   }
 

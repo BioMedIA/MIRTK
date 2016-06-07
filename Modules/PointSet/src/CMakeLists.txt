@@ -1,8 +1,8 @@
 # ============================================================================
 # Medical Image Registration ToolKit (MIRTK)
 #
-# Copyright 2013-2015 Imperial College London
-# Copyright 2013-2015 Andreas Schuh
+# Copyright 2013-2016 Imperial College London
+# Copyright 2013-2016 Andreas Schuh
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -33,13 +33,11 @@ set(HEADERS
   FiducialMatch.h
   FuzzyCorrespondence.h
   ImplicitSurfaceUtils.h
+  MeshFilter.h
+  MeshSmoothing.h
   PointCorrespondence.h
   PointLocator.h
   PointSetUtils.h
-  PolyDataCurvature.h
-  PolyDataFilter.h
-  PolyDataRemeshing.h
-  PolyDataSmoothing.h
   Polyhedron.h
   RegisteredPointSet.h
   RegisteredSurface.h
@@ -48,7 +46,10 @@ set(HEADERS
   SpectralDecomposition.h
   SpectralMatch.h
   SurfaceBoundary.h
+  SurfaceFilter.h
   SurfaceCollisions.h
+  SurfaceCurvature.h
+  SurfaceRemeshing.h
   Triangle.h
 )
 
@@ -64,13 +65,11 @@ set(SOURCES
   FuzzyCorrespondenceUtils.cc
   FuzzyCorrespondenceUtils.h
   ImplicitSurfaceUtils.cc
+  MeshFilter.cc
+  MeshSmoothing.cc
   PointCorrespondence.cc
   PointLocator.cc
   PointSetUtils.cc
-  PolyDataCurvature.cc
-  PolyDataFilter.cc
-  PolyDataRemeshing.cc
-  PolyDataSmoothing.cc
   Polyhedron.cc
   RegisteredPointSet.cc
   RegisteredSurface.cc
@@ -79,7 +78,10 @@ set(SOURCES
   SpectralDecomposition.cc
   SpectralMatch.cc
   SurfaceBoundary.cc
+  SurfaceFilter.cc
   SurfaceCollisions.cc
+  SurfaceCurvature.cc
+  SurfaceRemeshing.cc
   Triangle.cc
   triangle_triangle_intersection.h
 )
