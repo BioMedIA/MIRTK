@@ -30,6 +30,7 @@
 
 #include "vtkSmartPointer.h"
 #include "vtkPolyData.h"
+#include "vtkPointData.h"
 #include "vtkCellData.h"
 #include "vtkCell.h"
 #include "vtkTriangle.h"
