@@ -50,6 +50,8 @@ void PrintHelp(const char *name)
   cout << "Optional arguments:" << endl;
   cout << "  -target <image>   Target image on which images will be resampled using" << endl;
   cout << "                    the composed transformation." << endl;
+  cout << "  -interp_ffd       Interpolate the composed transformation using a free-form deformation." << endl;
+  cout << "                    Default: off." << endl;
   PrintStandardOptions(cout);
   cout << endl;
 }
@@ -172,6 +174,76 @@ void PushTransformation(FluidFreeFormTransformation &t1,
   }
 }
 
+// -----------------------------------------------------------------------------
+// Interpolate the composed transformation using a free-form deformation
+void Interpolate_FFD(FluidFreeFormTransformation &t)
+{
+  BSplineFreeFormTransformation3D *ffd = dynamic_cast<BSplineFreeFormTransformation3D *>(t.GetLocalTransformation(0));
+  if (ffd == NULL) {
+    cerr << "No valid BSpline free form transformation." << endl;
+    exit(1);
+  }
+
+  // Lattice attributes
+  ImageAttributes ffd_attr = ffd->Attributes();
+  int no = ffd_attr.NumberOfPoints();
+
+  // World coordinates of lattice points
+  double *x = Allocate<double>(no);
+  double *y = Allocate<double>(no);
+  double *z = Allocate<double>(no);
+  ffd_attr.LatticeToWorld(x, y, z);
+
+  // Transformed world coordinates
+  double *dx = Allocate<double>(no);
+  double *dy = Allocate<double>(no);
+  double *dz = Allocate<double>(no);
+  memcpy(dx, x, no * sizeof(double));
+  memcpy(dy, y, no * sizeof(double));
+  memcpy(dz, z, no * sizeof(double));
+
+  // Compose transformations
+  for (int n = 0; n < t.NumberOfLevels(); n++) {
+    t.GetLocalTransformation(n)->Transform(no, dx, dy, dz);
+  }
+
+  // Displacements
+  for (int idx = 0; idx < no; idx++) {
+    dx[idx] -= x[idx];
+    dy[idx] -= y[idx];
+    dz[idx] -= z[idx];
+  }
+
+  // Interpolate the displacements using a single free form deformation
+  BSplineFreeFormTransformation3D *ffd_interp = new BSplineFreeFormTransformation3D(*ffd);
+  ffd_interp->Interpolate(dx, dy, dz);
+
+  // Evaluate the interpolation errors
+  double mean_error = 0;
+  double max_error = -1E10;
+
+  for (int idx = 0; idx < no; idx++) {
+    double x2 = x[idx], y2 = y[idx], z2 = z[idx];
+    ffd_interp->Displacement(x2, y2, z2);
+
+    double ex = x2 - dx[idx], ey = y2 - dy[idx], ez = z2 - dz[idx];
+    double error = sqrt(ex * ex + ey * ey + ez * ez);
+
+    mean_error += error;
+    if(error > max_error) { max_error = error; }
+  }
+  mean_error /= no;
+    
+  if (verbose) {
+    cout << "Mean interpolation error = " << mean_error << endl;
+    cout << "Max  interpolation error = " << max_error << endl;
+  }
+
+  // Set the output transformation
+  t.Clear();
+  t.PushLocalTransformation(ffd_interp);
+}
+
 // =============================================================================
 // Main
 // =============================================================================
@@ -184,12 +256,16 @@ int main(int argc, char **argv)
 
   ImageAttributes attr;
   FluidFreeFormTransformation t;
+  bool interp_ffd = false;
 
   for (ALL_OPTIONS) {
     if (OPTION("-target")) {
       InitializeIOLibrary();
       GreyImage target(ARGUMENT);
       attr = target.Attributes();
+    }
+    else if (OPTION("-interp_ffd")) {
+      interp_ffd = true;
     }
     else HANDLE_STANDARD_OR_UNKNOWN_OPTION();
   }
@@ -263,6 +339,12 @@ int main(int argc, char **argv)
   }
   if (verbose) {
     cout << "Compose remaining transformations... done" << endl;
+  }
+
+  // Interpolate the composed transformation using a free-form deformation
+  if (interp_ffd) {
+    cout << "Interpolate the composed transformation using a free-form deformation..." << endl;
+    Interpolate_FFD(t);
   }
 
   // Write composite transformation
