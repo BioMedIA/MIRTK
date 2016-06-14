@@ -176,7 +176,7 @@ void PushTransformation(FluidFreeFormTransformation &t1,
 
 // -----------------------------------------------------------------------------
 // Interpolate the composed transformation using a free-form deformation
-void Interpolate_FFD(FluidFreeFormTransformation &t)
+void InterpolateFreeFormDeformation(FluidFreeFormTransformation &t)
 {
   BSplineFreeFormTransformation3D *ffd = dynamic_cast<BSplineFreeFormTransformation3D *>(t.GetLocalTransformation(0));
   if (ffd == NULL) {
@@ -344,7 +344,7 @@ int main(int argc, char **argv)
   // Interpolate the composed transformation using a free-form deformation
   if (interp_ffd) {
     cout << "Interpolate the composed transformation using a free-form deformation..." << endl;
-    Interpolate_FFD(t);
+    InterpolateFreeFormDeformation(t);
   }
 
   // Write composite transformation
