@@ -675,6 +675,7 @@ void MultiLevelFreeFormTransformation
     _GlobalTransformation.Jacobian(jac, x, y, z, t, t0);
   } else {
     jac.Initialize(3, 3);
+    jac.Ident();
   }
 
   // Compute local jacobian
