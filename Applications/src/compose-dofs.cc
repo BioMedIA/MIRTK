@@ -271,7 +271,7 @@ int main(int argc, char **argv)
   }
 
   // Approximate the composed transformation using a single free-form deformation
-  if (approximate && (t.NumberOfLevels() > 1)) {
+  if (approximate && (t.NumberOfLevels() > 0)) {
     cout << "Approximate the composed transformation using a single FFD..." << endl;
 
     // Use the densest control point lattice in the local transformation stack
