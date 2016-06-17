@@ -50,6 +50,7 @@ void PrintHelp(const char *name)
   cout << "Optional arguments:" << endl;
   cout << "  -target <image>   Target image on which images will be resampled using" << endl;
   cout << "                    the composed transformation." << endl;
+  cout << "  -approximate      Approximate the composed transformation using a single FFD. (default: off)" << endl;
   PrintStandardOptions(cout);
   cout << endl;
 }
@@ -184,12 +185,16 @@ int main(int argc, char **argv)
 
   ImageAttributes attr;
   FluidFreeFormTransformation t;
+  bool approximate = false;
 
   for (ALL_OPTIONS) {
     if (OPTION("-target")) {
       InitializeIOLibrary();
       GreyImage target(ARGUMENT);
       attr = target.Attributes();
+    }
+    else if (OPTION("-approximate")) {
+      approximate = true;
     }
     else HANDLE_STANDARD_OR_UNKNOWN_OPTION();
   }
@@ -263,6 +268,34 @@ int main(int argc, char **argv)
   }
   if (verbose) {
     cout << "Compose remaining transformations... done" << endl;
+  }
+
+  // Approximate the composed transformation using a single free-form deformation
+  if (approximate && (t.NumberOfLevels() > 0)) {
+    if (verbose) {
+      cout << "Approximate the composed transformation using a single FFD..." << endl;
+    }
+
+    // Use the densest control point lattice in the local transformation stack
+    ImageAttributes ffd_attr;
+    for (int i = 0; i < t.NumberOfLevels(); ++i) {
+      const auto &attr = t.GetLocalTransformation(i)->Attributes();
+      if (attr.NumberOfLatticePoints() > ffd_attr.NumberOfLatticePoints()) {
+	ffd_attr = attr;
+      }
+    }
+
+    // Approximate
+    typedef BSplineFreeFormTransformation3D OutputType;
+    UniquePtr<OutputType> ffd(new OutputType(ffd_attr));
+    double rms_error = ffd->ApproximateAsNew(&t);
+    if (verbose) {
+      cout << "  RMS error = " << rms_error << endl;
+    }
+
+    // Set the output transformation
+    t.Clear();
+    t.PushLocalTransformation(ffd.release());    
   }
 
   // Write composite transformation
