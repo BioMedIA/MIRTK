@@ -677,7 +677,11 @@ int main(int argc, char **argv)
     else if (OPTION("-mask"))   mask_name       = ARGUMENT;
     else if (OPTION("-nodebug-level-prefix")) debug_output_level_prefix = false;
     // Parameter
-    else if (OPTION("-par"))    params << ARGUMENT << " = " << ARGUMENT << endl;
+    else if (OPTION("-par")) {
+      const char *name  = ARGUMENT;
+      const char *value = ARGUMENT;
+      params << name << " = " << value << endl;
+    }
     else if (OPTION("-parin" )) parin_name      = ARGUMENT;
     else if (OPTION("-parout")) parout_name     = ARGUMENT;
     // Shortcuts for often used -par "<parameter> = <value>"
