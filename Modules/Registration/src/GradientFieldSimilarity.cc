@@ -375,8 +375,6 @@ GradientFieldSimilarity::GradientFieldSimilarity(const char *name, double weight
   ImageSimilarity(name, weight),
   _IgnoreJacobianGradientWrtDOFs(false)
 {
-  _Target->PrecomputeDerivatives(true);
-  _Source->PrecomputeDerivatives(true);
 }
 
 // -----------------------------------------------------------------------------
@@ -541,6 +539,10 @@ void GradientFieldSimilarity::ReorientGradient(RegisteredImage *image, bool hess
 // -----------------------------------------------------------------------------
 void GradientFieldSimilarity::InitializeInput(const ImageAttributes &domain)
 {
+  // Force precomputation of gradients
+  _Target->PrecomputeDerivatives(true);
+  _Source->PrecomputeDerivatives(true);
+
   // Initialize registered input images
   _Target->Initialize(domain, _Target->Transformation() ? 13 : 4);
   _Source->Initialize(domain, _Source->Transformation() ? 13 : 4);
