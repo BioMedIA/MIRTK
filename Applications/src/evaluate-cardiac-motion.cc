@@ -1,9 +1,8 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2008-2015 Imperial College London
- * Copyright 2008-2013 Daniel Rueckert, Julia Schnabel
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2016 Imperial College London
+ * Copyright 2016 Wenjia Bai
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,13 +23,14 @@
 #include "mirtk/IOConfig.h"
 #include "mirtk/GenericImage.h"
 #include "mirtk/Transformations.h"
+#include "mirtk/PointSetIO.h"
+#include "mirtk/VtkMath.h"
 
 #include "vtkSmartPointer.h"
 #include "vtkPolyDataReader.h"
 #include "vtkPolyDataNormals.h"
 #include "vtkPointData.h"
 #include "vtkFloatArray.h"
-#include "vtkMath.h"
 #include "vtkCenterOfMass.h"
 #include "vtkPolyDataWriter.h"
 
@@ -47,24 +47,28 @@ using namespace mirtk;
 void PrintHelp(const char *name)
 {
   cout << endl;
-  cout << "Usage: " << name << " <image> <mesh> <T> <mesh_out>" << endl;
+  cout << "Usage: " << name << " <input_mesh> <output_mesh> -image <file> -dof, -dofin <file>" << endl;
   cout << endl;
   cout << "Description:" << endl;
   cout << "  Evaluate cardiac motion. This command computes the displacement or strain" << endl;
   cout << "  at each vertex on a myocardial surface mesh." << endl;
   cout << endl;
   cout << "Arguments:" << endl;
-  cout << "  image:    input image whose z-axis provides the longitudinal direction." << endl;
-  cout << "  mesh:     input myocardial mesh." << endl;
-  cout << "  T:        transformation with regard to the reference frame (end-diastolic frame)." << endl;
-  cout << "  mesh_out: output mesh which stores the vertex-wise motion data." << endl;
+  cout << "  input_mesh           Myocardial mesh." << endl;
+  cout << "  output_mesh          The output mesh which stores the vertex-wise motion data." << endl;
+  cout << "  -image file          Cardiac image whose z-axis defines the longitudinal direction." << endl;
+  cout << "  -dof, -dofin file    Transformation with regard to the reference frame (end-diastolic frame)." << endl;
   cout << endl;
   cout << "Optional arguments:" << endl;
-  cout << "  -invert-zaxis      Use this option if the longitudinal direction is the inverted z-axis of the image. (Default: off)" << endl;
-  cout << "  -displacement      Compute the displacement. (Default: off)" << endl;
-  cout << "  -strain            Compute the strain.       (Default: off)" << endl;
-  cout << "  -save-local-coord  Save the local cardiac coordinate system in the output file. (Default: off)" << endl;
-  PrintStandardOptions(cout);
+  cout << "  -invert-zaxis        Use this option if the longitudinal direction is the inverted z-axis of the image. (default: off)" << endl;
+  cout << "  -displacement        Compute the displacement. (default: off)" << endl;
+  cout << "  -strain              Compute the strain.       (default: off)" << endl;
+  cout << "  -save-local-coord    Save the local cardiac coordinate system in the output file. (default: off)" << endl; 
+  cout << "  -ascii               Write legacy VTK files encoded in ASCII. (default: off)" << endl;
+  cout << "  -binary              Write legacy VTK files in binary form. (default: on)" << endl;
+  cout << "  -compress            Compress XML VTK files. (default: on)" << endl;
+  cout << "  -nocompress          Do not compress XML VTK files. (default: off)" << endl;
+ PrintStandardOptions(cout);
   cout << endl;
 }
 
@@ -79,9 +83,9 @@ void PrintHelp(const char *name)
 // [1] Caroline Petitjean et al. Assessment of myocardial function: a review of quantification methods and results using tagged MRI. Journal of Cardiovascular Magnetic Resonance, 2005. 
 // [2] An Elen et al. Three-Dimensional Cardiac Strain Estimation Using Spatio-Temporal Elastic Registration of Ultrasound Images: A Feasibility Study. IEEE Transactions on Medical Imaging, 2008.
 void DetermineLocalCoordinateSystem(vtkSmartPointer<vtkPolyData> mesh, ImageAttributes attr, bool invert_zaxis,
-				    vtkSmartPointer<vtkDataArray> dir_radial,
-				    vtkSmartPointer<vtkDataArray> dir_longit,
-				    vtkSmartPointer<vtkDataArray> dir_circum)
+                                    vtkSmartPointer<vtkDataArray> dir_radial,
+                                    vtkSmartPointer<vtkDataArray> dir_longit,
+                                    vtkSmartPointer<vtkDataArray> dir_circum)
 {
   // Prepare the array to store the local coordinate system
   vtkSmartPointer<vtkPoints> points = mesh->GetPoints();
@@ -123,12 +127,12 @@ void DetermineLocalCoordinateSystem(vtkSmartPointer<vtkPolyData> mesh, ImageAttr
     // NOTE, sometimes this assumption may be wrong and we need to invert the z-axis.
     if (invert_zaxis) {
       for (int dim = 0; dim < 3; dim++) {
-	longit[dim] = - attr._zaxis[dim];
+        longit[dim] = - attr._zaxis[dim];
       }
     }
     else {
       for (int dim = 0; dim < 3; dim++) {
-	longit[dim] = attr._zaxis[dim];
+        longit[dim] = attr._zaxis[dim];
       }
     }
  
@@ -157,8 +161,8 @@ void DetermineLocalCoordinateSystem(vtkSmartPointer<vtkPolyData> mesh, ImageAttr
     if (cos == 1) {
       // Extreme case at the apex
       for (int dim = 0; dim < 3; dim++) {
-	radial[dim] = 0;
-	circum[dim] = 0;
+        radial[dim] = 0;
+        circum[dim] = 0;
       }
     }
     else {
@@ -167,7 +171,7 @@ void DetermineLocalCoordinateSystem(vtkSmartPointer<vtkPolyData> mesh, ImageAttr
       // Subtract its projection on the longitudinal direction and normalise it to a unit vector.
       double dot_prod = vtkMath::Dot(radial, longit);
       for (int dim = 0; dim < 3; dim++) {
-	radial[dim] -= dot_prod * longit[dim];
+        radial[dim] -= dot_prod * longit[dim];
       }
       vtkMath::Normalize(radial);
 
@@ -190,54 +194,58 @@ void DetermineLocalCoordinateSystem(vtkSmartPointer<vtkPolyData> mesh, ImageAttr
 // -----------------------------------------------------------------------------
 int main(int argc, char **argv)
 {
-  REQUIRES_POSARGS(4);
-  const char *image_name    = POSARG(1);
-  const char *mesh_name     = POSARG(2);
-  const char *T_name        = POSARG(3);
-  const char *mesh_out_name = POSARG(4);
-  bool  invert_zaxis        = false;
-  bool  compute_disp        = false;
-  bool  compute_strain      = false;
-  bool  save_local_coord    = false;
-  
+  EXPECTS_POSARGS(2);
+  const char *input_mesh_name  = POSARG(1);
+  const char *output_mesh_name = POSARG(2);
+  const char *image_name       = NULL;
+  const char *dof_name         = NULL;
+  bool  invert_zaxis     = false;
+  bool  compute_disp     = false;
+  bool  compute_strain   = false;
+  bool  save_local_coord = false;
+  int   ascii            = -1;
+  bool  compress         = true;
+
   for (ALL_OPTIONS) {
-    if (OPTION("-invert-zaxis")) {
-      invert_zaxis = true;
-    }
-    else if (OPTION("-displacement")) {
-      compute_disp = true;
-    }
-    else if (OPTION("-strain")) {
-      compute_strain = true;
-    }
-    else if (OPTION("-save-local-coord")) {
-      save_local_coord = true;
-    }
-    else {
-      HANDLE_STANDARD_OR_UNKNOWN_OPTION();
-    }
+    if      (OPTION("-image"))            { image_name = ARGUMENT; }
+    else if (OPTION("-dof") || OPTION("-dofin")) { dof_name = ARGUMENT; }
+    else if (OPTION("-invert-zaxis"))     { invert_zaxis = true; }
+    else if (OPTION("-displacement"))     { compute_disp = true; }
+    else if (OPTION("-strain"))           { compute_strain = true; }
+    else if (OPTION("-save-local-coord")) { save_local_coord = true; }
+    else if (OPTION("-ascii") || OPTION("-nobinary")) { ascii = 1; }
+    else if (OPTION("-noascii") || OPTION("-binary")) { ascii = 0; }
+    else if (OPTION("-compress"))         { compress = true; }
+    else if (OPTION("-nocompress"))       { compress = false; } 
+    else { HANDLE_STANDARD_OR_UNKNOWN_OPTION(); }
   }
 
   // Read input image
-  InitializeIOLibrary();
-  GreyImage image(image_name);
-  if (verbose) { cout << "Reading image from " << image_name << endl; }
-
-  ImageAttributes attr = image.Attributes();
+  if (image_name == NULL) { FatalError("Please specify the image name."); }
+  ImageAttributes attr;
+  {
+    if (verbose) { cout << "Reading image attributes from " << image_name << "..."; }
+    InitializeIOLibrary();
+    GreyImage image(image_name);
+    attr = image.Attributes();
+    if (verbose) { cout << " done" << endl; }
+  }
 
   // Read input mesh
-  vtkSmartPointer<vtkPolyDataReader> reader = vtkSmartPointer<vtkPolyDataReader>::New();
-  reader->SetFileName(mesh_name);
-  reader->Update();
-  if (verbose) { cout << "Reading mesh from " << mesh_name << endl; }
+  if (verbose) { cout << "Reading mesh from " << input_mesh_name << "..."; }
+  int mesh_ftype;
+  vtkSmartPointer<vtkPolyData> mesh = ReadPolyData(input_mesh_name, &mesh_ftype);
+  if (verbose) { cout << " done" << endl; }
+  if (ascii == -1) { ascii = (mesh_ftype == VTK_ASCII ? 1 : 0); }
 
-  vtkSmartPointer<vtkPolyData> mesh = reader->GetOutput();
   vtkSmartPointer<vtkPoints> points = mesh->GetPoints();
   int n_points = points->GetNumberOfPoints();
 
   // Read input transformation
-  Transformation *T = dynamic_cast<Transformation *>(Transformation::New(T_name));
-  if (verbose) { cout << "Reading transformation from " << T_name << endl; }
+  if (dof_name == NULL) { FatalError("Please specify the transformation name."); }
+  if (verbose) { cout << "Reading transformation from " << dof_name << "..."; }
+  UniquePtr<Transformation> T(Transformation::New(dof_name));
+  if (verbose) { cout << " done" << endl; }
 
   // Determine the cardiac local coordinate system
   //
@@ -300,8 +308,8 @@ int main(int argc, char **argv)
 
     // Displacement in local coordinate system
     double d_l[3] = {vtkMath::Dot(d, radial),
-		     vtkMath::Dot(d, longit),
-		     vtkMath::Dot(d, circum)};
+                     vtkMath::Dot(d, longit),
+                     vtkMath::Dot(d, circum)};
     disp->SetTuple(i, d_l);
 
     // Compute strain
@@ -352,8 +360,8 @@ int main(int argc, char **argv)
   }
 
   // Save the displacement and strain data
-  if (compute_disp)        { mesh->GetPointData()->AddArray(disp); }
-  if (compute_strain)      { mesh->GetPointData()->AddArray(strain); }
+  if (compute_disp)     { mesh->GetPointData()->AddArray(disp); }
+  if (compute_strain)   { mesh->GetPointData()->AddArray(strain); }
   if (save_local_coord) {
     mesh->GetPointData()->AddArray(dir_radial);
     mesh->GetPointData()->AddArray(dir_longit);
@@ -361,11 +369,9 @@ int main(int argc, char **argv)
   }
   
   // Write the output mesh
-  if (verbose) { cout << "Writing mesh to " << mesh_out_name << endl; }
-  vtkPolyDataWriter *writer = vtkPolyDataWriter::New();
-  writer->SetInputData(mesh);
-  writer->SetFileName(mesh_out_name);
-  writer->Update();
+  if (!WritePolyData(output_mesh_name, mesh, compress, static_cast<bool>(ascii))) {
+    FatalError("Failed to write output mesh to file " << output_mesh_name);
+  }
 
   return 0;
 }
