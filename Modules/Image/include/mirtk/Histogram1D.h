@@ -70,6 +70,9 @@ public:
   /// Read constructor
   Histogram1D(const char *);
 
+  /// Assignment operator
+  Histogram1D &operator =(const Histogram1D &);
+
   /// Destructor
   ~Histogram1D();
 

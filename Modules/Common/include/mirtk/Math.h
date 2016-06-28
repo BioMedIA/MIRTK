@@ -45,6 +45,7 @@ MIRTK_Common_EXPORT extern const double inf;
 
 /// Not A Number (NaN)
 MIRTK_Common_EXPORT extern const double nan;
+MIRTK_Common_EXPORT extern const double NaN;
 
 /// Constant value of \f$ \pi \f$
 MIRTK_Common_EXPORT extern const double pi;

@@ -22,6 +22,7 @@
 
 #include "mirtk/ImageSimilarity.h"
 
+#include "mirtk/Math.h"
 #include "mirtk/Histogram2D.h"
 #include "mirtk/Parallel.h"
 
@@ -45,8 +46,15 @@ class HistogramImageSimilarity : public ImageSimilarity
   // Types
 public:
 
+  /// Type of joint histogram bin values
+  #if MIRKT_USE_FLOAT_BY_DEFAULT
+    typedef float  BinType;
+  #else
+    typedef double BinType;
+  #endif
+
   /// Type of joint histogram
-  typedef Histogram2D<double> JointHistogramType;
+  typedef Histogram2D<BinType> JointHistogramType;
 
   /// Get default number of bins for given input image
   ///
@@ -56,8 +64,8 @@ public:
   ///
   /// \returns Number of histogram bins.
   static int DefaultNumberOfBins(const BaseImage *image,
-                                 double min_intensity = numeric_limits<double>::quiet_NaN(),
-                                 double max_intensity = numeric_limits<double>::quiet_NaN());
+                                 double min_intensity = NaN,
+                                 double max_intensity = NaN);
 
   // ---------------------------------------------------------------------------
   // Attributes

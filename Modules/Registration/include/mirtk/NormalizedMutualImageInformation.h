@@ -22,6 +22,8 @@
 
 #include "mirtk/HistogramImageSimilarity.h"
 
+#include "mirtk/Histogram1D.h"
+
 
 namespace mirtk {
 
@@ -32,6 +34,33 @@ namespace mirtk {
 class NormalizedMutualImageInformation : public HistogramImageSimilarity
 {
   mirtkEnergyTermMacro(NormalizedMutualImageInformation, EM_NMI);
+
+  // ---------------------------------------------------------------------------
+  // Types
+
+  /// Type of marginal histograms
+  typedef Histogram1D<BinType> MarginalHistogram;
+
+  // ---------------------------------------------------------------------------
+  // Attributes
+
+  /// Marginal histogram w.r.t. target image intensities
+  mirtkAttributeMacro(MarginalHistogram, TargetHistogram);
+
+  /// Marginal histogram w.r.t. source image intensities
+  mirtkAttributeMacro(MarginalHistogram, SourceHistogram);
+
+  /// Marginal entropy w.r.t. target image intensities
+  mirtkAttributeMacro(double, TargetEntropy);
+
+  /// Marginal entropy w.r.t. source image intensities
+  mirtkAttributeMacro(double, SourceEntropy);
+
+  /// Joint entropy of target and source image intensities
+  mirtkAttributeMacro(double, JointEntropy);
+
+  /// Copy attributes of this class from another instance
+  void CopyAttributes(const NormalizedMutualImageInformation &);
 
   // ---------------------------------------------------------------------------
   // Construction/Destruction
@@ -51,6 +80,9 @@ public:
 
   // ---------------------------------------------------------------------------
   // Evaluation
+
+  /// Update moving image and internal state of similarity measure
+  virtual void Update(bool = true);
 
 protected:
 
