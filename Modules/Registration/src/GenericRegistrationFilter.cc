@@ -2054,12 +2054,12 @@ void GenericRegistrationFilter::GuessParameter()
     for (size_t i = 0; i < _ImageSimilarityInfo.size(); ++i) {
       const int &t = _ImageSimilarityInfo[i]._TargetIndex;
       const int &s = _ImageSimilarityInfo[i]._SourceIndex;
-      if (_ImageSimilarityInfo[i].IsSymmetric() || _ImageSimilarityInfo[i]._TargetTransformation.IsIdentity()) {
+      if (_ImageSimilarityInfo[i].IsSymmetric() || !_ImageSimilarityInfo[i]._TargetTransformation) {
         sigma = _Blurring[l][t];
         if (_UseGaussianResolutionPyramid) {
           sigma = max(sigma, 0.5 * max(max(_Resolution[l][t]._x,
-                                                          _Resolution[l][t]._y),
-                                                          _Resolution[l][t]._z));
+                                           _Resolution[l][t]._y),
+                                           _Resolution[l][t]._z));
         }
         if (_CropPadImages) {
           attrs.push_back(_Input[i]->ForegroundDomain(_Background[t], sigma, true));
@@ -2067,12 +2067,12 @@ void GenericRegistrationFilter::GuessParameter()
           attrs.push_back(OrthogonalFieldOfView(_Input[t]->Attributes()));
         }
       }
-      if (_ImageSimilarityInfo[i].IsSymmetric() || _ImageSimilarityInfo[i]._SourceTransformation.IsIdentity()) {
+      if (_ImageSimilarityInfo[i].IsSymmetric() || !_ImageSimilarityInfo[i]._SourceTransformation) {
         sigma = _Blurring[l][s];
         if (_UseGaussianResolutionPyramid) {
           sigma = max(sigma, 0.5 * max(max(_Resolution[l][s]._x,
-                                                          _Resolution[l][s]._y),
-                                                          _Resolution[l][s]._z));
+                                           _Resolution[l][s]._y),
+                                           _Resolution[l][s]._z));
         }
         if (_CropPadImages) {
           attrs.push_back(_Input[s]->ForegroundDomain(_Background[s], sigma, true));
