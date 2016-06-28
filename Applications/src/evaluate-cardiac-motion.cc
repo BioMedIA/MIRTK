@@ -26,13 +26,12 @@
 #include "mirtk/PointSetIO.h"
 #include "mirtk/VtkMath.h"
 
-#include "vtkSmartPointer.h"
 #include "vtkPolyDataReader.h"
+#include "vtkSmartPointer.h"
 #include "vtkPolyDataNormals.h"
 #include "vtkPointData.h"
 #include "vtkFloatArray.h"
 #include "vtkCenterOfMass.h"
-#include "vtkPolyDataWriter.h"
 
 
 using namespace mirtk;
@@ -47,7 +46,7 @@ using namespace mirtk;
 void PrintHelp(const char *name)
 {
   cout << endl;
-  cout << "Usage: " << name << " <input_mesh> <output_mesh> -image <file> -dof, -dofin <file>" << endl;
+  cout << "Usage: " << name << " <input_mesh> <output_mesh> -image <file> -dof <file>" << endl;
   cout << endl;
   cout << "Description:" << endl;
   cout << "  Evaluate cardiac motion. This command computes the displacement or strain" << endl;
@@ -57,7 +56,7 @@ void PrintHelp(const char *name)
   cout << "  input_mesh           Myocardial mesh." << endl;
   cout << "  output_mesh          The output mesh which stores the vertex-wise motion data." << endl;
   cout << "  -image file          Cardiac image whose z-axis defines the longitudinal direction." << endl;
-  cout << "  -dof, -dofin file    Transformation with regard to the reference frame (end-diastolic frame)." << endl;
+  cout << "  -dof file            Transformation with regard to the reference frame (end-diastolic frame)." << endl;
   cout << endl;
   cout << "Optional arguments:" << endl;
   cout << "  -invert-zaxis        Use this option if the longitudinal direction is the inverted z-axis of the image. (default: off)" << endl;
@@ -186,6 +185,100 @@ void DetermineLocalCoordinateSystem(vtkSmartPointer<vtkPolyData> mesh, ImageAttr
   }
 }
 
+// -----------------------------------------------------------------------------
+// Strain evaluation class
+struct CalculateDisplacementAndStrain
+{
+  vtkPoints            *_Points;
+  const Transformation *_Transform;
+  vtkDataArray         *_Dir_Radial;
+  vtkDataArray         *_Dir_Longit;
+  vtkDataArray         *_Dir_Circum;
+  vtkDataArray         *_Displacement;
+  vtkDataArray         *_Strain;
+  vtkPoints            *_TransformedPoints;
+
+  void operator ()(const blocked_range<vtkIdType> ptIds) const
+  {
+    // For each point
+    for (vtkIdType i = ptIds.begin(); i != ptIds.end(); ++i) {
+      // Get point coordinate
+      double p[3];
+      _Points->GetPoint(i, p);
+
+      // Get directions of local coordinate system
+      double radial[3], longit[3], circum[3];
+      _Dir_Radial->GetTuple(i, radial);
+      _Dir_Longit->GetTuple(i, longit);
+      _Dir_Circum->GetTuple(i, circum);
+
+      // Transform point
+      double q[3] = {p[0], p[1], p[2]};
+      _Transform->Transform(q[0], q[1], q[2]);
+
+      if (_TransformedPoints) {
+        _TransformedPoints->SetPoint(i, q);
+      }
+
+      // Calculate local displacement vectors
+      if (_Displacement) {
+        double d[3];
+        vtkMath::Subtract(q, p, d);
+        _Displacement->SetComponent(i, 0, vtkMath::Dot(d, radial));
+        _Displacement->SetComponent(i, 1, vtkMath::Dot(d, longit));
+        _Displacement->SetComponent(i, 2, vtkMath::Dot(d, circum));
+      }
+
+      // Calculate strain
+      // Method: transform the Jacobian matrix to the local coordinate system, compute tensor matrix, extract normal strains.
+      if (_Strain) {
+        Matrix J(3,3);
+        _Transform->Jacobian(J, p[0], p[1], p[2]);
+
+        Matrix P(3,3);
+        P(0,0) = radial[0]; P(0,1) = longit[0]; P(0,2) = circum[0]; 
+        P(1,0) = radial[1]; P(1,1) = longit[1]; P(1,2) = circum[1]; 
+        P(2,0) = radial[2]; P(2,1) = longit[2]; P(2,2) = circum[2]; 
+
+        // Jacobian in local coordinate system
+        Matrix J_l(3,3);
+
+        J_l = P;
+        J_l.Transpose();
+        J_l *= J;
+        J_l *= P;
+
+        // Strain tensor in local coordinate system
+        // Math:
+        //   E = 0.5 * (F^T \dot F - I)
+        //
+        // References:
+        // [1] Caroline Petitjean et al. Assessment of myocardial function: a review of quantification methods and results using tagged MRI. Journal of Cardiovascular Magnetic Resonance, 2005. 
+        //   Equation (3)
+        // or an even older paper
+        // [2] Lewis K. Waldman et al. Transmural myocardial deformation in the canine left ventricle. Circulation Research, Vol. 57, No. 1, July 1985.
+        //   Equation (8)
+        //
+        Matrix E_l(3,3);
+        E_l = J_l;
+        E_l.Transpose();
+        E_l *= J_l;
+      
+        Matrix I(3,3);
+        I.Ident();
+
+        E_l -= I;
+        E_l *= 0.5;
+      
+        // Normal strains in three directions, which represent the change of squared difference.
+        // Shear strains are not reported.
+        _Strain->SetComponent(i, 0, E_l(0,0));
+        _Strain->SetComponent(i, 1, E_l(1,1));
+        _Strain->SetComponent(i, 2, E_l(2,2));
+      }
+    }
+  }
+};
 
 // =============================================================================
 // Main
@@ -208,7 +301,7 @@ int main(int argc, char **argv)
 
   for (ALL_OPTIONS) {
     if      (OPTION("-image"))            { image_name = ARGUMENT; }
-    else if (OPTION("-dof") || OPTION("-dofin")) { dof_name = ARGUMENT; }
+    else if (OPTION("-dof"))              { dof_name = ARGUMENT; }
     else if (OPTION("-invert-zaxis"))     { invert_zaxis = true; }
     else if (OPTION("-displacement"))     { compute_disp = true; }
     else if (OPTION("-strain"))           { compute_strain = true; }
@@ -221,7 +314,7 @@ int main(int argc, char **argv)
   }
 
   // Read input image
-  if (image_name == NULL) { FatalError("Please specify the image name."); }
+  if (image_name == NULL) { FatalError("Input -image file name required!"); }
   ImageAttributes attr;
   {
     if (verbose) { cout << "Reading image attributes from " << image_name << "..."; }
@@ -242,7 +335,7 @@ int main(int argc, char **argv)
   int n_points = points->GetNumberOfPoints();
 
   // Read input transformation
-  if (dof_name == NULL) { FatalError("Please specify the transformation name."); }
+  if (dof_name == NULL) { FatalError("Input -dof file name required!"); }
   if (verbose) { cout << "Reading transformation from " << dof_name << "..."; }
   UniquePtr<Transformation> T(Transformation::New(dof_name));
   if (verbose) { cout << " done" << endl; }
@@ -271,93 +364,35 @@ int main(int argc, char **argv)
   DetermineLocalCoordinateSystem(mesh, attr, invert_zaxis, dir_radial, dir_longit, dir_circum);
 
   // Prepare the array for storing the displacements and strains
-  vtkSmartPointer<vtkFloatArray> disp = vtkSmartPointer<vtkFloatArray>::New();
-  disp->SetName("Displacement");
-  disp->SetNumberOfComponents(3);
-  disp->SetNumberOfTuples(n_points);
-
-  vtkSmartPointer<vtkFloatArray> strain = vtkSmartPointer<vtkFloatArray>::New();
-  strain->SetName("Strain");
-  strain->SetNumberOfComponents(3);
-  strain->SetNumberOfTuples(n_points);
-
-  // For each point on the mesh
-  for (int i = 0; i < n_points; i++) {
-    // Point coordinate
-    double p[3];
-    points->GetPoint(i, p);
-
-    // Get the local coordinate system at this point
-    double radial[3], longit[3], circum[3];
-    dir_radial->GetTuple(i, radial);
-    dir_longit->GetTuple(i, longit);
-    dir_circum->GetTuple(i, circum);
-
-    // Transform this point
-    double q[3] = {p[0], p[1], p[2]};
-    T->Transform(q[0], q[1], q[2]);
-
-    // Update the point coordinate
-    points->SetPoint(i, q);
-
-    // Compute displacement
-    double d[3];
-    for (int dim = 0; dim < 3; dim++) {
-      d[dim] = q[dim] - p[dim];
-    }
-
-    // Displacement in local coordinate system
-    double d_l[3] = {vtkMath::Dot(d, radial),
-                     vtkMath::Dot(d, longit),
-                     vtkMath::Dot(d, circum)};
-    disp->SetTuple(i, d_l);
-
-    // Compute strain
-    // Method: transform the Jacobian matrix to the local coordinate system, compute tensor matrix, extract normal strains.
-    Matrix J;
-    T->Jacobian(J, p[0], p[1], p[2]);
-
-    Matrix P(3,3);
-    P(0,0) = radial[0]; P(0,1) = longit[0]; P(0,2) = circum[0]; 
-    P(1,0) = radial[1]; P(1,1) = longit[1]; P(1,2) = circum[1]; 
-    P(2,0) = radial[2]; P(2,1) = longit[2]; P(2,2) = circum[2]; 
-
-    // Jacobian in local coordinate system
-    Matrix J_l(3,3);
-
-    J_l = P;
-    J_l.Transpose();
-    J_l *= J;
-    J_l *= P;
-
-    // Strain tensor in local coordinate system
-    // Math:
-    //   E = 0.5 * (F^T \dot F - I)
-    //
-    // References:
-    // [1] Caroline Petitjean et al. Assessment of myocardial function: a review of quantification methods and results using tagged MRI. Journal of Cardiovascular Magnetic Resonance, 2005. 
-    //   Equation (3)
-    // or an even older paper
-    // [2] Lewis K. Waldman et al. Transmural myocardial deformation in the canine left ventricle. Circulation Research, Vol. 57, No. 1, July 1985.
-    //   Equation (8)
-    //
-    Matrix E_l(3,3);
-    E_l = J_l;
-    E_l.Transpose();
-    E_l *= J_l;
-      
-    Matrix I(3,3);
-    I.Ident();
-
-    E_l -= I;
-    E_l *= 0.5;
-      
-    // Normal strains in three directions, which represent the change of squared difference.
-    // Shear strains are not reported.
-    strain->SetComponent(i, 0, E_l(0,0));
-    strain->SetComponent(i, 1, E_l(1,1));
-    strain->SetComponent(i, 2, E_l(2,2));
+  vtkSmartPointer<vtkFloatArray> disp = NULL;
+  if (compute_disp) {
+    disp = vtkSmartPointer<vtkFloatArray>::New();
+    disp->SetName("Displacement");
+    disp->SetNumberOfComponents(3);
+    disp->SetNumberOfTuples(n_points);
   }
+
+  vtkSmartPointer<vtkFloatArray> strain = NULL;
+  if (compute_strain) {
+    strain = vtkSmartPointer<vtkFloatArray>::New();
+    strain->SetName("Strain");
+    strain->SetNumberOfComponents(3);
+    strain->SetNumberOfTuples(n_points);
+  }
+
+  // Prepare the evaluation object
+  CalculateDisplacementAndStrain eval;
+  eval._Points            = points;
+  eval._Transform         = T.get();
+  eval._Dir_Radial        = dir_radial;
+  eval._Dir_Longit        = dir_longit;
+  eval._Dir_Circum        = dir_circum;
+  eval._Displacement      = disp;
+  eval._Strain            = strain;
+  eval._TransformedPoints = points;
+
+  // Evaluate the displacement and strain
+  parallel_for(blocked_range<vtkIdType>(0, n_points), eval);
 
   // Save the displacement and strain data
   if (compute_disp)     { mesh->GetPointData()->AddArray(disp); }
