@@ -731,30 +731,46 @@ ImageAttributes OverallFieldOfView(const Array<ImageAttributes> &attr)
   }
   out._xorigin /= N, out._yorigin /= N, out._zorigin /= N;
   // Set output orientation
-  const int ncorners = 8 * N;
-  double   **corners = Allocate<double>(3, ncorners);
-  for (int n = 0; n < N; ++n) {
-    GetCorners(attr[n], corners + 8 * n);
-  }
-  Matrix3x3 covar(.0);
-  for (int i = 0; i < ncorners; ++i) {
-    corners[i][0] -= out._xorigin;
-    corners[i][1] -= out._yorigin;
-    corners[i][2] -= out._zorigin;
-    for (int r = 0; r < 3; ++r)
-    for (int c = 0; c < 3; ++c) {
-      covar[r][c] += corners[i][r] * corners[i][c];
+  bool have_same_orientation = true;
+  const Matrix R = attr[0].GetLatticeToWorldOrientation();
+  for (int n = 1; n < N; ++n) {
+    if (attr[n].GetLatticeToWorldOrientation() != R) {
+      have_same_orientation = false;
+      break;
     }
   }
-  Deallocate(corners);
-  double      eigen[3];
-  Vector3 axis [3];
-  covar.EigenSolveSymmetric(eigen, axis);
-  Vector3::GenerateOrthonormalBasis(axis[0], axis[1], axis[2]);
-  for (int d = 0; d < 3; ++d) {
-    out._xaxis[d] = axis[0][d];
-    out._yaxis[d] = axis[1][d];
-    out._zaxis[d] = axis[2][d];
+  if (have_same_orientation) {
+    for (int d = 0; d < 3; ++d) {
+        out._xaxis[d] = attr[0]._xaxis[d];
+        out._yaxis[d] = attr[0]._yaxis[d];
+        out._zaxis[d] = attr[0]._zaxis[d];
+    }
+  } else {
+    const int ncorners = 8 * N;
+    double   **corners = Allocate<double>(3, ncorners);
+    for (int n = 0; n < N; ++n) {
+      GetCorners(attr[n], corners + 8 * n);
+    }
+    Matrix3x3 covar(.0);
+    for (int i = 0; i < ncorners; ++i) {
+      corners[i][0] -= out._xorigin;
+      corners[i][1] -= out._yorigin;
+      corners[i][2] -= out._zorigin;
+      for (int r = 0; r < 3; ++r)
+      for (int c = 0; c < 3; ++c) {
+        covar[r][c] += corners[i][r] * corners[i][c];
+      }
+    }
+    Deallocate(corners);
+    double  eigen[3];
+    Vector3 axis [3];
+    covar.EigenSolveSymmetric(eigen, axis);
+    Vector3::GenerateOrthonormalBasis(axis[0], axis[1], axis[2]);
+    for (int d = 0; d < 3; ++d) {
+      out._xaxis[d] = axis[0][d];
+      out._yaxis[d] = axis[1][d];
+      out._zaxis[d] = axis[2][d];
+    }
   }
   // Set output size
   out._x = out._y = out._z = 1;
