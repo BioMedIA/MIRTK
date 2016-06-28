@@ -102,25 +102,27 @@ using namespace HistogramImageSimilarityUtils;
 // =============================================================================
 
 // -----------------------------------------------------------------------------
-HistogramImageSimilarity::HistogramImageSimilarity(const char *name, double weight)
-:
-  ImageSimilarity(name, weight),
-  _Samples  (new JointHistogramType()), _SamplesOwner(true),
-  _Histogram(nullptr),
-  _NumberOfTargetBins(0),
-  _NumberOfSourceBins(0)
-{
-}
-
-// -----------------------------------------------------------------------------
 void HistogramImageSimilarity::CopyAttributes(const HistogramImageSimilarity &other)
 {
   if (_SamplesOwner) delete _Samples;
   _Samples            = (other._SamplesOwner ? new JointHistogramType(*other._Samples) : other._Samples);
   _SamplesOwner       = other._SamplesOwner;
   _Histogram          = other._Histogram ? new JointHistogramType(*other._Histogram) : nullptr;
+  _UseParzenWindow    = other._UseParzenWindow;
   _NumberOfTargetBins = other._NumberOfTargetBins;
   _NumberOfSourceBins = other._NumberOfSourceBins;
+}
+
+// -----------------------------------------------------------------------------
+HistogramImageSimilarity::HistogramImageSimilarity(const char *name, double weight)
+:
+  ImageSimilarity(name, weight),
+  _Samples  (new JointHistogramType()), _SamplesOwner(true),
+  _Histogram(nullptr),
+  _UseParzenWindow(true),
+  _NumberOfTargetBins(0),
+  _NumberOfSourceBins(0)
+{
 }
 
 // -----------------------------------------------------------------------------
