@@ -87,6 +87,9 @@ public:
   /// Destructor
   ~Histogram2D();
 
+  /// Assignment operator
+  Histogram2D &operator =(const Histogram2D &);
+
   /// Construct a histogram for samples ranging from min to max and width
   void Initialize(double min_x, double max_x, double width_x,
                   double min_y, double max_y, double width_y);
@@ -102,6 +105,12 @@ public:
 
   /// Clear and copy histogram
   void Reset(const Histogram2D &);
+
+  /// Transpose histogram in place with x and y direction exchanged
+  Histogram2D<HistogramType> &Transpose();
+
+  /// Get transposed histogram with x and y direction exchanged
+  Histogram2D<HistogramType> Transposed() const;
 
   /// Get total number of bins
   int  NumberOfBins() const;
@@ -323,6 +332,15 @@ public:
 ////////////////////////////////////////////////////////////////////////////////
 // Inline definitions
 ////////////////////////////////////////////////////////////////////////////////
+
+// -----------------------------------------------------------------------------
+template <class HistogramType>
+inline Histogram2D<HistogramType> &
+Histogram2D<HistogramType>::operator =(const Histogram2D &h)
+{
+  Reset(h);
+  return *this;
+}
 
 // -----------------------------------------------------------------------------
 template <class HistogramType>

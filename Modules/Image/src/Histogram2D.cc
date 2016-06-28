@@ -44,81 +44,6 @@ namespace Histogram2DUtils {
 
 // -----------------------------------------------------------------------------
 template <class T>
-class MarginalizeX
-{
-  const T *_JointProbability;
-  T       *_Probability;
-  int      _Nx, _Ny;
-
-public:
-
-  void operator ()(const blocked_range<int> &re) const
-  {
-    T sum;
-    const T *bin;
-    for (int i = re.begin(); i != re.end(); ++i) {
-      sum = T(0);
-      bin = _JointProbability + i;
-      for (int j = 0; j < _Ny; ++j, bin += _Nx) sum += (*bin);
-      _Probability[i] = sum;
-    }
-  }
-
-  static void Run(const Histogram2D<T> *hxy, Histogram1D<T> &hx)
-  {
-    hx.PutNumberOfBins(hxy->NumberOfBinsX());
-    hx.Min(hxy->MinX());
-    hx.Max(hxy->MaxX());
-    hx.NumberOfSamples(hxy->NumberOfSamples());
-    MarginalizeX body;
-    body._JointProbability = hxy->RawPointer();
-    body._Probability      = hx  .RawPointer();
-    body._Nx               = hxy->NumberOfBinsX();
-    body._Ny               = hxy->NumberOfBinsY();
-    blocked_range<int> i(0, hx.NumberOfBins());
-    parallel_for(i, body);
-  }
-};
-
-// -----------------------------------------------------------------------------
-template <class T>
-class MarginalizeY
-{
-  const T *_JointProbability;
-  T       *_Probability;
-  int      _Nx, _Ny;
-
-public:
-
-  void operator ()(const blocked_range<int> &re) const
-  {
-    T sum;
-    const T *bin = _JointProbability + re.begin() * _Nx;
-    for (int j = re.begin(); j != re.end(); ++j) {
-      sum = T(0);
-      for (int i = 0; i < _Nx; ++i, ++bin) sum += (*bin);
-      _Probability[j] = sum;
-    }
-  }
-
-  static void Run(const Histogram2D<T> *hxy, Histogram1D<T> &hy)
-  {
-    hy.PutNumberOfBins(hxy->NumberOfBinsY());
-    hy.Min(hxy->MinY());
-    hy.Max(hxy->MaxY());
-    hy.NumberOfSamples(hxy->NumberOfSamples());
-    MarginalizeY body;
-    body._JointProbability = hxy->RawPointer();
-    body._Probability      = hy  .RawPointer();
-    body._Nx               = hxy->NumberOfBinsX();
-    body._Ny               = hxy->NumberOfBinsY();
-    blocked_range<int> i(0, hy.NumberOfBins());
-    parallel_for(i, body);
-  }
-};
-
-// -----------------------------------------------------------------------------
-template <class T>
 class LogTransform
 {
   T     *_Bins;
@@ -171,22 +96,21 @@ Histogram2D<HistogramType>::Histogram2D(const Histogram2D &h)
   _nbins_x = h._nbins_x;
   _nbins_y = h._nbins_y;
   _nsamp   = h._nsamp;
-  if ((_nbins_x < 1) || (_nbins_y < 1)) {
-    cerr << "Histogram2D<HistogramType>::Histogram2D: Should have at least one bin" << endl;
-    exit(1);
+  const int nbins = NumberOfBins();
+  if (nbins > 0) {
+    Allocate(_bins, _nbins_x, _nbins_y);
+    memcpy(RawPointer(), h.RawPointer(), nbins * sizeof(HistogramType));
+  } else {
+    _bins = nullptr;
   }
-  Allocate(_bins, _nbins_x, _nbins_y);
-  memcpy(RawPointer(), h.RawPointer(), NumberOfBins() * sizeof(HistogramType));
 }
 
 // -----------------------------------------------------------------------------
 template <class HistogramType>
 Histogram2D<HistogramType>::Histogram2D(int nbins_x, int nbins_y)
 {
-  if ((nbins_x < 1) || (nbins_y < 1)) {
-    cerr << "Histogram2D<HistogramType>::Histogram2D: Should have at least one bin" << endl;
-    exit(1);
-  }
+  if (nbins_x < 0) nbins_x = 0;
+  if (nbins_y < 0) nbins_y = 0;
   _min_x   = 0;
   _min_y   = 0;
   _max_x   = nbins_x;
@@ -196,7 +120,11 @@ Histogram2D<HistogramType>::Histogram2D(int nbins_x, int nbins_y)
   _nbins_x = nbins_x;
   _nbins_y = nbins_y;
   _nsamp   = 0;
-  CAllocate(_bins, _nbins_x, _nbins_y);
+  if (nbins_x > 0 && nbins_y > 0) {
+    CAllocate(_bins, _nbins_x, _nbins_y);
+  } else {
+    _bins = nullptr;
+  }
 }
 
 // -----------------------------------------------------------------------------
@@ -274,20 +202,67 @@ void Histogram2D<HistogramType>::Reset()
 template <class HistogramType>
 void Histogram2D<HistogramType>::Reset(const Histogram2D &h)
 {
-  if ((_nbins_x != h._nbins_x) || (_nbins_y != h._nbins_y)) {
-    Deallocate(_bins);
-    Allocate(_bins, h._nbins_x, h._nbins_y);
+  if (this != &h) {
+    if ((_nbins_x != h._nbins_x) || (_nbins_y != h._nbins_y)) {
+      Deallocate(_bins);
+      Allocate(_bins, h._nbins_x, h._nbins_y);
+    }
+    _min_x   = h._min_x;
+    _min_y   = h._min_y;
+    _max_x   = h._max_x;
+    _max_y   = h._max_y;
+    _width_x = h._width_x;
+    _width_y = h._width_y;
+    _nbins_x = h._nbins_x;
+    _nbins_y = h._nbins_y;
+    _nsamp   = h._nsamp;
+    memcpy(RawPointer(), h.RawPointer(), NumberOfBins() * sizeof(HistogramType));
   }
-  _min_x   = h._min_x;
-  _min_y   = h._min_y;
-  _max_x   = h._max_x;
-  _max_y   = h._max_y;
-  _width_x = h._width_x;
-  _width_y = h._width_y;
-  _nbins_x = h._nbins_x;
-  _nbins_y = h._nbins_y;
-  _nsamp   = h._nsamp;
-  memcpy(RawPointer(), h.RawPointer(), NumberOfBins() * sizeof(HistogramType));
+}
+
+// -----------------------------------------------------------------------------
+template <class HistogramType>
+Histogram2D<HistogramType> &Histogram2D<HistogramType>::Transpose()
+{
+  swap(_min_x, _min_y);
+  swap(_max_x, _max_y);
+  swap(_width_x, _width_y);
+  swap(_nbins_x, _nbins_y);
+
+  HistogramType **bins = Allocate<HistogramType>(_nbins_x, _nbins_y);
+  for (int j = 0; j < _nbins_y; ++j)
+  for (int i = 0; i < _nbins_x; ++i) {
+    bins[j][i] = _bins[i][j];
+  }
+  Deallocate(_bins);
+  _bins = bins;
+
+  return *this;
+}
+
+// -----------------------------------------------------------------------------
+template <class HistogramType>
+Histogram2D<HistogramType> Histogram2D<HistogramType>::Transposed() const
+{
+  Histogram2D<HistogramType> h(_nbins_y, _nbins_x);
+
+  h._min_x   = _min_y;
+  h._max_x   = _max_y;
+  h._width_x = _width_y;
+  h._nbins_x = _nbins_y;
+
+  h._min_y   = _min_x;
+  h._max_y   = _max_x;
+  h._width_y = _width_x;
+  h._nbins_y = _nbins_x;
+
+  for (int j = 0; j < _nbins_y; ++j)
+  for (int i = 0; i < _nbins_x; ++i) {
+    h._bins[i][j] = _bins[j][i];
+  }
+  h._nsamp = _nsamp;
+
+  return h;
 }
 
 // -----------------------------------------------------------------------------
@@ -467,14 +442,33 @@ void Histogram2D<HistogramType>::DelSample(double x, double y, HistogramType n)
 template <class HistogramType>
 void Histogram2D<HistogramType>::HistogramX(Histogram1D<HistogramType> &hx) const
 {
-  MarginalizeX<HistogramType>::Run(this, hx);
+  hx.PutNumberOfBins(_nbins_x);
+  hx.Min(_min_x);
+  hx.Max(_max_x);
+  hx.NumberOfSamples(_nsamp);
+
+  const HistogramType *bin = this->RawPointer();
+  for (int j = 0; j < _nbins_y; ++j) {
+    HistogramType *out = hx.RawPointer();
+    for (int i = 0; i < _nbins_x; ++i, ++bin, ++out) *out += *bin;
+  }
 }
 
 // -----------------------------------------------------------------------------
 template <class HistogramType>
 void Histogram2D<HistogramType>::HistogramY(Histogram1D<HistogramType> &hy) const
 {
-  MarginalizeY<HistogramType>::Run(this, hy);
+  hy.PutNumberOfBins(_nbins_y);
+  hy.Min(_min_y);
+  hy.Max(_max_y);
+  hy.NumberOfSamples(_nsamp);
+
+  const HistogramType *bin = this->RawPointer();
+  HistogramType       *out = hy.RawPointer();
+  for (int j = 0; j < _nbins_y; ++j, ++out)
+  for (int i = 0; i < _nbins_x; ++i, ++bin) {
+    *out += *bin;
+  }
 }
 
 // -----------------------------------------------------------------------------
@@ -614,7 +608,9 @@ double Histogram2D<HistogramType>::EntropyX() const
     }
     return 0;
   }
-  return HistogramX().Entropy();
+  Histogram1D<HistogramType> hx(0);
+  HistogramX(hx);
+  return hx.Entropy();
 }
 
 // -----------------------------------------------------------------------------
@@ -627,7 +623,9 @@ double Histogram2D<HistogramType>::EntropyY() const
     }
     return 0;
   }
-  return HistogramY().Entropy();
+  Histogram1D<HistogramType> hy(0);
+  HistogramY(hy);
+  return hy.Entropy();
 }
 
 // -----------------------------------------------------------------------------
@@ -979,13 +977,14 @@ void Histogram2D<HistogramType>::Write(const char *filename) const
      << _min_y << " "
      << _max_y << " "
      << _width_x << " "
-     << _width_y << endl;
+     << _width_y << "\n";
   for (int j = 0; j < _nbins_y; j++) {
     for (int i = 0; i < _nbins_x; i++) {
       to << _bins[j][i] << " ";
     }
-    to << endl;
+    to << "\n";
   }
+  to.close();
 }
 
 // -----------------------------------------------------------------------------
@@ -1005,20 +1004,20 @@ template <class HistogramType>
 void Histogram2D<HistogramType>::Print() const
 {
   cout << _nbins_x << " "
-            << _nbins_y << " "
-            << _nsamp   << " "
-            << _min_x   << " "
-            << _max_x   << " "
-            << _min_y   << " "
-            << _max_y   << " "
-            << _width_x << " "
-            << _width_y
-            << endl;
+       << _nbins_y << " "
+       << _nsamp   << " "
+       << _min_x   << " "
+       << _max_x   << " "
+       << _min_y   << " "
+       << _max_y   << " "
+       << _width_x << " "
+       << _width_y
+       << "\n";
   for (int j = 0; j < _nbins_y; j++) {
     for (int i = 0; i < _nbins_x; i++) {
       cout << _bins[j][i] << " ";
     }
-    cout << endl;
+    cout << "\n";
   }
 }
 

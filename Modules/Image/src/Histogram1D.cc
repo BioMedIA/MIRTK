@@ -40,7 +40,7 @@ MIRTK_Common_EXPORT extern int debug;
 template <class HistogramType>
 Histogram1D<HistogramType>::Histogram1D(const Histogram1D &h)
 :
-  Object(h), _bins(NULL)
+  Object(h)
 {
   _min   = h._min;
   _max   = h._max;
@@ -50,6 +50,8 @@ Histogram1D<HistogramType>::Histogram1D(const Histogram1D &h)
   if (_nbins > 0) {
     Allocate(_bins, _nbins);
     memcpy(RawPointer(), h.RawPointer(), _nbins * sizeof(HistogramType));
+  } else {
+    _bins = nullptr;
   }
 }
 
@@ -62,7 +64,11 @@ Histogram1D<HistogramType>::Histogram1D(int nbins)
   _width = 1;
   _nbins = nbins;
   _nsamp = 0;
-  CAllocate(_bins, _nbins);
+  if (nbins > 0) {
+    CAllocate(_bins, _nbins);
+  } else {
+    _bins = nullptr;
+  }
 }
 
 // -----------------------------------------------------------------------------
@@ -99,6 +105,26 @@ Histogram1D<HistogramType>::Histogram1D(const char *filename)
   from >> _nbins >> _nsamp >> _min >> _max >> _width;
   Allocate(_bins, _nbins);
   for (int i = 0; i < _nbins; ++i) from >> _bins[i];
+}
+
+// -----------------------------------------------------------------------------
+template <class HistogramType>
+Histogram1D<HistogramType> &Histogram1D<HistogramType>
+::operator =(const Histogram1D<HistogramType> &other)
+{
+  if (this != &other) {
+    _nbins = other._nbins;
+    _nsamp = other._nsamp;
+    _min   = other._min;
+    _max   = other._max;
+    _width = other._width;
+    if (other._bins != _bins) {
+      Deallocate(_bins);
+      Allocate(_bins, _nbins);
+      memcpy(_bins, other._bins, _nbins * sizeof(HistogramType));
+    }
+  }
+  return *this;
 }
 
 // -----------------------------------------------------------------------------
@@ -331,16 +357,17 @@ void Histogram1D<HistogramType>::Write(const char *filename) const
     exit(1);
   }
   to << "Histogram1D\n";
-  to << _nbins << " " << _nsamp << " " << _min << " " << _max << " " << _width << endl;
-  for (int i = 0; i < _nbins; ++i) to << _bins[i] << endl;
+  to << _nbins << " " << _nsamp << " " << _min << " " << _max << " " << _width << "\n";
+  for (int i = 0; i < _nbins; ++i) to << _bins[i] << "\n";
+  to.close();
 }
 
 // -----------------------------------------------------------------------------
 template <class HistogramType>
 void Histogram1D<HistogramType>::Print() const
 {
-  cout << _nbins << " " << _nsamp << " " << _min << " " << _max << " " << _width << endl;
-  for (int i = 0; i < _nbins; ++i) cout << _bins[i] << endl;
+  cout << _nbins << " " << _nsamp << " " << _min << " " << _max << " " << _width << "\n";
+  for (int i = 0; i < _nbins; ++i) cout << _bins[i] << "\n";
 }
 
 // =============================================================================
