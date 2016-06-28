@@ -36,7 +36,6 @@ using namespace mirtk;
 // Constants
 // ===========================================================================
 
-const double NaN     = numeric_limits<double>::quiet_NaN();
 const double EPSILON = 0.001; // default -epsilon value
 
 // ===========================================================================
@@ -224,7 +223,7 @@ int main(int argc, char **argv)
   bool        bsplineffd     = false;      // output B-spline FFD when avgdofs == false
   bool        biinvariant    = true;       // bi-invariant mean if possible
   const char *identity_name  = "identity"; // name of (input) transformation which is to be replaced by identity
-  double      identity_value = numeric_limits<double>::infinity(); // i.e., no implicit identity transformation added by default
+  double      identity_value = inf;        // i.e., no implicit identity transformation added by default
   double      mean           = .0;
   double      sigma          = .0;
   double      epsilon        = EPSILON;
