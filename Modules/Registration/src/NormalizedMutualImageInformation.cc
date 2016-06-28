@@ -22,7 +22,6 @@
 #include "mirtk/Math.h"
 #include "mirtk/Memory.h"
 #include "mirtk/BSpline.h"
-#include "mirtk/Histogram1D.h"
 #include "mirtk/Parallel.h"
 #include "mirtk/Profiling.h"
 #include "mirtk/ObjectFactory.h"
@@ -43,7 +42,8 @@ namespace NormalizedMutualImageInformationUtils {
 
 
 // -----------------------------------------------------------------------------
-inline double ValToRange(const Histogram1D<double> &hist, double val)
+template <class BinType>
+inline double ValToRange(const Histogram1D<BinType> &hist, double val)
 {
   if (val < hist.Min()) return .0;
   if (val > hist.Max()) return static_cast<double>(hist.NumberOfBins() - 1);
@@ -53,19 +53,21 @@ inline double ValToRange(const Histogram1D<double> &hist, double val)
 // -----------------------------------------------------------------------------
 class CalculateGradient : public VoxelFunction
 {
+  typedef NormalizedMutualImageInformation::BinType BinType;
+
   const NormalizedMutualImageInformation *_This;
-  const Histogram2D<double>              &_LogJointHistogram;
-  const Histogram1D<double>              &_LogMarginalXHistogram;
-  const Histogram1D<double>              &_LogMarginalYHistogram;
+  const Histogram2D<BinType>             &_LogJointHistogram;
+  const Histogram1D<BinType>             &_LogMarginalXHistogram;
+  const Histogram1D<BinType>             &_LogMarginalYHistogram;
   double                                  _JointEntropy;
   double                                  _NormalizedMutualInformation;
 
 public:
 
   CalculateGradient(const NormalizedMutualImageInformation *_this,
-                    const Histogram2D<double> &logJointHistogram,
-                    const Histogram1D<double> &logMarginalXHistogram,
-                    const Histogram1D<double> &logMarginalYHistogram,
+                    const Histogram2D<BinType> &logJointHistogram,
+                    const Histogram1D<BinType> &logMarginalXHistogram,
+                    const Histogram1D<BinType> &logMarginalYHistogram,
                     double je, double nmi)
   :
     _This(_this),
@@ -104,9 +106,9 @@ public:
       for (int s = s1; s <= s2; ++s) {
         w = BSpline<double>::B  (static_cast<double>(t) - target_value) *
             BSpline<double>::B_I(static_cast<double>(s) - source_value);
-        jointEntropyGrad  += w * _LogJointHistogram(t, s);
-        targetEntropyGrad += w * _LogMarginalXHistogram(t);
-        sourceEntropyGrad += w * _LogMarginalYHistogram(s);
+        jointEntropyGrad  += w * static_cast<double>(_LogJointHistogram(t, s));
+        targetEntropyGrad += w * static_cast<double>(_LogMarginalXHistogram(t));
+        sourceEntropyGrad += w * static_cast<double>(_LogMarginalYHistogram(s));
       }
 
       (*deriv) = (targetEntropyGrad + sourceEntropyGrad - _NormalizedMutualInformation * jointEntropyGrad) / _JointEntropy;
@@ -123,10 +125,26 @@ using namespace NormalizedMutualImageInformationUtils;
 // =============================================================================
 
 // -----------------------------------------------------------------------------
+void NormalizedMutualImageInformation
+::CopyAttributes(const NormalizedMutualImageInformation &other)
+{
+  _TargetHistogram = other._TargetHistogram;
+  _SourceHistogram = other._SourceHistogram;
+  _TargetEntropy   = other._TargetEntropy;
+  _SourceEntropy   = other._SourceEntropy;
+  _JointEntropy    = other._JointEntropy;
+}
+
+// -----------------------------------------------------------------------------
 NormalizedMutualImageInformation
 ::NormalizedMutualImageInformation(const char *name)
 :
-  HistogramImageSimilarity(name)
+  HistogramImageSimilarity(name),
+  _TargetHistogram(0),
+  _SourceHistogram(0),
+  _TargetEntropy(NaN),
+  _SourceEntropy(NaN),
+  _JointEntropy(NaN)
 {
 }
 
@@ -136,6 +154,18 @@ NormalizedMutualImageInformation
 :
   HistogramImageSimilarity(other)
 {
+  CopyAttributes(other);
+}
+
+// -----------------------------------------------------------------------------
+NormalizedMutualImageInformation &NormalizedMutualImageInformation
+::operator =(const NormalizedMutualImageInformation &other)
+{
+  if (this != &other) {
+    HistogramImageSimilarity::operator =(other);
+    CopyAttributes(other);
+  }
+  return *this;
 }
 
 // -----------------------------------------------------------------------------
@@ -148,9 +178,24 @@ NormalizedMutualImageInformation::~NormalizedMutualImageInformation()
 // =============================================================================
 
 // -----------------------------------------------------------------------------
+void NormalizedMutualImageInformation::Update(bool gradient)
+{
+  // Update base class and moving image(s)
+  HistogramImageSimilarity::Update(gradient);
+
+  // Update marginal histograms
+  _Histogram->HistogramX(_TargetHistogram);
+  _Histogram->HistogramY(_SourceHistogram);
+
+  _TargetEntropy = _TargetHistogram.Entropy();
+  _SourceEntropy = _SourceHistogram.Entropy();
+  _JointEntropy  = _Histogram->JointEntropy();
+}
+
+// -----------------------------------------------------------------------------
 double NormalizedMutualImageInformation::Evaluate()
 {
-  return 2.0 - _Histogram->NormalizedMutualInformation();
+  return 2.0 - (_TargetEntropy + _SourceEntropy) / _JointEntropy;
 }
 
 // -----------------------------------------------------------------------------
@@ -167,54 +212,33 @@ bool NormalizedMutualImageInformation
 {
   MIRTK_START_TIMING();
 
-  // Swap target and source if similarity derived w.r.t transformed "target"
-  RegisteredImage *fixed = Target();
-  int tbin = Histogram()->NumberOfBinsX();
-  int sbin = Histogram()->NumberOfBinsY();
-  double tmin, smin, tmax, smax;
-  Histogram()->GetMin(&tmin, &smin);
-  Histogram()->GetMax(&tmax, &smax);
+  RegisteredImage     *fixed;
+  Histogram2D<BinType> jhist(0, 0);
+  Histogram1D<BinType> xhist(0);
+  Histogram1D<BinType> yhist(0);
 
+  // Swap target and source if similarity derived w.r.t transformed "target"
   if (image == Target()) {
     fixed = Source();
-    swap(tbin, sbin);
-    swap(tmin, smin);
-    swap(tmax, smax);
+    jhist = _Histogram->Transposed();
+    xhist = _SourceHistogram;
+    yhist = _TargetHistogram;
+  } else {
+    fixed = Target();
+    jhist = *_Histogram;
+    xhist = _TargetHistogram;
+    yhist = _SourceHistogram;
   }
-
-  // Compute joint entropy and normalized mutual information
-  const double je  = _Histogram->JointEntropy();
-  const double nmi = (_Histogram->EntropyX() + _Histogram->EntropyY()) / je;
 
   // Log transform histograms
-  Histogram2D<double> logJointHistogram(tbin, sbin);
-  Histogram1D<double> logMarginalXHistogram(tbin);
-  Histogram1D<double> logMarginalYHistogram(sbin);
-
-  logJointHistogram.PutMin(tmin, smin);
-  logJointHistogram.PutMax(tmax, smax);
-  logMarginalXHistogram.PutMin(tmin);
-  logMarginalXHistogram.PutMax(tmax);
-  logMarginalYHistogram.PutMin(smin);
-  logMarginalYHistogram.PutMax(smax);
-
-  for (int s = 0; s < sbin; s++)
-  for (int t = 0; t < tbin; t++) {
-    double num = ((image == Target()) ? (*_Histogram)(s, t) : (*_Histogram)(t, s));
-    logJointHistogram.Add(t, s, num);
-    logMarginalXHistogram.Add(t, num);
-    logMarginalYHistogram.Add(s, num);
-  }
-
-  logJointHistogram    .Log();
-  logMarginalXHistogram.Log();
-  logMarginalYHistogram.Log();
+  jhist.Log();
+  xhist.Log();
+  yhist.Log();
 
   // Evaluate similarity gradient w.r.t given transformed image
-  CalculateGradient eval(this, logJointHistogram,
-                               logMarginalXHistogram,
-                               logMarginalYHistogram,
-     /* denominator = */ -1.0 * je * _Histogram->NumberOfSamples(), nmi);
+  CalculateGradient eval(this, jhist, xhist, yhist,
+     /* denominator = */ - _JointEntropy * _Histogram->NumberOfSamples(),
+     /* NMI         = */ (_TargetEntropy + _SourceEntropy) / _JointEntropy);
   memset(gradient->Data(), 0, _NumberOfVoxels * sizeof(GradientType));
   ParallelForEachVoxel(fixed, image, gradient, eval);
 
