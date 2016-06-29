@@ -26,7 +26,7 @@
 #include "mirtk/PointSetIO.h"
 #include "mirtk/VtkMath.h"
 
-#include "vtkPolyDataReader.h"
+#include "vtkDataReader.h"
 #include "vtkSmartPointer.h"
 #include "vtkPolyDataNormals.h"
 #include "vtkPointData.h"
@@ -56,7 +56,7 @@ void PrintHelp(const char *name)
   cout << "  input_mesh           Myocardial mesh." << endl;
   cout << "  output_mesh          The output mesh which stores the vertex-wise motion data." << endl;
   cout << "  -image file          Cardiac image whose z-axis defines the longitudinal direction." << endl;
-  cout << "  -dof file            Transformation with regard to the reference frame (end-diastolic frame)." << endl;
+  cout << "  -dof, -dofin file    Transformation with regard to the reference frame (end-diastolic frame)." << endl;
   cout << endl;
   cout << "Optional arguments:" << endl;
   cout << "  -invert-zaxis        Use this option if the longitudinal direction is the inverted z-axis of the image. (default: off)" << endl;
@@ -290,8 +290,8 @@ int main(int argc, char **argv)
   EXPECTS_POSARGS(2);
   const char *input_mesh_name  = POSARG(1);
   const char *output_mesh_name = POSARG(2);
-  const char *image_name       = NULL;
-  const char *dof_name         = NULL;
+  const char *image_name       = nullptr;
+  const char *dof_name         = nullptr;
   bool  invert_zaxis     = false;
   bool  compute_disp     = false;
   bool  compute_strain   = false;
@@ -301,7 +301,7 @@ int main(int argc, char **argv)
 
   for (ALL_OPTIONS) {
     if      (OPTION("-image"))            { image_name = ARGUMENT; }
-    else if (OPTION("-dof"))              { dof_name = ARGUMENT; }
+    else if (OPTION("-dof") || OPTION("-dofin")) { dof_name = ARGUMENT; }
     else if (OPTION("-invert-zaxis"))     { invert_zaxis = true; }
     else if (OPTION("-displacement"))     { compute_disp = true; }
     else if (OPTION("-strain"))           { compute_strain = true; }
@@ -314,7 +314,7 @@ int main(int argc, char **argv)
   }
 
   // Read input image
-  if (image_name == NULL) { FatalError("Input -image file name required!"); }
+  if (image_name == nullptr) { FatalError("Input -image file name required!"); }
   ImageAttributes attr;
   {
     if (verbose) { cout << "Reading image attributes from " << image_name << "..."; }
@@ -335,7 +335,7 @@ int main(int argc, char **argv)
   int n_points = points->GetNumberOfPoints();
 
   // Read input transformation
-  if (dof_name == NULL) { FatalError("Input -dof file name required!"); }
+  if (dof_name == nullptr) { FatalError("Input -dof file name required!"); }
   if (verbose) { cout << "Reading transformation from " << dof_name << "..."; }
   UniquePtr<Transformation> T(Transformation::New(dof_name));
   if (verbose) { cout << " done" << endl; }
@@ -364,7 +364,7 @@ int main(int argc, char **argv)
   DetermineLocalCoordinateSystem(mesh, attr, invert_zaxis, dir_radial, dir_longit, dir_circum);
 
   // Prepare the array for storing the displacements and strains
-  vtkSmartPointer<vtkFloatArray> disp = NULL;
+  vtkSmartPointer<vtkDataArray> disp;
   if (compute_disp) {
     disp = vtkSmartPointer<vtkFloatArray>::New();
     disp->SetName("Displacement");
@@ -372,7 +372,7 @@ int main(int argc, char **argv)
     disp->SetNumberOfTuples(n_points);
   }
 
-  vtkSmartPointer<vtkFloatArray> strain = NULL;
+  vtkSmartPointer<vtkDataArray> strain;
   if (compute_strain) {
     strain = vtkSmartPointer<vtkFloatArray>::New();
     strain->SetName("Strain");
