@@ -251,18 +251,6 @@ int main(int argc, char *argv[])
       }
       append->Update();
       output = append->GetOutput();
-      if (merge) {
-        vtkNew<vtkCleanPolyData> merger;
-        merger->ConvertLinesToPointsOff();
-        merger->ConvertPolysToLinesOff();
-        merger->ConvertStripsToPolysOn();
-        merger->PointMergingOn();
-        merger->ToleranceIsAbsoluteOn();
-        merger->SetAbsoluteTolerance(merge_tol);
-        SetVTKInput(merger, output);
-        merger->Update();
-        output = merger->GetOutput();
-      }
     } else {
       vtkNew<vtkAppendFilter> append;
       for (size_t i = 0; i < pointsets.size(); ++i) {
@@ -272,6 +260,20 @@ int main(int argc, char *argv[])
       append->Update();
       output = append->GetOutput();
     }
+  }
+
+  // Merge points
+  if (merge && vtkPolyData::SafeDownCast(output) != nullptr) {
+    vtkNew<vtkCleanPolyData> merger;
+    merger->ConvertLinesToPointsOff();
+    merger->ConvertPolysToLinesOff();
+    merger->ConvertStripsToPolysOn();
+    merger->PointMergingOn();
+    merger->ToleranceIsAbsoluteOn();
+    merger->SetAbsoluteTolerance(merge_tol);
+    SetVTKInput(merger, output);
+    merger->Update();
+    output = merger->GetOutput();
   }
 
   // Reset point/cell data
