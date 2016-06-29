@@ -22,6 +22,7 @@
 
 #include "mirtk/Math.h"
 #include "mirtk/Point.h"
+#include "mirtk/Vector3.h"
 
 
 namespace mirtk {
@@ -70,8 +71,14 @@ struct Vector3D
   /// Construct from vector components
   Vector3D(T, T, T);
 
+  /// Construct from C array
+  explicit Vector3D(const T [3]);
+
+  /// Construct from non-template 3D vector type
+  explicit Vector3D(const Vector3 &);
+
   /// Construct from 3D point
-  Vector3D(const Point &);
+  explicit Vector3D(const Point &);
 
   /// Assignment operator
   Vector3D &operator =(const Vector3D &);
@@ -310,6 +317,24 @@ inline Vector3D<T>::Vector3D(T x, T y, T z)
   _x = x;
   _y = y;
   _z = z;
+}
+
+// -----------------------------------------------------------------------------
+template <typename T>
+inline Vector3D<T>::Vector3D(const T v[3])
+{
+  _x = v[0];
+  _y = v[1];
+  _z = v[2];
+}
+
+// -----------------------------------------------------------------------------
+template <typename T>
+inline Vector3D<T>::Vector3D(const Vector3 &v)
+{
+  _x = static_cast<T>(v[0]);
+  _y = static_cast<T>(v[1]);
+  _z = static_cast<T>(v[2]);
 }
 
 // -----------------------------------------------------------------------------

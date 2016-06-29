@@ -28,8 +28,8 @@ namespace mirtk {
 
 
 // Forward declaration of Vector in particular, as its header
-// includes mrtkVector3D.h which in turn includes this file again.
-// Therefore, only include mrtkVector.h after Point is declared.
+// includes mirtk/Vector3D.h which in turn includes this file again.
+// Therefore, only include mirtk/Vector.h after Point is declared.
 class Vector;
 class Matrix;
 
@@ -69,7 +69,7 @@ public:
   Point(const Point &);
 
   /// Constructor with Vector
-  Point(const Vector&);
+  Point(const Vector &);
 
   /// Default destructor
   virtual ~Point();
