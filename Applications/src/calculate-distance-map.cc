@@ -3,7 +3,7 @@
  *
  * Copyright 2008-2015 Imperial College London
  * Copyright 2008-2013 Daniel Rueckert, Julia Schnabel
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2013-2016 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -52,6 +52,7 @@ void PrintHelp(const char *name)
   cout << "  -distance <name>   Name of the distance transform. (default: euclidean)\n";
   cout << "                     - ``cityblock``: Manhatten city block (L1) distance.\n";
   cout << "                     - ``euclidean``: Euclidean distance.\n";
+  cout << "                     - ``laplacian``: Laplacian distance.\n";
   cout << "\n";
   cout << "Euclidean distance transform options:\n";
   cout << "  -2D                Compute distance transform in 2D.\n";
@@ -61,6 +62,10 @@ void PrintHelp(const char *name)
   cout << "  -isotropic [<s>]   Resample distance transform to isotropic voxel size,\n";
   cout << "                     where the voxel size is s times the minimum voxel size.\n";
   cout << "                     When no argument given, s defaults to 1. (default: 0/off)\n";
+  cout << "  -outside <file>    Binary mask with non-zero values at voxels which are outside\n";
+  cout << "                     the region for which distance values are to be computed.\n";
+  cout << "                     Required by ``laplacian`` :option:`-distance`, where it defines\n";
+  cout << "                     the boundary voxels with a maximum distance value of 1.\n";
   PrintStandardOptions(cout);
   cout << "\n";
 }
@@ -78,6 +83,7 @@ enum DistanceTransformType
   DT_Unknown,
   DT_Euclidean,
   DT_CityBlock,
+  DT_Laplacian,
   DT_Last
 };
 
@@ -90,7 +96,8 @@ inline string ToString(const DistanceTransformType &value, int w, char c, bool l
   switch (value) {
     case DT_Euclidean: str = "euclidean"; break;
     case DT_CityBlock: str = "cityblock"; break;
-    default:           str = "unknown"; break;
+    case DT_Laplacian: str = "laplacian"; break;
+    default:           str = "unknown";   break;
   }
   return ToString(str, w, c, left);
 }
@@ -107,6 +114,134 @@ inline bool FromString(const char *str, DistanceTransformType &value)
     value = static_cast<DistanceTransformType>(value - 1);
   }
   return value != DT_Unknown;
+}
+
+// =============================================================================
+// Laplacian distance map -- TODO: Should be a LaplacianDistanceTransform class
+// =============================================================================
+
+// -----------------------------------------------------------------------------
+/// Voxel function for parallel iterative application of discrete Laplace operator
+class LaplacianFunction : public VoxelReduction
+{
+  RealImage *_Distance;
+  int        _Changed;
+  double     _SumDelta;
+  double     _MaxDelta;
+
+public:
+
+  LaplacianFunction(RealImage *distance)
+  :
+    _Distance(distance), _Changed(0), _SumDelta(0.), _MaxDelta(.0)
+  {}
+
+  void split(const LaplacianFunction &other)
+  {
+    _Changed  = 0;
+    _SumDelta = 0.;
+    _MaxDelta = 0.;
+  }
+
+  void join(const LaplacianFunction &other)
+  {
+    _Changed  += other._Changed;
+    _SumDelta += other._SumDelta;
+    _MaxDelta = max(_MaxDelta, other._MaxDelta);
+  }
+
+  double AvgDelta() const
+  {
+    return (_Changed > 0 ? _SumDelta / _Changed : 0.);
+  }
+
+  double MaxDelta() const
+  {
+    return _MaxDelta;
+  }
+
+  void Reset()
+  {
+    _Changed  = 0;
+    _SumDelta = 0.;
+    _MaxDelta = 0.;
+  }
+
+  void operator ()(int i, int j, int k, int, const BinaryPixel *isobj, const BinaryPixel *isout, RealPixel *distance)
+  {
+    if (*isobj || *isout) return;
+
+    RealPixel val(0);
+    int       num = 0;
+
+    if (!IsNaN(_Distance->Get(i-1, j, k))) val += _Distance->Get(i-1, j, k), ++num;
+    if (!IsNaN(_Distance->Get(i+1, j, k))) val += _Distance->Get(i+1, j, k), ++num;
+    if (!IsNaN(_Distance->Get(i, j-1, k))) val += _Distance->Get(i, j-1, k), ++num;
+    if (!IsNaN(_Distance->Get(i, j+1, k))) val += _Distance->Get(i, j+1, k), ++num;
+    if (!IsNaN(_Distance->Get(i, j, k-1))) val += _Distance->Get(i, j, k-1), ++num;
+    if (!IsNaN(_Distance->Get(i, j, k+1))) val += _Distance->Get(i, j, k+1), ++num;
+
+    if (num > 0) {
+      val /= num;
+      RealPixel prev = *distance;
+      if (IsNaN(prev)) prev = RealPixel(0);
+      *distance = val;
+      double delta = abs(prev - val);
+      if (delta > _MaxDelta) _MaxDelta = delta;
+      _SumDelta += delta;
+      ++_Changed;
+    }
+  }
+};
+
+// -----------------------------------------------------------------------------
+/// Computes Laplacian distance map from object boundary to outside voxels
+RealImage ComputeLaplacianTransform(const BinaryImage &inside, BinaryImage &outside, int maxiter)
+{
+  MIRTK_START_TIMING();
+
+  const auto prev_flags     = cout.flags(ios::fixed);
+  const auto prev_precision = cout.precision(6);
+
+  const ImageAttributes &attr = inside.Attributes();
+  if (!outside.HasSpatialAttributesOf(&inside)) {
+    FatalError("Outside mask image must have attributes identical to input object mask!");
+  }
+
+  // Initialize distance image
+  RealImage init(attr);
+  for (int k = 0; k < attr._z; ++k)
+  for (int j = 0; j < attr._y; ++j)
+  for (int i = 0; i < attr._x; ++i) {
+    if (i == 0 || j == 0 || k == 0 || i == attr._x-1 || j == attr._y-1 || k == attr._z-1) {
+      outside(i, j, k) = BinaryPixel(1);
+    }
+    if      (inside (i, j, k)) init(i, j, k) = RealPixel(0.);
+    else if (outside(i, j, k)) init(i, j, k) = RealPixel(1.);
+    else                       init(i, j, k) = RealPixel(NaN);
+  }
+
+  // Iteratively apply discrete Laplace operator
+  RealImage temp(attr);
+  RealImage *input = &init, *output = &temp;
+  for (int iter = 0; iter < maxiter; ++iter) {
+    LaplacianFunction op(input);
+    ParallelForEachVoxel(attr, inside, outside, *output, op);
+    swap(input, output); // before breaking the loop!
+    if (verbose && (iter+1) % 10 == 0) {
+      cout << setw(3)<< right << (iter+1) << left
+           << " Delta: max = " << op.MaxDelta()
+           << ", avg = " << op.AvgDelta() << endl;
+    }
+    if (op.MaxDelta() < 1e-12) break;
+  }
+  swap(input, output);
+
+  cout.flags(prev_flags);
+  cout.precision(prev_precision);
+
+  MIRTK_DEBUG_TIMING(1, "computing Laplacian map");
+  return *output;
 }
 
 
@@ -126,8 +261,9 @@ int main(int argc, char *argv[])
 
   EXPECTS_POSARGS(2);
 
-  const char *input_name  = POSARG(1);
-  const char *output_name = POSARG(2);
+  const char *input_name   = POSARG(1);
+  const char *output_name  = POSARG(2);
+  const char *outside_name = nullptr;
  
   DistanceTransformType type = DT_Euclidean;
 
@@ -136,6 +272,7 @@ int main(int argc, char *argv[])
   
   int    radial    = 0;
   double isotropic = .0;
+  int    maxiter   = 5000;
 
   for (ALL_OPTIONS) {
     if (OPTION("-distance") || OPTION("-mode")) {
@@ -156,6 +293,13 @@ int main(int argc, char *argv[])
     else if (OPTION("-isotropic")) {
       if (HAS_ARGUMENT) PARSE_ARGUMENT(isotropic);
       else isotropic = 1.0;
+    }
+    else if (OPTION("-outside")) {
+      outside_name = ARGUMENT;
+    }
+    else if (OPTION("-max-iterations") || OPTION("-iterations") ||
+             OPTION("-max-iter")       || OPTION("-iter")) {
+      PARSE_ARGUMENT(maxiter);
     }
     else HANDLE_STANDARD_OR_UNKNOWN_OPTION();
   }
@@ -246,6 +390,17 @@ int main(int argc, char *argv[])
       }
     } break;
  
+    // Laplacian map
+    case DT_Laplacian: {
+      BinaryImage inside(image), outside;
+      if (outside_name) {
+        outside.Read(outside_name);
+      } else {
+        outside.Initialize(image.Attributes());
+      }
+      dmap = ComputeLaplacianTransform(inside, outside, maxiter);
+    } break;
+
     default:
       FatalError("Unknown distance transform type: " << type);
   }
