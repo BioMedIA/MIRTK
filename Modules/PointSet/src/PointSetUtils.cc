@@ -292,13 +292,19 @@ double ComputeVolume(vtkCell *cell)
 // -----------------------------------------------------------------------------
 vtkSmartPointer<vtkPolyData> DataSetSurface(vtkSmartPointer<vtkDataSet> dataset, bool passPtIds, bool passCellIds)
 {
-  vtkSmartPointer<vtkDataSetSurfaceFilter> surface;
-  surface = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
-  SetVTKInput(surface, dataset);
-  surface->SetPassThroughPointIds(passPtIds);
-  surface->SetPassThroughCellIds(passCellIds);
-  surface->Update();
-  return surface->GetOutput();
+  if (IsSurfaceMesh(dataset)) {
+    vtkSmartPointer<vtkPolyData> surface = vtkSmartPointer<vtkPolyData>::New();
+    surface->ShallowCopy(dataset);
+    return surface;
+  } else {
+    vtkSmartPointer<vtkDataSetSurfaceFilter> surface;
+    surface = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
+    SetVTKInput(surface, dataset);
+    surface->SetPassThroughPointIds(passPtIds);
+    surface->SetPassThroughCellIds(passCellIds);
+    surface->Update();
+    return surface->GetOutput();
+  }
 }
 
 // -----------------------------------------------------------------------------
