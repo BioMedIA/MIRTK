@@ -70,16 +70,17 @@ public:
   /// Enumeration of output curvature measures, can be combined using bitwise OR
   enum Type
   {
-    Minimum          =   1, ///< Minimum principle curvature, k_min
-    Maximum          =   2, ///< Maximum principle curvature, k_max
-    Mean             =   4, ///< Mean curvature, (k_min + k_max)/2
-    Gauss            =   8, ///< Gauss curvature, k_min * k_max
-    Curvedness       =  16, ///< Curvedness, i.e., sqrt((k_min^2 + k_max^2) / 2)
-    Normal           =  32, ///< Point normal computed from curvature tensor
-    MinimumDirection =  64, ///< Direction of minimum curvature
-    MaximumDirection = 128, ///< Direction of maximum curvature
-    Tensor           = 256, ///< 6 entries of symmetric 3x3 curvature tensor
-    InverseTensor    = 512, ///< 6 entries of inverse of symmetric 3x3 curvature tensor
+    Minimum          =    1, ///< Minimum principal curvature, k_min
+    Maximum          =    2, ///< Maximum principal curvature, k_max
+    Principal        =    4, ///< Both principal curvatures in single array
+    Mean             =    8, ///< Mean curvature, (k_min + k_max)/2
+    Gauss            =   16, ///< Gauss curvature, k_min * k_max
+    Curvedness       =   32, ///< Curvedness, i.e., sqrt((k_min^2 + k_max^2) / 2)
+    Normal           =   64, ///< Point normal computed from curvature tensor
+    MinimumDirection =  128, ///< Direction of minimum curvature
+    MaximumDirection =  256, ///< Direction of maximum curvature
+    Tensor           =  512, ///< 6 entries of symmetric 3x3 curvature tensor
+    InverseTensor    = 1024, ///< 6 entries of inverse of symmetric 3x3 curvature tensor
     Scalars          = Minimum | Maximum | Mean | Gauss | Curvedness,
     Directions       = Normal | MinimumDirection | MaximumDirection
   };
@@ -95,6 +96,7 @@ public:
 
   MIRTK_PointSet_EXPORT static const char *MINIMUM;           ///< Name of minimum curvature array
   MIRTK_PointSet_EXPORT static const char *MAXIMUM;           ///< Name of maximum curvature array
+  MIRTK_PointSet_EXPORT static const char *PRINCIPAL;         ///< Name of principal curvatures array
   MIRTK_PointSet_EXPORT static const char *MEAN;              ///< Name of mean curvature array
   MIRTK_PointSet_EXPORT static const char *GAUSS;             ///< Name of Gauss curvature array
   MIRTK_PointSet_EXPORT static const char *CURVEDNESS;        ///< Name of curvedness array
@@ -177,6 +179,21 @@ public:
   /// \note Smoothing is not performed unless Run is executed.
   vtkDataArray *GetMaximumCurvature();
 
+  /// Get/compute principal curvatures
+  ///
+  /// If Run was executed and the principle curvatures were included in
+  /// the requested output curvature types, this function just returns
+  /// the respective point data array. Otherwise, Initialize must be called
+  /// first and this function will compute the mean, Gauss, and principle
+  /// curvatures using the vtkCurvatures filter.
+  ///
+  /// When the minimum and maximum curvatures were computed before and stored
+  /// in separate output point data arrays, this function only allocates a new
+  /// output point data array to store both principal curvatures.
+  ///
+  /// \note Smoothing is not performed unless Run is executed.
+  vtkDataArray *GetPrincipalCurvatures();
+
   /// Get/compute mean curvature
   ///
   /// If Run was executed and the mean curvature was included in the
@@ -227,6 +244,9 @@ protected:
 
   /// Compute Gauss curvature
   void ComputeGaussCurvature();
+
+  /// Compute principal curvatures from mean and Gauss curvature
+  void ComputePrincipalCurvatures();
 
   /// Compute minimum and/or maximum curvature from mean and Gauss curvature
   void ComputeMinMaxCurvature(bool, bool);
