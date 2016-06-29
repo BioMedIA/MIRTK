@@ -324,7 +324,7 @@ int main(int argc, char *argv[])
           if (!areal_distortion) {
             areal_distortion = ArealDistortion(orig, mesh);
           }
-          abs_areal_distortion = areal_distortion->NewInstance();
+          abs_areal_distortion.TakeReference(areal_distortion->NewInstance());
           abs_areal_distortion->SetName("AbsArealDistortion");
           abs_areal_distortion->SetNumberOfComponents(1);
           abs_areal_distortion->SetNumberOfTuples(ncells);

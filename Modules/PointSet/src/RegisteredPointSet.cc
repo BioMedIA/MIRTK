@@ -306,13 +306,13 @@ void RegisteredPointSet::CopyAttributes(const RegisteredPointSet &other)
     }
   }
   if (other._OutputPointSet) {
-    _OutputPointSet = vtkSmartPointer<vtkPointSet>::NewInstance(other);
+    _OutputPointSet.TakeReference(other._OutputPointSet->NewInstance());
     _OutputPointSet->DeepCopy(other._OutputPointSet);
   } else {
     _OutputPointSet = NULL;
   }
   if (other._OutputSurface) {
-    _OutputSurface = vtkSmartPointer<vtkPolyData>::NewInstance(other._OutputSurface);
+    _OutputSurface.TakeReference(other._OutputSurface->NewInstance());
     _OutputSurface->DeepCopy(other._OutputSurface);
   } else {
     _OutputSurface = NULL;
@@ -376,7 +376,7 @@ void RegisteredPointSet
   // upon the first Update of a transformed point set. If no transformation is
   // set or if the point set is never updated, no copy of input points is made.
   // This is overridden by the deep_copy_points argument.
-  _OutputPointSet = vtkSmartPointer<vtkPointSet>::NewInstance(_InputPointSet);
+  _OutputPointSet.TakeReference(_InputPointSet->NewInstance());
   _OutputPointSet->ShallowCopy(_InputPointSet);
   if (deep_copy_points) {
     vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
@@ -386,7 +386,7 @@ void RegisteredPointSet
 
   _OutputSurface = vtkPolyData::SafeDownCast(_OutputPointSet);
   if (!_OutputSurface) {
-    _OutputSurface = vtkSmartPointer<vtkPolyData>::NewInstance(_InputSurface);
+    _OutputSurface.TakeReference(_InputSurface->NewInstance());
     _OutputSurface->ShallowCopy(_InputSurface);
     // ShallowCopy also copies the previously built cells and links
     if (deep_copy_points) {
@@ -845,7 +845,7 @@ void RegisteredPointSet::Update(bool force)
         output_array = outputPD->GetArray(it->_OutputIndex);
       } else {
         if (it->_Slope == 1.0 && it->_Intercept == .0) {
-          output_array = vtkSmartPointer<vtkDataArray>::NewInstance(input_array);
+          output_array.TakeReference(input_array->NewInstance());
         } else {
           output_array = vtkSmartPointer<vtkFloatArray>::New();
         }

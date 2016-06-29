@@ -144,7 +144,7 @@ struct ArrayInfo
 vtkSmartPointer<vtkDataArray> Copy(vtkDataArray *array, vtkIdType n)
 {
   vtkSmartPointer<vtkDataArray> copy;
-  copy = vtkSmartPointer<vtkDataArray>::NewInstance(array);
+  copy.TakeReference(array->NewInstance());
   copy->SetName(array->GetName());
   copy->SetNumberOfComponents(array->GetNumberOfComponents());
   copy->SetNumberOfTuples(n);

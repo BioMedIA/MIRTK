@@ -754,9 +754,9 @@ void PointCorrespondenceDistance
   vtkSmartPointer<vtkCellArray> verts;
   vtkPolyData                  *polydata;
 
-  output = vtkSmartPointer<vtkPointSet>::NewInstance(target->PointSet());
   points = vtkSmartPointer<vtkPoints>::New();
   points->SetNumberOfPoints(n);
+  output.TakeReference(target->PointSet()->NewInstance());
   output->SetPoints(points);
   polydata = vtkPolyData::SafeDownCast(output);
   if (polydata) {
@@ -772,7 +772,7 @@ void PointCorrespondenceDistance
     vtkPointData *pd = target->PointSet()->GetPointData();
     for (int i = 0; i < pd->GetNumberOfArrays(); ++i) {
       vtkDataArray *data = pd->GetArray(i);
-      copy = vtkSmartPointer<vtkDataArray>::NewInstance(data);
+      copy.TakeReference(data->NewInstance());
       copy->SetName(data->GetName());
       copy->SetNumberOfComponents(data->GetNumberOfComponents());
       copy->SetNumberOfTuples(n);

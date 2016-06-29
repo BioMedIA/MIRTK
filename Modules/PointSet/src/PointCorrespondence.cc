@@ -290,7 +290,7 @@ vtkSmartPointer<vtkPointSet> SpectralPoints(vtkPointSet *input)
   delete[] p;
 
   vtkSmartPointer<vtkPointSet> output;
-  output = vtkSmartPointer<vtkPointSet>::NewInstance(input);
+  output.TakeReference(input->NewInstance());
   output->DeepCopy (input);
   output->SetPoints(points);
   return output;
@@ -939,7 +939,7 @@ void PointCorrespondence::WriteSpectralPoints(const char *fname, vtkPointSet *d)
   delete[] p;
 
   vtkSmartPointer<vtkPointSet> output;
-  output = vtkSmartPointer<vtkPointSet>::NewInstance(d);
+  output.TakeReference(d->NewInstance());
   output->ShallowCopy(d);
   output->SetPoints(points);
   WritePointSet(fname, output);
