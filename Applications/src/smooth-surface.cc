@@ -96,10 +96,10 @@ void PrintHelp(const char *name)
   cout << endl;
   cout << "  -anisotropic ([<sigma>] [<tensor_array>] | <sigma1> <sigma2> [(<e2_array> | <e1_array> <e2_array>)])" << endl;
   cout << "      Anisotropic Gaussian smoothing kernel given input tensor field point data array" << endl;
-  cout << "      named <tensor_array>. The default tensor field used no arguments or only <sigma> specified" << endl;
-  cout << "      is the curvature tensor output of polydatacurvature. Alternatively, specify <sigma1> and <sigma2>" << endl;
-  cout << "      together with the direction of maximum curvature in <e2_array> or both, the direction of minimum" << endl;
-  cout << "      and maximum curvature direction in point data arrays named <e1_array> and <e2_array>." << endl;
+  cout << "      named <tensor_array>. The default tensor field used with no arguments or only <sigma> specified" << endl;
+  cout << "      is the curvature tensor output of the calculate-surface-attributes -tensor command. Alternatively," << endl;
+  cout << "      specify <sigma1> and <sigma2> together with the direction of maximum curvature in <e2_array> or both," << endl;
+  cout << "      the direction of minimum and maximum curvature direction in point data arrays named <e1_array> and <e2_array>." << endl;
   cout << endl;
   cout << "  -track [<name>]          Track the signed distances traversed by points (positive is outwards)." << endl;
   cout << "                           The optional arguments specifies the name of output output point data array." << endl;
