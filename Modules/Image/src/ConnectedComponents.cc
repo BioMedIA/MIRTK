@@ -82,7 +82,7 @@ int LabelComponent(const NeighborhoodOffsets  &offsets,
       components(idx) = component_label, ++num;
       if (segmentation.IsBoundary(idx)) {
         const TLabel *neighbor_label, *label = segmentation.Data(idx);
-        const TLabel *neighbor_comp,  *comp  = components.Data(idx);
+        const TLabel *neighbor_comp,  *comp  = components  .Data(idx);
         for (int n = 0; n < offsets.Size(); ++n) {
           neighbor_label = label + offsets(n);
           neighbor_idx   = static_cast<int>(neighbor_label - start_label);
@@ -94,8 +94,8 @@ int LabelComponent(const NeighborhoodOffsets  &offsets,
           }
         }
       } else {
-        const TLabel *neighbor_label, *label  = segmentation.Data(idx);
-        const TLabel *neighbor_comp,  *comp = components.Data(idx);
+        const TLabel *neighbor_label, *label = segmentation.Data(idx);
+        const TLabel *neighbor_comp,  *comp  = components  .Data(idx);
         for (int n = 0; n < offsets.Size(); ++n) {
           neighbor_label = label + offsets(n);
           neighbor_comp  = comp  + offsets(n);
