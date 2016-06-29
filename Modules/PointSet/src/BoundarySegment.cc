@@ -147,6 +147,25 @@ int BoundarySegment::Find(int ptId) const
   }
 }
 
+// -----------------------------------------------------------------------------
+int BoundarySegment::FindClosestPoint(const class Point &x, double *dist2) const
+{
+  int    min_index = -1;
+  double min_dist2 = inf;
+  double d;
+
+  for (int i = 0; i < NumberOfPoints(); ++i) {
+    d = Point(i).SquaredDistance(x);
+    if (d < min_dist2) {
+      min_dist2 = d;
+      min_index = i;
+    }
+  }
+
+  if (dist2 != nullptr) *dist2 = min_dist2;
+  return min_index;
+}
+
 // =============================================================================
 // Selected points
 // =============================================================================
