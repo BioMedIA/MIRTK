@@ -1,8 +1,8 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2013-2015 Imperial College London
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2013-2016 Imperial College London
+ * Copyright 2013-2016 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@
 #include "mirtk/SurfaceFilter.h"
 
 #include "mirtk/Point.h"
+#include "mirtk/OrderedSet.h"
 
 #include "vtkPriorityQueue.h"
 
@@ -68,11 +69,22 @@ protected:
   // ---------------------------------------------------------------------------
   // Attributes
 
+  /// Name of internal minimum edge length point data array
+  static const char * const MIN_EDGE_LENGTH;
+
+  /// Name of internal maximum edge length point data array
+  static const char * const MAX_EDGE_LENGTH;
+
+  /// Shallow copy of input surface with additional internal point data
+  mirtkAttributeMacro(vtkSmartPointer<vtkPolyData>, Surface);
+
   /// Optional input transformation used to determine edge length and triangle area
   mirtkPublicAggregateMacro(const class Transformation, Transformation);
 
-  /// Output point labels
-  mirtkAttributeMacro(vtkSmartPointer<vtkDataArray>, OutputPointLabels);
+  /// Indices of point data arrays with categorical data that requires
+  /// nearest neighbor interpolation instead of linear interpolation
+  mirtkAttributeMacro(OrderedSet<int>, CategoricalPointDataIndices);
+  Array<double> _CategoricalPointDataCache;
 
   /// Minimum angle between edge end point normals to consider the edge as
   /// an important feature edge which is excluded from any melting operation.
