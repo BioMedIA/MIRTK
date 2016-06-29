@@ -70,7 +70,7 @@ public:
 
 #if MIRTK_Image_WITH_VTK
   /// Process given vtkDataArray
-  virtual void Process(vtkDataArray *data, bool *mask = NULL)
+  virtual void Process(vtkDataArray *data, bool *mask = nullptr)
   {
     const int n = static_cast<int>(data->GetNumberOfTuples() * data->GetNumberOfComponents());
     if (data->GetDataType() == VTK_DOUBLE) {
@@ -113,10 +113,10 @@ DataFileType FileType(const char *name);
 // -----------------------------------------------------------------------------
 /// Read data sequence from any supported input file type
 #if MIRTK_Image_WITH_VTK
-int Read(const char *name, double *&data, int *dtype = NULL, ImageAttributes *attr = NULL,
-         vtkSmartPointer<vtkDataSet> *dataset= NULL, const char *scalar_name = NULL);
+int Read(const char *name, double *&data, int *dtype = nullptr, ImageAttributes *attr = nullptr,
+         vtkSmartPointer<vtkDataSet> *dataset= nullptr, const char *scalar_name = nullptr);
 #else
-int Read(const char *name, double *&data, int *dtype = NULL, ImageAttributes *attr = NULL);
+int Read(const char *name, double *&data, int *dtype = nullptr, ImageAttributes *attr = nullptr);
 #endif // MIRTK_Image_WITH_VTK
 
 // -----------------------------------------------------------------------------
@@ -131,8 +131,11 @@ class Write : public Op
   /// VTK input dataset whose scalar data was modified
   mirtkPublicAttributeMacro(vtkSmartPointer<vtkDataSet>, DataSet);
 
-  /// Name of input/output point data array
+  /// Name of input point data array
   mirtkPublicAttributeMacro(string, ArrayName);
+
+  /// Name of output point data array
+  mirtkPublicAttributeMacro(string, OutputName);
 
 #endif // MIRTK_Image_WITH_VTK
 
@@ -149,15 +152,17 @@ public:
 
   Write(const char *fname, int dtype = MIRTK_VOXEL_DOUBLE,
         ImageAttributes attr = ImageAttributes(),
-        vtkDataSet *dataset      = NULL,
-        const char *scalars_name = NULL)
+        vtkDataSet *dataset     = nullptr,
+        const char *array_name  = nullptr,
+        const char *output_name = nullptr)
   :
     _FileName(fname),
     _DataSet(dataset),
     _Attributes(attr),
     _DataType(dtype)
   {
-    if (scalars_name) _ArrayName = scalars_name;
+    if (array_name)  _ArrayName  = array_name;
+    if (output_name) _OutputName = output_name;
   }
 
 #else // MIRTK_Image_WITH_VTK
@@ -173,7 +178,7 @@ public:
 #endif // MIRTK_Image_WITH_VTK
 
   /// Process given data
-  virtual void Process(int n, double *data, bool * = NULL);
+  virtual void Process(int n, double *data, bool * = nullptr);
 
 };
 
