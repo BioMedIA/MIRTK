@@ -53,43 +53,77 @@ const char *DefaultExtension(vtkDataSet *);
 // Generic I/O functions
 // =============================================================================
 
+/// Auxiliary macro to parse common point set output file type options
+#define HANDLE_POINTSETIO_OPTION(fopt)                                         \
+         if (OPTION("-ascii") || OPTION("-nobinary")) fopt = FO_ASCII;         \
+    else if (OPTION("-noascii") || OPTION("-binary")) fopt = FO_Binary;        \
+    else if (OPTION("-compress"))                     fopt = FO_Binary;        \
+    else if (OPTION("-nocompress"))                   fopt = FO_NoCompress
+
+/// Enumeration of file type options
+enum FileOption
+{
+  FO_Default,   ///< Default options
+  FO_ASCII,     ///< Uncompressed ASCII
+  FO_Binary,    ///< (Compressed) binary
+  FO_NoCompress ///< Unompressed binary
+};
+
 /// Read point set from file
 ///
-/// @param[in]  fname           File name.
-/// @param[out] ftype           File type (VTK_ASCII or VTK_BINARY) of legacy VTK input file.
-/// @param[in]  exit_on_failure Call exit when point set could not be read.
+/// @param[in] fname           File name.
+/// @param[in] exit_on_failure Call exit when point set could not be read.
 ///
 /// @return Point set. Dataset is empty if file could not be read and @p exit_on_failure is @c false.
-vtkSmartPointer<vtkPointSet> ReadPointSet(const char *fname, int *ftype = nullptr, bool exit_on_failure = true);
+vtkSmartPointer<vtkPointSet> ReadPointSet(const char *fname, bool exit_on_failure = true);
+
+/// Read point set from file
+///
+/// @param[in]  fname  File name.
+/// @param[out] fopt   Input file type option to be passed to WritePointSet
+///                    in order to save point set again in an equivalent
+///                    file format when the same file format extension is used.
+/// @param[in] exit_on_failure Call exit when point set could not be read.
+///
+/// @return Point set. Dataset is empty if file could not be read and @p exit_on_failure is @c false.
+vtkSmartPointer<vtkPointSet> ReadPointSet(const char *fname, FileOption &fopt, bool exit_on_failure = true);
 
 /// Read polygonal dataset from file
 ///
-/// @param[in]  fname           File name.
-/// @param[out] ftype           File type (VTK_ASCII or VTK_BINARY) of legacy VTK input file.
-/// @param[in]  exit_on_failure Call exit when point set could not be read.
+/// @param[in] fname           File name.
+/// @param[in] exit_on_failure Call exit when point set could not be read.
 ///
 /// @return Polygonal dataset. Dataset is empty if file could not be read and @p exit_on_failure is @c false.
-vtkSmartPointer<vtkPolyData> ReadPolyData(const char *fname, int *ftype = nullptr, bool exit_on_failure = true);
+vtkSmartPointer<vtkPolyData> ReadPolyData(const char *fname, bool exit_on_failure = true);
+
+/// Read polygonal dataset from file
+///
+/// @param[in]  fname  File name.
+/// @param[out] fopt   Input file type option to be passed to WritePointSet
+///                    in order to save point set again in an equivalent
+///                    file format when the same file format extension is used.
+/// @param[in] exit_on_failure Call exit when point set could not be read.
+///
+/// @return Polygonal dataset. Dataset is empty if file could not be read and @p exit_on_failure is @c false.
+vtkSmartPointer<vtkPolyData> ReadPolyData(const char *fname, FileOption &fopt, bool exit_on_failure = true);
 
 /// Write point set to file
 ///
 /// @param fname    File name. The extension determines the output format.
 /// @param pointset Point set to write.
-/// @param compress Whether to use compression when writing to VTK XML format (.vtp).
-/// @param ascii    Whether to use ASCII format when writing to legacy VTK format (.vtk).
+/// @param fopt     Whether to use ASCII, binary, or compressed binary file format.
 ///
 /// @return Whether point set was written successfully to the specified file.
-bool WritePointSet(const char *fname, vtkPointSet *pointset, bool compress = true, bool ascii = false);
+bool WritePointSet(const char *fname, vtkPointSet *pointset, FileOption fopt = FO_Default);
 
 /// Write polygonal dataset to file
 ///
 /// @param fname    File name. The extension determines the output format.
 /// @param polydata Polydata to write.
-/// @param compress Whether to use compression when writing to VTK XML format (.vtp).
-/// @param ascii    Whether to use ASCII format when writing to legacy VTK format (.vtk).
+/// @param fopt     Whether to use ASCII, binary, or compressed binary file format.
 ///
 /// @return Whether point set was written successfully to the specified file.
-bool WritePolyData(const char *fname, vtkPolyData *polydata, bool compress = true, bool ascii = false);
+bool WritePolyData(const char *fname, vtkPolyData *polydata, FileOption fopt = FO_Default);
 
 // =============================================================================
 // TetGen I/O functions
@@ -340,14 +374,12 @@ vtkSmartPointer<vtkPolyData> ReadGIFTI(const char  *fname,
 ///                     - .topo.gii:   Topology.
 ///                     - otherwise:   Point coordinates, topology, and point data.
 /// @param[in] polydata Polygonal dataset.
-/// @param[in] compress Whether to compress binary data.
-/// @param[in] ascii    Whether to write data in ASCII format.
+/// @param[in] fopt     GIFTI file encoding.
 ///
 /// @return Whether dataset was written successfully to the specified file.
 ///
 /// @sa https://www.nitrc.org/projects/gifti/
-bool WriteGIFTI(const char *fname, vtkPolyData *polydata,
-                bool compress = true, bool ascii = false);
+bool WriteGIFTI(const char *fname, vtkPolyData *polydata, FileOption fopt = FO_Default);
 
 #endif // MIRTK_IO_WITH_GIFTI
 

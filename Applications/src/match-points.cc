@@ -98,11 +98,10 @@ int main(int argc, char **argv)
   const char *source_name = POSARG(2);
 
   // Parse options
-  const char *dofin_name   = NULL;
-  const char *corrout_name = NULL;
-  const char *output_name  = NULL;
-  bool        compress     = true;
-  bool        ascii        = false;
+  const char *dofin_name   = nullptr;
+  const char *corrout_name = nullptr;
+  const char *output_name  = nullptr;
+  FileOption  output_fopt  = FO_Default;
   bool        add_vertices = false;
   bool        add_indices  = false;
   bool        add_vectors  = false;
@@ -142,12 +141,9 @@ int main(int argc, char **argv)
     else if (OPTION("-noindices"))  add_indices  = false;
     else if (OPTION("-vectors")   || OPTION("-disp"))   add_vectors = true;
     else if (OPTION("-novectors") || OPTION("-nodisp")) add_vectors = false;
-    else if (OPTION("-compress"))   compress = true;
-    else if (OPTION("-nocompress")) compress = false;
     else if (OPTION("-copy-pd") || OPTION("-copy-pointdata")) copy_pdata = true;
     else if (OPTION("-copy-cd") || OPTION("-copy-celldata"))  copy_cdata = true;
-    else if (OPTION("-binary")) ascii = false;
-    else if (OPTION("-ascii"))  ascii = true;
+    else HANDLE_POINTSETIO_OPTION(output_fopt);
     else HANDLE_COMMON_OR_UNKNOWN_OPTION();
   }
 
@@ -158,9 +154,11 @@ int main(int argc, char **argv)
 
   // Read target and source data sets
   if (verbose) cout << "Read input point sets...", cout.flush();
+  FileOption target_fopt;
   RegisteredPointSet target, source;
-  target.InputPointSet(ReadPointSet(target_name));
+  target.InputPointSet(ReadPointSet(target_name, target_fopt));
   source.InputPointSet(ReadPointSet(source_name));
+  if (output_fopt == FO_Default) output_fopt = target_fopt;
   if (verbose) cout << " done" << endl;
 
   // Read target transformation
@@ -275,7 +273,7 @@ int main(int argc, char **argv)
       }
     }
 
-    output = vtkSmartPointer<vtkPointSet>::NewInstance(target.InputPointSet());
+    output.TakeReference(target.InputPointSet()->NewInstance());
     output->DeepCopy(target.InputPointSet());
     if (!copy_pdata) output->GetPointData()->Initialize();
     if (!copy_cdata) output->GetCellData()->Initialize();
@@ -286,7 +284,7 @@ int main(int argc, char **argv)
     }
     if (add_indices)  output->GetPointData()->SetScalars(indices);
     if (add_vectors)  output->GetPointData()->SetVectors(vectors);
-    WritePointSet(output_name, output, compress, ascii);
+    WritePointSet(output_name, output, output_fopt);
     if (verbose) cout << " done" << endl;
   }
 

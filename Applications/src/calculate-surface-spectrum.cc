@@ -90,7 +90,7 @@ void PrintHelp(const char *name)
 
 // -----------------------------------------------------------------------------
 /// Write point set with surface eigenmodes
-void Write(const char *fname, vtkPointSet *pointset, vtkPolyData *surface, bool compress = true, bool ascii = false, bool as_points = false)
+void Write(const char *fname, vtkPointSet *pointset, vtkPolyData *surface, FileOption fopt, bool as_points = false)
 {
   vtkSmartPointer<vtkPointSet> output = pointset;
 
@@ -120,7 +120,7 @@ void Write(const char *fname, vtkPointSet *pointset, vtkPolyData *surface, bool 
   } else if (pointset != surface) {
 
     vtkSmartPointer<vtkDataArray> output_modes;
-    output_modes = vtkSmartPointer<vtkDataArray>::NewInstance(modes);
+    output_modes.TakeReference(modes->NewInstance());
     output_modes->SetName(modes->GetName());
     output_modes->SetNumberOfComponents(modes->GetNumberOfComponents());
     output_modes->SetNumberOfTuples(pointset->GetNumberOfPoints());
@@ -143,7 +143,7 @@ void Write(const char *fname, vtkPointSet *pointset, vtkPolyData *surface, bool 
     output->GetPointData()->AddArray(output_modes);
   }
 
-  WritePointSet(fname, output, compress, ascii);
+  WritePointSet(fname, output, fopt);
 }
 
 // -----------------------------------------------------------------------------
@@ -213,8 +213,8 @@ int main(int argc, char *argv[])
 {
   REQUIRES_POSARGS(2);
 
-  const char *input_name [2] = {NULL};
-  const char *output_name[2] = {NULL};
+  const char *input_name [2] = {nullptr};
+  const char *output_name[2] = {nullptr};
   int ndatasets = 0;
 
   switch (NUM_POSARGS) {
@@ -236,11 +236,10 @@ int main(int argc, char *argv[])
   };
 
   // Optional arguments
-  const char *target_name = NULL;
-  const char *dofin_name  = NULL;
+  const char *target_name = nullptr;
+  const char *dofin_name  = nullptr;
   int         k           = 5;
-  bool        compress    = true;
-  bool        ascii       = false;
+  FileOption  fopt        = FO_Default;
   bool        as_points   = false;
 
   PointCorrespondence::TypeId ctype = PointCorrespondence::ClosestPoint;
@@ -270,10 +269,7 @@ int main(int argc, char *argv[])
       else cfeature_weight.push_back(1.0);
     }
     else if (OPTION("-points")) as_points = true;
-    else if (OPTION("-compress"))    compress = true;
-    else if (OPTION("-nocompress") ) compress = false;
-    else if (OPTION("-ascii")  || OPTION("-nobinary")) ascii = true;
-    else if (OPTION("-binary") || OPTION("-noascii") ) ascii = false;
+    else HANDLE_POINTSETIO_OPTION(fopt);
     else HANDLE_COMMON_OR_UNKNOWN_OPTION();
   }
 
@@ -301,7 +297,9 @@ int main(int argc, char *argv[])
   vtkSmartPointer<vtkPolyData> surface[2];
   for (int i = 0; i < ndatasets; ++i) {
     if (verbose > 1) cout << "Reading point set " << (i+1) << " from " << input_name[i] << endl;
-    dataset[i] = ReadPointSet(input_name[i]);
+    FileOption opt;
+    dataset[i] = ReadPointSet(input_name[i], opt);
+    if (fopt == FO_Default) fopt = opt;
     if (dataset[i] == NULL || dataset[i]->GetNumberOfPoints() == 0) {
       FatalError("Failed to read dataset " << (i+1) << " or dataset is empty!");
     }
@@ -457,8 +455,9 @@ int main(int argc, char *argv[])
   // Match spectral components of input datasets with those of target dataset
   if (target_name) {
     if (verbose > 1) cout << "Reading target from " << target_name << endl;
-    vtkSmartPointer<vtkPointSet> target = ReadPointSet(target_name);
-    if (target == NULL || target->GetNumberOfPoints() == 0) {
+    const bool exit_on_failure = false;
+    vtkSmartPointer<vtkPointSet> target = ReadPointSet(target_name, exit_on_failure);
+    if (!target || target->GetNumberOfPoints() == 0) {
       Warning("Failed to read target dataset or dataset has no points!"
               " Skipping matching of spectral components therefore.");
     } else {
@@ -470,7 +469,7 @@ int main(int argc, char *argv[])
 
   // Write datasets together with their spectral components
   for (int i = 0; i < ndatasets; ++i) {
-    Write(output_name[i], dataset[i], surface[i], compress, ascii, as_points);
+    Write(output_name[i], dataset[i], surface[i], fopt, as_points);
     if (verbose > 1) cout << "Wrote result dataset to " << output_name[i] << endl;
   }
 

@@ -205,11 +205,11 @@ int main(int argc, char *argv[])
   // Optional arguments
   bool pointdata  = true;
   bool celldata   = true;
-  bool ascii      = false;
-  bool compress   = true;
   bool merge      = false;
   bool with_holes = false;
   double merge_tol = 1e-6;
+
+  FileOption fopt = FO_Default;
 
   for (ALL_OPTIONS) {
     if      (OPTION("-nopointdata")) pointdata = false;
@@ -218,18 +218,17 @@ int main(int argc, char *argv[])
       merge = true;
       if (HAS_ARGUMENT) PARSE_ARGUMENT(merge_tol);
     }
-    else if (OPTION("-holes"))       with_holes = true;
-    else if (OPTION("-ascii"))       ascii = true;
-    else if (OPTION("-binary"))      ascii = false;
-    else if (OPTION("-compress"))    compress = true;
-    else if (OPTION("-nocompress"))  compress = false;
+    else if (OPTION("-holes")) with_holes = true;
+    else HANDLE_POINTSETIO_OPTION(fopt);
     else HANDLE_COMMON_OR_UNKNOWN_OPTION();
   }
 
   // Read input point sets
   Array<vtkSmartPointer<vtkPointSet> > pointsets(input_names.size());
   for (size_t i = 0; i < input_names.size(); ++i) {
-    pointsets[i] = ReadPointSet(input_names[i], NULL, true);
+    FileOption opt;
+    pointsets[i] = ReadPointSet(input_names[i], opt);
+    if (fopt == FO_Default) fopt = opt;
   }
 
   // Combine point sets into single point set
@@ -307,7 +306,7 @@ int main(int argc, char *argv[])
   }
 
   // Write output point set
-  if (!WritePointSet(output_name, output, compress, ascii)) {
+  if (!WritePointSet(output_name, output, fopt)) {
     FatalError("Failed to write output point set to " << output_name);
     exit(1);
   }

@@ -417,7 +417,8 @@ int main(int argc, char *argv[])
       // FIXME: Silence errors of VTK readers instead
       fext != ".nii"  && fext != ".hdr" && fext != ".img" && fext != ".png" &&
       fext != ".gipl" && fext != ".pgm") {
-    pointset = ReadPointSet(POSARG(1), NULL, false);
+    const bool exit_on_failure = false;
+    pointset = ReadPointSet(POSARG(1), exit_on_failure);
     if (pointset) {
       polydata = ConvertToPolyData(pointset);
       polydata->BuildLinks();

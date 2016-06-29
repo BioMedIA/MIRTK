@@ -104,9 +104,8 @@ int main(int argc, char **argv)
   quadric->AttributeErrorMetricOn(); // Otherwise point data is not copied
 
   // Change decimater settings to user specified values
-  bool                  ascii    = false;
-  bool                  compress = true;
-  vtkPolyDataAlgorithm *filter   = quadric;
+  FileOption            fopt   = FO_Default;
+  vtkPolyDataAlgorithm *filter = quadric;
 
   for (ALL_OPTIONS) {
     if (OPTION("-reduceby") || OPTION("-targetreduction")) {
@@ -143,15 +142,12 @@ int main(int argc, char **argv)
     else if (OPTION("-pro")) {
       filter = decimater;
     }
-    else if (OPTION("-compress"))   compress = true;
-    else if (OPTION("-nocompress")) compress = false;
-    else if (OPTION("-binary"))     ascii    = false;
-    else if (OPTION("-ascii"))      ascii    = true;
+    else HANDLE_POINTSETIO_OPTION(fopt);
     else HANDLE_COMMON_OR_UNKNOWN_OPTION();
   }
 
   // Read input mesh
-  vtkSmartPointer<vtkPolyData> input = ReadPolyData(POSARG(1));
+  vtkSmartPointer<vtkPolyData> input = ReadPolyData(POSARG(1), fopt);
 
   // Execute pipeline
   vtkSmartPointer<vtkTriangleFilter> triangulator;
@@ -164,7 +160,7 @@ int main(int argc, char **argv)
   vtkSmartPointer<vtkPolyData> output = filter->GetOutput();
 
   // Write output mesh
-  WritePolyData(POSARG(2), output, compress, ascii);
+  WritePolyData(POSARG(2), output, fopt);
 
   // Some verbose reporting
   if (verbose) {

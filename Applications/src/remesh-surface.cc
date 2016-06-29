@@ -27,7 +27,6 @@
 #include "mirtk/VtkMath.h"
 
 #include "vtkSmartPointer.h"
-#include "vtkDataReader.h" // VTK_BINARY, VTK_ASCII defines
 #include "vtkPolyData.h"
 #include "vtkPointData.h"
 #include "vtkCellArray.h"
@@ -113,6 +112,7 @@ void PrintHelp(const char *name)
 int main(int argc, char *argv[])
 {
   SurfaceRemeshing remesher;
+  FileOption fopt = FO_Default;
 
   // Parse positional arguments
   EXPECTS_POSARGS(2);
@@ -125,8 +125,7 @@ int main(int argc, char *argv[])
   const string ext  = Extension(output_name);
 
   // Read input mesh
-  int output_type = VTK_BINARY;
-  vtkSmartPointer<vtkPolyData> mesh = ReadPolyData(input_name, &output_type);
+  vtkSmartPointer<vtkPolyData> mesh = ReadPolyData(input_name, fopt);
   const vtkIdType npoints = mesh->GetNumberOfPoints();
   const vtkIdType ncells  = mesh->GetNumberOfCells();
 
@@ -136,8 +135,7 @@ int main(int argc, char *argv[])
   Array<double> minangle;
   Array<double> maxangle;
 
-  const char *target_name = NULL;
-  bool        compress    = true;
+  const char *target_name = nullptr;
   bool        write_all   = false;
 
   for (ALL_OPTIONS) {
@@ -235,10 +233,7 @@ int main(int argc, char *argv[])
       remesher.InvertTrianglesToIncreaseMinHeightOff();
     }
     else if (OPTION("-target")) target_name = ARGUMENT;
-    else if (OPTION("-ascii" ) || OPTION("-nobinary")) output_type = VTK_ASCII;
-    else if (OPTION("-binary") || OPTION("-noascii" )) output_type = VTK_BINARY;
-    else if (OPTION("-compress"))   compress = true;
-    else if (OPTION("-nocompress")) compress = false;
+    else HANDLE_POINTSETIO_OPTION(fopt);
     else HANDLE_COMMON_OR_UNKNOWN_OPTION();
   }
 
@@ -348,5 +343,9 @@ int main(int argc, char *argv[])
   }
 
   // Write surface mesh
-  return WritePolyData(output_name, mesh, compress, output_type == VTK_ASCII) ? 0 : 1;
+  if (!WritePolyData(output_name, mesh, fopt)) {
+    FatalError("Failed to write output surface to file " << output_name);
+  }
+
+  return 0;
 }

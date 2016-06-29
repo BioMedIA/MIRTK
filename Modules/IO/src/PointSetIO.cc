@@ -87,13 +87,22 @@ const char *DefaultExtension(vtkDataSet *dataset)
 // =============================================================================
 
 // -----------------------------------------------------------------------------
-vtkSmartPointer<vtkPointSet> ReadPointSet(const char *fname, int *ftype, bool exit_on_failure)
+vtkSmartPointer<vtkPointSet> ReadPointSet(const char *fname, bool exit_on_failure)
 {
-  vtkSmartPointer<vtkPointSet> pointset;
+  FileOption fopt;
+  return ReadPointSet(fname, fopt, exit_on_failure);
+}
+
+// -----------------------------------------------------------------------------
+vtkSmartPointer<vtkPointSet> ReadPointSet(const char *fname, FileOption &fopt, bool exit_on_failure)
+{
   const string ext = Extension(fname);
   if (ext == ".vtp" || ext == ".stl" || ext == ".ply" || ext == ".obj" || ext == ".dfs" || ext == ".off" || ext == ".gii") {
-    pointset = ReadPolyData(fname);
-  } else if (ext.length() == 4  && ext.substr(0, 3) == ".vt" && ext != ".vtk") {
+    return ReadPolyData(fname, fopt, exit_on_failure);
+  }
+  fopt = FO_Default;
+  vtkSmartPointer<vtkPointSet> pointset;
+  if (ext.length() == 4  && ext.substr(0, 3) == ".vt" && ext != ".vtk") {
     vtkSmartPointer<vtkXMLGenericDataObjectReader> reader;
     reader = vtkSmartPointer<vtkXMLGenericDataObjectReader>::New();
     reader->SetFileName(fname);
@@ -104,8 +113,8 @@ vtkSmartPointer<vtkPointSet> ReadPointSet(const char *fname, int *ftype, bool ex
     reader = vtkSmartPointer<vtkGenericDataObjectReader>::New();
     reader->SetFileName(fname);
     reader->Update();
-    if (ftype) *ftype = reader->GetFileType();
     pointset = vtkPointSet::SafeDownCast(reader->GetOutput());
+    fopt = (reader->GetFileType() == VTK_ASCII ? FO_ASCII : FO_Binary);
   }
   if (exit_on_failure && (!pointset || pointset->GetNumberOfPoints() == 0)) {
     cerr << "File " << fname << " either contains no points or could not be read" << endl;
@@ -115,35 +124,44 @@ vtkSmartPointer<vtkPointSet> ReadPointSet(const char *fname, int *ftype, bool ex
 }
 
 // -----------------------------------------------------------------------------
-bool WritePointSet(const char *fname, vtkPointSet *pointset, bool compress, bool ascii)
+bool WritePointSet(const char *fname, vtkPointSet *pointset, FileOption fopt)
 {
   vtkPolyData *polydata = vtkPolyData::SafeDownCast(pointset);
-  if (polydata) return WritePolyData(fname, polydata, compress, ascii);
-  const string ext = Extension(fname);
+  if (polydata) return WritePolyData(fname, polydata, fopt);
+
   int success = 0;
+  const string ext = Extension(fname);
   if (ext.length() == 4 && ext.substr(0, 3) == ".vt" && ext != ".vtk") {
     vtkSmartPointer<vtkXMLDataSetWriter> writer;
     writer = vtkSmartPointer<vtkXMLDataSetWriter>::New();
     SetVTKInput(writer, pointset);
     writer->SetFileName(fname);
-    if (compress) writer->SetCompressorTypeToZLib();
-    else          writer->SetCompressorTypeToNone();
+    if (fopt == FO_NoCompress) writer->SetCompressorTypeToNone();
+    else                       writer->SetCompressorTypeToZLib();
     success = writer->Write();
   } else {
     vtkSmartPointer<vtkDataSetWriter> writer;
     writer = vtkSmartPointer<vtkDataSetWriter>::New();
     SetVTKInput(writer, pointset);
     writer->SetFileName(fname);
-    if (ascii) writer->SetFileTypeToASCII();
-    else       writer->SetFileTypeToBinary();
+    if (fopt == FO_ASCII) writer->SetFileTypeToASCII();
+    else                  writer->SetFileTypeToBinary();
     success = writer->Write();
   }
   return (success == 1);
 }
 
 // -----------------------------------------------------------------------------
-vtkSmartPointer<vtkPolyData> ReadPolyData(const char *fname, int *ftype, bool exit_on_failure)
+vtkSmartPointer<vtkPolyData> ReadPolyData(const char *fname, bool exit_on_failure)
 {
+  FileOption fopt;
+  return ReadPolyData(fname, fopt, exit_on_failure);
+}
+
+// -----------------------------------------------------------------------------
+vtkSmartPointer<vtkPolyData> ReadPolyData(const char *fname, FileOption &fopt, bool exit_on_failure)
+{
+  fopt = FO_Default;
   vtkSmartPointer<vtkPolyData> polydata;
   const string ext = Extension(fname);
   if (ext == ".vtp") {
@@ -188,8 +206,8 @@ vtkSmartPointer<vtkPolyData> ReadPolyData(const char *fname, int *ftype, bool ex
     reader = vtkSmartPointer<vtkPolyDataReader>::New();
     reader->SetFileName(fname);
     reader->Update();
-    if (ftype) *ftype = reader->GetFileType();
     polydata = reader->GetOutput();
+    fopt = (reader->GetFileType() == VTK_ASCII ? FO_ASCII : FO_Binary);
   }
   if (exit_on_failure && polydata->GetNumberOfPoints() == 0) {
     cerr << "Error: File '" << fname << "' either contains no points or could not be read!" << endl;
@@ -199,7 +217,7 @@ vtkSmartPointer<vtkPolyData> ReadPolyData(const char *fname, int *ftype, bool ex
 }
 
 // -----------------------------------------------------------------------------
-bool WritePolyData(const char *fname, vtkPolyData *polydata, bool compress, bool ascii)
+bool WritePolyData(const char *fname, vtkPolyData *polydata, FileOption fopt)
 {
   const string ext = Extension(fname);
   int success = 0;
@@ -208,23 +226,23 @@ bool WritePolyData(const char *fname, vtkPolyData *polydata, bool compress, bool
     writer = vtkSmartPointer<vtkXMLPolyDataWriter>::New();
     SetVTKInput(writer, polydata);
     writer->SetFileName(fname);
-    if (compress) writer->SetCompressorTypeToZLib();
-    else          writer->SetCompressorTypeToNone();
+    if (fopt == FO_NoCompress) writer->SetCompressorTypeToNone();
+    else                       writer->SetCompressorTypeToZLib();
     success = writer->Write();
   } else if (ext == ".stl") {
     vtkSmartPointer<vtkSTLWriter> writer;
     writer = vtkSmartPointer<vtkSTLWriter>::New();
     SetVTKInput(writer, polydata);
-    if (ascii) writer->SetFileTypeToASCII();
-    else       writer->SetFileTypeToBinary();
+    if (fopt == FO_ASCII) writer->SetFileTypeToASCII();
+    else                  writer->SetFileTypeToBinary();
     writer->SetFileName(fname);
     success = writer->Write();
   } else if (ext == ".ply") {
     vtkSmartPointer<vtkPLYWriter> writer;
     writer = vtkSmartPointer<vtkPLYWriter>::New();
     SetVTKInput(writer, polydata);
-    if (ascii) writer->SetFileTypeToASCII();
-    else       writer->SetFileTypeToBinary();
+    if (fopt == FO_ASCII) writer->SetFileTypeToASCII();
+    else                  writer->SetFileTypeToBinary();
     writer->SetFileName(fname);
     success = writer->Write();
   } else if (ext == ".node") {
@@ -239,7 +257,7 @@ bool WritePolyData(const char *fname, vtkPolyData *polydata, bool compress, bool
     success = WriteOFF(fname, polydata);
   } else if (ext == ".gii") {
     #if MIRTK_IO_WITH_GIFTI
-      success = WriteGIFTI(fname, polydata, compress, ascii);
+      success = WriteGIFTI(fname, polydata, fopt);
     #else
       cerr << "Error: Cannot write surface to GIFTI file because MIRTK I/O library was built without GIFTI support!" << endl;
     #endif
@@ -248,8 +266,8 @@ bool WritePolyData(const char *fname, vtkPolyData *polydata, bool compress, bool
     writer = vtkSmartPointer<vtkPolyDataWriter>::New();
     SetVTKInput(writer, polydata);
     writer->SetFileName(fname);
-    if (ascii) writer->SetFileTypeToASCII();
-    else       writer->SetFileTypeToBinary();
+    if (fopt == FO_ASCII) writer->SetFileTypeToASCII();
+    else                  writer->SetFileTypeToBinary();
     success = writer->Write();
   }
   return (success == 1);
@@ -1694,7 +1712,7 @@ static bool AddPointData(gifti_image *gim, vtkPointData *pd)
 }
 
 // -----------------------------------------------------------------------------
-bool WriteGIFTI(const char *fname, vtkPolyData *polydata, bool compress, bool ascii)
+bool WriteGIFTI(const char *fname, vtkPolyData *polydata, FileOption fopt)
 {
   // Determine type of GIFTI file from file name extensions
   const string ext  = Extension(fname, EXT_Last);
@@ -1780,9 +1798,9 @@ bool WriteGIFTI(const char *fname, vtkPolyData *polydata, bool compress, bool as
   #ifndef HAVE_ZLIB
     compress = false;
   #endif
-  int encoding = (ascii      ? GIFTI_ENCODING_ASCII :
-                   (compress ? GIFTI_ENCODING_B64GZ :
-                               GIFTI_ENCODING_B64BIN));
+  int encoding = (fopt == FO_ASCII      ? GIFTI_ENCODING_ASCII  :
+                 (fopt == FO_NoCompress ? GIFTI_ENCODING_B64BIN :
+                                          GIFTI_ENCODING_B64GZ));
   for (int i = 0; i < gim->numDA; ++i) {
     gim->darray[i]->encoding = encoding;
   }

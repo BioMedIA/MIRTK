@@ -105,8 +105,8 @@ int main(int argc, char **argv)
   double target_reduction = .0;
   bool   relative         = false;
   bool   implicit         = false;
-  bool   compress         = true;
-  bool   ascii            = false;
+
+  FileOption fopt = FO_Default;
 
   // resolution of implicit surface model
   int    nx =  0, ny =  0, nz =  0;
@@ -150,15 +150,12 @@ int main(int argc, char **argv)
         }
       }
     }
-    else if (OPTION("-compress"))   compress = true;
-    else if (OPTION("-nocompress")) compress = false;
-    else if (OPTION("-binary"))     ascii = false;
-    else if (OPTION("-ascii"))      ascii = true;
+    else HANDLE_POINTSETIO_OPTION(fopt);
     else HANDLE_COMMON_OR_UNKNOWN_OPTION();
   }
 
   // Read input point set
-  vtkSmartPointer<vtkPointSet> pointset = ReadPointSet(input_name);
+  vtkSmartPointer<vtkPointSet> pointset = ReadPointSet(input_name, fopt);
   vtkSmartPointer<vtkPolyData> output   = DataSetSurface(pointset);
   vtkSmartPointer<vtkPolyData> surface  = output;
   vtkSmartPointer<vtkPolyData> offset_surface;
@@ -419,7 +416,7 @@ int main(int argc, char **argv)
   }
 
   // Write output surface mesh
-  if (!WritePolyData(output_name, output, compress, ascii)) {
+  if (!WritePolyData(output_name, output, fopt)) {
     FatalError("Failed to write offset surface to " << output_name);
   }
   return 0;
