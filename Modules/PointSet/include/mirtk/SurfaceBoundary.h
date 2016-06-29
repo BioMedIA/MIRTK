@@ -166,6 +166,13 @@ public:
   /// \param[in] n Index of boundary segment.
   ///
   /// \returns Reference to n-th boundary segment.
+  BoundarySegment &Segment(int n);
+
+  /// Get n-th boundary segment
+  ///
+  /// \param[in] n Index of boundary segment.
+  ///
+  /// \returns Reference to n-th boundary segment.
   const BoundarySegment &Segment(int n) const;
 
   /// Get longest boundary segment
@@ -277,6 +284,12 @@ inline bool SurfaceBoundary::Contains(int ptId) const
 inline int SurfaceBoundary::NumberOfSegments() const
 {
   return static_cast<int>(_Segments.size());
+}
+
+// -----------------------------------------------------------------------------
+inline BoundarySegment &SurfaceBoundary::Segment(int n)
+{
+  return _Segments[n];
 }
 
 // -----------------------------------------------------------------------------
