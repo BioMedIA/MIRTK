@@ -1,8 +1,8 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2013-2015 Imperial College London
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2013-2016 Imperial College London
+ * Copyright 2013-2016 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+#include "mirtk/Config.h" // MIRTK_USE_FLOAT_BY_DEFAULT
 
 #include "mirtk/Vtk.h"
 #include "mirtk/Stream.h"
@@ -38,6 +40,13 @@ namespace mirtk {
 vtkSmartPointer<vtkDataArray> NewVTKDataArray(int vtkType)
 {
   switch (vtkType) {
+    case VTK_VOID: {
+      #if MIRTK_USE_FLOAT_BY_DEFAULT
+        return vtkSmartPointer<vtkFloatArray>::New();
+      #else
+        return vtkSmartPointer<vtkDoubleArray>::New();
+      #endif
+    } break;
     case VTK_CHAR:           return vtkSmartPointer<vtkCharArray>::New();
     case VTK_UNSIGNED_CHAR:  return vtkSmartPointer<vtkUnsignedCharArray>::New();
     case VTK_SHORT:          return vtkSmartPointer<vtkShortArray>::New();
