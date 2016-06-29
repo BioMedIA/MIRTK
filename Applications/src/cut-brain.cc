@@ -79,16 +79,15 @@ enum Hemisphere
 double SymmetricCuttingPlane(const ByteImage &mask, double n[3])
 {
   BytePixel h;
-  Point center[2];
-  int numvox[2] = {0};
-  double p[3];
+  Point center[2], p;
+  int   numvox[2] = {0};
   for (int k = 0; k < mask.Z(); ++k)
   for (int j = 0; j < mask.Y(); ++j)
   for (int i = 0; i < mask.X(); ++i) {
     h = mask(i, j, k) - 1;
     if (h < 0 || h > 1) continue;
-    p[0] = i, p[1] = j, p[2] = k;
-    mask.ImageToWorld(p[0], p[1], p[2]);
+    p._x = i, p._y = j, p._z = k;
+    mask.ImageToWorld(p);
     center[h] += p;
     numvox[h] += 1;
   }
@@ -98,12 +97,10 @@ double SymmetricCuttingPlane(const ByteImage &mask, double n[3])
   }
   center[0] /= numvox[0];
   center[1] /= numvox[1];
-  p[0] = (center[0]._x + center[1]._x) / 2.0;
-  p[1] = (center[0]._y + center[1]._y) / 2.0;
-  p[2] = (center[0]._z + center[1]._z) / 2.0;
-  n[0] =  center[0]._x - center[1]._x;
-  n[1] =  center[0]._y - center[1]._y;
-  n[2] =  center[0]._z - center[1]._z;
+  p = (center[0] + center[1]) / 2.0;
+  n[0] = center[0]._x - center[1]._x;
+  n[1] = center[0]._y - center[1]._y;
+  n[2] = center[0]._z - center[1]._z;
   double m = sqrt(n[0]*n[0] + n[1]*n[1] + n[2]*n[2]);
   n[0] /= m, n[1] /= m, n[2] /= m;
   return - (p[0]*n[0] + p[1]*n[1] + p[2]*n[2]);
