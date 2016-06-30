@@ -74,22 +74,19 @@ int main(int argc, char *argv[])
   const char *input_name  = POSARG(1);
   const char *output_name = POSARG(2);
 
-  int  m        = 0;
-  int  n        = 1;
-  bool compress = true;
-  bool ascii    = false;
+  int m = 0;
+  int n = 1;
+
+  FileOption fopt = FO_Default;
 
   for (ALL_OPTIONS) {
     if      (OPTION("-m")) PARSE_ARGUMENT(m);
     else if (OPTION("-n")) PARSE_ARGUMENT(n);
-    else if (OPTION("-binary"))     ascii    = false;
-    else if (OPTION("-ascii"))      ascii    = true;
-    else if (OPTION("-compress"))   compress = true;
-    else if (OPTION("-nocompress")) compress = false;
+    else HANDLE_POINTSETIO_OPTION(fopt);
     else HANDLE_STANDARD_OR_UNKNOWN_OPTION();
   }
 
-  vtkSmartPointer<vtkPolyData> input = ReadPolyData(input_name);
+  vtkSmartPointer<vtkPolyData> input = ReadPolyData(input_name, fopt);
 
   if (verbose) cout << "Analyzing connected components...", cout.flush();
   vtkNew<vtkPolyDataConnectivityFilter> lcc;
@@ -127,7 +124,7 @@ int main(int argc, char *argv[])
   cleaner->Update();
   if (verbose) cout << " done" << endl;
 
-  if (!WritePointSet(output_name, cleaner->GetOutput(), compress, ascii)) {
+  if (!WritePointSet(output_name, cleaner->GetOutput(), fopt)) {
     FatalError("Failed to write components to file " << output_name);
   }
 

@@ -53,6 +53,7 @@ namespace mirtk {
 
 MIRTK_PointSet_EXPORT const char *SurfaceCurvature::MINIMUM            = "Minimum_Curvature";
 MIRTK_PointSet_EXPORT const char *SurfaceCurvature::MAXIMUM            = "Maximum_Curvature";
+MIRTK_PointSet_EXPORT const char *SurfaceCurvature::PRINCIPAL          = "Principal_Curvatures";
 MIRTK_PointSet_EXPORT const char *SurfaceCurvature::MEAN               = "Mean_Curvature";
 MIRTK_PointSet_EXPORT const char *SurfaceCurvature::GAUSS              = "Gauss_Curvature";
 MIRTK_PointSet_EXPORT const char *SurfaceCurvature::CURVEDNESS         = "Curvedness";
@@ -212,45 +213,45 @@ struct DecomposeTensors
   static void ComposeTensor(double T[6], EigenValues lambda, EigenVectors e, int i, int j, int k)
   {
     T[SurfaceCurvature::XX] = lambda(i) * e(i, i) * e(i, i)
-                             + lambda(j) * e(i, j) * e(i, j)
-                             + lambda(k) * e(i, k) * e(i, k);
+                            + lambda(j) * e(i, j) * e(i, j)
+                            + lambda(k) * e(i, k) * e(i, k);
     T[SurfaceCurvature::YY] = lambda(i) * e(j, i) * e(j, i)
-                             + lambda(j) * e(j, j) * e(j, j)
-                             + lambda(k) * e(j, k) * e(j, k);
+                            + lambda(j) * e(j, j) * e(j, j)
+                            + lambda(k) * e(j, k) * e(j, k);
     T[SurfaceCurvature::ZZ] = lambda(i) * e(k, i) * e(k, i)
-                             + lambda(j) * e(k, j) * e(k, j)
-                             + lambda(k) * e(k, k) * e(k, k);
+                            + lambda(j) * e(k, j) * e(k, j)
+                            + lambda(k) * e(k, k) * e(k, k);
     T[SurfaceCurvature::XY] = lambda(i) * e(i, i) * e(j, i)
-                             + lambda(j) * e(i, j) * e(j, j)
-                             + lambda(k) * e(i, k) * e(j, k);
+                            + lambda(j) * e(i, j) * e(j, j)
+                            + lambda(k) * e(i, k) * e(j, k);
     T[SurfaceCurvature::YZ] = lambda(i) * e(j, i) * e(k, i)
-                             + lambda(j) * e(j, j) * e(k, j)
-                             + lambda(k) * e(j, k) * e(k, k);
+                            + lambda(j) * e(j, j) * e(k, j)
+                            + lambda(k) * e(j, k) * e(k, k);
     T[SurfaceCurvature::XZ] = lambda(i) * e(i, i) * e(k, i)
-                             + lambda(j) * e(i, j) * e(k, j)
-                             + lambda(k) * e(i, k) * e(k, k);
+                            + lambda(j) * e(i, j) * e(k, j)
+                            + lambda(k) * e(i, k) * e(k, k);
   }
 
   static void ComposeTensor(double T[6], EigenValues lambda, double a[3], double b[3], double c[3], int i, int j, int k)
   {
     T[SurfaceCurvature::XX] = lambda(i) * a[0] * a[0]
-                             + lambda(j) * b[0] * b[0]
-                             + lambda(k) * c[0] * c[0];
+                            + lambda(j) * b[0] * b[0]
+                            + lambda(k) * c[0] * c[0];
     T[SurfaceCurvature::YY] = lambda(i) * a[1] * a[1]
-                             + lambda(j) * b[1] * b[1]
-                             + lambda(k) * c[1] * c[1];
+                            + lambda(j) * b[1] * b[1]
+                            + lambda(k) * c[1] * c[1];
     T[SurfaceCurvature::ZZ] = lambda(i) * a[2] * a[2]
-                             + lambda(j) * b[2] * b[2]
-                             + lambda(k) * c[2] * c[2];
+                            + lambda(j) * b[2] * b[2]
+                            + lambda(k) * c[2] * c[2];
     T[SurfaceCurvature::XY] = lambda(i) * a[0] * a[1]
-                             + lambda(j) * b[0] * b[1]
-                             + lambda(k) * c[0] * c[1];
+                            + lambda(j) * b[0] * b[1]
+                            + lambda(k) * c[0] * c[1];
     T[SurfaceCurvature::YZ] = lambda(i) * a[1] * a[2]
-                             + lambda(j) * b[1] * b[2]
-                             + lambda(k) * c[1] * c[2];
+                            + lambda(j) * b[1] * b[2]
+                            + lambda(k) * c[1] * c[2];
     T[SurfaceCurvature::XZ] = lambda(i) * a[0] * a[2]
-                             + lambda(j) * b[0] * b[2]
-                             + lambda(k) * c[0] * c[2];
+                            + lambda(j) * b[0] * b[2]
+                            + lambda(k) * c[0] * c[2];
   }
 
   void operator ()(const blocked_range<vtkIdType> &re) const
@@ -375,6 +376,24 @@ struct CalculateMinMaxCurvature
   vtkDataArray *_Gauss;
   vtkDataArray *_Minimum;
   vtkDataArray *_Maximum;
+  int           _MinimumComponentIndex;
+  int           _MaximumComponentIndex;
+
+  CalculateMinMaxCurvature(vtkDataArray *min, vtkDataArray *max)
+  :
+    _Minimum(min),
+    _Maximum(max),
+    _MinimumComponentIndex(0),
+    _MaximumComponentIndex(0)
+  {}
+
+  CalculateMinMaxCurvature(vtkDataArray *min, int j1, vtkDataArray *max, int j2)
+  :
+    _Minimum(min),
+    _Maximum(max),
+    _MinimumComponentIndex(j1),
+    _MaximumComponentIndex(j2)
+  {}
 
   void operator ()(const blocked_range<vtkIdType> &re) const
   {
@@ -384,8 +403,12 @@ struct CalculateMinMaxCurvature
       k    = _Gauss->GetComponent(ptId, 0);
       h2_k = h * h - k;
       h2_k = (h2_k > .0 ? sqrt(h2_k) : .0);
-      if (_Minimum) _Minimum->SetComponent(ptId, 0, h - h2_k);
-      if (_Maximum) _Maximum->SetComponent(ptId, 0, h + h2_k);
+      if (_Minimum) {
+        _Minimum->SetComponent(ptId, _MinimumComponentIndex, h - h2_k);
+      }
+      if (_Maximum) {
+        _Maximum->SetComponent(ptId, _MaximumComponentIndex, h + h2_k);
+      }
     }
   }
 };
@@ -589,6 +612,13 @@ vtkDataArray *SurfaceCurvature::GetMaximumCurvature()
 {
   ComputeMinMaxCurvature(false, true);
   return _Output->GetPointData()->GetArray(MAXIMUM);
+}
+
+// -----------------------------------------------------------------------------
+vtkDataArray *SurfaceCurvature::GetPrincipalCurvatures()
+{
+  ComputePrincipalCurvatures();
+  return _Output->GetPointData()->GetArray(PRINCIPAL);
 }
 
 // -----------------------------------------------------------------------------
@@ -806,6 +836,53 @@ void SurfaceCurvature::ComputeGaussCurvature()
 }
 
 // -----------------------------------------------------------------------------
+void SurfaceCurvature::ComputePrincipalCurvatures()
+{
+  const vtkIdType n = _Output->GetNumberOfPoints();
+
+  // Skip if requested output arrays already exist
+  vtkSmartPointer<vtkDataArray> principal;
+  principal = _Output->GetPointData()->GetArray(PRINCIPAL);
+  if (principal) return;
+
+  vtkDataArray *minimum = _Output->GetPointData()->GetArray(MINIMUM);
+  vtkDataArray *maximum = _Output->GetPointData()->GetArray(MAXIMUM);
+
+  if (minimum && maximum) {
+
+    // Allocate output arrays
+    principal = NewArray(PRINCIPAL, n, 2);
+    _Output->GetPointData()->AddArray(principal);
+
+    // Copy principal curvatures
+    for (vtkIdType ptId = 0; ptId < n; ++ptId) {
+      principal->SetComponent(ptId, 0, minimum->GetComponent(ptId, 0));
+      principal->SetComponent(ptId, 1, minimum->GetComponent(ptId, 1));
+    }
+
+  } else {
+
+    // Get mean and Gauss curvature
+    vtkDataArray *mean  = GetMeanCurvature();
+    vtkDataArray *gauss = GetGaussCurvature();
+
+    MIRTK_START_TIMING();
+
+    // Allocate output arrays
+    principal = NewArray(PRINCIPAL, n, 2);
+    _Output->GetPointData()->AddArray(principal);
+
+    // Compute principal curvatures
+    CalculateMinMaxCurvature eval(principal, 0, principal, 1);
+    eval._Mean  = mean;
+    eval._Gauss = gauss;
+    parallel_for(blocked_range<vtkIdType>(0, n), eval);
+
+    MIRTK_DEBUG_TIMING(3, "computation of principal curvatures");
+  }
+}
+
+// -----------------------------------------------------------------------------
 void SurfaceCurvature::ComputeMinMaxCurvature(bool min, bool max)
 {
   const vtkIdType n = _Output->GetNumberOfPoints();
@@ -833,11 +910,9 @@ void SurfaceCurvature::ComputeMinMaxCurvature(bool min, bool max)
   }
 
   // Compute minimum/maximum curvature
-  CalculateMinMaxCurvature eval;
-  eval._Mean    = mean;
-  eval._Gauss   = gauss;
-  eval._Minimum = minimum;
-  eval._Maximum = maximum;
+  CalculateMinMaxCurvature eval(minimum, maximum);
+  eval._Mean  = mean;
+  eval._Gauss = gauss;
   parallel_for(blocked_range<vtkIdType>(0, n), eval);
 
   MIRTK_DEBUG_TIMING(3, "computation of min/max curvature");

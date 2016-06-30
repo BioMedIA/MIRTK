@@ -72,10 +72,9 @@ int main(int argc, char **argv)
 
   const char *input_name  = POSARG(1);
   const char *output_name = POSARG(2);
+  FileOption output_fopt  = FO_Default;
 
   double isovalue  = .0;
-  bool   compress  = true;
-  bool   ascii     = false;
   bool   isotropic = false;
   bool   close     = false;
   bool   gradients = false;
@@ -107,10 +106,7 @@ int main(int argc, char **argv)
       normals = false;
     }
     else if (OPTION("-blur")) PARSE_ARGUMENT(blurring);
-    else if (OPTION("-compress"))   compress = true;
-    else if (OPTION("-nocompress")) compress = false;
-    else if (OPTION("-ascii"))      ascii    = true;
-    else if (OPTION("-binary"))     ascii    = false;
+    else HANDLE_POINTSETIO_OPTION(output_fopt);
     else HANDLE_COMMON_OR_UNKNOWN_OPTION();
   }
 
@@ -123,7 +119,7 @@ int main(int argc, char **argv)
   vtkSmartPointer<vtkPolyData> isosurface;
   isosurface = Isosurface(image, isovalue, blurring, isotropic, close, normals, gradients);
 
-  if (!WritePolyData(output_name, isosurface, compress, ascii)) {
+  if (!WritePolyData(output_name, isosurface, output_fopt)) {
     FatalError("Failed to write surface to " << output_name);
   }
 

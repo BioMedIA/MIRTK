@@ -22,6 +22,7 @@
 
 #include "mirtk/IOConfig.h"
 #include "mirtk/ConnectedComponents.h"
+#include "mirtk/UnorderedSet.h"
 
 using namespace mirtk;
 
@@ -55,6 +56,12 @@ void PrintHelp(const char *name)
   cout << "\n";
   cout << "  -all\n";
   cout << "      Extract all components.\n";
+  cout << "\n";
+  cout << "  -min-size <n>\n";
+  cout << "      Minimum number of component voxels. (default: 0)\n";
+  cout << "\n";
+  cout << "  -max-size <n>\n";
+  cout << "      Maximum number of component voxels. (default: all voxels)\n";
   cout << "\n";
   cout << "  -connectivity <num>\n";
   cout << "      Type of voxel connectivity (4, 6, 18, or 26). (default: 26)\n";
@@ -94,15 +101,19 @@ int main(int argc, char *argv[])
   const char *input_name  = POSARG(1);
   const char *output_name = POSARG(2);
 
-  int                         m = 0, n = 1;
+  int                         m = 0, n = -1;
   ConnectedComponentsOrdering ordering     = CC_LargestFirst;
   ConnectivityType            connectivity = CONNECTIVITY_26;
   OutputType                  output_type  = InputLabels;
+  int                         min_size     = 0;
+  int                         max_size     = 0;
 
   for (ALL_OPTIONS) {
     if      (OPTION("-m"))            PARSE_ARGUMENT(m);
     else if (OPTION("-n"))            PARSE_ARGUMENT(n);
     else if (OPTION("-all"))          n = 0;
+    else if (OPTION("-min-size"))     PARSE_ARGUMENT(min_size);
+    else if (OPTION("-max-size"))     PARSE_ARGUMENT(max_size);
     else if (OPTION("-connectivity")) PARSE_ARGUMENT(connectivity);
     else if (OPTION("-ordering"))     PARSE_ARGUMENT(ordering);
     else if (OPTION("-output-component-labels")) output_type = ComponentLabels;
@@ -143,39 +154,90 @@ int main(int argc, char *argv[])
   if (m >= nregions) {
     FatalError("Start index -m is greater or equal than the total no. of components!");
   }
-  if (n <= 0) n = nregions;
+  if (n < 0) {
+    if (min_size <= 0 && max_size <= 0) n = 1;
+    else                                n = nregions;
+  } else if (n == 0) {
+    n = nregions;
+  }
   if (m + n > nregions) n = nregions - m;
+
+  if (min_size <= 0) min_size = 0;
+  if (max_size <= 0) max_size = labels.NumberOfVoxels();
 
   const GreyPixel min_label = m + 1; // component labels are 1-based
   const GreyPixel max_label = min_label + n - 1;
 
-  GreyImage output(labels.Attributes());
-  GreyPixel component_label;
-
-  if (verbose) {
-    switch (output_type) {
-      case ComponentLabels: cout << "Relabeling"; break;
-      case ComponentMask:   cout << "Masking";    break;
-      case InputLabels:     cout << "Extracting"; break;
+  UnorderedSet<int> component_labels;
+  for (int component_label = min_label; component_label <= max_label; ++component_label) {
+    int size = cc.ComponentSize(component_label);
+    if (min_size <= size && size <= max_size) {
+      component_labels.insert(component_label);
     }
-    cout << " " << n << " components starting with component " << m << "...";
-    cout.flush();
   }
-  for (int idx = 0; idx < output.NumberOfVoxels(); ++idx) {
-    component_label = cc.Output()->Get(idx);
-    if (min_label <= component_label && component_label <= max_label) {
-      switch (output_type) {
-        case ComponentLabels: output(idx) = component_label - min_label + 1; break;
-        case ComponentMask:   output(idx) = 1; break;
-        case InputLabels:     output(idx) = labels(idx); break;
+
+  if (output_type == ComponentMask) {
+
+    BinaryImage output(labels.Attributes());
+    GreyPixel   component_label;
+
+    if (verbose) {
+      cout << "Masking " << component_labels.size()
+           << (component_labels.size() > 1 ? " components" : " component")
+           << ", considering componenents " << min_label << " to " << max_label << "...";
+      cout.flush();
+    }
+    for (int idx = 0; idx < output.NumberOfVoxels(); ++idx) {
+      component_label = cc.Output()->Get(idx);
+      if (component_labels.find(component_label) != component_labels.end()) {
+        output(idx) = 1;
       }
     }
-  }
-  if (verbose) cout << " done" << endl;
+    if (verbose) cout << " done" << endl;
 
-  if (verbose) cout << "Writing output to file " << output_name << "...", cout.flush();
-  output.Write(output_name);
-  if (verbose) cout << " done" << endl;
+    if (verbose) cout << "Writing output to file " << output_name << "...", cout.flush();
+    output.Write(output_name);
+    if (verbose) cout << " done" << endl;
+
+  } else {
+
+    GreyImage output(labels.Attributes());
+    GreyPixel component_label;
+
+    if (verbose) {
+      switch (output_type) {
+        case ComponentLabels: cout << "Relabeling"; break;
+        default:              cout << "Extracting"; break;
+      }
+      cout << " " << component_labels.size()
+           << (component_labels.size() > 1 ? " components" : " component")
+           << ", considering componenents " << min_label << " to " << max_label << "...";
+      cout.flush();
+    }
+    if (output_type == ComponentLabels) {
+      GreyPixel output_label = 0;
+      for (int idx = 0; idx < output.NumberOfVoxels(); ++idx) {
+        component_label = cc.Output()->Get(idx);
+        if (component_labels.find(component_label) != component_labels.end()) {
+          ++output_label;
+          output(idx) = output_label;
+        }
+      }
+    } else {
+      for (int idx = 0; idx < output.NumberOfVoxels(); ++idx) {
+        component_label = cc.Output()->Get(idx);
+        if (component_labels.find(component_label) != component_labels.end()) {
+          output(idx) = labels(idx);
+        }
+      }
+    }
+    if (verbose) cout << " done" << endl;
+
+    if (verbose) cout << "Writing output to file " << output_name << "...", cout.flush();
+    output.Write(output_name);
+    if (verbose) cout << " done" << endl;
+
+  }
 
   return 0;
 }

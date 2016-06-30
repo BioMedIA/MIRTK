@@ -79,7 +79,7 @@ public:
   template <class IndexType>
   bool operator ()(IndexType i, IndexType j) const
   {
-    return _Values[i] < _Values[j];
+    return _Values[i] > _Values[j];
   }
 };
 

@@ -33,7 +33,6 @@
 #include "vtkPolyDataNormals.h"
 #include "vtkModifiedBSPTree.h"
 #include "vtkKdTreePointLocator.h"
-#include "vtkDataReader.h" // VTK_ASCII, VTK_BINARY defines
 
 using namespace mirtk;
 
@@ -214,6 +213,7 @@ int main(int argc, char *argv[])
   const char  *separator      = "\t";
   DistanceType dist_type      = Default;
   bool         eval_hausdorff = false;
+  FileOption   fopt           = FO_Default;
 
   for (ALL_OPTIONS) {
     if      (OPTION("-array") || OPTION("-name")) array_name = ARGUMENT;
@@ -226,14 +226,16 @@ int main(int argc, char *argv[])
       separator = ARGUMENT;
       if (strcmp(separator, "\\t") == 0) separator = "\t";
     }
+    else HANDLE_POINTSETIO_OPTION(fopt);
     else HANDLE_COMMON_OR_UNKNOWN_OPTION();
   }
 
   // read input point sets
-  int output_type = VTK_BINARY;
+  FileOption source_fopt;
   vtkSmartPointer<vtkPointSet> target, source;
   target = ReadPointSet(target_name);
-  source = ReadPointSet(source_name, &output_type);
+  source = ReadPointSet(source_name, source_fopt);
+  if (fopt == FO_Default) fopt = source_fopt;
 
   if (dist_type == Default) {
     if (target->GetNumberOfCells() > 0) dist_type = ClosestCell;
@@ -319,8 +321,7 @@ int main(int argc, char *argv[])
 
   // write output
   if (output_name) {
-    const bool compress = true;
-    if (!WritePointSet(output_name, target, compress, output_type == VTK_ASCII)) {
+    if (!WritePointSet(output_name, target, fopt)) {
       FatalError("Failed to write output point set to " << output_name);
     }
   }

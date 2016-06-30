@@ -1,8 +1,8 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2013-2015 Imperial College London
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2013-2016 Imperial College London
+ * Copyright 2013-2016 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -75,7 +75,13 @@ namespace mirtk {
 
 // -----------------------------------------------------------------------------
 /// Instantiate new VTK data array of given type
-vtkSmartPointer<vtkDataArray> NewVTKDataArray(int vtkType);
+///
+/// \param[in] type VTK data type ID, e.g., VTK_FLOAT. When VTK_VOID, a floating
+///                 point data array with default precision, i.e., either single
+///                 or double is returned.
+///
+/// \returns New VTK data array instance.
+vtkSmartPointer<vtkDataArray> NewVTKDataArray(int type = VTK_VOID);
 
 // -----------------------------------------------------------------------------
 /// Convert string to vtkDataSetAttributes::AttributeType
@@ -103,17 +109,48 @@ inline string ToString(const vtkDataSetAttributes::AttributeTypes &type,
 {
   const char *str;
   switch (type) {
-    case vtkDataSetAttributes::SCALARS:     str = "SCALARS";     break;
-    case vtkDataSetAttributes::VECTORS:     str = "VECTORS";     break;
-    case vtkDataSetAttributes::NORMALS:     str = "NORMALS";     break;
-    case vtkDataSetAttributes::TCOORDS:     str = "TCOORDS";     break;
-    case vtkDataSetAttributes::TENSORS:     str = "TENSORS";     break;
-    case vtkDataSetAttributes::GLOBALIDS:   str = "GLOBALIDS";   break;
-    case vtkDataSetAttributes::PEDIGREEIDS: str = "PEDIGREEIDS"; break;
-    case vtkDataSetAttributes::EDGEFLAG:    str = "EDGEFLAG";    break;
-    default:                                str = "UNKNOWN";     break;
+    case vtkDataSetAttributes::SCALARS:     str = "scalars";     break;
+    case vtkDataSetAttributes::VECTORS:     str = "vectors";     break;
+    case vtkDataSetAttributes::NORMALS:     str = "normals";     break;
+    case vtkDataSetAttributes::TCOORDS:     str = "tcoords";     break;
+    case vtkDataSetAttributes::TENSORS:     str = "tensors";     break;
+    case vtkDataSetAttributes::GLOBALIDS:   str = "globalids";   break;
+    case vtkDataSetAttributes::PEDIGREEIDS: str = "pedigreeids"; break;
+    case vtkDataSetAttributes::EDGEFLAG:    str = "edgeflag";    break;
+    default:                                str = "unknown";     break;
   }
   return ToString(str, w, c, left);
+}
+
+// -----------------------------------------------------------------------------
+/// Convert vtkDataSetAttributes::AttributeType to string
+inline string VtkAttributeTypeString(int type)
+{
+  if (type < 0) return "other";
+  return ToString(static_cast<vtkDataSetAttributes::AttributeTypes>(type));
+}
+
+// -----------------------------------------------------------------------------
+/// Convert vtkDataSetAttributes::AttributeType to string
+inline string VtkDataTypeString(int type)
+{
+  switch (type)
+  {
+    case VTK_VOID:               return "void";
+    case VTK_CHAR:               return "char";
+    case VTK_SHORT:              return "short";
+    case VTK_INT:                return "int";
+    case VTK_LONG:               return "long";
+    case VTK_LONG_LONG:          return "int64";
+    case VTK_UNSIGNED_CHAR:      return "uchar";
+    case VTK_UNSIGNED_SHORT:     return "ushort";
+    case VTK_UNSIGNED_INT:       return "uint";
+    case VTK_UNSIGNED_LONG:      return "ulong";
+    case VTK_UNSIGNED_LONG_LONG: return "uint64";
+    case VTK_FLOAT:              return "float";
+    case VTK_DOUBLE:             return "double";
+    default:                     return "unknown";
+  }
 }
 
 

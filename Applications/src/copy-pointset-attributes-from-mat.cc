@@ -193,8 +193,7 @@ int main(int argc, char *argv[])
   // Optional arguments
   Array<string> var_name;
   Array<int>    var_type;
-  bool          compress = true;
-  bool          ascii    = false;
+  FileOption    fopt     = FO_Default;
   OutputType    out_type = InputType;
 
   for (ALL_OPTIONS) {
@@ -212,10 +211,7 @@ int main(int argc, char *argv[])
     else if (OPTION("-long"))   out_type = OutputLong;
     else if (OPTION("-float"))  out_type = OutputFloat;
     else if (OPTION("-double")) out_type = OutputDouble;
-    else if (OPTION("-ascii")  || OPTION("-nobinary")) ascii = true;
-    else if (OPTION("-binary") || OPTION("-noascii") ) ascii = false;
-    else if (OPTION("-compress"))   compress = true;
-    else if (OPTION("-nocompress")) compress = false;
+    else HANDLE_POINTSETIO_OPTION(fopt);
     else HANDLE_STANDARD_OR_UNKNOWN_OPTION();
   }
 
@@ -224,7 +220,9 @@ int main(int argc, char *argv[])
 
   // Read input dataset
   if (verbose > 1) cout << "Reading dataset from " << input_name << "...";
-  vtkSmartPointer<vtkPolyData> dataset = ReadPolyData(input_name);
+  FileOption dataset_fopt;
+  vtkSmartPointer<vtkPolyData> dataset = ReadPolyData(input_name, dataset_fopt);
+  if (fopt == FO_Default) fopt = dataset_fopt;
   if (verbose > 1) cout << " done" << endl;
 
   // Open MAT file
@@ -311,7 +309,7 @@ int main(int argc, char *argv[])
   }
 
   // Write modified dataset
-  WritePolyData(output_name, dataset, compress, ascii);
+  WritePolyData(output_name, dataset, fopt);
   if (verbose > 1) cout << "Wrote modified dataset to " << output_name << endl;
 
   // Close MAT file

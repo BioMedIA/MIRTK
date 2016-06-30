@@ -32,11 +32,11 @@
 
 #include "mirtk/Vtk.h"
 #include "mirtk/VtkMath.h"
+#include "mirtk/Triangle.h"
 
 #include "vtkIdList.h"
 #include "vtkCell.h"
 #include "vtkCellArray.h"
-#include "vtkTriangle.h"
 #include "vtkPointData.h"
 #include "vtkCellData.h"
 #include "vtkCleanPolyData.h"
@@ -51,12 +51,22 @@ namespace mirtk {
 
 
 // =============================================================================
+// Constants
+// =============================================================================
+
+const char * const SurfaceRemeshing::MIN_EDGE_LENGTH = "MinEdgeLength";
+const char * const SurfaceRemeshing::MAX_EDGE_LENGTH = "MaxEdgeLength";
+
+// =============================================================================
 // Construction/Destruction
 // =============================================================================
 
 // -----------------------------------------------------------------------------
 void SurfaceRemeshing::CopyAttributes(const SurfaceRemeshing &other)
 {
+  _CategoricalPointDataIndices = other._CategoricalPointDataIndices;
+  _CategoricalPointDataCache   = other._CategoricalPointDataCache;
+
   _Transformation          = other._Transformation;
   _MinFeatureAngle         = other._MinFeatureAngle;
   _MinFeatureAngleCos      = other._MinFeatureAngleCos;
@@ -83,11 +93,9 @@ void SurfaceRemeshing::CopyAttributes(const SurfaceRemeshing &other)
 
   // Get output point labels from _Output (copied by SurfaceFilter::Copy)
   if (_Output) {
-    _OutputPointLabels  = GetArrayByCaseInsensitiveName(_Output->GetPointData(), "labels");
-    _MinEdgeLengthArray = _Output->GetPointData()->GetArray("MinEdgeLength");
-    _MaxEdgeLengthArray = _Output->GetPointData()->GetArray("MaxEdgeLength");
+    _MinEdgeLengthArray = _Output->GetPointData()->GetArray(MIN_EDGE_LENGTH);
+    _MaxEdgeLengthArray = _Output->GetPointData()->GetArray(MAX_EDGE_LENGTH);
   } else {
-    _OutputPointLabels  = nullptr;
     _MinEdgeLengthArray = nullptr;
     _MaxEdgeLengthArray = nullptr;
   }
@@ -173,7 +181,7 @@ inline double SurfaceRemeshing::ComputeArea(vtkIdType cellId) const
   GetPoint(pts[0], p1);
   GetPoint(pts[1], p2);
   GetPoint(pts[2], p3);
-  return vtkTriangle::TriangleArea(p1, p2, p3);
+  return Triangle::Area(p1, p2, p3);
 }
 
 // -----------------------------------------------------------------------------
@@ -393,12 +401,12 @@ inline void SurfaceRemeshing
 {
   vtkPointData *pd = _Output->GetPointData();
   if (pd == nullptr) return;
-  if (_OutputPointLabels) {
-    double label = _OutputPointLabels->GetComponent(ptId1, 0);
-    pd->InterpolateEdge(pd, newId, ptId1, ptId2, .5);
-    _OutputPointLabels->SetComponent(newId, 0, label);
-  } else {
-    pd->InterpolateEdge(pd, newId, ptId1, ptId2, .5);
+  for (auto i : _CategoricalPointDataIndices) {
+    _CategoricalPointDataCache[i] = pd->GetArray(i)->GetComponent(ptId1, 0);
+  }
+  pd->InterpolateEdge(pd, newId, ptId1, ptId2, .5);
+  for (auto i : _CategoricalPointDataIndices) {
+    pd->GetArray(i)->SetComponent(newId, 0, _CategoricalPointDataCache[i]);
   }
 }
 
@@ -408,12 +416,12 @@ inline void SurfaceRemeshing
 {
   vtkPointData *pd = _Output->GetPointData();
   if (pd == nullptr) return;
-  if (_OutputPointLabels) {
-    double label = _OutputPointLabels->GetComponent(ptIds->GetId(0), 0);
-    pd->InterpolatePoint(pd, newId, ptIds, weights);
-    _OutputPointLabels->SetComponent(newId, 0, label);
-  } else {
-    pd->InterpolatePoint(pd, newId, ptIds, weights);
+  for (auto i : _CategoricalPointDataIndices) {
+    _CategoricalPointDataCache[i] = pd->GetArray(i)->GetComponent(ptIds->GetId(0), 0);
+  }
+  pd->InterpolatePoint(pd, newId, ptIds, weights);
+  for (auto i : _CategoricalPointDataIndices) {
+    pd->GetArray(i)->SetComponent(newId, 0, _CategoricalPointDataCache[i]);
   }
 }
 
@@ -563,7 +571,7 @@ void SurfaceRemeshing::MeltingOfCells()
   MIRTK_START_TIMING();
 
   int       melt[3], i, j;
-  double    p1[3], p2[3], p3[3], length2[3], n1[3], n2[3], n3[3];
+  double    p1[3], p2[3], p3[3], length2[3], min2[3], n1[3], n2[3], n3[3];
   vtkIdType cellId, npts, *pts;
 
   // Cell ID list shared by melting operation functions to save reallocation
@@ -599,19 +607,29 @@ void SurfaceRemeshing::MeltingOfCells()
     // If triangle-melting is allowed
     if (_MeltTriangles) {
 
+      min2[0] = SquaredMinEdgeLength(pts[0], pts[1]);
+      min2[1] = SquaredMinEdgeLength(pts[1], pts[2]);
+      min2[2] = SquaredMinEdgeLength(pts[2], pts[0]);
+
       // Determine which edges are too short
-      melt[0] = int(length2[0] < SquaredMinEdgeLength(pts[0], pts[1]));
-      melt[1] = int(length2[1] < SquaredMinEdgeLength(pts[1], pts[2]));
-      melt[2] = int(length2[2] < SquaredMinEdgeLength(pts[2], pts[0]));
+      melt[0] = int(length2[0] < min2[0]);
+      melt[1] = int(length2[1] < min2[1]);
+      melt[2] = int(length2[2] < min2[2]);
 
       // Do not melt feature edges (otherwise remeshing may smooth surface too much)
       if ((melt[0] || melt[1] || melt[2]) && _MinFeatureAngle < 180.0) {
         GetNormal(pts[0], n1);
         GetNormal(pts[1], n2);
         GetNormal(pts[2], n3);
-        if (melt[0]) melt[0] = int(1.0 - vtkMath::Dot(n1, n2) < _MinFeatureAngleCos);
-        if (melt[1]) melt[1] = int(1.0 - vtkMath::Dot(n2, n3) < _MinFeatureAngleCos);
-        if (melt[2]) melt[2] = int(1.0 - vtkMath::Dot(n3, n1) < _MinFeatureAngleCos);
+        if (melt[0] && length2[0] > .1 * min2[0]) {
+          melt[0] = int(1.0 - vtkMath::Dot(n1, n2) < _MinFeatureAngleCos);
+        }
+        if (melt[1] && length2[1] > .1 * min2[1]) {
+          melt[1] = int(1.0 - vtkMath::Dot(n2, n3) < _MinFeatureAngleCos);
+        }
+        if (melt[2] && length2[2] > .1 * min2[2]) {
+          melt[2] = int(1.0 - vtkMath::Dot(n3, n1) < _MinFeatureAngleCos);
+        }
       }
 
       // Perform either edge-melting, triangle-melting, or no operation
@@ -643,8 +661,9 @@ void SurfaceRemeshing::MeltingOfCells()
       j = (i + 1) % 3;
 
       // Melt edge if it is too short and not a feature edge
-      if (length2[i] < SquaredMinEdgeLength(pts[i], pts[j])) {
-        if (_MinFeatureAngle < 180.0) {
+      min2[i] = SquaredMinEdgeLength(pts[i], pts[j]);
+      if (length2[i] < min2[i]) {
+        if (_MinFeatureAngle < 180.0 && length2[i] > .1 * min2[i]) {
           GetNormal(pts[i], n1);
           GetNormal(pts[j], n2);
           if (1.0 - vtkMath::Dot(n1, n2) < _MinFeatureAngleCos) {
@@ -832,19 +851,52 @@ void SurfaceRemeshing::Initialize()
     exit(1);
   }
 
-  // Make deep copy of input instead of shallow copy
-  _Output->DeepCopy(_Input);
+  // Make shallow copy of input to which (optional) input point data arrays are added
+  _Surface.TakeReference(_Input->NewInstance());
+  _Surface->ShallowCopy(_Input);
 
   // Convert input cell edge length arrays to point data arrays
   if (!_AdaptiveEdgeLengthArray && (_MinCellEdgeLengthArray || _MaxCellEdgeLengthArray)) {
-    _Output->GetCellData()->Initialize();
-    if (_MinCellEdgeLengthArray) _Output->GetCellData()->AddArray(_MinCellEdgeLengthArray);
-    if (_MaxCellEdgeLengthArray) _Output->GetCellData()->AddArray(_MaxCellEdgeLengthArray);
+    vtkSmartPointer<vtkPolyData> input;
+    input.TakeReference(_Input->NewInstance());
+    input->ShallowCopy(_Input);
+    input->GetPointData()->Initialize();
+    input->GetCellData()->Initialize();
+    if (_MinCellEdgeLengthArray) {
+      if (_MinCellEdgeLengthArray->GetName() == nullptr ||
+          _MinCellEdgeLengthArray->GetName()[0] == '\0') {
+        _MinCellEdgeLengthArray->SetName(MIN_EDGE_LENGTH);
+      }
+      input->GetCellData()->AddArray(_MinCellEdgeLengthArray);
+    }
+    if (_MaxCellEdgeLengthArray) {
+      if (_MaxCellEdgeLengthArray->GetName() == nullptr ||
+          _MaxCellEdgeLengthArray->GetName()[0] == '\0') {
+        _MaxCellEdgeLengthArray->SetName(MAX_EDGE_LENGTH);
+      }
+      input->GetCellData()->AddArray(_MaxCellEdgeLengthArray);
+    }
     vtkNew<vtkCellDataToPointData> c2p;
-    SetVTKInput(c2p, _Output);
+    SetVTKInput(c2p, input);
     c2p->PassCellDataOff();
     c2p->Update();
-    _Output = c2p->GetPolyDataOutput();
+    input = c2p->GetPolyDataOutput();
+    if (_MinCellEdgeLengthArray) {
+      const char *name = _MinCellEdgeLengthArray->GetName();
+      vtkDataArray *min_length = input->GetPointData()->GetArray(name);
+      if (min_length) {
+        min_length->SetName(MIN_EDGE_LENGTH);
+        _Surface->GetPointData()->AddArray(min_length);
+      }
+    }
+    if (_MinCellEdgeLengthArray) {
+      const char *name = _MinCellEdgeLengthArray->GetName();
+      vtkDataArray *max_length = input->GetPointData()->GetArray(name);
+      if (max_length) {
+        max_length->SetName(MAX_EDGE_LENGTH);
+        _Surface->GetPointData()->AddArray(max_length);
+      }
+    }
   }
 
   // Compute point normals if needed
@@ -855,13 +907,13 @@ void SurfaceRemeshing::Initialize()
 
   if (_MinFeatureAngle < 180.0 || _MaxFeatureAngle < 180.0) {
     vtkNew<vtkPolyDataNormals> calc_normals;
-    SetVTKInput(calc_normals, _Output);
+    SetVTKInput(calc_normals, _Surface);
     calc_normals->ComputeCellNormalsOff();
     calc_normals->ComputePointNormalsOn();
     calc_normals->AutoOrientNormalsOn();
     calc_normals->SplittingOff();
     calc_normals->Update();
-    _Output = calc_normals->GetOutput();
+    _Surface = calc_normals->GetOutput();
   }
 
   // Initialize adaptive edge length range
@@ -869,20 +921,30 @@ void SurfaceRemeshing::Initialize()
   _MaxEdgeLengthSquared = _MaxEdgeLength * _MaxEdgeLength;
   this->InitializeEdgeLengthRange();
 
+  // Make deep copy of input instead of shallow copy (see MeshFilter::Initialize)
+  _Output->DeepCopy(_Surface);
+
   // Initialize output
-  vtkPointData *inputPD  = _Input ->GetPointData();
-  vtkPointData *outputPD = _Output->GetPointData();
-  vtkCellData  *outputCD = _Output->GetCellData();
+  vtkPointData *inputPD  = _Surface->GetPointData();
+  vtkPointData *outputPD = _Output ->GetPointData();
+  vtkCellData  *outputCD = _Output ->GetCellData();
   outputCD->Initialize(); // TODO: Interpolate cell data during remeshing
-  outputPD->InterpolateAllocate(inputPD, _Input->GetNumberOfPoints());
-  for (vtkIdType ptId = 0; ptId < _Input->GetNumberOfPoints(); ++ptId) {
+  outputPD->InterpolateAllocate(inputPD, _Surface->GetNumberOfPoints());
+  for (vtkIdType ptId = 0; ptId < _Surface->GetNumberOfPoints(); ++ptId) {
     outputPD->CopyData(inputPD, ptId, ptId);
   }
 
-  // Set interpolation of discrete labels to nearest neighbor
-  int idx;
-  _OutputPointLabels = GetArrayByCaseInsensitiveName(_Output->GetPointData(), "labels", &idx);
-  if (_OutputPointLabels) _Output->GetPointData()->SetCopyAttribute(idx, 2);
+  // Determine point data arrays which require NN interpolation
+  _CategoricalPointDataIndices.clear();
+  for (int i = 0; i < outputPD->GetNumberOfArrays(); ++i) {
+    string lname = ToLower(outputPD->GetArrayName(i));
+    if (lname.find("label") != lname.npos) {
+      _CategoricalPointDataIndices.insert(i);
+    }
+  }
+  if (!_CategoricalPointDataIndices.empty()) {
+    _CategoricalPointDataCache.resize(outputPD->GetNumberOfArrays());
+  }
 
   // Build links
   _Output->BuildLinks();
@@ -904,8 +966,8 @@ void SurfaceRemeshing::InitializeEdgeLengthRange()
   if (_AdaptiveEdgeLengthArray) {
 
     // Remove previous edge length range arrays
-    _Output->GetPointData()->RemoveArray("MinEdgeLength");
-    _Output->GetPointData()->RemoveArray("MaxEdgeLength");
+    _Surface->GetPointData()->RemoveArray(MIN_EDGE_LENGTH);
+    _Surface->GetPointData()->RemoveArray(MAX_EDGE_LENGTH);
 
     // Global edge length range
     double min_length = _MinEdgeLength;
@@ -928,21 +990,21 @@ void SurfaceRemeshing::InitializeEdgeLengthRange()
     // Allocate edge length arrays
     if (!_MinEdgeLengthArray) {
       _MinEdgeLengthArray = vtkSmartPointer<vtkFloatArray>::New();
-      _MinEdgeLengthArray->SetName("MinEdgeLength");
+      _MinEdgeLengthArray->SetName(MIN_EDGE_LENGTH);
       _MinEdgeLengthArray->SetNumberOfComponents(1);
     }
     _MinEdgeLengthArray->SetNumberOfTuples(_Output->GetNumberOfPoints());
 
     if (!_MaxEdgeLengthArray) {
       _MaxEdgeLengthArray = vtkSmartPointer<vtkFloatArray>::New();
-      _MaxEdgeLengthArray->SetName("MaxEdgeLength");
+      _MaxEdgeLengthArray->SetName(MAX_EDGE_LENGTH);
       _MaxEdgeLengthArray->SetNumberOfComponents(1);
     }
     _MaxEdgeLengthArray->SetNumberOfTuples(_Output->GetNumberOfPoints());
 
     // Initialize edge length range
     double x, a, b;
-    for (vtkIdType ptId = 0; ptId < _Output->GetNumberOfPoints(); ++ptId) {
+    for (vtkIdType ptId = 0; ptId < _Surface->GetNumberOfPoints(); ++ptId) {
       // Rescale adaptive factor to [0, 1]
       x = clamp(scale * _AdaptiveEdgeLengthArray->GetComponent(ptId, 0) + offset, .0, 1.0);
       // Compute lower logistic function interpolation coefficients
@@ -955,33 +1017,33 @@ void SurfaceRemeshing::InitializeEdgeLengthRange()
 
     // Add edge length point data arrays such that these are
     // interpolated during the local remeshing operations
-    _Output->GetPointData()->AddArray(_MinEdgeLengthArray);
-    _Output->GetPointData()->AddArray(_MaxEdgeLengthArray);
+    _Surface->GetPointData()->AddArray(_MinEdgeLengthArray);
+    _Surface->GetPointData()->AddArray(_MaxEdgeLengthArray);
 
   // ...or use input cell/point data arrays
   } else {
-    _MinEdgeLengthArray = _Output->GetPointData()->GetArray("MinEdgeLength");
-    _MaxEdgeLengthArray = _Output->GetPointData()->GetArray("MaxEdgeLength");
+    _MinEdgeLengthArray = _Surface->GetPointData()->GetArray(MIN_EDGE_LENGTH);
+    _MaxEdgeLengthArray = _Surface->GetPointData()->GetArray(MAX_EDGE_LENGTH);
   }
 
   // Smooth edge length ranges
   if (_MinEdgeLengthArray || _MaxEdgeLengthArray) {
     MeshSmoothing smoother;
-    smoother.Input(_Output);
-    if (_MinEdgeLengthArray) smoother.SmoothArray(_MinEdgeLengthArray->GetName());
-    if (_MaxEdgeLengthArray) smoother.SmoothArray(_MaxEdgeLengthArray->GetName());
+    smoother.Input(_Surface);
+    if (_MinEdgeLengthArray) smoother.SmoothArray(MIN_EDGE_LENGTH);
+    if (_MaxEdgeLengthArray) smoother.SmoothArray(MAX_EDGE_LENGTH);
     smoother.NumberOfIterations(_AdaptiveEdgeLengthArray ? 10 : 2);
     smoother.Run();
     vtkPointData * const smoothPD = smoother.Output()->GetPointData();
     if (_MinEdgeLengthArray) {
-      _Output->GetPointData()->RemoveArray(_MinEdgeLengthArray->GetName());
-      _MinEdgeLengthArray = smoothPD->GetArray(_MinEdgeLengthArray->GetName());
-      _Output->GetPointData()->AddArray(_MinEdgeLengthArray);
+      _Surface->GetPointData()->RemoveArray(MIN_EDGE_LENGTH);
+      _MinEdgeLengthArray = smoothPD->GetArray(MIN_EDGE_LENGTH);
+      _Surface->GetPointData()->AddArray(_MinEdgeLengthArray);
     }
     if (_MaxEdgeLengthArray) {
-      _Output->GetPointData()->RemoveArray(_MaxEdgeLengthArray->GetName());
-      _MaxEdgeLengthArray = smoothPD->GetArray(_MaxEdgeLengthArray->GetName());
-      _Output->GetPointData()->AddArray(_MaxEdgeLengthArray);
+      _Surface->GetPointData()->RemoveArray(MAX_EDGE_LENGTH);
+      _MaxEdgeLengthArray = smoothPD->GetArray(MAX_EDGE_LENGTH);
+      _Surface->GetPointData()->AddArray(_MaxEdgeLengthArray);
     }
   }
 }
@@ -1010,7 +1072,9 @@ void SurfaceRemeshing::Melting()
   if (_MeltNodes) MeltingOfNodes();
 
   // Process triangles in chosen melting order
-  MeltingOfCells();
+  if (_MinEdgeLength >= 0. || _MinEdgeLengthArray) {
+    MeltingOfCells();
+  }
 
   // Melt triplets of triangles adjacent to nodes with connectivity 3
   // and remove any triangles connected to possibly resulting nodes with
@@ -1095,7 +1159,7 @@ void SurfaceRemeshing::InversionOfTrianglesSharingOneLongEdge()
     }
   }
 
-  MIRTK_DEBUG_TIMING(3, "inversion of triangles shared one long edge");
+  MIRTK_DEBUG_TIMING(3, "inversion of triangles sharing one long edge");
 }
 
 // -----------------------------------------------------------------------------
@@ -1130,7 +1194,7 @@ void SurfaceRemeshing::InversionOfTrianglesToIncreaseMinHeight()
     j = (i == 2 ? 0 : i + 1);           // 2nd long edge point index
     k = (j == 2 ? 0 : j + 1);           // 3rd point of this triangle
 
-    a1 = vtkTriangle::TriangleArea(p[0], p[1], p[2]);
+    a1 = Triangle::Area(p[0], p[1], p[2]);
     if (a1 > .25 * length2[i]) continue; // ratio of height over l1
 
     // Check connectivity of long edge end points
@@ -1153,9 +1217,9 @@ void SurfaceRemeshing::InversionOfTrianglesToIncreaseMinHeight()
       l2 = sqrt(vtkMath::Distance2BetweenPoints(p[k], p[3]));
 
       // Areas of adjacent triangles after inversion
-      a2 = vtkTriangle::TriangleArea(p[i], p[j], p[3]);
-      a3 = vtkTriangle::TriangleArea(p[i], p[k], p[3]);
-      a4 = vtkTriangle::TriangleArea(p[j], p[k], p[3]);
+      a2 = Triangle::Area(p[i], p[j], p[3]);
+      a3 = Triangle::Area(p[i], p[k], p[3]);
+      a4 = Triangle::Area(p[j], p[k], p[3]);
 
       // Perform inversion operation when minimum height over edge before
       // and after inversion is greater after the operation
@@ -1174,16 +1238,16 @@ void SurfaceRemeshing::InversionOfTrianglesToIncreaseMinHeight()
 // -----------------------------------------------------------------------------
 void SurfaceRemeshing::Inversion()
 {
-  MIRTK_START_TIMING();
-
-  if (_InvertTrianglesSharingOneLongEdge) {
-    InversionOfTrianglesSharingOneLongEdge();
-  }
-  if (_InvertTrianglesToIncreaseMinHeight) {
-    InversionOfTrianglesToIncreaseMinHeight();
-  }
-
   if (_InvertTrianglesSharingOneLongEdge || _InvertTrianglesToIncreaseMinHeight) {
+    MIRTK_START_TIMING();
+
+    if (_InvertTrianglesSharingOneLongEdge) {
+      InversionOfTrianglesSharingOneLongEdge();
+    }
+    if (_InvertTrianglesToIncreaseMinHeight) {
+      InversionOfTrianglesToIncreaseMinHeight();
+    }
+
     MIRTK_DEBUG_TIMING(2, "inversion pass");
   }
 }
@@ -1191,11 +1255,15 @@ void SurfaceRemeshing::Inversion()
 // -----------------------------------------------------------------------------
 void SurfaceRemeshing::Subdivision()
 {
+  if (IsInf(_MaxEdgeLength) && !_MaxEdgeLengthArray && _MaxFeatureAngle >= 180.) {
+    return;
+  }
+
   MIRTK_START_TIMING();
 
   int       bisect[3];
   vtkIdType npts, *pts;
-  double    p1[3], p2[3], p3[3], n1[3], n2[3], n3[3], length2[3], min2[3], max2[3];
+  double    p1[3], p2[3], p3[3], n1[3], n2[3], n3[3], length2[3], max2[3], min2;
 
   vtkSmartPointer<vtkCellArray> newPolys = vtkSmartPointer<vtkCellArray>::New();
   newPolys->Allocate(_Output->GetNumberOfCells());
@@ -1220,10 +1288,6 @@ void SurfaceRemeshing::Subdivision()
     length2[2] = vtkMath::Distance2BetweenPoints(p3, p1);
 
     // Get desired range of squared edge lengths
-    min2[0] = SquaredMinEdgeLength(pts[0], pts[1]);
-    min2[1] = SquaredMinEdgeLength(pts[1], pts[2]);
-    min2[2] = SquaredMinEdgeLength(pts[2], pts[0]);
-
     max2[0] = SquaredMaxEdgeLength(pts[0], pts[1]);
     max2[1] = SquaredMaxEdgeLength(pts[1], pts[2]);
     max2[2] = SquaredMaxEdgeLength(pts[2], pts[0]);
@@ -1237,14 +1301,23 @@ void SurfaceRemeshing::Subdivision()
       GetNormal(pts[0], n1);
       GetNormal(pts[1], n2);
       GetNormal(pts[2], n3);
-      if (!bisect[0] && length2[0] >= 2.0 * min2[0]) {
-        bisect[0] = int(1.0 - vtkMath::Dot(n1, n2) > _MaxFeatureAngleCos);
+      if (!bisect[0]) {
+        min2 = SquaredMinEdgeLength(pts[0], pts[1]);
+        if (length2[0] >= 2.0 * min2) {
+          bisect[0] = int(1.0 - vtkMath::Dot(n1, n2) > _MaxFeatureAngleCos);
+        }
       }
-      if (!bisect[1] && length2[1] >= 2.0 * min2[1]) {
-        bisect[1] = int(1.0 - vtkMath::Dot(n2, n3) > _MaxFeatureAngleCos);
+      if (!bisect[1]) {
+        min2 = SquaredMinEdgeLength(pts[1], pts[2]);
+        if (length2[1] >= 2.0 * min2) {
+          bisect[1] = int(1.0 - vtkMath::Dot(n2, n3) > _MaxFeatureAngleCos);
+        }
       }
-      if (!bisect[2] && length2[2] >= 2.0 * min2[2]) {
-        bisect[2] = int(1.0 - vtkMath::Dot(n3, n1) > _MaxFeatureAngleCos);
+      if (!bisect[2]) {
+        min2 = SquaredMinEdgeLength(pts[2], pts[0]);
+        if (length2[2] >= 2.0 * min2) {
+          bisect[2] = int(1.0 - vtkMath::Dot(n3, n1) > _MaxFeatureAngleCos);
+        }
       }
     }
 
@@ -1279,59 +1352,50 @@ void SurfaceRemeshing::Subdivision()
 // -----------------------------------------------------------------------------
 void SurfaceRemeshing::Finalize()
 {
-  // Finalize base class
-  SurfaceFilter::Finalize();
-
   // If input surface mesh unchanged, set output equal to input
   // Users can check if this->Output() == this->Input() to see if something changed
   if (NumberOfChanges() == 0) {
+
     _Output = _Input;
-    return;
+
+  } else {
+
+    // Release memory pre-allocated for point data as we may have fewer points now
+    _Output->GetPointData()->SetNormals(nullptr);
+    _Output->GetPointData()->Squeeze();
+
+    // Remove unused/deleted points and merge middle points of bisected edges
+    {
+      vtkNew<vtkCleanPolyData> cleaner;
+      SetVTKInput(cleaner, _Output);
+      cleaner->PointMergingOn();
+      cleaner->SetAbsoluteTolerance(.0);
+      cleaner->ConvertPolysToLinesOn();
+      cleaner->ConvertLinesToPointsOn();
+      cleaner->ConvertStripsToPolysOn();
+      cleaner->Update();
+      _Output = cleaner->GetOutput();
+      _Output->SetVerts(nullptr);
+      _Output->SetLines(nullptr);
+    }
+
+    // Recompute normals and ensure consistent order of vertices
+    {
+      vtkNew<vtkPolyDataNormals> normals;
+      SetVTKInput(normals, _Output);
+      normals->SplittingOff();
+      normals->AutoOrientNormalsOff();
+      normals->ConsistencyOn();
+      normals->ComputeCellNormalsOff();
+      normals->ComputePointNormalsOn();
+      normals->NonManifoldTraversalOn();
+      normals->Update();
+      _Output = normals->GetOutput();
+    }
   }
 
-  // Release memory pre-allocated for point data as we may have fewer points now
-  _Output->GetPointData()->Squeeze();
-
-  // Remove unused/deleted points and merge middle points of bisected edges
-  //
-  // FIXME: Under certain circumstances, the cleaner Update causes a segfault.
-  //        This is avoided when running the vtkPolyDataNormals filter before.
-  //        An inconsistent cell vertex ordering may in particular be caused
-  //        by the Quadsect function (maybe also other Subdivision routines).
-  vtkNew<vtkPolyDataNormals> prenormals;
-  SetVTKInput(prenormals, _Output);
-  prenormals->SplittingOff();
-  prenormals->AutoOrientNormalsOn();
-  prenormals->ConsistencyOn();
-  prenormals->ComputeCellNormalsOff();
-  prenormals->ComputePointNormalsOn();
-  prenormals->NonManifoldTraversalOn();
-  prenormals->Update();
-  _Output = prenormals->GetOutput();
-
-  vtkNew<vtkCleanPolyData> cleaner;
-  SetVTKInput(cleaner, _Output);
-  cleaner->PointMergingOn();
-  cleaner->SetAbsoluteTolerance(.0);
-  cleaner->ConvertPolysToLinesOn();
-  cleaner->ConvertLinesToPointsOn();
-  cleaner->ConvertStripsToPolysOn();
-  cleaner->Update();
-  _Output = cleaner->GetOutput();
-  _Output->SetVerts(nullptr);
-  _Output->SetLines(nullptr);
-
-  // Recompute normals and ensure consistent order of vertices
-  vtkNew<vtkPolyDataNormals> normals;
-  SetVTKInput(normals, _Output);
-  normals->SplittingOff();
-  normals->AutoOrientNormalsOn();
-  normals->ConsistencyOn();
-  normals->ComputeCellNormalsOff();
-  normals->ComputePointNormalsOn();
-  normals->NonManifoldTraversalOn();
-  normals->Update();
-  _Output = normals->GetOutput();
+  // Finalize base class
+  SurfaceFilter::Finalize();
 }
 
 

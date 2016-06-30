@@ -1026,7 +1026,7 @@ void MeshSmoothing::Initialize()
   // Allocate output arrays
   _OutputArrays.resize(_InputArrays.size());
   for (size_t i = 0; i < _InputArrays.size(); ++i) {
-    _OutputArrays[i] = vtkSmartPointer<vtkDataArray>::NewInstance(_InputArrays[i]);
+    _OutputArrays[i].TakeReference(_InputArrays[i]->NewInstance());
     _OutputArrays[i]->SetName(_InputArrays[i]->GetName());
     _OutputArrays[i]->SetNumberOfComponents(_InputArrays[i]->GetNumberOfComponents());
     _OutputArrays[i]->SetNumberOfTuples(_InputArrays[i]->GetNumberOfTuples());
@@ -1077,11 +1077,11 @@ void MeshSmoothing::Execute()
     // Make copy of previously smoothed outputs
     if (iter > 1) {
       if (_SmoothPoints) {
-        if (iter == 2) ip = vtkSmartPointer<vtkPoints>::NewInstance(ip);
+        if (iter == 2) ip.TakeReference(ip->NewInstance());
         ip->DeepCopy(_Output->GetPoints());
       }
       for (size_t i = 0; i < ia.size(); ++i) {
-        if (iter == 2) ia[i] = vtkSmartPointer<vtkDataArray>::NewInstance(ia[i]);
+        if (iter == 2) ia[i].TakeReference(ia[i]->NewInstance());
         ia[i]->DeepCopy(_OutputArrays[i]);
       }
     }

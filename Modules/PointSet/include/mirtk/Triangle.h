@@ -21,6 +21,8 @@
 #define MIRTK_Triangle_H
 
 #include "mirtk/Math.h"
+#include "mirtk/Vector3.h"
+#include "mirtk/Matrix3x3.h"
 #include "mirtk/VtkMath.h"
 
 
@@ -34,13 +36,31 @@ class Triangle
 {
 public:
 
+  /// Compute center point of triangle
+  ///
+  /// \param[in]  a      Position of triangle vertex A.
+  /// \param[in]  b      Position of triangle vertex B.
+  /// \param[in]  c      Position of triangle vertex C.
+  /// \param[out] center Positoin of triangle center.
+  static void Center(const double a[3], const double b[3], const double c[3], double center[3]);
+
   /// Compute normal direction of triangle
   ///
   /// \param[in]  a Position of triangle vertex A.
   /// \param[in]  b Position of triangle vertex B.
   /// \param[in]  c Position of triangle vertex C.
-  /// \param[out] n Non-normalized triangle normal vector. Length equals twice the triangle area.
+  /// \param[out] n Non-normalized triangle normal vector.
+  ///               The length of the resulting vector equals twice the triangle area.
   static void NormalDirection(const double a[3], const double b[3], const double c[3], double n[3]);
+
+  /// Partial derivatives of normal direction w.r.t. position of vertex A
+  ///
+  /// \param[in] a Position of triangle vertex A.
+  /// \param[in] b Position of triangle vertex B.
+  /// \param[in] c Position of triangle vertex C.
+  ///
+  /// \returns Partial derivatives of normal direction components w.r.t. coordinates of vertex A.
+  static Matrix3x3 NormalDirectionJacobian(const double a[3], const double b[3], const double c[3]);
 
   /// Compute normal of triangle
   ///
@@ -49,6 +69,41 @@ public:
   /// \param[in]  c Position of triangle vertex C.
   /// \param[out] n Triangle normal vector.
   static void Normal(const double a[3], const double b[3], const double c[3], double n[3]);
+
+  /// Partial derivatives of normal w.r.t. coordinates of vertex A
+  ///
+  /// \param[in]  a Position of triangle vertex A.
+  /// \param[in]  b Position of triangle vertex B.
+  /// \param[in]  c Position of triangle vertex C.
+  ///
+  /// \returns Partial derivatives of normal components w.r.t. coordinates of vertex A.
+  static Matrix3x3 NormalJacobian(const double a[3], const double b[3], const double c[3]);
+
+  /// Partial derivatives of normal w.r.t. coordinates of vertex A
+  ///
+  /// \param[in]  a Position of triangle vertex A.
+  /// \param[in]  b Position of triangle vertex B.
+  /// \param[in]  c Position of triangle vertex C.
+  /// \param[in] dn Partial derivatives of normal direction vector.
+  ///
+  /// \returns Partial derivatives of normal components w.r.t. coordinates of vertex A.
+  static Matrix3x3 NormalJacobian(const double a[3], const double b[3], const double c[3], const Matrix3x3 &dn);
+
+  /// Partial derivatives of normal w.r.t. coordinates of vertex A
+  ///
+  /// \param[in]  n Triangle normal vector, i.e., normalized direction vector.
+  /// \param[in] dn Partial derivatives of normal direction vector.
+  ///
+  /// \returns Partial derivatives of normal components w.r.t. coordinates of vertex A.
+  static Matrix3x3 NormalJacobian(const double n[3], const Matrix3x3 &dn);
+
+  /// Partial derivatives of normal w.r.t. coordinates of vertex A
+  ///
+  /// \param[in]  n Triangle normal vector, i.e., normalized direction vector.
+  /// \param[in] dn Partial derivatives of normal direction vector.
+  ///
+  /// \returns Partial derivatives of normal components w.r.t. coordinates of vertex A.
+  static Matrix3x3 NormalJacobian(const Vector3 &n, const Matrix3x3 &dn);
 
   /// Compute twice the area of triangle
   ///
@@ -59,6 +114,15 @@ public:
   /// \returns Twice the area of the triangle.
   static double DoubleArea(const double a[3], const double b[3], const double c[3]);
 
+  /// Partial derivatives of twice the triangle area w.r.t. coordinates of vertex A
+  ///
+  /// \param[in] a Position of triangle vertex A.
+  /// \param[in] b Position of triangle vertex B.
+  /// \param[in] c Position of triangle vertex C.
+  ///
+  /// \returns Partial derivatives of twice the triangle area w.r.t. coordinates of vertex A.
+  static Vector3 DoubleAreaGradient(const double a[3], const double b[3], const double c[3]);
+
   /// Compute area of triangle
   ///
   /// \param[in] a Position of triangle vertex A.
@@ -67,6 +131,15 @@ public:
   ///
   /// \returns Area of triangle.
   static double Area(const double a[3], const double b[3], const double c[3]);
+
+  /// Partial derivative of triangle area w.r.t. coordinates of vertex A
+  ///
+  /// \param[in] a Position of triangle vertex A.
+  /// \param[in] b Position of triangle vertex B.
+  /// \param[in] c Position of triangle vertex C.
+  ///
+  /// \returns Partial derivatives of triangle area w.r.t. coordinates of vertex A.
+  static Vector3 AreaGradient(const double a[3], const double b[3], const double c[3]);
 
   /// Compute area of triangle in 2D
   ///
@@ -117,6 +190,11 @@ public:
   static bool TriangleTriangleIntersection(const double a1[3], const double b1[3], const double c1[3],
                                            const double a2[3], const double b2[3], const double c2[3]);
 
+  /// Compute distance between triangle center points
+  static double DistanceBetweenCenters(const double a1[3], const double b1[3], const double c1[3],
+                                       const double a2[3], const double b2[3], const double c2[3],
+                                       double *p1, double *p2);
+
   /// Compute distance between closest points of two triangles
   static double DistanceBetweenTriangles(const double a1[3], const double b1[3], const double c1[3], const double n1[3],
                                          const double a2[3], const double b2[3], const double c2[3], const double n2[3],
@@ -133,6 +211,18 @@ public:
 ////////////////////////////////////////////////////////////////////////////////
 // Inline definitions
 ////////////////////////////////////////////////////////////////////////////////
+
+// =============================================================================
+// Center
+// =============================================================================
+
+//----------------------------------------------------------------------------
+inline void Triangle::Center(const double a[3], const double b[3], const double c[3], double center[3])
+{
+  center[0] = (a[0] + b[0] + c[0]) / 3.0;
+  center[1] = (a[1] + b[1] + c[1]) / 3.0;
+  center[2] = (a[2] + b[2] + c[2]) / 3.0;
+}
 
 // =============================================================================
 // Normals
@@ -215,8 +305,125 @@ inline double Triangle::Cotangent(double a[3], double b[3], double c[3])
 }
 
 // =============================================================================
+// Derivatives
+// =============================================================================
+
+// -----------------------------------------------------------------------------
+inline Matrix3x3 Triangle
+::NormalDirectionJacobian(const double a[3], const double b[3], const double c[3])
+{
+  // - Derivative of ab x ac w.r.t. ab:
+  //   [     0.,     b[2] - a[2], a[1] - b[1];
+  //    a[2] - b[2],      0.,     b[0] - a[0];
+  //    b[1] - a[1], a[0] - b[0],      0.    ]
+  // - Derivative of ab x ac w.r.t. ac:
+  //   [         0., a[2] - c[2], c[1] - a[1];
+  //    c[2] - a[2],          0., a[0] - c[0];
+  //    a[1] - c[1], c[0] - a[0],          0.]
+  // - Dervative of ab w.r.t. a: -I
+  // - Dervative of ac w.r.t. a: -I
+  //
+  // Apply chain rule to obtain total derivative of ab x ac w.r.t. a.
+  // This results in the following three subtractions and negations.
+  const double m01 = c[2] - b[2];
+  const double m02 = b[1] - c[1];
+  const double m12 = c[0] - b[0];
+  return Matrix3x3(0.,  m01, m02, -m01, 0., m12, -m02, -m12, 0.);
+}
+
+// -----------------------------------------------------------------------------
+inline Matrix3x3 Triangle
+::NormalJacobian(const Vector3 &n, const Matrix3x3 &dn)
+{
+  const double l2 = n.SquaredLength();
+  if (l2 == 0.) return Matrix3x3(0.);
+
+  const double l  = sqrt(l2);
+  const double l3 = l2 * l;
+  const double d  = 1. / l;
+
+  const double m00 = n[0] * n[0] / l3;
+  const double m01 = n[0] * n[1] / l3;
+  const double m02 = n[0] * n[2] / l3;
+  const double m11 = n[1] * n[1] / l3;
+  const double m12 = n[1] * n[2] / l3;
+  const double m22 = n[2] * n[2] / l3;
+
+  return Matrix3x3(m00 + d, m01, m02,
+                   m01, m11 + d, m12,
+                   m02, m12, m22 + d) * dn;
+}
+
+// -----------------------------------------------------------------------------
+inline Matrix3x3 Triangle
+::NormalJacobian(const double n[3], const Matrix3x3 &dn)
+{
+  const double l2 = vtkMath::Dot(n, n);
+  if (l2 == 0.) return Matrix3x3(0.);
+
+  const double l  = sqrt(l2);
+  const double l3 = l2 * l;
+  const double d  = 1. / l;
+
+  const double m00 = n[0] * n[0] / l3;
+  const double m01 = n[0] * n[1] / l3;
+  const double m02 = n[0] * n[2] / l3;
+  const double m11 = n[1] * n[1] / l3;
+  const double m12 = n[1] * n[2] / l3;
+  const double m22 = n[2] * n[2] / l3;
+
+  return Matrix3x3(m00 + d, m01, m02,
+                   m01, m11 + d, m12,
+                   m02, m12, m22 + d) * dn;
+}
+
+// -----------------------------------------------------------------------------
+inline Matrix3x3 Triangle
+::NormalJacobian(const double a[3], const double b[3], const double c[3], const Matrix3x3 &dn)
+{
+  double n[3];
+  Normal(a, b, c, n);
+  return NormalJacobian(n, dn);
+}
+
+// -----------------------------------------------------------------------------
+inline Matrix3x3 Triangle
+::NormalJacobian(const double a[3], const double b[3], const double c[3])
+{
+  return NormalJacobian(a, b, c, NormalDirectionJacobian(a, b, c));
+}
+
+// -----------------------------------------------------------------------------
+inline Vector3 Triangle
+::DoubleAreaGradient(const double a[3], const double b[3], const double c[3])
+{
+  double n[3];
+  Normal(a, b, c, n);
+  return - Vector3(n) * NormalDirectionJacobian(a, b, c);
+}
+
+// -----------------------------------------------------------------------------
+inline Vector3 Triangle
+::AreaGradient(const double a[3], const double b[3], const double c[3])
+{
+  return .5 * DoubleAreaGradient(a, b, c);
+}
+
+// =============================================================================
 // Distance between two triangles
 // =============================================================================
+
+// -----------------------------------------------------------------------------
+/// Compute distance between two triangles
+inline double Triangle
+::DistanceBetweenCenters(const double a1[3], const double b1[3], const double c1[3],
+                         const double a2[3], const double b2[3], const double c2[3],
+                         double *p1, double *p2)
+{
+  Center(a1, b1, c1, p1);
+  Center(a2, b2, c2, p2);
+  return sqrt(vtkMath::Distance2BetweenPoints(p1, p2));
+}
 
 // -----------------------------------------------------------------------------
 /// Compute distance between two triangles

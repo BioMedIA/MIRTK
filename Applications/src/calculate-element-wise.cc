@@ -209,10 +209,15 @@ void PrintHelp(const char *name)
   cout << "      Compute logarithm to base 10, alias for :option:`-log` with base 10.\n";
   cout << "\n";
   cout << "Data output options:\n";
-  cout << "  -out, -o, -output <file> [<type>]\n";
+  cout << "  -out, -o, -output <file> [<type>] [<name>]\n";
   cout << "      Write current data sequence to file in the format of the input file.\n";
   cout << "      Output data type can be: uchar, short, ushort, int, uint, float, double.\n";
-  cout << "      Another name for this option is the '=' sign, see Examples.\n";
+  cout << "      The optional <name> argument can be used to save the modified data\n";
+  cout << "      of an input point set data array with a different name along with the\n";
+  cout << "      input data. Otherwise, the input data values are replaced by the modified\n";
+  cout << "      values and stored with point data array name is unchanged.\n";
+  cout << "      Another name for this option is the '=' sign, but the optional arguments are\n";
+  cout << "      are not supported by this alternative notation. See Examples for usage.\n";
   cout << "\n";
   cout << "Data statistics options:\n";
   cout << "  -append <file>\n";
@@ -655,9 +660,17 @@ int main(int argc, char **argv)
         op = new Ln(a);
       }
       ops.push_back(UniquePtr<Op>(op));
-    } else if (OPTION("-o") || OPTION("-out") || OPTION("-output") || OPTION("=")) {
+    } else if (OPTION("=")) {
       const char *fname = ARGUMENT;
-      int dtype = datatype;
+      #if MIRTK_Image_WITH_VTK
+        ops.push_back(UniquePtr<Op>(new Write(fname, datatype, attr, dataset, scalars_name, scalars_name)));
+      #else
+        ops.push_back(UniquePtr<Op>(new Write(fname, datatype, attr)));
+      #endif
+    } else if (OPTION("-o") || OPTION("-out") || OPTION("-output")) {
+      const char *fname               = ARGUMENT;
+      const char *output_scalars_name = scalars_name;
+      int         dtype               = datatype;
       if (HAS_ARGUMENT) {
         const char *arg = ARGUMENT;
         dtype = ToDataType(arg);
@@ -665,9 +678,10 @@ int main(int argc, char **argv)
           cerr << "Invalid -out data type " << arg << endl;
           exit(1);
         }
+        if (HAS_ARGUMENT) output_scalars_name = ARGUMENT;
       }
       #if MIRTK_Image_WITH_VTK
-        ops.push_back(UniquePtr<Op>(new Write(fname, dtype, attr, dataset, scalars_name)));
+        ops.push_back(UniquePtr<Op>(new Write(fname, dtype, attr, dataset, scalars_name, output_scalars_name)));
       #else
         ops.push_back(UniquePtr<Op>(new Write(fname, dtype, attr)));
       #endif

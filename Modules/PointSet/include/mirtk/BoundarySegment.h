@@ -152,6 +152,14 @@ public:
   /// \returns Boundary segment point index or -1 if segment does not contain this point.
   int Find(int ptId) const;
 
+  /// Find closest boundary point
+  ///
+  /// \param[in] x     Point coordinates.
+  /// \param[in] dist2 Squared distance of closest boundary point.
+  ///
+  /// \returns Index of closest boundary segment point.
+  int FindClosestPoint(const class Point &x, double *dist2 = nullptr) const;
+
   /// Whether this boundary segment contains a given surface point
   ///
   /// \param[in] ptId Surface point ID.

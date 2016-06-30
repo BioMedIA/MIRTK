@@ -60,10 +60,10 @@ int Read(const char *name, double *&data, int *dtype, ImageAttributes *attr)
 #endif // MIRTK_Image_WITH_VTK
 {
   int n = 0;
-  data = NULL;
+  data = nullptr;
   if (attr) *attr = ImageAttributes();
 #if MIRTK_Image_WITH_VTK
-  if (dataset) *dataset = NULL;
+  if (dataset) *dataset = nullptr;
 #endif // MIRTK_Image_WITH_VTK
   int ftype = FileType(name);
   switch (ftype) {
@@ -159,7 +159,7 @@ void Write::Process(int n, double *data, bool *)
       vtkDataArray *input_scalars;
       if (_ArrayName.empty()) input_scalars = _DataSet->GetPointData()->GetScalars();
       else                    input_scalars = _DataSet->GetPointData()->GetArray(_ArrayName.c_str());
-      if (input_scalars == NULL) {
+      if (input_scalars == nullptr) {
         cerr << "Invalid output array name " << _ArrayName << endl;
         exit(1);
       }
@@ -170,7 +170,11 @@ void Write::Process(int n, double *data, bool *)
         exit(1);
       }
       vtkSmartPointer<vtkDataArray> output_scalars = NewVTKDataArray(ToVTKDataType(_DataType));
-      if (!_ArrayName.empty()) output_scalars->SetName(_ArrayName.c_str());
+      if (!_OutputName.empty()) {
+        output_scalars->SetName(_OutputName.c_str());
+      } else if (!_ArrayName.empty()) {
+        output_scalars->SetName(_ArrayName.c_str());
+      }
       output_scalars->SetNumberOfComponents(m);
       output_scalars->SetNumberOfTuples(ntuples);
       for (vtkIdType i = 0; i < ntuples; ++i) {
@@ -178,10 +182,12 @@ void Write::Process(int n, double *data, bool *)
           output_scalars->SetComponent(i, j, *data);
         }
       }
-      if (input_scalars == _DataSet->GetPointData()->GetScalars()) {
+      if (input_scalars == _DataSet->GetPointData()->GetScalars() && _OutputName.empty()) {
         _DataSet->GetPointData()->SetScalars(output_scalars);
       } else {
-        _DataSet->GetPointData()->RemoveArray(_ArrayName.c_str());
+        if (!_ArrayName.empty() && (_OutputName.empty() || _OutputName == _ArrayName)) {
+          _DataSet->GetPointData()->RemoveArray(_ArrayName.c_str());
+        }
         _DataSet->GetPointData()->AddArray(output_scalars);
       }
       if (type == LEGACY_VTK) {

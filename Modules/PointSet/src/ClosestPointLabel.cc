@@ -206,7 +206,7 @@ struct ConvertCellLabelsToPointLabels
 vtkSmartPointer<vtkDataArray> CellLabelsToPointLabels(vtkPointSet *dataset, vtkDataArray *cellLabels)
 {
   vtkSmartPointer<vtkDataArray> pointLabels;
-  pointLabels = vtkSmartPointer<vtkDataArray>::NewInstance(cellLabels);
+  pointLabels.TakeReference(cellLabels->NewInstance());
   pointLabels->SetName("Labels");
   pointLabels->SetNumberOfComponents(1);
   pointLabels->SetNumberOfTuples(dataset->GetNumberOfPoints());

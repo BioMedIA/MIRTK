@@ -24,6 +24,8 @@
 #include "mirtk/PointSetUtils.h"
 #include "mirtk/GenericImage.h"
 #include "mirtk/EdgeConnectivity.h"
+#include "mirtk/MeshSmoothing.h"
+#include "mirtk/SurfaceBoundary.h"
 #include "mirtk/SurfaceCollisions.h"
 #include "mirtk/EuclideanDistanceTransform.h"
 
@@ -33,7 +35,10 @@
 #include "mirtk/Vtk.h"
 
 #include "vtkSmartPointer.h"
+#include "vtkPolygon.h"
 #include "vtkPointSet.h"
+#include "vtkPointData.h"
+#include "vtkCellData.h"
 #include "vtkPolyData.h"
 #include "vtkImageData.h"
 #include "vtkImageStencilData.h"
@@ -48,6 +53,7 @@
 #include "vtkPolyDataNormals.h"
 #include "vtkCleanPolyData.h"
 #include "vtkGenericCell.h"
+
 
 using namespace mirtk;
 
@@ -80,10 +86,18 @@ void PrintHelp(const char *name)
   cout << "  -intersection          Compute boundary of intersection of input volumes." << endl;
   cout << endl;
   cout << "Output options:" << endl;
-  cout << "  -fillholes [<size>]    Fill holes of given maximum size (i.e., circumsphere radius)." << endl;
+  cout << "  -source-array <name>   Add point/cell data array with the specified name with one-based" << endl;
+  cout << "                         labels corresponding to the input point set from which an output" << endl;
+  cout << "                         point/cell originates from. When the first input point set has" << endl;
+  cout << "                         a scalar array with the specified name, the labels of this first" << endl;
+  cout << "                         surface are preserved, while successive labels are offset by the" << endl;
+  cout << "                         maximum integer value of the input data array. This is useful when" << endl;
+  cout << "                         successively merging surface meshes instead of with a single execution" << endl;
+  cout << "                         of this command. (default: none)" << endl;
+  cout << "  -fill-holes [<size>]   Fill holes of given maximum size (i.e., circumsphere radius)." << endl;
   cout << "  -largest [<n>]         Output largest n (default 1 if not specified) components." << endl;
   cout << "  -insphere              Output sphere which is inscribed the surface mesh." << endl;
-  cout << "  -boundingsphere        Output minimum sphere which fully contains the surface mesh." << endl;
+  cout << "  -bounding-sphere       Output minimum sphere which fully contains the surface mesh." << endl;
   cout << "  -o -surface <file>     Write output surface mesh to named file." << endl;
   cout << "  -mask <file>           Write binary inside/outside mask to named image file." << endl;
   cout << "  -implicit <file>       Write signed implicit surface distance to named image file." << endl;
@@ -96,6 +110,82 @@ void PrintHelp(const char *name)
 
 // =============================================================================
 // Auxiliaries
+// =============================================================================
+
+// -----------------------------------------------------------------------------
+/// Join intersected components at the intersection boundary
+void JoinIntersectionBoundaries(vtkPolyData *surface, vtkPolyData *intersection, double tolerance)
+{
+  if (intersection->GetNumberOfCells() == 0) return;
+
+  vtkSmartPointer<vtkPolygon> polygon   = vtkSmartPointer<vtkPolygon>::New();
+  vtkSmartPointer<vtkIdList>  triangles = vtkSmartPointer<vtkIdList>::New();
+  polygon->Points->SetDataTypeToDouble();
+  polygon->Points->Allocate(10);
+  polygon->PointIds->Allocate(10);
+
+  vtkCellArray * const polys = surface->GetPolys();
+
+  SurfaceBoundary boundary(surface);
+  if (boundary.NumberOfSegments() < 2) return;
+
+  double p[3];
+  intersection->GetPoint(0, p);
+  const Point x(p);
+
+  Array<int>    min_point(boundary.NumberOfSegments(), -1);
+  Array<double> min_dist2(boundary.NumberOfSegments(), inf);
+  for (int j = 0; j < boundary.NumberOfSegments(); ++j) {
+    min_point[j] = boundary.Segment(j).FindClosestPoint(x, &min_dist2[j]);
+  }
+  const auto &order = IncreasingOrder(min_dist2);
+  if (min_dist2[order[1]] > 4. * tolerance * tolerance) return;
+
+  const auto &seg1 = boundary.Segment(order[0]);
+  const auto &seg2 = boundary.Segment(order[1]);
+
+  // Traverse boundary segment backwards to be consistent with node order
+  // of boundary cells, i.e., surface mesh orientation
+  int i1 = seg1.NumberOfPoints();
+  int j1 = seg2.FindClosestPoint(seg1.Point(i1));
+  for (int i2, j2; i1 > 0; --i1) {
+    polygon->Points->Reset();
+    polygon->PointIds->Reset();
+    i2 = i1 - 1;
+    for (int i = i1; i >= i2; --i) {
+      seg1.GetPoint(i, p);
+      polygon->Points->InsertNextPoint(p);
+      polygon->PointIds->InsertNextId(seg1.PointId(i));
+    }
+    j2 = seg2.FindClosestPoint(seg1.Point(i2));
+    if (j1 > j2) j2 += seg2.NumberOfPoints();
+    if ((j2 - j1) < seg2.NumberOfPoints() - (j2 - j1)) {
+      for (int j = j2; j >= j1; --j) {
+        seg2.GetPoint(j, p);
+        polygon->Points->InsertNextPoint(p);
+        polygon->PointIds->InsertNextId(seg2.PointId(j));
+      }
+    } else {
+      j1 += seg2.NumberOfPoints();
+      for (int j = j2; j <= j1; ++j) {
+        seg2.GetPoint(j, p);
+        polygon->Points->InsertNextPoint(p);
+        polygon->PointIds->InsertNextId(seg2.PointId(j));
+      }
+    }
+    j1 = seg2.IndexModuloNumberOfPoints(j2);
+    polygon->NonDegenerateTriangulate(triangles);
+    for (vtkIdType n = 0; n < triangles->GetNumberOfIds(); n += 3) {
+      polys->InsertNextCell(3);
+      polys->InsertCellPoint(polygon->PointIds->GetId(triangles->GetId(n)));
+      polys->InsertCellPoint(polygon->PointIds->GetId(triangles->GetId(n+1)));
+      polys->InsertCellPoint(polygon->PointIds->GetId(triangles->GetId(n+2)));
+    }
+  }
+}
+
+// =============================================================================
+// Shock removal (experimental)
 // =============================================================================
 
 // -----------------------------------------------------------------------------
@@ -221,67 +311,81 @@ int main(int argc, char *argv[])
   REQUIRES_POSARGS(0);
 
   Array<const char *> input_names;
-  const char *output_name     = NULL;
-  const char *mask_name       = NULL;
-  const char *dmap_name       = NULL;
-  int         operation       = vtkBooleanOperationPolyDataFilter::VTK_UNION;
-  int         hull_levels     = -1;
-  bool        delaunay        = false;
-  bool        triangulate     = (input_names.size() > 1);
-  double      max_hole_size   = .0;
-  double      max_shock_dist  = numeric_limits<double>::quiet_NaN();
-  const char *shock_dmap_name = NULL;
-  int         nlargest        = 0;
-  OutputType  type            = OutputSurface;
-  const char *ref_name        = NULL;
-  double      resolution      = numeric_limits<double>::quiet_NaN();
-  double      tolerance       = 1e-6;
+  const char *output_name       = nullptr;
+  const char *mask_name         = nullptr;
+  const char *dmap_name         = nullptr;
+  int         operation         = vtkBooleanOperationPolyDataFilter::VTK_UNION;
+  int         hull_levels       = -1;
+  bool        delaunay          = false;
+  bool        triangulate       = (input_names.size() > 1);
+  double      merge_points_tol  = -1.;
+  double      max_hole_size     = 0.;
+  double      max_shock_dist    = NaN;
+  const char *shock_dmap_name   = NULL;
+  int         nlargest          = 0;
+  OutputType  type              = OutputSurface;
+  const char *ref_name          = NULL;
+  double      resolution        = NaN;
+  double      tolerance         = 1e-6;
+  const char *source_array_name = nullptr;
 
   if (NUM_POSARGS > 0) {
     if (NUM_POSARGS > 1) {
-      input_names.resize(NUM_POSARGS - 1, NULL);
+      input_names.resize(NUM_POSARGS - 1, nullptr);
       for (int i = 1; i < NUM_POSARGS; ++i) input_names[i-1] = POSARG(i);
     }
     output_name = POSARG(NUM_POSARGS);
   }
 
   for (ALL_OPTIONS) {
-    if (OPTION("-i") || OPTION("-input")) input_names.push_back(ARGUMENT);
+    if (OPTION("-i") || OPTION("-input")) {
+      input_names.push_back(ARGUMENT);
+    }
     else if (OPTION("-o") || OPTION("-output") || OPTION("-surface")) {
+      if (output_name) input_names.push_back(output_name);
       output_name = ARGUMENT;
     }
-    else if (OPTION("-mask"))     mask_name = ARGUMENT;
-    else if (OPTION("-implicit")) dmap_name = ARGUMENT;
-    else if (OPTION("-hull")){
-      if (HAS_ARGUMENT) hull_levels = atoi(ARGUMENT);
-      else              hull_levels = 3;
+    else if (OPTION("-mask")) {
+      mask_name = ARGUMENT;
     }
-    else if (OPTION("-removeshocks")) {
-      shock_dmap_name = NULL;
+    else if (OPTION("-implicit")) {
+      dmap_name = ARGUMENT;
+    }
+    else if (OPTION("-hull")){
+      if (HAS_ARGUMENT) PARSE_ARGUMENT(hull_levels);
+      else hull_levels = 3;
+    }
+    else if (OPTION("-merge")) {
+      if (HAS_ARGUMENT) PARSE_ARGUMENT(merge_points_tol);
+      else merge_points_tol = 1e-6;
+    }
+    else if (OPTION("-remove-shocks") || OPTION("-removeshocks")) {
+      shock_dmap_name = nullptr;
       if (HAS_ARGUMENT) {
-        max_shock_dist = atof(ARGUMENT);
+        PARSE_ARGUMENT(max_shock_dist);
         if (HAS_ARGUMENT) shock_dmap_name = ARGUMENT;
       }
       else max_shock_dist = -1.0;
     }
-    else if (OPTION("-fillholes")) {
-      if (HAS_ARGUMENT) max_hole_size = atof(ARGUMENT);
-      else              max_hole_size = numeric_limits<double>::infinity();
+    else if (OPTION("-fill-holes") || OPTION("-fillholes")) {
+      if (HAS_ARGUMENT) PARSE_ARGUMENT(max_hole_size);
+      else max_hole_size = inf;
     }
     else if (OPTION("-largest")) {
-      if (HAS_ARGUMENT) nlargest = atoi(ARGUMENT);
-      else              nlargest = 1;
+      if (HAS_ARGUMENT) PARSE_ARGUMENT(nlargest);
+      else nlargest = 1;
     }
     else if (OPTION("-delaunay"))    delaunay    = true;
     else if (OPTION("-triangulate")) triangulate = true;
     else if (OPTION("-insphere")) type = OutputInSphere;
-    else if (OPTION("-boundingsphere")) type = OutputBoundingSphere;
-    else if (OPTION("-resolution") || OPTION("-res")) resolution = atof(ARGUMENT);
-    else if (OPTION("-reference")  || OPTION("-ref")) ref_name   = ARGUMENT;
+    else if (OPTION("-bounding-sphere")) type = OutputBoundingSphere;
+    else if (OPTION("-resolution") || OPTION("-res")) PARSE_ARGUMENT(resolution);
+    else if (OPTION("-reference")  || OPTION("-ref")) ref_name = ARGUMENT;
     else if (OPTION("-union"))        operation = vtkBooleanOperationPolyDataFilter::VTK_UNION;
     else if (OPTION("-difference"))   operation = vtkBooleanOperationPolyDataFilter::VTK_DIFFERENCE;
     else if (OPTION("-intersection")) operation = vtkBooleanOperationPolyDataFilter::VTK_INTERSECTION;
-    else if (OPTION("-tolerance") || OPTION("-tol")) tolerance = atof(ARGUMENT);
+    else if (OPTION("-tolerance") || OPTION("-tol")) PARSE_ARGUMENT(tolerance);
+    else if (OPTION("-source-array")) source_array_name = ARGUMENT;
     else HANDLE_COMMON_OR_UNKNOWN_OPTION();
   }
 
@@ -293,9 +397,10 @@ int main(int argc, char *argv[])
   }
 
   // ---------------------------------------------------------------------------
-  // Read input point sets and extract (triangulated) surface
+  // Read input point sets and extract their surfaces
   Array<vtkSmartPointer<vtkPolyData> > surfaces(input_names.size());
   for (size_t i = 0; i < input_names.size(); ++i) {
+    if (verbose) cout << "Reading surface from " << input_names[i] << endl;
     vtkSmartPointer<vtkPointSet> pointset = ReadPointSet(input_names[i]);
     if (hull_levels >= 0) {
       surfaces[i] = ConvexHull(pointset, hull_levels);
@@ -307,12 +412,41 @@ int main(int argc, char *argv[])
         pointset = tesselation->GetOutput();
       }
       surfaces[i] = DataSetSurface(pointset);
-      if (triangulate) surfaces[i] = Triangulate(surfaces[i]);
     }
   }
 
   // ---------------------------------------------------------------------------
   // Compute union, difference, or intersection of input surfaces
+  if (verbose) cout << "Combining surface meshes...", cout.flush();
+
+  vtkSmartPointer<vtkDataArray> source_array;
+  const char *temp_source_array_name = source_array_name;
+  if (strcmp(source_array_name, "PointSource") == 0) {
+    temp_source_array_name = "_PointSource";
+  }
+  if (source_array_name != nullptr) {
+    size_t offset = 1;
+    source_array = surfaces[0]->GetPointData()->GetArray(source_array_name);
+    if (source_array != nullptr && source_array->GetNumberOfComponents() == 1) {
+      offset = static_cast<size_t>(ceil(source_array->GetRange(0)[1]));
+      if (offset > 1) source_array->SetName(temp_source_array_name);
+    }
+    for (size_t i = 0; i < surfaces.size(); ++i) {
+      const auto &surface = surfaces[i];
+      surface->GetCellData()->RemoveArray(source_array_name);
+      if (i > 0 || offset <= 1) {
+        surface->GetPointData()->RemoveArray(source_array_name);
+        source_array = NewVTKDataArray(VTK_UNSIGNED_SHORT);
+        source_array->SetName(temp_source_array_name);
+        source_array->SetNumberOfComponents(1);
+        source_array->SetNumberOfTuples(surface->GetNumberOfPoints());
+        source_array->FillComponent(0, static_cast<double>(offset + i));
+        surface->GetPointData()->AddArray(source_array);
+      }
+    }
+    source_array = nullptr;
+  }
+
   vtkSmartPointer<vtkPolyData> surface = surfaces[0];
   for (size_t i = 1; i < surfaces.size(); ++i) {
     vtkNew<vtkBooleanOperationPolyDataFilter> joiner;
@@ -322,9 +456,39 @@ int main(int argc, char *argv[])
     joiner->SetTolerance(tolerance);
     joiner->ReorientDifferenceCellsOn();
     joiner->Update();
+
     surface = joiner->GetOutput();
+    surface->GetPointData()->RemoveArray("PointSource");
+    surface->GetCellData ()->RemoveArray("CellSource");
+    surface->GetPointData()->RemoveArray("Distance");
+    surface->GetCellData ()->RemoveArray("Distance");
+    JoinIntersectionBoundaries(surface, joiner->GetOutput(1), tolerance);
+
+    vtkNew<vtkCleanPolyData> cleaner;
+    cleaner->ConvertPolysToLinesOff();
+    cleaner->ConvertLinesToPointsOff();
+    cleaner->ConvertStripsToPolysOff();
+    if (merge_points_tol >= 0.) {
+      cleaner->PointMergingOn();
+      cleaner->ToleranceIsAbsoluteOn();
+      cleaner->SetAbsoluteTolerance(merge_points_tol);
+    } else {
+      cleaner->PointMergingOff();
+    }
+    SetVTKInput(cleaner, surface);
+    cleaner->Update();
+    surface = cleaner->GetOutput();
   }
+
+  if (temp_source_array_name != source_array_name) {
+    surface->GetPointData()->RemoveArray(source_array_name);
+    source_array = surface->GetPointData()->GetArray(temp_source_array_name);
+    source_array->SetName(source_array_name);
+    temp_source_array_name = nullptr;
+  }
+
   surfaces.clear();
+  if (verbose) cout << endl;
 
   // ---------------------------------------------------------------------------
   // Remove "shocks" from surface mesh
@@ -362,7 +526,14 @@ int main(int argc, char *argv[])
   // ---------------------------------------------------------------------------
   // Extract largest n components
   if (nlargest > 0) {
-    if (verbose) cout << "Extracting largest ...", cout.flush();
+    if (verbose) {
+      cout << "Extracting largest ";
+      if (nlargest > 1) cout << nlargest << " ";
+      cout << "component";
+      if (nlargest > 1) cout << "s";
+      cout << "...";
+      cout.flush();
+    }
     vtkNew<vtkPolyDataConnectivityFilter> conn;
     SetVTKInput(conn, surface);
     conn->SetExtractionModeToAllRegions();
@@ -377,6 +548,14 @@ int main(int argc, char *argv[])
     }
     conn->Update();
     surface = conn->GetOutput();
+    vtkNew<vtkCleanPolyData> cleaner;
+    cleaner->ConvertPolysToLinesOff();
+    cleaner->ConvertLinesToPointsOff();
+    cleaner->ConvertStripsToPolysOff();
+    cleaner->PointMergingOff();
+    SetVTKInput(cleaner, surface);
+    cleaner->Update();
+    surface = cleaner->GetOutput();
     if (verbose) cout << " done" << endl;
   }
 
@@ -407,7 +586,13 @@ int main(int argc, char *argv[])
       surface = sphere->GetOutput();
     } break;
 
-    default: break;
+    default: {
+      if (triangulate) {
+        if (verbose) cout << "Triangulating surface...";
+        surface = Triangulate(surface);
+        if (verbose) cout << " done" << endl;
+      }
+    } break;
   }
 
   // ---------------------------------------------------------------------------

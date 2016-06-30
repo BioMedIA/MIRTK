@@ -780,16 +780,16 @@ inline void EvaluateTangential(DistanceMeasurement &d,
   PointSamples dirs(ndirs * nbetas);
   switch (ndirs) {
     case 1: {
-      dirs(0) = e1;
+      dirs(0) = Point(e1);
     } break;
     case 2: {
-      dirs(0) = e1;
-      dirs(1) = e2;
+      dirs(0) = Point(e1);
+      dirs(1) = Point(e2);
     } break;
     case 4: {
       const double sqrt2 = sqrt(2.0);
-      dirs(0) = e1;
-      dirs(1) = e2;
+      dirs(0) = Point(e1);
+      dirs(1) = Point(e2);
       dirs(2) = (Point(e1) + Point(e2)) / sqrt2;
       dirs(3) = (Point(e1) - Point(e2)) / sqrt2;
     } break;

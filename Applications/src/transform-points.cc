@@ -114,12 +114,13 @@ int main(int argc, char **argv)
   Array<const char *> dofin_name;
   Array<bool>         dofin_invert;
   GreyImage           target, source;
+  FileOption          fopt = FO_Default;
+
   bool compute_point_normals = false;
   bool compute_cell_normals  = false;
   int  pnumber               = 0;
-  int  output_file_type      = -1;
-  bool compress              = true;
-  double tt = .0, ts = 1.0; // Temporal origin, used by velocity based transformations
+
+  double tt = 0., ts = 1.; // Temporal origin, used by velocity based transformations
 
   for (ALL_OPTIONS) {
     if (OPTION("-dofin")) {
@@ -148,10 +149,7 @@ int main(int argc, char **argv)
     else if (OPTION("-normals")) compute_point_normals = compute_cell_normals = true;
     else if (OPTION("-point-normals")) compute_point_normals = true;
     else if (OPTION("-cell-normals")) compute_cell_normals = true;
-    else if (OPTION("-compress")) compress = true;
-    else if (OPTION("-nocompress")) compress = false;
-    else if (OPTION("-ascii"))  output_file_type = VTK_ASCII;
-    else if (OPTION("-binary")) output_file_type = VTK_BINARY;
+    else HANDLE_POINTSETIO_OPTION(fopt);
     else HANDLE_STANDARD_OR_UNKNOWN_OPTION();
   }
   dofin_invert.resize(dofin_name.size(), false);
@@ -159,7 +157,8 @@ int main(int argc, char **argv)
   // Read input points
   double p[3];
   if (input_name) {
-    pointset = ReadPointSet(input_name, NULL, false);
+    const bool exit_on_failure = false;
+    pointset = ReadPointSet(input_name, exit_on_failure);
     if (!pointset) {
       vtkSmartPointer<vtkDataSet> dataset;
       const string ext = Extension(input_name);
@@ -168,7 +167,9 @@ int main(int argc, char **argv)
         reader->SetFileName(input_name);
         reader->Update();
         dataset = reader->GetOutput();
-        if (output_file_type == -1) output_file_type = reader->GetFileType();
+        if (fopt == FO_Default) {
+          fopt = (reader->GetFileType() == VTK_ASCII ? FO_ASCII : FO_Binary);
+        }
       } else {
         vtkNew<vtkXMLGenericDataObjectReader> reader;
         reader->SetFileName(input_name);
@@ -193,7 +194,6 @@ int main(int argc, char **argv)
       points(i) = p;
     }
   } else {
-    if (output_file_type == -1) output_file_type = VTK_BINARY;
     while (cin) {
       cin >> p[0] >> p[1] >> p[2];
       if (!cin) break;
@@ -250,7 +250,7 @@ int main(int argc, char **argv)
     }
 
     // Write the final dataset
-    WritePointSet(output_name, pointset, compress, output_file_type == VTK_ASCII);
+    WritePointSet(output_name, pointset, fopt);
 
   } else {
 

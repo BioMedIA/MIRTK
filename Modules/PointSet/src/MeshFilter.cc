@@ -51,7 +51,7 @@ void MeshFilter::CopyAttributes(const MeshFilter &other)
   _DoublePrecision = other._DoublePrecision;
 
   if (other._Output) {
-    _Output = other._Output->NewInstance();
+    _Output.TakeReference(other._Output->NewInstance());
     _Output->ShallowCopy(other._Output);
   } else {
     _Output = nullptr;
@@ -118,7 +118,7 @@ void MeshFilter::Initialize()
   _Input->BuildLinks();
 
   // By default, set output to be shallow copy of input
-  _Output = _Input->NewInstance();
+  _Output.TakeReference(_Input->NewInstance());
   _Output->ShallowCopy(_Input);
 }
 

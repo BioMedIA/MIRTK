@@ -417,7 +417,8 @@ int main(int argc, char *argv[])
       // FIXME: Silence errors of VTK readers instead
       fext != ".nii"  && fext != ".hdr" && fext != ".img" && fext != ".png" &&
       fext != ".gipl" && fext != ".pgm") {
-    pointset = ReadPointSet(POSARG(1), NULL, false);
+    const bool exit_on_failure = false;
+    pointset = ReadPointSet(POSARG(1), exit_on_failure);
     if (pointset) {
       polydata = ConvertToPolyData(pointset);
       polydata->BuildLinks();
@@ -763,20 +764,30 @@ int main(int argc, char *argv[])
 
     // Attributes
     if (list_pointdata_arrays) {
-      if (pointset->GetPointData()->GetNumberOfArrays() > 0) {
-        cout << "\nPoint data arrays:\n";
-        for (int i = 0; i < pointset->GetPointData()->GetNumberOfArrays(); ++i) {
-          vtkDataArray *scalars = pointset->GetPointData()->GetArray(i);
-          printf(" %2d %-24s (dim: %2d)\n", i, scalars->GetName(), scalars->GetNumberOfComponents());
+      vtkPointData *pd = pointset->GetPointData();
+      if (pd->GetNumberOfArrays() > 0) {
+        cout << "\nPoint data attributes:\n";
+        for (int i = 0; i < pd->GetNumberOfArrays(); ++i) {
+          vtkDataArray *array = pd->GetArray(i);
+          printf(" %2d %-24s (dim: %2d, type: %-7s kind: %s)\n", i,
+              array->GetName(),
+              array->GetNumberOfComponents(),
+              (VtkDataTypeString(array->GetDataType()) + ",").c_str(),
+              VtkAttributeTypeString(pd->IsArrayAnAttribute(i)).c_str());
         }
       }
     }
     if (list_celldata_arrays) {
-      if (pointset->GetCellData()->GetNumberOfArrays() > 0) {
-        cout << "\nCell data arrays:\n";
-        for (int i = 0; i < pointset->GetCellData()->GetNumberOfArrays(); ++i) {
-          vtkDataArray *scalars = pointset->GetCellData()->GetArray(i);
-          printf(" %2d %-24s (dim: %2d)\n", i, scalars->GetName(), scalars->GetNumberOfComponents());
+      vtkCellData *cd = pointset->GetCellData();
+      if (cd->GetNumberOfArrays() > 0) {
+        cout << "\nCell data attributes:\n";
+        for (int i = 0; i < cd->GetNumberOfArrays(); ++i) {
+          vtkDataArray *array = cd->GetArray(i);
+          printf(" %2d %-24s (dim: %2d, type: %-7s kind: %s)\n", i,
+              array->GetName(),
+              array->GetNumberOfComponents(),
+              (VtkDataTypeString(array->GetDataType()) + ",").c_str(),
+              VtkAttributeTypeString(cd->IsArrayAnAttribute(i)).c_str());
         }
       }
     }

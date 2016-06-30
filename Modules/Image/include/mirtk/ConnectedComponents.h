@@ -93,6 +93,11 @@ public:
   /// Run() will add the component again to the output.
   virtual void DeleteComponent(VoxelType);
 
+  /// Size of the specified component
+  ///
+  /// \param[in] label Component label (1-based).
+  int ComponentSize(VoxelType label) const;
+
 protected:
 
   /// Initialize the filter execution
@@ -135,6 +140,17 @@ inline bool FromString(const char *str, ConnectedComponentsOrdering &value)
     value = CC_SmallestFirst;
   } else return false;
   return true;
+}
+
+// =============================================================================
+// Inline definitions
+// =============================================================================
+
+// -----------------------------------------------------------------------------
+template <class TVoxel>
+inline int ConnectedComponents<TVoxel>::ComponentSize(VoxelType label) const
+{
+  return _ComponentSize[label-1];
 }
 
 

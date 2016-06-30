@@ -534,7 +534,7 @@ inline vtkSmartPointer<vtkPointSet> PointCorrespondence
 {
   vtkSmartPointer<vtkPointSet> output;
   if (sample && sample->size() > 0) {
-    output = vtkSmartPointer<vtkPointSet>::NewInstance(dataset);
+    output.TakeReference(dataset->NewInstance());
     output->SetPoints(GetPoints(dataset, sample));
   } else {
     output = dataset;

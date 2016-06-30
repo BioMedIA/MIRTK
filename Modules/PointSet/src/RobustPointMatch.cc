@@ -283,7 +283,7 @@ public:
     double p[3];
     for (int i = re.begin(); i != re.end(); ++i) {
       _DataSet->GetPoint(PointCorrespondence::GetPointIndex(_DataSet, _Sample, i), p);
-      _Sum += p;
+      _Sum += Point(p);
     }
   }
 

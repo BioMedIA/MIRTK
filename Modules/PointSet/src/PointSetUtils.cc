@@ -236,7 +236,7 @@ int DeepCopyArrayUsingCaseInsensitiveName(vtkDataSetAttributes *dst, vtkDataSetA
       dst_array->DeepCopy(src_array);
     } else {
       vtkSmartPointer<vtkDataArray> copy;
-      copy = vtkSmartPointer<vtkDataArray>::NewInstance(src_array);
+      copy.TakeReference(src_array->NewInstance());
       copy->DeepCopy(src_array);
       loc = dst->AddArray(copy);
     }
@@ -292,13 +292,19 @@ double ComputeVolume(vtkCell *cell)
 // -----------------------------------------------------------------------------
 vtkSmartPointer<vtkPolyData> DataSetSurface(vtkSmartPointer<vtkDataSet> dataset, bool passPtIds, bool passCellIds)
 {
-  vtkSmartPointer<vtkDataSetSurfaceFilter> surface;
-  surface = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
-  SetVTKInput(surface, dataset);
-  surface->SetPassThroughPointIds(passPtIds);
-  surface->SetPassThroughCellIds(passCellIds);
-  surface->Update();
-  return surface->GetOutput();
+  if (IsSurfaceMesh(dataset)) {
+    vtkSmartPointer<vtkPolyData> surface = vtkSmartPointer<vtkPolyData>::New();
+    surface->ShallowCopy(dataset);
+    return surface;
+  } else {
+    vtkSmartPointer<vtkDataSetSurfaceFilter> surface;
+    surface = vtkSmartPointer<vtkDataSetSurfaceFilter>::New();
+    SetVTKInput(surface, dataset);
+    surface->SetPassThroughPointIds(passPtIds);
+    surface->SetPassThroughCellIds(passCellIds);
+    surface->Update();
+    return surface->GetOutput();
+  }
 }
 
 // -----------------------------------------------------------------------------
@@ -1015,7 +1021,7 @@ vtkSmartPointer<vtkPolyData> Triangulate(vtkSmartPointer<vtkPolyData> mesh)
 {
   vtkSmartPointer<vtkPolyData> output;
   if (IsTriangularMesh(mesh)) {
-    output = vtkSmartPointer<vtkPolyData>::NewInstance(mesh);
+    output.TakeReference(mesh->NewInstance());
     output->ShallowCopy(mesh);
   } else {
     vtkSmartPointer<vtkTriangleFilter> filter;
@@ -1095,7 +1101,7 @@ vtkSmartPointer<vtkPointSet> Tetrahedralize(vtkSmartPointer<vtkPointSet> input)
 {
   vtkSmartPointer<vtkPointSet> mesh;
   if (IsTetrahedralMesh(input)) {
-    mesh = vtkSmartPointer<vtkPointSet>::NewInstance(input);
+    mesh.TakeReference(input->NewInstance());
     mesh->ShallowCopy(input);
   } else {
     // TODO: Use TetGen library to tetrahedralize interior of input PLC
@@ -1134,7 +1140,7 @@ vtkSmartPointer<vtkPointSet> WorldToImage(vtkSmartPointer<vtkPointSet> pointset,
     points->SetPoint(ptId, p);
   }
   vtkSmartPointer<vtkPointSet> output;
-  output = vtkSmartPointer<vtkPointSet>::NewInstance(pointset);
+  output.TakeReference(pointset->NewInstance());
   output->ShallowCopy(pointset);
   output->SetPoints(points);
   return output;

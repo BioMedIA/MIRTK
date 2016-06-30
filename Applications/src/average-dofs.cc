@@ -255,17 +255,17 @@ int main(int argc, char **argv)
     else if (OPTION("-cubic"))         bsplineffd  = true;
     else if (OPTION("-dofs"))          avgdofs     = true;
     else if (OPTION("-inverse-dofs"))  avgdofs     = true, invert = invavg = true;
-    else if (OPTION("-epsilon"))       epsilon     = atof(ARGUMENT);
-    else if (OPTION("-gaussian")) { mean = atof(ARGUMENT); sigma = atof(ARGUMENT); }
+    else if (OPTION("-epsilon"))       PARSE_ARGUMENT(epsilon);
+    else if (OPTION("-gaussian")) { PARSE_ARGUMENT(mean), PARSE_ARGUMENT(sigma); }
     else if (OPTION("-rigid"))    { translation = rotation = true;  scaling = shearing = deformation = false; }
     else if (OPTION("-norigid"))  { translation = rotation = false; }
     else if (OPTION("-affine"))   { translation = rotation = scaling = shearing = true;  deformation = false; }
     else if (OPTION("-noaffine")) { translation = rotation = scaling = shearing = false; }
     else if (OPTION("-all"))      { translation = rotation = scaling = shearing = deformation = true; }
     else if (OPTION("-add-identity"))             { identity_value = NaN; }
-    else if (OPTION("-add-identity-with-weight")) { identity_value = atof(ARGUMENT); }
+    else if (OPTION("-add-identity-with-weight")) { PARSE_ARGUMENT(identity_value); }
     else if (OPTION("-add-identity-for-dofname")) { identity_name  = ARGUMENT; }
-    else if (OPTION("-max-frechet-iterations")) frechet_iter = atoi(ARGUMENT);
+    else if (OPTION("-max-frechet-iterations")) PARSE_ARGUMENT(frechet_iter);
     else HANDLE_STANDARD_OR_UNKNOWN_OPTION();
   }
 
