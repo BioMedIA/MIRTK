@@ -115,9 +115,16 @@ public:
       // Check whether normal_vec is pointing outside or not. If it points inside, invert it.
       // v_pc = c - p
       _Normals->GetTuple(ptId, radial);
-      v_pc[0] = p[0] - _Center._x;
-      v_pc[1] = p[1] - _Center._y;
-      v_pc[2] = p[2] - _Center._z;
+      v_pc[0] = _Center._x - p[0];
+      v_pc[1] = _Center._y - p[1];
+      v_pc[2] = _Center._z - p[2];
+      
+      // Remove the longitudinal component of v_pc
+      dp = vtkMath::Dot(v_pc, longit);
+      v_pc[0] -= dp * longit[0];
+      v_pc[1] -= dp * longit[1];
+      v_pc[2] -= dp * longit[2];
+
       if (vtkMath::Dot(radial, v_pc) > 0.) {
         vtkMath::MultiplyScalar(radial, -1.);
       }
@@ -392,6 +399,7 @@ int main(int argc, char **argv)
   output_mesh->ShallowCopy(input_mesh);
   vtkSmartPointer<vtkPoints> output_points;
   output_points = vtkSmartPointer<vtkPoints>::New();
+  output_points->SetNumberOfPoints(npoints);
   output_mesh->SetPoints(output_points);
   if (output_mesh_fopt == FO_Default) output_mesh_fopt = input_mesh_fopt;
 
@@ -419,7 +427,8 @@ int main(int argc, char **argv)
   circum->SetNumberOfComponents(3);
   circum->SetNumberOfTuples(npoints);
 
-  CalculateLocalDirections::Run(output_mesh, attr, radial, longit, circum);
+  // Use the input mesh (the reference mesh) to determine the local coordinate system
+  CalculateLocalDirections::Run(input_mesh, attr, radial, longit, circum);
 
   if (save_local_coord) {
     output_mesh->GetPointData()->AddArray(radial);
