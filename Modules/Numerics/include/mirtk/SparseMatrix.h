@@ -493,7 +493,9 @@ void GenericSparseMatrix<TEntry>::CheckEntries(Entries &entries) const
   // Sum up duplicate entries
   for (typename Entries::iterator i = entries.begin(); i != entries.end(); ++i) {
     typename Entries::iterator j = i + 1;
-    while (j != entries.end() && i->first == j->first) i->second += j->second;
+    while (j != entries.end() && i->first == j->first) {
+      i->second += j->second, ++j;
+    }
     entries.erase(i + 1, i + std::distance(i, j));
   }
 }
