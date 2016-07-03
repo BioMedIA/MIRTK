@@ -668,9 +668,11 @@ int main(int argc, char **argv)
         ops.push_back(UniquePtr<Op>(new Write(fname, datatype, attr)));
       #endif
     } else if (OPTION("-o") || OPTION("-out") || OPTION("-output")) {
-      const char *fname               = ARGUMENT;
-      const char *output_scalars_name = scalars_name;
-      int         dtype               = datatype;
+      const char *fname = ARGUMENT;
+      int         dtype = datatype;
+      #if MIRTK_Image_WITH_VTK
+        const char *output_scalars_name = scalars_name;
+      #endif
       if (HAS_ARGUMENT) {
         const char *arg = ARGUMENT;
         dtype = ToDataType(arg);
@@ -678,7 +680,13 @@ int main(int argc, char **argv)
           cerr << "Invalid -out data type " << arg << endl;
           exit(1);
         }
-        if (HAS_ARGUMENT) output_scalars_name = ARGUMENT;
+        if (HAS_ARGUMENT) {
+          #if MIRTK_Image_WITH_VTK
+            output_scalars_name = ARGUMENT;
+          #else
+            Warning("Output scalars array name argument of -output option ignored");
+          #endif
+        }
       }
       #if MIRTK_Image_WITH_VTK
         ops.push_back(UniquePtr<Op>(new Write(fname, dtype, attr, dataset, scalars_name, output_scalars_name)));
