@@ -686,8 +686,6 @@ int main(int argc, char **argv)
           #else
             Warning("Output scalars array name argument of -output option ignored");
           #endif
-        } else {
-          output_scalars_name = scalars_name;
         }
       }
       #if MIRTK_Image_WITH_VTK
