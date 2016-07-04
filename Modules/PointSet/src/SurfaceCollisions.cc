@@ -1,5 +1,5 @@
 /*
- * Medical Image Registration ToolKit (MMIRTK)
+ * Medical Image Registration ToolKit (MIRTK)
  *
  * Copyright 2013-2015 Imperial College London
  * Copyright 2013-2015 Andreas Schuh
