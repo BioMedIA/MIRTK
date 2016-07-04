@@ -80,6 +80,8 @@ enum EnergyMeasure
     EM_Stretching,              ///< Stretching force (rest edge length)
     EM_Curvature,               ///< Minimize curvature of point set surface
     EM_QuadraticCurvature,      ///< Quadratic fit of neighor to tangent plane distance
+    EM_GaussCurvature,          ///< Gauss curvature constraint
+    EM_MeanCurvature,           ///< Mean curvature constraint
     EM_NonSelfIntersection,     ///< Repels too close non-neighboring triangles
     EM_RepulsiveForce,          ///< Repels too close non-neighboring nodes
     EM_InflationForce,          ///< Inflate point set surface
@@ -150,6 +152,8 @@ inline string ToString(const EnergyMeasure &value, int w, char c, bool left)
     case EM_Stretching:          str = "Stretching"; break;
     case EM_Curvature:           str = "Curvature"; break;
     case EM_QuadraticCurvature:  str = "QuadraticCurvature"; break;
+    case EM_GaussCurvature:      str = "GaussCurvature"; break;
+    case EM_MeanCurvature:       str = "MeanCurvature"; break;
     case EM_NonSelfIntersection: str = "NSI"; break;
     case EM_RepulsiveForce:      str = "Repulsion"; break;
     case EM_InflationForce:      str = "Inflation"; break;
@@ -217,6 +221,8 @@ inline string ToPrettyString(const EnergyMeasure &value, int w = 0, char c = ' '
     case EM_Stretching:          str = "Stretching"; break;
     case EM_Curvature:           str = "Curvature"; break;
     case EM_QuadraticCurvature:  str = "Quadratic curvature"; break;
+    case EM_GaussCurvature:      str = "Gauss curvature"; break;
+    case EM_MeanCurvature:       str = "Mean curvature"; break;
     case EM_NonSelfIntersection: str = "Non-self intersection"; break;
     case EM_RepulsiveForce:      str = "Repulsion"; break;
     case EM_InflationForce:      str = "Inflation"; break;
@@ -290,6 +296,7 @@ inline bool FromString(const char *str, EnergyMeasure &value)
     else if (strcmp(str, "Bending")             == 0) value = EM_Curvature;
     else if (strcmp(str, "SurfaceBending")      == 0) value = EM_Curvature;
     else if (strcmp(str, "SurfaceCurvature")    == 0) value = EM_Curvature;
+    else if (strcmp(str, "GaussianCurvature")   == 0) value = EM_GaussCurvature;
     else if (strcmp(str, "RepulsiveForce")      == 0) value = EM_RepulsiveForce;
     else if (strcmp(str, "NonSelfIntersection") == 0) value = EM_NonSelfIntersection;
     else if (strcmp(str, "InflationForce")      == 0) value = EM_InflationForce;
