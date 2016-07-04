@@ -38,6 +38,7 @@
 #include "vtkPolyDataConnectivityFilter.h"
 #include "vtkCellLocator.h"
 #include "vtkQuadricDecimation.h"
+#include "vtkCellDataToPointData.h"
 
 using namespace mirtk;
 
@@ -50,7 +51,7 @@ using namespace mirtk;
 void PrintHelp(const char *name)
 {
   cout << endl;
-  cout << "Usage: " << name << " <input> <output> <distance> [options]" << endl;
+  cout << "Usage: " << name << " <input> <output> [options]" << endl;
   cout << endl;
   cout << "Description:" << endl;
   cout << "  Displaces surface mesh points by a given amount along the surface normal" << endl;
@@ -63,7 +64,12 @@ void PrintHelp(const char *name)
   cout << "  cortical surfaces. Points of the <input> surface are displaced if they" << endl;
   cout << "  are closer than the allowed offset distance to the second surface." << endl;
   cout << endl;
+  cout << "Arguments:" << endl;
+  cout << "  input    Input surface mesh file." << endl;
+  cout << "  output   Output surface mesh file." << endl;
+  cout << endl;
   cout << "Optional arguments:" << endl;
+  cout << "  -offset <distance>              Offset distance. (default: 0)" << endl;
   cout << "  -relative                       Multiply given distance value by length of bounding box diagonal." << endl;
   cout << "  -implicit                       Use offset surface reconstructed from implicit surface model." << endl;
   cout << "  -size <nx> [<ny> <nz>]          Number of voxels to use for implicit surface model." << endl;
@@ -87,34 +93,37 @@ void PrintHelp(const char *name)
 int main(int argc, char **argv)
 {
   // Parse arguments
-  EXPECTS_POSARGS(3);
+  REQUIRES_POSARGS(2);
 
-  const char *input_name   = POSARG(1);
-  const char *output_name  = POSARG(2);
-  const char *surface_name = NULL; // optional reference -surface
-  const char *scalars_name = NULL; // optional point data array name
-  double      scalars_min  = -numeric_limits<double>::infinity();
-  double      scalars_max  = +numeric_limits<double>::infinity();
-
-  double offset;
-  if (!FromString(POSARG(3), offset)) {
-    FatalError("Invalid offset distance argument, must be floating point number");
-  }
+  const char *input_name     = POSARG(1);
+  const char *output_name    = POSARG(2);
+  const char *surface_name   = nullptr;
+  const char *scalars_name   = nullptr;
+  double      scalars_min    = -inf;
+  double      scalars_max    = +inf;
 
   int    smooth_iter      = 0;
   double target_reduction = .0;
   bool   relative         = false;
   bool   implicit         = false;
+  double offset           = 0.;
 
   FileOption fopt = FO_Default;
+
+  if (NUM_POSARGS == 3) {
+    if (!FromString(POSARG(3), offset)) {
+      FatalError("Invalid <offset> argument, must be floating point number!");
+    }
+  } else {
+    FatalError("Too many positional arguments!");
+  }
 
   // resolution of implicit surface model
   int    nx =  0, ny =  0, nz =  0;
   double dx = .0, dy = .0, dz = .0;
 
   for (ALL_OPTIONS) {
-    if      (OPTION("-implicit")) implicit = true;
-    else if (OPTION("-voxelsize")) {
+    if (OPTION("-voxelsize") || OPTION("-voxel-size")) {
       PARSE_ARGUMENT(dx);
       if (HAS_ARGUMENT) {
         PARSE_ARGUMENT(dy);
@@ -132,23 +141,17 @@ int main(int argc, char **argv)
         ny = nz = nx;
       }
     }
+    else if (OPTION("-offset")) PARSE_ARGUMENT(offset);
     else if (OPTION("-relative")) relative = true;
+    else if (OPTION("-implicit")) implicit = true;
     else if (OPTION("-surface")) surface_name = ARGUMENT;
     else if (OPTION("-smooth")) PARSE_ARGUMENT(smooth_iter);
     else if (OPTION("-decimate")) PARSE_ARGUMENT(target_reduction);
     else if (OPTION("-scalars")) {
       scalars_name = ARGUMENT;
-      const char *arg = ARGUMENT;
-      if (!FromString(arg, scalars_min)) {
-        FatalError("Invalid -scalars (<min>) argument: " << arg);
-      }
-      scalars_max = scalars_min;
-      if (HAS_ARGUMENT) {
-        const char *arg = ARGUMENT;
-        if (!FromString(arg, scalars_max) || scalars_max < scalars_min) {
-          FatalError("Error: Invalid -scalars <max> argument: " << arg);
-        }
-      }
+      PARSE_ARGUMENT(scalars_min);
+      if (HAS_ARGUMENT) PARSE_ARGUMENT(scalars_max);
+      else scalars_max = scalars_min;
     }
     else HANDLE_POINTSETIO_OPTION(fopt);
     else HANDLE_COMMON_OR_UNKNOWN_OPTION();
@@ -170,26 +173,19 @@ int main(int argc, char **argv)
     if (!scalars) {
       vtkDataArray *cell_scalars = output->GetCellData()->GetArray(scalars_name);
       if (cell_scalars) {
-        unsigned short ncells;
-        vtkIdType     *cells;
-        double         value;
-        scalars = vtkSmartPointer<vtkFloatArray>::New();
-        scalars->SetName(scalars_name);
-        scalars->SetNumberOfComponents(1);
-        scalars->SetNumberOfTuples(output->GetNumberOfPoints());
-        output->BuildLinks();
-        for (vtkIdType ptId = 0; ptId < output->GetNumberOfPoints(); ++ptId) {
-          output->GetPointCells(ptId, ncells, cells);
-          if (ncells) {
-            value = .0;
-            for (unsigned short i = 0; i < ncells; ++i) {
-              value += cell_scalars->GetComponent(cells[i], 0);
-            }
-            value /= ncells;
-          } else {
-            value = numeric_limits<double>::quiet_NaN();
-          }
-          scalars->SetComponent(ptId, 0, value);
+        vtkSmartPointer<vtkPolyData> copy;
+        copy.TakeReference(output->NewInstance());
+        copy->ShallowCopy(output);
+        copy->GetPointData()->Initialize();
+        copy->GetCellData()->Initialize();
+        copy->GetCellData()->AddArray(cell_scalars);
+        vtkNew<vtkCellDataToPointData> converter;
+        SetVTKInput(converter, copy);
+        converter->PassCellDataOff();
+        converter->Update();
+        scalars = converter->GetOutput()->GetPointData()->GetArray(scalars_name);
+        if (!scalars) {
+          FatalError("Failed to convert cell -scalars to point data!");
         }
         output->GetPointData()->AddArray(scalars);
       }
@@ -202,17 +198,12 @@ int main(int argc, char **argv)
   double center[3], bounds[6];
   surface->GetCenter(center);
   surface->GetBounds(bounds);
-
-  if (relative) {
-    offset *= sqrt(pow(bounds[1] - bounds[0], 2) +
-                   pow(bounds[3] - bounds[2], 2) +
-                   pow(bounds[5] - bounds[4], 2));
-  }
+  if (relative) offset *= surface->GetLength();
 
   if (implicit) {
 
     const bool inside = (offset < .0);
-    offset = fabs(offset);
+    offset = abs(offset);
 
     // Adjust implicit surface model bounds
     const double margin = 1.15 * offset;
@@ -229,17 +220,13 @@ int main(int argc, char **argv)
       if (dy <= .0 && ny > 0) dy = (bounds[3] - bounds[2]) / ny;
       if (dz <= .0 && nz > 0) dz = (bounds[5] - bounds[4]) / nz;
       double ds = min(min(dx, dy), dz);
-      if (ds <= .0) {
-        ds = sqrt(pow(bounds[1] - bounds[0], 2) +
-                  pow(bounds[3] - bounds[2], 2) +
-                  pow(bounds[5] - bounds[4], 2)) / 512;
-      }
+      if (ds <= .0) ds = surface->GetLength() / 512;
       if (dx <= .0) dx = ds;
       if (dy <= .0) dy = ds;
       if (dz <= .0) dz = ds;
-      if (nx <=  0) nx = int(ceil((bounds[1] - bounds[0]) / dx));
-      if (ny <=  0) ny = int(ceil((bounds[3] - bounds[2]) / dy));
-      if (nz <=  0) nz = int(ceil((bounds[5] - bounds[4]) / dz));
+      if (nx <=  0) nx = iceil((bounds[1] - bounds[0]) / dx);
+      if (ny <=  0) ny = iceil((bounds[3] - bounds[2]) / dy);
+      if (nz <=  0) nz = iceil((bounds[5] - bounds[4]) / dz);
     }
 
     // Create implicit surface model from input surface
@@ -401,9 +388,9 @@ int main(int argc, char **argv)
         if (dist2 >= mindist2) continue;
       }
       normals->GetTuple(ptId, n);
-      p2[0] = p[0] + 2.0 * offset * n[0];
-      p2[1] = p[1] + 2.0 * offset * n[1];
-      p2[2] = p[2] + 2.0 * offset * n[2];
+      p2[0] = p[0] + 2. * offset * n[0];
+      p2[1] = p[1] + 2. * offset * n[1];
+      p2[2] = p[2] + 2. * offset * n[2];
       offset_locator->IntersectWithLine(p, p2, tol, t, x, pcoords, subId);
       //offset_locator->FindClosestPoint(p, x, cellId, subId, dist2);
       points->SetPoint(ptId, x);
