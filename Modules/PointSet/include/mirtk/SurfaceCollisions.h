@@ -1,8 +1,8 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2013-2015 Imperial College London
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2013-2016 Imperial College London
+ * Copyright 2013-2016 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -209,7 +209,7 @@ private:
   /// triangles is being determined (cf. CollisionType::BackfaceCollision).
   mirtkPublicAttributeMacro(double, MinBackfaceDistance);
 
-  /// Maximum angle between face normal and center to closest point vector
+  /// Maximum angle between face normal and center to center point vector
   /// required for collision to be detected
   mirtkPublicAttributeMacro(double, MaxAngle);
 
@@ -224,6 +224,9 @@ private:
 
   /// Whether to detect collisions with the back of a face
   mirtkPublicAttributeMacro(bool, BackfaceCollisionTest);
+
+  /// Whether to use fast, approximate collision test
+  mirtkPublicAttributeMacro(bool, FastCollisionTest);
 
   /// Whether to store detailed information about found self-intersections
   mirtkPublicAttributeMacro(bool, StoreIntersectionDetails);
@@ -324,6 +327,9 @@ public:
 
   /// Enable/disable near miss collision test for back-facing triangles
   mirtkOnOffMacro(BackfaceCollisionTest);
+
+  /// Enable/disable fast, approximate collision test
+  mirtkOnOffMacro(FastCollisionTest);
 
   /// Enable/disable storage of details about found intersections
   mirtkOnOffMacro(StoreIntersectionDetails);
