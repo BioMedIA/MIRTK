@@ -1,8 +1,8 @@
 /*
- * Medical Image Registration ToolKit (MMIRTK)
+ * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2013-2015 Imperial College London
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2013-2016 Imperial College London
+ * Copyright 2013-2016 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -150,7 +150,7 @@ public:
     const double R            = _MaxRadius + 1.1 * min_distance;
 
     double         tri1[3][3], tri2[3][3], tri1_2D[3][2], tri2_2D[3][2];
-    double         n1[3], n2[3], p1[3], p2[3], r1, c1[3], v[3], search_radius, dot;
+    double         n1[3], n2[3], p1[3], p2[3], r1, c1[3], d[3], search_radius, dot;
     int            tri12[3], i1, i2, shared_vertex1, shared_vertex2, coplanar, s1, s2;
     vtkIdType      npts, *pts1, *pts2, *cells, cellId1, cellId2;
     unsigned short ncells;
@@ -317,16 +317,26 @@ public:
         // If self-intersection check of non-adjacent triangles disabled or negative,
         // check for near miss collision if minimum distance set
         else if (coll_test) {
-          Triangle::Normal(tri2[0], tri2[1], tri2[2], n2);
-          collision._Distance = Triangle::DistanceBetweenTriangles(
-                                    tri1[0], tri1[1], tri1[2], n1,
-                                    tri2[0], tri2[1], tri2[2], n2,
-                                    collision._Point1, collision._Point2);
+          if (_Filter->FastCollisionTest()) {
+            collision._Distance = Triangle::DistanceBetweenCenters(
+                                      tri1[0], tri1[1], tri1[2],
+                                      tri2[0], tri2[1], tri2[2],
+                                      collision._Point1, collision._Point2);
+          } else {
+            Triangle::Normal(tri2[0], tri2[1], tri2[2], n2);
+            collision._Distance = Triangle::DistanceBetweenTriangles(
+                                      tri1[0], tri1[1], tri1[2], n1,
+                                      tri2[0], tri2[1], tri2[2], n2,
+                                      collision._Point1, collision._Point2);
+          }
           if (collision._Distance < min_distance) {
-            vtkMath::Subtract(collision._Point2, c1, v);
-            vtkMath::Normalize(v);
-            dot = vtkMath::Dot(v, n1);
-            if (fabs(dot) >= _MinAngleCos) {
+            if (collision._Distance > 0.) {
+              vtkMath::Subtract(collision._Point2, collision._Point1, d);
+              dot = vtkMath::Dot(d, n1) / vtkMath::Norm(d);
+            } else {
+              dot = 0.;
+            }
+            if (abs(dot) >= _MinAngleCos) {
               if (dot < .0) {
                 if (_Filter->BackfaceCollisionTest() && collision._Distance < _MinBackfaceDistance) {
                   collision._Type = CollisionType::BackfaceCollision;
@@ -366,7 +376,8 @@ public:
   /// Find collision and self-intersections
   static void Run(SurfaceCollisions  *filter,
                   IntersectionsArray *intersections,
-                  CollisionsArray    *collisions)
+                  CollisionsArray    *collisions,
+                  bool                fast = false)
   {
     vtkDataArray *radius = filter->GetRadiusArray();
     vtkSmartPointer<vtkAbstractPointLocator> locator;
@@ -411,6 +422,7 @@ void SurfaceCollisions::CopyAttributes(const SurfaceCollisions &other)
   _NonAdjacentIntersectionTest = other._NonAdjacentIntersectionTest;
   _FrontfaceCollisionTest      = other._FrontfaceCollisionTest;
   _BackfaceCollisionTest       = other._BackfaceCollisionTest;
+  _FastCollisionTest           = other._FastCollisionTest;
   _StoreIntersectionDetails    = other._StoreIntersectionDetails;
   _StoreCollisionDetails       = other._StoreCollisionDetails;
   _Intersections               = other._Intersections;
@@ -430,6 +442,7 @@ SurfaceCollisions::SurfaceCollisions()
   _NonAdjacentIntersectionTest(false),
   _FrontfaceCollisionTest(false),
   _BackfaceCollisionTest(false),
+  _FastCollisionTest(false),
   _StoreIntersectionDetails(true),
   _StoreCollisionDetails(true)
 {

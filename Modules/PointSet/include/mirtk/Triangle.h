@@ -195,6 +195,11 @@ public:
                                        const double a2[3], const double b2[3], const double c2[3],
                                        double *p1, double *p2);
 
+  /// Compute distance between closest corner points of two triangles
+  static double DistanceBetweenCorners(const double a1[3], const double b1[3], const double c1[3],
+                                       const double a2[3], const double b2[3], const double c2[3],
+                                       double *p1, double *p2);
+
   /// Compute distance between closest points of two triangles
   static double DistanceBetweenTriangles(const double a1[3], const double b1[3], const double c1[3], const double n1[3],
                                          const double a2[3], const double b2[3], const double c2[3], const double n2[3],
@@ -423,6 +428,45 @@ inline double Triangle
   Center(a1, b1, c1, p1);
   Center(a2, b2, c2, p2);
   return sqrt(vtkMath::Distance2BetweenPoints(p1, p2));
+}
+
+// -----------------------------------------------------------------------------
+/// Compute distance between two triangles
+inline double Triangle
+::DistanceBetweenCorners(const double a1[3], const double b1[3], const double c1[3],
+                         const double a2[3], const double b2[3], const double c2[3],
+                         double *p1, double *p2)
+{
+  double d, dmin = vtkMath::Distance2BetweenPoints(a1, a2);
+  const double *x1 = a1, *x2 = a2;
+
+  d = vtkMath::Distance2BetweenPoints(a1, b2);
+  if (d < dmin) dmin = d, x1 = a1, x2 = b2;
+
+  d = vtkMath::Distance2BetweenPoints(a1, c2);
+  if (d < dmin) dmin = d, x1 = a1, x2 = c2;
+
+  d = vtkMath::Distance2BetweenPoints(b1, a2);
+  if (d < dmin) dmin = d, x1 = b1, x2 = a2;
+
+  d = vtkMath::Distance2BetweenPoints(b1, b2);
+  if (d < dmin) dmin = d, x1 = b1, x2 = b2;
+
+  d = vtkMath::Distance2BetweenPoints(b1, c2);
+  if (d < dmin) dmin = d, x1 = b1, x2 = c2;
+
+  d = vtkMath::Distance2BetweenPoints(c1, a2);
+  if (d < dmin) dmin = d, x1 = c1, x2 = a2;
+
+  d = vtkMath::Distance2BetweenPoints(c1, b2);
+  if (d < dmin) dmin = d, x1 = c1, x2 = b2;
+
+  d = vtkMath::Distance2BetweenPoints(c1, c2);
+  if (d < dmin) dmin = d, x1 = c1, x2 = c2;
+
+  if (p1) memcpy(p1, x1, 3 * sizeof(double));
+  if (p2) memcpy(p2, x2, 3 * sizeof(double));
+  return sqrt(dmin);
 }
 
 // -----------------------------------------------------------------------------
