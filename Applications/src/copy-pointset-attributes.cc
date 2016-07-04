@@ -30,6 +30,8 @@
 #include "vtkDataArray.h"
 #include "vtkFloatArray.h"
 #include "vtkDataSetAttributes.h"
+#include "vtkPointDataToCellData.h"
+#include "vtkCellDataToPointData.h"
 
 using namespace mirtk;
 
@@ -48,6 +50,7 @@ void PrintHelp(const char *name)
   cout << "  Copies point and/or cell data from a source point set to a target point set" << endl;
   cout << "  and writes the resulting amended point set to the specified output file." << endl;
   cout << "  When no separate output file is specified, the target point set is overwritten." << endl;
+  cout << "  This command can also convert from point data to cell data and vice versa." << endl;
   cout << endl;
   cout << "  If the point sets have differing number of points or cells, respectively," << endl;
   cout << "  zero entries are either added to the target arrays or only the first n tuples" << endl;
@@ -99,11 +102,19 @@ void PrintHelp(const char *name)
   cout << "      Replaces the points of the target point set by the first three" << endl;
   cout << "      components of the specified source point data array." << endl;
   cout << endl;
+  cout << "  -pointdata-as-celldata <name|index>" << endl;
+  cout << "      Converts the specified point data array of the source point set to cell" << endl;
+  cout << "      data and adds a corresponding cell data array to the target point set." << endl;
+  cout << endl;
   cout << "  -pointmask <name>" << endl;
   cout << "      Add point data array which indicates copied point data." << endl;
   cout << endl;
   cout << "  -celldata  <name|index> [<target_name> [<attr>]]" << endl;
   cout << "      Name or index of source cell data to copy." << endl;
+  cout << endl;
+  cout << "  -celldata-as-pointdata <name|index>" << endl;
+  cout << "      Converts the specified cell data array of the source point set to point" << endl;
+  cout << "      data and adds a corresponding point data array to the target point set." << endl;
   cout << endl;
   cout << "  -cellmask <name>" << endl;
   cout << "      Add cell data array which indicates copied cell data." << endl;
@@ -127,15 +138,17 @@ struct ArrayInfo
   int                                  _TargetIndex;
   const char                          *_TargetName;
   vtkDataSetAttributes::AttributeTypes _TargetAttribute;
+  bool                                 _PointCellConversion;
 
   ArrayInfo()
   :
     _SourceIndex(-1),
-    _SourceName(NULL),
+    _SourceName(nullptr),
     _SourceAttribute(vtkDataSetAttributes::NUM_ATTRIBUTES),
     _TargetIndex(-1),
-    _TargetName(NULL),
-    _TargetAttribute(vtkDataSetAttributes::NUM_ATTRIBUTES)
+    _TargetName(nullptr),
+    _TargetAttribute(vtkDataSetAttributes::NUM_ATTRIBUTES),
+    _PointCellConversion(false)
   {}
 };
 
@@ -187,6 +200,8 @@ int main(int argc, char **argv)
 {
   vtkSmartPointer<vtkDataArray> array;
   vtkSmartPointer<vtkDataArray> copy;
+  vtkDataSetAttributes         *sourceAttr, *targetAttr;
+  vtkIdType                     ntuples;
 
   // Positional arguments
   REQUIRES_POSARGS(2);
@@ -227,8 +242,15 @@ int main(int argc, char **argv)
       info._TargetIndex = -2;
       pd.push_back(info);
     }
-    else if (OPTION("-pointdata") || OPTION("-celldata")) {
+    else if (OPTION("-pointdata") || OPTION("-pointdata-as-celldata") ||
+             OPTION("-celldata")  || OPTION("-celldata-as-pointdata")) {
       ArrayInfo info;
+      if (strcmp(OPTNAME, "-pointdata-as-celldata") == 0 ||
+          strcmp(OPTNAME, "-celldata-as-pointdata") == 0) {
+        info._PointCellConversion = true;
+      } else {
+        info._PointCellConversion = false;
+      }
       info._SourceName = ARGUMENT;
       if (FromString(info._SourceName, info._SourceIndex)) {
         info._SourceName = NULL;
@@ -239,8 +261,8 @@ int main(int argc, char **argv)
         info._TargetName = ARGUMENT;
       }
       if (HAS_ARGUMENT) PARSE_ARGUMENT(info._TargetAttribute);
-      if (strcmp(OPTNAME, "-pointdata") == 0) pd.push_back(info);
-      else                                    cd.push_back(info);
+      if (strncmp(OPTNAME, "-pointdata", 10) == 0) pd.push_back(info);
+      else                                         cd.push_back(info);
     }
     else if (OPTION("-pointdata-as-points")) {
       ArrayInfo info;
@@ -264,10 +286,42 @@ int main(int argc, char **argv)
   vtkSmartPointer<vtkPointSet> source = ReadPointSet(source_name);
   vtkSmartPointer<vtkPointSet> target = ReadPointSet(target_name);
 
-  // Add point data
   const vtkIdType npoints = target->GetNumberOfPoints();
-  vtkPointData *sourcePD = source->GetPointData();
-  vtkPointData *targetPD = target->GetPointData();
+  const vtkIdType ncells  = target->GetNumberOfCells();
+
+  vtkPointData * const sourcePD = source->GetPointData();
+  vtkCellData  * const sourceCD = source->GetCellData();
+
+  vtkPointData * const targetPD = target->GetPointData();
+  vtkCellData  * const targetCD = target->GetCellData();
+
+  // Convert point data to cell data if necessary
+  vtkSmartPointer<vtkCellData> pd_as_cd;
+  for (size_t i = 0; i < pd.size(); ++i) {
+    if (pd[i]._PointCellConversion) {
+      vtkNew<vtkPointDataToCellData> pd_to_cd;
+      SetVTKInput(pd_to_cd, source);
+      pd_to_cd->PassPointDataOff();
+      pd_to_cd->Update();
+      pd_as_cd = pd_to_cd->GetOutput()->GetCellData();
+      break;
+    }
+  }
+
+  // Convert cell data to point data if necessary
+  vtkSmartPointer<vtkPointData> cd_as_pd;
+  for (size_t i = 0; i < cd.size(); ++i) {
+    if (cd[i]._PointCellConversion) {
+      vtkNew<vtkCellDataToPointData> cd_to_pd;
+      SetVTKInput(cd_to_pd, source);
+      cd_to_pd->PassCellDataOff();
+      cd_to_pd->Update();
+      cd_as_pd = cd_to_pd->GetOutput()->GetPointData();
+      break;
+    }
+  }
+
+  // Add point data
   for (size_t i = 0; i < pd.size(); ++i) {
     if (pd[i]._SourceIndex == -2) {
       vtkIdType end = min(npoints, source->GetNumberOfPoints());
@@ -287,26 +341,35 @@ int main(int argc, char **argv)
         for (vtkIdType ptId = 0; ptId < end; ++ptId) {
           points->SetPoint(ptId, source->GetPoint(ptId));
         }
-        copy = NULL;
+        copy = nullptr;
       }
     } else {
+      if (pd[i]._PointCellConversion && pd[i]._TargetIndex != -2) {
+        sourceAttr = pd_as_cd;
+        targetAttr = targetCD;
+        ntuples    = ncells;
+      } else {
+        sourceAttr = sourcePD;
+        targetAttr = targetPD;
+        ntuples    = npoints;
+      }
       if (pd[i]._SourceAttribute < vtkDataSetAttributes::NUM_ATTRIBUTES) {
-        array = sourcePD->GetAttribute(pd[i]._SourceAttribute);
+        array = sourceAttr->GetAttribute(pd[i]._SourceAttribute);
         if (!array) continue;
       } else if (pd[i]._SourceName) {
         if (case_sensitive) {
-          array = sourcePD->GetArray(pd[i]._SourceName);
+          array = sourceAttr->GetArray(pd[i]._SourceName);
         } else {
-          array = GetArrayByCaseInsensitiveName(sourcePD, pd[i]._SourceName);
+          array = GetArrayByCaseInsensitiveName(sourceAttr, pd[i]._SourceName);
         }
-        if (array == NULL) {
+        if (array == nullptr) {
           FatalError("Source has no point data array named " << pd[i]._SourceName);
         }
       } else {
-        if (pd[i]._SourceIndex < 0 || pd[i]._SourceIndex > sourcePD->GetNumberOfArrays()) {
+        if (pd[i]._SourceIndex < 0 || pd[i]._SourceIndex > sourceAttr->GetNumberOfArrays()) {
           FatalError("Source has no point data array with index " << pd[i]._SourceIndex);
         }
-        array = sourcePD->GetArray(pd[i]._SourceIndex);
+        array = sourceAttr->GetArray(pd[i]._SourceIndex);
       }
       if (pd[i]._TargetIndex == -2) {
         double p[3] = {.0};
@@ -317,14 +380,14 @@ int main(int argc, char **argv)
           for (int i = 0; i < dim; ++i) p[i] = array->GetComponent(ptId, i);
           points->SetPoint(ptId, p);
         }
-        copy = NULL;
+        copy = nullptr;
       } else {
-        copy = Copy(array, npoints);
+        copy = Copy(array, ntuples);
       }
     }
     if (copy) {
       if (pd[i]._TargetName) copy->SetName(pd[i]._TargetName);
-      AddArray(targetPD, copy, pd[i]._TargetAttribute);
+      AddArray(targetAttr, copy, pd[i]._TargetAttribute);
     }
   }
   if (point_mask_name) {
@@ -340,31 +403,37 @@ int main(int argc, char **argv)
   }
 
   // Add cell data
-  const vtkIdType ncells = target->GetNumberOfCells();
-  vtkCellData *sourceCD = source->GetCellData();
-  vtkCellData *targetCD = target->GetCellData();
   for (size_t i = 0; i < cd.size(); ++i) {
+    if (cd[i]._PointCellConversion) {
+      sourceAttr = cd_as_pd;
+      targetAttr = targetPD;
+      ntuples    = npoints;
+    } else {
+      sourceAttr = sourceCD;
+      targetAttr = targetCD;
+      ntuples    = ncells;
+    }
     if (cd[i]._SourceAttribute < vtkDataSetAttributes::NUM_ATTRIBUTES) {
-      array = sourceCD->GetAttribute(cd[i]._SourceAttribute);
+      array = sourceAttr->GetAttribute(cd[i]._SourceAttribute);
       if (!array) continue;
     } else if (cd[i]._SourceName) {
       if (case_sensitive) {
-        array = sourceCD->GetArray(cd[i]._SourceName);
+        array = sourceAttr->GetArray(cd[i]._SourceName);
       } else {
-        array = GetArrayByCaseInsensitiveName(sourceCD, cd[i]._SourceName);
+        array = GetArrayByCaseInsensitiveName(sourceAttr, cd[i]._SourceName);
       }
-      if (array == NULL) {
+      if (array == nullptr) {
         FatalError("Source has no cell data array named " << cd[i]._SourceName);
       }
     } else {
-      if (cd[i]._SourceIndex < 0 || cd[i]._SourceIndex > sourceCD->GetNumberOfArrays()) {
+      if (cd[i]._SourceIndex < 0 || cd[i]._SourceIndex > sourceAttr->GetNumberOfArrays()) {
         FatalError("Source has no cell data array with index " << cd[i]._SourceIndex);
       }
-      array = sourceCD->GetArray(cd[i]._SourceIndex);
+      array = sourceAttr->GetArray(cd[i]._SourceIndex);
     }
-    copy = Copy(array, ncells);
+    copy = Copy(array, ntuples);
     if (cd[i]._TargetName) copy->SetName(cd[i]._TargetName);
-    AddArray(targetCD, copy, cd[i]._TargetAttribute);
+    AddArray(targetAttr, copy, cd[i]._TargetAttribute);
   }
   if (cell_mask_name) {
     vtkSmartPointer<vtkDataArray> mask = NewVTKDataArray(VTK_UNSIGNED_CHAR);
