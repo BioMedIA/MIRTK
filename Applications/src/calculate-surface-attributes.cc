@@ -24,6 +24,7 @@
 #include "mirtk/PointSetUtils.h"
 #include "mirtk/SurfaceCurvature.h"
 #include "mirtk/MeshSmoothing.h"
+#include "mirtk/ImageSurfaceStatistics.h"
 
 #include "vtkSmartPointer.h"
 #include "vtkPolyData.h"
@@ -32,6 +33,7 @@
 #include "vtkPolyDataNormals.h"
 
 using namespace mirtk;
+using namespace mirtk::data::statistic;
 
 
 // =============================================================================
@@ -41,59 +43,95 @@ using namespace mirtk;
 // -----------------------------------------------------------------------------
 void PrintHelp(const char *name)
 {
-  cout << endl;
-  cout << "Usage: " << name << " <input> <output> [options]" << endl;
-  cout << endl;
-  cout << "Description:" << endl;
-  cout << "Calculate attributes of input surface such as normals and curvature." << endl;
-  cout << "If required, as in case of the curvature calculations, the input mesh" << endl;
-  cout << "is triangulated beforehand if it contains non-triangular faces." << endl;
-  cout << endl;
-  cout << "Arguments:" << endl;
-  cout << "  input    Input surface mesh." << endl;
-  cout << "  output   Output surface mesh." << endl;
-  cout << endl;
-  cout << "Optional arguments:" << endl;
-  cout << "  -normals, -point-normals        Surface point normals." << endl;
-  cout << "  -cell-normals                   Surface cell normals." << endl;
-  cout << "  -[no]auto-orient                Enable/disable auto-orientation of normals. (default: on)" << endl;
-  cout << "  -[no]splitting                  Enable/disable splitting of sharp edges. (default: off)" << endl;
-  cout << "  -[no]consistency                Enable/disable enforcement of vertex order consistency. (default: on)" << endl;
-  cout << endl;
-  cout << "Curvature output options:" << endl;
-  cout << "  -H [<name>]                     Mean curvature." << endl;
-  cout << "  -K [<name>]                     Gauss curvature." << endl;
-  cout << "  -C [<name>]                     Curvedness." << endl;
-  cout << "  -k1 [<name>]                    Minimum curvature." << endl;
-  cout << "  -k2 [<name>]                    Maximum curvature." << endl;
-  cout << "  -k1k2 [<name>] [<name>]         Principal curvatures." << endl;
-  cout << "  -e1 [<name>]                    Direction of minimum curvature." << endl;
-  cout << "  -e2 [<name>]                    Direction of maximum curvature." << endl;
-  cout << "  -normalize                      Normalize curvature using volume of convex hull." << endl;
-  cout << "  -vtk-curvatures                 Use vtkCurvatures when possible." << endl;
-  cout << "  -robust-curvatures              Do not use vtkCurvatures. Instead, estimate the curvature" << endl;
-  cout << "                                  tensor field and decompose it to obtain principle curvatures. (default)" << endl;
-  cout << endl;
-  cout << "  -smooth-iterations [<niter>]    Number of smoothing iterations" << endl;
-  cout << "  -smooth-weighting <name> [options]" << endl;
-  cout << "      Smooth calculated scalar curvature measures according to the weighting specified in <name>:" <<endl;
-  cout << "      - 'Gaussian': using a Gaussian smoothing kernel (default)." << endl;
-  cout << "                  Options: [<sigma>]" << endl;
-  cout << "                  If sigma is not specified, it is automatically determined from the edges." << endl;
-  cout << "      - 'AnisotropicGaussian': using an anisotropic Gaussian smoothing kernel." << endl;
-  cout << "                  Options: [<sigma>] [<sigma2>]" << endl;
-  cout << "                  If sigma is not specified, it is automatically determined from the edges." << endl;
-  cout << "                  If sigma2 is specified, an anisotropic kernel with standard deviation" << endl;
-  cout << "                  sigma along the direction of minimum curvature, and sigma2 in the" << endl;
-  cout << "                  direction of maximum curvature is used." << endl;
-  cout << "                  If sigma2 is not specified, an isotropic Gaussian kernel used that is oriented" << endl;
-  cout << "                  and scaled along each local geometry axis using the curvature tensor." << endl;
-  cout << "      - 'InverseDistance': using the inverse node distance." << endl;
-  cout << "                  Options: [<bias>]" << endl;
-  cout << "                  If the bias is specified the distance is estimated as 1/(dist+bias)" << endl;
-  cout << "      - 'Combinatorial': using uniform node weights." << endl;
-
-
+  cout << "\n";
+  cout << "Usage: " << name << " <input> <output> [options]\n";
+  cout << "\n";
+  cout << "Description:\n";
+  cout << "  Calculate attributes of input surface such as normals and curvature.\n";
+  cout << "  If required, as in case of the curvature calculations, the input mesh\n";
+  cout << "  is triangulated beforehand if it contains non-triangular faces.\n";
+  cout << "\n";
+  cout << "Arguments:\n";
+  cout << "  input    Input  surface mesh.\n";
+  cout << "  output   Output surface mesh.\n";
+  cout << "\n";
+  cout << "Normals options:\n";
+  cout << "  -normals, -point-normals   Surface point normals.\n";
+  cout << "  -cell-normals              Surface cell normals.\n";
+  cout << "  -[no]auto-orient           Enable/disable auto-orientation of normals. (default: on)\n";
+  cout << "  -[no]splitting             Enable/disable splitting of sharp edges. (default: off)\n";
+  cout << "  -[no]consistency           Enable/disable enforcement of vertex order consistency. (default: on)\n";
+  cout << "\n";
+  cout << "Curvature options:\n";
+  cout << "  -k1k2 [<name>] [<name>]    Principal curvatures.\n";
+  cout << "  -k1 [<name>]               Minimum curvature.\n";
+  cout << "  -k2 [<name>]               Maximum curvature.\n";
+  cout << "  -e1 [<name>]               Direction of minimum curvature.\n";
+  cout << "  -e2 [<name>]               Direction of maximum curvature.\n";
+  cout << "  -H [<name>]                Mean curvature:  H = .5 * (k1 + k2).\n";
+  cout << "  -K [<name>]                Gauss curvature: K = k1 * k2.\n";
+  cout << "  -C [<name>]                Curvedness:      C = sqrt(.5 * (k1^2 + k2^2)).\n";
+  cout << "  -normalize                 Normalize curvature using volume of convex hull.\n";
+  cout << "  -vtk-curvatures            Use vtkCurvatures when possible.\n";
+  cout << "  -robust-curvatures         Do not use vtkCurvatures. Instead, estimate the curvature\n";
+  cout << "                             tensor field and decompose it to obtain principle curvatures. (default)\n";
+  cout << "\n";
+  cout << "Local image statistics options:\n";
+  cout << "  -image <file> [<name>]\n";
+  cout << "       Input image file. When <name> is given, it is used as the name of the\n";
+  cout << "       output point data array. The default name is 'LocalImageStatistics'.\n";
+  cout << "  -patch-size <nx> [<ny> [<nz>]]\n";
+  cout << "       Size of image patches. When only <nx> is given, an image patch of size\n";
+  cout << "       nx = ny = nz is used. When only <nz> is omitted, a 2D patch is used.\n";
+  cout << "  -patch-spacing <dx> [<dy> [<dz>]]\n";
+  cout << "       Spacing between patch sample points. When only <dx> is given, an isotropic\n";
+  cout << "       sampling in all three dimensions of <dx> is used. When only <dz> is omitted,\n";
+  cout << "       a 2D patch spacing is used with dz=0.\n";
+  cout << "  -patch-space image|world|tangent\n";
+  cout << "       Coordinate system of patch. (default: tangent)\n";
+  cout << "       - world:   Patch is aligned with world coordinate system.\n";
+  cout << "       - image:   Patch is algined with image coordinate system.\n";
+  cout << "       - tangent: Each patch is aligned with the coordinate system made up\n";
+  cout << "                  by the normal vector and two orthonormal tangent vectors.\n";
+  cout << "  -[no]patch-samples\n";
+  cout << "       Whether to store individual intensities interpolated at patch sample points.\n";
+  cout << "  -demean-patch\n";
+  cout << "       Substract mean intensity from individual :option:`-patch-samples`.\n";
+  cout << "  -whiten-patch\n";
+  cout << "       Dividide individual :option:`-patch-samples` by standard deviation.\n";
+  cout << "  -patch-min\n";
+  cout << "       Append minimum patch intensity to output point data array.\n";
+  cout << "  -patch-max\n";
+  cout << "       Append maximum patch intensity to output point data array.\n";
+  cout << "  -patch-min-abs\n";
+  cout << "       Append minimum absolute patch intensity to output point data array.\n";
+  cout << "  -patch-max-abs\n";
+  cout << "       Append maximum absolute patch intensity to output point data array.\n";
+  cout << "  -patch-mean\n";
+  cout << "       Append mean patch intensity to output point data array.\n";
+  cout << "  -patch-sigma\n";
+  cout << "       Append standard deviation of patch intensities to output point data array.\n";
+  cout << "\n";
+  cout << "Smoothing options:\n";
+  cout << "  -smooth-iterations [<niter>]\n";
+  cout << "       Number of smoothing iterations.\n";
+  cout << "  -smooth-weighting <name> [options]\n";
+  cout << "      Smooth scalar attributes using the named weighting function:\n";
+  cout << "      - 'Gaussian': Isotropic Gaussian smoothing kernel. (default)\n";
+  cout << "        - Options: [<sigma>]\n";
+  cout << "        - If sigma is not specified, it is automatically determined from the edges.\n";
+  cout << "      - 'AnisotropicGaussian': Anisotropic Gaussian smoothing kernel.\n";
+  cout << "        - Options: [<sigma>] [<sigma2>]\n";
+  cout << "        - If sigma is not specified, it is automatically determined from the edges.\n";
+  cout << "        - If sigma2 is specified, an anisotropic kernel with standard deviation\n";
+  cout << "          sigma along the direction of minimum curvature, and sigma2 in the\n";
+  cout << "          direction of maximum curvature is used.\n";
+  cout << "        - If sigma2 is not specified, an isotropic Gaussian kernel used that is oriented\n";
+  cout << "          and scaled along each local geometry axis using the curvature tensor.\n";
+  cout << "      - 'InverseDistance': Inverse node distance.\n";
+  cout << "        - Options: [<bias>]\n";
+  cout << "        - If the bias is specified, the distance is estimated as 1/(dist+bias).\n";
+  cout << "      - 'Combinatorial': Uniform node weights.\n";
   PrintCommonOptions(cout);
   cout << endl;
 }
@@ -134,6 +172,11 @@ int main(int argc, char *argv[])
   double smooth_sigma2        = .0;
   bool   smooth_along_tensor  = false;
   MeshSmoothing::WeightFunction weighting = MeshSmoothing::Default;
+
+  ImageSurfaceStatistics image_stats;
+  SharedPtr<InterpolateImageFunction> image_func;
+  image_func.reset(InterpolateImageFunction::New(Interpolation_Linear));
+  const char *image_name = nullptr;
 
   for (ALL_OPTIONS) {
     if (OPTION("-point-normals") || OPTION("-normals")) point_normals = true;
@@ -211,6 +254,77 @@ int main(int argc, char *argv[])
         }
 
       }
+    }
+    else if (OPTION("-image")) {
+      image_name = ARGUMENT;
+      if (HAS_ARGUMENT) image_stats.ArrayName(ARGUMENT);
+      else image_stats.ArrayName("LocalImageStatistics");
+    }
+    else if (OPTION("-patch-size")) {
+      int nx, ny, nz;
+      PARSE_ARGUMENT(nx);
+      if (HAS_ARGUMENT) {
+        PARSE_ARGUMENT(ny);
+        if (HAS_ARGUMENT) PARSE_ARGUMENT(nz);
+        else nz = 1;
+      } else {
+        ny = nz = nx;
+      }
+      image_stats.PatchSize(make_int3(nx, ny, nz));
+    }
+    else if (OPTION("-patch-spacing")) {
+      double dx, dy, dz;
+      PARSE_ARGUMENT(dx);
+      if (HAS_ARGUMENT) {
+        PARSE_ARGUMENT(dy);
+        if (HAS_ARGUMENT) PARSE_ARGUMENT(dz);
+        else dz = 0.;
+      } else {
+        dy = dz = dx;
+      }
+      image_stats.PatchSpacing(make_double3(dx, dy, dz));
+    }
+    else if (OPTION("-patch-space")) {
+      const char *arg = ARGUMENT;
+      if (strcmp(arg, "image") == 0) {
+        image_stats.PatchSpace(ImageSurfaceStatistics::ImageSpace);
+      } else if (strcmp(arg, "world") == 0) {
+        image_stats.PatchSpace(ImageSurfaceStatistics::WorldSpace);
+      } else if (strcmp(arg, "tangent") == 0) {
+        image_stats.PatchSpace(ImageSurfaceStatistics::TangentSpace);
+      } else {
+        FatalError("Invalid -patch-space argument: " << arg);
+      }
+    }
+    else if (OPTION("-patch-samples")) {
+      image_stats.PatchSamples(true);
+    }
+    else if (OPTION("-nopatch-samples")) {
+      image_stats.PatchSamples(false);
+    }
+    else if (OPTION("-demean-patch")) {
+      image_stats.DemeanSamples(true);
+    }
+    else if (OPTION("-whiten-patch")) {
+      image_stats.WhitenSamples(true);
+    }
+    else if (OPTION("-patch-mean")) {
+      image_stats.Statistics().push_back(NewShared<Mean>());
+    }
+    else if (OPTION("-patch-sigma")) {
+      image_stats.Statistics().push_back(NewShared<StDev>());
+    }
+    else if (OPTION("-patch-min")) {
+      image_stats.Statistics().push_back(NewShared<Min>());
+    }
+    else if (OPTION("-patch-min-abs")) {
+      image_stats.Statistics().push_back(NewShared<MinAbs>());
+    }
+    else if (OPTION("-patch-max")) {
+      image_stats.Statistics().push_back(NewShared<Max>());
+    }
+    else if (OPTION("-patch-max-abs")) {
+      image_stats.Statistics().push_back(NewShared<MaxAbs>());
     }
     else HANDLE_COMMON_OR_UNKNOWN_OPTION();
   }
@@ -291,7 +405,7 @@ int main(int argc, char *argv[])
 
     if (verbose) cout << " done" << endl;
 
-    // Smooth calculated attributes
+    // Smooth calculated curvatures
     if (smooth_iterations) {
       if (verbose) cout << "Smoothing scalar curvature measures...", cout.flush();
 
@@ -326,6 +440,47 @@ int main(int argc, char *argv[])
       if (curvedness) curvedness->DeepCopy(pd->GetArray(curvedness_name));
       if (e1) e1->DeepCopy(pd->GetArray(e1_name));
       if (e2) e2->DeepCopy(pd->GetArray(e2_name));
+
+      if (verbose) cout << " done" << endl;
+    }
+  }
+
+  // Calculate local image patch statistics
+  if (image_name && (image_stats.PatchSamples() || !image_stats.Statistics().empty())) {
+    if (verbose) cout << "Calculating local image statistics...", cout.flush();
+    RealImage image(image_name);
+    image_func->Input(&image);
+    image_func->Initialize();
+    image_stats.Image(image_func);
+    image_stats.Input(surface);
+    image_stats.Run();
+    surface = image_stats.Output();
+    if (verbose) cout << " done" << endl;
+
+    // Smooth local image statistics
+    if (smooth_iterations) {
+      if (verbose) cout << "Smoothing local image statistics...", cout.flush();
+      const char *name = image_stats.ArrayName().c_str();
+
+      MeshSmoothing smoother;
+      smoother.Input(surface);
+      smoother.SmoothPointsOff();
+      smoother.SmoothArray(name);
+      smoother.NumberOfIterations(smooth_iterations);
+      smoother.Sigma(-smooth_sigma); // negative: multiple of avg. edge length
+      smoother.Weighting(weighting);
+      if (weighting == MeshSmoothing::AnisotropicGaussian){
+        if (smooth_along_tensor) {
+          smoother.GeometryTensorName(tensor_name);
+        } else {
+          smoother.MinimumDirectionName(e2_name);
+          smoother.MaximumDirectionName(e1_name);
+        }
+        smoother.MaximumDirectionSigma(-smooth_sigma2);
+      }
+      smoother.Run();
+      vtkPointData *pd = smoother.Output()->GetPointData();
+      surface->GetPointData()->GetArray(name)->DeepCopy(pd->GetArray(name));
 
       if (verbose) cout << " done" << endl;
     }
