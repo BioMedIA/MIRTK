@@ -53,7 +53,7 @@ Vector3::Vector3 (double fX, double fY, double fZ)
 }
 
 //----------------------------------------------------------------------------
-Vector3::Vector3 (double afCoordinate[3])
+Vector3::Vector3 (const double afCoordinate[3])
 {
   x = afCoordinate[0];
   y = afCoordinate[1];

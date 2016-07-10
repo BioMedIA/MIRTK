@@ -34,7 +34,7 @@ public:
   Vector3 ();
   Vector3 (double fScalar);
   Vector3 (double fX, double fY, double fZ);
-  Vector3 (double afCoordinate[3]);
+  Vector3 (const double afCoordinate[3]);
   Vector3 (const Vector3& rkVector);
 
   // member access (allows V.x or V[0], V.y or V[1], V.z or V[2])
