@@ -77,21 +77,21 @@ void PrintHelp(const char *name)
   cout << "  -smooth-iterations [<niter>]    Number of smoothing iterations" << endl;
   cout << "  -smooth-weighting <name> [options]" << endl;
   cout << "      Smooth calculated scalar curvature measures according to the weighting specified in <name>:" <<endl;
-  cout << "      'Gaussian': using a Gaussian smoothing kernel (default)." << endl;
-  cout << "                  [options]: [<sigma>]" << endl;
+  cout << "      - 'Gaussian': using a Gaussian smoothing kernel (default)." << endl;
+  cout << "                  Options: [<sigma>]" << endl;
   cout << "                  If sigma is not specified, it is automatically determined from the edges." << endl;
-  cout << "      'AnisotropicGaussian': using an anisotropic Gaussian smoothing kernel." << endl;
-  cout << "                  [options]: [<sigma>] [<sigma2>]" << endl;
+  cout << "      - 'AnisotropicGaussian': using an anisotropic Gaussian smoothing kernel." << endl;
+  cout << "                  Options: [<sigma>] [<sigma2>]" << endl;
   cout << "                  If sigma is not specified, it is automatically determined from the edges." << endl;
   cout << "                  If sigma2 is specified, an anisotropic kernel with standard deviation" << endl;
   cout << "                  sigma along the direction of minimum curvature, and sigma2 in the" << endl;
   cout << "                  direction of maximum curvature is used." << endl;
-  cout << "                  If sigma2 is not specifiede, the isotropic Gaussian kernel is oriented" << endl;
+  cout << "                  If sigma2 is not specified, an isotropic Gaussian kernel used that is oriented" << endl;
   cout << "                  and scaled along each local geometry axis using the curvature tensor." << endl;
-  cout << "      'InverseDistance': using the inverse node distance." << endl;
-  cout << "                  [options]: [<bias>]" << endl;
+  cout << "      - 'InverseDistance': using the inverse node distance." << endl;
+  cout << "                  Options: [<bias>]" << endl;
   cout << "                  If the bias is specified the distance is estimated as 1/(dist+bias)" << endl;
-  cout << "      'Combinatorial': using uniform node weights." << endl;
+  cout << "      - 'Combinatorial': using uniform node weights." << endl;
 
 
   PrintCommonOptions(cout);
@@ -198,9 +198,8 @@ int main(int argc, char *argv[])
     else if (OPTION("-smooth-weighting")){
       if(smooth_iterations == 0) smooth_iterations = 1;
 
-      char* weighting_name = ARGUMENT;
-      if(!FromString(weighting_name, weighting)){
-        FatalError("Invalid -smooth-weighting <name> argument: " << weighting_name);
+      if(!PARSE_ARGUMENT(weighting)){
+        FatalError("Invalid -smooth-weighting <name> argument specified");
       }
 
       if( weighting ==  MeshSmoothing::InverseDistance || weighting ==  MeshSmoothing::Gaussian || weighting ==  MeshSmoothing::AnisotropicGaussian){
