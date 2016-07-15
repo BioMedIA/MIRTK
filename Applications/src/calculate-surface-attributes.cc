@@ -54,33 +54,46 @@ void PrintHelp(const char *name)
   cout << "  output   Output surface mesh." << endl;
   cout << endl;
   cout << "Optional arguments:" << endl;
-  cout << "  -normals, -point-normals   Surface point normals." << endl;
-  cout << "  -cell-normals              Surface cell normals." << endl;
-  cout << "  -[no]auto-orient           Enable/disable auto-orientation of normals. (default: on)" << endl;
-  cout << "  -[no]splitting             Enable/disable splitting of sharp edges. (default: off)" << endl;
-  cout << "  -[no]consistency           Enable/disable enforcement of vertex order consistency. (default: on)" << endl;
+  cout << "  -normals, -point-normals        Surface point normals." << endl;
+  cout << "  -cell-normals                   Surface cell normals." << endl;
+  cout << "  -[no]auto-orient                Enable/disable auto-orientation of normals. (default: on)" << endl;
+  cout << "  -[no]splitting                  Enable/disable splitting of sharp edges. (default: off)" << endl;
+  cout << "  -[no]consistency                Enable/disable enforcement of vertex order consistency. (default: on)" << endl;
   cout << endl;
   cout << "Curvature output options:" << endl;
-  cout << "  -H [<name>]                Mean curvature." << endl;
-  cout << "  -K [<name>]                Gauss curvature." << endl;
-  cout << "  -C [<name>]                Curvedness." << endl;
-  cout << "  -k1 [<name>]               Minimum curvature." << endl;
-  cout << "  -k2 [<name>]               Maximum curvature." << endl;
-  cout << "  -k1k2 [<name>] [<name>]    Principal curvatures." << endl;
-  cout << "  -e1 [<name>]               Direction of minimum curvature." << endl;
-  cout << "  -e2 [<name>]               Direction of maximum curvature." << endl;
-  cout << "  -normalize                 Normalize curvature using volume of convex hull." << endl;
-  cout << "  -vtk-curvatures            Use vtkCurvatures when possible." << endl;
-  cout << "  -robust-curvatures         Do not use vtkCurvatures. Instead, estimate the curvature" << endl;
-  cout << "                             tensor field and decompose it to obtain principle curvatures. (default)" << endl;
+  cout << "  -H [<name>]                     Mean curvature." << endl;
+  cout << "  -K [<name>]                     Gauss curvature." << endl;
+  cout << "  -C [<name>]                     Curvedness." << endl;
+  cout << "  -k1 [<name>]                    Minimum curvature." << endl;
+  cout << "  -k2 [<name>]                    Maximum curvature." << endl;
+  cout << "  -k1k2 [<name>] [<name>]         Principal curvatures." << endl;
+  cout << "  -e1 [<name>]                    Direction of minimum curvature." << endl;
+  cout << "  -e2 [<name>]                    Direction of maximum curvature." << endl;
+  cout << "  -normalize                      Normalize curvature using volume of convex hull." << endl;
+  cout << "  -vtk-curvatures                 Use vtkCurvatures when possible." << endl;
+  cout << "  -robust-curvatures              Do not use vtkCurvatures. Instead, estimate the curvature" << endl;
+  cout << "                                  tensor field and decompose it to obtain principle curvatures. (default)" << endl;
   cout << endl;
-  cout << "  -smooth [<niter>] [<sigma>] [<sigma2>]" << endl;
-  cout << "      Smooth calculated scalar curvature measures using a Gaussian smoothing kernel." << endl;
-  cout << "      If sigma2 is specified, an anisotropic kernel with standard deviation" << endl;
-  cout << "      sigma along the direction of minimum curvature, and sigma2 in the" << endl;
-  cout << "      direction of maximum curvature is used. If the value of sigma2 is \"tensor\"" << endl;
-  cout << "      instead of a numeric value, the isotropic Gaussian kernel is oriented" << endl;
-  cout << "      and scaled along each local geometry axis using the curvature tensor." << endl;
+  cout << "  -smooth-iterations [<niter>]    Number of smoothing iterations" << endl;
+  cout << "  -smooth-weighting <name> [options]" << endl;
+  cout << "      Smooth calculated scalar curvature measures according to the weighting specified in <name>:" <<endl;
+  cout << "      'Gaussian': using a Gaussian smoothing kernel (default)." << endl;
+  cout << "                  [options]: [<sigma>]" << endl;
+  cout << "                  If sigma is not specified, it is automatically determined from the edges." << endl;
+  cout << "      'AnisotropicGaussian': using an anisotropic Gaussian smoothing kernel." << endl;
+  cout << "                  [options]: [<sigma>] [<sigma2>]" << endl;
+  cout << "                  If sigma is not specified, it is automatically determined from the edges." << endl;
+  cout << "                  If sigma2 is specified, an anisotropic kernel with standard deviation" << endl;
+  cout << "                  sigma along the direction of minimum curvature, and sigma2 in the" << endl;
+  cout << "                  direction of maximum curvature is used." << endl;
+  cout << "                  If sigma2 is not specifiede, the isotropic Gaussian kernel is oriented" << endl;
+  cout << "                  and scaled along each local geometry axis using the curvature tensor." << endl;
+  cout << "      'InverseDistance': using the inverse node distance." << endl;
+  cout << "                  [options]: [<bias>]" << endl;
+  cout << "                  If the bias is specified the distance is estimated as 1/(dist+bias)" << endl;
+  cout << "      'Combinatorial': using uniform node weights." << endl;
+
+
   PrintCommonOptions(cout);
   cout << endl;
 }
@@ -120,7 +133,7 @@ int main(int argc, char *argv[])
   double smooth_sigma         = .0;
   double smooth_sigma2        = .0;
   bool   smooth_along_tensor  = false;
-  bool   smooth_anisotropic   = false;
+  MeshSmoothing::WeightFunction weighting = MeshSmoothing::Default;
 
   for (ALL_OPTIONS) {
     if (OPTION("-point-normals") || OPTION("-normals")) point_normals = true;
@@ -181,21 +194,26 @@ int main(int argc, char *argv[])
     else if (OPTION("-normalize")) normalize = true;
     else if (OPTION("-vtk-curvatures"))    use_vtkCurvatures = true;
     else if (OPTION("-robust-curvatures")) use_vtkCurvatures = false;
-    else if (OPTION("-smooth")) {
-      smooth_iterations = 1;
-      if (HAS_ARGUMENT) PARSE_ARGUMENT(smooth_iterations);
-      if (HAS_ARGUMENT) PARSE_ARGUMENT(smooth_sigma);
-      if (HAS_ARGUMENT) {
-        const char *arg = ARGUMENT;
-        if (strcmp(arg, "tensor") == 0) {
+    else if (OPTION("-smooth-iterations")) PARSE_ARGUMENT(smooth_iterations);
+    else if (OPTION("-smooth-weighting")){
+      if(smooth_iterations == 0) smooth_iterations = 1;
+
+      char* weighting_name = ARGUMENT;
+      if(!FromString(weighting_name, weighting)){
+        FatalError("Invalid -smooth-weighting <name> argument: " << weighting_name);
+      }
+
+      if( weighting ==  MeshSmoothing::InverseDistance || weighting ==  MeshSmoothing::Gaussian || weighting ==  MeshSmoothing::AnisotropicGaussian){
+        if (HAS_ARGUMENT) PARSE_ARGUMENT(smooth_sigma);
+
+        if (weighting ==  MeshSmoothing::AnisotropicGaussian){
           smooth_along_tensor = true;
-        } else {
-          smooth_along_tensor = false;
-          if (!FromString(arg, smooth_sigma2)) {
-            FatalError("Invalid -smooth <sigma2> argument: " << arg);
+          if(HAS_ARGUMENT) {
+            smooth_along_tensor = false;
+            PARSE_ARGUMENT(smooth_sigma2);
           }
         }
-        smooth_anisotropic = true;
+
       }
     }
     else HANDLE_COMMON_OR_UNKNOWN_OPTION();
@@ -293,8 +311,8 @@ int main(int argc, char *argv[])
       if (e2)         smoother.SmoothArray(e2_name);
       smoother.NumberOfIterations(smooth_iterations);
       smoother.Sigma(-smooth_sigma); // negative: multiple of avg. edge length
-      if (smooth_anisotropic) {
-        smoother.Weighting(MeshSmoothing::AnisotropicGaussian);
+      smoother.Weighting(weighting);
+      if (weighting ==  MeshSmoothing::AnisotropicGaussian){
         if (smooth_along_tensor) {
           smoother.GeometryTensorName(tensor_name);
         } else {
@@ -302,8 +320,6 @@ int main(int argc, char *argv[])
           smoother.MaximumDirectionName(e1_name);
         }
         smoother.MaximumDirectionSigma(-smooth_sigma2);
-      } else {
-        smoother.Weighting(MeshSmoothing::Gaussian);
       }
       smoother.Run();
       vtkPointData *pd = smoother.Output()->GetPointData();

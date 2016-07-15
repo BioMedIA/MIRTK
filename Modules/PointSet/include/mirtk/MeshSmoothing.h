@@ -239,6 +239,21 @@ public:
 // Inline definitions
 ////////////////////////////////////////////////////////////////////////////////
 
+inline bool FromString(const char *str, MeshSmoothing::WeightFunction &value)
+{
+  const string lstr = ToLower(Trim(str));
+
+  if (lstr == "combinatorial") value = MeshSmoothing::Combinatorial;
+  else if (lstr == "inversedistance") value = MeshSmoothing::InverseDistance;
+  else if (lstr == "gaussian") value = MeshSmoothing::Gaussian;
+  else if (lstr == "anisotropicgaussian") value = MeshSmoothing::AnisotropicGaussian;
+  else{
+    value = MeshSmoothing::Default;
+    return false;
+  }
+  return true;
+}
+
 // -----------------------------------------------------------------------------
 inline void MeshSmoothing::SmoothArray(const char *name)
 {
