@@ -197,10 +197,7 @@ int main(int argc, char *argv[])
     else if (OPTION("-smooth-iterations")) PARSE_ARGUMENT(smooth_iterations);
     else if (OPTION("-smooth-weighting")){
       if(smooth_iterations == 0) smooth_iterations = 1;
-
-      if(!PARSE_ARGUMENT(weighting)){
-        FatalError("Invalid -smooth-weighting <name> argument specified");
-      }
+      PARSE_ARGUMENT(weighting);
 
       if( weighting ==  MeshSmoothing::InverseDistance || weighting ==  MeshSmoothing::Gaussian || weighting ==  MeshSmoothing::AnisotropicGaussian){
         if (HAS_ARGUMENT) PARSE_ARGUMENT(smooth_sigma);
