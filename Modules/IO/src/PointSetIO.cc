@@ -1732,7 +1732,7 @@ bool WriteGIFTI(const char *fname, vtkPolyData *polydata, FileOption fopt)
         type != ".topo" &&
         type != ".vector") {
       type.clear();
-    } else if (type != ".coord" && type != ".topo" && type != ".surf") {
+    } else if (type != ".coord" && type != ".topo" && type != ".surf" && type != ".shape") {
       cerr << "WriteGIFTI: Output file type " << type << ext << " not supported!\n"
               "            Can only write .coord.gii, .topo.gii, .surf.gii, or generic .gii file.\n"
               "            To write a generic GIFTI file, remove the " << type << " infix before\n"
