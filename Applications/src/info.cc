@@ -106,6 +106,7 @@ void PrintHelp(const char *name)
   cout << "  -bounds                  Report point set bounds and center point. (default: off)\n";
   cout << "  -edgelength              Report edge length statistics. (default: off)\n";
   cout << "  -self-intersections      Check for self-intersections. (default: off)\n";
+  cout << "  -area                    Display surface area information\n";
   cout << "  -output-surface <file>   Write surface mesh to specified file. (default: none)\n";
   #endif // HAVE_MIRTK_PointSet
   PrintStandardOptions(cout);
@@ -710,12 +711,14 @@ int main(int argc, char *argv[])
         double min_area, max_area, avg_area, std_area;
         Extrema::Calculate(min_area, max_area, area);
         NormalDistribution::Calculate(avg_area, std_area, area);
+        double sum_volume = Volume(polydata);
         cout << "\n";
         cout << "  Average cell area:   " << avg_area << "\n";
         cout << "  Cell area StDev:     " << std_area << "\n";
         cout << "  Minimum cell area:   " << min_area << "\n";
         cout << "  Maximum cell area:   " << max_area << "\n";
         cout << "  Total surface area:  " << sum_area << "\n";
+        cout << "  Total volume:        " << sum_volume << "\n";
         cout.flush();
       }
 

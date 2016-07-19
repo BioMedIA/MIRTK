@@ -996,7 +996,7 @@ void EdgeLengthNormalDistribution(vtkSmartPointer<vtkPointSet> pointset, double 
 }
 
 // -----------------------------------------------------------------------------
-double GetVolume(vtkSmartPointer<vtkPolyData> surface)
+double Volume(vtkSmartPointer<vtkPolyData> surface)
 {
   vtkSmartPointer<vtkMassProperties> mp = vtkMassProperties::New();
   SetVTKInput(mp, surface);
