@@ -407,7 +407,7 @@ void EdgeLengthNormalDistribution(vtkSmartPointer<vtkPoints> points, const EdgeT
 void EdgeLengthNormalDistribution(vtkSmartPointer<vtkPointSet> pointset, double &mean, double &sigma);
 
 /// Get approximate volume enclosed by polygonal mesh
-double GetVolume(vtkSmartPointer<vtkPolyData>);
+double Volume(vtkSmartPointer<vtkPolyData>);
 
 /// Get convex hull of point set
 ///

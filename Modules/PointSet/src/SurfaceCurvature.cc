@@ -584,7 +584,7 @@ void SurfaceCurvature::Initialize()
 
   // Compute volume and approximate radius of convex hull
   if (_Normalize && (_CurvatureType & (Mean | Gauss)) != 0) {
-    _Volume = GetVolume(ConvexHull(_Input));
+    _Volume = mirtk::Volume(ConvexHull(_Input));
     _Radius = pow( 3 * _Volume / (4.0 * pi), 1.0/3.0);
   }
 
