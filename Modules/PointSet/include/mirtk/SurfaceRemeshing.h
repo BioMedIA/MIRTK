@@ -343,19 +343,19 @@ public:
 ////////////////////////////////////////////////////////////////////////////////
 
 // -----------------------------------------------------------------------------
-int SurfaceRemeshing::NumberOfMeltings() const
+inline int SurfaceRemeshing::NumberOfMeltings() const
 {
   return _NumberOfMeltedNodes + _NumberOfMeltedEdges + _NumberOfMeltedCells;
 }
 
 // -----------------------------------------------------------------------------
-int SurfaceRemeshing::NumberOfSubdivisions() const
+inline int SurfaceRemeshing::NumberOfSubdivisions() const
 {
   return _NumberOfBisections + _NumberOfTrisections + _NumberOfQuadsections;
 }
 
 // -----------------------------------------------------------------------------
-int SurfaceRemeshing::NumberOfChanges() const
+inline int SurfaceRemeshing::NumberOfChanges() const
 {
   return NumberOfMeltings() + NumberOfInversions() + NumberOfSubdivisions();
 }
