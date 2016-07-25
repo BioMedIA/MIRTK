@@ -63,7 +63,7 @@ void PrintHelp(const char *name)
   cout << "\n";
   cout << "Usage:  " << name << " <input> <output> -image <file> [options]\n";
   cout << "        " << name << " <input> <output> -labels <file> [options]\n";
-  cout << "        " << name << " <input> <output> -surface <file> -scalars <scalars> [<scalars_new_name>]\n";
+  cout << "        " << name << " <input> <output> -surface <file> [-scalars <scalars> [<scalars_new_name>] ]\n";
   cout << "        " << name << " <input> <output> -boundary [-nolabel-points] [-nolabel-cells] [-name <scalars>]\n";
   cout << "\n";
   cout << "Description:\n";
@@ -88,7 +88,8 @@ void PrintHelp(const char *name)
   cout << "  -[no]fill                  Fill holes in projected surface parcellation.\n";
   cout << "  -min-size <n>              Surface patches with less than n points are removed. (default: 0)\n";
   cout << "  -surface <file>            Input surface from which to project scalars.\n";
-  cout << "  -scalars <name> [<name2>]  Scalars to be projected from the input surface (can be defined multiple times). \n";
+  cout << "  -scalars <input_name> [<output_name>]\n";
+  cout << "                             Scalars to be projected from the input surface (can be defined multiple times). \n";
   cout << "                             <name2> can be specified to set the name of the output scalar array\n";
   cout << "  -boundary                  Output boundary lines between surface parcels. (default: off)\n";
   cout << "                             When no :option:`-image` or :option:`-labels` input file is\n";
@@ -1163,10 +1164,7 @@ int main(int argc, char *argv[])
         label_points = true;
       }
     }
-  } else if (input_surface_proj_name) {
-    if (surface_proj_input_scalars_names.size() == 0)
-      FatalError("No scalars have been defined to be projected!");
-  } else if (!output_boundary_edges) {
+  } else if (!input_surface_proj_name && !output_boundary_edges) {
     FatalError("Input -image or -labels or -surface or -boundary required!");
   }
 
@@ -1436,6 +1434,11 @@ int main(int argc, char *argv[])
   if (surface && input_surface_proj_name){
     vtkSmartPointer<vtkPolyData>  surface_proj = ReadPolyData(input_surface_proj_name);
 
+    if (surface_proj_input_scalars_names.empty()){
+      surface_proj_input_scalars_names.push_back((char*)"scalars");
+      surface_proj_output_scalars_names.push_back((char*)"scalars");
+    } 
+
     RegisteredSurface target, source;
     target.InputSurface(surface);
     source.InputSurface(surface_proj);
@@ -1453,11 +1456,19 @@ int main(int argc, char *argv[])
     cmap->Update();
 
     const vtkIdType noOfPoints = surface->GetNumberOfPoints();
-    for(int a=0; a<surface_proj_input_scalars_names.size(); a++){
-      vtkDataArray* source_array = surface_proj->GetPointData()->GetArray(surface_proj_input_scalars_names[a]);
-      vtkSmartPointer<vtkDataArray> array = vtkSmartPointer<vtkDataArray>::NewInstance(source_array);
+    for (size_t a = 0; a < surface_proj_input_scalars_names.size(); ++a) {
+      vtkDataArray* source_array;
+      if(surface_proj_input_scalars_names[a] == "scalars")
+        source_array = surface_proj->GetPointData()->GetScalars();
+      else 
+        source_array = surface_proj->GetPointData()->GetArray(surface_proj_input_scalars_names[a]);
+      if(source_array == NULL)
+        FatalError("Surface has no scalars: " <<  surface_proj_input_scalars_names[a]);
+
+      vtkSmartPointer<vtkDataArray> array;
+      array.TakeReference(source_array->NewInstance());
       array->SetName(surface_proj_output_scalars_names[a]);
-      array->SetNumberOfComponents(1);
+      array->SetNumberOfComponents(source_array->GetNumberOfComponents());
       array->SetNumberOfTuples(noOfPoints);
       surface->GetPointData()->AddArray(array);
 
