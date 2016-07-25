@@ -816,7 +816,8 @@ static int GiftiIntentCode(vtkDataArray *data, int attr = -1)
         lname == "k1" || lname == "k2" || // Principle curvature
         lname == "h" || // Mean curvature
         lname == "k" || // Gaussian curvature
-        lname == "c" || lname == "curvedness") { // Curvedness
+        lname == "c" || lname == "curvedness" || // Curvedness
+        lname.find("shape") != string::npos) { 
       return NIFTI_INTENT_SHAPE;
     }
   }
@@ -1695,11 +1696,28 @@ static bool AddDataArray(gifti_image *gim, vtkDataArray *data, int attr = -1)
 }
 
 // -----------------------------------------------------------------------------
-static bool AddPointData(gifti_image *gim, vtkPointData *pd)
+static bool AddPointData(gifti_image *gim, vtkPointData *pd, string type)
 {
   const int numDA = gim->numDA;
   for (int i = 0; i < pd->GetNumberOfArrays(); ++i) {
-    if (!AddDataArray(gim, pd->GetArray(i), pd->IsArrayAnAttribute(i))) {
+    vtkDataArray *array = pd->GetArray(i);
+
+    if (type == ".shape"){
+      if (array->GetNumberOfComponents() > 1) continue;
+
+      if (GiftiDataType(array) != NIFTI_TYPE_FLOAT32){
+        int noOfPoints = array->GetNumberOfTuples();
+        vtkSmartPointer<vtkDataArray> cast_array = NewVTKDataArray(VTK_FLOAT);
+        cast_array->SetNumberOfComponents(1);
+        cast_array->SetNumberOfTuples(noOfPoints);
+        for (vtkIdType i = 0; i < noOfPoints; ++i) {
+          cast_array->SetTuple1(i, static_cast<float>(array->GetTuple1(i)) );
+        }
+        array->DeepCopy(cast_array);
+      }
+    }
+    
+    if (!AddDataArray(gim, array, pd->IsArrayAnAttribute(i))) {
       for (int j = numDA; j < gim->numDA; ++j) {
         gifti_free_DataArray(gim->darray[j]);
         gim->darray[j] = nullptr;
@@ -1788,7 +1806,7 @@ bool WriteGIFTI(const char *fname, vtkPolyData *polydata, FileOption fopt)
 
   // Add point data arrays
   if (type.empty() || (type != ".coord" && type != ".topo" && type != ".surf")) {
-    if (!AddPointData(gim, polydata->GetPointData())) {
+    if (!AddPointData(gim, polydata->GetPointData(), type)) {
       gifti_free_image(gim);
       return false;
     }
