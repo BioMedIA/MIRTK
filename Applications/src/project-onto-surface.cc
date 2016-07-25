@@ -1435,8 +1435,11 @@ int main(int argc, char *argv[])
     vtkSmartPointer<vtkPolyData>  surface_proj = ReadPolyData(input_surface_proj_name);
 
     if (surface_proj_input_scalars_names.empty()){
-      surface_proj_input_scalars_names.push_back((char*)"scalars");
-      surface_proj_output_scalars_names.push_back((char*)"scalars");
+      vtkDataArray* scalars_array = surface_proj->GetPointData()->GetScalars();
+      if(scalars_array == NULL)
+        FatalError("Scalars need to be specified with the -scalars option");
+      surface_proj_input_scalars_names.push_back(scalars_array->GetName());
+      surface_proj_output_scalars_names.push_back(scalars_array->GetName());
     } 
 
     RegisteredSurface target, source;
@@ -1457,11 +1460,7 @@ int main(int argc, char *argv[])
 
     const vtkIdType noOfPoints = surface->GetNumberOfPoints();
     for (size_t a = 0; a < surface_proj_input_scalars_names.size(); ++a) {
-      vtkDataArray* source_array;
-      if(surface_proj_input_scalars_names[a] == "scalars")
-        source_array = surface_proj->GetPointData()->GetScalars();
-      else 
-        source_array = surface_proj->GetPointData()->GetArray(surface_proj_input_scalars_names[a]);
+      vtkDataArray* source_array = surface_proj->GetPointData()->GetArray(surface_proj_input_scalars_names[a]);
       if(source_array == NULL)
         FatalError("Surface has no scalars: " <<  surface_proj_input_scalars_names[a]);
 
