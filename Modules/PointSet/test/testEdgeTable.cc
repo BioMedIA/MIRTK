@@ -46,7 +46,7 @@ TEST(EdgeTable, Initialize)
 {
   // Read input point set
   ASSERT_TRUE(input_name != nullptr) << "input point set given";
-  vtkSmartPointer<vtkPolyData> input = ReadPolyData(input_name, NULL, false);
+  vtkSmartPointer<vtkPolyData> input = ReadPolyData(input_name, false);
   const int npoints = static_cast<int>(input->GetNumberOfPoints());
   ASSERT_GT(npoints, 0) << "input point set contains points";
 
@@ -90,7 +90,7 @@ TEST(EdgeTable, EdgeIterator)
 
   // Read input point set
   ASSERT_TRUE(input_name != nullptr) << "input point set given";
-  vtkSmartPointer<vtkPolyData> input = ReadPolyData(input_name, NULL, false);
+  vtkSmartPointer<vtkPolyData> input = ReadPolyData(input_name, false);
   ASSERT_TRUE(input->GetNumberOfPoints() > 0) << "input point set contains points";
 
   // Construct edge table and iterator
