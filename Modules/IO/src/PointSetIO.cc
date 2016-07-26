@@ -261,6 +261,14 @@ bool WritePolyData(const char *fname, vtkPolyData *polydata, FileOption fopt)
     #else
       cerr << "Error: Cannot write surface to GIFTI file because MIRTK I/O library was built without GIFTI support!" << endl;
     #endif
+  } else if (ext == ".txt" || ext == ".csv" || ext == ".tsv") {
+    string type = fname;
+    type = type.substr(0, type.length() - ext.length());
+    type = Extension(type, EXT_Last);
+    bool coords = (type != ".attr");
+    char sep    = ',';
+    if (ext == ".tsv") sep = '\t';
+    WritePointSetTable(fname, polydata, coords, sep);
   } else {
     vtkSmartPointer<vtkPolyDataWriter> writer;
     writer = vtkSmartPointer<vtkPolyDataWriter>::New();
@@ -271,6 +279,70 @@ bool WritePolyData(const char *fname, vtkPolyData *polydata, FileOption fopt)
     success = writer->Write();
   }
   return (success == 1);
+}
+
+// =============================================================================
+// CSV I/O functions
+// =============================================================================
+
+// -----------------------------------------------------------------------------
+bool WritePointSetTable(const char *fname, vtkPointSet *pointset, bool coords, char sep)
+{
+  ofstream ofs(fname);
+  if (!ofs.is_open()) return false;
+
+  vtkPointData *pd = pointset->GetPointData();
+  const int nattr = pd->GetNumberOfArrays();
+
+  // header
+  int col = 0;
+  if (coords) {
+    ofs << "X" << sep << "Y" << sep << "Z";
+    col = 3;
+  }
+  for (int i = 0; i < nattr; ++i) {
+    vtkDataArray *arr = pd->GetArray(i);
+    if (arr->GetName() != nullptr) {
+      for (int j = 0; j < arr->GetNumberOfComponents(); ++j) {
+        if (++col > 1) ofs << sep;
+        const char *name = arr->GetComponentName(j);
+        if (name != nullptr) {
+          ofs << name;
+        } else {
+          ofs << arr->GetName();
+          if (arr->GetNumberOfComponents() > 1) {
+            ofs << '[' << j << ']';
+          }
+        }
+      }
+    }
+  }
+  if (col == 0) return false;
+  ofs << "\n";
+
+  // data rows
+  double p[3];
+  for (vtkIdType ptId = 0; ptId < pointset->GetNumberOfPoints(); ++ptId) {
+    int col = 0;
+    if (coords) {
+      pointset->GetPoint(ptId, p);
+      ofs << p[0] << sep << p[1] << sep << p[2];
+      col = 3;
+    }
+    for (int i = 0; i < nattr; ++i) {
+      vtkDataArray *arr = pd->GetArray(i);
+      if (arr->GetName() != nullptr) {
+        for (int j = 0; j < arr->GetNumberOfComponents(); ++j) {
+          if (++col > 1) ofs << sep;
+          ofs << arr->GetComponent(ptId, j);
+        }
+      }
+    }
+    ofs << "\n";
+  }
+
+  ofs.close();
+  return !ofs.fail();
 }
 
 // =============================================================================
