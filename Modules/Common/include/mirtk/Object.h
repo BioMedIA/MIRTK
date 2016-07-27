@@ -1,8 +1,8 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2013-2015 Imperial College London
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2013-2016 Imperial College London
+ * Copyright 2013-2016 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,10 +20,11 @@
 #ifndef MIRTK_Object_H
 #define MIRTK_Object_H
 
+#include "mirtk/Array.h"
+#include "mirtk/Exception.h"
+#include "mirtk/Pair.h"
 #include "mirtk/String.h"
 #include "mirtk/Stream.h"
-#include "mirtk/Pair.h"
-#include "mirtk/Array.h"
 
 
 namespace mirtk {
@@ -38,6 +39,7 @@ typedef Array<Pair<string, string> >    ParameterList;
 typedef ParameterList::iterator         ParameterIterator;
 typedef ParameterList::const_iterator   ParameterConstIterator;
 
+
 /**
  * Base class for all MIRTK object classes
  *
@@ -51,27 +53,113 @@ class Object
 public:
 
   /// Get name of this class type
-  inline static const char *NameOfType() { return "mirtk::Object"; }
+  static const char *NameOfType();
 
   /// Get name of class, which this object is an instance of
   virtual const char *NameOfClass() const = 0;
 
   /// Destructor
-  virtual ~Object() {}
+  virtual ~Object() = default;
 
   /// Set parameter value from string
-  virtual bool Set(const char *, const char *) { return false; }
+  ///
+  /// \param[in] name  Parameter name.
+  /// \param[in] value Parameter value.
+  ///
+  /// \returns Whether the named parameter is valid and a valid value was
+  ///          set from the provided string representation of the value.
+  virtual bool Set(const char *name, const char *value);
 
   /// Get parameter name/value pairs
-  virtual ParameterList Parameter() const { return ParameterList(); }
+  virtual ParameterList Parameter() const;
 
   /// Set parameters from name/value pairs
-  inline void Parameter(const ParameterList &param) {
-    for (ParameterConstIterator it = param.begin(); it != param.end(); ++it) {
-      this->Set(it->first.c_str(), it->second.c_str());
-    }
-  }
+  void Parameter(const ParameterList &);
+
+  // ---------------------------------------------------------------------------
+  // Error handling
+protected:
+
+  /// Raise error in member function
+  ///
+  /// The current implementation prints the error message to STDERR and terminates
+  /// the program with exit code 1. In future releases, when all library code has
+  /// been rewritten to use this function, a suitable runtime exception may be
+  /// thrown instead.
+  ///
+  /// \param[in] err  Error type. Unused at the moment, but may be used in
+  ///                 future releases to throw the appropriate exception type.
+  /// \param[in] cls  Name of class that defines the member function.
+  /// \param[in] func Name of member function which is throwing the error (i.e., __func__).
+  /// \param[in] args Error message. The given arguments are converted to strings
+  ///                 using the ToString template function. These strings are then
+  ///                 concatenated to produce the complete error message.
+  template <typename... Args>
+  static void Throw(ErrorType err, const char *cls, const char *func, Args... args);
+
+  /// Raise error in member function
+  ///
+  /// The current implementation prints the error message to STDERR and terminates
+  /// the program with exit code 1. In future releases, when all library code has
+  /// been rewritten to use this function, a suitable runtime exception may be
+  /// thrown instead.
+  ///
+  /// \param[in] err  Error type. Unused at the moment, but may be used in
+  ///                 future releases to throw the appropriate exception type.
+  /// \param[in] func Name of member function which is throwing the error (i.e., __func__).
+  /// \param[in] args Error message. The given arguments are converted to strings
+  ///                 using the ToString template function. These strings are then
+  ///                 concatenated to produce the complete error message.
+  template <typename... Args>
+  void Throw(ErrorType err, const char *func, Args... args) const;
 };
+
+// =============================================================================
+// Inline definitions
+// =============================================================================
+
+// -----------------------------------------------------------------------------
+inline const char *Object::NameOfType()
+{
+  return "mirtk::Object";
+}
+
+// -----------------------------------------------------------------------------
+inline bool Object::Set(const char *, const char *)
+{
+  return false;
+}
+
+// -----------------------------------------------------------------------------
+inline ParameterList Object::Parameter() const
+{
+  return ParameterList();
+}
+
+// -----------------------------------------------------------------------------
+inline void Object::Parameter(const ParameterList &param)
+{
+  for (ParameterConstIterator it = param.begin(); it != param.end(); ++it) {
+    this->Set(it->first.c_str(), it->second.c_str());
+  }
+}
+
+// -----------------------------------------------------------------------------
+template <typename... Args>
+void Object::Throw(ErrorType err, const char *cls, const char *func, Args... args)
+{
+  string member(cls);
+  member += "::";
+  member += func;
+  mirtk::Throw(err, member.c_str(), args...);
+}
+
+// -----------------------------------------------------------------------------
+template <typename... Args>
+void Object::Throw(ErrorType err, const char *func, Args... args) const
+{
+  Throw(err, this->NameOfClass(), func, args...);
+}
 
 // =============================================================================
 // Auxiliary functions for subclass implementation
