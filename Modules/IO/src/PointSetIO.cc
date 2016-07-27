@@ -291,8 +291,35 @@ bool WritePointSetTable(const char *fname, vtkPointSet *pointset, bool coords, c
   ofstream ofs(fname);
   if (!ofs.is_open()) return false;
 
-  vtkPointData *pd = pointset->GetPointData();
-  const int nattr = pd->GetNumberOfArrays();
+  // output arrays and precision
+  vtkPointData * const pd = pointset->GetPointData();
+
+  Array<vtkDataArray *> arrays;
+  Array<streamsize>     digits;
+
+  arrays.reserve(pd->GetNumberOfArrays());
+  digits.reserve(arrays.size() + 1u);
+
+  for (int i = 0; i < pd->GetNumberOfArrays(); ++i) {
+    vtkDataArray *arr = pd->GetArray(i);
+    if (arr->GetName() != nullptr) {
+      arrays.push_back(arr);
+      switch (arr->GetDataType()) {
+        case VTK_FLOAT:  digits.push_back(numeric_limits<float >::max_digits10);
+        case VTK_DOUBLE: digits.push_back(numeric_limits<double>::max_digits10);
+        default:         digits.push_back(0);
+      }
+    }
+  }
+  if (coords) {
+    if (pointset->GetPoints()->GetDataType() == VTK_FLOAT) {
+      digits.push_back(numeric_limits<float>::max_digits10);
+    } else {
+      digits.push_back(numeric_limits<double>::max_digits10);
+    }
+  } else {
+    if (arrays.empty()) return false;
+  }
 
   // header
   int col = 0;
@@ -300,24 +327,21 @@ bool WritePointSetTable(const char *fname, vtkPointSet *pointset, bool coords, c
     ofs << "X" << sep << "Y" << sep << "Z";
     col = 3;
   }
-  for (int i = 0; i < nattr; ++i) {
-    vtkDataArray *arr = pd->GetArray(i);
-    if (arr->GetName() != nullptr) {
-      for (int j = 0; j < arr->GetNumberOfComponents(); ++j) {
-        if (++col > 1) ofs << sep;
-        const char *name = arr->GetComponentName(j);
-        if (name != nullptr) {
-          ofs << name;
-        } else {
-          ofs << arr->GetName();
-          if (arr->GetNumberOfComponents() > 1) {
-            ofs << '[' << j << ']';
-          }
+  for (size_t i = 0; i < arrays.size(); ++i) {
+    vtkDataArray *arr = arrays[i];
+    for (int j = 0; j < arr->GetNumberOfComponents(); ++j) {
+      if (++col > 1) ofs << sep;
+      const char *name = arr->GetComponentName(j);
+      if (name != nullptr) {
+        ofs << name;
+      } else {
+        ofs << arr->GetName();
+        if (arr->GetNumberOfComponents() > 1) {
+          ofs << '[' << j << ']';
         }
       }
     }
   }
-  if (col == 0) return false;
   ofs << "\n";
 
   // data rows
@@ -326,16 +350,16 @@ bool WritePointSetTable(const char *fname, vtkPointSet *pointset, bool coords, c
     int col = 0;
     if (coords) {
       pointset->GetPoint(ptId, p);
+      ofs.precision(digits.back());
       ofs << p[0] << sep << p[1] << sep << p[2];
       col = 3;
     }
-    for (int i = 0; i < nattr; ++i) {
-      vtkDataArray *arr = pd->GetArray(i);
-      if (arr->GetName() != nullptr) {
-        for (int j = 0; j < arr->GetNumberOfComponents(); ++j) {
-          if (++col > 1) ofs << sep;
-          ofs << arr->GetComponent(ptId, j);
-        }
+    for (size_t i = 0; i < arrays.size(); ++i) {
+      vtkDataArray *arr = arrays[i];
+      ofs.precision(digits[i]);
+      for (int j = 0; j < arr->GetNumberOfComponents(); ++j) {
+        if (++col > 1) ofs << sep;
+        ofs << arr->GetComponent(ptId, j);
       }
     }
     ofs << "\n";
