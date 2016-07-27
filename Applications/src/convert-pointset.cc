@@ -68,7 +68,8 @@ void PrintHelp(const char *name)
   cout << "\n";
   cout << "Arguments:\n";
   cout << "  input    Input  point set file (.vtk, .vtp, .vtu, .stl, .ply, .off, .dfs, .obj).\n";
-  cout << "  output   Output point set file (.vtk, .vtp, .vtu, .stl, .ply, .off, .dfs, .node, .poly, .smesh).\n";
+  cout << "  output   Output point set file (.vtk, .vtp, .vtu, .stl, .ply, .off, .dfs,\n";
+  cout << "                                  .node, .poly, .smesh, .gii, .csv, .tsv, .txt).\n";
   cout << "\n";
   cout << "Optional arguments:\n";
   cout << "  -merge [<tol>]   Merge points of non-polygonal input point sets.\n";
@@ -78,6 +79,9 @@ void PrintHelp(const char *name)
   cout << "                   to the hole list of the output .poly or .smesh file. (default: no holes)\n";
   cout << "  -nocelldata      Do not write cell  data to output file. (default: off)\n";
   cout << "  -nopointdata     Do not write point data to output file. (default: off)\n";
+  cout << "  -nopoints        Do not write point coordinates to output .csv, .tsv, or .txt file.\n";
+  cout << "                   This option is implicit when the output file name ends with\n";
+  cout << "                   .attr.csv, .attr.tsv, or .attr.txt (default: off)\n";
   cout << "  -ascii           Write legacy VTK files encoded in ASCII. (default: off)\n";
   cout << "  -binary          Write legacy VTK files in binary form. (default: on)\n";
   cout << "  -compress        Compress XML VTK files. (default: on)\n";
@@ -203,17 +207,19 @@ int main(int argc, char *argv[])
   const char *output_name = POSARG(NUM_POSARGS);
 
   // Optional arguments
-  bool pointdata  = true;
-  bool celldata   = true;
-  bool merge      = false;
-  bool with_holes = false;
+  bool pointdata   = true;
+  bool celldata    = true;
+  bool pointcoords = true;
+  bool merge       = false;
+  bool with_holes  = false;
   double merge_tol = 1e-6;
 
   FileOption fopt = FO_Default;
 
   for (ALL_OPTIONS) {
-    if      (OPTION("-nopointdata")) pointdata = false;
-    else if (OPTION("-nocelldata"))  celldata  = false;
+    if      (OPTION("-nopointdata")) pointdata   = false;
+    else if (OPTION("-nocelldata"))  celldata    = false;
+    else if (OPTION("-nopoints"))    pointcoords = false;
     else if (OPTION("-merge")) {
       merge = true;
       if (HAS_ARGUMENT) PARSE_ARGUMENT(merge_tol);
@@ -222,6 +228,9 @@ int main(int argc, char *argv[])
     else HANDLE_POINTSETIO_OPTION(fopt);
     else HANDLE_COMMON_OR_UNKNOWN_OPTION();
   }
+
+  // Output file name extension
+  const string ext = Extension(output_name);
 
   // Read input point sets
   Array<vtkSmartPointer<vtkPointSet> > pointsets(input_names.size());
@@ -280,9 +289,22 @@ int main(int argc, char *argv[])
   if (!pointdata) output->GetPointData()->Initialize();
   if (!celldata ) output->GetCellData ()->Initialize();
 
+  // Write .csv, .tsv, and .txt with or without point coordinates
+  if (ext == ".csv" || ext == ".tsv" || ext == ".txt") {
+    char sep = ',';
+    if (ext == ".tsv") sep = '\t';
+    string type = output_name;
+    type = type.substr(0, type.length() - ext.length());
+    type = Extension(type, EXT_Last);
+    if (type == ".attr") pointcoords = false;
+    if (!WritePointSetTable(output_name, output, pointcoords, sep)) {
+      FatalError("Failed to write output point set to " << output_name);
+    }
+    return 0;
+  }
+
   // Write TetGen .poly/.smesh with holes list
   if (with_holes && input_names.size() > 1) {
-    const std::string ext = Extension(output_name);
     if (ext == ".poly" || ext == ".smesh") {
       vtkSmartPointer<vtkPolyData> surface = vtkPolyData::SafeDownCast(output);
       if (surface == NULL) {
@@ -310,7 +332,6 @@ int main(int argc, char *argv[])
   // Write output point set
   if (!WritePointSet(output_name, output, fopt)) {
     FatalError("Failed to write output point set to " << output_name);
-    exit(1);
   }
   return 0;
 }

@@ -126,6 +126,19 @@ bool WritePointSet(const char *fname, vtkPointSet *pointset, FileOption fopt = F
 bool WritePolyData(const char *fname, vtkPolyData *polydata, FileOption fopt = FO_Default);
 
 // =============================================================================
+// CSV I/O functions
+// =============================================================================
+
+/// Write point set (attributes) to CSV file
+///
+/// \param[in] fname    File name.
+/// \param[in] pointset Point set.
+/// \param[in] sep      Separator.
+/// \param[in] coords   Whether to save x, y, z point coordinate columns.
+bool WritePointSetTable(const char *fname, vtkPointSet *pointset,
+                        bool coords = true, char sep = ',');
+
+// =============================================================================
 // TetGen I/O functions
 // =============================================================================
 
