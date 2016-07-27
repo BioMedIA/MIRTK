@@ -1210,7 +1210,7 @@ public:
   virtual void Process(int n, double *data, bool *mask = NULL)
   {
     statistic::Extrema extrema;
-    extrema.Evaluate(n, data, mask);
+    extrema.Process(n, data, mask);
     _Slope     = (_Max - _Min) / (extrema.Max() - extrema.Min());
     _Intercept = _Min - (extrema.Min() * _Slope);
     _Data      = data;
