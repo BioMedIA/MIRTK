@@ -152,6 +152,9 @@ private:
   /// Names of input point data arrays to be smoothed
   mirtkPublicAttributeMacro(ArrayNames, SmoothArrays);
 
+  /// Array vtkDataSetAttributes::AttributeTypes
+  mirtkAttributeMacro(Array<int>, AttributeTypes);
+
   /// Input point data arrays to be smoothed
   mirtkAttributeMacro(DataArrays, InputArrays);
 
@@ -182,7 +185,13 @@ public:
   virtual ~MeshSmoothing();
 
   /// Add named point data array to list of arrays to be smoothed
-  void SmoothArray(const char *);
+  ///
+  /// \param[in] name Name of data array to smooth.
+  /// \param[in] attr Array attribute type, see vtkDataSetAttributes::AttributeTypes.
+  ///                 When vtkDataSetAttributes::VECTORS, an array with 3 components
+  ///                 is treated as 3D direction vectors and the smoothing is
+  ///                 performed independent of the sign of the direction.
+  void SmoothArray(const char *name, int attr = -1);
 
   // ---------------------------------------------------------------------------
   // Execution
@@ -239,25 +248,27 @@ public:
 // Inline definitions
 ////////////////////////////////////////////////////////////////////////////////
 
+// -----------------------------------------------------------------------------
+template <>
 inline bool FromString(const char *str, MeshSmoothing::WeightFunction &value)
 {
   const string lstr = ToLower(Trim(str));
-
-  if (lstr == "combinatorial") value = MeshSmoothing::Combinatorial;
-  else if (lstr == "inversedistance") value = MeshSmoothing::InverseDistance;
-  else if (lstr == "gaussian") value = MeshSmoothing::Gaussian;
+  if      (lstr == "combinatorial")       value = MeshSmoothing::Combinatorial;
+  else if (lstr == "inversedistance")     value = MeshSmoothing::InverseDistance;
+  else if (lstr == "gaussian")            value = MeshSmoothing::Gaussian;
   else if (lstr == "anisotropicgaussian") value = MeshSmoothing::AnisotropicGaussian;
-  else{
+  else {
     value = MeshSmoothing::Default;
-    return false;
+    return (lstr == "default");
   }
   return true;
 }
 
 // -----------------------------------------------------------------------------
-inline void MeshSmoothing::SmoothArray(const char *name)
+inline void MeshSmoothing::SmoothArray(const char *name, int attr)
 {
   _SmoothArrays.push_back(name);
+  _AttributeTypes.push_back(attr);
 }
 
 
