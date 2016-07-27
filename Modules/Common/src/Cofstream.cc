@@ -1,8 +1,8 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2008-2015 Imperial College London
- * Copyright 2008-2015 Daniel Rueckert, Julia Schnabel
+ * Copyright 2008-2016 Imperial College London
+ * Copyright 2008-2016 Daniel Rueckert, Julia Schnabel
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -56,21 +56,18 @@ void Cofstream::Open(const char *fname)
   Close();
   size_t len = strlen(fname);
   if (len == 0) {
-    cerr << "Cofstream::Open: Filename is empty!" << endl;
-    exit(1);
+    Throw(ERR_InvalidArgument, __func__, "Filename is empty");
   }
   if (len > 3 && (strncmp(fname + len-3, ".gz", 3) == 0 || strncmp(fname + len-3, ".GZ", 3) == 0)) {
     #if MIRTK_Common_WITH_ZLIB
       gzFile fp = gzopen(fname, "wb");
       if (fp == nullptr) {
-        cerr << "Cofstream::Open: Cannot open file " << fname << endl;
-        exit(1);
+        Throw(ERR_IOError, __func__, "Failed to open file ", fname);
       }
       _ZFile = fp;
       _Compressed = true;
     #else // MIRTK_Common_WITH_ZLIB
-      cerr << "Cofstream::Open: Cannot write compressed file when Common module not built WITH_ZLIB" << endl;
-      exit(1);
+      Throw(ERR_IOError, __func__, "Cannot write compressed file when Common module not built WITH_ZLIB");
     #endif // MIRTK_Common_WITH_ZLIB
   } else {
     #ifdef WINDOWS
@@ -80,8 +77,7 @@ void Cofstream::Open(const char *fname)
       _File = fopen(fname, "wb");
     #endif
     if (_File == nullptr) {
-      cerr << "Cofstream::Open: Cannot open file " << fname << endl;
-      exit(1);
+      Throw(ERR_IOError, __func__, "Failed to open file ", fname);
     }
     _Compressed = false;
   }
@@ -134,9 +130,8 @@ bool Cofstream::Write(const char *data, long offset, long length)
       gzFile fp = reinterpret_cast<gzFile>(_ZFile);
       if (offset != -1) {
         if (gztell(fp) > offset) {
-          cerr << "Error: Writing compressed files only supports forward seek (pos="
-               << gztell(fp) << ", offset=" << offset << ")" << endl;
-          exit(1);
+          Throw(ERR_IOError, __func__, "Writing compressed files only supports"
+                " forward seek (pos=", gztell(fp), ", offset=", offset, ")");
         }
         gzseek(fp, offset, SEEK_SET);
       }
