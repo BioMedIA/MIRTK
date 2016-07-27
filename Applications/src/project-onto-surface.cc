@@ -27,6 +27,8 @@
 #include "mirtk/NearestNeighborInterpolateImageFunction.h"
 #include "mirtk/LinearInterpolateImageFunction.h"
 #include "mirtk/EuclideanDistanceTransform.h"
+#include "mirtk/PointCorrespondence.h"
+#include "mirtk/RegisteredSurface.h"
 
 #include "mirtk/Vtk.h"
 
@@ -61,6 +63,7 @@ void PrintHelp(const char *name)
   cout << "\n";
   cout << "Usage:  " << name << " <input> <output> -image <file> [options]\n";
   cout << "        " << name << " <input> <output> -labels <file> [options]\n";
+  cout << "        " << name << " <input> <output> -surface <file> [-scalars <scalars> [<scalars_new_name>] ]\n";
   cout << "        " << name << " <input> <output> -boundary [-nolabel-points] [-nolabel-cells] [-name <scalars>]\n";
   cout << "\n";
   cout << "Description:\n";
@@ -75,19 +78,23 @@ void PrintHelp(const char *name)
   cout << "  output   Output surface mesh.\n";
   cout << "\n";
   cout << "Options:\n";
-  cout << "  -white            Input surface is cortical WM/GM boundary.\n";
-  cout << "  -pial             Input surface is cortical GM/CSF boundary.\n";
-  cout << "  -image <file>     Input real-valued scalar/vector image.\n";
-  cout << "  -labels <file>    Input segmentation image with positive integer labels.\n";
-  cout << "  -name <name>      Name of output scalar array. (default: Scalars or Labels)\n";
-  cout << "  -[no]celldata     Assign values to cells of input surface. (default: off)\n";
-  cout << "  -[no]pointdata    Assign values to points of input surface. (default: on)\n";
-  cout << "  -[no]fill         Fill holes in projected surface parcellation.\n";
-  cout << "  -min-size <n>     Surface patches with less than n points are removed. (default: 0)\n";
-  cout << "  -boundary         Output boundary lines between surface parcels. (default: off)\n";
-  cout << "                    When no :option:`-image` or :option:`-labels` input file is\n";
-  cout << "                    specified, the boundaries of the input parcellation given by\n";
-  cout << "                    the labels array with the specified :option:`-name` are extracted.\n";
+  cout << "  -white                     Input surface is cortical WM/GM boundary.\n";
+  cout << "  -pial                      Input surface is cortical GM/CSF boundary.\n";
+  cout << "  -image <file>              Input real-valued scalar/vector image.\n";
+  cout << "  -labels <file>             Input segmentation image with positive integer labels.\n";
+  cout << "  -name <name>               Name of output scalar array. (default: Scalars or Labels)\n";
+  cout << "  -[no]celldata              Assign values to cells of input surface. (default: off)\n";
+  cout << "  -[no]pointdata             Assign values to points of input surface. (default: on)\n";
+  cout << "  -[no]fill                  Fill holes in projected surface parcellation.\n";
+  cout << "  -min-size <n>              Surface patches with less than n points are removed. (default: 0)\n";
+  cout << "  -surface <file>            Input surface from which to project scalars.\n";
+  cout << "  -scalars <input_name> [<output_name>]\n";
+  cout << "                             Scalars to be projected from the input surface (can be defined multiple times). \n";
+  cout << "                             <name2> can be specified to set the name of the output scalar array\n";
+  cout << "  -boundary                  Output boundary lines between surface parcels. (default: off)\n";
+  cout << "                             When no :option:`-image` or :option:`-labels` input file is\n";
+  cout << "                             specified, the boundaries of the input parcellation given by\n";
+  cout << "                             the labels array with the specified :option:`-name` are extracted.\n";
   cout << "  -write-dilated-labels <file>\n";
   cout << "      Write image of dilated labels.\n";
   PrintStandardOptions(cout);
@@ -1105,6 +1112,11 @@ int main(int argc, char *argv[])
   bool        fill_holes              = true;
   int         smoothing_iterations    = 0;
 
+  // arguments for scalars projection from surface
+  const char *input_surface_proj_name   = NULL;
+  std::vector<char*> surface_proj_input_scalars_names;
+  std::vector<char*> surface_proj_output_scalars_names;
+
   // Parse remaining arguments
   for (ALL_OPTIONS) {
     if      (OPTION("-write-dilated-labels")) output_label_image_name = ARGUMENT;
@@ -1128,6 +1140,14 @@ int main(int argc, char *argv[])
     else if (OPTION("-pointdata"))   label_points = true;
     else if (OPTION("-nopointdata")) label_points = false;
     else if (OPTION("-boundary"))    output_boundary_edges = true;
+
+    else if (OPTION("-surface"))  input_surface_proj_name = ARGUMENT;
+    else if (OPTION("-scalars")){
+      char* scalars_to_copy = ARGUMENT;
+      surface_proj_input_scalars_names.push_back(scalars_to_copy);
+      if (HAS_ARGUMENT) scalars_to_copy = ARGUMENT;
+      surface_proj_output_scalars_names.push_back(scalars_to_copy);
+    } 
     else HANDLE_COMMON_OR_UNKNOWN_OPTION();
   }
 
@@ -1144,8 +1164,8 @@ int main(int argc, char *argv[])
         label_points = true;
       }
     }
-  } else if (!output_boundary_edges) {
-    FatalError("Input -image or -labels required!");
+  } else if (!input_surface_proj_name && !output_boundary_edges) {
+    FatalError("Input -image or -labels or -surface or -boundary required!");
   }
 
   // Read input surface
@@ -1406,6 +1426,53 @@ int main(int argc, char *argv[])
         if (verbose) cout << "Assigning values to cells of cGM/CSF surface...", cout.flush();
         AssignValuesToCells(pial_surface, image, output_scalars_name);
         if (verbose) cout << " done" << endl;
+      }
+    }
+  }
+
+  // scalars projection from surface
+  if (surface && input_surface_proj_name){
+    vtkSmartPointer<vtkPolyData>  surface_proj = ReadPolyData(input_surface_proj_name);
+
+    if (surface_proj_input_scalars_names.empty()){
+      vtkDataArray* scalars_array = surface_proj->GetPointData()->GetScalars();
+      if(scalars_array == NULL)
+        FatalError("Scalars need to be specified with the -scalars option");
+      surface_proj_input_scalars_names.push_back(scalars_array->GetName());
+      surface_proj_output_scalars_names.push_back(scalars_array->GetName());
+    } 
+
+    RegisteredSurface target, source;
+    target.InputSurface(surface);
+    source.InputSurface(surface_proj);
+    target.Initialize();
+    source.Initialize();
+    target.Update();
+    source.Update();
+
+    UniquePtr<PointCorrespondence> cmap(PointCorrespondence::New(PointCorrespondence::ClosestPoint));
+    cmap->FromTargetToSource(true);
+    cmap->FromSourceToTarget(false);
+    cmap->Target(&target);
+    cmap->Source(&source);
+    cmap->Initialize();
+    cmap->Update();
+
+    const vtkIdType noOfPoints = surface->GetNumberOfPoints();
+    for (size_t a = 0; a < surface_proj_input_scalars_names.size(); ++a) {
+      vtkDataArray* source_array = surface_proj->GetPointData()->GetArray(surface_proj_input_scalars_names[a]);
+      if(source_array == NULL)
+        FatalError("Surface has no scalars: " <<  surface_proj_input_scalars_names[a]);
+
+      vtkSmartPointer<vtkDataArray> array;
+      array.TakeReference(source_array->NewInstance());
+      array->SetName(surface_proj_output_scalars_names[a]);
+      array->SetNumberOfComponents(source_array->GetNumberOfComponents());
+      array->SetNumberOfTuples(noOfPoints);
+      surface->GetPointData()->AddArray(array);
+
+      for (vtkIdType i = 0; i < noOfPoints; ++i) {
+        array->SetTuple(i, source_array->GetTuple( cmap->GetIndex(i) ));
       }
     }
   }
