@@ -25,6 +25,7 @@
 #include "mirtk/CommonConfig.h"
 
 // Standard containers
+#include "mirtk/Exception.h"
 #include "mirtk/Pair.h"
 #include "mirtk/Array.h"
 #include "mirtk/ArrayHeap.h"

@@ -44,6 +44,7 @@ set(HEADERS
   EnergyMeasure.h
   Event.h
   EventDelegate.h
+  Exception.h
   FastDelegate.h
   Indent.h
   List.h
