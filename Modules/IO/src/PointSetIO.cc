@@ -912,7 +912,8 @@ static int GiftiIntentCode(vtkDataArray *data, int attr = -1)
         lname == "k1" || lname == "k2" || // Principle curvature
         lname == "h" || // Mean curvature
         lname == "k" || // Gaussian curvature
-        lname == "c" || lname == "curvedness") { // Curvedness
+        lname == "c" || lname == "curvedness" || // Curvedness
+        lname.find("shape") != string::npos) { 
       return NIFTI_INTENT_SHAPE;
     }
   }
@@ -1744,13 +1745,13 @@ static bool AddTriangles(gifti_image *gim, vtkCellArray *triangles, vtkInformati
 }
 
 // -----------------------------------------------------------------------------
-static bool AddDataArray(gifti_image *gim, vtkDataArray *data, int attr = -1)
+static bool AddDataArray(gifti_image *gim, vtkDataArray *data, int intent)
 {
   if (gifti_add_empty_darray(gim, 1) != 0) return false;
   giiDataArray *da = gim->darray[gim->numDA-1];
 
   // Set data array attributes
-  da->intent     = GiftiIntentCode(data, attr);
+  da->intent     = intent;
   da->datatype   = GiftiDataType(data);
   da->ind_ord    = GIFTI_IND_ORD_ROW_MAJOR;
   da->num_dim    = 1;
@@ -1791,11 +1792,29 @@ static bool AddDataArray(gifti_image *gim, vtkDataArray *data, int attr = -1)
 }
 
 // -----------------------------------------------------------------------------
-static bool AddPointData(gifti_image *gim, vtkPointData *pd)
+static bool AddPointData(gifti_image *gim, vtkPointData *pd, const string &type)
 {
   const int numDA = gim->numDA;
   for (int i = 0; i < pd->GetNumberOfArrays(); ++i) {
-    if (!AddDataArray(gim, pd->GetArray(i), pd->IsArrayAnAttribute(i))) {
+    vtkSmartPointer<vtkDataArray> array = pd->GetArray(i);
+    const int intent = GiftiIntentCode(array, pd->IsArrayAnAttribute(i));
+
+    if (type == ".shape"){
+      if (intent != NIFTI_INTENT_SHAPE || array->GetNumberOfComponents() > 1) continue;
+
+      if (GiftiDataType(array) != NIFTI_TYPE_FLOAT32) {
+        const vtkIdType n = array->GetNumberOfTuples();
+        vtkDataArray * const orig = array;
+        array = NewVTKDataArray(VTK_FLOAT);
+        array->SetNumberOfComponents(1);
+        array->SetNumberOfTuples(n);
+        for (vtkIdType i = 0; i < n; ++i) {
+          array->SetComponent(i, 0, static_cast<float>(orig->GetComponent(i, 0)));
+        }
+      }
+    }
+    
+    if (!AddDataArray(gim, array, intent)) {
       for (int j = numDA; j < gim->numDA; ++j) {
         gifti_free_DataArray(gim->darray[j]);
         gim->darray[j] = nullptr;
@@ -1828,9 +1847,9 @@ bool WriteGIFTI(const char *fname, vtkPolyData *polydata, FileOption fopt)
         type != ".topo" &&
         type != ".vector") {
       type.clear();
-    } else if (type != ".coord" && type != ".topo" && type != ".surf") {
+    } else if (type != ".coord" && type != ".topo" && type != ".surf" && type != ".shape") {
       cerr << "WriteGIFTI: Output file type " << type << ext << " not supported!\n"
-              "            Can only write .coord.gii, .topo.gii, .surf.gii, or generic .gii file.\n"
+              "            Can only write .coord.gii, .topo.gii, .shape.gii, .surf.gii, or generic .gii file.\n"
               "            To write a generic GIFTI file, remove the " << type << " infix before\n"
               "            the .gii file name extension." << endl;
       return false;
@@ -1884,7 +1903,7 @@ bool WriteGIFTI(const char *fname, vtkPolyData *polydata, FileOption fopt)
 
   // Add point data arrays
   if (type.empty() || (type != ".coord" && type != ".topo" && type != ".surf")) {
-    if (!AddPointData(gim, polydata->GetPointData())) {
+    if (!AddPointData(gim, polydata->GetPointData(), type)) {
       gifti_free_image(gim);
       return false;
     }
