@@ -190,8 +190,7 @@ int main(int argc, char **argv)
     }
     points.Resize(pointset->GetNumberOfPoints());
     for (vtkIdType i = 0; i < pointset->GetNumberOfPoints(); ++i) {
-      pointset->GetPoint(i, p);
-      points(i) = p;
+      pointset->GetPoint(i, points(i));
     }
   } else {
     while (cin) {
