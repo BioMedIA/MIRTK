@@ -3,7 +3,7 @@
 ##
 ## How to build the image:
 ## - Change to top-level directory of MIRTK source tree
-## - Run "docker build -t <user>/mirtk:latest ."
+## - Run "docker build --build-arg VCS_REF=`git rev-parse --short HEAD` -t <user>/mirtk:latest ."
 ##
 ## Upload image to Docker Hub:
 ## - Log in with "docker login" if necessary
@@ -22,6 +22,12 @@ FROM biomedia/ubuntu:mirtk
 
 MAINTAINER Andreas Schuh <andreas.schuh.84@gmail.com>
 LABEL Description="Medical Image Registration ToolKit (MIRTK)" Vendor="BioMedIA"
+
+# Git repository and commit SHA from which this Docker image was built
+# (see https://microbadger.com/#/labels)
+ARG VCS_REF
+LABEL org.label-schema.vcs-ref=$VCS_REF \
+      org.label-schema.vcs-url="https://github.com/BioMedIA/MIRTK"
 
 # No. of threads to use for build (--build-arg THREADS=8)
 # By default, all available CPUs are used. When a Docker Machine is used,
