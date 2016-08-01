@@ -26,6 +26,7 @@
 #include "mirtk/Voxel.h"
 #include "mirtk/VoxelCast.h"
 #include "mirtk/BaseImage.h"
+#include "mirtk/GenericImage.h"
 #include "mirtk/ImageFunction.h"
 #include "mirtk/UnaryVoxelFunction.h"
 
@@ -202,6 +203,14 @@ public:
   /// interpolation can be used without handling any form of boundary condition
   bool IsInside(double, double, double, double) const;
 
+  /// Check if the location (in pixels) is inside the domain for which this image
+  /// interpolation can be used without handling any form of boundary condition
+  bool IsInside(const Point &) const;
+
+  /// Check if the location (in pixels) is inside the domain for which this image
+  /// interpolation can be used without handling any form of boundary condition
+  bool IsInside(const Point &, double) const;
+
   /// Check if the location (in pixels) is outside the domain for which this image
   /// interpolation can be used without handling any form of boundary condition
   bool IsOutside(double, double) const;
@@ -214,6 +223,14 @@ public:
   /// interpolation can be used without handling any form of boundary condition
   bool IsOutside(double, double, double, double) const;
 
+  /// Check if the location (in pixels) is outside the domain for which this image
+  /// interpolation can be used without handling any form of boundary condition
+  bool IsOutside(const Point &) const;
+
+  /// Check if the location (in pixels) is outside the domain for which this image
+  /// interpolation can be used without handling any form of boundary condition
+  bool IsOutside(const Point &, double) const;
+
   /// Check if the location is fully inside the foreground of the image, i.e.,
   /// including all discrete image locations required for interpolation
   bool IsForeground(double, double) const;
@@ -225,6 +242,14 @@ public:
   /// Check if the location is fully inside the foreground of the image, i.e.,
   /// including all discrete image locations required for interpolation
   bool IsForeground(double, double, double, double) const;
+
+  /// Check if the location is fully inside the foreground of the image, i.e.,
+  /// including all discrete image locations required for interpolation
+  bool IsForeground(const Point &) const;
+
+  /// Check if the location is fully inside the foreground of the image, i.e.,
+  /// including all discrete image locations required for interpolation
+  bool IsForeground(const Point &, double) const;
 
   // ---------------------------------------------------------------------------
   // Evaluation
@@ -247,6 +272,15 @@ public:
   /// method which makes use of the extrapolation of the discrete image domain
   /// in order to interpolate also at boundary or outside locations is used.
   double Evaluate(double, double, double = 0, double = 0) const;
+
+  /// Evaluate scalar image at an arbitrary location (in pixels)
+  ///
+  /// If the location is inside the domain for which the filter can perform
+  /// an interpolation without considering a particular boundary condition,
+  /// the faster EvaluateInside method is called. Otherwise, the EvaluateOutside
+  /// method which makes use of the extrapolation of the discrete image domain
+  /// in order to interpolate also at boundary or outside locations is used.
+  double Evaluate(const Point &, double = 0) const;
 
   /// Evaluate scalar image at an arbitrary location (in pixels)
   ///
@@ -310,6 +344,15 @@ public:
   /// method which makes use of the extrapolation of the discrete image domain
   /// in order to interpolate also at boundary or outside locations is used.
   void Evaluate(double *, double, double, double = 0, int = 1) const;
+
+  /// Evaluate multi-channel image at an arbitrary location (in pixels)
+  ///
+  /// If the location is inside the domain for which the filter can perform
+  /// an interpolation without considering a particular boundary condition,
+  /// the faster EvaluateInside method is called. Otherwise, the EvaluateOutside
+  /// method which makes use of the extrapolation of the discrete image domain
+  /// in order to interpolate also at boundary or outside locations is used.
+  void Evaluate(double *, const Point &, int = 1) const;
 
   /// Evaluate multi-channel image at an arbitrary location (in pixels)
   ///
@@ -395,8 +438,8 @@ public:
   void EvaluateWithPadding(Vector &, double, double, double = 0, double = 0) const;
 
   /// Evaluate image function at all locations of the output image
-  template <class TOutputImage>
-  void Evaluate(TOutputImage &) const;
+  template <class TVoxel>
+  void Evaluate(GenericImage<TVoxel> &) const;
 
 };
 
@@ -845,6 +888,18 @@ inline bool InterpolateImageFunction::IsInside(double x, double y, double z, dou
 }
 
 // -----------------------------------------------------------------------------
+inline bool InterpolateImageFunction::IsInside(const Point &p) const
+{
+  return IsInside(p.x, p.y, p.z);
+}
+
+// -----------------------------------------------------------------------------
+inline bool InterpolateImageFunction::IsInside(const Point &p, double t) const
+{
+  return IsInside(p.x, p.y, p.z, t);
+}
+
+// -----------------------------------------------------------------------------
 inline bool InterpolateImageFunction::IsOutside(double x, double y) const
 {
   return !IsInside(x, y);
@@ -860,6 +915,18 @@ inline bool InterpolateImageFunction::IsOutside(double x, double y, double z) co
 inline bool InterpolateImageFunction::IsOutside(double x, double y, double z, double t) const
 {
   return !IsInside(x, y, z, t);
+}
+
+// -----------------------------------------------------------------------------
+inline bool InterpolateImageFunction::IsOutside(const Point &p) const
+{
+  return IsOutside(p.x, p.y, p.z);
+}
+
+// -----------------------------------------------------------------------------
+inline bool InterpolateImageFunction::IsOutside(const Point &p, double t) const
+{
+  return IsOutside(p.x, p.y, p.z, t);
 }
 
 // -----------------------------------------------------------------------------
@@ -886,6 +953,18 @@ inline bool InterpolateImageFunction::IsForeground(double x, double y, double z,
   return Input()->IsBoundingBoxInsideForeground(i1, j1, k1, l1, i2, j2, k2, l2);
 }
 
+// -----------------------------------------------------------------------------
+inline bool InterpolateImageFunction::IsForeground(const Point &p) const
+{
+  return IsForeground(p.x, p.y, p.z);
+}
+
+// -----------------------------------------------------------------------------
+inline bool InterpolateImageFunction::IsForeground(const Point &p, double t) const
+{
+  return IsForeground(p.x, p.y, p.z, t);
+}
+
 // =============================================================================
 // Evaluation
 // =============================================================================
@@ -901,6 +980,12 @@ inline double InterpolateImageFunction::Evaluate(double x, double y, double z, d
 inline double InterpolateImageFunction::Evaluate(double x, double y, double z, double t)
 {
   return const_cast<const InterpolateImageFunction *>(this)->Evaluate(x, y, z, t);
+}
+
+// -----------------------------------------------------------------------------
+inline double InterpolateImageFunction::Evaluate(const Point &p, double t) const
+{
+  return Evaluate(p.x, p.y, p.z, t);
 }
 
 // -----------------------------------------------------------------------------
@@ -931,6 +1016,12 @@ inline void InterpolateImageFunction::Evaluate(double *v, double x, double y, do
 {
   if (IsInside(x, y, z)) this->EvaluateInside (v, x, y, z, vt);
   else                   this->EvaluateOutside(v, x, y, z, vt);
+}
+
+// -----------------------------------------------------------------------------
+inline void InterpolateImageFunction::Evaluate(double *v, const Point &p, int vt) const
+{
+  Evaluate(v, p.x, p.y, p.z, vt);
 }
 
 // -----------------------------------------------------------------------------
@@ -971,11 +1062,11 @@ inline void InterpolateImageFunction::EvaluateWithPadding(Vector &v, double x, d
 }
 
 // -----------------------------------------------------------------------------
-template <class TOutputImage>
-inline void InterpolateImageFunction::Evaluate(TOutputImage &output) const
+template <class TVoxel>
+inline void InterpolateImageFunction::Evaluate(GenericImage<TVoxel> &output) const
 {
   // Interpolate multi-channel image (or 3D+t vector image)
-  if (output.GetTSize() == .0) {
+  if (output.TSize() == .0) {
     UnaryVoxelFunction::InterpolateMultiChannelImage<InterpolateImageFunction> eval(this, &output);
     ParallelForEachVoxel(output.Attributes(), output, eval);
   // Interpolate scalar image
