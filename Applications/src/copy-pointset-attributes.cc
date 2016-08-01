@@ -65,6 +65,11 @@ void PrintHelp(const char *name)
   cout << endl;
   cout << "Arguments:" << endl;
   cout << "  source   Point set from which to copy the point/cell data." << endl;
+  #if MIRTK_IO_WITH_GIFTI
+  cout << "           Can also be a GIFTI file with only point data arrays." << endl;
+  cout << "           In this case, the coordinates and topology of the target" << endl;
+  cout << "           surface are used to define the source surface." << endl;
+  #endif
   cout << "  target   Point set to which to add the point/cell data." << endl;
   cout << "  output   Output point set with copied point/cell data." << endl;
   cout << "           If not specified, the target file is overwritten." << endl;
@@ -130,27 +135,130 @@ void PrintHelp(const char *name)
 // =============================================================================
 
 // -----------------------------------------------------------------------------
+using AttributeType                = vtkDataSetAttributes::AttributeTypes;
+const AttributeType NUM_ATTRIBUTES = vtkDataSetAttributes::NUM_ATTRIBUTES;
+
+// -----------------------------------------------------------------------------
 struct ArrayInfo
 {
-  int                                  _SourceIndex;
-  const char                          *_SourceName;
-  vtkDataSetAttributes::AttributeTypes _SourceAttribute;
-  int                                  _TargetIndex;
-  const char                          *_TargetName;
-  vtkDataSetAttributes::AttributeTypes _TargetAttribute;
-  bool                                 _PointCellConversion;
+  int           _SourceIndex;
+  const char   *_SourceName;
+  AttributeType _SourceAttribute;
+  int           _TargetIndex;
+  const char   *_TargetName;
+  AttributeType _TargetAttribute;
+  bool          _PointCellConversion;
 
   ArrayInfo()
   :
     _SourceIndex(-1),
     _SourceName(nullptr),
-    _SourceAttribute(vtkDataSetAttributes::NUM_ATTRIBUTES),
+    _SourceAttribute(NUM_ATTRIBUTES),
     _TargetIndex(-1),
     _TargetName(nullptr),
-    _TargetAttribute(vtkDataSetAttributes::NUM_ATTRIBUTES),
+    _TargetAttribute(NUM_ATTRIBUTES),
     _PointCellConversion(false)
   {}
 };
+
+// -----------------------------------------------------------------------------
+/// Get source point data array
+vtkDataArray *GetSourceArray(const char *type, vtkDataSetAttributes *attr, const ArrayInfo &info, bool case_sensitive)
+{
+  vtkDataArray *array;
+  if (info._SourceAttribute < NUM_ATTRIBUTES) {
+    array = attr->GetAttribute(info._SourceAttribute);
+  } else if (info._SourceName) {
+    if (case_sensitive) {
+      array = attr->GetArray(info._SourceName);
+    } else {
+      array = GetArrayByCaseInsensitiveName(attr, info._SourceName);
+    }
+    if (array == nullptr) {
+      FatalError("Source has no " << type << " data array named " << info._SourceName);
+    }
+  } else {
+    if (info._SourceIndex < 0 || info._SourceIndex >= attr->GetNumberOfArrays()) {
+      FatalError("Source has no " << type << " data array with index " << info._SourceIndex);
+    }
+    array = attr->GetArray(info._SourceIndex);
+  }
+  return array;
+}
+
+// -----------------------------------------------------------------------------
+/// Convert point data labels to cell data
+vtkSmartPointer<vtkDataArray> ConvertPointToCellLabels(vtkPointSet *pset, vtkDataArray *labels)
+{
+  vtkSmartPointer<vtkDataArray> output;
+  output.TakeReference(labels->NewInstance());
+  output->SetName(labels->GetName());
+  for (int j = 0; j < labels->GetNumberOfComponents(); ++j) {
+    output->SetComponentName(j, labels->GetComponentName(j));
+  }
+  output->SetNumberOfComponents(labels->GetNumberOfComponents());
+  output->SetNumberOfTuples(pset->GetNumberOfCells());
+
+  OrderedMap<double, int> label_count;
+  vtkSmartPointer<vtkIdList> ptIds = vtkSmartPointer<vtkIdList>::New();
+  for (vtkIdType cellId = 0; cellId < pset->GetNumberOfCells(); ++cellId) {
+    pset->GetCellPoints(cellId, ptIds);
+    for (int j = 0; j < labels->GetNumberOfComponents(); ++j) {
+      label_count.clear();
+      for (vtkIdType i = 0; i < ptIds->GetNumberOfIds(); ++i) {
+        ++label_count[labels->GetComponent(ptIds->GetId(i), j)];
+      }
+      int    max_cnt   = 0;
+      double max_label = 0.;
+      for (const auto &cnt : label_count) {
+        if (cnt.second > max_cnt) {
+          max_label = cnt.first;
+          max_cnt   = cnt.second;
+        }
+      }
+      output->SetComponent(cellId, j, max_label);
+    }
+  }
+
+  return output;
+}
+
+// -----------------------------------------------------------------------------
+/// Convert cell data labels to point data
+vtkSmartPointer<vtkDataArray> ConvertCellToPointLabels(vtkPointSet *pset, vtkDataArray *labels)
+{
+  vtkSmartPointer<vtkDataArray> output;
+  output.TakeReference(labels->NewInstance());
+  output->SetName(labels->GetName());
+  for (int j = 0; j < labels->GetNumberOfComponents(); ++j) {
+    output->SetComponentName(j, labels->GetComponentName(j));
+  }
+  output->SetNumberOfComponents(labels->GetNumberOfComponents());
+  output->SetNumberOfTuples(pset->GetNumberOfPoints());
+
+  OrderedMap<double, int> label_count;
+  vtkSmartPointer<vtkIdList> cellIds = vtkSmartPointer<vtkIdList>::New();
+  for (vtkIdType ptId = 0; ptId < pset->GetNumberOfPoints(); ++ptId) {
+    pset->GetPointCells(ptId, cellIds);
+    for (int j = 0; j < labels->GetNumberOfComponents(); ++j) {
+      label_count.clear();
+      for (vtkIdType i = 0; i < cellIds->GetNumberOfIds(); ++i) {
+        ++label_count[labels->GetComponent(cellIds->GetId(i), j)];
+      }
+      int    max_cnt   = 0;
+      double max_label = 0.;
+      for (const auto &cnt : label_count) {
+        if (cnt.second > max_cnt) {
+          max_label = cnt.first;
+          max_cnt   = cnt.second;
+        }
+      }
+      output->SetComponent(ptId, j, max_label);
+    }
+  }
+
+  return output;
+}
 
 // -----------------------------------------------------------------------------
 /// Copy tuples from the input data array
@@ -161,6 +269,9 @@ vtkSmartPointer<vtkDataArray> Copy(vtkDataArray *array, vtkIdType n)
   copy->SetName(array->GetName());
   copy->SetNumberOfComponents(array->GetNumberOfComponents());
   copy->SetNumberOfTuples(n);
+  for (int j = 0; j < array->GetNumberOfComponents(); ++j) {
+    copy->SetComponentName(j, array->GetComponentName(j));
+  }
   vtkIdType ptId = 0;
   while (ptId < n && ptId < array->GetNumberOfTuples()) {
     copy->SetTuple(ptId, array->GetTuple(ptId));
@@ -177,16 +288,16 @@ vtkSmartPointer<vtkDataArray> Copy(vtkDataArray *array, vtkIdType n)
 
 // -----------------------------------------------------------------------------
 /// Add data array to data set attributes
-void AddArray(vtkDataSetAttributes *data, vtkDataArray *array, vtkDataSetAttributes::AttributeTypes type)
+void AddArray(vtkDataSetAttributes *data, vtkDataArray *array, AttributeType type)
 {
   switch (type) {
-    case vtkDataSetAttributes::SCALARS:     data->SetScalars(array); break;
-    case vtkDataSetAttributes::VECTORS:     data->SetVectors(array); break;
-    case vtkDataSetAttributes::NORMALS:     data->SetNormals(array); break;
-    case vtkDataSetAttributes::TCOORDS:     data->SetTCoords(array); break;
-    case vtkDataSetAttributes::TENSORS:     data->SetTensors(array); break;
-    case vtkDataSetAttributes::GLOBALIDS:   data->SetGlobalIds(array); break;
-    case vtkDataSetAttributes::PEDIGREEIDS: data->SetPedigreeIds(array); break;
+    case AttributeType::SCALARS:     data->SetScalars(array); break;
+    case AttributeType::VECTORS:     data->SetVectors(array); break;
+    case AttributeType::NORMALS:     data->SetNormals(array); break;
+    case AttributeType::TCOORDS:     data->SetTCoords(array); break;
+    case AttributeType::TENSORS:     data->SetTensors(array); break;
+    case AttributeType::GLOBALIDS:   data->SetGlobalIds(array); break;
+    case AttributeType::PEDIGREEIDS: data->SetPedigreeIds(array); break;
     default: data->AddArray(array); break;
   }
 }
@@ -217,9 +328,9 @@ int main(int argc, char **argv)
 
   // Optional arguments
   Array<ArrayInfo> pd, cd;
-  const char *point_mask_name = NULL;
-  const char *cell_mask_name  = NULL;
-  bool case_sensitive = false;
+  const char *point_mask_name = nullptr;
+  const char *cell_mask_name  = nullptr;
+  bool        case_sensitive  = false;
 
   for (ALL_OPTIONS) {
     if (OPTION("-points")) {
@@ -283,8 +394,16 @@ int main(int argc, char **argv)
   }
 
   // Read input data sets
-  vtkSmartPointer<vtkPointSet> source = ReadPointSet(source_name);
-  vtkSmartPointer<vtkPointSet> target = ReadPointSet(target_name);
+  vtkSmartPointer<vtkPointSet> source, target;
+  target = ReadPointSet(target_name);
+  #if MIRTK_IO_WITH_GIFTI
+    if (Extension(source_name, EXT_Last) == ".gii") {
+      source = ReadGIFTI(source_name, vtkPolyData::SafeDownCast(target));
+    }
+  #endif
+  if (source == nullptr) {
+    source = ReadPointSet(source_name);
+  }
 
   const vtkIdType npoints = target->GetNumberOfPoints();
   const vtkIdType ncells  = target->GetNumberOfCells();
@@ -294,6 +413,27 @@ int main(int argc, char **argv)
 
   vtkPointData * const targetPD = target->GetPointData();
   vtkCellData  * const targetCD = target->GetCellData();
+
+  // Copy all point set attributes by default
+  if (pd.empty() && cd.empty()) {
+    int attr;
+    for (int i = 0; i < sourcePD->GetNumberOfArrays(); ++i) {
+      attr = sourcePD->IsArrayAnAttribute(i);
+      if (attr < 0) attr = NUM_ATTRIBUTES;
+      ArrayInfo info;
+      info._SourceIndex     = i;
+      info._TargetAttribute = static_cast<AttributeType>(attr);
+      pd.push_back(info);
+    }
+    for (int i = 0; i < sourceCD->GetNumberOfArrays(); ++i) {
+      attr = sourceCD->IsArrayAnAttribute(i);
+      if (attr < 0) attr = NUM_ATTRIBUTES;
+      ArrayInfo info;
+      info._SourceIndex     = i;
+      info._TargetAttribute = static_cast<AttributeType>(attr);
+      cd.push_back(info);
+    }
+  }
 
   // Convert point data to cell data if necessary
   vtkSmartPointer<vtkCellData> pd_as_cd;
@@ -353,24 +493,7 @@ int main(int argc, char **argv)
         targetAttr = targetPD;
         ntuples    = npoints;
       }
-      if (pd[i]._SourceAttribute < vtkDataSetAttributes::NUM_ATTRIBUTES) {
-        array = sourceAttr->GetAttribute(pd[i]._SourceAttribute);
-        if (!array) continue;
-      } else if (pd[i]._SourceName) {
-        if (case_sensitive) {
-          array = sourceAttr->GetArray(pd[i]._SourceName);
-        } else {
-          array = GetArrayByCaseInsensitiveName(sourceAttr, pd[i]._SourceName);
-        }
-        if (array == nullptr) {
-          FatalError("Source has no point data array named " << pd[i]._SourceName);
-        }
-      } else {
-        if (pd[i]._SourceIndex < 0 || pd[i]._SourceIndex > sourceAttr->GetNumberOfArrays()) {
-          FatalError("Source has no point data array with index " << pd[i]._SourceIndex);
-        }
-        array = sourceAttr->GetArray(pd[i]._SourceIndex);
-      }
+      array = GetSourceArray("point", sourceAttr, pd[i], case_sensitive);
       if (pd[i]._TargetIndex == -2) {
         double p[3] = {.0};
         vtkPoints *points = target->GetPoints();
@@ -382,6 +505,13 @@ int main(int argc, char **argv)
         }
         copy = nullptr;
       } else {
+        if (sourceAttr == pd_as_cd.Get()) {
+          if ((array->GetName()  && ToLower(array->GetName()) .find("label") != string::npos) ||
+              (pd[i]._TargetName && ToLower(pd[i]._TargetName).find("label") != string::npos)) {
+            vtkDataArray *labels = GetSourceArray("point", sourcePD, pd[i], case_sensitive);
+            array = ConvertPointToCellLabels(source, labels);
+          }
+        }
         copy = Copy(array, ntuples);
       }
     }
@@ -413,23 +543,13 @@ int main(int argc, char **argv)
       targetAttr = targetCD;
       ntuples    = ncells;
     }
-    if (cd[i]._SourceAttribute < vtkDataSetAttributes::NUM_ATTRIBUTES) {
-      array = sourceAttr->GetAttribute(cd[i]._SourceAttribute);
-      if (!array) continue;
-    } else if (cd[i]._SourceName) {
-      if (case_sensitive) {
-        array = sourceAttr->GetArray(cd[i]._SourceName);
-      } else {
-        array = GetArrayByCaseInsensitiveName(sourceAttr, cd[i]._SourceName);
+    array = GetSourceArray("cell", sourceAttr, cd[i], case_sensitive);
+    if (sourceAttr == cd_as_pd.Get()) {
+      if ((array->GetName()  && ToLower(array->GetName()) .find("label") != string::npos) ||
+          (cd[i]._TargetName && ToLower(cd[i]._TargetName).find("label") != string::npos)) {
+        vtkDataArray *labels = GetSourceArray("cell", sourceCD, cd[i], case_sensitive);
+        array = ConvertCellToPointLabels(source, labels);
       }
-      if (array == nullptr) {
-        FatalError("Source has no cell data array named " << cd[i]._SourceName);
-      }
-    } else {
-      if (cd[i]._SourceIndex < 0 || cd[i]._SourceIndex > sourceAttr->GetNumberOfArrays()) {
-        FatalError("Source has no cell data array with index " << cd[i]._SourceIndex);
-      }
-      array = sourceAttr->GetArray(cd[i]._SourceIndex);
     }
     copy = Copy(array, ntuples);
     if (cd[i]._TargetName) copy->SetName(cd[i]._TargetName);
