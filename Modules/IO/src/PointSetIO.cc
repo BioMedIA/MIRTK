@@ -1507,15 +1507,19 @@ vtkSmartPointer<vtkPolyData> ReadGIFTI(const char *fname, vtkPolyData *surface, 
   const vtkIdType npoints = points->GetNumberOfPoints();
 
   // Check topology information
-  polys->InitTraversal();
-  vtkIdType npts, *pts;
-  while (polys->GetNextCell(npts, pts) != 0) {
-    if (npts != 3 || pts[0] >= npoints || pts[1] >= npoints || pts[2] >= npoints) {
-      if (errmsg) {
-        cerr << "Error: GIFTI topology array has invalid point index!" << endl;
+  if (polys) {
+    polys->InitTraversal();
+    vtkIdType npts, *pts;
+    while (polys->GetNextCell(npts, pts) != 0) {
+      if (npts != 3 || pts[0] >= npoints || pts[1] >= npoints || pts[2] >= npoints) {
+        if (errmsg) {
+          cerr << "Error: GIFTI topology array has invalid point index!" << endl;
+        }
+        return polydata;
       }
-      return polydata;
     }
+  } else if (surface) {
+    polys = surface->GetPolys();
   }
 
   // Get node indices array

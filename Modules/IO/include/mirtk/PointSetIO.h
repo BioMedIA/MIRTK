@@ -378,7 +378,7 @@ vtkSmartPointer<vtkPolyData> ReadGIFTI(const char  *fname,
                                        vtkPolyData *surface = nullptr,
                                        bool         errmsg  = false);
 
-/// Write polygonal dataset to GIFTI ([.surf].gii) file
+/// Write polygonal dataset to GIFTI (.gii) file
 ///
 /// @param[in] fname    File name. Based on the extension either all or only
 ///                     certain data arrays of the polygonal dataset are saved.
