@@ -114,7 +114,7 @@ int main(int argc, char **argv)
     if (!FromString(POSARG(3), offset)) {
       FatalError("Invalid <offset> argument, must be floating point number!");
     }
-  } else {
+  } else if (NUM_POSARGS > 3) {
     FatalError("Too many positional arguments!");
   }
 
