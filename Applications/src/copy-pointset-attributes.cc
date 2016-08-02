@@ -505,7 +505,7 @@ int main(int argc, char **argv)
         }
         copy = nullptr;
       } else {
-        if (sourceAttr == pd_as_cd.Get()) {
+        if (sourceAttr == pd_as_cd.GetPointer()) {
           if ((array->GetName()  && ToLower(array->GetName()) .find("label") != string::npos) ||
               (pd[i]._TargetName && ToLower(pd[i]._TargetName).find("label") != string::npos)) {
             vtkDataArray *labels = GetSourceArray("point", sourcePD, pd[i], case_sensitive);
@@ -544,7 +544,7 @@ int main(int argc, char **argv)
       ntuples    = ncells;
     }
     array = GetSourceArray("cell", sourceAttr, cd[i], case_sensitive);
-    if (sourceAttr == cd_as_pd.Get()) {
+    if (sourceAttr == cd_as_pd.GetPointer()) {
       if ((array->GetName()  && ToLower(array->GetName()) .find("label") != string::npos) ||
           (cd[i]._TargetName && ToLower(cd[i]._TargetName).find("label") != string::npos)) {
         vtkDataArray *labels = GetSourceArray("cell", sourceCD, cd[i], case_sensitive);
