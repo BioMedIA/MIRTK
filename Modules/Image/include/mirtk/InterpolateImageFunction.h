@@ -890,13 +890,13 @@ inline bool InterpolateImageFunction::IsInside(double x, double y, double z, dou
 // -----------------------------------------------------------------------------
 inline bool InterpolateImageFunction::IsInside(const Point &p) const
 {
-  return IsInside(p.x, p.y, p.z);
+  return IsInside(p._x, p._y, p._z);
 }
 
 // -----------------------------------------------------------------------------
 inline bool InterpolateImageFunction::IsInside(const Point &p, double t) const
 {
-  return IsInside(p.x, p.y, p.z, t);
+  return IsInside(p._x, p._y, p._z, t);
 }
 
 // -----------------------------------------------------------------------------
@@ -920,13 +920,13 @@ inline bool InterpolateImageFunction::IsOutside(double x, double y, double z, do
 // -----------------------------------------------------------------------------
 inline bool InterpolateImageFunction::IsOutside(const Point &p) const
 {
-  return IsOutside(p.x, p.y, p.z);
+  return IsOutside(p._x, p._y, p._z);
 }
 
 // -----------------------------------------------------------------------------
 inline bool InterpolateImageFunction::IsOutside(const Point &p, double t) const
 {
-  return IsOutside(p.x, p.y, p.z, t);
+  return IsOutside(p._x, p._y, p._z, t);
 }
 
 // -----------------------------------------------------------------------------
@@ -956,13 +956,13 @@ inline bool InterpolateImageFunction::IsForeground(double x, double y, double z,
 // -----------------------------------------------------------------------------
 inline bool InterpolateImageFunction::IsForeground(const Point &p) const
 {
-  return IsForeground(p.x, p.y, p.z);
+  return IsForeground(p._x, p._y, p._z);
 }
 
 // -----------------------------------------------------------------------------
 inline bool InterpolateImageFunction::IsForeground(const Point &p, double t) const
 {
-  return IsForeground(p.x, p.y, p.z, t);
+  return IsForeground(p._x, p._y, p._z, t);
 }
 
 // =============================================================================
@@ -985,7 +985,7 @@ inline double InterpolateImageFunction::Evaluate(double x, double y, double z, d
 // -----------------------------------------------------------------------------
 inline double InterpolateImageFunction::Evaluate(const Point &p, double t) const
 {
-  return Evaluate(p.x, p.y, p.z, t);
+  return Evaluate(p._x, p._y, p._z, t);
 }
 
 // -----------------------------------------------------------------------------
@@ -1021,7 +1021,7 @@ inline void InterpolateImageFunction::Evaluate(double *v, double x, double y, do
 // -----------------------------------------------------------------------------
 inline void InterpolateImageFunction::Evaluate(double *v, const Point &p, int vt) const
 {
-  Evaluate(v, p.x, p.y, p.z, vt);
+  Evaluate(v, p._x, p._y, p._z, vt);
 }
 
 // -----------------------------------------------------------------------------
