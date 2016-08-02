@@ -52,6 +52,10 @@ public:
   /// z coordinate of Point
   double _z;
 
+  double &x = _x;
+  double &y = _y;
+  double &z = _z;
+
   //
   // Constructors and destructor
   //
