@@ -421,10 +421,10 @@ int main(int argc, char *argv[])
 
   vtkSmartPointer<vtkDataArray> source_array;
   const char *temp_source_array_name = source_array_name;
-  if (strcmp(source_array_name, "PointSource") == 0) {
-    temp_source_array_name = "_PointSource";
-  }
   if (source_array_name != nullptr) {
+    if (strcmp(source_array_name, "PointSource") == 0) {
+      temp_source_array_name = "_PointSource";
+    }
     size_t offset = 1;
     source_array = surfaces[0]->GetPointData()->GetArray(source_array_name);
     if (source_array != nullptr && source_array->GetNumberOfComponents() == 1) {
