@@ -81,6 +81,9 @@ namespace mirtk {
 ///                 or double is returned.
 ///
 /// \returns New VTK data array instance.
+vtkSmartPointer<vtkDataArray> NewVtkDataArray(int type = VTK_VOID);
+
+/// \deprecated Use NewVtkDataArray instead
 vtkSmartPointer<vtkDataArray> NewVTKDataArray(int type = VTK_VOID);
 
 // -----------------------------------------------------------------------------

@@ -37,7 +37,7 @@ namespace mirtk {
 
 
 // -----------------------------------------------------------------------------
-vtkSmartPointer<vtkDataArray> NewVTKDataArray(int vtkType)
+vtkSmartPointer<vtkDataArray> NewVtkDataArray(int vtkType)
 {
   switch (vtkType) {
     case VTK_VOID: {
@@ -60,6 +60,12 @@ vtkSmartPointer<vtkDataArray> NewVTKDataArray(int vtkType)
       cerr << "Invalid VTK data type: " << vtkType << endl;
       exit(1);
   }
+}
+
+// -----------------------------------------------------------------------------
+vtkSmartPointer<vtkDataArray> NewVTKDataArray(int vtkType)
+{
+  return NewVtkDataArray(vtkType);
 }
 
 
