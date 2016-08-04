@@ -49,4 +49,4 @@ del _putenvs
 # Import main functions
 # ==============================================================================
 
-from mirtk.subprocess import path, call, check_call, check_output
+from mirtk.subprocess import path, run, call, check_call, check_output
