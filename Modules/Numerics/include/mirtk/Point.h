@@ -35,22 +35,15 @@ class Matrix;
 
 
 /**
- * 3D Point class.
+ * 3D point.
  */
-class Point : public Object
+class Point
 {
-  mirtkObjectMacro(Point);
-
 public:
 
-  /// x coordinate of Point
-  double _x;
-
-  /// y coordinate of Point
-  double _y;
-
-  /// z coordinate of Point
-  double _z;
+  double _x; ///< x coordinate of Point
+  double _y; ///< y coordinate of Point
+  double _z; ///< z coordinate of Point
 
   double &x = _x;
   double &y = _y;
@@ -93,6 +86,12 @@ public:
 
   /// Get const reference to i-th point coordinate
   const double &operator ()(int i) const;
+
+  /// Cast to C array pointer
+  operator double *();
+
+  /// Cast to C array pointer
+  operator const double *() const;
 
   //
   // Operators for Point
@@ -274,7 +273,7 @@ inline Point::Point(const double p[3])
 }
 
 // -----------------------------------------------------------------------------
-inline Point::Point(const Point& p) : Object(p)
+inline Point::Point(const Point& p)
 {
   _x = p._x;
   _y = p._y;
@@ -347,6 +346,18 @@ inline double &Point::operator ()(int i)
 inline const double &Point::operator ()(int i) const
 {
   return operator [](i);
+}
+
+// -----------------------------------------------------------------------------
+inline Point::operator double *()
+{
+  return &_x;
+}
+
+// -----------------------------------------------------------------------------
+inline Point::operator const double *() const
+{
+  return &_x;
 }
 
 // -----------------------------------------------------------------------------
