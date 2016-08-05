@@ -26,6 +26,9 @@
 #include "mirtk/PointSetIO.h"
 #include "mirtk/ImplicitSurfaceUtils.h"
 
+#include "vtkNew.h"
+#include "vtkPolyDataNormals.h"
+
 using namespace mirtk;
 using namespace mirtk::ImplicitSurfaceUtils;
 
@@ -37,26 +40,26 @@ using namespace mirtk::ImplicitSurfaceUtils;
 // -----------------------------------------------------------------------------
 void PrintHelp(const char *name)
 {
-  cout << endl;
-  cout << "Usage: " << name << " <input> <output> [options]" << endl;
-  cout << endl;
-  cout << "Description:" << endl;
-  cout << "  Extract the isosurface from an intensity image or segmentation." << endl;
-  cout << endl;
-  cout << "Arguments:" << endl;
-  cout << "  input    Input image." << endl;
-  cout << "  output   Output surface mesh." << endl;
-  cout << endl;
-  cout << "Optional arguments:" << endl;
-  cout << "  -isovalue <value>     Isovalue of surface intensities. (default: 0)" << endl;
-  cout << "  -blur <sigma>         Blur input image with kernel size sigma before running filter. (default: 0)" << endl;
-  cout << "  -isotropic            Resample image to an isotropic voxel size (minimum of input voxel size)." << endl;
-  cout << "  -normals [on|off]     Choose whether to generate normals (default) or not." << endl;
-  cout << "  -gradients [on|off]   Choose whether to generate gradients or not (default)." << endl;
-  cout << "  -close [on|off]       Put zeros around the image to generate a closed surface(s)."<<endl;
-  cout << "  -[no]compress         Whether to compress output .vtp file. (default: on)" << endl;
-  cout << "  -binary               Write binary data when output file name extension is .vtk. (default: on)" << endl;
-  cout << "  -ascii                Write ASCII  data when output file name extension is .vtk. (default: off)" << endl;
+  cout << "\n";
+  cout << "Usage: " << name << " <input> <output> [options]\n";
+  cout << "\n";
+  cout << "Description:\n";
+  cout << "  Extract the isosurface from an intensity image or segmentation.\n";
+  cout << "\n";
+  cout << "Arguments:\n";
+  cout << "  input    Input image.\n";
+  cout << "  output   Output surface mesh.\n";
+  cout << "\n";
+  cout << "Optional arguments:\n";
+  cout << "  -isovalue <value>       Isovalue of surface intensities. (default: 0)\n";
+  cout << "  -blur, -sigma <sigma>   Blur input image with kernel size sigma before running filter. (default: 0)\n";
+  cout << "  -isotropic              Resample image to an isotropic voxel size (minimum of input voxel size). (default: off)\n";
+  cout << "  -[no]normals            Whether to calculate surface normals. (default: on)\n";
+  cout << "  -[no]gradients          Whether to calculate image gradients. (default: off)\n";
+  cout << "  -[no]close              Put zeros around the image to generate a closed surface(s). (default: off)\n";
+  cout << "  -[no]compress           Whether to compress output .vtp file. (default: on)\n";
+  cout << "  -binary                 Write binary data when output file name extension is .vtk. (default: on)\n";
+  cout << "  -ascii                  Write ASCII  data when output file name extension is .vtk. (default: off)\n";
   PrintCommonOptions(cout);
   cout << endl;
 }
@@ -82,30 +85,16 @@ int main(int argc, char **argv)
   double blurring  = .0;
 
   for (ALL_OPTIONS) {
-    if (OPTION("-isovalue")) PARSE_ARGUMENT(isovalue);
-    else if (OPTION("-close")) {
-      if (HAS_ARGUMENT) PARSE_ARGUMENT(close);
-      else close = true;
+    if (OPTION("-isovalue")) {
+      PARSE_ARGUMENT(isovalue);
     }
-    else if (OPTION("-isotropic")) {
-      if (HAS_ARGUMENT) PARSE_ARGUMENT(isotropic);
-      else isotropic = true;
+    else if (OPTION("-blur") || OPTION("-sigma")) {
+      PARSE_ARGUMENT(blurring);
     }
-    else if (OPTION("-gradients")) {
-      if (HAS_ARGUMENT) PARSE_ARGUMENT(gradients);
-      else gradients = true;
-    }
-    else if (OPTION("-nogradients")) {
-      gradients = false;
-    }
-    else if (OPTION("-normals")) {
-      if (HAS_ARGUMENT) PARSE_ARGUMENT(normals);
-      else normals = true;
-    }
-    else if (OPTION("-nonormals")) {
-      normals = false;
-    }
-    else if (OPTION("-blur")) PARSE_ARGUMENT(blurring);
+    else HANDLE_BOOL_OPTION(close);
+    else HANDLE_BOOL_OPTION(isotropic);
+    else HANDLE_BOOL_OPTION(gradients);
+    else HANDLE_BOOL_OPTION(normals);
     else HANDLE_POINTSETIO_OPTION(output_fopt);
     else HANDLE_COMMON_OR_UNKNOWN_OPTION();
   }
@@ -117,7 +106,23 @@ int main(int argc, char **argv)
   }
 
   vtkSmartPointer<vtkPolyData> isosurface;
-  isosurface = Isosurface(image, isovalue, blurring, isotropic, close, normals, gradients);
+  isosurface = Isosurface(image, isovalue, blurring, isotropic, close, false, gradients);
+
+  if (normals) {
+    vtkNew<vtkPolyDataNormals> filter;
+    filter->SplittingOff();
+    filter->ConsistencyOff();
+    filter->AutoOrientNormalsOff();
+    filter->ComputePointNormalsOn();
+    filter->ComputeCellNormalsOff();
+    filter->SetInputData(isosurface);
+    filter->Update();
+    isosurface = filter->GetOutput();
+  }
+
+  if (gradients) {
+    isosurface->GetPointData()->GetVectors()->SetName("Gradient");
+  }
 
   if (!WritePolyData(output_name, isosurface, output_fopt)) {
     FatalError("Failed to write surface to " << output_name);
