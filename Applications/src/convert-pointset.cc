@@ -210,6 +210,7 @@ int main(int argc, char *argv[])
   bool pointdata   = true;
   bool celldata    = true;
   bool pointcoords = true;
+  bool pointids    = true;
   bool merge       = false;
   bool with_holes  = false;
   double merge_tol = 1e-6;
@@ -220,6 +221,7 @@ int main(int argc, char *argv[])
     if      (OPTION("-nopointdata")) pointdata   = false;
     else if (OPTION("-nocelldata"))  celldata    = false;
     else if (OPTION("-nopoints"))    pointcoords = false;
+    else if (OPTION("-nopointids"))  pointids    = false;
     else if (OPTION("-merge")) {
       merge = true;
       if (HAS_ARGUMENT) PARSE_ARGUMENT(merge_tol);
@@ -297,7 +299,7 @@ int main(int argc, char *argv[])
     type = type.substr(0, type.length() - ext.length());
     type = Extension(type, EXT_Last);
     if (type == ".attr") pointcoords = false;
-    if (!WritePointSetTable(output_name, output, pointcoords, sep)) {
+    if (!WritePointSetTable(output_name, output, sep, pointids, pointcoords)) {
       FatalError("Failed to write output point set to " << output_name);
     }
     return 0;

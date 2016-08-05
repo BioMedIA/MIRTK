@@ -397,8 +397,13 @@ int main(int argc, char **argv)
   vtkSmartPointer<vtkPointSet> source, target;
   target = ReadPointSet(target_name);
   #if MIRTK_IO_WITH_GIFTI
-    if (Extension(source_name, EXT_Last) == ".gii") {
+    const string source_ext = Extension(source_name, EXT_Last);
+    if (source_ext == ".gii") {
       source = ReadGIFTI(source_name, vtkPolyData::SafeDownCast(target));
+    } else if (source_ext == ".csv" || source_ext == ".tsv" || source_ext == ".txt") {
+      char sep = ',';
+      if (source_ext == ".tsv") sep = '\t';
+      source = ReadPointSetTable(source_name, sep, target);
     }
   #endif
   if (source == nullptr) {

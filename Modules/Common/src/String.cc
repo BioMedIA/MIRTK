@@ -183,6 +183,13 @@ Array<string> Split(string s, const char *d, int n, bool discard_empty)
 }
 
 // ------------------------------------------------------------------------
+Array<string> Split(string s, char d, int n, bool discard_empty)
+{
+  const char delim[2] = {d, '\0'};
+  return Split(s, delim, n, discard_empty);
+}
+
+// ------------------------------------------------------------------------
 string CamelCaseToPrettyParameterName(const string &s)
 {
   string param;

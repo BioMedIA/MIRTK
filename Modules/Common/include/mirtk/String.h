@@ -268,6 +268,18 @@ string TrimAll(const string &str, const string &what = " \t\r\n");
 /// @returns Parts of the string.
 Array<string> Split(string s, const char *d, int n = 0, bool e = false);
 
+/// Split string into parts separated by specified delimiting character
+///
+/// @param s String to be split.
+/// @param d Delimiting character.
+/// @param n Maximum number of parts. If zero, all parts are returned,
+///          if negative, the last n parts are returned, and if positive,
+///          the first n parts are returned.
+/// @param e Discard empty strings.
+///
+/// @returns Parts of the string.
+Array<string> Split(string s, char d, int n = 0, bool e = false);
+
 /// Convert (upper) camel case string to space separated string
 ///
 /// \param[in] s Camel case string.
