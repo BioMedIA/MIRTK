@@ -122,15 +122,28 @@ def run(cmd, args=[], opts={}, verbose=0):
     """Execute MIRTK command and throw exception on error."""
     argv = [cmd]
     argv.extend(args)
+    # ordered list of options
     if isinstance(opts, list):
-        opts = OrderedDict(opt if isinstance(opt, (tuple, list)) else (opt, None) for opt in opts)
-    for opt, arg in opts.items():
-        if not opt.startswith('-'):
-            opt = '-' + opt
-        argv.append(opt)
-        if not arg is None:
-            if isinstance(arg, list):
-                argv.extend(arg)
+        for item in opts:
+            if isinstance(item, (tuple, list)):
+                opt = item[0]
+                arg = []
+                for entry in item[1:]:
+                    arg.extend(entry if isinstance(entry, (tuple, list)) else [entry])
             else:
-                argv.append(arg)
+                opt = item
+                arg = None
+            if not opt.startswith('-'):
+                opt = '-' + opt
+            argv.append(opt)
+            if not arg is None:
+                argv.extend(arg if isinstance(arg, (tuple, list)) else [arg])
+    # unordered dict of options
+    else:
+        for opt, arg in opts.items():
+            if not opt.startswith('-'):
+                opt = '-' + opt
+            argv.append(opt)
+            if not arg is None:
+                argv.extend(arg if isinstance(arg, (tuple, list)) else [arg])
     check_call(argv, verbose=verbose)
