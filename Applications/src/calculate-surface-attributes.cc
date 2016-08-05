@@ -25,6 +25,9 @@
 #include "mirtk/SurfaceCurvature.h"
 #include "mirtk/MeshSmoothing.h"
 #include "mirtk/ImageSurfaceStatistics.h"
+#include "mirtk/GradientImageFilter.h"
+#include "mirtk/LinearInterpolateImageFunction.h"
+#include "mirtk/FastCubicBSplineInterpolateImageFunction.h"
 
 #include "vtkSmartPointer.h"
 #include "vtkPolyData.h"
@@ -76,45 +79,54 @@ void PrintHelp(const char *name)
   cout << "  -robust-curvatures         Do not use vtkCurvatures. Instead, estimate the curvature\n";
   cout << "                             tensor field and decompose it to obtain principle curvatures. (default)\n";
   cout << "\n";
-  cout << "Local image statistics options:\n";
-  cout << "  -image <file> [<name>]\n";
-  cout << "       Input image file. When <name> is given, it is used as the name of the\n";
-  cout << "       output point data array. The default name is 'LocalImageStatistics'.\n";
+  cout << "Local image options:\n";
+  cout << "  -image <file>\n";
+  cout << "      Input image file required by -gradient* and -patch* options.\n";
+  cout << "  -gradient-normal [<name>]\n";
+  cout << "      Compute image derivative in normal direction using cubic B-spline interpolation.\n";
+  cout << "      The <name> of the output point data array is by default 'ImageGradientNormal'. (default: off)\n";
+  cout << "  -gradient-angle [<name>]\n";
+  cout << "      Compute cosine of angle made up by image gradient and normal vector using cubic\n";
+  cout << "      B-spline interpolation for computing the image derivatives. The <name> of the output\n";
+  cout << "      point data array is by default 'ImageGradientAngle' (default: off)\n";
+  cout << "  -patch-name <name>\n";
+  cout << "      Name of output point data array storing patch image statistics.\n";
+  cout << "      (default: LocalImageStatistics)\n";
   cout << "  -patch-size <nx> [<ny> [<nz>]]\n";
-  cout << "       Size of image patches. When only <nx> is given, an image patch of size\n";
-  cout << "       nx = ny = nz is used. When only <nz> is omitted, a 2D patch is used.\n";
+  cout << "      Size of image patches. When only <nx> is given, an image patch of size\n";
+  cout << "      nx = ny = nz is used. When only <nz> is omitted, a 2D patch is used.\n";
   cout << "  -patch-spacing <dx> [<dy> [<dz>]]\n";
-  cout << "       Spacing between patch sample points. When only <dx> is given, an isotropic\n";
-  cout << "       sampling in all three dimensions of <dx> is used. When only <dz> is omitted,\n";
-  cout << "       a 2D patch spacing is used with dz=0.\n";
+  cout << "      Spacing between patch sample points. When only <dx> is given, an isotropic\n";
+  cout << "      sampling in all three dimensions of <dx> is used. When only <dz> is omitted,\n";
+  cout << "      a 2D patch spacing is used with dz=0.\n";
   cout << "  -patch-space image|world|tangent\n";
-  cout << "       Coordinate system of patch. (default: tangent)\n";
-  cout << "       - world:   Patch is aligned with world coordinate system.\n";
-  cout << "       - image:   Patch is algined with image coordinate system.\n";
-  cout << "       - tangent: Each patch is aligned with the coordinate system made up\n";
-  cout << "                  by the normal vector and two orthonormal tangent vectors.\n";
+  cout << "      Coordinate system of patch. (default: tangent)\n";
+  cout << "      - world:   Patch is aligned with world coordinate system.\n";
+  cout << "      - image:   Patch is algined with image coordinate system.\n";
+  cout << "      - tangent: Each patch is aligned with the coordinate system made up\n";
+  cout << "                 by the normal vector and two orthonormal tangent vectors.\n";
   cout << "  -[no]patch-samples\n";
-  cout << "       Whether to store individual intensities interpolated at patch sample points.\n";
+  cout << "      Whether to store individual intensities interpolated at patch sample points.\n";
   cout << "  -demean-patch\n";
-  cout << "       Substract mean intensity from individual :option:`-patch-samples`.\n";
+  cout << "      Substract mean intensity from individual :option:`-patch-samples`.\n";
   cout << "  -whiten-patch\n";
-  cout << "       Dividide individual :option:`-patch-samples` by standard deviation.\n";
+  cout << "      Dividide individual :option:`-patch-samples` by standard deviation.\n";
   cout << "  -patch-min\n";
-  cout << "       Append minimum patch intensity to output point data array.\n";
+  cout << "      Append minimum patch intensity to output point data array.\n";
   cout << "  -patch-max\n";
-  cout << "       Append maximum patch intensity to output point data array.\n";
+  cout << "      Append maximum patch intensity to output point data array.\n";
   cout << "  -patch-min-abs\n";
-  cout << "       Append minimum absolute patch intensity to output point data array.\n";
+  cout << "      Append minimum absolute patch intensity to output point data array.\n";
   cout << "  -patch-max-abs\n";
-  cout << "       Append maximum absolute patch intensity to output point data array.\n";
+  cout << "      Append maximum absolute patch intensity to output point data array.\n";
   cout << "  -patch-mean\n";
-  cout << "       Append mean patch intensity to output point data array.\n";
+  cout << "      Append mean patch intensity to output point data array.\n";
   cout << "  -patch-sigma\n";
-  cout << "       Append standard deviation of patch intensities to output point data array.\n";
+  cout << "      Append standard deviation of patch intensities to output point data array.\n";
   cout << "\n";
   cout << "Smoothing options:\n";
   cout << "  -smooth-iterations [<niter>]\n";
-  cout << "       Number of smoothing iterations.\n";
+  cout << "      Number of smoothing iterations.\n";
   cout << "  -smooth-weighting <name> [options]\n";
   cout << "      Smooth scalar attributes using the named weighting function:\n";
   cout << "      - 'Gaussian': Isotropic Gaussian smoothing kernel. (default)\n";
@@ -134,6 +146,65 @@ void PrintHelp(const char *name)
   cout << "      - 'Combinatorial': Uniform node weights.\n";
   PrintCommonOptions(cout);
   cout << endl;
+}
+
+// =============================================================================
+// Auxiliaries
+// =============================================================================
+
+// -----------------------------------------------------------------------------
+/// Compute surface normals when not available
+vtkSmartPointer<vtkDataArray> Normals(vtkPolyData *surface)
+{
+  vtkSmartPointer<vtkDataArray> normals = surface->GetPointData()->GetNormals();
+  if (normals == nullptr) {
+    vtkNew<vtkPolyDataNormals> filter;
+    SetVTKInput(filter, surface);
+    filter->SplittingOff();
+    filter->ComputePointNormalsOn();
+    filter->ComputeCellNormalsOff();
+    filter->ConsistencyOn();
+    filter->AutoOrientNormalsOff();
+    filter->FlipNormalsOff();
+    filter->Update();
+    normals = filter->GetOutput()->GetPointData()->GetNormals();
+  }
+  return normals;
+}
+
+// -----------------------------------------------------------------------------
+/// Directional image gradient in normal direction
+void EvaluateImageDerivative(vtkPolyData *surface, const RealImage &image, const char *name, bool normalize)
+{
+  const int npoints = static_cast<int>(surface->GetNumberOfPoints());
+
+  Point   p;
+  Vector3 n, g;
+  Matrix  jac(1, 3);
+  double  value;
+
+  GenericFastCubicBSplineInterpolateImageFunction<RealImage> f;
+  f.Input(&image);
+  f.Initialize();
+
+  vtkSmartPointer<vtkDataArray> output;
+  output = NewVtkDataArray(VTK_FLOAT, npoints, 1, name);
+  surface->GetPointData()->AddArray(output);
+
+  vtkSmartPointer<vtkDataArray> normals = Normals(surface);
+  for (vtkIdType ptId = 0; ptId < surface->GetNumberOfPoints(); ++ptId) {
+    surface->GetPoint(ptId, p);
+    normals->GetTuple(ptId, n);
+    f.WorldToImage(p);
+    f.Jacobian3D(jac, p.x, p.y, p.z);
+    g.x = jac(0, 0);
+    g.y = jac(0, 1);
+    g.z = jac(0, 2);
+    f.ImageToWorld(g);
+    if (normalize) g.Normalize();
+    value = n.Dot(g);
+    output->SetComponent(ptId, 0, value);
+  }
 }
 
 // =============================================================================
@@ -176,7 +247,10 @@ int main(int argc, char *argv[])
   ImageSurfaceStatistics image_stats;
   SharedPtr<InterpolateImageFunction> image_func;
   image_func.reset(InterpolateImageFunction::New(Interpolation_Linear));
-  const char *image_name = nullptr;
+  const char *image_name             = nullptr;
+  const char *cosine_image_gradient  = nullptr;
+  const char *normal_image_gradient  = nullptr;
+  bool        calc_image_gradient    = false;
 
   for (ALL_OPTIONS) {
     if (OPTION("-point-normals") || OPTION("-normals")) point_normals = true;
@@ -239,26 +313,36 @@ int main(int argc, char *argv[])
     else if (OPTION("-robust-curvatures")) use_vtkCurvatures = false;
     else if (OPTION("-smooth-iterations")) PARSE_ARGUMENT(smooth_iterations);
     else if (OPTION("-smooth-weighting")){
-      if(smooth_iterations == 0) smooth_iterations = 1;
+      if (smooth_iterations == 0) smooth_iterations = 1;
       PARSE_ARGUMENT(weighting);
-
-      if( weighting ==  MeshSmoothing::InverseDistance || weighting ==  MeshSmoothing::Gaussian || weighting ==  MeshSmoothing::AnisotropicGaussian){
+      if (weighting ==  MeshSmoothing::InverseDistance ||
+          weighting ==  MeshSmoothing::Gaussian ||
+          weighting ==  MeshSmoothing::AnisotropicGaussian) {
         if (HAS_ARGUMENT) PARSE_ARGUMENT(smooth_sigma);
-
-        if (weighting ==  MeshSmoothing::AnisotropicGaussian){
+        if (weighting ==  MeshSmoothing::AnisotropicGaussian) {
           smooth_along_tensor = true;
-          if(HAS_ARGUMENT) {
+          if (HAS_ARGUMENT) {
             smooth_along_tensor = false;
             PARSE_ARGUMENT(smooth_sigma2);
           }
         }
-
       }
     }
     else if (OPTION("-image")) {
       image_name = ARGUMENT;
-      if (HAS_ARGUMENT) image_stats.ArrayName(ARGUMENT);
-      else image_stats.ArrayName("LocalImageStatistics");
+    }
+    else if (OPTION("-gradient-normal")) {
+      calc_image_gradient = true;
+      if (HAS_ARGUMENT) normal_image_gradient = ARGUMENT;
+      else              normal_image_gradient = "ImageGradientNormal";
+    }
+    else if (OPTION("-gradient-angle")) {
+      calc_image_gradient = true;
+      if (HAS_ARGUMENT) cosine_image_gradient = ARGUMENT;
+      else              cosine_image_gradient = "ImageGradientAngle";
+    }
+    else if (OPTION("-patch-name")) {
+      image_stats.ArrayName(ARGUMENT);
     }
     else if (OPTION("-patch-size")) {
       int nx, ny, nz;
@@ -329,9 +413,15 @@ int main(int argc, char *argv[])
     else HANDLE_COMMON_OR_UNKNOWN_OPTION();
   }
 
-  if (curvatures == 0 && !point_normals && !cell_normals) {
+  if (calc_image_gradient && !image_name) {
+    FatalError("The -gradient* options require an input -image!");
+  }
+
+  bool calc_normals     = (point_normals || cell_normals);
+  bool calc_image_stats = (image_name && (image_stats.PatchSamples() || !image_stats.Statistics().empty()));
+  if (curvatures == 0 && !calc_normals && !calc_image_stats && !calc_image_gradient) {
     point_normals = true;
-    curvatures = SurfaceCurvature::Scalars;
+    curvatures    = SurfaceCurvature::Scalars;
   }
 
   int curvature_type = curvatures;
@@ -344,6 +434,17 @@ int main(int argc, char *argv[])
 
   // Read input surface
   vtkSmartPointer<vtkPolyData> input = ReadPolyData(input_name);
+
+  // Read input image
+  RealImage image;
+  if (calc_image_stats || calc_image_gradient) {
+    InitializeIOLibrary();
+    image.Read(image_name);
+    if (calc_image_stats) {
+      image_func->Input(&image);
+      image_func->Initialize();
+    }
+  }
 
   // Triangulate input surface
   vtkSmartPointer<vtkPolyData> surface;
@@ -446,11 +547,8 @@ int main(int argc, char *argv[])
   }
 
   // Calculate local image patch statistics
-  if (image_name && (image_stats.PatchSamples() || !image_stats.Statistics().empty())) {
+  if (calc_image_stats) {
     if (verbose) cout << "Calculating local image statistics...", cout.flush();
-    RealImage image(image_name);
-    image_func->Input(&image);
-    image_func->Initialize();
     image_stats.Image(image_func);
     image_stats.Input(surface);
     image_stats.Run();
@@ -484,6 +582,18 @@ int main(int argc, char *argv[])
 
       if (verbose) cout << " done" << endl;
     }
+  }
+
+  // Calculate image gradient
+  if (calc_image_gradient) {
+    if (verbose) cout << "Evaluating image gradient...", cout.flush();
+    if (normal_image_gradient) {
+      EvaluateImageDerivative(surface, image, normal_image_gradient, false);
+    }
+    if (cosine_image_gradient) {
+      EvaluateImageDerivative(surface, image, cosine_image_gradient, true);
+    }
+    if (verbose) cout << " done" << endl;
   }
 
   // Remove not requested output arrays which were used for anisotropic smoothing
