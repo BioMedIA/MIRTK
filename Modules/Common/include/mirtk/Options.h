@@ -218,43 +218,47 @@ void PrintCommonOptions(ostream &);
 
 // -----------------------------------------------------------------------------
 #define HANDLE_STANDARD_OPTION()                                               \
-  do {                                                                         \
-    if      (HELP_OPTION     ) HANDLE_HELP_OPTION();                           \
-    else if (VERSION_OPTION  ) HANDLE_VERSION_OPTION();                        \
-    else if (STANDARD_OPTION ) PARSE_STANDARD_OPTION();                        \
-  } while (false)
+  if      (HELP_OPTION     ) HANDLE_HELP_OPTION();                             \
+  else if (VERSION_OPTION  ) HANDLE_VERSION_OPTION();                          \
+  else if (STANDARD_OPTION ) PARSE_STANDARD_OPTION()
 
 // -----------------------------------------------------------------------------
 #define HANDLE_STANDARD_OR_UNKNOWN_OPTION()                                    \
-  do {                                                                         \
-    if      (HELP_OPTION     ) HANDLE_HELP_OPTION();                           \
-    else if (VERSION_OPTION  ) HANDLE_VERSION_OPTION();                        \
-    else if (STANDARD_OPTION ) PARSE_STANDARD_OPTION();                        \
-    else                       HANDLE_UNKNOWN_OPTION();                        \
-  } while (false)
+  if      (HELP_OPTION     ) HANDLE_HELP_OPTION();                             \
+  else if (VERSION_OPTION  ) HANDLE_VERSION_OPTION();                          \
+  else if (STANDARD_OPTION ) PARSE_STANDARD_OPTION();                          \
+  else                       HANDLE_UNKNOWN_OPTION()
+
+// -----------------------------------------------------------------------------
+#define HANDLE_BOOLEAN_OPTION(name, var)                                       \
+  if (OPTION("-" name)) {                                                      \
+    if (HAS_ARGUMENT) PARSE_ARGUMENT(var);                                     \
+    else var = true;                                                           \
+  } else if (OPTION("-no" name))                                               \
+    var = false
+
+// -----------------------------------------------------------------------------
+#define HANDLE_BOOL_OPTION(name)                                               \
+  HANDLE_BOOLEAN_OPTION(#name, name)
 
 // -----------------------------------------------------------------------------
 #define HANDLE_COMMON_OPTION()                                                 \
-  do {                                                                         \
-    if      (HELP_OPTION     ) HANDLE_HELP_OPTION();                           \
-    else if (VERSION_OPTION  ) HANDLE_VERSION_OPTION();                        \
-    else if (STANDARD_OPTION ) PARSE_STANDARD_OPTION();                        \
-    else if (PARALLEL_OPTION ) PARSE_PARALLEL_OPTION();                        \
-    else if (PROFILING_OPTION) PARSE_PROFILING_OPTION();                       \
-    else if (TERMINAL_OPTION ) PARSE_TERMINAL_OPTION();                        \
-  } while (false)
+  if      (HELP_OPTION     ) HANDLE_HELP_OPTION();                             \
+  else if (VERSION_OPTION  ) HANDLE_VERSION_OPTION();                          \
+  else if (STANDARD_OPTION ) PARSE_STANDARD_OPTION();                          \
+  else if (PARALLEL_OPTION ) PARSE_PARALLEL_OPTION();                          \
+  else if (PROFILING_OPTION) PARSE_PROFILING_OPTION();                         \
+  else if (TERMINAL_OPTION ) PARSE_TERMINAL_OPTION()
 
 // -----------------------------------------------------------------------------
 #define HANDLE_COMMON_OR_UNKNOWN_OPTION()                                      \
-  do {                                                                         \
-    if      (HELP_OPTION     ) HANDLE_HELP_OPTION();                           \
-    else if (VERSION_OPTION  ) HANDLE_VERSION_OPTION();                        \
-    else if (STANDARD_OPTION ) PARSE_STANDARD_OPTION();                        \
-    else if (PARALLEL_OPTION ) PARSE_PARALLEL_OPTION();                        \
-    else if (PROFILING_OPTION) PARSE_PROFILING_OPTION();                       \
-    else if (TERMINAL_OPTION ) PARSE_TERMINAL_OPTION();                        \
-    else                       HANDLE_UNKNOWN_OPTION();                        \
-  } while (false)
+  if      (HELP_OPTION     ) HANDLE_HELP_OPTION();                             \
+  else if (VERSION_OPTION  ) HANDLE_VERSION_OPTION();                          \
+  else if (STANDARD_OPTION ) PARSE_STANDARD_OPTION();                          \
+  else if (PARALLEL_OPTION ) PARSE_PARALLEL_OPTION();                          \
+  else if (PROFILING_OPTION) PARSE_PROFILING_OPTION();                         \
+  else if (TERMINAL_OPTION ) PARSE_TERMINAL_OPTION();                          \
+  else                       HANDLE_UNKNOWN_OPTION()
 
 // -----------------------------------------------------------------------------
 #define HANDLE_HELP_OR_VERSION()                                               \
