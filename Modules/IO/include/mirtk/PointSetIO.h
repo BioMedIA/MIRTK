@@ -129,14 +129,45 @@ bool WritePolyData(const char *fname, vtkPolyData *polydata, FileOption fopt = F
 // CSV I/O functions
 // =============================================================================
 
+/// Read point set (attributes) from CSV file
+///
+/// This function reads point data arrays from the columns of a CSV file.
+/// The first line must contain the column names, i.e., a CSV header is expected.
+/// The number of rows must match the number of points in the reference point set
+/// when the CSV file does not contain three columns whose name matches the
+/// regular expression "((Point|Coord)\.)?(X|Y|Z)". Columns with a common name
+/// prefix including a trailing dot are combined into a single multi-component
+/// data array with component names following the '.' separator in the column
+/// name. For example, columns "Gradient.X", "Gradient.Y", and "Gradient.Z"
+/// are combined into one output point data array named "Gradient" with components
+/// "X", "Y", and "Z". The data is initially read into data arrays of type
+/// VTK_FLOAT. When all components can be converted lossless to an integral type,
+/// the output data array is converted to either VTK_SHORT or VTK_INT.
+///
+/// @param[in] fname    File name.
+/// @param[in] sep      Separator.
+/// @param[in] pointset Reference point set. When the table does not contain
+///                     'X', 'Y', and 'Z' columns with point set coordinates,
+///                     the points of this reference point set are used.
+///                     Moreover, topological information is not read from a
+///                     table file and is thus inherited from the reference
+///                     \p pointset. The output point set will have the same
+///                     type as the reference \p pointset of which a shallow
+///                     copy is made.
+///
+/// @return Polygonal dataset. Dataset is empty if file could not be read.
+vtkSmartPointer<vtkPointSet> ReadPointSetTable(const char *fname, char sep = ',',
+                                               vtkPointSet *pointset = nullptr);
+
 /// Write point set (attributes) to CSV file
 ///
-/// \param[in] fname    File name.
-/// \param[in] pointset Point set.
-/// \param[in] sep      Separator.
-/// \param[in] coords   Whether to save x, y, z point coordinate columns.
+/// @param[in] fname    File name.
+/// @param[in] pointset Point set.
+/// @param[in] ids      Whether to save point IDs in first column.
+/// @param[in] coords   Whether to save x, y, z point coordinate columns.
+/// @param[in] sep      Separator.
 bool WritePointSetTable(const char *fname, vtkPointSet *pointset,
-                        bool coords = true, char sep = ',');
+                        char sep = ',', bool ids = true, bool coords = true);
 
 // =============================================================================
 // TetGen I/O functions

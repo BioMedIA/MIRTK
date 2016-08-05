@@ -22,6 +22,7 @@
 #include "mirtk/Path.h"
 #include "mirtk/Stream.h"
 #include "mirtk/System.h" // GetUser, GetDateTime
+#include "mirtk/UnorderedMap.h"
 #include "mirtk/Vtk.h"
 
 #include "vtkPoints.h"
@@ -102,7 +103,11 @@ vtkSmartPointer<vtkPointSet> ReadPointSet(const char *fname, FileOption &fopt, b
   }
   fopt = FO_Default;
   vtkSmartPointer<vtkPointSet> pointset;
-  if (ext.length() == 4  && ext.substr(0, 3) == ".vt" && ext != ".vtk") {
+  if (ext == ".txt" || ext == ".csv" || ext == ".tsv") {
+    char sep    = ',';
+    if (ext == ".tsv") sep = '\t';
+    pointset = ReadPointSetTable(fname, sep);
+  } else if (ext.length() == 4  && ext.substr(0, 3) == ".vt" && ext != ".vtk") {
     vtkSmartPointer<vtkXMLGenericDataObjectReader> reader;
     reader = vtkSmartPointer<vtkXMLGenericDataObjectReader>::New();
     reader->SetFileName(fname);
@@ -131,7 +136,15 @@ bool WritePointSet(const char *fname, vtkPointSet *pointset, FileOption fopt)
 
   int success = 0;
   const string ext = Extension(fname);
-  if (ext.length() == 4 && ext.substr(0, 3) == ".vt" && ext != ".vtk") {
+  if (ext == ".txt" || ext == ".csv" || ext == ".tsv") {
+    string type = fname;
+    type = type.substr(0, type.length() - ext.length());
+    type = Extension(type, EXT_Last);
+    bool coords = (type != ".attr");
+    char sep    = ',';
+    if (ext == ".tsv") sep = '\t';
+    WritePointSetTable(fname, pointset, sep, true, coords);
+  } else if (ext.length() == 4 && ext.substr(0, 3) == ".vt" && ext != ".vtk") {
     vtkSmartPointer<vtkXMLDataSetWriter> writer;
     writer = vtkSmartPointer<vtkXMLDataSetWriter>::New();
     SetVTKInput(writer, pointset);
@@ -268,7 +281,7 @@ bool WritePolyData(const char *fname, vtkPolyData *polydata, FileOption fopt)
     bool coords = (type != ".attr");
     char sep    = ',';
     if (ext == ".tsv") sep = '\t';
-    WritePointSetTable(fname, polydata, coords, sep);
+    WritePointSetTable(fname, polydata, sep, true, coords);
   } else {
     vtkSmartPointer<vtkPolyDataWriter> writer;
     writer = vtkSmartPointer<vtkPolyDataWriter>::New();
@@ -286,7 +299,245 @@ bool WritePolyData(const char *fname, vtkPolyData *polydata, FileOption fopt)
 // =============================================================================
 
 // -----------------------------------------------------------------------------
-bool WritePointSetTable(const char *fname, vtkPointSet *pointset, bool coords, char sep)
+vtkSmartPointer<vtkPointSet> ReadPointSetTable(const char *fname, char sep, vtkPointSet *pointset)
+{
+  const bool errmsg = true;
+
+  ifstream ifs(fname);
+  if (!ifs.is_open()) {
+    if (errmsg) cerr << "Failed to open file " << fname << endl;
+    return vtkSmartPointer<vtkPolyData>::New();
+  }
+
+  string line;
+  string lstr;
+  Array<string> cols;
+  double value;
+
+  // header / column names
+  if (!getline(ifs, line) || line.empty()) {
+    if (errmsg) cerr << "IOError: Failed to read column header" << endl;
+    return vtkSmartPointer<vtkPolyData>::New();
+  }
+  if (line.back() == '\r') line.pop_back();
+  Array<string> header = Split(line, sep);
+  if (header.empty()) {
+    if (errmsg) cerr << "Header is an empty line" << endl;
+    return vtkSmartPointer<vtkPolyData>::New();
+  }
+  const size_t ncols = header.size();
+  for (size_t i = 0; i < ncols; ++i) {
+    if (header[i].length() >= 2 && header[i].front() == '"' && header[i].back() == '"') {
+      header[i] = header[i].substr(1, header[i].length()-2);
+    }
+  }
+
+  // get index of point ID column
+  int id_col = -1;
+  for (size_t i = 0; i < ncols; ++i) {
+    if (header[i].empty()) continue;
+    lstr = ToLower(header[i]);
+    if (lstr == "id" || lstr == "point.id") {
+      if (id_col == -1) {
+        id_col = static_cast<int>(i);
+      } else {
+        if (errmsg) cerr << "More than one point ID column found" << endl;
+        return vtkSmartPointer<vtkPolyData>::New();
+      }
+    }
+  }
+
+  // get indices of point coordinate columns
+  int x_col = -1, y_col = -1, z_col = -1;
+  for (size_t i = 0; i < ncols; ++i) {
+    if (header[i].empty()) continue;
+    lstr = ToLower(header[i]);
+    if (lstr.back() == 'x') {
+      if (lstr == "x"       ||
+          lstr == "p.x"     ||
+          lstr == "point.x" ||
+          lstr == "coord.x") {
+        if (x_col == -1) {
+          x_col = static_cast<int>(i);
+        } else {
+          if (errmsg) cerr << "More than one point x coordinate column found" << endl;
+          return vtkSmartPointer<vtkPolyData>::New();
+        }
+      }
+    } else if (lstr.back() == 'y') {
+      if (lstr == "y"       ||
+          lstr == "p.y"     ||
+          lstr == "point.y" ||
+          lstr == "coord.y") {
+        if (y_col == -1) {
+          y_col = static_cast<int>(i);
+        } else {
+          if (errmsg) cerr << "More than one point y coordinate column found" << endl;
+          return vtkSmartPointer<vtkPolyData>::New();
+        }
+      }
+    } else if (lstr.back() == 'z') {
+      if (lstr == "z"       ||
+          lstr == "p.z"     ||
+          lstr == "point.z" ||
+          lstr == "coord.z") {
+        if (z_col == -1) {
+          z_col = static_cast<int>(i);
+        } else {
+          if (errmsg) cerr << "More than one point z coordinate column found" << endl;
+          return vtkSmartPointer<vtkPolyData>::New();
+        }
+      }
+    }
+  }
+
+  // read points
+  vtkSmartPointer<vtkPoints> points;
+  if (x_col != -1 && y_col != -1) { // z coord optional for 2D point sets
+    const auto pos = ifs.tellg();
+    Array<Point> coords;
+    double p[3] = {0.};
+    size_t ptId = 0;
+    size_t irow = 0;
+    while (getline(ifs, line)) {
+      ++irow;
+      if (line.back() == '\r') line.pop_back();
+      if (line.empty()) continue;
+      cols = Split(line, sep);
+      if (cols.size() != ncols) {
+        if (errmsg) cerr << "Row " << irow << " has different number of columsn" << endl;
+        return vtkSmartPointer<vtkPolyData>::New();
+      }
+      if (!FromString(cols[x_col], p[0])) {
+        if (errmsg) cerr << "Invalid point x coordinate in row " << irow << endl;
+        return vtkSmartPointer<vtkPolyData>::New();
+      }
+      if (!FromString(cols[y_col], p[1])) {
+        if (errmsg) cerr << "Invalid point y coordinate in row " << irow << endl;
+        return vtkSmartPointer<vtkPolyData>::New();
+      }
+      if (z_col != -1) {
+        if (!FromString(cols[z_col], p[2])) {
+          if (errmsg) cerr << "Invalid point z coordinate in row " << irow << endl;
+          return vtkSmartPointer<vtkPolyData>::New();
+        }
+      }
+      if (id_col != -1) {
+        if (!FromString(cols[id_col], value) || static_cast<double>(static_cast<size_t>(value)) != value) {
+          if (errmsg) cerr << "Invalid point ID in row " << irow << endl;
+          return vtkSmartPointer<vtkPolyData>::New();
+        }
+        ptId = static_cast<size_t>(value);
+        if (ptId >= coords.size()) {
+          coords.resize(ptId + 1);
+        }
+        coords[ptId] = Point(p);
+      } else {
+        coords.push_back(Point(p));
+        ++ptId;
+      }
+    }
+    if (pointset) points.TakeReference(pointset->GetPoints()->NewInstance());
+    else          points = vtkSmartPointer<vtkPoints>::New();
+    points->SetNumberOfPoints(static_cast<vtkIdType>(coords.size()));
+    for (ptId = 0; ptId < points->GetNumberOfPoints(); ++ptId) {
+      points->SetPoint(ptId, coords[ptId]);
+    }
+    ifs.seekg(pos);
+  } else {
+    points = pointset->GetPoints();
+  }
+  const size_t npoints = static_cast<size_t>(points->GetNumberOfPoints());
+  if (npoints == 0) {
+    return vtkSmartPointer<vtkPolyData>::New();
+  }
+
+  // determine which columns to extract and group them
+  UnorderedMap<string, OrderedSet<Pair<int, string>>> comps;
+  for (size_t i = 0; i < ncols; ++i) {
+    if (header[i].empty() || i == id_col || i == x_col || i == y_col || i == z_col) continue;
+    const auto pos = header[i].find('.');
+    if (pos != string::npos && pos != header[i].length()-1) {
+      const string name = header[i].substr(0, pos);
+      const string comp = header[i].substr(pos + 1);
+      comps[name].insert(MakePair(i, move(comp)));
+    } else {
+      comps[header[i]].insert(MakePair(i, ""));
+    }
+  }
+
+  // allocate data arrays
+  Array<vtkSmartPointer<vtkDataArray>> data(comps.size());
+  Array<Pair<int, int>> col2data(ncols, MakePair(-1, -1));
+
+  int i = 0, j;
+  for (const auto &kv : comps) {
+    data[i] = NewVTKDataArray(VTK_FLOAT);
+    data[i]->SetName(kv.first.c_str());
+    data[i]->SetNumberOfComponents(static_cast<int>(kv.second.size()));
+    data[i]->SetNumberOfTuples(npoints);
+    j = 0;
+    for (const auto comp : kv.second) {
+      if (!comp.second.empty()) data[i]->SetComponentName(j, comp.second.c_str());
+      col2data[comp.first] = MakePair(i, j);
+      ++j;
+    }
+    ++i;
+  }
+
+  // read
+  size_t ptId = 0;
+  size_t irow = 0;
+  while (getline(ifs, line)) {
+    ++irow;
+    if (line.back() == '\r') line.pop_back();
+    if (line.empty()) continue;
+    cols = Split(line, sep);
+    if (cols.size() != ncols) {
+      if (errmsg) cerr << "Row " << irow << " has different number of columsn" << endl;
+      return vtkSmartPointer<vtkPolyData>::New();
+    }
+    if (id_col != -1) {
+      if (!FromString(cols[id_col], value) || static_cast<double>(static_cast<size_t>(value)) != value) {
+        if (errmsg) cerr << "Invalid point ID in row " << irow << endl;
+        return vtkSmartPointer<vtkPolyData>::New();
+      }
+      ptId = static_cast<size_t>(value);
+      if (ptId >= npoints) continue;
+    } else {
+      if (ptId >= npoints) break;
+    }
+    for (size_t c = 0; c < ncols; ++c) {
+      i = col2data[c].first;
+      j = col2data[c].second;
+      if (i == -1 || j == -1) continue;
+      if (!FromString(cols[c], value)) {
+        if (errmsg) cerr << "Failed to parse value in row " << irow << ", column " << c+1 << endl;
+        return vtkSmartPointer<vtkPolyData>::New();
+      }
+      data[i]->SetComponent(ptId, j, value);
+    }
+    ++ptId;
+  }
+
+  // TODO: convert to integral types when possible
+
+  vtkSmartPointer<vtkPointSet> output;
+  if (pointset) {
+    output.TakeReference(pointset->NewInstance());
+    output->ShallowCopy(pointset);
+  } else {
+    output = vtkSmartPointer<vtkPolyData>::New();
+  }
+  output->SetPoints(points);
+  for (auto &arr : data) {
+    output->GetPointData()->AddArray(arr);
+  }
+  return output;
+}
+
+// -----------------------------------------------------------------------------
+bool WritePointSetTable(const char *fname, vtkPointSet *pointset, char sep, bool ids, bool coords)
 {
   ofstream ofs(fname);
   if (!ofs.is_open()) return false;
@@ -323,9 +574,14 @@ bool WritePointSetTable(const char *fname, vtkPointSet *pointset, bool coords, c
 
   // header
   int col = 0;
+  if (ids) {
+    ofs << "ID";
+    col += 1;
+  }
   if (coords) {
+    if (col > 0) ofs << sep;
     ofs << "X" << sep << "Y" << sep << "Z";
-    col = 3;
+    col += 3;
   }
   for (size_t i = 0; i < arrays.size(); ++i) {
     vtkDataArray *arr = arrays[i];
@@ -346,11 +602,17 @@ bool WritePointSetTable(const char *fname, vtkPointSet *pointset, bool coords, c
   double p[3];
   for (vtkIdType ptId = 0; ptId < pointset->GetNumberOfPoints(); ++ptId) {
     int col = 0;
+    if (ids) {
+      ofs.precision(0);
+      ofs << ptId;
+      col = 1;
+    }
     if (coords) {
       pointset->GetPoint(ptId, p);
       ofs.precision(digits.back());
+      if (col > 0) ofs << sep;
       ofs << p[0] << sep << p[1] << sep << p[2];
-      col = 3;
+      col += 3;
     }
     for (size_t i = 0; i < arrays.size(); ++i) {
       vtkDataArray *arr = arrays[i];
