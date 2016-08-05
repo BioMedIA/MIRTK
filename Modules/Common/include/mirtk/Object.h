@@ -95,7 +95,7 @@ protected:
   ///                 using the ToString template function. These strings are then
   ///                 concatenated to produce the complete error message.
   template <typename... Args>
-  static void Throw(ErrorType err, const char *cls, const char *func, Args... args);
+  static void ThrowStatic(ErrorType err, const char *cls, const char *func, Args... args);
 
   /// Raise error in member function
   ///
@@ -146,7 +146,7 @@ inline void Object::Parameter(const ParameterList &param)
 
 // -----------------------------------------------------------------------------
 template <typename... Args>
-void Object::Throw(ErrorType err, const char *cls, const char *func, Args... args)
+void Object::ThrowStatic(ErrorType err, const char *cls, const char *func, Args... args)
 {
   string member(cls);
   member += "::";
@@ -158,7 +158,7 @@ void Object::Throw(ErrorType err, const char *cls, const char *func, Args... arg
 template <typename... Args>
 void Object::Throw(ErrorType err, const char *func, Args... args) const
 {
-  Throw(err, this->NameOfClass(), func, args...);
+  ThrowStatic(err, this->NameOfClass(), func, args...);
 }
 
 // =============================================================================
