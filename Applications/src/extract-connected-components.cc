@@ -215,12 +215,10 @@ int main(int argc, char *argv[])
       cout.flush();
     }
     if (output_type == ComponentLabels) {
-      GreyPixel output_label = 0;
       for (int idx = 0; idx < output.NumberOfVoxels(); ++idx) {
         component_label = cc.Output()->Get(idx);
         if (component_labels.find(component_label) != component_labels.end()) {
-          ++output_label;
-          output(idx) = output_label;
+          output(idx) = component_label;
         }
       }
     } else {
