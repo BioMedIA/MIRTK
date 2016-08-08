@@ -168,11 +168,12 @@ int main(int argc, char *argv[])
   const GreyPixel min_label = m + 1; // component labels are 1-based
   const GreyPixel max_label = min_label + n - 1;
 
-  UnorderedSet<int> component_labels;
+  int output_label = 0;
+  UnorderedMap<int, int> component_labels;
   for (int component_label = min_label; component_label <= max_label; ++component_label) {
     int size = cc.ComponentSize(component_label);
     if (min_size <= size && size <= max_size) {
-      component_labels.insert(component_label);
+      component_labels.insert(MakePair(component_label, ++output_label));
     }
   }
 
@@ -217,8 +218,9 @@ int main(int argc, char *argv[])
     if (output_type == ComponentLabels) {
       for (int idx = 0; idx < output.NumberOfVoxels(); ++idx) {
         component_label = cc.Output()->Get(idx);
-        if (component_labels.find(component_label) != component_labels.end()) {
-          output(idx) = component_label;
+        auto component = component_labels.find(component_label);
+        if (component != component_labels.end()) {
+          output(idx) = component->second;
         }
       }
     } else {
