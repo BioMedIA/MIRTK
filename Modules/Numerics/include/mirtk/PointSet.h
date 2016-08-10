@@ -242,6 +242,8 @@ public:
   /// Tests if a point is inside the polygon defined by the point set
   int IsInside(double, double) const;
 
+  /// Get (unweighted) centroid of point set
+  Point Centroid() const;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
