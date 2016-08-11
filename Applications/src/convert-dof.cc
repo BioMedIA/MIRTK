@@ -1625,14 +1625,28 @@ public:
 ///
 /// @return FSL warp field.
 template <class TReal = double>
-GenericImage<TReal> ToFSLWarpField(const ImageAttributes &target,
-                                   const ImageAttributes &source,
-                                   const Transformation  *dof,
+GenericImage<TReal> ToFSLWarpField(ImageAttributes target,
+                                   ImageAttributes source,
+                                   const Transformation *dof,
                                    bool relative = true)
 {
-  GenericImage<TReal> warp(target, 3);
+  // x image axis must be mirrored if determinant of world to image orientation
+  // matrix is positive, i.e., when the image is stored in neurological order
+  if (target.GetWorldToLatticeOrientation().Det() > 0.) {
+    if (verbose) cout << "qform determinant of target image is positive, reflecting x axis" << endl;
+    target._xaxis[0] = -target._xaxis[0];
+    target._xaxis[1] = -target._xaxis[1];
+    target._xaxis[2] = -target._xaxis[2];
+  }
+  if (source.GetWorldToLatticeOrientation().Det() > 0.) {
+    if (verbose) cout << "qform determinant of source image is positive, reflecting x axis" << endl;
+    source._xaxis[0] = -source._xaxis[0];
+    source._xaxis[1] = -source._xaxis[1];
+    source._xaxis[2] = -source._xaxis[2];
+  }
 
   // Get world displacement field
+  GenericImage<TReal> warp(target, 3);
   dof->Displacement(warp);
 
   // Convert to FSL warp field
@@ -1641,13 +1655,6 @@ GenericImage<TReal> ToFSLWarpField(const ImageAttributes &target,
   // Set _dt != 0 such that warp field is saved as 3D+t time series instead of
   // 3D vector field, i.e., such that NIfTI dim[8] = {4, _x, _y, _z, 3, 1, 1, 1}
   warp.PutTSize(1.0);
-
-  // x image axis must be mirrored if determinant of world to image orientation
-  // matrix is positive, i.e., when the image is stored in neurological order
-  if (warp.Attributes().GetWorldToLatticeOrientation().Det() > .0) {
-    if (verbose) cout << "qform determinant is positive, reflecting x axis of FSL warp field" << endl;
-    warp.ReflectX();
-  }
 
   return warp;
 }
