@@ -64,16 +64,16 @@ public:
     SHORTEST_EDGE ///< Length of shortest edge
   };
 
-protected:
+  /// Name of minimum edge length point data array
+  static const char * const MIN_EDGE_LENGTH;
+
+  /// Name of maximum edge length point data array
+  static const char * const MAX_EDGE_LENGTH;
 
   // ---------------------------------------------------------------------------
   // Attributes
 
-  /// Name of internal minimum edge length point data array
-  static const char * const MIN_EDGE_LENGTH;
-
-  /// Name of internal maximum edge length point data array
-  static const char * const MAX_EDGE_LENGTH;
+protected:
 
   /// Shallow copy of input surface with additional internal point data
   mirtkAttributeMacro(vtkSmartPointer<vtkPolyData>, Surface);
@@ -253,10 +253,10 @@ private:
   double MeltingPriority(vtkIdType) const;
 
   /// Interpolate point attributes when subdividing edge
-  void InterpolatePointData(vtkIdType, vtkIdType, vtkIdType);
+  void InterpolatePointData(vtkPointData *, vtkIdType, vtkIdType, vtkIdType);
 
   /// Interpolate point attributes when melting triangle
-  void InterpolatePointData(vtkIdType, vtkIdList *, double *);
+  void InterpolatePointData(vtkPointData *, vtkIdType, vtkIdList *, double *);
 
   /// Get squared minimum length for specified edge
   double SquaredMinEdgeLength(vtkIdType, vtkIdType) const;
@@ -287,13 +287,13 @@ protected:
   void InversionOfTrianglesToIncreaseMinHeight();
 
   /// Bisect triangle
-  void Bisect(vtkIdType, vtkIdType, vtkIdType, vtkIdType, vtkPoints *, vtkCellArray *);
+  void Bisect(vtkIdType, vtkIdType, vtkIdType, vtkIdType, vtkPolyData *);
 
   /// Trisect triangle
-  void Trisect(vtkIdType, vtkIdType, vtkIdType, vtkIdType, vtkPoints *, vtkCellArray *);
+  void Trisect(vtkIdType, vtkIdType, vtkIdType, vtkIdType, vtkPolyData *);
 
   /// Quadsect triangle
-  void Quadsect(vtkIdType, vtkIdType, vtkIdType, vtkIdType, vtkPoints *, vtkCellArray *);
+  void Quadsect(vtkIdType, vtkIdType, vtkIdType, vtkIdType, vtkPolyData *);
 
   // ---------------------------------------------------------------------------
   // Execution
