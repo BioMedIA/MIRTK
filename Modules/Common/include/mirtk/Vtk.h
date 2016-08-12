@@ -76,12 +76,16 @@ namespace mirtk {
 // -----------------------------------------------------------------------------
 /// Instantiate new VTK data array of given type
 ///
-/// \param[in] type VTK data type ID, e.g., VTK_FLOAT. When VTK_VOID, a floating
-///                 point data array with default precision, i.e., either single
-///                 or double is returned.
+/// \param[in] type   VTK data type ID, e.g., VTK_FLOAT. When VTK_VOID, a floating
+///                   point data array with default precision, i.e., either single
+///                   or double is returned.
+/// \param[in] tuples Number of tuples. The array is uninitialized when non-positive.
+/// \param[in] comps  Number of components per tuple.
+/// \param[in] name   Data array name.
 ///
 /// \returns New VTK data array instance.
-vtkSmartPointer<vtkDataArray> NewVtkDataArray(int type = VTK_VOID);
+vtkSmartPointer<vtkDataArray>
+NewVtkDataArray(int type = VTK_VOID, int tuples = 0, int comps = 1, const char *name = nullptr);
 
 /// \deprecated Use NewVtkDataArray instead
 vtkSmartPointer<vtkDataArray> NewVTKDataArray(int type = VTK_VOID);
