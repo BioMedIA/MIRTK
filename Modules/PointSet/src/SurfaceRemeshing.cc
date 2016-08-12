@@ -23,6 +23,7 @@
 #include "mirtk/Config.h" // WINDOWS
 #include "mirtk/Math.h"
 #include "mirtk/Profiling.h"
+#include "mirtk/UnorderedMap.h"
 
 #include "mirtk/DataStatistics.h"
 #include "mirtk/Transformation.h"
@@ -397,31 +398,92 @@ inline double SurfaceRemeshing::MeltingPriority(vtkIdType cellId) const
 
 // -----------------------------------------------------------------------------
 inline void SurfaceRemeshing
-::InterpolatePointData(vtkIdType newId, vtkIdType ptId1, vtkIdType ptId2)
+::InterpolatePointData(vtkPointData *pd, vtkIdType newId, vtkIdType ptId1, vtkIdType ptId2)
 {
-  vtkPointData *pd = _Output->GetPointData();
-  if (pd == nullptr) return;
-  for (auto i : _CategoricalPointDataIndices) {
-    _CategoricalPointDataCache[i] = pd->GetArray(i)->GetComponent(ptId1, 0);
-  }
-  pd->InterpolateEdge(pd, newId, ptId1, ptId2, .5);
-  for (auto i : _CategoricalPointDataIndices) {
-    pd->GetArray(i)->SetComponent(newId, 0, _CategoricalPointDataCache[i]);
+  vtkPointData * const inputPD = _Output->GetPointData();
+
+  if (!_CategoricalPointDataIndices.empty()) {
+    double p[3], q[3], dist2, w, max_cnt;
+    UnorderedMap<double, double> bins;
+    UnorderedMap<double, double>::iterator bin;
+    double v, max_val;
+    unsigned short ncells;
+    vtkIdType npts, *pts, *cells;
+    vtkSmartPointer<vtkIdList> ptIds = vtkSmartPointer<vtkIdList>::New();
+    for (auto i : _CategoricalPointDataIndices) {
+      vtkDataArray * const arr = inputPD->GetArray(i);
+      ptIds->Reset();
+      _Output->GetPointCells(ptId1, ncells, cells);
+      for (unsigned short j = 0; j < ncells; ++j) {
+        _Output->GetCellPoints(cells[j], npts, pts);
+        for (vtkIdType k = 0; k < npts; ++k) {
+          if (pts[k] != newId) ptIds->InsertUniqueId(pts[k]);
+        }
+      }
+      _Output->GetPointCells(ptId2, ncells, cells);
+      for (unsigned short j = 0; j < ncells; ++j) {
+        _Output->GetCellPoints(cells[j], npts, pts);
+        for (vtkIdType k = 0; k < npts; ++k) {
+          if (pts[k] != newId) ptIds->InsertUniqueId(pts[k]);
+        }
+      }
+      bins.clear();
+      GetPoint(newId, p);
+      for (vtkIdType j = 0; j < ptIds->GetNumberOfIds(); ++j) {
+        const auto &ptId = ptIds->GetId(j);
+        GetPoint(ptId, q);
+        dist2 = vtkMath::Distance2BetweenPoints(p, q);
+        if (dist2 > 1e-9) {
+          v = arr->GetComponent(ptId, 0);
+          w = 1. / dist2;
+          bin = bins.find(v);
+          if (bin == bins.end()) bins[v] = w;
+          else bin->second += w;
+        }
+      }
+      max_cnt = 0;
+      max_val = 0.;
+      for (bin = bins.begin(); bin != bins.end(); ++bin) {
+        if (bin->second > max_cnt) {
+          max_val = bin->first;
+          max_cnt = bin->second;
+        }
+      }
+      _CategoricalPointDataCache[i] = max_val;
+    }
+    pd->InterpolateEdge(inputPD, newId, ptId1, ptId2, .5);
+    for (auto i : _CategoricalPointDataIndices) {
+      pd->GetArray(i)->SetComponent(newId, 0, _CategoricalPointDataCache[i]);
+    }
+  } else {
+    pd->InterpolateEdge(inputPD, newId, ptId1, ptId2, .5);
   }
 }
 
 // -----------------------------------------------------------------------------
 inline void SurfaceRemeshing
-::InterpolatePointData(vtkIdType newId, vtkIdList *ptIds, double *weights)
+::InterpolatePointData(vtkPointData *pd, vtkIdType newId, vtkIdList *ptIds, double *weights)
 {
-  vtkPointData *pd = _Output->GetPointData();
-  if (pd == nullptr) return;
-  for (auto i : _CategoricalPointDataIndices) {
-    _CategoricalPointDataCache[i] = pd->GetArray(i)->GetComponent(ptIds->GetId(0), 0);
-  }
-  pd->InterpolatePoint(pd, newId, ptIds, weights);
-  for (auto i : _CategoricalPointDataIndices) {
-    pd->GetArray(i)->SetComponent(newId, 0, _CategoricalPointDataCache[i]);
+  vtkPointData * const inputPD = _Output->GetPointData();
+
+  if (!_CategoricalPointDataIndices.empty()) {
+    vtkIdType max_i = ptIds->GetId(0);
+    double    max_w = weights[0];
+    for (vtkIdType j = 1; j < ptIds->GetNumberOfIds(); ++j) {
+      if (weights[j] > max_w) {
+        max_i = ptIds->GetId(j);
+        max_w = weights[j];
+      }
+    }
+    for (auto i : _CategoricalPointDataIndices) {
+      _CategoricalPointDataCache[i] = inputPD->GetArray(i)->GetComponent(max_i, 0);
+    }
+    pd->InterpolatePoint(inputPD, newId, ptIds, weights);
+    for (auto i : _CategoricalPointDataIndices) {
+      pd->GetArray(i)->SetComponent(newId, 0, _CategoricalPointDataCache[i]);
+    }
+  } else {
+    pd->InterpolatePoint(inputPD, newId, ptIds, weights);
   }
 }
 
@@ -466,11 +528,11 @@ bool SurfaceRemeshing
   if (neighborCellId == -1) return false;
 
   // Interpolate point data
-  InterpolatePointData(ptId1, ptId1, ptId2);
+  InterpolatePointData(_Output->GetPointData(), ptId1, ptId1, ptId2);
 
   // Move first point to edge middlepoint
   Point m = MiddlePoint(ptId1, ptId2);
-  _Output->GetPoints()->SetPoint(ptId1, m._x, m._y, m._z);
+  _Output->GetPoints()->SetPoint(ptId1, m.x, m.y, m.z);
   _Output->GetPoints()->Modified();
 
   // Replace second point in (remaining) adjacent cells by first point
@@ -526,7 +588,7 @@ bool SurfaceRemeshing::MeltTriangle(vtkIdType cellId, vtkIdList *cellIds)
   cell->EvaluateLocation(subId, pcoords, c, weights);
 
   // Interpolate point data
-  InterpolatePointData(ptIds->GetId(0), ptIds, weights);
+  InterpolatePointData(_Output->GetPointData(), ptIds->GetId(0), ptIds, weights);
 
   // Move first point of this triangle to its center
   _Output->GetPoints()->SetPoint(ptIds->GetId(0), c);
@@ -726,6 +788,8 @@ void SurfaceRemeshing::MeltingOfNodes()
             if (ptIds1->IsId(ptIds2->GetId(ptIdx)) == -1) break;
           }
           if (ptIdx == ptIds2->GetNumberOfIds()) continue;
+          // TODO: Interpolate cell data, average tuples of the three cells or
+          //       pick majority label for categorical data
           ReplaceCellPoint(cells[0], ptId, ptIds2->GetId(ptIdx));
           DeleteCell(cells[1]);
           DeleteCell(cells[2]);
@@ -741,96 +805,117 @@ void SurfaceRemeshing::MeltingOfNodes()
 
 // -----------------------------------------------------------------------------
 void SurfaceRemeshing
-::Bisect(vtkIdType cellId, vtkIdType ptId1, vtkIdType ptId2, vtkIdType ptId3,
-         vtkPoints *points, vtkCellArray *polys)
+::Bisect(vtkIdType cellId, vtkIdType ptId1, vtkIdType ptId2, vtkIdType ptId3, vtkPolyData *output)
 {
-  const Point midPoint = MiddlePoint(ptId1, ptId2);
-  const vtkIdType midPtId  = points->InsertNextPoint(midPoint._x, midPoint._y, midPoint._z);
-  vtkIdType       pts[3];
+  vtkPoints    * const points = output->GetPoints();
+  vtkCellArray * const polys  = output->GetPolys();
+  vtkPointData * const pd     = output->GetPointData();
+  vtkCellData  * const cd     = output->GetCellData();
 
-  InterpolatePointData(midPtId, ptId1, ptId2);
+  const Point     midPoint = MiddlePoint(ptId1, ptId2);
+  const vtkIdType midPtId  = points->InsertNextPoint(midPoint.x, midPoint.y, midPoint.z);
+  vtkIdType       newId, pts[3];
+
+  InterpolatePointData(pd, midPtId, ptId1, ptId2);
 
   pts[0] = ptId1;
   pts[1] = midPtId;
   pts[2] = ptId3;
-  polys->InsertNextCell(3, pts);
+  newId = polys->InsertNextCell(3, pts);
+  cd->CopyData(_Output->GetCellData(), cellId, newId);
 
   pts[0] = midPtId;
   pts[1] = ptId2;
   pts[2] = ptId3;
-  polys->InsertNextCell(3, pts);
+  newId = polys->InsertNextCell(3, pts);
+  cd->CopyData(_Output->GetCellData(), cellId, newId);
 
   ++_NumberOfBisections;
 }
 
 // -----------------------------------------------------------------------------
 void SurfaceRemeshing
-::Trisect(vtkIdType cellId, vtkIdType ptId1, vtkIdType ptId2, vtkIdType ptId3,
-          vtkPoints *points, vtkCellArray *polys)
+::Trisect(vtkIdType cellId, vtkIdType ptId1, vtkIdType ptId2, vtkIdType ptId3, vtkPolyData *output)
 {
-  const Point midPoint1 = MiddlePoint(ptId1, ptId2);
-  const Point midPoint2 = MiddlePoint(ptId2, ptId3);
-  const vtkIdType midPtId1  = points->InsertNextPoint(midPoint1._x, midPoint1._y, midPoint1._z);
-  const vtkIdType midPtId2  = points->InsertNextPoint(midPoint2._x, midPoint2._y, midPoint2._z);
-  vtkIdType       pts[3];
+  vtkPoints    * const points = output->GetPoints();
+  vtkCellArray * const polys  = output->GetPolys();
+  vtkPointData * const pd     = output->GetPointData();
+  vtkCellData  * const cd     = output->GetCellData();
 
-  InterpolatePointData(midPtId1, ptId1, ptId2);
-  InterpolatePointData(midPtId2, ptId2, ptId3);
+  const Point     midPoint1 = MiddlePoint(ptId1, ptId2);
+  const Point     midPoint2 = MiddlePoint(ptId2, ptId3);
+  const vtkIdType midPtId1  = points->InsertNextPoint(midPoint1.x, midPoint1.y, midPoint1.z);
+  const vtkIdType midPtId2  = points->InsertNextPoint(midPoint2.x, midPoint2.y, midPoint2.z);
+  vtkIdType       newId, pts[3];
+
+  InterpolatePointData(pd, midPtId1, ptId1, ptId2);
+  InterpolatePointData(pd, midPtId2, ptId2, ptId3);
 
   pts[0] = ptId1;
   pts[1] = midPtId1;
   pts[2] = ptId3;
-  polys->InsertNextCell(3, pts);
+  newId = polys->InsertNextCell(3, pts);
+  cd->CopyData(_Output->GetCellData(), cellId, newId);
 
   pts[0] = midPtId1;
   pts[1] = ptId2;
   pts[2] = midPtId2;
-  polys->InsertNextCell(3, pts);
+  newId = polys->InsertNextCell(3, pts);
+  cd->CopyData(_Output->GetCellData(), cellId, newId);
 
   pts[0] = midPtId2;
   pts[1] = ptId3;
   pts[2] = midPtId1;
-  polys->InsertNextCell(3, pts);
+  newId = polys->InsertNextCell(3, pts);
+  cd->CopyData(_Output->GetCellData(), cellId, newId);
 
   ++_NumberOfTrisections;
 }
 
 // -----------------------------------------------------------------------------
 void SurfaceRemeshing
-::Quadsect(vtkIdType cellId, vtkIdType ptId1, vtkIdType ptId2, vtkIdType ptId3,
-           vtkPoints *points, vtkCellArray *polys)
+::Quadsect(vtkIdType cellId, vtkIdType ptId1, vtkIdType ptId2, vtkIdType ptId3, vtkPolyData *output)
 {
-  const Point midPoint1 = MiddlePoint(ptId1, ptId2);
-  const Point midPoint2 = MiddlePoint(ptId2, ptId3);
-  const Point midPoint3 = MiddlePoint(ptId3, ptId1);
-  const vtkIdType midPtId1  = points->InsertNextPoint(midPoint1._x, midPoint1._y, midPoint1._z);
-  const vtkIdType midPtId2  = points->InsertNextPoint(midPoint2._x, midPoint2._y, midPoint2._z);
-  const vtkIdType midPtId3  = points->InsertNextPoint(midPoint3._x, midPoint3._y, midPoint3._z);
-  vtkIdType       pts[3];
+  vtkPoints    * const points = output->GetPoints();
+  vtkCellArray * const polys  = output->GetPolys();
+  vtkPointData * const pd     = output->GetPointData();
+  vtkCellData  * const cd     = output->GetCellData();
 
-  InterpolatePointData(midPtId1, ptId1, ptId2);
-  InterpolatePointData(midPtId2, ptId2, ptId3);
-  InterpolatePointData(midPtId3, ptId3, ptId1);
+  const Point     midPoint1 = MiddlePoint(ptId1, ptId2);
+  const Point     midPoint2 = MiddlePoint(ptId2, ptId3);
+  const Point     midPoint3 = MiddlePoint(ptId3, ptId1);
+  const vtkIdType midPtId1  = points->InsertNextPoint(midPoint1.x, midPoint1.y, midPoint1.z);
+  const vtkIdType midPtId2  = points->InsertNextPoint(midPoint2.x, midPoint2.y, midPoint2.z);
+  const vtkIdType midPtId3  = points->InsertNextPoint(midPoint3.x, midPoint3.y, midPoint3.z);
+  vtkIdType       newId, pts[3];
+
+  InterpolatePointData(pd, midPtId1, ptId1, ptId2);
+  InterpolatePointData(pd, midPtId2, ptId2, ptId3);
+  InterpolatePointData(pd, midPtId3, ptId3, ptId1);
 
   pts[0] = ptId1;
   pts[1] = midPtId1;
   pts[2] = midPtId3;
-  polys->InsertNextCell(3, pts);
+  newId = polys->InsertNextCell(3, pts);
+  cd->CopyData(_Output->GetCellData(), cellId, newId);
 
   pts[0] = midPtId1;
   pts[1] = ptId2;
   pts[2] = midPtId2;
-  polys->InsertNextCell(3, pts);
+  newId = polys->InsertNextCell(3, pts);
+  cd->CopyData(_Output->GetCellData(), cellId, newId);
 
   pts[0] = midPtId1;
   pts[1] = midPtId2;
   pts[2] = midPtId3;
-  polys->InsertNextCell(3, pts);
+  newId = polys->InsertNextCell(3, pts);
+  cd->CopyData(_Output->GetCellData(), cellId, newId);
 
   pts[0] = midPtId2;
   pts[1] = ptId3;
   pts[2] = midPtId3;
-  polys->InsertNextCell(3, pts);
+  newId = polys->InsertNextCell(3, pts);
+  cd->CopyData(_Output->GetCellData(), cellId, newId);
 
   ++_NumberOfQuadsections;
 }
@@ -847,8 +932,7 @@ void SurfaceRemeshing::Initialize()
 
   // Check input mesh
   if (!IsTriangularMesh(_Input)) {
-    cerr << this->NameOfType() << "::Initialize: Input surface mesh must have triangular faces!" << endl;
-    exit(1);
+    Throw(ERR_LogicError, __FUNCTION__, "Input surface mesh must have triangular faces!");
   }
 
   // Make shallow copy of input to which (optional) input point data arrays are added
@@ -882,16 +966,16 @@ void SurfaceRemeshing::Initialize()
     c2p->Update();
     input = c2p->GetPolyDataOutput();
     if (_MinCellEdgeLengthArray) {
-      const char *name = _MinCellEdgeLengthArray->GetName();
-      vtkDataArray *min_length = input->GetPointData()->GetArray(name);
+      const char * const name = _MinCellEdgeLengthArray->GetName();
+      vtkDataArray * const min_length = input->GetPointData()->GetArray(name);
       if (min_length) {
         min_length->SetName(MIN_EDGE_LENGTH);
         _Surface->GetPointData()->AddArray(min_length);
       }
     }
-    if (_MinCellEdgeLengthArray) {
-      const char *name = _MinCellEdgeLengthArray->GetName();
-      vtkDataArray *max_length = input->GetPointData()->GetArray(name);
+    if (_MaxCellEdgeLengthArray) {
+      const char * const name = _MaxCellEdgeLengthArray->GetName();
+      vtkDataArray * const max_length = input->GetPointData()->GetArray(name);
       if (max_length) {
         max_length->SetName(MAX_EDGE_LENGTH);
         _Surface->GetPointData()->AddArray(max_length);
@@ -925,12 +1009,11 @@ void SurfaceRemeshing::Initialize()
   _Output->DeepCopy(_Surface);
 
   // Initialize output
-  vtkPointData *inputPD  = _Surface->GetPointData();
-  vtkPointData *outputPD = _Output ->GetPointData();
-  vtkCellData  *outputCD = _Output ->GetCellData();
-  outputCD->Initialize(); // TODO: Interpolate cell data during remeshing
-  outputPD->InterpolateAllocate(inputPD, _Surface->GetNumberOfPoints());
-  for (vtkIdType ptId = 0; ptId < _Surface->GetNumberOfPoints(); ++ptId) {
+  const vtkIdType npoints = _Surface->GetNumberOfPoints();
+  vtkPointData * const inputPD  = _Surface->GetPointData();
+  vtkPointData * const outputPD = _Output ->GetPointData();
+  outputPD->InterpolateAllocate(inputPD, npoints);
+  for (vtkIdType ptId = 0; ptId < npoints; ++ptId) {
     outputPD->CopyData(inputPD, ptId, ptId);
   }
 
@@ -938,7 +1021,8 @@ void SurfaceRemeshing::Initialize()
   _CategoricalPointDataIndices.clear();
   for (int i = 0; i < outputPD->GetNumberOfArrays(); ++i) {
     string lname = ToLower(outputPD->GetArrayName(i));
-    if (lname.find("label") != lname.npos) {
+    if (lname.find("label") != lname.npos ||
+        lname.find("mask" ) != lname.npos) {
       _CategoricalPointDataIndices.insert(i);
     }
   }
@@ -1262,15 +1346,32 @@ void SurfaceRemeshing::Subdivision()
   MIRTK_START_TIMING();
 
   int       bisect[3];
-  vtkIdType npts, *pts;
+  vtkIdType npts, *pts, newId;
   double    p1[3], p2[3], p3[3], n1[3], n2[3], n3[3], length2[3], max2[3], min2;
 
-  vtkSmartPointer<vtkCellArray> newPolys = vtkSmartPointer<vtkCellArray>::New();
-  newPolys->Allocate(_Output->GetNumberOfCells());
-  vtkPoints *points = _Output->GetPoints();
+  const vtkIdType npoints = _Output->GetNumberOfPoints();
+  const vtkIdType ncells  = _Output->GetNumberOfCells();
+
+  vtkSmartPointer<vtkPolyData> output;
+  output.TakeReference(_Output->NewInstance());
+  output->ShallowCopy(_Output);
+
+  vtkPointData * const inputPD  = _Output->GetPointData();
+  vtkPointData * const outputPD =  output->GetPointData();
+  outputPD->InterpolateAllocate(inputPD, npoints);
+  for (vtkIdType ptId = 0; ptId < npoints; ++ptId) {
+    outputPD->CopyData(inputPD, ptId, ptId);
+  }
+
+  vtkCellData * const inputCD  = _Output->GetCellData();
+  vtkCellData * const outputCD =  output->GetCellData();
+  outputCD->CopyAllocate(inputCD, ncells);
+
+  vtkSmartPointer<vtkCellArray> polys;
+  polys.TakeReference(_Output->GetPolys()->NewInstance());
+  output->SetPolys(polys);
 
   // Get current number of cells (excl. newly added cells)
-  const vtkIdType ncells = _Output->GetNumberOfCells();
   for (vtkIdType cellId = 0; cellId < ncells; ++cellId) {
 
     _Output->GetCellPoints(cellId, npts, pts);
@@ -1324,27 +1425,28 @@ void SurfaceRemeshing::Subdivision()
     // Perform subdivision
     switch (bisect[0] + bisect[1] + bisect[2]) {
       case 1:
-        if      (bisect[0]) Bisect(cellId, pts[0], pts[1], pts[2], points, newPolys);
-        else if (bisect[1]) Bisect(cellId, pts[1], pts[2], pts[0], points, newPolys);
-        else                Bisect(cellId, pts[2], pts[0], pts[1], points, newPolys);
+        if      (bisect[0]) Bisect(cellId, pts[0], pts[1], pts[2], output);
+        else if (bisect[1]) Bisect(cellId, pts[1], pts[2], pts[0], output);
+        else                Bisect(cellId, pts[2], pts[0], pts[1], output);
         break;
       case 2:
-        if      (bisect[0] && bisect[1]) Trisect(cellId, pts[0], pts[1], pts[2], points, newPolys);
-        else if (bisect[1] && bisect[2]) Trisect(cellId, pts[1], pts[2], pts[0], points, newPolys);
-        else                             Trisect(cellId, pts[2], pts[0], pts[1], points, newPolys);
+        if      (bisect[0] && bisect[1]) Trisect(cellId, pts[0], pts[1], pts[2], output);
+        else if (bisect[1] && bisect[2]) Trisect(cellId, pts[1], pts[2], pts[0], output);
+        else                             Trisect(cellId, pts[2], pts[0], pts[1], output);
         break;
       case 3:
-        Quadsect(cellId, pts[0], pts[1], pts[2], points, newPolys);
+        Quadsect(cellId, pts[0], pts[1], pts[2], output);
         break;
       default:
-        newPolys->InsertNextCell(npts, pts);
+        newId = polys->InsertNextCell(npts, pts);
+        outputCD->CopyData(inputCD, cellId, newId);
     }
   }
 
-  newPolys->Squeeze();
+  _Output = output;
+  _Output->DeleteLinks();
   _Output->DeleteCells();
-  _Output->SetPolys(newPolys);
-  _Output->BuildLinks();
+  _Output->Squeeze();
 
   MIRTK_DEBUG_TIMING(2, "subdivison pass");
 }
@@ -1360,9 +1462,14 @@ void SurfaceRemeshing::Finalize()
 
   } else {
 
-    // Release memory pre-allocated for point data as we may have fewer points now
+    // Input edge-length arrays no longer valid for possibly next iteration
+    _MinCellEdgeLengthArray = nullptr;
+    _MaxCellEdgeLengthArray = nullptr;
+
+    // Release memory pre-allocated for data tuples as we may have fewer points/cells now
     _Output->GetPointData()->SetNormals(nullptr);
     _Output->GetPointData()->Squeeze();
+    _Output->GetCellData ()->Squeeze();
 
     // Remove unused/deleted points and merge middle points of bisected edges
     {
