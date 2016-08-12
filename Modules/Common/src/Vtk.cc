@@ -21,6 +21,7 @@
 
 #include "mirtk/Vtk.h"
 #include "mirtk/Stream.h"
+#include "mirtk/Exception.h"
 
 #include "vtkCharArray.h"
 #include "vtkUnsignedCharArray.h"
@@ -37,29 +38,33 @@ namespace mirtk {
 
 
 // -----------------------------------------------------------------------------
-vtkSmartPointer<vtkDataArray> NewVtkDataArray(int vtkType)
+vtkSmartPointer<vtkDataArray> NewVtkDataArray(int type, int tuples, int comps, const char *name)
 {
-  switch (vtkType) {
+  vtkSmartPointer<vtkDataArray> arr;
+  switch (type) {
     case VTK_VOID: {
       #if MIRTK_USE_FLOAT_BY_DEFAULT
-        return vtkSmartPointer<vtkFloatArray>::New();
+        arr = vtkSmartPointer<vtkFloatArray>::New();
       #else
-        return vtkSmartPointer<vtkDoubleArray>::New();
+        arr = vtkSmartPointer<vtkDoubleArray>::New();
       #endif
     } break;
-    case VTK_CHAR:           return vtkSmartPointer<vtkCharArray>::New();
-    case VTK_UNSIGNED_CHAR:  return vtkSmartPointer<vtkUnsignedCharArray>::New();
-    case VTK_SHORT:          return vtkSmartPointer<vtkShortArray>::New();
-    case VTK_UNSIGNED_SHORT: return vtkSmartPointer<vtkUnsignedShortArray>::New();
-    case VTK_INT:            return vtkSmartPointer<vtkIntArray>::New();
-    case VTK_UNSIGNED_INT:   return vtkSmartPointer<vtkUnsignedIntArray>::New();
-    case VTK_FLOAT:          return vtkSmartPointer<vtkFloatArray>::New();
-    case VTK_DOUBLE:         return vtkSmartPointer<vtkDoubleArray>::New();
-    case VTK_ID_TYPE:        return vtkSmartPointer<vtkIdTypeArray>::New();
+    case VTK_CHAR:           { arr = vtkSmartPointer<vtkCharArray>::New(); } break;
+    case VTK_UNSIGNED_CHAR:  { arr = vtkSmartPointer<vtkUnsignedCharArray>::New(); } break;
+    case VTK_SHORT:          { arr = vtkSmartPointer<vtkShortArray>::New(); } break;
+    case VTK_UNSIGNED_SHORT: { arr = vtkSmartPointer<vtkUnsignedShortArray>::New(); } break;
+    case VTK_INT:            { arr = vtkSmartPointer<vtkIntArray>::New(); } break;
+    case VTK_UNSIGNED_INT:   { arr = vtkSmartPointer<vtkUnsignedIntArray>::New(); } break;
+    case VTK_FLOAT:          { arr = vtkSmartPointer<vtkFloatArray>::New(); } break;
+    case VTK_DOUBLE:         { arr = vtkSmartPointer<vtkDoubleArray>::New(); } break;
+    case VTK_ID_TYPE:        { arr = vtkSmartPointer<vtkIdTypeArray>::New(); } break;
     default:
-      cerr << "Invalid VTK data type: " << vtkType << endl;
-      exit(1);
+      Throw(ERR_LogicError, __FUNCTION__, "Invalid VTK data type: ", type);
   }
+  if (comps  > 0) arr->SetNumberOfComponents(comps);
+  if (tuples > 0) arr->SetNumberOfTuples(tuples);
+  if (name != nullptr) arr->SetName(name);
+  return arr;
 }
 
 // -----------------------------------------------------------------------------
