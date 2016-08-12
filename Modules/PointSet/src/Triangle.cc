@@ -29,25 +29,6 @@ namespace mirtk {
 
 
 // =============================================================================
-// Triangle/triangle intersection test
-// =============================================================================
-
-#include "triangle_triangle_intersection.h"
-
-// -----------------------------------------------------------------------------
-bool Triangle
-::TriangleTriangleIntersection(const double a1[3], const double b1[3], const double c1[3],
-                               const double a2[3], const double b2[3], const double c2[3])
-{
-  return tri_tri_overlap_test_3d(const_cast<double *>(a1),
-                                 const_cast<double *>(b1),
-                                 const_cast<double *>(c1),
-                                 const_cast<double *>(a2),
-                                 const_cast<double *>(b2),
-                                 const_cast<double *>(c2)) != 0;
-}
-
-// =============================================================================
 // Distance between two triangles
 // =============================================================================
 
@@ -66,7 +47,7 @@ inline void VmsV(double *Vr, const double *V1, double s2, const double *V2)
 // -----------------------------------------------------------------------------
 inline double distance_between_triangles(double a1[3], double b1[3], double c1[3], double n1[3],
                                          double a2[3], double b2[3], double c2[3], double n2[3],
-                                         double *p1, double *p2)
+                                         double *p1 = nullptr, double *p2 = nullptr)
 {
   const double TOL = 1e-6; // Tolerance for point coordinate equality check
   double q1[3], q2[3], t1, t2, d, min = inf;
@@ -209,6 +190,43 @@ double Triangle
                                     const_cast<double *>(b2),
                                     const_cast<double *>(c2),
                                     const_cast<double *>(n2), p1, p2);
+}
+
+// =============================================================================
+// Triangle/triangle intersection test
+// =============================================================================
+
+#include "triangle_triangle_intersection.h"
+
+// -----------------------------------------------------------------------------
+bool Triangle
+::TriangleTriangleIntersection(const double a1[3], const double b1[3], const double c1[3],
+                               const double a2[3], const double b2[3], const double c2[3])
+{
+  if (tri_tri_overlap_test_3d(const_cast<double *>(a1),
+                              const_cast<double *>(b1),
+                              const_cast<double *>(c1),
+                              const_cast<double *>(a2),
+                              const_cast<double *>(b2),
+                              const_cast<double *>(c2)) != 0) {
+    // FIXME: Yields on occassion false positive intersection tests of nearby,
+    //        but not even close to intersecting triangles. Therefore,
+    //        this expensive distance computation... should not be needed :-(
+    double n1[3], n2[3];
+    Triangle::Normal(a1, b1, c1, n1);
+    Triangle::Normal(a2, b2, c2, n2);
+    if (distance_between_triangles(const_cast<double *>(a1),
+                                   const_cast<double *>(b1),
+                                   const_cast<double *>(c1),
+                                   const_cast<double *>(n1),
+                                   const_cast<double *>(a2),
+                                   const_cast<double *>(b2),
+                                   const_cast<double *>(c2),
+                                   const_cast<double *>(n2)) < 1e-6) {
+      return true;
+    }
+  }
+  return false;
 }
 
 
