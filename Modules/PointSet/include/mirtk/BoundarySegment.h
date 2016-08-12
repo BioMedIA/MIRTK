@@ -138,12 +138,24 @@ public:
   /// \param[out] p Coordinates of i-th boundary segment point.
   void GetPoint(int i, double p[3]) const;
 
+  /// Set boundary segment point coordinates
+  ///
+  /// \param[in] i Index of boundary segment point.
+  /// \param[in] p New coordinates of i-th boundary segment point.
+  void SetPoint(int i, const double p[3]);
+
   /// Get boundary segment point coordinates
   ///
   /// \param[in] i Index of boundary segment point.
   ///
   /// \returns Coordinates of i-th boundary segment point.
   class Point Point(int i) const;
+
+  /// Set boundary segment point coordinates
+  ///
+  /// \param[in] i Index of boundary segment point.
+  /// \param[in] p New coordinates of i-th boundary segment point.
+  void Point(int i, const class Point &p);
 
   /// Find surface point in boundary segment
   ///
@@ -301,11 +313,24 @@ inline void BoundarySegment::GetPoint(int i, double p[3]) const
 }
 
 // -----------------------------------------------------------------------------
+inline void BoundarySegment::SetPoint(int i, const double p[3])
+{
+  i = IndexModuloNumberOfPoints(i);
+  _Surface->GetPoints()->SetPoint(static_cast<vtkIdType>(PointId(i)), const_cast<double *>(p));
+}
+
+// -----------------------------------------------------------------------------
 inline Point BoundarySegment::Point(int i) const
 {
   double p[3];
   GetPoint(i, p);
   return p;
+}
+
+// -----------------------------------------------------------------------------
+inline void BoundarySegment::Point(int i, const class Point &p)
+{
+  SetPoint(i, p);
 }
 
 // -----------------------------------------------------------------------------
