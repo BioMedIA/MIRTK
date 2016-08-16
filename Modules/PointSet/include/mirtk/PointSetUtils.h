@@ -50,6 +50,8 @@ class Vector;
 
 template <typename> struct Vector3D;
 
+/// List of pairs of edge end point IDs
+typedef List<Pair<int, int>> EdgeList;
 
 // =============================================================================
 // VTK / MIRTK type conversion
@@ -250,8 +252,24 @@ bool IsTetrahedralMesh(vtkDataSet *);
 /// Get IDs of end points of boundary edges
 UnorderedSet<int> BoundaryPoints(vtkDataSet *, const EdgeTable * = nullptr);
 
-/// Get list of boundary edges
-List<Pair<int, int> > BoundaryEdges(vtkDataSet *, const EdgeTable &);
+/// Get list of all boundary edges
+EdgeList BoundaryEdges(vtkDataSet *, const EdgeTable &);
+
+/// Get list of edges with given end point
+///
+/// \param[in] edges List of edges.
+/// \param[in] ptId  Edge end point.
+///
+/// \returns List of edges, where ptId is always the first entry.
+EdgeList GetPointEdges(const EdgeList &edges, int ptId);
+
+/// Get list of edges with given end point and remove them from input list
+///
+/// \param[in] edges List of edges.
+/// \param[in] ptId  Edge end point.
+///
+/// \returns List of edges, where ptId is always the first entry.
+EdgeList PopPointEdges(EdgeList &edges, int ptId);
 
 /// Get connected boundary segments as (closed) line strips
 Array<Array<int> > BoundarySegments(vtkDataSet *, const EdgeTable * = nullptr);

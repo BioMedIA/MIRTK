@@ -233,6 +233,11 @@ public:
   /// \param[in] i Boundary point index.
   void DeselectPoint(int i);
 
+  // ---------------------------------------------------------------------------
+  // Debug
+
+  /// Write boundary lines to polygonal data set file
+  bool Write(const char *) const;
 };
 
 ////////////////////////////////////////////////////////////////////////////////

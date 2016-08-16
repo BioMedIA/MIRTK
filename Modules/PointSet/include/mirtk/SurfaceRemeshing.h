@@ -148,6 +148,9 @@ protected:
   /// Invert edge of two triangles when it increases the minimum height
   mirtkPublicAttributeMacro(bool, InvertTrianglesToIncreaseMinHeight);
 
+  /// Whether to allow bisection of boundary edges
+  mirtkPublicAttributeMacro(bool, BisectBoundaryEdges);
+
   /// Number of melted nodes with connectivity 3
   mirtkReadOnlyAttributeMacro(int, NumberOfMeltedNodes);
 
@@ -232,6 +235,12 @@ private:
 
   /// Get neighboring triangle sharing an edge with specified triangle
   vtkIdType GetCellEdgeNeighbor(vtkIdType, vtkIdType, vtkIdType) const;
+
+  /// Check if point is on surface boundary
+  bool IsBoundaryPoint(vtkIdType) const;
+
+  /// Check if edge is on surface boundary
+  bool IsBoundaryEdge(vtkIdType, vtkIdType) const;
 
   /// Get other vertices of cell edge neighbors
   void GetCellPointNeighbors(vtkIdType, vtkIdType, vtkIdList *) const;
@@ -335,6 +344,9 @@ public:
 
   /// Enable/disable inversion of triangles when it increases minimum height
   mirtkOnOffMacro(InvertTrianglesToIncreaseMinHeight);
+
+  /// Enable/disable bisection of boundary edges
+  mirtkOnOffMacro(BisectBoundaryEdges);
 
 };
 

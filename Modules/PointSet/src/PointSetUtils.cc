@@ -369,9 +369,9 @@ UnorderedSet<int> BoundaryPoints(vtkDataSet *dataset, const EdgeTable *edgeTable
 }
 
 // -----------------------------------------------------------------------------
-List<Pair<int, int> > BoundaryEdges(vtkDataSet *dataset, const EdgeTable &edgeTable)
+EdgeList BoundaryEdges(vtkDataSet *dataset, const EdgeTable &edgeTable)
 {
-  List<Pair<int, int> > boundaryEdges;
+  EdgeList boundaryEdges;
   vtkSmartPointer<vtkIdList> cellIds1 = vtkSmartPointer<vtkIdList>::New();
   vtkSmartPointer<vtkIdList> cellIds2 = vtkSmartPointer<vtkIdList>::New();
   vtkIdType ptId1, ptId2;
@@ -388,6 +388,36 @@ List<Pair<int, int> > BoundaryEdges(vtkDataSet *dataset, const EdgeTable &edgeTa
 }
 
 // -----------------------------------------------------------------------------
+EdgeList GetPointEdges(const EdgeList &edges, int ptId)
+{
+  EdgeList result;
+  for (const auto &edge : edges) {
+    if (edge.first == ptId) {
+      result.push_back(edge);
+    } else if (edge.second == ptId) {
+      result.push_back(MakePair(edge.second, edge.first));
+    }
+  }
+  return result;
+}
+
+// -----------------------------------------------------------------------------
+EdgeList PopPointEdges(EdgeList &edges, int ptId)
+{
+  EdgeList result;
+  for (auto edge = edges.begin(); edge != edges.end(); ++edge) {
+    if (edge->first == ptId) {
+      result.push_back(*edge);
+      edge = edges.erase(edge);
+    } else if (edge->second == ptId) {
+      result.push_back(MakePair(edge->second, edge->first));
+      edge = edges.erase(edge);
+    }
+  }
+  return result;
+}
+
+// -----------------------------------------------------------------------------
 Array<Array<int> > BoundarySegments(vtkDataSet *dataset, const EdgeTable *edgeTable)
 {
   Array<Array<int> > boundaries;
@@ -398,7 +428,7 @@ Array<Array<int> > BoundarySegments(vtkDataSet *dataset, const EdgeTable *edgeTa
   }
   int ptId1, ptId2;
   UnorderedSet<int> boundaryPtIds;
-  List<Pair<int, int> > boundaryEdges = BoundaryEdges(dataset, *edgeTable);
+  EdgeList boundaryEdges = BoundaryEdges(dataset, *edgeTable);
   for (auto edge = boundaryEdges.begin(); edge != boundaryEdges.end(); ++edge) {
     boundaryPtIds.insert(edge->first);
     boundaryPtIds.insert(edge->second);
