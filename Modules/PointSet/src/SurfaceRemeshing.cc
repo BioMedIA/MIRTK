@@ -81,6 +81,7 @@ void SurfaceRemeshing::CopyAttributes(const SurfaceRemeshing &other)
   _MeltingOrder            = other._MeltingOrder;
   _MeltNodes               = other._MeltNodes;
   _MeltTriangles           = other._MeltTriangles;
+  _BisectBoundaryEdges     = other._BisectBoundaryEdges;
   _NumberOfMeltedNodes     = other._NumberOfMeltedNodes;
   _NumberOfMeltedEdges     = other._NumberOfMeltedEdges;
   _NumberOfMeltedCells     = other._NumberOfMeltedCells;
@@ -119,6 +120,7 @@ SurfaceRemeshing::SurfaceRemeshing()
   _MeltTriangles(false),
   _InvertTrianglesSharingOneLongEdge(false),
   _InvertTrianglesToIncreaseMinHeight(true),
+  _BisectBoundaryEdges(true),
   _NumberOfMeltedNodes(0),
   _NumberOfMeltedEdges(0),
   _NumberOfMeltedCells(0),
@@ -247,6 +249,38 @@ inline vtkIdType SurfaceRemeshing::GetCellEdgeNeighbor(vtkIdType cellId, vtkIdTy
     }
   }
   return neighborCellId;
+}
+
+// -----------------------------------------------------------------------------
+inline bool SurfaceRemeshing::IsBoundaryPoint(vtkIdType ptId) const
+{
+  unsigned short ncells;
+  vtkIdType *cells, *pts, npts;
+  _Output->GetPointCells(ptId, ncells, cells);
+  for (unsigned short i = 0; i < ncells; ++i) {
+    _Output->GetCellPoints(cells[i], npts, pts);
+    for (vtkIdType j = 0; j < npts; ++j) {
+      if (pts[j] != ptId && GetCellEdgeNeighbor(cells[i], ptId, pts[j]) == -1) return true;
+    }
+  }
+  return false;
+}
+
+// -----------------------------------------------------------------------------
+inline bool SurfaceRemeshing::IsBoundaryEdge(vtkIdType ptId1, vtkIdType ptId2) const
+{
+  vtkIdType *cells1, *cells2;
+  unsigned short ncells1, ncells2, n = 0;
+  _Output->GetPointCells(ptId1, ncells1, cells1);
+  _Output->GetPointCells(ptId2, ncells2, cells2);
+  for (unsigned short i = 0; i < ncells1; ++i)
+  for (unsigned short j = 0; j < ncells2; ++j) {
+    if (cells1[i] == cells2[j]) {
+      ++n;
+      break;
+    }
+  }
+  return n < 2;
 }
 
 // -----------------------------------------------------------------------------
@@ -519,6 +553,9 @@ inline double SurfaceRemeshing
 bool SurfaceRemeshing
 ::MeltEdge(vtkIdType cellId, vtkIdType ptId1, vtkIdType ptId2, vtkIdList *cellIds)
 {
+  // Do not merge edge when one of the end points is on the surface boundary
+  if (IsBoundaryPoint(ptId1) || IsBoundaryPoint(ptId2)) return false;
+
   // Check/resolve node connectivity of adjacent points
   vtkIdType neighborPtId = GetCellEdgeNeighborPoint(cellId, ptId1, ptId2, _MeltNodes);
   if (neighborPtId == -1) return false;
@@ -761,11 +798,13 @@ void SurfaceRemeshing::MeltingOfNodes()
       _Output->GetPointCells(ptId, ncells, cells);
       switch (ncells) {
         case 1: case 2: {
-          for (unsigned short i = 0; i < ncells; ++i) {
-            DeleteCell(cells[i]);
+          if (!IsBoundaryPoint(ptId)) {
+            for (unsigned short i = 0; i < ncells; ++i) {
+              DeleteCell(cells[i]);
+            }
+            ++_NumberOfMeltedNodes;
+            changed = true;
           }
-          ++_NumberOfMeltedNodes;
-          changed = true;
         } break;
         case 3: {
           ptIds1->Reset();
@@ -1223,7 +1262,7 @@ void SurfaceRemeshing::InversionOfTrianglesSharingOneLongEdge()
       // Check connectivity of long edge end points
       if (NodeConnectivity(pts[i]) > 3 && NodeConnectivity(pts[j]) > 3) {
         // Get other vertex of triangle sharing long edge
-        adjPtId = GetCellEdgeNeighborPoint(cellId, pts[i], pts[j]);
+        adjPtId = GetCellEdgeNeighborPoint(cellId, pts[i], pts[j], _MeltNodes);
         if (adjPtId == -1 || _Output->IsEdge(pts[k], adjPtId)) continue;
         // Check if length of other edges are in range
         GetPoint(adjPtId, p[3]);
@@ -1398,6 +1437,17 @@ void SurfaceRemeshing::Subdivision()
     bisect[1] = int(length2[1] > max2[1]);
     bisect[2] = int(length2[2] > max2[2]);
 
+    if (!_BisectBoundaryEdges) {
+      if (bisect[0] && IsBoundaryEdge(pts[0], pts[1])) {
+        bisect[0] = 0;
+      }
+      if (bisect[1] && IsBoundaryEdge(pts[1], pts[2])) {
+        bisect[1] = 0;
+      }
+      if (bisect[2] && IsBoundaryEdge(pts[2], pts[0])) {
+        bisect[2] = 0;
+      }
+    }
     if (_MaxFeatureAngle < 180.0 && (!bisect[0] || !bisect[1] || !bisect[2])) {
       GetNormal(pts[0], n1);
       GetNormal(pts[1], n2);
@@ -1495,7 +1545,7 @@ void SurfaceRemeshing::Finalize()
       normals->ConsistencyOn();
       normals->ComputeCellNormalsOff();
       normals->ComputePointNormalsOn();
-      normals->NonManifoldTraversalOn();
+      normals->NonManifoldTraversalOff();
       normals->Update();
       _Output = normals->GetOutput();
     }
