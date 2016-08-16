@@ -49,6 +49,7 @@ set(HEADERS
   SurfaceFilter.h
   SurfaceCollisions.h
   SurfaceCurvature.h
+  SurfacePatches.h
   SurfaceRemeshing.h
   Triangle.h
 )
@@ -81,6 +82,7 @@ set(SOURCES
   SurfaceFilter.cc
   SurfaceCollisions.cc
   SurfaceCurvature.cc
+  SurfacePatches.cc
   SurfaceRemeshing.cc
   Triangle.cc
   triangle_triangle_intersection.h
