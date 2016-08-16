@@ -143,6 +143,27 @@ MeshFilter::NewArray(const char *name, vtkIdType n, int c, int type) const
   return array;
 }
 
+// ------------------------------------------------------------------------------
+vtkSmartPointer<vtkDataArray>
+MeshFilter::NewArray(const char *name, int c, int type) const
+{
+  return NewArray(name, _Input->GetNumberOfPoints(), c, type);
+}
+
+// ------------------------------------------------------------------------------
+vtkSmartPointer<vtkDataArray>
+MeshFilter::NewPointArray(const char *name, int c, int type) const
+{
+  return NewArray(name, _Input->GetNumberOfPoints(), c, type);
+}
+
+// ------------------------------------------------------------------------------
+vtkSmartPointer<vtkDataArray>
+MeshFilter::NewCellArray(const char *name, int c, int type) const
+{
+  return NewArray(name, _Input->GetNumberOfCells(), c, type);
+}
+
 // -----------------------------------------------------------------------------
 void MeshFilter::InitializeEdgeTable()
 {
