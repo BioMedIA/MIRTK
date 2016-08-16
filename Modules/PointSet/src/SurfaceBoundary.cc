@@ -24,6 +24,7 @@
 #include "mirtk/UnorderedSet.h"
 #include "mirtk/Algorithm.h"
 
+#include "mirtk/PointSetIO.h"
 #include "mirtk/PointSetUtils.h"
 
 
@@ -52,7 +53,7 @@ SurfaceBoundary::SurfaceBoundary(vtkPolyData *surface, EdgeTablePointer edgeTabl
 {
   // Get list of boundary edges
   if (!edgeTable) edgeTable = NewShared<class EdgeTable>(_Surface);
-  List<Pair<int, int> > boundaryEdges = BoundaryEdges(_Surface, *edgeTable);
+  EdgeList boundaryEdges = BoundaryEdges(_Surface, *edgeTable);
 
   // Get set of boundary point IDs
   UnorderedSet<int> boundaryPtIds;
@@ -244,6 +245,37 @@ void SurfaceBoundary::DeselectPoint(int i)
     auto pos = segment.Find(ptId);
     if (pos >= 0) segment.DeselectPoint(pos);
   }
+}
+
+// =============================================================================
+// I/O
+// =============================================================================
+
+// -----------------------------------------------------------------------------
+bool SurfaceBoundary::Write(const char *fname) const
+{
+  const int npts = this->NumberOfPoints();
+  vtkIdType ptId;
+  vtkSmartPointer<vtkPoints> points;
+  points = vtkSmartPointer<vtkPoints>::New();
+  points->Allocate(npts);
+  vtkSmartPointer<vtkCellArray> lines;
+  lines = vtkSmartPointer<vtkCellArray>::New();
+  lines->Allocate(lines->EstimateSize(npts, 2));
+  for (int s = 0; s < NumberOfSegments(); ++s) {
+    const auto &seg = Segment(s);
+    if (seg.NumberOfPoints() > 0) {
+      lines->InsertNextCell(seg.NumberOfPoints()+1);
+      for (int i = 0; i < seg.NumberOfPoints(); ++i) {
+        lines->InsertCellPoint(points->InsertNextPoint(Point(i)));
+      }
+    }
+  }
+  vtkSmartPointer<vtkPolyData> output;
+  output = vtkSmartPointer<vtkPolyData>::New();
+  output->SetPoints(points);
+  output->SetLines(lines);
+  return WritePolyData(fname, output);
 }
 
 
