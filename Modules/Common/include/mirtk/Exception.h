@@ -38,8 +38,8 @@ enum ErrorType
 };
 
 /// Convert error type to string
-template <typename T>
-string ToString(const ErrorType &value, int w, char c, bool left)
+template <>
+inline string ToString(const ErrorType &value, int w, char c, bool left)
 {
   const char *str;
   switch (value) {
