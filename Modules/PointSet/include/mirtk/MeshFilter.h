@@ -137,6 +137,43 @@ protected:
   vtkSmartPointer<vtkDataArray> NewArray(const char *name, vtkIdType n, int c,
                                          int type = VTK_VOID) const;
 
+  /// Allocate new point data array
+  ///
+  /// \param[in] name Name of data array.
+  /// \param[in] c    Number of components.
+  /// \param[in] type Type of VTK array. When VTK_VOID, a floating point array
+  ///                 is allocated with either single or double precision depending
+  ///                 on the DoublePrecision flag of this mesh filter.
+  ///
+  /// \returns New floating point array
+  ///
+  /// \deprecated Use NewPointArray instead.
+  vtkSmartPointer<vtkDataArray> NewArray(const char *name, int c = 1,
+                                         int type = VTK_VOID) const;
+
+  /// Allocate new point data array
+  ///
+  /// \param[in] name Name of data array.
+  /// \param[in] c    Number of components.
+  /// \param[in] type Type of VTK array. When VTK_VOID, a floating point array
+  ///                 is allocated with either single or double precision depending
+  ///                 on the DoublePrecision flag of this mesh filter.
+  ///
+  /// \returns New floating point array
+  vtkSmartPointer<vtkDataArray> NewPointArray(const char *name, int c = 1,
+                                              int type = VTK_VOID) const;
+
+  /// Allocate new cell data array
+  ///
+  /// \param[in] name Name of data array.
+  /// \param[in] c    Number of components.
+  /// \param[in] type Type of VTK array. When VTK_VOID, a floating point array
+  ///                 is allocated with either single or double precision depending
+  ///                 on the DoublePrecision flag of this mesh filter.
+  ///
+  /// \returns New floating point array
+  vtkSmartPointer<vtkDataArray> NewCellArray(const char *name, int c = 1,
+                                             int type = VTK_VOID) const;
 };
 
 ////////////////////////////////////////////////////////////////////////////////

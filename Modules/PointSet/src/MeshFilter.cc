@@ -1,8 +1,8 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2013-2015 Imperial College London
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2013-2016 Imperial College London
+ * Copyright 2013-2016 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,17 +33,6 @@ namespace mirtk {
 // =============================================================================
 
 // -----------------------------------------------------------------------------
-MeshFilter::MeshFilter()
-:
-#if MIRTK_USE_FLOAT_BY_DEFAULT
-  _DoublePrecision(false)
-#else
-  _DoublePrecision(true)
-#endif
-{
-}
-
-// -----------------------------------------------------------------------------
 void MeshFilter::CopyAttributes(const MeshFilter &other)
 {
   _Input           = other._Input;
@@ -59,7 +48,20 @@ void MeshFilter::CopyAttributes(const MeshFilter &other)
 }
 
 // -----------------------------------------------------------------------------
+MeshFilter::MeshFilter()
+:
+#if MIRTK_USE_FLOAT_BY_DEFAULT
+  _DoublePrecision(false)
+#else
+  _DoublePrecision(true)
+#endif
+{
+}
+
+// -----------------------------------------------------------------------------
 MeshFilter::MeshFilter(const MeshFilter &other)
+:
+  Object(other)
 {
   CopyAttributes(other);
 }
@@ -109,10 +111,7 @@ void MeshFilter::Run()
 void MeshFilter::Initialize()
 {
   // Check input
-  if (!_Input) {
-    cerr << this->NameOfClass() << "::Initialize: Input mesh not set!" << endl;
-    exit(1);
-  }
+  if (!_Input) Throw(ERR_LogicError, __FUNCTION__, "Input mesh not set!");
 
   // Build mesh links
   _Input->BuildLinks();
@@ -120,6 +119,11 @@ void MeshFilter::Initialize()
   // By default, set output to be shallow copy of input
   _Output.TakeReference(_Input->NewInstance());
   _Output->ShallowCopy(_Input);
+
+  // Ensure we don't modify shallow copy of input cell types when
+  // marking cells as deleted... also need to build cells/links
+  _Output->DeleteCells();
+  _Output->BuildLinks();
 }
 
 // -----------------------------------------------------------------------------
@@ -141,6 +145,27 @@ MeshFilter::NewArray(const char *name, vtkIdType n, int c, int type) const
   array->SetNumberOfComponents(c);
   array->SetNumberOfTuples(n);
   return array;
+}
+
+// ------------------------------------------------------------------------------
+vtkSmartPointer<vtkDataArray>
+MeshFilter::NewArray(const char *name, int c, int type) const
+{
+  return NewArray(name, _Input->GetNumberOfPoints(), c, type);
+}
+
+// ------------------------------------------------------------------------------
+vtkSmartPointer<vtkDataArray>
+MeshFilter::NewPointArray(const char *name, int c, int type) const
+{
+  return NewArray(name, _Input->GetNumberOfPoints(), c, type);
+}
+
+// ------------------------------------------------------------------------------
+vtkSmartPointer<vtkDataArray>
+MeshFilter::NewCellArray(const char *name, int c, int type) const
+{
+  return NewArray(name, _Input->GetNumberOfCells(), c, type);
 }
 
 // -----------------------------------------------------------------------------

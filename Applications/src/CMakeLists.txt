@@ -188,6 +188,7 @@ if (MIRTK_PointSet_FOUND)
     add_pointset_command(convert-pointset)
     add_pointset_command(extract-pointset-surface)
     add_pointset_command(extract-surface)
+    add_pointset_command(merge-surfaces)
 
     if (MIRTK_Transformation_FOUND)
       add_pointset_command(transform-points LibTransformation)

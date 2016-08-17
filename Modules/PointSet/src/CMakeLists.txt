@@ -33,6 +33,7 @@ set(HEADERS
   FiducialMatch.h
   FuzzyCorrespondence.h
   ImplicitSurfaceUtils.h
+  Stripper.h
   MeshFilter.h
   MeshSmoothing.h
   PointCorrespondence.h
@@ -49,6 +50,7 @@ set(HEADERS
   SurfaceFilter.h
   SurfaceCollisions.h
   SurfaceCurvature.h
+  SurfacePatches.h
   SurfaceRemeshing.h
   Triangle.h
 )
@@ -65,6 +67,7 @@ set(SOURCES
   FuzzyCorrespondenceUtils.cc
   FuzzyCorrespondenceUtils.h
   ImplicitSurfaceUtils.cc
+  Stripper.cc
   MeshFilter.cc
   MeshSmoothing.cc
   PointCorrespondence.cc
@@ -81,6 +84,7 @@ set(SOURCES
   SurfaceFilter.cc
   SurfaceCollisions.cc
   SurfaceCurvature.cc
+  SurfacePatches.cc
   SurfaceRemeshing.cc
   Triangle.cc
   triangle_triangle_intersection.h
