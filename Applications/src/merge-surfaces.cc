@@ -23,6 +23,7 @@
 #include "mirtk/PointSetIO.h"
 #include "mirtk/PointSetUtils.h"
 #include "mirtk/GenericImage.h"
+#include "mirtk/Stripper.h"
 #include "mirtk/SurfaceBoundary.h"
 #include "mirtk/ConnectedComponents.h"
 #include "mirtk/SurfacePatches.h"
@@ -50,7 +51,6 @@
 #include "vtkCellLocator.h"
 #include "vtkPlaneSource.h"
 #include "vtkIntersectionPolyDataFilter.h"
-#include "vtkStripper.h"
 #include "vtkGenericCell.h"
 #include "vtkMergePoints.h"
 #include "vtkPolyDataConnectivityFilter.h"
@@ -1463,29 +1463,30 @@ AddClosedIntersectionDivider(vtkPolyData *surface, vtkPolyData *cut, double tol 
   cut_merger->GetOutput()->SetVerts(nullptr);
   cut->ShallowCopy(cut_merger->GetOutput());
 
+  // Create polygonal mesh tesselation of closed intersection polygon
+  vtkSmartPointer<vtkPolyData> divider;
+  Stripper stripper;
+  stripper.Input(cut);
+  stripper.Run();
+  divider = stripper.Output();
   if (debug) {
     static int callId = 0; ++callId;
     char fname[64];
     snprintf(fname, 64, "debug_split_surface_lines_%d.vtp", callId);
-    WritePolyData(fname, cut);
+    WritePolyData(fname, divider);
   }
-
-  // Create polygonal mesh tesselation of closed intersection polygon
-  vtkNew<vtkStripper> stripper;
-  SetVTKInput(stripper, cut);
-  stripper->JoinContiguousSegmentsOn();
-  stripper->Update();
-
-  vtkSmartPointer<vtkPolyData> divider = stripper->GetOutput();
   if (divider->GetNumberOfCells() != 1) {
     Throw(ERR_LogicError, __FUNCTION__, "Expected exactly one contiguous intersection line");
   }
   divider->GetLines()->GetCell(0, npts, pts);
+  if (npts <= 2) {
+    Throw(ERR_LogicError, __FUNCTION__, "Expected polygon with more than two points");
+  }
   if (pts[0] != pts[npts-1]) {
-    Throw(ERR_LogicError, __FUNCTION__, "Expected closed intersection line curve");
+    Throw(ERR_LogicError, __FUNCTION__, "Expected closed intersection polygon");
   }
   polys = vtkSmartPointer<vtkCellArray>::New();
-  polys->Allocate(npts);
+  polys->Allocate(polys->EstimateSize(1, npts-1));
   polys->InsertNextCell(npts-1, pts);
   divider->SetLines(nullptr);
   divider->SetPolys(polys);
