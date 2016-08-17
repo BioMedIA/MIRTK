@@ -33,6 +33,7 @@ set(HEADERS
   FiducialMatch.h
   FuzzyCorrespondence.h
   ImplicitSurfaceUtils.h
+  Stripper.h
   MeshFilter.h
   MeshSmoothing.h
   PointCorrespondence.h
@@ -66,6 +67,7 @@ set(SOURCES
   FuzzyCorrespondenceUtils.cc
   FuzzyCorrespondenceUtils.h
   ImplicitSurfaceUtils.cc
+  Stripper.cc
   MeshFilter.cc
   MeshSmoothing.cc
   PointCorrespondence.cc
