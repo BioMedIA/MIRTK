@@ -537,5 +537,18 @@ int PointSet::IsInside(double x, double y) const
   return crossings % 2 != 0;
 }
 
+// -----------------------------------------------------------------------------
+Point PointSet::Centroid() const
+{
+  Point c;
+  if (_n > 0) {
+    for (int i = 0; i < _n; ++i) {
+      c += _data[i];
+    }
+    c /= _n;
+  }
+  return c;
+}
+
 
 } // namespace mirtk

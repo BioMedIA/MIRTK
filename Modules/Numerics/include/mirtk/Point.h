@@ -31,6 +31,7 @@ namespace mirtk {
 // includes mirtk/Vector3D.h which in turn includes this file again.
 // Therefore, only include mirtk/Vector.h after Point is declared.
 class Vector;
+class Vector3;
 class Matrix;
 
 
@@ -64,6 +65,9 @@ public:
 
   /// Constructor with Point
   Point(const Point &);
+
+  /// Constructor with Vector
+  Point(const Vector3 &);
 
   /// Constructor with Vector
   Point(const Vector &);
@@ -169,6 +173,37 @@ public:
   Point  operator/ (double) const;
 
   //
+  // Operators for Vector3
+  //
+
+  /// Copy operator for vectors
+  Point& operator =(const Vector3&);
+
+  /// Substraction operator for vectors
+  Point& operator-=(const Vector3&);
+
+  /// Addition operator for vectors
+  Point& operator+=(const Vector3&);
+
+  /// Multiplication operator for vectors (componentwise)
+  Point& operator*=(const Vector3&);
+
+  /// Division operator for vectors (componentwise)
+  Point& operator/=(const Vector3&);
+
+  // Return result of vector substraction
+  Point operator- (const Vector3&) const;
+
+  // Return result of vector addition
+  Point operator+ (const Vector3&) const;
+
+  // Return result of vector multiplication
+  Point operator* (const Vector3&) const;
+
+  // Return result of vector division
+  Point operator/ (const Vector3&) const;
+
+  //
   // Operators for Vector
   //
 
@@ -230,6 +265,7 @@ public:
 } // namespace mirtk
 
 #include "mirtk/Vector.h"
+#include "mirtk/Vector3.h"
 #include "mirtk/Matrix.h"
 
 namespace mirtk {
@@ -278,6 +314,14 @@ inline Point::Point(const Point& p)
   _x = p._x;
   _y = p._y;
   _z = p._z;
+}
+
+// -----------------------------------------------------------------------------
+inline Point::Point(const Vector3& v)
+{
+  _x = v.x;
+  _y = v.y;
+  _z = v.z;
 }
 
 // -----------------------------------------------------------------------------
@@ -543,6 +587,66 @@ inline Point Point::operator/ (double x) const
   p._y = _y / x;
   p._z = _z / x;
   return p;
+}
+
+// -----------------------------------------------------------------------------
+inline Point& Point::operator +=(const Vector3 &v)
+{
+  _x += v.x;
+  _y += v.y;
+  _z += v.z;
+  return *this;
+}
+
+// -----------------------------------------------------------------------------
+inline Point& Point::operator -=(const Vector3 &v)
+{
+  _x -= v.x;
+  _y -= v.y;
+  _z -= v.z;
+  return *this;
+}
+
+// -----------------------------------------------------------------------------
+inline Point& Point::operator *=(const Vector3 &v)
+{
+  _x *= v.x;
+  _y *= v.y;
+  _z *= v.z;
+  return *this;
+}
+
+// -----------------------------------------------------------------------------
+inline Point& Point::operator /=(const Vector3 &v)
+{
+  _x /= v.x;
+  _y /= v.y;
+  _z /= v.z;
+  return *this;
+}
+
+// -----------------------------------------------------------------------------
+inline Point Point::operator +(const Vector3 &v) const
+{
+  return (Point(*this) += v);
+}
+
+// -----------------------------------------------------------------------------
+inline Point Point::operator -(const Vector3 &v) const
+{
+  return (Point(*this) -= v);
+}
+
+// -----------------------------------------------------------------------------
+inline Point Point::operator *(const Vector3 &v) const
+{
+  return (Point(*this) *= v);
+}
+
+// -----------------------------------------------------------------------------
+inline Point Point::operator /(const Vector3 &v) const
+{
+  return (Point(*this) /= v);
 }
 
 // -----------------------------------------------------------------------------

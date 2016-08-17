@@ -218,6 +218,7 @@ void ConnectedComponents<VoxelType>::DeleteComponent(VoxelType c)
 // Explicit template instantiations
 // =============================================================================
 
+template class ConnectedComponents<BytePixel>;
 template class ConnectedComponents<GreyPixel>;
 
 
