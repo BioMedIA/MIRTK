@@ -26,6 +26,7 @@
 #include "mirtk/Point.h"
 #include "mirtk/PointSet.h"
 #include "mirtk/Vector.h"
+#include "mirtk/Vector3.h"
 #include "mirtk/Matrix.h"
 #include "mirtk/ImageAttributes.h"
 
@@ -339,6 +340,9 @@ public:
   /// Image to world coordinate conversion with a given point
   void ImageToWorld(Point &) const;
 
+  /// Convert vector w.r.t. image axes to vector w.r.t. world axes
+  void ImageToWorld(Vector3 &) const;
+
   /// Image to world coordinate map for image domain
   ///
   /// \note Stores x, y, and z components as vector image,
@@ -374,6 +378,9 @@ public:
   
   /// World to image coordinate conversion with a given point
   void WorldToImage(Point &) const;
+
+  /// Convert vector w.r.t. world axes to vector w.r.t. image axes
+  void WorldToImage(Vector3 &) const;
 
   /// Return transformation matrix for image to world coordinates
   const Matrix &GetImageToWorldMatrix() const;
@@ -1175,6 +1182,15 @@ inline void BaseImage::ImageToWorld(Point &p) const
 }
 
 // -----------------------------------------------------------------------------
+inline void BaseImage::ImageToWorld(Vector3 &v) const
+{
+  double a = _matI2W(0, 0) * v.x + _matI2W(0, 1) * v.y + _matI2W(0, 2) * v.z;
+  double b = _matI2W(1, 0) * v.x + _matI2W(1, 1) * v.y + _matI2W(1, 2) * v.z;
+  double c = _matI2W(2, 0) * v.x + _matI2W(2, 1) * v.y + _matI2W(2, 2) * v.z;
+  v.x = a, v.y = b, v.z = c;
+}
+
+// -----------------------------------------------------------------------------
 inline void BaseImage::WorldToImage(double &x, double &y) const
 {
   double a = _matW2I(0, 0) * x + _matW2I(0, 1) * y + _matW2I(0, 3);
@@ -1195,6 +1211,15 @@ inline void BaseImage::WorldToImage(double &x, double &y, double &z) const
 inline void BaseImage::WorldToImage(Point &p) const
 {
   WorldToImage(p._x, p._y, p._z);
+}
+
+// -----------------------------------------------------------------------------
+inline void BaseImage::WorldToImage(Vector3 &v) const
+{
+  double a = _matW2I(0, 0) * v.x + _matW2I(0, 1) * v.y + _matW2I(0, 2) * v.z;
+  double b = _matW2I(1, 0) * v.x + _matW2I(1, 1) * v.y + _matW2I(1, 2) * v.z;
+  double c = _matW2I(2, 0) * v.x + _matW2I(2, 1) * v.y + _matW2I(2, 2) * v.z;
+  v.x = a, v.y = b, v.z = c;
 }
 
 // -----------------------------------------------------------------------------
