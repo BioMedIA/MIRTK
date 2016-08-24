@@ -260,6 +260,9 @@ struct Vector3D
   // ---------------------------------------------------------------------------
   // Other vector functions
 
+  /// Compute squared length of vector
+  double SquaredLength() const;
+
   /// Compute length of vector
   double Length() const;
 
@@ -867,17 +870,24 @@ inline bool Vector3D<T1>::operator >=(const Vector3D<T2> &v) const
 
 // -----------------------------------------------------------------------------
 template <typename T>
-inline void Vector3D<T>::Normalize()
+inline double Vector3D<T>::SquaredLength() const
 {
-  double length = sqrt(static_cast<double>(_x*_x + _y*_y + _z*_z));
-  if (length != .0) (*this) /= length;
+  return static_cast<double>(_x*_x + _y*_y + _z*_z);
 }
 
 // -----------------------------------------------------------------------------
 template <typename T>
 inline double Vector3D<T>::Length() const
 {
-  return sqrt(static_cast<double>(_x*_x + _y*_y + _z*_z));
+  return sqrt(SquaredLength());
+}
+
+// -----------------------------------------------------------------------------
+template <typename T>
+inline void Vector3D<T>::Normalize()
+{
+  const double length = Length();
+  if (length != .0) (*this) /= length;
 }
 
 // -----------------------------------------------------------------------------

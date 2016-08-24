@@ -30,6 +30,8 @@
 #if MIRTK_Image_WITH_VTK
   #include "vtkDataSet.h"
   #include "vtkSmartPointer.h"
+  #include "vtkPointData.h"
+  #include "vtkDataArray.h"
 #endif
 
 using namespace mirtk;
@@ -84,7 +86,7 @@ void PrintHelp(const char *name)
   cout << "      For example, \"-label 1 3 5..6 10 20..50\". This option is a shorthand for\n";
   cout << "        :option:`-mask-all` :option:`-threshold-inside` <lower> <upper> :option:`-invert-mask`\n";
   cout << "      where one :option:`-threshold-inside` operation is performed for each argument.\n";
-  cout << "  -mask <float|file>\n";
+  cout << "  -mask <value>... | <file> [<scalars>]\n";
   cout << "      Exclude values equal a given threshold or with zero input mask value.\n";
   cout << "      Note that this does not modify the data values, but only marks them to be\n";
   cout << "      ignored from now on. Use :option:`-pad` following this operation to\n";
@@ -170,22 +172,22 @@ void PrintHelp(const char *name)
   cout << "      Linearly rescale values to the interval [min, max].\n";
   cout << "\n";
   cout << "Arithmetic operation options:\n";
-  cout << "  -add, -plus <value|file>\n";
+  cout << "  -add, -plus <value> | <file> [<scalars>]\n";
   cout << "      Add constant value or data sequence read from specified file.\n";
   cout << "      Another name for this option is the '+' sign, see Examples.\n";
-  cout << "  -sub, -subtract, -minus <value|file>\n";
+  cout << "  -sub, -subtract, -minus <value> | <file> [<scalars>]\n";
   cout << "      Subtract constant value or data sequence read from specified file.\n";
   cout << "      Another name for this option is the '-' sign, see Examples.\n";
-  cout << "  -mul, -multiply-with, -times <value|file>\n";
+  cout << "  -mul, -multiply-with, -times <value> | <file> [<scalars>]\n";
   cout << "      Multiply by constant value or data sequence read from specified file.\n";
   cout << "      Another name for this option is the '*' sign, see Examples.\n";
-  cout << "  -div, -divide-by, -over <value|file>\n";
+  cout << "  -div, -divide-by, -over <value> | <file> [<scalars>]\n";
   cout << "      Divide by constant value or data sequence read from specified file.\n";
   cout << "      When dividing by zero values in the input file, the result is NaN.\n";
   cout << "      Use :option:`-mask` with argument NaN and :option:`-pad` to replace\n";
   cout << "      these undefined values by a constant such as zero.\n";
   cout << "      Another name for this option is the '/' sign, see Examples.\n";
-  cout << "  -div-with-zero <value|file>\n";
+  cout << "  -div-with-zero <file> [<scalars>]\n";
   cout << "      Same as :option:`-div` but set result to zero instead of NaN in case of\n";
   cout << "      a division by zero due to a zero value in the specified file.\n";
   cout << "  -abs\n";
@@ -321,6 +323,8 @@ int main(int argc, char **argv)
   // Initial data values
   REQUIRES_POSARGS(1);
 
+  const char *input_name = POSARG(1);
+
   double *data = NULL;
   int datatype = MIRTK_VOXEL_DOUBLE;
   ImageAttributes attr;
@@ -331,9 +335,9 @@ int main(int argc, char **argv)
     if (OPTION("-scalars")) scalars_name = ARGUMENT;
   }
   vtkSmartPointer<vtkDataSet> dataset;
-  int n = Read(POSARG(1), data, &datatype, &attr, &dataset, scalars_name);
+  int n = Read(input_name, data, &datatype, &attr, &dataset, scalars_name);
 #else // MIRTK_Image_WITH_VTK
-  int n = Read(POSARG(1), data, &datatype, &attr);
+  int n = Read(input_name, data, &datatype, &attr);
 #endif // MIRTK_Image_WITH_VTK
 
   // Optional arguments
@@ -400,8 +404,28 @@ int main(int argc, char **argv)
       double c;
       do {
         const char *arg = ARGUMENT;
-        if (FromString(arg, c)) ops.push_back(UniquePtr<Op>(new Mask(c)));
-        else                    ops.push_back(UniquePtr<Op>(new Mask(arg)));
+        if (FromString(arg, c)) {
+          ops.push_back(UniquePtr<Op>(new Mask(c)));
+        } else {
+          const char *fname = arg;
+          const char *aname = nullptr;
+          if (HAS_ARGUMENT) {
+            aname = ARGUMENT;
+          } else if (dataset && dataset->GetPointData()->HasArray(fname)) {
+            aname = fname;
+            fname = input_name;
+          }
+          UniquePtr<Mask> op(new Mask(fname));
+          if (aname) {
+            #if MIRTK_Image_WITH_VTK
+              op->ArrayName(aname);
+            #else
+              FatalError("Cannot read point set files when build without VTK or wrong usage!");
+            #endif
+          }
+          ops.push_back(UniquePtr<Op>(op.release()));
+          break;
+        }
       } while (HAS_ARGUMENT);
     } else if (OPTION("-threshold-outside") || OPTION("-mask-outside")) {
       PARSE_ARGUMENT(a);
@@ -578,7 +602,23 @@ int main(int argc, char **argv)
       if (FromString(arg, c)) {
         ops.push_back(UniquePtr<Op>(new Add(c)));
       } else {
-        ops.push_back(UniquePtr<Op>(new Add(arg)));
+        const char *fname = arg;
+        const char *aname = nullptr;
+        if (HAS_ARGUMENT) {
+          aname = ARGUMENT;
+        } else if (dataset && dataset->GetPointData()->HasArray(fname)) {
+          aname = fname;
+          fname = input_name;
+        }
+        UniquePtr<Add> op(new Add(fname));
+        if (aname) {
+          #if MIRTK_Image_WITH_VTK
+            op->ArrayName(aname);
+          #else
+            FatalError("Cannot read scalars from point set file when build without VTK or wrong usage!");
+          #endif
+        }
+        ops.push_back(UniquePtr<Op>(op.release()));
       }
     } else if (OPTION("-sub") || OPTION("-subtract") || OPTION("-minus") || OPTION("-")) {
       const char *arg = ARGUMENT;
@@ -586,7 +626,23 @@ int main(int argc, char **argv)
       if (FromString(arg, c)) {
         ops.push_back(UniquePtr<Op>(new Sub(c)));
       } else {
-        ops.push_back(UniquePtr<Op>(new Sub(arg)));
+        const char *fname = arg;
+        const char *aname = nullptr;
+        if (HAS_ARGUMENT) {
+          aname = ARGUMENT;
+        } else if (dataset && dataset->GetPointData()->HasArray(fname)) {
+          aname = fname;
+          fname = input_name;
+        }
+        UniquePtr<Sub> op(new Sub(fname));
+        if (aname) {
+          #if MIRTK_Image_WITH_VTK
+            op->ArrayName(aname);
+          #else
+            FatalError("Cannot read point set files when build without VTK or wrong usage!");
+          #endif
+        }
+        ops.push_back(UniquePtr<Op>(op.release()));
       }
     } else if (OPTION("-mul") || OPTION("-multiply-by") || OPTION("-times") || OPTION("*")) {
       const char *arg = ARGUMENT;
@@ -594,7 +650,23 @@ int main(int argc, char **argv)
       if (FromString(arg, c)) {
         ops.push_back(UniquePtr<Op>(new Mul(c)));
       } else {
-        ops.push_back(UniquePtr<Op>(new Mul(arg)));
+        const char *fname = arg;
+        const char *aname = nullptr;
+        if (HAS_ARGUMENT) {
+          aname = ARGUMENT;
+        } else if (dataset && dataset->GetPointData()->HasArray(fname)) {
+          aname = fname;
+          fname = input_name;
+        }
+        UniquePtr<Mul> op(new Mul(fname));
+        if (aname) {
+          #if MIRTK_Image_WITH_VTK
+            op->ArrayName(aname);
+          #else
+            FatalError("Cannot read point set files when build without VTK or wrong usage!");
+          #endif
+        }
+        ops.push_back(UniquePtr<Op>(op.release()));
       }
     } else if (OPTION("-div") || OPTION("-divide-by") || OPTION("-over") || OPTION("/")) {
       const char *arg = ARGUMENT;
@@ -606,10 +678,42 @@ int main(int argc, char **argv)
         }
         ops.push_back(UniquePtr<Op>(new Div(c)));
       } else {
-        ops.push_back(UniquePtr<Op>(new Div(arg)));
+        const char *fname = arg;
+        const char *aname = nullptr;
+        if (HAS_ARGUMENT) {
+          aname = ARGUMENT;
+        } else if (dataset && dataset->GetPointData()->HasArray(fname)) {
+          aname = fname;
+          fname = input_name;
+        }
+        UniquePtr<Div> op(new Div(fname));
+        if (aname) {
+          #if MIRTK_Image_WITH_VTK
+            op->ArrayName(aname);
+          #else
+            FatalError("Cannot read point set files when build without VTK or wrong usage!");
+          #endif
+        }
+        ops.push_back(UniquePtr<Op>(op.release()));
       }
     } else if (OPTION("-div-with-zero")) {
-      ops.push_back(UniquePtr<Op>(new DivWithZero(ARGUMENT)));
+      const char *fname = ARGUMENT;
+      const char *aname = nullptr;
+      if (HAS_ARGUMENT) {
+        aname = ARGUMENT;
+      } else if (dataset && dataset->GetPointData()->HasArray(fname)) {
+        aname = fname;
+        fname = input_name;
+      }
+      UniquePtr<DivWithZero> op(new DivWithZero(fname));
+      if (aname) {
+        #if MIRTK_Image_WITH_VTK
+          op->ArrayName(aname);
+        #else
+          FatalError("Cannot read point set files when build without VTK or wrong usage!");
+        #endif
+      }
+      ops.push_back(UniquePtr<Op>(op.release()));
     } else if (OPTION("-abs")) {
       ops.push_back(UniquePtr<Op>(new Abs()));
     } else if (OPTION("-pow") || OPTION("-power")) {

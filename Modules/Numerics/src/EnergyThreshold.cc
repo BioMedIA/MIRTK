@@ -90,7 +90,7 @@ bool EnergyThreshold::Fulfilled(int, double, double value, const double *)
 void EnergyThreshold::Print(ostream &os) const
 {
   const ios::fmtflags fmt = os.flags();
-  os << "target value = " << fixed << setw(7) << _Threshold;
+  os << "target value = ";
   if (_Threshold != .0 && (abs(_Threshold) < 1.e-5 || abs(_Threshold) >= 1.e5)) {
     os << scientific << setprecision(5) << setw(8) << _Threshold; // e-0x
   } else os << fixed << setprecision(5) << setw(8) << _Threshold;
