@@ -78,7 +78,7 @@ int Read(const char *name, double *&data, int *dtype, ImageAttributes *attr)
         reader->Update();
         vtkDataSet *output = reader->GetOutput();
         if (output) {
-          if (scalar_name) {
+          if (scalar_name && scalar_name[0] != '\0') {
             scalars = output->GetPointData()->GetArray(scalar_name);
           } else {
             scalars = output->GetPointData()->GetScalars();
@@ -92,7 +92,7 @@ int Read(const char *name, double *&data, int *dtype, ImageAttributes *attr)
         reader->Update();
         vtkDataSet *output = vtkDataSet::SafeDownCast(reader->GetOutput());
         if (output) {
-          if (scalar_name) {
+          if (scalar_name && scalar_name[0] != '\0') {
             scalars = output->GetPointData()->GetArray(scalar_name);
           } else {
             scalars = output->GetPointData()->GetScalars();
@@ -111,7 +111,7 @@ int Read(const char *name, double *&data, int *dtype, ImageAttributes *attr)
         cerr << "VTK dataset has empty scalar point data!" << endl;
         exit(1);
       }
-      data = new double[n];
+      data = Allocate<double>(n);
       double *p = data;
       for (vtkIdType i = 0; i < scalars->GetNumberOfTuples(); ++i) {
         for (int j = 0; j < scalars->GetNumberOfComponents(); ++j, ++p) {
@@ -130,7 +130,7 @@ int Read(const char *name, double *&data, int *dtype, ImageAttributes *attr)
       if (attr) *attr = image->Attributes();
       if (dtype) *dtype = image->GetDataType();
       n = image->NumberOfVoxels();
-      data = new double[n];
+      data = Allocate<double>(n);
       for (int i = 0; i < n; ++i) data[i] = image->GetAsDouble(i);
     } break;
     default:

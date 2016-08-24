@@ -191,6 +191,11 @@ class ElementWiseBinaryOp : public Op
   /// File path of second dataset
   mirtkPublicAttributeMacro(string, FileName);
 
+#if MIRTK_Image_WITH_VTK
+  /// Name of input point data array
+  mirtkPublicAttributeMacro(string, ArrayName);
+#endif
+
 private:
 
   double *_Data;
@@ -200,10 +205,24 @@ private:
 protected:
 
   /// Constructor
-  ElementWiseBinaryOp(double value) : _Constant(value) {}
+  ElementWiseBinaryOp(double value)
+  :
+    _Constant(value), _Other(nullptr)
+  {}
 
   /// Constructor
-  ElementWiseBinaryOp(const char *fname) : _Constant(.0), _FileName(fname) {}
+  ElementWiseBinaryOp(const char *fname)
+  :
+    _Constant(.0), _FileName(fname), _Other(nullptr)
+  {}
+
+#if MIRTK_Image_WITH_VTK
+  /// Constructor
+  ElementWiseBinaryOp(const char *fname, const char *aname)
+  :
+    _Constant(.0), _FileName(fname), _ArrayName(aname ? aname : ""), _Other(nullptr)
+  {}
+#endif
 
 public:
 
@@ -246,20 +265,32 @@ public:
   /// Transform data value and/or mask it by setting mask = false
   virtual double Op(double value, double, bool &) const = 0;
 
-  /// Process given data (not thread-safe!)
-  virtual void Process(int n, double *data, bool *mask = NULL)
+protected:
+
+  /// Initialize processing and read data from file
+  void Initialize(int n, double *data, bool *mask = nullptr)
   {
-    _Data     = data;
-    _Mask     = mask;
-    _Other    = NULL;
+    _Data = data;
+    _Mask = mask;
+    Deallocate(_Other);
     if (!_FileName.empty()) {
-      if (Read(_FileName.c_str(), _Other) != n) {
+      if (n !=
+      #if MIRTK_Image_WITH_VTK
+        Read(_FileName.c_str(), _Other, nullptr, nullptr, nullptr, _ArrayName.c_str())
+      #else
+        Read(_FileName.c_str(), _Other)
+      #endif
+      ) {
         cerr << "Input file " << _FileName << " has different number of data points!" << endl;
         exit(1);
       }
     }
-    // MUST be called in the base class which defines Op!
-    //parallel_for(blocked_range<int>(0, n), *this);
+  }
+
+  /// Finalize processing and release temporary memory
+  void Finalize()
+  {
+    Deallocate(_Other);
   }
 };
 
@@ -449,8 +480,9 @@ public:
   /// Process given data (not thread-safe!)
   virtual void Process(int n, double *data, bool *mask = NULL)
   {
-    ElementWiseBinaryOp::Process(n, data, mask);
+    Initialize(n, data, mask);
     parallel_for(blocked_range<int>(0, n), *this);
+    Finalize();
   }
 };
 
@@ -475,8 +507,9 @@ public:
   /// Process given data (not thread-safe!)
   virtual void Process(int n, double *data, bool *mask = NULL)
   {
-    ElementWiseBinaryOp::Process(n, data, mask);
+    Initialize(n, data, mask);
     parallel_for(blocked_range<int>(0, n), *this);
+    Finalize();
   }
 };
 
@@ -501,8 +534,9 @@ public:
   /// Process given data (not thread-safe!)
   virtual void Process(int n, double *data, bool *mask = NULL)
   {
-    ElementWiseBinaryOp::Process(n, data, mask);
+    Initialize(n, data, mask);
     parallel_for(blocked_range<int>(0, n), *this);
+    Finalize();
   }
 };
 
@@ -527,8 +561,9 @@ public:
   /// Process given data (not thread-safe!)
   virtual void Process(int n, double *data, bool *mask = NULL)
   {
-    ElementWiseBinaryOp::Process(n, data, mask);
+    Initialize(n, data, mask);
     parallel_for(blocked_range<int>(0, n), *this);
+    Finalize();
   }
 };
 
@@ -550,8 +585,9 @@ public:
   /// Process given data (not thread-safe!)
   virtual void Process(int n, double *data, bool *mask = NULL)
   {
-    ElementWiseBinaryOp::Process(n, data, mask);
+    Initialize(n, data, mask);
     parallel_for(blocked_range<int>(0, n), *this);
+    Finalize();
   }
 };
 
@@ -580,8 +616,9 @@ public:
   /// Process given data (not thread-safe!)
   virtual void Process(int n, double *data, bool *mask = NULL)
   {
-    ElementWiseBinaryOp::Process(n, data, mask);
+    Initialize(n, data, mask);
     parallel_for(blocked_range<int>(0, n), *this);
+    Finalize();
   }
 };
 
