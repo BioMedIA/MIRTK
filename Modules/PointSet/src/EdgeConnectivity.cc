@@ -90,6 +90,8 @@ struct ComputeEdgeConnectivity
 
 // -----------------------------------------------------------------------------
 /// Determine edge-connectivity of nodes
+///
+/// FIXME: Use geodesic distance instead of Euclidean distance.
 struct ComputeEdgeConnectivityWithinRadius
 {
   typedef GenericSparseMatrix<int>::Entries Entries;
