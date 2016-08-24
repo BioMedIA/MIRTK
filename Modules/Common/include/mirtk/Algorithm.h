@@ -130,18 +130,20 @@ void PartialSort(Array<T> &values, int n, Compare comp)
 /// Sort values of array such that values before the n-th element are
 /// smaller than this element and elements after are greater or equal
 template <class T>
-void NthElement(Array<T> &values, int n)
+T &NthElement(Array<T> &values, int n)
 {
   nth_element(values.begin(), values.begin() + n, values.end());
+  return values[n];
 }
 
 /// Sort values of array such that values before the n-th element are
 /// smaller than this element and elements after are greater or equal
 /// according to a custom comparator functor
 template <class T, class Compare>
-void NthElement(Array<T> &values, int n, Compare comp)
+T &NthElement(Array<T> &values, int n, Compare comp)
 {
   nth_element(values.begin(), values.begin() + n, values.end(), comp);
+  return values[n];
 }
 
 /// Get permutation of array indices corresponding to sorted order of values
