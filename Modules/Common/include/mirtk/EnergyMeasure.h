@@ -68,6 +68,7 @@ enum EnergyMeasure
 
     EM_BalloonForce,               ///< Balloon/inflation force
     EM_ImageEdgeForce,             ///< Image edge force
+    EM_ImageEdgeDistance,          ///< Image edge distance
     EM_ImplicitSurfaceDistance,    ///< Implicit surface distance force
     EM_ImplicitSurfaceSpringForce, ///< Implicit surface spring force
 
@@ -143,6 +144,7 @@ inline string ToString(const EnergyMeasure &value, int w, char c, bool left)
     // External point set forces
     case EM_BalloonForce:               str = "BalloonForce"; break;
     case EM_ImageEdgeForce:             str = "ImageEdgeForce"; break;
+    case EM_ImageEdgeDistance:          str = "ImageEdgeDistance"; break;
     case EM_ImplicitSurfaceDistance:    str = "ImplicitSurfaceDistance"; break;
     case EM_ImplicitSurfaceSpringForce: str = "ImplicitSurfaceSpringForce"; break;
 
@@ -212,6 +214,7 @@ inline string ToPrettyString(const EnergyMeasure &value, int w = 0, char c = ' '
     // External point set forces
     case EM_BalloonForce:               str = "Balloon force"; break;
     case EM_ImageEdgeForce:             str = "Image edge force"; break;
+    case EM_ImageEdgeDistance:          str = "Image edge distance"; break;
     case EM_ImplicitSurfaceDistance:    str = "Implicit surface distance"; break;
     case EM_ImplicitSurfaceSpringForce: str = "Implicit surface spring force"; break;
 
@@ -285,7 +288,8 @@ inline bool FromString(const char *str, EnergyMeasure &value)
   // ---------------------------------------------------------------------------
   // Alternative names for external point set forces
   if (value == EM_Unknown) {
-    if (lstr == "edge force" || lstr == "edgeforce") value = EM_ImageEdgeForce;
+    if (lstr == "edge force"    || lstr == "edgeforce")    value = EM_ImageEdgeForce;
+    if (lstr == "edge distance" || lstr == "edgedistance") value = EM_ImageEdgeDistance;
   }
 
   // ---------------------------------------------------------------------------
