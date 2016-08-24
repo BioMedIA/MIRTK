@@ -34,6 +34,7 @@ set(HEADERS
   FuzzyCorrespondence.h
   ImplicitSurfaceUtils.h
   Stripper.h
+  MedianMeshFilter.h
   MeshFilter.h
   MeshSmoothing.h
   PointCorrespondence.h
@@ -68,6 +69,7 @@ set(SOURCES
   FuzzyCorrespondenceUtils.h
   ImplicitSurfaceUtils.cc
   Stripper.cc
+  MedianMeshFilter.cc
   MeshFilter.cc
   MeshSmoothing.cc
   PointCorrespondence.cc
