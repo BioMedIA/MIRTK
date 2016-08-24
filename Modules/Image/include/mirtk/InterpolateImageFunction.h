@@ -150,6 +150,9 @@ public:
   /// Convert world coordinates (in mm) to image location (in pixels)
   void WorldToImage(Point &) const;
 
+  /// Convert world coordinates vector (in mm) to image vector (in pixels)
+  void WorldToImage(Vector3 &) const;
+
   /// Convert image location (in pixels) to world coordinates (in mm)
   void ImageToWorld(double &, double &) const;
 
@@ -158,6 +161,12 @@ public:
 
   /// Convert image location (in pixels) to world coordinates (in mm)
   void ImageToWorld(Point &) const;
+
+  /// Convert image vector (in pixels) to world coordinates (in mm)
+  void ImageToWorld(Vector3 &) const;
+
+  // ---------------------------------------------------------------------------
+  // Domain checks
 
   /// Returns the image domain for which this image interpolation function
   /// can be used without handling any form of boundary conditions
@@ -780,6 +789,12 @@ inline void InterpolateImageFunction::WorldToImage(Point &p) const
 }
 
 // ----------------------------------------------------------------------------
+inline void InterpolateImageFunction::WorldToImage(Vector3 &v) const
+{
+  this->_Input->WorldToImage(v);
+}
+
+// ----------------------------------------------------------------------------
 inline void InterpolateImageFunction::ImageToWorld(double &x, double &y) const
 {
   this->_Input->ImageToWorld(x, y);
@@ -796,6 +811,16 @@ inline void InterpolateImageFunction::ImageToWorld(Point &p) const
 {
   this->_Input->ImageToWorld(p);
 }
+
+// ----------------------------------------------------------------------------
+inline void InterpolateImageFunction::ImageToWorld(Vector3 &v) const
+{
+  this->_Input->ImageToWorld(v);
+}
+
+// =============================================================================
+// Domain checks
+// =============================================================================
 
 // -----------------------------------------------------------------------------
 inline void InterpolateImageFunction::Inside(double &x1, double &y1,
