@@ -139,7 +139,34 @@ public:
   virtual void Initialize(bool coeff);
 
   // ---------------------------------------------------------------------------
-  // Domain checks
+  // Lattice
+
+  /// Lattice attributes
+  const ImageAttributes &Attributes() const;
+
+  /// Image size along x axis
+  int X() const;
+
+  /// Image size along y axis
+  int Y() const;
+
+  /// Image size along z axis
+  int Z() const;
+
+  /// Image size along t axis
+  int T() const;
+
+  /// Image spacing along x axis
+  double XSize() const;
+
+  /// Image spacing along y axis
+  double YSize() const;
+
+  /// Image spacing along z axis
+  double ZSize() const;
+
+  /// Image spacing along t axis
+  double TSize() const;
 
   /// Convert world coordinates (in mm) to image location (in pixels)
   void WorldToImage(double &, double &) const;
@@ -767,8 +794,62 @@ inline enum ExtrapolationMode InterpolateImageFunction::ExtrapolationMode() cons
 }
 
 // =============================================================================
-// Domain checks
+// Image attributes
 // =============================================================================
+
+// -----------------------------------------------------------------------------
+inline const ImageAttributes &InterpolateImageFunction::Attributes() const
+{
+  return this->_Input->Attributes();
+}
+
+// -----------------------------------------------------------------------------
+inline int InterpolateImageFunction::X() const
+{
+  return this->_Input->X();
+}
+
+// -----------------------------------------------------------------------------
+inline int InterpolateImageFunction::Y() const
+{
+  return this->_Input->Y();
+}
+
+// -----------------------------------------------------------------------------
+inline int InterpolateImageFunction::Z() const
+{
+  return this->_Input->Z();
+}
+
+// -----------------------------------------------------------------------------
+inline int InterpolateImageFunction::T() const
+{
+  return this->_Input->T();
+}
+
+// -----------------------------------------------------------------------------
+inline double InterpolateImageFunction::XSize() const
+{
+  return this->_Input->XSize();
+}
+
+// -----------------------------------------------------------------------------
+inline double InterpolateImageFunction::YSize() const
+{
+  return this->_Input->YSize();
+}
+
+// -----------------------------------------------------------------------------
+inline double InterpolateImageFunction::ZSize() const
+{
+  return this->_Input->ZSize();
+}
+
+// -----------------------------------------------------------------------------
+inline double InterpolateImageFunction::TSize() const
+{
+  return this->_Input->TSize();
+}
 
 // ----------------------------------------------------------------------------
 inline void InterpolateImageFunction::WorldToImage(double &x, double &y) const

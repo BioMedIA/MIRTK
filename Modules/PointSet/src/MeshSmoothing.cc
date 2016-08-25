@@ -227,6 +227,7 @@ struct SmoothData
   vtkPoints        *_OutputPoints;
   const DataArrays *_InputArrays;
   const DataArrays *_OutputArrays;
+  const Array<int> *_AttributeTypes;
   TKernel           _WeightFunction;
   double            _Lambda;
   bool              _InclNodeItself;
@@ -281,7 +282,7 @@ struct SmoothData
         }
         if (smooth_data) {
           for (i = 0; i < _InputArrays->size(); ++i) {
-            ia = (*_InputArrays )[i];
+            ia = (*_InputArrays)[i];
             for (j = 0, sum = data[i]; j < ia->GetNumberOfComponents(); ++j, ++sum) {
               (*sum) = w * ia->GetComponent(ptId, j);
             }
@@ -291,7 +292,7 @@ struct SmoothData
         norm = p[0] = p[1] = p[2] = .0;
         if (smooth_data) {
           for (i = 0; i < _InputArrays->size(); ++i) {
-            ia = (*_InputArrays )[i];
+            ia = (*_InputArrays)[i];
             memset(data[i], 0, ia->GetNumberOfComponents() * sizeof(double));
           }
         }
@@ -309,11 +310,13 @@ struct SmoothData
         }
         if (smooth_data) {
           for (i = 0; i < _InputArrays->size(); ++i) {
-            ia  = (*_InputArrays )[i];
+            ia  = (*_InputArrays)[i];
             sum = data[i];
             if (ia->GetNumberOfComponents() == 3) {
               ia->GetTuple(adjPtId, v);
-              if (vtkMath::Dot(sum, v) < .0) {
+              if (((*_AttributeTypes)[i] == vtkDataSetAttributes::VECTORS ||
+                   (*_AttributeTypes)[i] == vtkDataSetAttributes::NORMALS)
+                  && vtkMath::Dot(sum, v) < .0) {
                 vtkMath::MultiplyScalar(v, -1.0);
               }
               vtkMath::MultiplyScalar(v, w);
@@ -372,6 +375,7 @@ struct SmoothData
                   vtkPoints        *output_points,
                   const DataArrays &input_arrays,
                   const DataArrays &output_arrays,
+                  const Array<int> &attr_types,
                   TKernel           kernel,
                   double            lambda,
                   bool              incl_node)
@@ -383,6 +387,7 @@ struct SmoothData
     body._OutputPoints   = output_points;
     body._InputArrays    = &input_arrays;
     body._OutputArrays   = &output_arrays;
+    body._AttributeTypes = &attr_types;
     body._WeightFunction = kernel;
     body._Lambda         = lambda;
     body._InclNodeItself = incl_node;
@@ -448,7 +453,7 @@ struct SmoothDataMagnitude
           p[2] = w * p0[2];
         }
         for (i = 0; i < _InputArrays->size(); ++i) {
-          ia = (*_InputArrays )[i];
+          ia = (*_InputArrays)[i];
           for (j = 0, sum2 = .0; j < ia->GetNumberOfComponents(); ++j) {
             val   = ia->GetComponent(ptId, j);
             sum2 += val * val;
@@ -471,7 +476,7 @@ struct SmoothDataMagnitude
           p[2] += w * p1[2];
         }
         for (i = 0; i < _InputArrays->size(); ++i) {
-          ia = (*_InputArrays )[i];
+          ia = (*_InputArrays)[i];
           for (j = 0, sum2 = .0; j < ia->GetNumberOfComponents(); ++j) {
             val   = ia->GetComponent(adjPtId, j);
             sum2 += val * val;
@@ -584,7 +589,7 @@ struct SmoothSignedDataMagnitude
 
       // Copy data vectors at current point
       for (i = 0; i < _InputArrays->size(); ++i) {
-        ia = (*_InputArrays )[i];
+        ia = (*_InputArrays)[i];
         for (j = 0; j < ia->GetNumberOfComponents(); ++j) {
           dir[i][j] = ia->GetComponent(ptId, j);
         }
@@ -599,7 +604,7 @@ struct SmoothSignedDataMagnitude
           p[2] = w * p0[2];
         }
         for (i = 0; i < _InputArrays->size(); ++i) {
-          ia  = (*_InputArrays )[i];
+          ia  = (*_InputArrays)[i];
           for (j = 0, sum2 = .0; j < ia->GetNumberOfComponents(); ++j) {
             val   = ia->GetComponent(ptId, j);
             sum2 += val * val;
@@ -898,6 +903,7 @@ void MeshSmoothing::CopyAttributes(const MeshSmoothing &other)
   _SmoothMagnitude       = other._SmoothMagnitude;
   _SignedSmoothing       = other._SignedSmoothing;
   _SmoothArrays          = other._SmoothArrays;
+  _AttributeTypes        = other._AttributeTypes;
   _Verbose               = other._Verbose;
 
   _InputArrays .clear();
@@ -1004,16 +1010,24 @@ void MeshSmoothing::Initialize()
 
   // Get input point data arrays
   _InputArrays.resize(_SmoothArrays.size());
+  _AttributeTypes.resize(_SmoothArrays.size(), -1);
   for (size_t i = 0; i < _SmoothArrays.size(); ++i) {
+    int idx, attr;
     if (_SmoothArrays[i].empty()) {
       cerr << this->NameOfType() << "::Initialize: Empty input point data array name" << endl;
       exit(1);
     }
-    _InputArrays[i] = _Input->GetPointData()->GetArray(_SmoothArrays[i].c_str());
+    _InputArrays[i] = _Input->GetPointData()->GetArray(_SmoothArrays[i].c_str(), idx);
     if (_InputArrays[i] == NULL) {
       cerr << this->NameOfType() << "::Initialize: Missing input point data array named " << _SmoothArrays[i] << endl;
       exit(1);
     }
+    attr = _AttributeTypes[i];
+    if (attr < 0) {
+      attr = _Input->GetPointData()->IsArrayAnAttribute(idx);
+      if (attr < 0) attr = vtkDataSetAttributes::SCALARS;
+    }
+    _AttributeTypes[i] = attr;
   }
 
   // Allocate output points
@@ -1036,10 +1050,11 @@ void MeshSmoothing::Initialize()
 // -----------------------------------------------------------------------------
 void MeshSmoothing::Execute()
 {
-  vtkSmartPointer<vtkPoints> ip = _Input->GetPoints();
-  DataArrays                 ia = _InputArrays;
-  vtkPoints * const          op = _SmoothPoints ? _Output->GetPoints() : NULL;
-  const DataArrays          &oa = _OutputArrays;
+  vtkSmartPointer<vtkPoints> ip   = _Input->GetPoints();
+  DataArrays                 ia   = _InputArrays;
+  vtkPoints * const          op   = _SmoothPoints ? _Output->GetPoints() : NULL;
+  const DataArrays          &oa   = _OutputArrays;
+  const Array<int>          &attr = _AttributeTypes;
   const bool incl_node = !_AdjacentValuesOnly;
 
   // Gaussian standard deviation
@@ -1093,7 +1108,7 @@ void MeshSmoothing::Execute()
       case Combinatorial: {
         typedef UniformWeightKernel Kernel;
         if (_SmoothArrays.empty() || (!_SmoothMagnitude && !_SignedSmoothing)) {
-          SmoothData<Kernel>::Run(_Mask, _EdgeTable.get(), ip, op, ia, oa, Kernel(), lambda, incl_node);
+          SmoothData<Kernel>::Run(_Mask, _EdgeTable.get(), ip, op, ia, oa, attr, Kernel(), lambda, incl_node);
         } else if (_SmoothMagnitude && !_SignedSmoothing) {
           SmoothDataMagnitude<Kernel>::Run(_Mask, _EdgeTable.get(), ip, op, ia, oa, Kernel(), lambda, incl_node);
         } else if (_SmoothMagnitude && _SignedSmoothing) {
@@ -1105,7 +1120,7 @@ void MeshSmoothing::Execute()
       case InverseDistance: {
         typedef InverseDistanceKernel Kernel;
         if (_SmoothArrays.empty() || (!_SmoothMagnitude && !_SignedSmoothing)) {
-          SmoothData<Kernel>::Run(_Mask, _EdgeTable.get(), ip, op, ia, oa, Kernel(_Sigma), lambda, incl_node);
+          SmoothData<Kernel>::Run(_Mask, _EdgeTable.get(), ip, op, ia, oa, attr, Kernel(_Sigma), lambda, incl_node);
         } else if (_SmoothMagnitude && !_SignedSmoothing) {
           SmoothDataMagnitude<Kernel>::Run(_Mask, _EdgeTable.get(), ip, op, ia, oa, Kernel(_Sigma), lambda, incl_node);
         } else if (_SmoothMagnitude && _SignedSmoothing) {
@@ -1118,7 +1133,7 @@ void MeshSmoothing::Execute()
       case Gaussian: {
         typedef GaussianKernel Kernel;
         if (_SmoothArrays.empty() || (!_SmoothMagnitude && !_SignedSmoothing)) {
-          SmoothData<Kernel>::Run(_Mask, _EdgeTable.get(), ip, op, ia, oa, Kernel(sigma1), lambda, incl_node);
+          SmoothData<Kernel>::Run(_Mask, _EdgeTable.get(), ip, op, ia, oa, attr, Kernel(sigma1), lambda, incl_node);
         } else if (_SmoothMagnitude && !_SignedSmoothing) {
           SmoothDataMagnitude<Kernel>::Run(_Mask, _EdgeTable.get(), ip, op, ia, oa, Kernel(sigma1), lambda, incl_node);
         } else if (_SmoothMagnitude && _SignedSmoothing) {
@@ -1133,7 +1148,7 @@ void MeshSmoothing::Execute()
         if (!_GeometryTensorName.empty()) {
           Kernel kernel(pd->GetArray(_GeometryTensorName.c_str()), sigma1, sigma2);
           if (_SmoothArrays.empty() || (!_SmoothMagnitude && !_SignedSmoothing)) {
-            SmoothData<Kernel>::Run(_Mask, _EdgeTable.get(), ip, op, ia, oa, kernel, lambda, incl_node);
+            SmoothData<Kernel>::Run(_Mask, _EdgeTable.get(), ip, op, ia, oa, attr, kernel, lambda, incl_node);
           } else if (_SmoothMagnitude && !_SignedSmoothing) {
             SmoothDataMagnitude<Kernel>::Run(_Mask, _EdgeTable.get(), ip, op, ia, oa, kernel, lambda, incl_node);
           } else if (_SmoothMagnitude && _SignedSmoothing) {
@@ -1147,7 +1162,7 @@ void MeshSmoothing::Execute()
                         pd->GetArray(_MaximumDirectionName.c_str()),
                         sigma1, sigma2);
           if (_SmoothArrays.empty() || (!_SmoothMagnitude && !_SignedSmoothing)) {
-            SmoothData<Kernel>::Run(_Mask, _EdgeTable.get(), ip, op, ia, oa, kernel, lambda, incl_node);
+            SmoothData<Kernel>::Run(_Mask, _EdgeTable.get(), ip, op, ia, oa, attr, kernel, lambda, incl_node);
           } else if (_SmoothMagnitude && !_SignedSmoothing) {
             SmoothDataMagnitude<Kernel>::Run(_Mask, _EdgeTable.get(), ip, op, ia, oa, kernel, lambda, incl_node);
           } else if (_SmoothMagnitude && _SignedSmoothing) {

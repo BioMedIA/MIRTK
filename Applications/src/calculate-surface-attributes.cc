@@ -303,12 +303,12 @@ int main(int argc, char *argv[])
       if (mean)       smoother.SmoothArray(mean_name);
       if (gauss)      smoother.SmoothArray(gauss_name);
       if (curvedness) smoother.SmoothArray(curvedness_name);
-      if (e1)         smoother.SmoothArray(e1_name);
-      if (e2)         smoother.SmoothArray(e2_name);
+      if (e1)         smoother.SmoothArray(e1_name, vtkDataSetAttributes::VECTORS);
+      if (e2)         smoother.SmoothArray(e2_name, vtkDataSetAttributes::VECTORS);
       smoother.NumberOfIterations(smooth_iterations);
       smoother.Sigma(-smooth_sigma); // negative: multiple of avg. edge length
       smoother.Weighting(weighting);
-      if (weighting ==  MeshSmoothing::AnisotropicGaussian){
+      if (weighting == MeshSmoothing::AnisotropicGaussian) {
         if (smooth_along_tensor) {
           smoother.GeometryTensorName(tensor_name);
         } else {

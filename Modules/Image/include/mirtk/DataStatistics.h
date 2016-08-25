@@ -1,8 +1,8 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2013-2015 Imperial College London
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2013-2016 Imperial College London
+ * Copyright 2013-2016 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,8 +29,12 @@
 #include "mirtk/Algorithm.h" // partial_sort
 
 
-namespace mirtk { namespace data { namespace statistic {
+namespace mirtk { namespace data {
 
+
+// =============================================================================
+// Base class
+// =============================================================================
 
 // -----------------------------------------------------------------------------
 /// Base class of all data statistics
@@ -51,13 +55,19 @@ class Statistic : public Op
 protected:
 
   /// Constructor
-  Statistic(const char *desc = NULL, const Array<string> *names = NULL)
+  Statistic(int nvalues, const char *desc = nullptr, const Array<string> *names = nullptr)
   :
     _Hidden(false),
-    _Description(desc ? desc : "Unknown statistic"),
-    _Values(1, numeric_limits<double>::quiet_NaN())
+    _Description(desc ? desc : "Unknown statistic")
   {
-    if (names) _Names = *names;
+    if (nvalues <= 0) nvalues = 1;
+    _Names .resize(nvalues);
+    _Values.resize(nvalues, NaN);
+    if (names) {
+      for (int i = 0; i < nvalues; ++i) {
+        _Names[i] = names->at(i);
+      }
+    }
   }
 
   /// Set value of statistic (first entry of _Values vector)
@@ -85,15 +95,15 @@ public:
   }
 
   /// Process given data
-  virtual void Process(int n, double *data, bool *mask = NULL)
+  virtual void Process(int n, double *data, bool *mask = nullptr)
   {
-    this->Evaluate(n, data, mask);
+    this->Evaluate(_Values, n, data, mask);
   }
 
 #if MIRTK_Image_WITH_VTK
 
   /// Process given vtkDataArray
-  virtual void Process(vtkDataArray *data, bool *mask = NULL)
+  virtual void Process(vtkDataArray *data, bool *mask = nullptr)
   {
     const int n = static_cast<int>(data->GetNumberOfTuples() * data->GetNumberOfComponents());
     if (data->GetDataType() == VTK_DOUBLE) {
@@ -114,7 +124,7 @@ public:
 #endif // MIRTK_Image_WITH_VTK
 
   /// Evaluate statistic for given data
-  virtual void Evaluate(int, const double *, const bool * = NULL) = 0;
+  virtual void Evaluate(Array<double> &, int, const double *, const bool * = nullptr) const = 0;
 
   /// Print column names of statistic values to output stream
   virtual void PrintHeader(ostream &os = cout, const char *delimiter = ",") const
@@ -160,40 +170,51 @@ public:
 
 };
 
+
+// =============================================================================
+// Data statistics
+// =============================================================================
+
+namespace statistic {
+
+
 // -----------------------------------------------------------------------------
 /// Get minimum value
 class Min : public Statistic
 {
 public:
 
-  Min(const char *desc = "Minimum", const Array<string> *names = NULL)
+  Min(const char *desc = "Minimum", const Array<string> *names = nullptr)
   :
-    Statistic(desc, names)
+    Statistic(1, desc, names)
   {
-    if (!names) {
-      _Names.resize(1);
-      _Names[0] = "Min";
-    }
+    if (!names) _Names[0] = "Min";
   }
 
   template <class T>
-  static double Calculate(int n, const T *data, const bool *mask = NULL)
+  static double Calculate(int n, const T *data, const bool *mask = nullptr)
   {
-    int m = 0;
-    double d, v = numeric_limits<double>::infinity();
-    for (int i = 0; i < n; ++i) {
-      if (!mask || mask[i]) {
-        ++m;
+    double d, v = inf;
+    if (mask) {
+      for (int i = 0; i < n; ++i) {
+        if (mask[i]) {
+          d = static_cast<double>(data[i]);
+          if (d < v) v = d;
+        }
+      }
+    } else {
+      for (int i = 0; i < n; ++i) {
         d = static_cast<double>(data[i]);
         if (d < v) v = d;
       }
     }
-    return (m > 0 ? v : numeric_limits<double>::quiet_NaN());
+    return (IsInf(v) ? NaN : v);
   }
 
-  void Evaluate(int n, const double *data, const bool *mask = NULL)
+  void Evaluate(Array<double> &values, int n, const double *data, const bool *mask = nullptr) const
   {
-    Value(Calculate(n, data, mask));
+    values.resize(1);
+    values[0] = Calculate(n, data, mask);
   }
 
   // Add support for vtkDataArray argument
@@ -206,34 +227,37 @@ class MinAbs : public Statistic
 {
 public:
 
-  MinAbs(const char *desc = "Minimum absolute value", const Array<string> *names = NULL)
+  MinAbs(const char *desc = "Minimum absolute value", const Array<string> *names = nullptr)
   :
-    Statistic(desc, names)
+    Statistic(1, desc, names)
   {
-    if (!names) {
-      _Names.resize(1);
-      _Names[0] = "Min abs value";
-    }
+    if (!names) _Names[0] = "Min abs value";
   }
 
   template <class T>
-  static double Calculate(int n, const T *data, const bool *mask = NULL)
+  static double Calculate(int n, const T *data, const bool *mask = nullptr)
   {
-    int m = 0;
-    double d, v = numeric_limits<double>::infinity();
-    for (int i = 0; i < n; ++i) {
-      if (!mask || mask[i]) {
-        ++m;
+    double d, v = inf;
+    if (mask) {
+      for (int i = 0; i < n; ++i) {
+        if (mask[i]) {
+          d = abs(static_cast<double>(data[i]));
+          if (d < v) v = d;
+        }
+      }
+    } else {
+      for (int i = 0; i < n; ++i) {
         d = abs(static_cast<double>(data[i]));
         if (d < v) v = d;
       }
     }
-    return (m > 0 ? v : numeric_limits<double>::quiet_NaN());
+    return (IsInf(v) ? NaN : v);
   }
 
-  void Evaluate(int n, const double *data, const bool *mask = NULL)
+  void Evaluate(Array<double> &values, int n, const double *data, const bool *mask = nullptr) const
   {
-    Value(Calculate(n, data, mask));
+    values.resize(1);
+    values[0] = Calculate(n, data, mask);
   }
 
   // Add support for vtkDataArray argument
@@ -246,34 +270,37 @@ class Max : public Statistic
 {
 public:
 
-  Max(const char *desc = "Maximum", const Array<string> *names = NULL)
+  Max(const char *desc = "Maximum", const Array<string> *names = nullptr)
   :
-    Statistic(desc, names)
+    Statistic(1, desc, names)
   {
-    if (!names) {
-      _Names.resize(1);
-      _Names[0] = "Max";
-    }
+    if (!names) _Names[0] = "Max";
   }
 
   template <class T>
-  static double Calculate(int n, const T *data, const bool *mask = NULL)
+  static double Calculate(int n, const T *data, const bool *mask = nullptr)
   {
-    int m = 0;
-    double d, v = -numeric_limits<double>::infinity();
-    for (int i = 0; i < n; ++i) {
-      if (!mask || mask[i]) {
-        ++m;
+    double d, v = -inf;
+    if (mask) {
+      for (int i = 0; i < n; ++i) {
+        if (mask[i]) {
+          d = static_cast<double>(data[i]);
+          if (d > v) v = d;
+        }
+      }
+    } else {
+      for (int i = 0; i < n; ++i) {
         d = static_cast<double>(data[i]);
         if (d > v) v = d;
       }
     }
-    return (m > 0 ? v : numeric_limits<double>::quiet_NaN());
+    return (IsInf(v) ? NaN : v);
   }
 
-  void Evaluate(int n, const double *data, const bool *mask = NULL)
+  void Evaluate(Array<double> &values, int n, const double *data, const bool *mask = nullptr) const
   {
-    Value(Calculate(n, data, mask));
+    values.resize(1);
+    values[0] = Calculate(n, data, mask);
   }
 
   // Add support for vtkDataArray argument
@@ -286,34 +313,37 @@ class MaxAbs : public Statistic
 {
 public:
 
-  MaxAbs(const char *desc = "Maximum absolute value", const Array<string> *names = NULL)
+  MaxAbs(const char *desc = "Maximum absolute value", const Array<string> *names = nullptr)
   :
-    Statistic(desc, names)
+    Statistic(1, desc, names)
   {
-    if (!names) {
-      _Names.resize(1);
-      _Names[0] = "Max abs value";
-    }
+    if (!names) _Names[0] = "Max abs value";
   }
 
   template <class T>
-  static double Calculate(int n, const T *data, const bool *mask = NULL)
+  static double Calculate(int n, const T *data, const bool *mask = nullptr)
   {
-    int m = 0;
-    double d, v = -numeric_limits<double>::infinity();
-    for (int i = 0; i < n; ++i) {
-      if (!mask || mask[i]) {
-        ++m;
+    double d, v = -inf;
+    if (mask) {
+      for (int i = 0; i < n; ++i) {
+        if (mask[i]) {
+          d = abs(static_cast<double>(data[i]));
+          if (d > v) v = d;
+        }
+      }
+    } else {
+      for (int i = 0; i < n; ++i) {
         d = abs(static_cast<double>(data[i]));
         if (d > v) v = d;
       }
     }
-    return (m > 0 ? v : numeric_limits<double>::quiet_NaN());
+    return (IsInf(v) ? NaN : v);
   }
 
-  void Evaluate(int n, const double *data, const bool *mask = NULL)
+  void Evaluate(Array<double> &values, int n, const double *data, const bool *mask = nullptr) const
   {
-    Value(Calculate(n, data, mask));
+    values.resize(1);
+    values[0] = Calculate(n, data, mask);
   }
 
   // Add support for vtkDataArray argument
@@ -326,39 +356,46 @@ class Extrema : public Statistic
 {
 public:
 
-  Extrema(const char *desc = "Extrema", const Array<string> *names = NULL)
+  Extrema(const char *desc = "Extrema", const Array<string> *names = nullptr)
   :
-    Statistic(desc, names)
+    Statistic(2, desc, names)
   {
     if (!names) {
-      _Names.resize(2);
       _Names[0] = "Min";
       _Names[1] = "Max";
     }
   }
 
   template <class T>
-  static void Calculate(double &v1, double &v2, int n, const T *data, const bool *mask = NULL)
+  static void Calculate(double &v1, double &v2, int n, const T *data, const bool *mask = nullptr)
   {
     double d;
-    v1 = +numeric_limits<double>::infinity();
-    v2 = -numeric_limits<double>::infinity();
-    for (int i = 0; i < n; ++i) {
-      if (!mask || mask[i]) {
+    v1 = +inf;
+    v2 = -inf;
+    if (mask) {
+      for (int i = 0; i < n; ++i) {
+        if (mask[i]) {
+          d = static_cast<double>(data[i]);
+          if (d < v1) v1 = d;
+          if (d > v2) v2 = d;
+        }
+      }
+    } else {
+      for (int i = 0; i < n; ++i) {
         d = static_cast<double>(data[i]);
         if (d < v1) v1 = d;
         if (d > v2) v2 = d;
       }
     }
     if (v1 > v2) {
-      v1 = v2 = numeric_limits<double>::quiet_NaN();
+      v1 = v2 = NaN;
     }
   }
 
-  void Evaluate(int n, const double *data, const bool *mask = NULL)
+  void Evaluate(Array<double> &values, int n, const double *data, const bool *mask = nullptr) const
   {
-    _Values.resize(2);
-    Calculate(_Values[0], _Values[1], n, data, mask);
+    values.resize(2);
+    Calculate(values[0], values[1], n, data, mask);
   }
 
   double Min() const { return _Values[0]; }
@@ -374,27 +411,25 @@ class Range : public Statistic
 {
 public:
 
-  Range(const char *desc = "Range", const Array<string> *names = NULL)
+  Range(const char *desc = "Range", const Array<string> *names = nullptr)
   :
-    Statistic(desc, names)
+    Statistic(1, desc, names)
   {
-    if (!names) {
-      _Names.resize(1);
-      _Names[0] = "Range";
-    }
+    if (!names) _Names[0] = "Range";
   }
 
   template <class T>
-  static double Calculate(int n, const T *data, const bool *mask = NULL)
+  static double Calculate(int n, const T *data, const bool *mask = nullptr)
   {
     double v1, v2;
     Extrema::Calculate(v1, v2, n, data, mask);
     return v2 - v1;
   }
 
-  void Evaluate(int n, const double *data, const bool *mask = NULL)
+  void Evaluate(Array<double> &values, int n, const double *data, const bool *mask = nullptr) const
   {
-    Value(Calculate(n, data, mask));
+    values.resize(1);
+    values[0] = Calculate(n, data, mask);
   }
 
   // Add support for vtkDataArray argument
@@ -407,35 +442,39 @@ class Mean : public Statistic
 {
 public:
 
-  Mean(const char *desc = "Mean", const Array<string> *names = NULL)
+  Mean(const char *desc = "Mean", const Array<string> *names = nullptr)
   :
-    Statistic(desc, names)
+    Statistic(1, desc, names)
   {
-    if (!names) {
-      _Names.resize(1);
-      _Names[0] = "Mean";
-    }
+    if (!names) _Names[0] = "Mean";
   }
 
   template <class T>
-  static double Calculate(int n, const T *data, const bool *mask = NULL)
+  static double Calculate(int n, const T *data, const bool *mask = nullptr)
   {
-    int    m =  0;
-    double v = .0;
+    int    m = 0;
+    double v = 0.;
 
-    for (int i = 0; i < n; ++i) {
-      if (!mask || mask[i]) {
-        ++m;
-        v += (static_cast<double>(data[i]) - v) / m;
+    if (mask) {
+      for (int i = 0; i < n; ++i) {
+        if (mask[i]) {
+          ++m, v += (static_cast<double>(data[i]) - v) / m;
+        }
       }
+    } else {
+      for (int i = 0; i < n; ++i) {
+        v += (static_cast<double>(data[i]) - v) / (i + 1);
+      }
+      m = n;
     }
 
-    return (m < 1 ? numeric_limits<double>::quiet_NaN() : v);
+    return (m < 1 ? NaN : v);
   }
 
-  void Evaluate(int n, const double *data, const bool *mask = NULL)
+  void Evaluate(Array<double> &values, int n, const double *data, const bool *mask = nullptr) const
   {
-    Value(Calculate(n, data, mask));
+    values.resize(1);
+    values[0] = Calculate(n, data, mask);
   }
 
   // Add support for vtkDataArray argument
@@ -443,29 +482,24 @@ public:
 };
 
 // -----------------------------------------------------------------------------
-/// Robust variance evaluation
-class Var : public Statistic
+/// Base class of statistics which compute mean, variance, and/or standard deviation
+class MeanVar : public Statistic
 {
-  /// Mean value computed as a side-product of variance evaluation
-  mirtkReadOnlyAttributeMacro(double, Mean);
+protected:
+
+  /// Constructor
+  MeanVar(int nvalues, const char *desc = nullptr, const Array<string> *names = nullptr)
+  :
+    Statistic(nvalues, desc, names)
+  {}
 
 public:
 
-  Var(const char *desc = "Variance", const Array<string> *names = NULL)
-  :
-    Statistic(desc, names), _Mean(.0)
-  {
-    if (!names) {
-      _Names.resize(1);
-      _Names[0] = "Var";
-    }
-  }
-
   template <class T>
-  static void Calculate(double &mean, double &var, int n, const T *data, const bool *mask = NULL)
+  static void Calculate(double &mean, double &var, int n, const T *data, const bool *mask = nullptr)
   {
     int m =  0;
-    mean = var = .0;
+    mean = var = 0.;
 
     double delta, d;
     for (int i = 0; i < n; ++i) {
@@ -479,101 +513,114 @@ public:
     }
 
     if (m < 1) {
-      mean = var = numeric_limits<double>::quiet_NaN();
+      mean = var = NaN;
     } else if (m < 2) {
-      var = .0;
+      var = 0.;
     } else {
       var /= m - 1;
     }
   }
+};
+
+// -----------------------------------------------------------------------------
+/// Robust variance evaluation
+class Var : public MeanVar
+{
+public:
+
+  Var(const char *desc = "Variance", const Array<string> *names = nullptr)
+  :
+    MeanVar(1, desc, names)
+  {
+    if (!names) _Names[0] = "Var";
+  }
 
   template <class T>
-  static double Calculate(int n, const T *data, const bool *mask = NULL)
+  static double Calculate(int n, const T *data, const bool *mask = nullptr)
   {
     double mean, var;
-    Calculate(mean, var, n, data, mask);
+    MeanVar::Calculate(mean, var, n, data, mask);
     return var;
   }
 
-  void Evaluate(int n, const double *data, const bool *mask = NULL)
+  void Evaluate(Array<double> &values, int n, const double *data, const bool *mask = nullptr) const
   {
-    Calculate(_Mean, _Values[0], n, data, mask);
+    double mean;
+    values.resize(1);
+    MeanVar::Calculate(mean, values[0], n, data, mask);
   }
 
   // Add support for vtkDataArray argument
   mirtkCalculateVtkDataArray1();
-  mirtkCalculateVtkDataArray2();
 };
 
 // -----------------------------------------------------------------------------
 /// Robust evaluation of standard deviation
-class StDev : public Var
+class StDev : public MeanVar
 {
 public:
 
-  StDev(const char *desc = "Standard deviation", const Array<string> *names = NULL)
+  StDev(const char *desc = "Standard deviation", const Array<string> *names = nullptr)
   :
-    Var(desc, names)
+    MeanVar(1, desc, names)
   {
-    if (!names) {
-      _Names.resize(1);
-      _Names[0] = "Sigma";
-    }
+    if (!names) _Names[0] = "Sigma";
   }
 
   template <class T>
-  static void Calculate(double &mean, double &sigma, int n, const T *data, const bool *mask = NULL)
+  static double Calculate(int n, const T *data, const bool *mask = nullptr)
   {
-    Var::Calculate(mean, sigma, n, data, mask);
-    sigma = sqrt(sigma);
+    double mean, var;
+    MeanVar::Calculate(mean, var, n, data, mask);
+    return sqrt(var);
   }
 
-  template <class T>
-  static double Calculate(int n, const T *data, const bool *mask = NULL)
+  void Evaluate(Array<double> &values, int n, const double *data, const bool *mask = nullptr) const
   {
-    double mean, sigma;
-    Calculate(mean, sigma, n, data, mask);
-    return sigma;
-  }
-
-  void Evaluate(int n, const double *data, const bool *mask = NULL)
-  {
-    Var::Evaluate(n, data, mask);
-    Value(sqrt(this->Value()));
+    double mean, var;
+    MeanVar::Calculate(mean, var, n, data, mask);
+    values.resize(1);
+    values[0] = sqrt(var);
   }
 
   // Add support for vtkDataArray argument
   mirtkCalculateVtkDataArray1();
-  mirtkCalculateVtkDataArray2();
 };
 
 // -----------------------------------------------------------------------------
 /// Robust evaluation of Gaussian mean and standard deviation
-class NormalDistribution : public StDev
+class NormalDistribution : public MeanVar
 {
 public:
 
-  NormalDistribution(const char *desc = "Normal distribution", const Array<string> *names = NULL)
+  NormalDistribution(const char *desc = "Normal distribution", const Array<string> *names = nullptr)
   :
-    StDev(desc, names)
+    MeanVar(2, desc, names)
   {
     if (!names) {
-      _Names.resize(2);
       _Names[0] = "Mean";
       _Names[1] = "Sigma";
     }
   }
 
-  void Evaluate(int n, const double *data, const bool *mask = NULL)
+  template <class T>
+  static void Calculate(double &mean, double &sigma, int n, const T *data, const bool *mask = nullptr)
   {
-    StDev::Evaluate(n, data, mask);
-    _Values.resize(2);
-    _Values[1] = _Values[0];
-    _Values[0] = _Mean;
+    MeanVar::Calculate(mean, sigma, n, data, mask);
+    sigma = sqrt(sigma);
+  }
+
+  void Evaluate(Array<double> &values, int n, const double *data, const bool *mask = nullptr) const
+  {
+    values.resize(2);
+    Calculate(values[0], values[1], n, data, mask);
   }
 
   double Mean()  const { return _Values[0]; }
   double Sigma() const { return _Values[1]; }
+
+  // Add support for vtkDataArray argument
+  mirtkCalculateVtkDataArray2();
 };
 
 // -----------------------------------------------------------------------------
@@ -583,14 +630,11 @@ class Percentile : public Statistic
   /// Percentage of values that are lower than the percentile to look for
   mirtkReadOnlyAttributeMacro(int, P);
 
-  /// Percentile rank computed as a side product
-  mirtkReadOnlyAttributeMacro(double, Rank);
-
 public:
 
-  Percentile(int p, const char *desc = NULL, const Array<string> *names = NULL)
+  Percentile(int p, const char *desc = nullptr, const Array<string> *names = nullptr)
   :
-    _P(p), _Rank(-1)
+    Statistic(1, desc, names), _P(p)
   {
     if (!desc) {
       _Description = ToString(p);
@@ -601,7 +645,6 @@ public:
       _Description += " percentile";
     }
     if (!names) {
-      _Names.resize(1);
       _Names[0] = ToString(p);
       if      (p == 1) _Names[0] += "st";
       else if (p == 2) _Names[0] += "nd";
@@ -609,11 +652,43 @@ public:
       else             _Names[0] += "th";
       _Names[0] += "%";
     }
-
   }
 
   template <class T>
-  static double Calculate(int p, double &rank, int n, const T *data, const bool *mask = NULL)
+  static double CalculateGivenSortedData(int p, double &rank, int n, const T *data)
+  {
+    if (n == 0) {
+      rank = NaN;
+      return NaN;
+    }
+
+    // Compute percentile rank
+    rank = (double(p) / 100.) * double(n + 1);
+
+    // Split rank into integer and decimal components
+    int    k = int(rank);
+    double d = rank - k;
+
+    // Compute percentile value according to NIST method
+    // (cf. http://en.wikipedia.org/wiki/Percentile#Definition_of_the_NIST_method )
+    if (k == 0) {
+      return Min::Calculate(n, data);
+    } else if (k >= n) {
+      return Max::Calculate(n, data);
+    } else {
+      return data[k - 1] + d * (data[k] - data[k - 1]);
+    }
+  }
+
+  template <class T>
+  static double CalculateGivenSortedData(int p, int n, const T *data)
+  {
+    double rank;
+    return CalculateGivenSortedData(p, rank, n, data);
+  }
+
+  template <class T>
+  static double Calculate(int p, double &rank, int n, const T *data, const bool *mask = nullptr)
   {
     // Determine number of unmasked values
     int m = n;
@@ -625,12 +700,12 @@ public:
     }
 
     if (m == 0) {
-      rank = numeric_limits<double>::quiet_NaN();
-      return numeric_limits<double>::quiet_NaN();
+      rank = NaN;
+      return NaN;
     }
 
     // Compute percentile rank
-    rank = (double(p) / 100.0) * double(m + 1);
+    rank = (double(p) / 100.) * double(m + 1);
 
     // Split rank into integer and decimal components
     int    k = int(rank);
@@ -666,38 +741,39 @@ public:
   }
 
   template <class T>
-  static double Calculate(int p, int n, const T *data, const bool *mask = NULL)
+  static double Calculate(int p, int n, const T *data, const bool *mask = nullptr)
   {
     double rank;
     return Calculate(p, rank, n, data, mask);
   }
 
-  void Evaluate(int n, const double *data, const bool *mask = NULL)
+  void Evaluate(Array<double> &values, int n, const double *data, const bool *mask = nullptr) const
   {
-    Value(Calculate(_P, _Rank, n, data, mask));
+    values.resize(1);
+    values[0] = Calculate(_P, n, data, mask);
   }
 
   // Add support for vtkDataArray
 #if MIRTK_Image_WITH_VTK
 
-  static double Calculate(int p, double &rank, vtkDataArray *data, const bool *mask = NULL)
+  static double Calculate(int p, double &rank, vtkDataArray *data, const bool *mask = nullptr)
   {
     const int   n   = static_cast<int>(data->GetNumberOfTuples());
     const void *ptr = data->GetVoidPointer(0);
     switch (data->GetDataType()) {
-      case VTK_SHORT:  return Calculate(p, rank, n, reinterpret_cast<const short  *>(ptr), mask);
-      case VTK_INT:    return Calculate(p, rank, n, reinterpret_cast<const int    *>(ptr), mask);
-      case VTK_FLOAT:  return Calculate(p, rank, n, reinterpret_cast<const float  *>(ptr), mask);
-      case VTK_DOUBLE: return Calculate(p, rank, n, reinterpret_cast<const double *>(ptr), mask);
+      case VTK_SHORT:  return Calculate(p, rank, n, static_cast<const short  *>(ptr), mask);
+      case VTK_INT:    return Calculate(p, rank, n, static_cast<const int    *>(ptr), mask);
+      case VTK_FLOAT:  return Calculate(p, rank, n, static_cast<const float  *>(ptr), mask);
+      case VTK_DOUBLE: return Calculate(p, rank, n, static_cast<const double *>(ptr), mask);
       default:
         cerr << "Unsupported vtkDataArray type: " << data->GetDataType() << endl;
         exit(1);
     }
-    rank = numeric_limits<double>::quiet_NaN();
-    return numeric_limits<double>::quiet_NaN();
+    rank = NaN;
+    return NaN;
   }
 
-  static double Calculate(int p, vtkDataArray *data, const bool *mask = NULL)
+  static double Calculate(int p, vtkDataArray *data, const bool *mask = nullptr)
   {
     double rank;
     return Calculate(p, rank, data, mask);
@@ -713,14 +789,11 @@ class AbsPercentile : public Statistic
   /// Percentage of values that are lower than the percentile to look for
   mirtkReadOnlyAttributeMacro(int, P);
 
-  /// Percentile rank computed as a side product
-  mirtkReadOnlyAttributeMacro(double, Rank);
-
 public:
 
-  AbsPercentile(int p, const char *desc = NULL, const Array<string> *names = NULL)
+  AbsPercentile(int p, const char *desc = nullptr, const Array<string> *names = nullptr)
   :
-    _P(p), _Rank(-1)
+    Statistic(1, desc, names), _P(p)
   {
     if (!desc) {
       _Description = ToString(p);
@@ -731,7 +804,6 @@ public:
       _Description += " absolute value percentile";
     }
     if (!names) {
-      _Names.resize(1);
       _Names[0] = ToString(p);
       if      (p == 1) _Names[0] += "st";
       else if (p == 2) _Names[0] += "nd";
@@ -742,7 +814,7 @@ public:
   }
 
   template <class T>
-  static double Calculate(int p, double &rank, int n, const T *data, const bool *mask = NULL)
+  static double Calculate(int p, double &rank, int n, const T *data, const bool *mask = nullptr)
   {
     // Determine number of unmasked values
     int m = n;
@@ -754,12 +826,12 @@ public:
     }
 
     if (m == 0) {
-      rank = numeric_limits<double>::quiet_NaN();
-      return numeric_limits<double>::quiet_NaN();
+      rank = NaN;
+      return NaN;
     }
 
     // Compute percentile rank
-    rank = (double(p) / 100.0) * double(m + 1);
+    rank = (double(p) / 100.) * double(m + 1);
 
     // Split rank into integer and decimal components
     int    k = int(rank);
@@ -795,29 +867,30 @@ public:
   }
 
   template <class T>
-  static double Calculate(int p, int n, const T *data, const bool *mask = NULL)
+  static double Calculate(int p, int n, const T *data, const bool *mask = nullptr)
   {
     double rank;
     return Calculate(p, rank, n, data, mask);
   }
 
-  void Evaluate(int n, const double *data, const bool *mask = NULL)
+  void Evaluate(Array<double> &values, int n, const double *data, const bool *mask = nullptr) const
   {
-    Value(Calculate(_P, _Rank, n, data, mask));
+    values.resize(1);
+    values[0] = Calculate(_P, n, data, mask);
   }
 
   // Add support for vtkDataArray
 #if MIRTK_Image_WITH_VTK
 
-  static double Calculate(int p, double &rank, vtkDataArray *data, const bool *mask = NULL)
+  static double Calculate(int p, double &rank, vtkDataArray *data, const bool *mask = nullptr)
   {
     const int   n   = static_cast<int>(data->GetNumberOfTuples());
     const void *ptr = data->GetVoidPointer(0);
     switch (data->GetDataType()) {
-      case VTK_SHORT:  return Calculate(p, rank, n, reinterpret_cast<const short  *>(ptr), mask);
-      case VTK_INT:    return Calculate(p, rank, n, reinterpret_cast<const int    *>(ptr), mask);
-      case VTK_FLOAT:  return Calculate(p, rank, n, reinterpret_cast<const float  *>(ptr), mask);
-      case VTK_DOUBLE: return Calculate(p, rank, n, reinterpret_cast<const double *>(ptr), mask);
+      case VTK_SHORT:  return Calculate(p, rank, n, static_cast<const short  *>(ptr), mask);
+      case VTK_INT:    return Calculate(p, rank, n, static_cast<const int    *>(ptr), mask);
+      case VTK_FLOAT:  return Calculate(p, rank, n, static_cast<const float  *>(ptr), mask);
+      case VTK_DOUBLE: return Calculate(p, rank, n, static_cast<const double *>(ptr), mask);
       default:
         cerr << "Unsupported vtkDataArray type: " << data->GetDataType() << endl;
         exit(1);
@@ -826,7 +899,7 @@ public:
     return numeric_limits<double>::quiet_NaN();
   }
 
-  static double Calculate(int p, vtkDataArray *data, const bool *mask = NULL)
+  static double Calculate(int p, vtkDataArray *data, const bool *mask = nullptr)
   {
     double rank;
     return Calculate(p, rank, data, mask);
@@ -839,14 +912,11 @@ public:
 /// Lower percentile mean calculation
 class LowerPercentileMean : public Percentile
 {
-  /// Mean of values below the P-th percentile
-  mirtkReadOnlyAttributeMacro(double, Mean);
-
 public:
 
-  LowerPercentileMean(int p, const char *desc = NULL, const Array<string> *names = NULL)
+  LowerPercentileMean(int p, const char *desc = nullptr, const Array<string> *names = nullptr)
   :
-    Percentile(p), _Mean(numeric_limits<double>::quiet_NaN())
+    Percentile(p, desc, names)
   {
     if (!desc) {
       _Description  = "Mean below ";
@@ -858,7 +928,6 @@ public:
       _Description += " percentile";
     }
     if (!names) {
-      _Names.resize(1);
       _Names[0]  = "Mean <";
       _Names[0] += ToString(p);
       if      (p == 1) _Names[0] += "st";
@@ -870,15 +939,25 @@ public:
   }
 
   template <class T>
-  static double Calculate(int p, int n, const T *data, const bool *mask = NULL)
+  static double Calculate(int p, int n, const T *data, const bool *mask = nullptr)
   {
     const double threshold = Percentile::Calculate(p, n, data, mask);
 
-    int    m =  0;
-    double v = .0, d;
-    
-    for (int i = 0; i < n; ++i) {
-      if (!mask || mask[i]) {
+    int    m = 0;
+    double v = 0., d;
+
+    if (mask) {
+      for (int i = 0; i < n; ++i) {
+        if (mask[i]) {
+          d = static_cast<double>(data[i]);
+          if (d <= threshold) {
+            ++m;
+            v += (d - v) / m;
+          }
+        }
+      }
+    } else {
+      for (int i = 0; i < n; ++i) {
         d = static_cast<double>(data[i]);
         if (d <= threshold) {
           ++m;
@@ -887,32 +966,32 @@ public:
       }
     }
 
-    if (m < 1) return numeric_limits<double>::quiet_NaN();
-    return v;
+    return (m < 1 ? NaN : v);
   }
 
-  void Evaluate(int n, const double *data, const bool *mask = NULL)
+  void Evaluate(Array<double> &values, int n, const double *data, const bool *mask = nullptr) const
   {
-    Value(Calculate(_P, n, data, mask));
+    values.resize(1);
+    values[0] = Calculate(_P, n, data, mask);
   }
 
   // Add support for vtkDataArray
 #if MIRTK_Image_WITH_VTK
 
-  static double Calculate(int p, vtkDataArray *data, const bool *mask = NULL)
+  static double Calculate(int p, vtkDataArray *data, const bool *mask = nullptr)
   {
     const int   n   = static_cast<int>(data->GetNumberOfTuples());
     const void *ptr = data->GetVoidPointer(0);
     switch (data->GetDataType()) {
-      case VTK_SHORT:  return Calculate(p, n, reinterpret_cast<const short  *>(ptr), mask);
-      case VTK_INT:    return Calculate(p, n, reinterpret_cast<const int    *>(ptr), mask);
-      case VTK_FLOAT:  return Calculate(p, n, reinterpret_cast<const float  *>(ptr), mask);
-      case VTK_DOUBLE: return Calculate(p, n, reinterpret_cast<const double *>(ptr), mask);
+      case VTK_SHORT:  return Calculate(p, n, static_cast<const short  *>(ptr), mask);
+      case VTK_INT:    return Calculate(p, n, static_cast<const int    *>(ptr), mask);
+      case VTK_FLOAT:  return Calculate(p, n, static_cast<const float  *>(ptr), mask);
+      case VTK_DOUBLE: return Calculate(p, n, static_cast<const double *>(ptr), mask);
       default:
         cerr << "Unsupported vtkDataArray type: " << data->GetDataType() << endl;
         exit(1);
     }
-    return numeric_limits<double>::quiet_NaN();
+    return NaN;
   }
 
 #endif // MIRTK_Image_WITH_VTK
@@ -922,14 +1001,11 @@ public:
 /// Upper percentile mean calculation
 class UpperPercentileMean : public Percentile
 {
-  /// Mean of values above the P-th percentile
-  mirtkReadOnlyAttributeMacro(double, Mean);
-  
 public:
   
-  UpperPercentileMean(int p, const char *desc = NULL, const Array<string> *names = NULL)
+  UpperPercentileMean(int p, const char *desc = nullptr, const Array<string> *names = nullptr)
   :
-    Percentile(p), _Mean(numeric_limits<double>::quiet_NaN())
+    Percentile(p, desc, names)
   {
     if (!desc) {
       _Description  = "Mean above ";
@@ -941,7 +1017,6 @@ public:
       _Description += " percentile";
     }
     if (!names) {
-      _Names.resize(1);
       _Names[0]  = "Mean >";
       _Names[0] += ToString(p);
       if      (p == 1) _Names[0] += "st";
@@ -953,15 +1028,25 @@ public:
   }
 
   template <class T>
-  static double Calculate(int p, int n, const T *data, const bool *mask = NULL)
+  static double Calculate(int p, int n, const T *data, const bool *mask = nullptr)
   {
     const double threshold = Percentile::Calculate(p, n, data, mask);
 
-    int    m =  0;
-    double v = .0, d;
-    
-    for (int i = 0; i < n; ++i) {
-      if (!mask || mask[i]) {
+    int    m = 0;
+    double v = 0., d;
+
+    if (mask) {
+      for (int i = 0; i < n; ++i) {
+        if (mask[i]) {
+          d = static_cast<double>(data[i]);
+          if (d >= threshold) {
+            ++m;
+            v += (d - v) / m;
+          }
+        }
+      }
+    } else {
+      for (int i = 0; i < n; ++i) {
         d = static_cast<double>(data[i]);
         if (d >= threshold) {
           ++m;
@@ -970,32 +1055,32 @@ public:
       }
     }
 
-    if (m < 1) return numeric_limits<double>::quiet_NaN();
-    return v;
+    return (m < 1 ? NaN : v);
   }
 
-  void Evaluate(int n, const double *data, const bool *mask = NULL)
+  void Evaluate(Array<double> &values, int n, const double *data, const bool *mask = nullptr) const
   {
-    Value(Calculate(_P, n, data, mask));
+    values.resize(1);
+    values[0] = Calculate(_P, n, data, mask);
   }
 
   // Add support for vtkDataArray
 #if MIRTK_Image_WITH_VTK
 
-  static double Calculate(int p, vtkDataArray *data, const bool *mask = NULL)
+  static double Calculate(int p, vtkDataArray *data, const bool *mask = nullptr)
   {
     const int   n   = static_cast<int>(data->GetNumberOfTuples());
     const void *ptr = data->GetVoidPointer(0);
     switch (data->GetDataType()) {
-      case VTK_SHORT:  return Calculate(p, n, reinterpret_cast<const short  *>(ptr), mask);
-      case VTK_INT:    return Calculate(p, n, reinterpret_cast<const int    *>(ptr), mask);
-      case VTK_FLOAT:  return Calculate(p, n, reinterpret_cast<const float  *>(ptr), mask);
-      case VTK_DOUBLE: return Calculate(p, n, reinterpret_cast<const double *>(ptr), mask);
+      case VTK_SHORT:  return Calculate(p, n, static_cast<const short  *>(ptr), mask);
+      case VTK_INT:    return Calculate(p, n, static_cast<const int    *>(ptr), mask);
+      case VTK_FLOAT:  return Calculate(p, n, static_cast<const float  *>(ptr), mask);
+      case VTK_DOUBLE: return Calculate(p, n, static_cast<const double *>(ptr), mask);
       default:
         cerr << "Unsupported vtkDataArray type: " << data->GetDataType() << endl;
         exit(1);
     }
-    return numeric_limits<double>::quiet_NaN();
+    return NaN;
   }
 
 #endif // MIRTK_Image_WITH_VTK
@@ -1005,14 +1090,11 @@ public:
 /// Robust mean calculation, ignoring values below and above a certain percentile
 class RobustMean : public Percentile
 {
-  /// Mean of values between the P-th and (100-P)-th percentile
-  mirtkReadOnlyAttributeMacro(double, Mean);
-  
 public:
   
-  RobustMean(int p, const char *desc = NULL, const Array<string> *names = NULL)
+  RobustMean(int p, const char *desc = nullptr, const Array<string> *names = nullptr)
   :
-    Percentile(p), _Mean(numeric_limits<double>::quiet_NaN())
+    Percentile(p, desc, names)
   {
     if (!desc) {
       _Description  = "Mean excl. ";
@@ -1024,7 +1106,6 @@ public:
       _Description += " percentile";
     }
     if (!names) {
-      _Names.resize(1);
       _Names[0]  = "Mean <>";
       _Names[0] += ToString(p);
       if      (p == 1) _Names[0] += "st";
@@ -1036,16 +1117,26 @@ public:
   }
 
   template <class T>
-  static double Calculate(int p, int n, const T *data, const bool *mask = NULL)
+  static double Calculate(int p, int n, const T *data, const bool *mask = nullptr)
   {
     const double min = Percentile::Calculate(      p, n, data, mask);
     const double max = Percentile::Calculate(100 - p, n, data, mask);
 
-    int    m =  0;
-    double v = .0, d;
-    
-    for (int i = 0; i < n; ++i) {
-      if (!mask || mask[i]) {
+    int    m = 0;
+    double v = 0., d;
+
+    if (mask) {
+      for (int i = 0; i < n; ++i) {
+        if (mask[i]) {
+          d = static_cast<double>(data[i]);
+          if (min <= d && d <= max) {
+            ++m;
+            v += (d - v) / m;
+          }
+        }
+      }
+    } else {
+      for (int i = 0; i < n; ++i) {
         d = static_cast<double>(data[i]);
         if (min <= d && d <= max) {
           ++m;
@@ -1054,32 +1145,32 @@ public:
       }
     }
 
-    if (m < 1) return numeric_limits<double>::quiet_NaN();
-    return v;
+    return (m < 1 ? NaN : v);
   }
 
-  void Evaluate(int n, const double *data, const bool *mask = NULL)
+  void Evaluate(Array<double> &values, int n, const double *data, const bool *mask = nullptr) const
   {
-    Value(Calculate(_P, n, data, mask));
+    values.resize(1);
+    values[0] = Calculate(_P, n, data, mask);
   }
 
   // Add support for vtkDataArray
 #if MIRTK_Image_WITH_VTK
 
-  static double Calculate(int p, vtkDataArray *data, const bool *mask = NULL)
+  static double Calculate(int p, vtkDataArray *data, const bool *mask = nullptr)
   {
     const int   n   = static_cast<int>(data->GetNumberOfTuples());
     const void *ptr = data->GetVoidPointer(0);
     switch (data->GetDataType()) {
-      case VTK_SHORT:  return Calculate(p, n, reinterpret_cast<const short  *>(ptr), mask);
-      case VTK_INT:    return Calculate(p, n, reinterpret_cast<const int    *>(ptr), mask);
-      case VTK_FLOAT:  return Calculate(p, n, reinterpret_cast<const float  *>(ptr), mask);
-      case VTK_DOUBLE: return Calculate(p, n, reinterpret_cast<const double *>(ptr), mask);
+      case VTK_SHORT:  return Calculate(p, n, static_cast<const short  *>(ptr), mask);
+      case VTK_INT:    return Calculate(p, n, static_cast<const int    *>(ptr), mask);
+      case VTK_FLOAT:  return Calculate(p, n, static_cast<const float  *>(ptr), mask);
+      case VTK_DOUBLE: return Calculate(p, n, static_cast<const double *>(ptr), mask);
       default:
         cerr << "Unsupported vtkDataArray type: " << data->GetDataType() << endl;
         exit(1);
     }
-    return numeric_limits<double>::quiet_NaN();
+    return NaN;
   }
 
 #endif // MIRTK_Image_WITH_VTK
