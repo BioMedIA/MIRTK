@@ -22,6 +22,7 @@
 
 #include "mirtk/Vector.h"
 #include "mirtk/Matrix.h"
+#include "mirtk/EdgeTable.h"
 #include "mirtk/GenericImage.h"
 #include "mirtk/PointSetIO.h"
 #include "mirtk/NearestNeighborInterpolateImageFunction.h"
@@ -31,7 +32,6 @@
 #include "mirtk/RegisteredSurface.h"
 
 #include "mirtk/Vtk.h"
-
 #include "vtkGenericCell.h"
 #include "vtkPolyData.h"
 #include "vtkShortArray.h"
@@ -79,19 +79,31 @@ void PrintHelp(const char *name)
   cout << "  output   Output surface mesh.\n";
   cout << "\n";
   cout << "Options:\n";
-  cout << "  -white                     Input surface is cortical WM/GM boundary.\n";
-  cout << "  -pial                      Input surface is cortical GM/CSF boundary.\n";
-  cout << "  -image <file>              Input real-valued scalar/vector image.\n";
-  cout << "  -labels <file>             Input segmentation image with positive integer labels.\n";
-  cout << "  -name <name>               Name of output scalar array. (default: Scalars or Labels)\n";
-  cout << "  -[no]celldata              Assign values to cells of input surface. (default: off)\n";
-  cout << "  -[no]pointdata             Assign values to points of input surface. (default: on)\n";
-  cout << "  -[no]fill                  Fill holes in projected surface parcellation.\n";
-  cout << "  -smooth <n>          number of iterations to smooth. (default: 0)" << endl;
-  cout << "  -min-size <n>              Surface patches with less than n points are removed. (default: 0)\n";
-  cout << "  -min-ratio <ratio>   keep only components that are larger than ratio times the size\n";
-  cout << "                       of the largest connected component per label, with 0<ratio<=1." << endl;
-  cout << "  -surface <file>            Input surface from which to project scalars.\n";
+  cout << "  -white\n";
+  cout << "      Input surface is cortical WM/GM boundary. (default: off)\n";
+  cout << "  -pial\n";
+  cout << "      Input surface is cortical GM/CSF boundary. (default: off)\n";
+  cout << "  -image <file>\n";
+  cout << "      Input real-valued scalar/vector image.\n";
+  cout << "  -labels <file>\n";
+  cout << "      Input segmentation image with positive integer labels.\n";
+  cout << "  -surface <file>\n";
+  cout << "      Input surface from which to project scalars.\n";
+  cout << "  -name <name>\n";
+  cout << "      Name of output scalar array. (default: Scalars or Labels)\n";
+  cout << "  -[no]celldata\n";
+  cout << "      Assign values to cells of input surface. (default: off)\n";
+  cout << "  -[no]pointdata\n";
+  cout << "      Assign values to points of input surface. (default: on)\n";
+  cout << "  -[no]fill\n";
+  cout << "      Fill holes in projected surface parcellation.\n";
+  cout << "  -smooth <n>\n";
+  cout << "      Number of iterations to smooth. (default: 0)\n";
+  cout << "  -min-size <n>\n";
+  cout << "      Surface patches with less than n points are removed. (default: 0)\n";
+  cout << "  -min-ratio <ratio>\n";
+  cout << "      Keep only components that are larger than ratio times the size\n";
+  cout << "      of the largest connected component per label, with 0 < ratio <= 1. (default: 0)\n";
   cout << "  -scalars <input_name> [<output_name>]\n";
   cout << "      Scalars to be projected from the input surface (can be defined multiple times). \n";
   cout << "      <name2> can be specified to set the name of the output scalar array\n";
@@ -327,7 +339,7 @@ void LabelPoints(vtkPolyData *surface, const LabelImage &labels, const char *nam
     surface->GetPoint(i, p);
     labels.WorldToImage(p[0], p[1], p[2]);
     label = round(nn.Evaluate (p[0], p[1], p[2]));
-    point_labels->SetTuple1(i, label);
+    point_labels->SetComponent(i, 0, label);
   }
 
   surface->GetPointData()->AddArray(point_labels);
@@ -365,7 +377,7 @@ void LabelCells(vtkPolyData *surface, const LabelImage &labels, const char *name
     cell->EvaluateLocation(subId, pcoords, p, weights);
     labels.WorldToImage(p[0], p[1], p[2]);
     label = round(nn.Evaluate (p[0], p[1], p[2]));
-    cell_labels->SetTuple1(i, round(label));
+    cell_labels->SetComponent(i, 0, round(label));
   }
 
   surface->GetCellData()->AddArray(cell_labels);
@@ -455,7 +467,7 @@ void LabelCortex(vtkPolyData *surface, const LabelImage &labels, int nsteps = 10
         max_count = i->second;
       }
     }
-    cell_labels->SetTuple1(cellId, static_cast<double>(label));
+    cell_labels->SetComponent(cellId, 0, static_cast<double>(label));
   }
 
   surface->GetCellData()->AddArray(cell_labels);
@@ -548,9 +560,9 @@ void LabelCortex(vtkPolyData *white_surface, vtkPolyData *pial_surface,
         max_count = i->second;
       }
     }
-    white_labels->SetTuple1(whiteCellId, static_cast<double>(label));
+    white_labels->SetComponent(whiteCellId, 0, static_cast<double>(label));
     if (pialCellId != -1) {
-      pial_labels->SetTuple1(pialCellId, static_cast<double>(label));
+      pial_labels->SetComponent(pialCellId, 0, static_cast<double>(label));
     }
   }
 
@@ -585,7 +597,7 @@ void LabelCortex(vtkPolyData *white_surface, vtkPolyData *pial_surface,
     d = R * d;
     // Create histogram of labels along ray in normal direction
     hist.clear();
-    label = static_cast<LabelType>(pial_labels->GetTuple1(pialCellId));
+    label = static_cast<LabelType>(pial_labels->GetComponent(pialCellId, 0));
     if (label > 0) ++hist[label];
     for (int i = 0; i < nsamples; ++i) {
       label = static_cast<LabelType>(round(nn.Evaluate(p1[0], p1[1], p1[2])));
@@ -602,43 +614,19 @@ void LabelCortex(vtkPolyData *white_surface, vtkPolyData *pial_surface,
       }
     }
     if (whiteCellId != -1) {
-      if (label != static_cast<LabelType>(white_labels->GetTuple1(whiteCellId))) {
+      if (label != static_cast<LabelType>(white_labels->GetComponent(whiteCellId, 0))) {
         label = 0;
       }
     }
-    pial_labels->SetTuple1(pialCellId, static_cast<double>(label));
+    pial_labels->SetComponent(pialCellId, 0, static_cast<double>(label));
     if (whiteCellId != -1) {
-      white_labels->SetTuple1(whiteCellId, static_cast<double>(label));
+      white_labels->SetComponent(whiteCellId, 0, static_cast<double>(label));
     }
   }
 
   white_surface->GetCellData()->AddArray(white_labels);
   pial_surface ->GetCellData()->AddArray(pial_labels);
   delete[] pweights;
-}
-
-// -----------------------------------------------------------------------------
-/// find neighboring points
-std::vector<vtkIdType> findNeighboringPoints(vtkPolyData *surface, vtkIdType ptId){ 
-  vtkSmartPointer<vtkIdList> cellIdList =vtkSmartPointer<vtkIdList>::New();
-  surface->GetPointCells(ptId, cellIdList);
-
-  std::vector<vtkIdType> ret;
-  for(vtkIdType i = 0; i < cellIdList->GetNumberOfIds(); i++) {
-    vtkSmartPointer<vtkIdList> pointIdList = vtkSmartPointer<vtkIdList>::New();
-    surface->GetCellPoints(cellIdList->GetId(i), pointIdList);
-    std::set<vtkIdType> neighborPtIds;
-    for (vtkIdType j = 0; j < pointIdList->GetNumberOfIds(); ++j) {
-      const vtkIdType neighborPtId = pointIdList->GetId(j);
-      if(neighborPtId != ptId){
-        neighborPtIds.insert(neighborPtId);
-      }
-    }
-    for (std::set<vtkIdType>::const_iterator  nnptId = neighborPtIds.begin(); nnptId != neighborPtIds.end(); ++nnptId) {
-      ret.push_back(*nnptId);
-    }
-  }
-  return ret;
 }
 
 // -----------------------------------------------------------------------------
@@ -653,12 +641,12 @@ void MarkHoles(vtkPolyData *surface, const char *scalars_name = "Labels", bool u
 
   // Get labels
   vtkSmartPointer<vtkDataArray> labels;
-  if(using_cells){
+  if (using_cells) {
     labels = surface->GetCellData()->GetArray(scalars_name);
     if (labels == NULL) {
       FatalError("Surface has no " <<  scalars_name << " cell data, re-run with -celldata.");
     }
-  }else{
+  } else {
     labels = surface->GetPointData()->GetArray(scalars_name);
     if (labels == NULL) {
       FatalError("Surface has no " <<  scalars_name << " point data, re-run with -pointdata.");
@@ -684,19 +672,18 @@ void MarkHoles(vtkPolyData *surface, const char *scalars_name = "Labels", bool u
   filter->FullScalarConnectivityOn();
   SetVTKInput(filter, surface);
 
-
   // Label points as either unlabeled or not
   for (vtkIdType ptId = 0; ptId < surface->GetNumberOfPoints(); ++ptId) {
-    point_mask->SetTuple1(ptId, 1);
-    if(using_cells){
+    point_mask->SetComponent(ptId, 0, 1.);
+    if (using_cells) {
       surface->GetPointCells(ptId, ids);
-    }else{
+    } else {
+      ids->SetNumberOfIds(1);
       ids->InsertId(0, ptId);
     }
-
     for (vtkIdType i = 0; i < ids->GetNumberOfIds(); ++i) {
-      if (static_cast<LabelType>(labels->GetTuple1(ids->GetId(i))) != 0) {
-        point_mask->SetTuple1(ptId, 0);
+      if (static_cast<LabelType>(labels->GetComponent(ids->GetId(i), 0)) != 0) {
+        point_mask->SetComponent(ptId, 0, 0.);
         break;
       }
     }
@@ -707,35 +694,30 @@ void MarkHoles(vtkPolyData *surface, const char *scalars_name = "Labels", bool u
   filter->Update();
 
   // Replace label of not extracted unlabeled cells by -1 (these can be filled in)
-  if(using_cells){
-    // Initialize cell locator used to identify corresponding input/output cells
-    vtkSmartPointer<vtkCellLocator> locator = vtkSmartPointer<vtkCellLocator>::New();
+  if (using_cells) {
+    vtkNew<vtkCellLocator> locator;
     locator->SetDataSet(filter->GetOutput());
     locator->BuildLocator();
-
-    double *pweights = new double[surface->GetMaxCellSize()];
+    Array<double> pweights(surface->GetMaxCellSize());
     for (vtkIdType cellId = 0; cellId < surface->GetNumberOfCells(); ++cellId) {
-      if (static_cast<LabelType>(labels->GetTuple1(cellId)) == 0) {
+      if (static_cast<LabelType>(labels->GetComponent(cellId, 0)) == 0) {
         cell  = surface->GetCell(cellId);
         subId = cell->GetParametricCenter(pcoords);
-        cell->EvaluateLocation(subId, pcoords, p, pweights);
+        cell->EvaluateLocation(subId, pcoords, p, pweights.data());
         if (locator->FindCell(p) == -1) {
-          labels->SetTuple1(cellId, -1);
+          labels->SetComponent(cellId, 0, -1.);
         }
       }
     }
-    delete[] pweights;
-  }else{
-    // Initialize cell locator used to identify corresponding input/output cells
-    vtkSmartPointer<vtkPointLocator> locator = vtkSmartPointer<vtkPointLocator>::New();
+  } else {
+    vtkNew<vtkPointLocator> locator;
     locator->SetDataSet(filter->GetOutput());
     locator->BuildLocator();
-
     for (vtkIdType ptId = 0; ptId < surface->GetNumberOfPoints(); ++ptId) {
-      if (static_cast<LabelType>(labels->GetTuple1(ptId)) == 0) {
+      if (static_cast<LabelType>(labels->GetComponent(ptId, 0)) == 0) {
         surface->GetPoint(ptId, pcoords); 
         if (locator->IsInsertedPoint(p) == -1) {
-          labels->SetTuple1(ptId, -1);
+          labels->SetComponent(ptId, 0, -1.);
         }
       }
     }
@@ -749,11 +731,11 @@ void MarkHoles(vtkPolyData *surface, const char *scalars_name = "Labels", bool u
 void MarkUnvisited(OrderedSet<vtkIdType> &cellIds, vtkDataArray *regions, vtkDataArray *labels, LabelType label)
 {
   for (vtkIdType cellId = 0; cellId < regions->GetNumberOfTuples(); ++cellId) {
-    if (static_cast<LabelType>(labels->GetTuple1(cellId)) == label) {
-      regions->SetTuple1(cellId, -1);
+    if (static_cast<LabelType>(labels->GetComponent(cellId, 0)) == label) {
+      regions->SetComponent(cellId, 0, -1.);
       cellIds.insert(cellId);
     } else {
-      regions->SetTuple1(cellId, -2);
+      regions->SetComponent(cellId, 0, -2.);
     }
   }
 }
@@ -761,8 +743,8 @@ void MarkUnvisited(OrderedSet<vtkIdType> &cellIds, vtkDataArray *regions, vtkDat
 // -----------------------------------------------------------------------------
 vtkIdType NextSeed(OrderedSet<vtkIdType> &cellIds, vtkDataArray *regions)
 {
-  for (OrderedSet<vtkIdType>::const_iterator cellId = cellIds.begin(); cellId != cellIds.end(); ++cellId) {
-    if (static_cast<LabelType>(regions->GetTuple1(*cellId)) == -1) return *cellId;
+  for (auto cellId = cellIds.begin(); cellId != cellIds.end(); ++cellId) {
+    if (static_cast<LabelType>(regions->GetComponent(*cellId, 0)) == -1) return *cellId;
   }
   return -1;
 }
@@ -775,17 +757,19 @@ vtkIdType GrowRegion(vtkPolyData *surface, vtkDataArray *regions, LabelType regi
   vtkSmartPointer<vtkIdList> idList          = vtkSmartPointer<vtkIdList>::New();
   idList->SetNumberOfIds(2);
 
+  EdgeTable edgeTable;
+  if (!using_cells) edgeTable.Initialize(surface);
+
   Queue<vtkIdType> active;
   active.push(id);
   vtkIdType region_size = 0;
   while (!active.empty()) {
     id = active.front();
     active.pop();
-    if (static_cast<LabelType>(regions->GetTuple1(id)) == -1) {
+    if (static_cast<LabelType>(regions->GetComponent(id, 0)) == -1) {
       ++region_size;
-      regions->SetTuple1(id, regionId);
-      if(using_cells){
-        // using cells
+      regions->SetComponent(id, 0, regionId);
+      if (using_cells) {
         surface->GetCellPoints(id, cellPointIds);
         for (vtkIdType i = 0; i < cellPointIds->GetNumberOfIds(); ++i) {
           idList->SetId(0, cellPointIds->GetId(i));
@@ -797,18 +781,19 @@ vtkIdType GrowRegion(vtkPolyData *surface, vtkDataArray *regions, LabelType regi
           surface->GetCellNeighbors(id, idList, neighborCellIds);
           for (vtkIdType j = 0; j < neighborCellIds->GetNumberOfIds(); ++j) {
             const vtkIdType neighborCellId = neighborCellIds->GetId(j);
-            if (static_cast<LabelType>(regions->GetTuple1(neighborCellId)) == -1) {
+            if (static_cast<LabelType>(regions->GetComponent(neighborCellId, 0)) == -1) {
               active.push(neighborCellId);
             }
           }
         }
-      }else{
-        // using points
-        std::vector<vtkIdType> ids = findNeighboringPoints(surface, id);
-        for(int i=0; i<ids.size(); i++){
-          const vtkIdType neighborPtId = ids[i];
-          if( static_cast<LabelType>(regions->GetTuple1(neighborPtId)) == -1 )
-            active.push(neighborPtId);
+      } else {
+        int        adjPts;
+        const int *adjIds;
+        edgeTable.GetAdjacentPoints(id, adjPts, adjIds);
+        for (int i = 0; i < adjPts; ++i) {
+          if (static_cast<LabelType>(regions->GetComponent(adjIds[i], 0)) == -1) {
+            active.push(adjIds[i]);
+          }
         }
       }
     }
@@ -821,16 +806,17 @@ vtkIdType GrowRegion(vtkPolyData *surface, vtkDataArray *regions, LabelType regi
 void MarkSmallRegions(vtkPolyData *surface, int min_region_size, const char *scalars_name = "Labels", bool using_cells = true)
 {
   vtkSmartPointer<vtkDataArray> labels;
-  vtkSmartPointer<LabelArray> regions = vtkSmartPointer<LabelArray>::New();
+  vtkSmartPointer<LabelArray>   regions;
+  regions = vtkSmartPointer<LabelArray>::New();
   regions->SetNumberOfComponents(1);
 
-  if(using_cells){
+  if (using_cells) {
     labels = surface->GetCellData()->GetArray(scalars_name);
     if (labels == NULL) {
       FatalError("Surface has no " <<  scalars_name << " cell data, re-run with -celldata.");
     }
     regions->SetNumberOfTuples(surface->GetNumberOfCells());
-  }else{
+  } else {
     labels = surface->GetPointData()->GetArray(scalars_name);
     if (labels == NULL) {
       FatalError("Surface has no " <<  scalars_name << " point data, re-run with -pointdata.");
@@ -840,7 +826,7 @@ void MarkSmallRegions(vtkPolyData *surface, int min_region_size, const char *sca
 
   LabelSet label_set;
   for (vtkIdType i = 0; i < labels->GetNumberOfTuples(); ++i) {
-    label_set.insert(static_cast<LabelType>(labels->GetTuple1(i)));
+    label_set.insert(static_cast<LabelType>(labels->GetComponent(i, 0)));
   }
   label_set.erase(0);
   label_set.erase(-1);
@@ -853,13 +839,14 @@ void MarkSmallRegions(vtkPolyData *surface, int min_region_size, const char *sca
   for (LabelIter label = label_set.begin(); label != label_set.end(); ++label) {
     MarkUnvisited(ids, regions, labels, *label);
     while ((id = NextSeed(ids, regions)) != -1) {
-      regionSz.push_back(GrowRegion(surface, regions, static_cast<LabelType>(regionSz.size()), id, using_cells));
+      LabelType regionId = static_cast<LabelType>(regionSz.size());
+      regionSz.push_back(GrowRegion(surface, regions, regionId, id, using_cells));
     }
     for (size_t i = 0; i < regionSz.size(); ++i) {
       if (regionSz[i] < static_cast<vtkIdType>(min_region_size)) {
         for (id = 0; id < surface->GetNumberOfCells(); ++id) {
-          if (static_cast<size_t>(regions->GetTuple1(id)) == i) {
-            labels->SetTuple1(id, -1);
+          if (static_cast<size_t>(regions->GetComponent(id, 0)) == i) {
+            labels->SetComponent(id, 0, -1.);
           }
         }
       }
@@ -886,15 +873,18 @@ void FillHoles(vtkPolyData *surface, const char *scalars_name = "Labels", bool u
   // Ensure links are build for better efficiency
   surface->BuildLinks();
 
+  EdgeTable edgeTable;
+  if (!using_cells) edgeTable.Initialize(surface);
+
   // Determine unlabeled boundary cells
   Queue<vtkIdType> active;
-  if(using_cells){
+  if (using_cells) {
     labels = surface->GetCellData()->GetArray(scalars_name);
-    if (labels == NULL) {
+    if (labels == nullptr) {
       FatalError("Surface has no " <<  scalars_name << " cell data, re-run with -celldata.");
     }
     for (id = 0; id < surface->GetNumberOfCells(); ++id) {
-      label = static_cast<LabelType>(round(labels->GetTuple1(id)));
+      label = static_cast<LabelType>(round(labels->GetComponent(id, 0)));
       if (label != -1) continue;
       // Iterate over cell edges
       surface->GetCellPoints(id, cellPointIds);
@@ -911,7 +901,7 @@ void FillHoles(vtkPolyData *surface, const char *scalars_name = "Labels", bool u
         // Add if any neighboring cell is labeled
         for (vtkIdType j = 0; j < neighborCellIds->GetNumberOfIds(); ++j) {
           neighborCellId = neighborCellIds->GetId(j);
-          if (static_cast<LabelType>(labels->GetTuple1(neighborCellId)) != -1) {
+          if (static_cast<LabelType>(labels->GetComponent(neighborCellId, 0)) != -1) {
             is_boundary_cell = true;
             break;
           }
@@ -922,17 +912,19 @@ void FillHoles(vtkPolyData *surface, const char *scalars_name = "Labels", bool u
         }
       }
     }
-  }else{
+  } else {
     labels = surface->GetPointData()->GetArray(scalars_name);
-    if (labels == NULL) {
+    if (labels == nullptr) {
       FatalError("Surface has no " <<  scalars_name << " point data, re-run with -pointdata.");
     }
     for (id = 0; id < surface->GetNumberOfPoints(); ++id) {
-      label = static_cast<LabelType>(round(labels->GetTuple1(id)));
+      label = static_cast<LabelType>(round(labels->GetComponent(id, 0)));
       if (label != -1) continue;
-      std::vector<vtkIdType> ids = findNeighboringPoints(surface, id);
-      for (int i=0; i<ids.size(); i++){
-        if (static_cast<LabelType>(labels->GetTuple1(ids[i])) != -1) {
+      int        adjPts;
+      const int *adjIds;
+      edgeTable.GetAdjacentPoints(id, adjPts, adjIds);
+      for (int i = 0; i < adjPts; ++i) {
+        if (static_cast<LabelType>(labels->GetComponent(adjIds[i], 0)) != -1) {
           active.push(id);
           break;
         }
@@ -946,11 +938,10 @@ void FillHoles(vtkPolyData *surface, const char *scalars_name = "Labels", bool u
     id = active.front();
     active.pop();
     // Get label of current cell
-    label = static_cast<LabelType>(labels->GetTuple1(id));
+    label = static_cast<LabelType>(labels->GetComponent(id, 0));
     if (label != -1) continue;
     hist.clear();
-
-    if(using_cells){
+    if (using_cells) {
       // Iterate over cell edges
       surface->GetCellPoints(id, cellPointIds);
       for (vtkIdType i = 0; i < cellPointIds->GetNumberOfIds(); ++i) {
@@ -965,16 +956,18 @@ void FillHoles(vtkPolyData *surface, const char *scalars_name = "Labels", bool u
         // Count labels of neighboring cells and add unlabeled ones to queue
         for (vtkIdType j = 0; j < neighborCellIds->GetNumberOfIds(); ++j) {
           neighborCellId = neighborCellIds->GetId(j);
-          label = static_cast<LabelType>(labels->GetTuple1(neighborCellId));
+          label = static_cast<LabelType>(labels->GetComponent(neighborCellId, 0));
           if (label == -1) active.push(neighborCellId);
           else ++hist[label];
         }
       }
-    }else{
-      std::vector<vtkIdType> ids = findNeighboringPoints(surface, id);
-      for (int i=0; i<ids.size(); i++){
-        label = static_cast<LabelType>(labels->GetTuple1(ids[i]));
-        if (label == -1) active.push(ids[i]);
+    } else {
+      int        adjPts;
+      const int *adjIds;
+      edgeTable.GetAdjacentPoints(id, adjPts, adjIds);
+      for (int i = 0; i < adjPts; ++i) {
+        label = static_cast<LabelType>(labels->GetComponent(adjIds[i], 0));
+        if (label == -1) active.push(adjIds[i]);
         else ++hist[label];
       }
     }
@@ -988,7 +981,7 @@ void FillHoles(vtkPolyData *surface, const char *scalars_name = "Labels", bool u
       }
     }
     if (label == -1) active.push(id);
-    else labels->SetTuple1(id, label);
+    else labels->SetComponent(id, 0, label);
   }
 }
 
@@ -1012,13 +1005,13 @@ void SmoothLabels(vtkPolyData *surface, int niter, const char *scalars_name = "L
   new_labels = vtkSmartPointer<LabelArray>::New();
   new_labels->SetName(scalars_name);
   new_labels->SetNumberOfComponents(1);
-  if(using_cells){
+  if (using_cells) {
     labels = surface->GetCellData()->GetArray(scalars_name);
     if (labels == NULL) {
       FatalError("Surface has no " <<  scalars_name << " cell data, re-run with -celldata.");
     }
     new_labels->SetNumberOfTuples(surface->GetNumberOfCells());
-  }else{
+  } else {
     labels = surface->GetPointData()->GetArray(scalars_name);
     if (labels == NULL) {
       FatalError("Surface has no " <<  scalars_name << " point data, re-run with -pointdata.");
@@ -1029,17 +1022,18 @@ void SmoothLabels(vtkPolyData *surface, int niter, const char *scalars_name = "L
   // Ensure links are build for better efficiency
   surface->BuildLinks();
 
+  EdgeTable edgeTable;
+  if (!using_cells) edgeTable.Initialize(surface);
+
   // Replace labels by majority of neighboring cell labels
   CountMap hist;
-
-
   for (int iter = 0; iter < niter; ++iter) {
     for (id = 0; id < labels->GetNumberOfTuples(); ++id) {
       hist.clear();
-      label = static_cast<LabelType>(labels->GetTuple1(id));
+      label = static_cast<LabelType>(labels->GetComponent(id, 0));
       if (label != -1) hist[label] = 1;
 
-      if(using_cells){
+      if (using_cells) {
         // Iterate over cell edges
         surface->GetCellPoints(id, cellPointIds);
         for (vtkIdType i = 0; i < cellPointIds->GetNumberOfIds(); ++i) {
@@ -1054,14 +1048,16 @@ void SmoothLabels(vtkPolyData *surface, int niter, const char *scalars_name = "L
           // Count labels of neighboring cells and add unlabeled ones to queue
           for (vtkIdType j = 0; j < neighborCellIds->GetNumberOfIds(); ++j) {
             neighborCellId = neighborCellIds->GetId(j);
-            neighborLabel  = static_cast<LabelType>(labels->GetTuple1(neighborCellId));
+            neighborLabel  = static_cast<LabelType>(labels->GetComponent(neighborCellId, 0));
             if (neighborLabel != -1) ++hist[neighborLabel];
           }
         }
-      }else{
-        std::vector<vtkIdType> ids = findNeighboringPoints(surface, id);
-        for (int i=0; i<ids.size(); i++){
-          neighborLabel = static_cast<LabelType>(labels->GetTuple1(ids[i]));
+      } else {
+        int        adjPts;
+        const int *adjIds;
+        edgeTable.GetAdjacentPoints(id, adjPts, adjIds);
+        for (int i = 0; i < adjPts; ++i) {
+          neighborLabel = static_cast<LabelType>(labels->GetComponent(adjIds[i], 0));
           if (neighborLabel != -1) ++hist[neighborLabel];
         }
       }
@@ -1073,7 +1069,7 @@ void SmoothLabels(vtkPolyData *surface, int niter, const char *scalars_name = "L
           max_count = i->second;
         }
       }
-      new_labels->SetTuple1(id, static_cast<double>(label));
+      new_labels->SetComponent(id, 0, static_cast<double>(label));
     }
     labels->DeepCopy(new_labels);
   }
@@ -1083,17 +1079,18 @@ void SmoothLabels(vtkPolyData *surface, int niter, const char *scalars_name = "L
 // -----------------------------------------------------------------------------
 void KeepLargestRegionRatio(vtkPolyData *surface, double min_region_ratio, const char *scalars_name = "Labels", bool using_cells = true)
 {
-  // Get labels
   vtkSmartPointer<vtkDataArray> labels;
-  vtkSmartPointer<LabelArray> regions = vtkSmartPointer<LabelArray>::New();
+  vtkSmartPointer<LabelArray>   regions;
+  regions = vtkSmartPointer<LabelArray>::New();
   regions->SetNumberOfComponents(1);
-  if(using_cells){
+
+  if (using_cells) {
     labels = surface->GetCellData()->GetArray(scalars_name);
     if (labels == NULL) {
       FatalError("Surface has no " <<  scalars_name << " cell data, re-run with -celldata.");
     }
     regions->SetNumberOfTuples(surface->GetNumberOfCells());
-  }else{
+  } else {
     labels = surface->GetPointData()->GetArray(scalars_name);
     if (labels == NULL) {
       FatalError("Surface has no " <<  scalars_name << " point data, re-run with -pointdata.");
@@ -1103,32 +1100,35 @@ void KeepLargestRegionRatio(vtkPolyData *surface, double min_region_ratio, const
 
   LabelSet label_set;
   for (vtkIdType i = 0; i < labels->GetNumberOfTuples(); ++i) {
-    label_set.insert(static_cast<LabelType>(labels->GetTuple1(i)));
+    label_set.insert(static_cast<LabelType>(labels->GetComponent(i, 0)));
   }
   label_set.erase(0);
   label_set.erase(-1);
 
-  vtkIdType         id;
-  std::set<vtkIdType>    ids;
+  vtkIdType             id;
+  OrderedSet<vtkIdType> ids;
 
   surface->BuildLinks();
+
   for (LabelIter label = label_set.begin(); label != label_set.end(); ++label) {
-    std::vector<vtkIdType> regionSz;
+    Array<vtkIdType> regionSz;
     MarkUnvisited(ids, regions, labels, *label);
     while ((id = NextSeed(ids, regions)) != -1) {
-      regionSz.push_back(GrowRegion(surface, regions, regionSz.size(), id, using_cells));
+      LabelType regionId = static_cast<LabelType>(regionSz.size());
+      regionSz.push_back(GrowRegion(surface, regions, regionId, id, using_cells));
     }
-    vtkIdType min_region_size=-1;
-    for (size_t i = 0; i < regionSz.size(); ++i){
-      if(min_region_size < regionSz[i]) 
-        min_region_size = regionSz[i];
-    }
-    min_region_size=round(min_region_size*min_region_ratio);
+    vtkIdType min_region_size = -1;
     for (size_t i = 0; i < regionSz.size(); ++i) {
-      if (regionSz[i] < static_cast<vtkIdType>(min_region_size)) {
+      if (min_region_size < regionSz[i]) {
+        min_region_size = regionSz[i];
+      }
+    }
+    min_region_size = iround(min_region_size * min_region_ratio);
+    for (size_t i = 0; i < regionSz.size(); ++i) {
+      if (regionSz[i] < min_region_size) {
         for (id = 0; id < regions->GetNumberOfTuples(); ++id) {
-          if (static_cast<size_t>(regions->GetTuple1(id)) == i) {
-            labels->SetTuple1(id, -1);
+          if (static_cast<size_t>(regions->GetComponent(id, 0)) == i) {
+            labels->SetComponent(id, 0, -1.);
           }
         }
       }
@@ -1193,7 +1193,7 @@ vtkSmartPointer<vtkPolyData> ExtractLabelBoundaries(vtkPolyData *surface, const 
   OrderedSet<Pair<vtkIdType, vtkIdType> > boundaryEdgeIds;
   for (vtkIdType cellId = 0; cellId < mesh->GetNumberOfCells(); ++cellId) {
     // Get cell label and point IDs
-    label = static_cast<LabelType>(round(cell_labels->GetTuple1(cellId)));
+    label = static_cast<LabelType>(round(cell_labels->GetComponent(cellId, 0)));
     cellPointIds->Reset();
     mesh->GetCellPoints(cellId, cellPointIds);
     // Iterate over cell edges
@@ -1211,7 +1211,7 @@ vtkSmartPointer<vtkPolyData> ExtractLabelBoundaries(vtkPolyData *surface, const 
       // Compare labels of neighboring cells to this cell's label
       for (vtkIdType j = 0; j < neighborCellIds->GetNumberOfIds(); ++j) {
         neighborCellId = neighborCellIds->GetId(j);
-        if (label != static_cast<LabelType>(round(cell_labels->GetTuple1(neighborCellId)))) {
+        if (label != static_cast<LabelType>(round(cell_labels->GetComponent(neighborCellId, 0)))) {
           is_boundary_edge = true;
         }
       }
@@ -1251,28 +1251,27 @@ vtkSmartPointer<vtkPolyData> ExtractLabelBoundaries(vtkPolyData *surface, const 
 // -----------------------------------------------------------------------------
 void CheckBounds(vtkPolyData *surface, const LabelImage &labels, bool verbose, string surface_name="")
 {
-  double *surfaceBounds = new double[6];
-  for (int b=0; b<6; b+=2) surfaceBounds[b] = std::numeric_limits<double>::max();
-  for (int b=1; b<6; b+=2) surfaceBounds[b] = std::numeric_limits<double>::min();
+  double bounds[6];
+  for (int b=0; b<6; b+=2) bounds[b] = numeric_limits<double>::max();
+  for (int b=1; b<6; b+=2) bounds[b] = numeric_limits<double>::min();
 
-  const vtkIdType noOfPoints = surface->GetNumberOfPoints();
-  double p[3];
-
-  for (vtkIdType i = 0; i < noOfPoints; ++i) {
+  Point p;
+  const vtkIdType npoints = surface->GetNumberOfPoints();
+  for (vtkIdType i = 0; i < npoints; ++i) {
     surface->GetPoint(i, p);
-    labels.WorldToImage(p[0], p[1], p[2]);
-    for(int d=0; d<3; d++){
-      if(p[d] < surfaceBounds[d*2]) surfaceBounds[d*2] = p[d];
-      if(p[d] > surfaceBounds[d*2+1]) surfaceBounds[d*2+1] = p[d];
+    labels.WorldToImage(p);
+    for (int d = 0; d < 3; ++d) {
+      if (p(d) < bounds[d*2  ]) bounds[d*2  ] = p(d);
+      if (p(d) > bounds[d*2+1]) bounds[d*2+1] = p(d);
     }
   }
 
-  double &xmin = surfaceBounds[0];
-  double &xmax = surfaceBounds[1];
-  double &ymin = surfaceBounds[2];
-  double &ymax = surfaceBounds[3];
-  double &zmin = surfaceBounds[4];
-  double &zmax = surfaceBounds[5];
+  const double &xmin = bounds[0];
+  const double &xmax = bounds[1];
+  const double &ymin = bounds[2];
+  const double &ymax = bounds[3];
+  const double &zmin = bounds[4];
+  const double &zmax = bounds[5];
 
   if (verbose) { 
     cout << "Bounds of " << surface_name << "surface in image coordinates = ";
@@ -1280,9 +1279,9 @@ void CheckBounds(vtkPolyData *surface, const LabelImage &labels, bool verbose, s
     cout << "(" << xmax << ", " << ymax << ", " << zmax << ")" << endl;
   }
 
-  if (xmin < -0.5 || xmax > labels.X() - 0.5 ||
-      ymin < -0.5 || ymax > labels.Y() - 0.5 ||
-      zmin < -0.5 || zmax > labels.Z() - 0.5) {
+  if (xmin < -0.5 || xmax > labels.X() - .5 ||
+      ymin < -0.5 || ymax > labels.Y() - .5 ||
+      zmin < -0.5 || zmax > labels.Z() - .5) {
     FatalError("Surface outside bounds of input image!");
   }
 } 
