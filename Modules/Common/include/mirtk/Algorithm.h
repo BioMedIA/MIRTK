@@ -32,7 +32,9 @@ namespace mirtk {
 using std::find;
 using std::binary_search;
 using std::sort;
+using std::stable_sort;
 using std::partial_sort;
+using std::nth_element;
 using std::transform;
 using std::reverse;
 using std::shuffle;
@@ -95,6 +97,53 @@ template <class T, class Compare>
 void Sort(Array<T> &values, Compare comp)
 {
   sort(values.begin(), values.end(), comp);
+}
+
+/// Sort values in array while preserving order of equal entries
+template <class T>
+void StableSort(Array<T> &values)
+{
+  stable_sort(values.begin(), values.end());
+}
+
+/// Sort values in array while preserving order of equal entries
+template <class T, class Compare>
+void StableSort(Array<T> &values, Compare comp)
+{
+  stable_sort(values.begin(), values.end(), comp);
+}
+
+/// Sort first n values in array
+template <class T>
+void PartialSort(Array<T> &values, int n)
+{
+  partial_sort(values.begin(), values.begin() + n + 1, values.end());
+}
+
+/// Sort values in array using custom comparator
+template <class T, class Compare>
+void PartialSort(Array<T> &values, int n, Compare comp)
+{
+  partial_sort(values.begin(), values.begin() + n + 1, values.end(), comp);
+}
+
+/// Sort values of array such that values before the n-th element are
+/// smaller than this element and elements after are greater or equal
+template <class T>
+T &NthElement(Array<T> &values, int n)
+{
+  nth_element(values.begin(), values.begin() + n, values.end());
+  return values[n];
+}
+
+/// Sort values of array such that values before the n-th element are
+/// smaller than this element and elements after are greater or equal
+/// according to a custom comparator functor
+template <class T, class Compare>
+T &NthElement(Array<T> &values, int n, Compare comp)
+{
+  nth_element(values.begin(), values.begin() + n, values.end(), comp);
+  return values[n];
 }
 
 /// Get permutation of array indices corresponding to sorted order of values
