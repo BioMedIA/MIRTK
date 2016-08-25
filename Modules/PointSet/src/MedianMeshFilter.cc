@@ -161,7 +161,7 @@ void MedianMeshFilter::Execute()
   EdgeConnectivity neighbors;
   neighbors.Initialize(_Input, _Connectivity, _EdgeTable.get());
   filter._Input     = _DataArray;
-  filter._Output    = _Input->GetPointData()->GetArray(_DataArrayName.c_str());
+  filter._Output    = _Output->GetPointData()->GetArray(_DataArrayName.c_str());
   filter._Neighbors = &neighbors;
   parallel_for(blocked_range<int>(0, static_cast<int>(_Input->GetNumberOfPoints())), filter);
 }
