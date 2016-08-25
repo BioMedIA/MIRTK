@@ -78,23 +78,27 @@ void PrintHelp(const char *name)
   cout << "  output   Output surface mesh.\n";
   cout << "\n";
   cout << "Options:\n";
-  cout << "  -white                     Input surface is cortical WM/GM boundary.\n";
-  cout << "  -pial                      Input surface is cortical GM/CSF boundary.\n";
-  cout << "  -image <file>              Input real-valued scalar/vector image.\n";
-  cout << "  -labels <file>             Input segmentation image with positive integer labels.\n";
-  cout << "  -name <name>               Name of output scalar array. (default: Scalars or Labels)\n";
-  cout << "  -[no]celldata              Assign values to cells of input surface. (default: off)\n";
-  cout << "  -[no]pointdata             Assign values to points of input surface. (default: on)\n";
-  cout << "  -[no]fill                  Fill holes in projected surface parcellation.\n";
-  cout << "  -min-size <n>              Surface patches with less than n points are removed. (default: 0)\n";
-  cout << "  -surface <file>            Input surface from which to project scalars.\n";
+  cout << "  -white            Input surface is cortical WM/GM boundary.\n";
+  cout << "  -pial             Input surface is cortical GM/CSF boundary.\n";
+  cout << "  -image <file>     Input real-valued scalar/vector image.\n";
+  cout << "  -labels <file>    Input segmentation image with positive integer labels.\n";
+  cout << "  -name <name>      Name of output scalar array. (default: Scalars or Labels)\n";
+  cout << "  -[no]celldata     Assign values to cells of input surface. (default: off)\n";
+  cout << "  -[no]pointdata    Assign values to points of input surface. (default: on)\n";
+  cout << "  -[no]fill         Fill holes in projected surface parcellation.\n";
+  cout << "  -min-size <n>     Surface patches with less than n points are removed. (default: 0)\n";
+  cout << "  -surface <file>   Input surface from which to project scalars.\n";
   cout << "  -scalars <input_name> [<output_name>]\n";
-  cout << "                             Scalars to be projected from the input surface (can be defined multiple times). \n";
-  cout << "                             <name2> can be specified to set the name of the output scalar array\n";
-  cout << "  -boundary                  Output boundary lines between surface parcels. (default: off)\n";
-  cout << "                             When no :option:`-image` or :option:`-labels` input file is\n";
-  cout << "                             specified, the boundaries of the input parcellation given by\n";
-  cout << "                             the labels array with the specified :option:`-name` are extracted.\n";
+  cout << "      Scalars to be projected from the input surface (can be defined multiple times). \n";
+  cout << "      <name2> can be specified to set the name of the output scalar array\n";
+  cout << "  -boundary\n";
+  cout << "      Output boundary lines between surface parcels. (default: off)\n";
+  cout << "      When no :option:`-image` or :option:`-labels` input file is\n";
+  cout << "      specified, the boundaries of the input parcellation given by\n";
+  cout << "      the labels array with the specified :option:`-name` are extracted.\n";
+  cout << "  -dilation-radius <float>\n";
+  cout << "      Maximum distance of voxel from input label image boundary to be assigned\n";
+  cout << "      this label during dilation before projecting these labels onto the surface. (default: inf)\n";
   cout << "  -write-dilated-labels <file>\n";
   cout << "      Write image of dilated labels.\n";
   PrintStandardOptions(cout);
@@ -212,7 +216,7 @@ void InitializeLabelMask(const LabelImage &labels, DistanceImage &mask, LabelTyp
 }
 
 // -----------------------------------------------------------------------------
-LabelImage DilateLabels(const LabelImage &labels)
+LabelImage DilateLabels(const LabelImage &labels, double max_distance = inf)
 {
   // Count up different labels so we can identify the number of distinct labels.
   CountMap labelCount;
@@ -281,7 +285,7 @@ LabelImage DilateLabels(const LabelImage &labels)
     LabelType       *ptr2dilatedLabel = dilatedLabels.Data();
 
     for (int i = 0; i < noOfVoxels; ++i, ++ptr2minDmap, ++ptr2dmap, ++ptr2label, ++ptr2dilatedLabel) {
-      if (*ptr2label == 0 && *ptr2dmap < *ptr2minDmap) {
+      if (*ptr2label == 0 && *ptr2dmap < *ptr2minDmap && *ptr2dmap <= max_distance) {
         *ptr2minDmap      = *ptr2dmap;
         *ptr2dilatedLabel = curLabel;
       }
@@ -1111,6 +1115,7 @@ int main(int argc, char *argv[])
   int         min_region_size         = 0;
   bool        fill_holes              = true;
   int         smoothing_iterations    = 0;
+  double      max_dilation_distance   = inf;
 
   // arguments for scalars projection from surface
   const char *input_surface_proj_name   = NULL;
@@ -1120,6 +1125,7 @@ int main(int argc, char *argv[])
   // Parse remaining arguments
   for (ALL_OPTIONS) {
     if      (OPTION("-write-dilated-labels")) output_label_image_name = ARGUMENT;
+    else if (OPTION("-dilation-radius")) PARSE_ARGUMENT(max_dilation_distance);
     else if (OPTION("-name"))   output_scalars_name = ARGUMENT;
     else if (OPTION("-image"))  input_image_name    = ARGUMENT;
     else if (OPTION("-labels")) input_labels_name   = ARGUMENT;
@@ -1316,7 +1322,7 @@ int main(int argc, char *argv[])
   // Compute dilated labels
   LabelImage dilatedLabels;
   if (input_labels_name && (label_points || (label_cells && !csf_gm_boundary && !gm_wm_boundary))) {
-    dilatedLabels = DilateLabels(labels);
+    dilatedLabels = DilateLabels(labels, max_dilation_distance);
     if (output_label_image_name) dilatedLabels.Write(output_label_image_name);
   }
 
@@ -1431,16 +1437,17 @@ int main(int argc, char *argv[])
   }
 
   // scalars projection from surface
-  if (surface && input_surface_proj_name){
-    vtkSmartPointer<vtkPolyData>  surface_proj = ReadPolyData(input_surface_proj_name);
+  if (surface && input_surface_proj_name) {
+    vtkSmartPointer<vtkPolyData> surface_proj = ReadPolyData(input_surface_proj_name);
 
-    if (surface_proj_input_scalars_names.empty()){
-      vtkDataArray* scalars_array = surface_proj->GetPointData()->GetScalars();
-      if(scalars_array == NULL)
+    if (surface_proj_input_scalars_names.empty()) {
+      vtkDataArray *scalars_array = surface_proj->GetPointData()->GetScalars();
+      if (scalars_array == nullptr) {
         FatalError("Scalars need to be specified with the -scalars option");
-      surface_proj_input_scalars_names.push_back(scalars_array->GetName());
+      }
+      surface_proj_input_scalars_names .push_back(scalars_array->GetName());
       surface_proj_output_scalars_names.push_back(scalars_array->GetName());
-    } 
+    }
 
     RegisteredSurface target, source;
     target.InputSurface(surface);
@@ -1450,7 +1457,8 @@ int main(int argc, char *argv[])
     target.Update();
     source.Update();
 
-    UniquePtr<PointCorrespondence> cmap(PointCorrespondence::New(PointCorrespondence::ClosestPoint));
+    UniquePtr<PointCorrespondence> cmap;
+    cmap.reset(PointCorrespondence::New(PointCorrespondence::ClosestPoint));
     cmap->FromTargetToSource(true);
     cmap->FromSourceToTarget(false);
     cmap->Target(&target);
@@ -1460,19 +1468,18 @@ int main(int argc, char *argv[])
 
     const vtkIdType noOfPoints = surface->GetNumberOfPoints();
     for (size_t a = 0; a < surface_proj_input_scalars_names.size(); ++a) {
-      vtkDataArray* source_array = surface_proj->GetPointData()->GetArray(surface_proj_input_scalars_names[a]);
-      if(source_array == NULL)
+      vtkDataArray *source_array = surface_proj->GetPointData()->GetArray(surface_proj_input_scalars_names[a]);
+      if (source_array == nullptr) {
         FatalError("Surface has no scalars: " <<  surface_proj_input_scalars_names[a]);
-
+      }
       vtkSmartPointer<vtkDataArray> array;
       array.TakeReference(source_array->NewInstance());
       array->SetName(surface_proj_output_scalars_names[a]);
       array->SetNumberOfComponents(source_array->GetNumberOfComponents());
       array->SetNumberOfTuples(noOfPoints);
       surface->GetPointData()->AddArray(array);
-
       for (vtkIdType i = 0; i < noOfPoints; ++i) {
-        array->SetTuple(i, source_array->GetTuple( cmap->GetIndex(i) ));
+        array->SetTuple(i, source_array->GetTuple(cmap->GetIndex(i)));
       }
     }
   }
