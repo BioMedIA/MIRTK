@@ -129,7 +129,7 @@ vtkSmartPointer<vtkPointSet> Erode(vtkSmartPointer<vtkPointSet> input,
   res.TakeReference(arr->NewInstance());
   res->DeepCopy(arr); // in particular size, name, and component names if any
   const int idx = pd->AddArray(res);
-  if (attr == -1) pd->SetActiveAttribute(idx, attr);
+  if (attr >= 0) pd->SetActiveAttribute(idx, attr);
 
   for (int iter = 0; iter < niter; ++iter) {
     if (iter > 0) {
@@ -165,7 +165,7 @@ int main(int argc, char *argv[])
   FileOption fopt   = FO_Default;
 
   for (ALL_OPTIONS) {
-    if (OPTION("-a") || OPTION("-array") || OPTION("-scalars")) {
+    if (OPTION("-a") || OPTION("-array") || OPTION("-scalars") || OPTION("-name")) {
       array_name = ARGUMENT;
     }
     else if (OPTION("-n") || OPTION("-iterations") || OPTION("-iter")) {
