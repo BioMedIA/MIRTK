@@ -338,7 +338,7 @@ void LabelPoints(vtkPolyData *surface, const LabelImage &labels, const char *nam
   for (vtkIdType i = 0; i < noOfPoints; ++i) {
     surface->GetPoint(i, p);
     labels.WorldToImage(p[0], p[1], p[2]);
-    label = round(nn.Evaluate (p[0], p[1], p[2]));
+    label = round(nn.Evaluate(p[0], p[1], p[2]));
     point_labels->SetComponent(i, 0, label);
   }
 
@@ -359,29 +359,27 @@ void LabelCells(vtkPolyData *surface, const LabelImage &labels, const char *name
   nn.Input(&labels);
   nn.Initialize();
 
-  int subId;
-  vtkCell *cell;
-  double pcoords[3];
-  double *weights = new double[surface->GetMaxCellSize()];
-
   vtkSmartPointer<LabelArray> cell_labels;
   cell_labels = vtkSmartPointer<LabelArray>::New();
   cell_labels->SetName(name);
   cell_labels->SetNumberOfComponents(1);
   cell_labels->SetNumberOfTuples(noOfCells);
 
-  double p[3], label;
+  int subId;
+  vtkCell *cell;
+  double pcoords[3], p[3], label;
+  Array<double> weights(surface->GetMaxCellSize());
+
   for (vtkIdType i = 0; i < noOfCells; ++i) {
     cell  = surface->GetCell(i);
     subId = cell->GetParametricCenter(pcoords);
-    cell->EvaluateLocation(subId, pcoords, p, weights);
+    cell->EvaluateLocation(subId, pcoords, p, weights.data());
     labels.WorldToImage(p[0], p[1], p[2]);
-    label = round(nn.Evaluate (p[0], p[1], p[2]));
+    label = round(nn.Evaluate(p[0], p[1], p[2]));
     cell_labels->SetComponent(i, 0, round(label));
   }
 
   surface->GetCellData()->AddArray(cell_labels);
-  delete[] weights;
 }
 
 // -----------------------------------------------------------------------------
@@ -1336,8 +1334,8 @@ int main(int argc, char *argv[])
 
   // arguments for scalars projection from surface
   const char *input_surface_proj_name   = NULL;
-  std::vector<char*> surface_proj_input_scalars_names;
-  std::vector<char*> surface_proj_output_scalars_names;
+  Array<const char *> surface_proj_input_scalars_names;
+  Array<const char *> surface_proj_output_scalars_names;
 
   // Parse remaining arguments
   for (ALL_OPTIONS) {
@@ -1348,8 +1346,6 @@ int main(int argc, char *argv[])
     else if (OPTION("-labels")) input_labels_name   = ARGUMENT;
     else if (OPTION("-min-size")) PARSE_ARGUMENT(min_region_size);
     else if (OPTION("-min-ratio")) PARSE_ARGUMENT(min_region_ratio);
-    else if (OPTION("-fill"))   fill_holes = true;
-    else if (OPTION("-nofill")) fill_holes = false;
     else if (OPTION("-smooth")) PARSE_ARGUMENT(smoothing_iterations);
     else if (OPTION("-pial")) {
       csf_gm_boundary = true;
@@ -1359,12 +1355,10 @@ int main(int argc, char *argv[])
       csf_gm_boundary = false;
       gm_wm_boundary  = true;
     }
-    else if (OPTION("-celldata"))    label_cells  = true;
-    else if (OPTION("-nocelldata"))  label_cells  = false;
-    else if (OPTION("-pointdata"))   label_points = true;
-    else if (OPTION("-nopointdata")) label_points = false;
-    else if (OPTION("-boundary"))    output_boundary_edges = true;
-
+    else HANDLE_BOOLEAN_OPTION("fill", fill_holes);
+    else HANDLE_BOOLEAN_OPTION("celldata", label_cells);
+    else HANDLE_BOOLEAN_OPTION("pointdata", label_points);
+    else HANDLE_BOOLEAN_OPTION("boundary", output_boundary_edges);
     else if (OPTION("-surface"))  input_surface_proj_name = ARGUMENT;
     else if (OPTION("-scalars")){
       char* scalars_to_copy = ARGUMENT;
@@ -1426,13 +1420,13 @@ int main(int argc, char *argv[])
 
   // Check that surface does not go outside fov of label image.
   if (surface && (input_image_name || input_labels_name) && (label_points || label_cells)) {
-    CheckBounds(surface, labels, verbose, "");
+    CheckBounds(surface, labels, verbose > 0, "");
   }
   if (white_surface && (input_image_name || input_labels_name) && (label_points || label_cells)) {
-    CheckBounds(white_surface, labels, verbose, "WM/cGM");
+    CheckBounds(white_surface, labels, verbose > 0, "WM/cGM");
   }
   if (pial_surface && (input_image_name || input_labels_name) && (label_points || label_cells)) {
-    CheckBounds(white_surface, labels, verbose, "cGM/CSF");
+    CheckBounds(white_surface, labels, verbose > 0, "cGM/CSF");
   }
 
   // Compute dilated labels
