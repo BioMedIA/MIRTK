@@ -260,7 +260,16 @@ inline bool SurfaceRemeshing::IsBoundaryPoint(vtkIdType ptId) const
   for (unsigned short i = 0; i < ncells; ++i) {
     _Output->GetCellPoints(cells[i], npts, pts);
     for (vtkIdType j = 0; j < npts; ++j) {
-      if (pts[j] != ptId && GetCellEdgeNeighbor(cells[i], ptId, pts[j]) == -1) return true;
+      if (pts[j] == ptId) {
+        if (j == 0) {
+          if (GetCellEdgeNeighbor(cells[i], pts[npts-1], ptId) == -1 ||
+              GetCellEdgeNeighbor(cells[i], ptId, pts[j+1])    == -1) return true;
+        } else {
+          if (GetCellEdgeNeighbor(cells[i], pts[j-1], ptId)        == -1 ||
+              GetCellEdgeNeighbor(cells[i], ptId, pts[(j+1)%npts]) == -1) return true;
+        }
+        break;
+      }
     }
   }
   return false;
@@ -786,7 +795,7 @@ void SurfaceRemeshing::MeltingOfNodes()
   MIRTK_START_TIMING();
 
   unsigned short             ncells;
-  vtkIdType                  ptIdx, npts, *pts, *cells;
+  vtkIdType                  ptIdx, npts, *pts, *cells, cellId1, cellId2, cellId3;
   vtkSmartPointer<vtkIdList> ptIds1, ptIds2;
   ptIds1 = vtkSmartPointer<vtkIdList>::New();
   ptIds2 = vtkSmartPointer<vtkIdList>::New();
@@ -827,11 +836,13 @@ void SurfaceRemeshing::MeltingOfNodes()
             if (ptIds1->IsId(ptIds2->GetId(ptIdx)) == -1) break;
           }
           if (ptIdx == ptIds2->GetNumberOfIds()) continue;
+          // Make copy of cell IDs as the following modifies the cell links
+          cellId1 = cells[0], cellId2 = cells[1], cellId3 = cells[2];
           // TODO: Interpolate cell data, average tuples of the three cells or
           //       pick majority label for categorical data
-          ReplaceCellPoint(cells[0], ptId, ptIds2->GetId(ptIdx));
-          DeleteCell(cells[1]);
-          DeleteCell(cells[2]);
+          ReplaceCellPoint(cellId1, ptId, ptIds2->GetId(ptIdx));
+          DeleteCell(cellId2);
+          DeleteCell(cellId3);
           ++_NumberOfMeltedNodes;
           changed = true;
         } break;
@@ -1262,7 +1273,7 @@ void SurfaceRemeshing::InversionOfTrianglesSharingOneLongEdge()
       // Check connectivity of long edge end points
       if (NodeConnectivity(pts[i]) > 3 && NodeConnectivity(pts[j]) > 3) {
         // Get other vertex of triangle sharing long edge
-        adjPtId = GetCellEdgeNeighborPoint(cellId, pts[i], pts[j], _MeltNodes);
+        adjPtId = GetCellEdgeNeighborPoint(cellId, pts[i], pts[j]);
         if (adjPtId == -1 || _Output->IsEdge(pts[k], adjPtId)) continue;
         // Check if length of other edges are in range
         GetPoint(adjPtId, p[3]);
