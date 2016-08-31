@@ -45,11 +45,12 @@ public:
   /// Enumeration of smoothing kernel functions
   enum WeightFunction
   {
-    Default,            ///< Undefined weighting function, use default
-    Combinatorial,      ///< Uniform node weights / "umbrella operator"
-    InverseDistance,    ///< Inverse node distance
-    Gaussian,           ///< Gaussian node weights
-    AnisotropicGaussian ///< Anisotropic Gaussian node weights
+    Default,             ///< Undefined weighting function, use default
+    Combinatorial,       ///< Uniform node weights / "umbrella operator"
+    InverseDistance,     ///< Inverse node distance
+    Gaussian,            ///< Gaussian node weights
+    AnisotropicGaussian, ///< Anisotropic Gaussian node weights
+    NormalDeviation      ///< Weight by cosine of angle made up by normals
   };
 
   /// List of point data array names

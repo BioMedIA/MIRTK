@@ -51,7 +51,7 @@ namespace MeshSmoothingUtils {
 ///     SIGGRAPH’95 Proceedings, 18(3), 351–358.
 struct UniformWeightKernel
 {
-  double operator ()(vtkIdType, double [3], double [3]) const
+  double operator ()(vtkIdType, double [3], vtkIdType, double [3]) const
   {
     return 1.0;
   }
@@ -67,7 +67,7 @@ public:
 
   InverseDistanceKernel(double sigma = .0) : _Sigma(sigma) {}
 
-  double operator ()(vtkIdType, double p0[3], double p1[3]) const
+  double operator ()(vtkIdType, double p0[3], vtkIdType, double p1[3]) const
   {
     const double d = sqrt(vtkMath::Distance2BetweenPoints(p0, p1)) + _Sigma;
     return (d == .0 ? .0 : 1.0 / d);
@@ -84,7 +84,7 @@ public:
 
   GaussianKernel(double sigma = 1.0) : _Scale(- .5 / (sigma * sigma)) {}
 
-  double operator ()(vtkIdType, double p0[3], double p1[3]) const
+  double operator ()(vtkIdType, double p0[3], vtkIdType, double p1[3]) const
   {
     return exp(_Scale * vtkMath::Distance2BetweenPoints(p0, p1));
   }
@@ -170,7 +170,7 @@ public:
   }
 
   /// Evaluate anisotropic Gaussian kernel centered at \c p0 at \c x=p1
-  double operator ()(vtkIdType ptId, double p0[3], double p1[3]) const
+  double operator ()(vtkIdType ptId, double p0[3], vtkIdType, double p1[3]) const
   {
     Matrix3x3 T; // local geometry tensor, e.g., curvature tensor
     Vector3   x(p1[0] - p0[0], p1[1] - p0[1], p1[2] - p0[2]);
@@ -211,6 +211,25 @@ public:
 
     x[0] *= x[0], x[1] *= x[1], x[2] *= x[2];
     return exp(_Scale[0] * x[0] + _Scale[1] * x[1] + _Scale[2] * x[2]);
+  }
+};
+
+// -----------------------------------------------------------------------------
+/// Use cosine of angle made up by point normals as weight
+class NormalDeviationKernel
+{
+  vtkDataArray *_Normals;
+
+public:
+
+  NormalDeviationKernel(vtkDataArray *normals = nullptr) : _Normals(normals) {}
+
+  double operator ()(vtkIdType ptId, double [3], vtkIdType adjId, double [3]) const
+  {
+    Vector3 n0, n1;
+    _Normals->GetTuple(ptId,  n0);
+    _Normals->GetTuple(adjId, n1);
+    return clamp(n0.Dot(n1), 0., 1.);
   }
 };
 
@@ -274,7 +293,7 @@ struct SmoothData
 
       // Initialize sums
       if (_InclNodeItself) {
-        norm = (w = _WeightFunction(ptId, p0, p0));
+        norm = (w = _WeightFunction(ptId, p0, ptId, p0));
         if (smooth_points) {
           p[0] = w * p0[0];
           p[1] = w * p0[1];
@@ -302,7 +321,7 @@ struct SmoothData
       for (_EdgeTable->GetAdjacentPoints(ptId, adjPtIt, adjPtEnd); adjPtIt != adjPtEnd; ++adjPtIt) {
         adjPtId = static_cast<vtkIdType>(*adjPtIt);
         _InputPoints->GetPoint(adjPtId, p1);
-        norm += (w = _WeightFunction(ptId, p0, p1));
+        norm += (w = _WeightFunction(ptId, p0, adjPtId, p1));
         if (smooth_points) {
           p[0] += w * p1[0];
           p[1] += w * p1[1];
@@ -446,7 +465,7 @@ struct SmoothDataMagnitude
 
       // Initialize sums
       if (_InclNodeItself) {
-        norm = (w = _WeightFunction(ptId, p0, p0));
+        norm = (w = _WeightFunction(ptId, p0, ptId, p0));
         if (smooth_points) {
           p[0] = w * p0[0];
           p[1] = w * p0[1];
@@ -469,7 +488,7 @@ struct SmoothDataMagnitude
       for (_EdgeTable->GetAdjacentPoints(ptId, adjPtIt, adjPtEnd); adjPtIt != adjPtEnd; ++adjPtIt) {
         adjPtId = static_cast<vtkIdType>(*adjPtIt);
         _InputPoints->GetPoint(adjPtId, p1);
-        norm += (w = _WeightFunction(ptId, p0, p1));
+        norm += (w = _WeightFunction(ptId, p0, adjPtId, p1));
         if (smooth_points) {
           p[0] += w * p1[0];
           p[1] += w * p1[1];
@@ -597,7 +616,7 @@ struct SmoothSignedDataMagnitude
 
       // Initialize sums
       if (_InclNodeItself) {
-        norm = (w = _WeightFunction(ptId, p0, p0));
+        norm = (w = _WeightFunction(ptId, p0, ptId, p0));
         if (smooth_points) {
           p[0] = w * p0[0];
           p[1] = w * p0[1];
@@ -622,7 +641,7 @@ struct SmoothSignedDataMagnitude
       for (_EdgeTable->GetAdjacentPoints(ptId, adjPtIt, adjPtEnd); adjPtIt != adjPtEnd; ++adjPtIt) {
         adjPtId = static_cast<vtkIdType>(*adjPtIt);
         _InputPoints->GetPoint(adjPtId, p1);
-        norm += (w = _WeightFunction(ptId, p0, p1));
+        norm += (w = _WeightFunction(ptId, p0, adjPtId, p1));
         if (smooth_points) {
           p[0] += w * p1[0];
           p[1] += w * p1[1];
@@ -764,7 +783,7 @@ struct SmoothSignedData
 
       // Initialize sums
       if (_InclNodeItself) {
-        norm = (w = _WeightFunction(ptId, p0, p0));
+        norm = (w = _WeightFunction(ptId, p0, ptId, p0));
         if (smooth_points) {
           p[0] = w * p0[0];
           p[1] = w * p0[1];
@@ -787,7 +806,7 @@ struct SmoothSignedData
       for (_EdgeTable->GetAdjacentPoints(ptId, adjPtIt, adjPtEnd); adjPtIt != adjPtEnd; ++adjPtIt) {
         adjPtId = static_cast<vtkIdType>(*adjPtIt);
         _InputPoints->GetPoint(adjPtId, p1);
-        norm += (w = _WeightFunction(ptId, p0, p1));
+        norm += (w = _WeightFunction(ptId, p0, adjPtId, p1));
         if (smooth_points) {
           p[0] += w * p1[0];
           p[1] += w * p1[1];
@@ -949,7 +968,7 @@ void MeshSmoothing::Initialize()
   // Default weighting function
   if (_Weighting == Default) _Weighting = Gaussian;
 
-  // Check input point data arrays required for anisotropic smoothing
+  // Check/compute input point data arrays required by chosen weighting function
   if (_Weighting == AnisotropicGaussian) {
     vtkDataArray *array;
     if (_GeometryTensorName.empty()) {
@@ -985,7 +1004,8 @@ void MeshSmoothing::Initialize()
           filter->ComputeCellNormalsOff();
           filter->ComputePointNormalsOn();
           filter->SplittingOff();
-          filter->AutoOrientNormalsOn();
+          filter->AutoOrientNormalsOff();
+          filter->NonManifoldTraversalOff();
           filter->ConsistencyOn();
           filter->Update();
           _Output = filter->GetOutput();
@@ -1002,6 +1022,20 @@ void MeshSmoothing::Initialize()
         cerr << this->NameOfType() << "::Initialize: Invalid local geometry tensor array. Must have either 6 or 9 components." << endl;
         exit(1);
       }
+    }
+  } else if (_Weighting == NormalDeviation) {
+    if (_Output->GetPointData()->GetNormals() == nullptr) {
+      vtkSmartPointer<vtkPolyDataNormals> filter;
+      filter = vtkSmartPointer<vtkPolyDataNormals>::New();
+      SetVTKInput(filter, _Input);
+      filter->ComputeCellNormalsOff();
+      filter->ComputePointNormalsOn();
+      filter->SplittingOff();
+      filter->AutoOrientNormalsOff();
+      filter->NonManifoldTraversalOff();
+      filter->ConsistencyOn();
+      filter->Update();
+      _Output = filter->GetOutput();
     }
   }
 
@@ -1170,6 +1204,19 @@ void MeshSmoothing::Execute()
           } else if (_SignedSmoothing) {
             SmoothSignedData<Kernel>::Run(_Mask, _EdgeTable.get(), ip, op, ia, oa, kernel, lambda, incl_node);
           }
+        }
+      } break;
+      case NormalDeviation: {
+        typedef NormalDeviationKernel Kernel;
+        vtkDataArray * const normals = _Output->GetPointData()->GetNormals();
+        if (_SmoothArrays.empty() || (!_SmoothMagnitude && !_SignedSmoothing)) {
+          SmoothData<Kernel>::Run(_Mask, _EdgeTable.get(), ip, op, ia, oa, attr, Kernel(normals), lambda, incl_node);
+        } else if (_SmoothMagnitude && !_SignedSmoothing) {
+          SmoothDataMagnitude<Kernel>::Run(_Mask, _EdgeTable.get(), ip, op, ia, oa, Kernel(normals), lambda, incl_node);
+        } else if (_SmoothMagnitude && _SignedSmoothing) {
+          SmoothSignedDataMagnitude<Kernel>::Run(_Mask, _EdgeTable.get(), ip, op, ia, oa, Kernel(normals), lambda, incl_node);
+        } else if (_SignedSmoothing) {
+          SmoothSignedData<Kernel>::Run(_Mask, _EdgeTable.get(), ip, op, ia, oa, Kernel(normals), lambda, incl_node);
         }
       } break;
     }
