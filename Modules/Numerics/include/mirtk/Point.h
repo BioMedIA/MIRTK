@@ -1,8 +1,9 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2008-2015 Imperial College London
+ * Copyright 2008-2016 Imperial College London
  * Copyright 2008-2015 Daniel Rueckert, Julia Schnabel
+ * Copyright 2016      Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -147,6 +148,9 @@ public:
   //
   // Operators for double
   //
+
+  /// Assign scalar value to all coordinates
+  Point& operator =(double);
 
   /// Substraction of double
   Point& operator-=(double);
@@ -514,6 +518,15 @@ inline int Point::operator>(Point const& p) const
 }
 
 // -----------------------------------------------------------------------------
+inline Point& Point::operator =(double x)
+{
+  _x = x;
+  _y = x;
+  _z = x;
+  return *this;
+}
+
+// -----------------------------------------------------------------------------
 inline Point& Point::operator+=(double x)
 {
   _x += x;
@@ -587,6 +600,15 @@ inline Point Point::operator/ (double x) const
   p._y = _y / x;
   p._z = _z / x;
   return p;
+}
+
+// -----------------------------------------------------------------------------
+inline Point& Point::operator =(const Vector3& v)
+{
+  _x = v.x;
+  _y = v.y;
+  _z = v.z;
+  return *this;
 }
 
 // -----------------------------------------------------------------------------

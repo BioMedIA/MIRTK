@@ -20,6 +20,7 @@
 
 #include "mirtk/Math.h"
 #include "mirtk/Stream.h"
+#include "mirtk/Point.h"
 
 
 namespace mirtk {
@@ -66,6 +67,14 @@ Vector3::Vector3 (const Vector3& rkVector)
   x = rkVector.x;
   y = rkVector.y;
   z = rkVector.z;
+}
+
+//----------------------------------------------------------------------------
+Vector3::Vector3 (const Point& p)
+{
+  x = p.x;
+  y = p.y;
+  z = p.z;
 }
 
 //----------------------------------------------------------------------------

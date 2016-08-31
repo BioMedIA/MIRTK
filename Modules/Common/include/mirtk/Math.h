@@ -86,7 +86,7 @@ using std::copysign;
 // Custom floating point functions
 // =============================================================================
 
-// ---------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
 /// Check if floating point value is not a number (NaN)
 MIRTKCU_API inline bool IsNaN(double x)
 {
@@ -98,7 +98,7 @@ MIRTKCU_API inline bool IsNaN(double x)
 #endif
 }
 
-// ---------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
 /// Check if floating point value represents infinity
 MIRTKCU_API inline bool IsInf(double x)
 {
@@ -110,14 +110,14 @@ MIRTKCU_API inline bool IsInf(double x)
 #endif
 }
 
-// ---------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
 /// Determine equality of two floating point numbers
 MIRTKCU_API inline bool fequal(double a, double b, double tol = 1e-12)
 {
   return abs(a - b) < tol;
 }
 
-// ---------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
 /// Sign function - https://en.wikipedia.org/wiki/Sign_function
 template <typename T>
 MIRTKCU_API int sgn(T val)
@@ -125,7 +125,7 @@ MIRTKCU_API int sgn(T val)
   return (T(0) < val) - (val < T(0));
 }
 
-// ---------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
 /// Round floating-point value to next smaller integer and cast to int
 template <class T>
 MIRTKCU_API inline int ifloor(T x)
@@ -133,7 +133,7 @@ MIRTKCU_API inline int ifloor(T x)
   return static_cast<int>(floor(x));
 }
 
-// ---------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
 /// Round floating-point value to next greater integer and cast to int
 template <class T>
 MIRTKCU_API inline int iceil(T x)
@@ -141,7 +141,7 @@ MIRTKCU_API inline int iceil(T x)
   return static_cast<int>(ceil(x));
 }
 
-// ---------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
 /// Round floating-point value and cast to int
 template <class T>
 MIRTKCU_API inline int iround(T x)
@@ -149,7 +149,7 @@ MIRTKCU_API inline int iround(T x)
   return static_cast<int>(round(x));
 }
 
-// ---------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
 /// Increment floating-point number by the smallest possible amount such that
 /// the resulting number is greater than the original number.
 MIRTKCU_API inline double finc(double f)
@@ -159,7 +159,7 @@ MIRTKCU_API inline double finc(double f)
   return ::ldexp(m + numeric_limits<double>::epsilon(), e);
 }
 
-// ---------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
 /// Decrement floating-point number by the smallest possible amount such that
 /// the resulting number is less than the original number.
 MIRTKCU_API inline double fdec(double f)
@@ -169,7 +169,7 @@ MIRTKCU_API inline double fdec(double f)
   return ::ldexp(m - numeric_limits<double>::epsilon(), e);
 }
 
-// ---------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
 /// Increment floating point number by a given amount, ensuring that the result
 /// is not equal f.
 ///
@@ -189,7 +189,7 @@ MIRTKCU_API inline double finc(double f, double df)
   return s;
 }
 
-// ---------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
 /// Decrement floating point number by a given amount, ensuring that the result
 /// is not equal f.
 ///
@@ -207,6 +207,24 @@ MIRTKCU_API inline double fdec(double f, double df)
     else        s = fdec(f);
   }
   return s;
+}
+
+// -----------------------------------------------------------------------------
+/// S-shaped monotone increasing membership function whose value is in [0, 1]
+/// for x in [a, b]. It is equivalent to MATLAB's smf function.
+inline double SShapedMembershipFunction(double x, double a, double b)
+{
+  if (x <= a) {
+    return 0.;
+  } else if (x >= b) {
+    return 1.;
+  } else if (x <= .5 * (a + b)) {
+    const double t = (x - a) / (b - a);
+    return 2. * t * t;
+  } else {
+    const double t = (x - b) / (b - a);
+    return 1. - 2. * t * t;
+  }
 }
 
 // =============================================================================
