@@ -133,15 +133,17 @@ inline bool BracketZeroCrossing(const double p[3], const double e[3],
     b = a, db = da;
     return true;
   }
-  double x[3], step = max(minh, abs(da));
-  for (b = step; b <= maxh; b += step) {
-    x[0] = p[0] + b * e[0];
-    x[1] = p[1] + b * e[1];
-    x[2] = p[2] + b * e[2];
-    db = Evaluate(distance, x, offset);
-    if (fequal(db, .0, tol) || da * db <= .0) return true; // zero crossing
-    a = b, da = db;
-    step = max(minh, abs(da));
+  if (abs(da) < maxh) {
+    double x[3], step = max(minh, abs(da));
+    for (b = step; b <= maxh; b += step) {
+      x[0] = p[0] + b * e[0];
+      x[1] = p[1] + b * e[1];
+      x[2] = p[2] + b * e[2];
+      db = Evaluate(distance, x, offset);
+      if (fequal(db, .0, tol) || da * db <= .0) return true; // zero crossing
+      a = b, da = db;
+      step = max(minh, abs(da));
+    }
   }
   return false;
 }
