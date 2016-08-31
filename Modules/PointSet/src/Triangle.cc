@@ -20,6 +20,7 @@
 #include "mirtk/Triangle.h"
 #include "mirtk/Memory.h"
 
+#include "mirtk/VtkMath.h"
 #include "vtkLine.h"
 #include "vtkPlane.h"
 #include "vtkTriangle.h"
@@ -212,6 +213,7 @@ bool Triangle
     // FIXME: Yields on occassion false positive intersection tests of nearby,
     //        but not even close to intersecting triangles. Therefore,
     //        this expensive distance computation... should not be needed :-(
+    #if 0
     double n1[3], n2[3];
     Triangle::Normal(a1, b1, c1, n1);
     Triangle::Normal(a2, b2, c2, n2);
@@ -222,9 +224,19 @@ bool Triangle
                                    const_cast<double *>(a2),
                                    const_cast<double *>(b2),
                                    const_cast<double *>(c2),
-                                   const_cast<double *>(n2)) < 1e-6) {
-      return true;
-    }
+                                   const_cast<double *>(n2)) < 1e-6)
+    #elif 1
+    double p1[3], p2[3];
+    double d  = Triangle::DistanceBetweenCenters(a1, b1, c1, a2, b2, c2, p1, p2);
+    double r1 = sqrt(max(max(vtkMath::Distance2BetweenPoints(a1, p1),
+                             vtkMath::Distance2BetweenPoints(b1, p1)),
+                             vtkMath::Distance2BetweenPoints(c1, p1)));
+    double r2 = sqrt(max(max(vtkMath::Distance2BetweenPoints(a2, p2),
+                             vtkMath::Distance2BetweenPoints(b2, p2)),
+                             vtkMath::Distance2BetweenPoints(c2, p2)));
+    if (d > r1 + r2) return false;
+    #endif
+    return true;
   }
   return false;
 }
