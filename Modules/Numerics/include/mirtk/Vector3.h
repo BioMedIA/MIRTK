@@ -22,6 +22,9 @@
 namespace mirtk {
 
 
+class Point;
+
+
 /**
  * 3D vector
  *
@@ -36,6 +39,7 @@ public:
   Vector3 (double fX, double fY, double fZ);
   Vector3 (const double afCoordinate[3]);
   Vector3 (const Vector3& rkVector);
+  Vector3 (const Point &);
 
   // member access (allows V.x or V[0], V.y or V[1], V.z or V[2])
   double x, y, z;
