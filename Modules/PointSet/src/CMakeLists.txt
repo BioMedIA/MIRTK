@@ -32,6 +32,7 @@ set(HEADERS
   EdgeTable.h
   FiducialMatch.h
   FuzzyCorrespondence.h
+  ImageSurfaceStatistics.h
   ImplicitSurfaceUtils.h
   Stripper.h
   MedianMeshFilter.h
@@ -67,6 +68,7 @@ set(SOURCES
   FuzzyCorrespondence.cc
   FuzzyCorrespondenceUtils.cc
   FuzzyCorrespondenceUtils.h
+  ImageSurfaceStatistics.cc
   ImplicitSurfaceUtils.cc
   Stripper.cc
   MedianMeshFilter.cc
