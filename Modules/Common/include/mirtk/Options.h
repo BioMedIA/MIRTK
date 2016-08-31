@@ -212,7 +212,7 @@ void PrintCommonOptions(ostream &);
   do {                                                                         \
     PrintHelp(EXECNAME);                                                       \
     cout << endl;                                                              \
-    cerr << "Error: Unknown option " << argv[OPTIDX] << endl;                  \
+    cerr << "Error: Unknown option " << argv[OPTIDX] << " (index=" << OPTIDX << ")" << endl; \
     exit(1);                                                                   \
   } while (false)
 
