@@ -149,6 +149,9 @@ public:
   // Operators for double
   //
 
+  /// Assign scalar value to all coordinates
+  Point& operator =(double);
+
   /// Substraction of double
   Point& operator-=(double);
 
@@ -512,6 +515,15 @@ inline int Point::operator<(Point const& p) const
 inline int Point::operator>(Point const& p) const
 {
   return ((_x > p._x) && (_y > p._y) && (_z > p._z));
+}
+
+// -----------------------------------------------------------------------------
+inline Point& Point::operator =(double x)
+{
+  _x = x;
+  _y = x;
+  _z = x;
+  return *this;
 }
 
 // -----------------------------------------------------------------------------
