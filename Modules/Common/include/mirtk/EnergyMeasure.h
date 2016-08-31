@@ -1,8 +1,8 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2013-2015 Imperial College London
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2013-2016 Imperial College London
+ * Copyright 2013-2016 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -66,11 +66,10 @@ enum EnergyMeasure
   // External point set forces (cf. ExternalForce subclasses)
   EFT_Begin,
 
-    EM_BalloonForce,               ///< Balloon/inflation force
-    EM_ImageEdgeForce,             ///< Image edge force
-    EM_ImageEdgeDistance,          ///< Image edge distance
-    EM_ImplicitSurfaceDistance,    ///< Implicit surface distance force
-    EM_ImplicitSurfaceSpringForce, ///< Implicit surface spring force
+    EM_BalloonForce,            ///< Balloon/inflation force
+    EM_ImageEdgeForce,          ///< Image edge force
+    EM_ImageEdgeDistance,       ///< Image edge distance
+    EM_ImplicitSurfaceDistance, ///< Implicit surface distance force
 
   EFT_End,
   // ---------------------------------------------------------------------------
@@ -83,6 +82,7 @@ enum EnergyMeasure
     EM_QuadraticCurvature,      ///< Quadratic fit of neighor to tangent plane distance
     EM_GaussCurvature,          ///< Gauss curvature constraint
     EM_MeanCurvature,           ///< Mean curvature constraint
+    EM_MaximumCurvature,        ///< Maximum curvature constraint
     EM_NonSelfIntersection,     ///< Repels too close non-neighboring triangles
     EM_RepulsiveForce,          ///< Repels too close non-neighboring nodes
     EM_InflationForce,          ///< Inflate point set surface
@@ -142,11 +142,10 @@ inline string ToString(const EnergyMeasure &value, int w, char c, bool left)
 
     // ---------------------------------------------------------------------------
     // External point set forces
-    case EM_BalloonForce:               str = "BalloonForce"; break;
-    case EM_ImageEdgeForce:             str = "ImageEdgeForce"; break;
-    case EM_ImageEdgeDistance:          str = "ImageEdgeDistance"; break;
-    case EM_ImplicitSurfaceDistance:    str = "ImplicitSurfaceDistance"; break;
-    case EM_ImplicitSurfaceSpringForce: str = "ImplicitSurfaceSpringForce"; break;
+    case EM_BalloonForce:            str = "BalloonForce"; break;
+    case EM_ImageEdgeForce:          str = "ImageEdgeForce"; break;
+    case EM_ImageEdgeDistance:       str = "ImageEdgeDistance"; break;
+    case EM_ImplicitSurfaceDistance: str = "ImplicitSurfaceDistance"; break;
 
     // ---------------------------------------------------------------------------
     // Internal point set forces
@@ -156,6 +155,7 @@ inline string ToString(const EnergyMeasure &value, int w, char c, bool left)
     case EM_QuadraticCurvature:  str = "QuadraticCurvature"; break;
     case EM_GaussCurvature:      str = "GaussCurvature"; break;
     case EM_MeanCurvature:       str = "MeanCurvature"; break;
+    case EM_MaximumCurvature  :  str = "MaximumCurvature"; break;
     case EM_NonSelfIntersection: str = "NSI"; break;
     case EM_RepulsiveForce:      str = "Repulsion"; break;
     case EM_InflationForce:      str = "Inflation"; break;
@@ -216,7 +216,6 @@ inline string ToPrettyString(const EnergyMeasure &value, int w = 0, char c = ' '
     case EM_ImageEdgeForce:             str = "Image edge force"; break;
     case EM_ImageEdgeDistance:          str = "Image edge distance"; break;
     case EM_ImplicitSurfaceDistance:    str = "Implicit surface distance"; break;
-    case EM_ImplicitSurfaceSpringForce: str = "Implicit surface spring force"; break;
 
     // ---------------------------------------------------------------------------
     // Internal point set forces
@@ -226,6 +225,7 @@ inline string ToPrettyString(const EnergyMeasure &value, int w = 0, char c = ' '
     case EM_QuadraticCurvature:  str = "Quadratic curvature"; break;
     case EM_GaussCurvature:      str = "Gauss curvature"; break;
     case EM_MeanCurvature:       str = "Mean curvature"; break;
+    case EM_MaximumCurvature:    str = "Maximum curvature"; break;
     case EM_NonSelfIntersection: str = "Non-self intersection"; break;
     case EM_RepulsiveForce:      str = "Repulsion"; break;
     case EM_InflationForce:      str = "Inflation"; break;
