@@ -232,7 +232,7 @@ UnorderedSet<int> InsideLabels(const GreyImage &labels, vtkPolyData *surface)
   }
   UnorderedSet<int> label_set;
   if (size == 0) return label_set;
-  const int min_count = iround(.1 * size);
+  const int min_count = iround(.5 * size);
   for (const auto &bin : hist) {
     if (bin.second > min_count) {
       label_set.insert(bin.first);
