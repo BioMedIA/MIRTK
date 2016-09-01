@@ -966,9 +966,21 @@ bool PrincipalDirections(vtkPointSet * const points, Vector3 dir[3])
 }
 
 // -----------------------------------------------------------------------------
-/// Get cutting plane from segmentation boundary
-vtkSmartPointer<vtkPolyData> CuttingPlane(vtkPointSet * const points, double ds)
+/// Structure with cutting plane parameters
+struct PlaneAttributes
 {
+  Point   o; ///< Origin/Center point
+  Vector3 n; ///< Normal vector
+  Vector3 x; ///< In-plane x axis
+  Vector3 y; ///< In-plane y axis
+  Vector3 &z = n; ///< Out of plane z axis, i.e., plane normal
+};
+
+// -----------------------------------------------------------------------------
+/// Get cutting plane from segmentation boundary
+PlaneAttributes CuttingPlaneAttributes(vtkSmartPointer<vtkPointSet> points)
+{
+  MIRTK_START_TIMING();
   Vector3 dir[3], p;
   if (!PrincipalDirections(points, dir)) {
     FatalError("Failed to compute principal directions of point set");
@@ -983,80 +995,434 @@ vtkSmartPointer<vtkPolyData> CuttingPlane(vtkPointSet * const points, double ds)
     if (v < minv) minv = v;
     if (v > maxv) maxv = v;
   }
-  dir[0] *= (maxu - minu) + 10. * ds;
-  dir[1] *= (maxv - minv) + 10. * ds;
-  points->GetCenter(p);
-  p -= .5 * dir[0];
-  p -= .5 * dir[1];
+  dir[0] *= .5 * (maxu - minu);
+  dir[1] *= .5 * (maxv - minv);
+  dir[2].Normalize();
+  PlaneAttributes attr;
+  points->GetCenter(attr.o);
+  attr.n = dir[2];
+  attr.x = dir[0];
+  attr.y = dir[1];
+  MIRTK_DEBUG_TIMING(2, "CuttingPlaneAttributes");
+  return attr;
+}
+
+// -----------------------------------------------------------------------------
+/// Get cutting plane from segmentation boundary
+vtkSmartPointer<vtkPolyData> CuttingPlane(const PlaneAttributes &attr, double tn, double rx, double ry, double margin)
+{
+  MIRTK_START_TIMING();
+
+  // Calculate rotation matrices in local plane coordinates
+  const double cx = cos(rx * rad_per_deg), sx = sin(rx * rad_per_deg);
+  const double cy = cos(ry * rad_per_deg), sy = sin(ry * rad_per_deg);
+  const Matrix3x3 Rx(1., 0., 0., 0., cx, -sx, 0., sx, cx);
+  const Matrix3x3 Ry(cy, 0., sy, 0., 1., 0., -sy, 0., cy);
+
+  // Rotate local plane axes vectors
+  Vector3 dx(1., 0., 0.), dy(0., 1., 0.), n(0., 0., 1.);
+  dx = Rx * Ry * dx;
+  dy = Rx * Ry * dy;
+  n  = Rx * Ry * n;
+
+  // Map to world vectors of unit length
+  Vector3 e1(attr.x), e2(attr.y), e3(attr.z);
+  e1.Normalize(), e2.Normalize(), e3.Normalize();
+  dx = dx.x * e1 + dx.y * e2 + dx.z * e3;
+  dy = dy.x * e1 + dy.y * e2 + dy.z * e3;
+  n  = n .x * e1 + n .y * e2 + n .z * e3;
+
+  // Add plane margin to initial plane extend
+  dx *= (attr.x.Length() + 2. * margin);
+  dy *= (attr.y.Length() + 2. * margin);
+
+  // Translate plane along original normal vector
+  Point o = attr.o + tn * attr.n;
+
+  // vtkPlaneSource origin is in corner, not center
+  o  -= dx;
+  o  -= dy;
+  dx *= 2.;
+  dy *= 2.;
+
+  // Tesselate finite plane
+  vtkSmartPointer<vtkPolyData> plane;
   vtkNew<vtkPlaneSource> source;
-  source->SetXResolution(1);//iceil((maxu - minu) / ds));
-  source->SetYResolution(1);//iceil((maxv - minv) / ds));
-  source->SetOrigin(p);
-  source->SetPoint1(p + dir[0]);
-  source->SetPoint2(p + dir[1]);
+  source->SetXResolution(1);
+  source->SetYResolution(1);
+  source->SetOrigin(o);
+  source->SetPoint1(o + dx);
+  source->SetPoint2(o + dy);
   source->Update();
-  return Triangulate(source->GetOutput());
+  plane = Triangulate(source->GetOutput());
+
+  MIRTK_DEBUG_TIMING(2, "CuttingPlane");
+  return plane;
 }
 
 // -----------------------------------------------------------------------------
 /// Intersect two polygonal data sets and return single intersection polygon
 vtkSmartPointer<vtkPolyData> LargestClosedIntersection(vtkPolyData *s1, vtkPolyData *s2)
 {
-  vtkNew<vtkIntersectionPolyDataFilter> intersection;
-  intersection->SplitFirstOutputOff();
-  intersection->SplitSecondOutputOff();
-  SetNthVTKInput(intersection, 0, s1);
-  SetNthVTKInput(intersection, 1, s2);
+  MIRTK_START_TIMING();
 
-  vtkNew<vtkCleanPolyData> merger;
-  SetVTKConnection(merger, intersection);
-  merger->ConvertStripsToPolysOff();
-  merger->ConvertPolysToLinesOff();
-  merger->ConvertLinesToPointsOff();
-  merger->PointMergingOn();
-  merger->ToleranceIsAbsoluteOn();
-  merger->SetAbsoluteTolerance(1e-12);
-  merger->Update();
+  vtkSmartPointer<vtkPolyData> cut;
+  {
+    MIRTK_START_TIMING();
+    vtkNew<vtkIntersectionPolyDataFilter> intersection;
+    intersection->SplitFirstOutputOff();
+    intersection->SplitSecondOutputOff();
+    SetNthVTKInput(intersection, 0, s1);
+    SetNthVTKInput(intersection, 1, s2);
 
-  vtkPolyData * const cut = merger->GetOutput();
+    vtkNew<vtkCleanPolyData> merger;
+    SetVTKConnection(merger, intersection);
+    merger->ConvertStripsToPolysOff();
+    merger->ConvertPolysToLinesOff();
+    merger->ConvertLinesToPointsOff();
+    merger->PointMergingOn();
+    merger->ToleranceIsAbsoluteOn();
+    merger->SetAbsoluteTolerance(1e-12);
+
+    merger->Update();
+    cut = merger->GetOutput();
+    MIRTK_DEBUG_TIMING(3, "LargestClosedIntersection (intersect)");
+  }
+
+  if (debug > 2) {
+    static int iter = 0; ++iter;
+    char fname[64];
+    snprintf(fname, 64, "debug_cutting_lines_%d.vtp", iter);
+    WritePolyData(fname, cut);
+  }
+
+  {
+    MIRTK_START_TIMING();
+    cut->BuildLinks();
+
+    unsigned short ncells;
+    vtkIdType ptId, nbrId, cellId, *cells;
+    vtkNew<vtkIdList> ptIds;
+    ptIds->Allocate(2);
+
+    Stack<vtkIdType> activePtIds;
+    for (ptId = 0; ptId < cut->GetNumberOfPoints(); ++ptId) {
+      cut->GetPointCells(ptId, ncells, cells);
+      if (ncells == 1) activePtIds.push(ptId);
+    }
+    while (!activePtIds.empty()) {
+      ptId = activePtIds.top(), activePtIds.pop();
+      cut->GetPointCells(ptId, ncells, cells);
+      if (ncells == 1) {
+        cellId = cells[0];
+        cut->GetCellPoints(cellId, ptIds.GetPointer());
+        cut->RemoveCellReference(cellId);
+        cut->DeleteCell(cellId);
+        for (vtkIdType i = 0; i < ptIds->GetNumberOfIds(); ++i) {
+          nbrId = ptIds->GetId(i);
+          if (nbrId != ptId) {
+            cut->GetPointCells(nbrId, ncells, cells);
+            if (ncells == 1) activePtIds.push(nbrId);
+          }
+        }
+      }
+    }
+    cut->RemoveDeletedCells();
+    vtkNew<vtkCleanPolyData> merger;
+    SetVTKInput(merger, cut);
+    merger->ConvertStripsToPolysOff();
+    merger->ConvertPolysToLinesOff();
+    merger->ConvertLinesToPointsOn();
+    merger->PointMergingOn();
+    merger->ToleranceIsAbsoluteOn();
+    merger->SetAbsoluteTolerance(1e-12);
+    merger->Update();
+    merger->GetOutput()->SetVerts(nullptr);
+    cut = merger->GetOutput();
+    MIRTK_DEBUG_TIMING(3, "LargestClosedIntersection (clean)");
+  }
+
+  {
+    MIRTK_START_TIMING();
+    vtkNew<vtkPolyDataConnectivityFilter> cc;
+    SetVTKInput(cc, cut);
+    cc->ScalarConnectivityOff();
+    cc->SetExtractionModeToLargestRegion();
+    cc->Update();
+    cut = cc->GetOutput();
+    MIRTK_DEBUG_TIMING(3, "LargestClosedIntersection (largest)");
+  }
+
+  MIRTK_DEBUG_TIMING(2, "LargestClosedIntersection");
+  return cut;
+}
+
+// -----------------------------------------------------------------------------
+/// Merge points and make line strips
+vtkSmartPointer<vtkPolyData> LineStrips(vtkSmartPointer<vtkPolyData> cut)
+{
+  vtkNew<vtkCleanPolyData> cut_merger;
+  SetVTKInput(cut_merger, cut);
+  cut_merger->ConvertStripsToPolysOff();
+  cut_merger->ConvertPolysToLinesOff();
+  cut_merger->ConvertLinesToPointsOn();
+  cut_merger->PointMergingOn();
+  cut_merger->ToleranceIsAbsoluteOn();
+  cut_merger->SetAbsoluteTolerance(1e-12);
+  cut_merger->Update();
+  cut_merger->GetOutput()->SetVerts(nullptr);
+  cut = cut_merger->GetOutput();
+
+  Stripper stripper;
+  stripper.Input(cut);
+  stripper.Run();
+  return stripper.Output();
+}
+
+// -----------------------------------------------------------------------------
+/// Intersection incircle and circumcirlce radius
+double LineStripRadius(vtkSmartPointer<vtkPolyData> cut, double *incircle_radius = nullptr)
+{
+  Point p, c;
+  cut->GetCenter(c);
+  double r, r1 = inf, r2 = 0.;
+  for (vtkIdType ptId = 0; ptId < cut->GetNumberOfPoints(); ++ptId) {
+    cut->GetPoint(ptId, p);
+    p -= c;
+    r = p.Distance();
+    r1 = min(r1, r);
+    r2 = max(r2, r);
+  }
+  if (incircle_radius) *incircle_radius = r1;
+  return r2;
+}
+
+// -----------------------------------------------------------------------------
+/// Average curvature of line strip
+double LineStripCurvature(vtkSmartPointer<vtkPolyData> cut)
+{
+  int     i1, i2, n = 0;
+  double  l1, l2, angle, curv = 0.;
+  Vector3 e1, e2;
+  Point   p1, p2, p3;
+
+  cut->GetPoint(cut->GetNumberOfPoints()-1, p1);
+  cut->GetPoint(0, p2);
+  e1 = p2 - p1;
+  l1 = e1.Length();
+
   cut->BuildLinks();
 
   unsigned short ncells;
-  vtkIdType ptId, nbrId, cellId, *cells;
-  vtkNew<vtkIdList> ptIds;
-  ptIds->Allocate(2);
+  vtkIdType      *cells, *pts1, *pts2, npts;
 
-  Stack<vtkIdType> activePtIds;
-  for (ptId = 0; ptId < cut->GetNumberOfPoints(); ++ptId) {
+  for (vtkIdType ptId = 0; ptId < cut->GetNumberOfPoints(); ++ptId) {
     cut->GetPointCells(ptId, ncells, cells);
-    if (ncells == 1) activePtIds.push(ptId);
+    if (ncells == 2 && cut->GetCellType(cells[0]) == VTK_LINE && cut->GetCellType(cells[1]) == VTK_LINE) {
+      cut->GetCellPoints(cells[0], npts, pts1);
+      cut->GetCellPoints(cells[1], npts, pts2);
+      i1 = (pts1[0] == ptId ? 1 : 0);
+      i2 = (pts2[0] == ptId ? 1 : 0);
+      cut->GetPoint(pts1[i1], p1);
+      cut->GetPoint(ptId,     p2);
+      cut->GetPoint(pts2[i2], p3);
+      e1 = p2 - p1;
+      e2 = p3 - p2;
+      l1 = e1.Length();
+      l2 = e2.Length();
+      angle = 1. - (e1.Dot(e2) / (l1 * l2));
+      curv += angle * angle / (l1 + l2);
+      ++n;
+    }
   }
-  while (!activePtIds.empty()) {
-    ptId = activePtIds.top(), activePtIds.pop();
-    cut->GetPointCells(ptId, ncells, cells);
-    if (ncells == 1) {
-      cellId = cells[0];
-      cut->GetCellPoints(cellId, ptIds.GetPointer());
-      cut->RemoveCellReference(cellId);
-      cut->DeleteCell(cellId);
-      for (vtkIdType i = 0; i < ptIds->GetNumberOfIds(); ++i) {
-        nbrId = ptIds->GetId(i);
-        if (nbrId != ptId) {
-          cut->GetPointCells(nbrId, ncells, cells);
-          if (ncells == 1) activePtIds.push(nbrId);
+
+  return .5 * curv / n; // may be NaN, that's ok
+}
+
+// -----------------------------------------------------------------------------
+/// Find cutting plane which intersects surface with one closed intersection boundary
+bool FindCuttingPlane(vtkSmartPointer<vtkPolyData> surface,
+                      vtkSmartPointer<vtkPointSet> boundary,
+                      vtkSmartPointer<vtkPolyData> &plane,
+                      vtkSmartPointer<vtkPolyData> &cut,
+                      double ds = 0.)
+{
+  static int call = 0; ++call;
+
+  MIRTK_START_TIMING();
+
+  if (ds <= 0.) ds = AverageEdgeLength(surface);
+
+  // Abort search after the specified number of suitable planes were found
+  const int  max_suitable_planes  = 1;
+  const bool prefer_default_plane = true;
+
+  // Compute cutting plane from segmentation boundary points
+  const PlaneAttributes attr = CuttingPlaneAttributes(boundary);
+
+  const double max_angle   = 20.;
+  const double delta_angle = 5.;
+
+  const double max_offset   = 2. * ds;
+  const double delta_offset = .5 * ds;
+
+  const double margin   =  5. * ds;
+  const double bbmargin = 20. * ds;
+
+  double    r1, r2, be;
+  double    best_tn, best_rx, best_ry, best_r2 = inf, best_be = inf;
+  vtkIdType best_ct = 0;
+
+  // Remove cells which are never cut to speed up vtkPolyDataIntersectionFilter
+  Point center;
+  double bounds[6], cell_bounds[6];
+  plane = CuttingPlane(attr, 0., 0., 0., 0.);
+  plane->GetBounds(bounds);
+  plane->GetCenter(center);
+  for (int i = 0; i < 6; i += 2) {
+    bounds[i  ] -= bbmargin;
+    bounds[i+1] += bbmargin;
+  }
+
+  vtkSmartPointer<vtkPolyData> cells;
+  cells.TakeReference(surface->NewInstance());
+  cells->ShallowCopy(surface);
+  cells->DeleteCells();
+  cells->BuildCells();
+  for (vtkIdType cellId = 0; cellId < surface->GetNumberOfCells(); ++cellId) {
+    surface->GetCell(cellId)->GetBounds(cell_bounds);
+    if (cell_bounds[0] > bounds[1] || cell_bounds[1] < bounds[0] ||
+        cell_bounds[2] > bounds[3] || cell_bounds[3] < bounds[2] ||
+        cell_bounds[4] > bounds[5] || cell_bounds[5] < bounds[4]) {
+      cells->DeleteCell(cellId);
+    }
+  }
+  cells->RemoveDeletedCells();
+
+  if (debug > 1) {
+    char fname[64];
+    snprintf(fname, 64, "debug_cutting_cells_%d.vtp", call);
+    WritePolyData(fname, cells);
+  }
+
+  const auto prev_cout_precision = cout.precision();
+  const auto prev_cout_flags     = cout.flags();
+
+  const streamsize offset_precision = 3;
+  const streamsize angle_precision  = 0;
+
+  // Try different normal offsets and plane rotations in the order of preference
+  int n = 0, m = 0;
+  bool abort = false;
+  for (double angle = 0., rx, ry; angle <= max_angle && !abort; angle += delta_angle) {
+    for (int dim = 0; dim < 2 && !abort; ++dim) {
+      if (dim == 0) {
+        rx = angle;
+        ry = 0.;
+      } else {
+        rx = 0.;
+        ry = angle;
+      }
+      for (double tn = 0.; tn <= max_offset && !abort; tn += delta_offset) {
+        for (double sry = (ry > 0. ? -1. : 1.); sry <= 1. && !abort; sry += 2.)
+        for (double srx = (rx > 0. ? -1. : 1.); srx <= 1. && !abort; srx += 2.)
+        for (double stn = (tn > 0. ? -1. : 1.); stn <= 1. && !abort; stn += 2.) {
+          if (verbose > 4) {
+            cout << "    Cutting plane with: offset = " << fixed
+                     << setprecision(offset_precision) << setw(offset_precision+3) << stn * tn
+                     << ", alpha = " << setprecision(angle_precision) << setw(angle_precision+3) << srx * rx
+                     << ", beta = "  << setprecision(angle_precision) << setw(angle_precision+3) << sry * ry
+                     << " ...";
+          }
+          plane  = CuttingPlane(attr, stn * tn, srx * rx, sry * ry, margin);
+          cut    = LargestClosedIntersection(cells, plane);
+          if (cut->GetNumberOfCells() > 0) {
+            if (verbose == 4) {
+              cout << "    Cutting plane with: offset = " << fixed
+                   << setprecision(offset_precision) << setw(offset_precision+3) << stn * tn
+                   << ", alpha = " << setprecision(angle_precision) << setw(angle_precision+3) << srx * rx
+                   << ", beta = "  << setprecision(angle_precision) << setw(angle_precision+3) << sry * ry
+                   << " ...";
+            }
+            bool accept = false;
+            r2 = LineStripRadius(cut, &r1);
+            if (center.Distance(cut->GetCenter()) < r1) {
+              ++m;
+              if (verbose == 3) {
+                cout << "    Cutting plane with: offset = " << fixed
+                     << setprecision(offset_precision) << setw(offset_precision+3) << stn * tn
+                     << ", alpha = " << setprecision(angle_precision) << setw(angle_precision+3) << srx * rx
+                     << ", beta = "  << setprecision(angle_precision) << setw(angle_precision+3) << sry * ry
+                     << " ...";
+              }
+              be = LineStripCurvature(cut);
+              if (best_ct == 0 || cut->GetNumberOfCells() < .8 * best_ct) {
+                accept = true;
+              } else if (cut->GetNumberOfCells() < 1.2 * best_ct) {
+                if (be < best_be || r2 < .5 * best_r2) accept = true;
+              }
+              if (accept) {
+                if (verbose > 2) cout << " accepted";
+                best_tn = stn * tn;
+                best_rx = srx * rx;
+                best_ry = sry * ry;
+                best_r2 = r2;
+                best_be = be;
+                best_ct = cut->GetNumberOfCells();
+                if (prefer_default_plane && best_tn == 0. && best_rx == 0. && best_ry == 0.) {
+                  abort = true;
+                }
+              } else {
+                if (verbose > 2) cout << " rejected";
+              }
+              if (verbose > 2) {
+                cout << ": #lines = " << cut->GetNumberOfCells()
+                     << ", radius = "    << setprecision(5) << setw(8) << r2
+                     << ", curvature = " << setprecision(5) << setw(8) << be;
+                cout << endl;
+              }
+              if (m >= max_suitable_planes && best_ct > 0) {
+                abort = true;
+              }
+            } else {
+              if (verbose > 3) cout << " rejected" << endl;
+            }
+            if (debug > 1) {
+              if (center.Distance(cut->GetCenter()) < r1 || debug > 2) {
+                ++n;
+                char fname[64];
+                const char *suffix = accept ? "accepted" : "rejected";
+                snprintf(fname, 64, "debug_cutting_plane_%d_%d_%s.vtp", call, n, suffix);
+                WritePolyData(fname, plane);
+                snprintf(fname, 64, "debug_cutting_lines_%d_%d_%s.vtp", call, n, suffix);
+                WritePolyData(fname, cut);
+              }
+            }
+          } else {
+            if (verbose > 4) cout << " invalid" << endl;
+          }
         }
       }
     }
   }
-  cut->RemoveDeletedCells();
 
-  vtkNew<vtkPolyDataConnectivityFilter> cc;
-  SetVTKInput(cc, cut);
-  cc->ScalarConnectivityOff();
-  cc->SetExtractionModeToLargestRegion();
-  cc->Update();
+  // Pick best plane
+  if (best_ct > 0) {
+    if (verbose > 1) {
+      cout << "    Found cutting plane with: offset = " << fixed
+           << setprecision(offset_precision) << setw(offset_precision+3) << best_tn
+           << ", alpha = " << setprecision(angle_precision) << setw(angle_precision+3) << best_rx
+           << ", beta = "  << setprecision(angle_precision) << setw(angle_precision+3) << best_ry << endl;
+    }
+    plane  = CuttingPlane(attr, best_tn, best_rx, best_ry, margin);
+    cut    = LargestClosedIntersection(surface, plane);
+  }
 
-  return cc->GetOutput();
+  cout.precision(prev_cout_precision);
+  cout.flags(prev_cout_flags);
+
+  MIRTK_DEBUG_TIMING(2, "FindCuttingPlane");
+  return best_ct > 0;
 }
 
 // -----------------------------------------------------------------------------
@@ -1451,24 +1817,8 @@ AddClosedIntersectionDivider(vtkPolyData *surface, vtkPolyData *cut, double tol 
   surface->RemoveDeletedCells();
   cut    ->RemoveDeletedCells();
 
-  vtkNew<vtkCleanPolyData> cut_merger;
-  SetVTKInput(cut_merger, cut);
-  cut_merger->ConvertStripsToPolysOff();
-  cut_merger->ConvertPolysToLinesOff();
-  cut_merger->ConvertLinesToPointsOn();
-  cut_merger->PointMergingOn();
-  cut_merger->ToleranceIsAbsoluteOn();
-  cut_merger->SetAbsoluteTolerance(1e-12);
-  cut_merger->Update();
-  cut_merger->GetOutput()->SetVerts(nullptr);
-  cut->ShallowCopy(cut_merger->GetOutput());
-
   // Create polygonal mesh tesselation of closed intersection polygon
-  vtkSmartPointer<vtkPolyData> divider;
-  Stripper stripper;
-  stripper.Input(cut);
-  stripper.Run();
-  divider = stripper.Output();
+  vtkSmartPointer<vtkPolyData> divider = LineStrips(cut);
   if (debug) {
     static int callId = 0; ++callId;
     char fname[64];
@@ -1971,19 +2321,33 @@ int main(int argc, char *argv[])
 
     // Insert cutting planes in reverse order
     if (add_dividers) {
+      if (verbose > 0) {
+        cout << "Adding internal division planes...";
+        if (verbose > 1) cout << "\n";
+        cout.flush();
+      }
       const EdgeTable edgeTable(output);
       const double ds  = AverageEdgeLength(output->GetPoints(), edgeTable);
       const double tol = .1 * ds; // max dist for snapping intersection to surface
       vtkSmartPointer<vtkPolyData> plane, polygon, cut;
       for (int i = static_cast<int>(boundaries.size()-1); i >= 0; --i) {
-        plane = CuttingPlane(boundaries[i], ds);
-        if (debug > 0) {
-          char fname[64];
-          snprintf(fname, 64, "debug_cutting_plane_%d.vtp", static_cast<int>(boundaries.size()) - i);
-          WritePolyData(fname, plane);
+        string msg;
+        if (verbose > 1) {
+          const int n = i + 1;
+          msg = "  Adding division plane for ";
+          if      (n == 1) msg += "1st";
+          else if (n == 2) msg += "2nd";
+          else if (n == 3) msg += "3rd";
+          else             msg += ToString(n) + "th";
+          msg += " boundary";
+          cout << msg << "..." << endl;
         }
-        cut = LargestClosedIntersection(output, plane);
-        if (cut->GetNumberOfCells() > 0) {
+        if (FindCuttingPlane(output, boundaries[i], plane, cut, ds)) {
+          if (debug > 0) {
+            char fname[64];
+            snprintf(fname, 64, "debug_cutting_plane_%d.vtp", static_cast<int>(boundaries.size()) - i);
+            WritePolyData(fname, plane);
+          }
           if (debug > 0) {
             char fname[64];
             snprintf(fname, 64, "debug_cutting_polygon_%d.vtp", static_cast<int>(boundaries.size()) - i);
@@ -1995,7 +2359,18 @@ int main(int argc, char *argv[])
             snprintf(fname, 64, "debug_output+divider_%d.vtp", static_cast<int>(boundaries.size()) - i);
             WritePolyData(fname, output);
           }
+          if (!msg.empty()) cout << msg << "... done" << endl;
+        } else {
+          if (verbose > 0) {
+            if (!msg.empty()) cout << msg << "...";
+            cout << " failed\n" << endl;
+          }
+          FatalError("Could not find a closed intersection with finite cutting plane near segmentation boundary!");
         }
+      }
+      if (verbose > 0) {
+        if (verbose > 1) cout << "Adding internal division planes...";
+        cout << " done" << endl;
       }
     }
 
