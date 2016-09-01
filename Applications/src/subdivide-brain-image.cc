@@ -62,7 +62,7 @@ void PrintHelp(const char *name)
   cout << "  assignment of cortical grey matter follows from the point correspondences\n";
   cout << "  between white and pial surfaces, respectively, the RH/LH label may\n";
   cout << "  be assigned to white surface mesh nodes upon merging the right/left\n";
-  cout << "  white surface meshes. See extract-pointset-surface -source-array option.\n";
+  cout << "  white surface meshes. See merge-surfaces -source-array option.\n";
   cout << "\n";
   cout << "  Output labels:\n";
   cout << "  - 0: Background\n";
@@ -622,20 +622,25 @@ Plane SymmetricCuttingPlane(const ByteImage &regions, BrainRegion a, BrainRegion
 /// Cutting plane separating left/right brain hemisphere clusters
 Plane MedialCuttingPlane(const ByteImage &regions)
 {
+  Plane plane;
   PointSet points;
   AddBoundaryPoints(points, regions, RH, LH);
   AddBoundaryPoints(points, regions, LH, RH);
-  if (points.Size() < 100) {
-    return SymmetricCuttingPlane(regions, RH, LH);
+  if (verbose) {
+    cout << "No. of medial points = " << points.Size() << endl;
   }
-
-  Plane   plane;
-  Vector3 dir[3];
-  if (PrincipalDirections(points, dir)) {
-    plane.Normal(dir[2]);
-    plane.Center(points.Centroid());
+  if (points.Size() < 1000) {
+    plane = SymmetricCuttingPlane(regions, RH, LH);
+  } else {
+    Vector3 dir[3];
+    if (PrincipalDirections(points, dir)) {
+      plane.Normal(dir[2]);
+      plane.Center(points.Centroid());
+    }
   }
-
+  // TODO: Minimize misclassification of RH/LH based on cutting plane by
+  //       trying different rotation angles and slight offsets of the
+  //       cutting plane. See also merge-surfaces.cc: FindCuttingPlane.
   return plane;
 }
 
@@ -929,7 +934,7 @@ int main(int argc, char *argv[])
 
   // Determine cutting planes
   Plane bs_plane = BrainstemCuttingPlane(regions);
-  Plane rl_plane = SymmetricCuttingPlane(regions, RH, LH);
+  Plane rl_plane = MedialCuttingPlane(regions);
   if (verbose) {
     if (bs_plane) cout << "Brainstem cutting plane equation: " << bs_plane << endl;
     if (rl_plane) cout << "Medial cutting plane equation:    " << rl_plane << endl;
