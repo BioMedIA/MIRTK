@@ -864,6 +864,10 @@ int main(int argc, char *argv[])
     }
   }
 
+  if (debug) {
+    regions.Write("debug_regions.nii.gz");
+  }
+
   if (closing_iter > 0) {
     // Close holes in subcortical mask
     if (!sbmask.IsEmpty()) {
@@ -877,6 +881,9 @@ int main(int argc, char *argv[])
         if (regions(vox) == BG && (closed(vox) != 0 || sbmask(vox) != 0)) {
           regions(vox) = UH;
         }
+      }
+      if (debug) {
+        regions.Write("debug_regions+sbmask_closed.nii.gz");
       }
     }
 
@@ -902,34 +909,28 @@ int main(int argc, char *argv[])
           closed(vox) = 0;
         }
       }
+      if (debug) {
+        regions.Write("debug_regions+brainstem_closed.nii.gz");
+      }
       if (ncb > 0) {
         Dilate<BinaryPixel>(&closed, closing_iter,     CONNECTIVITY_18);
         Erode <BinaryPixel>(&closed, closing_iter + 1, CONNECTIVITY_18);
       }
       for (int vox = 0; vox < nvox; ++vox) {
         const auto &region = regions(vox);
-        if (region == BG) {
-          if (closed(vox) != 0) {
-            regions(vox) = CB;
-          }
-        } else if (region == UH) {
-          closed(vox) = 1;
-        } else if (region != BS && region != CB) {
-          closed(vox) = 0;
+        if (region == BG && closed(vox) != 0) {
+          regions(vox) = CB;
         }
       }
-      Dilate<BinaryPixel>(&closed, closing_iter,     CONNECTIVITY_18);
-      Erode <BinaryPixel>(&closed, closing_iter + 1, CONNECTIVITY_18);
-      for (int vox = 0; vox < nvox; ++vox) {
-        if (regions(vox) == BG && closed(vox) != 0) {
-          regions(vox) = UH;
-        }
+      if (debug) {
+        regions.Write("debug_regions+cerebellum_closed.nii.gz");
       }
     }
-  }
 
-  if (debug) {
-    regions.Write("debug_regions.nii.gz");
+    // Final closed regions image
+    if (debug) {
+      regions.Write("debug_regions+all_closed.nii.gz");
+    }
   }
 
   // Determine cutting planes
@@ -1036,8 +1037,6 @@ int main(int argc, char *argv[])
         } else {
           region = RH;
         }
-      } else if (merge_bs_cb) {
-        region = min(BS, CB);
       }
     } else if (region == UH || (!sbmask.IsEmpty() && sbmask(i, j, k) != 0)) {
       if (rl_plane.SignedDistance(p) < 0.) {
@@ -1045,6 +1044,72 @@ int main(int argc, char *argv[])
       } else {
         region = RH;
       }
+    }
+  }
+
+  // Change CB(+BS) labels to GM when bordering with WM away from the BS
+  // cutting plane to ensure that there is some separating cortex between
+  // white surface and BS+CB region which may be misclassified as cerebellar GM
+  if (gmmask_name || !gmmask_labels.empty()) {
+    const double ds = max(max(regions.XSize(), regions.YSize()), regions.ZSize());
+    const double min_dist_bs = 10. * ds;
+    const double min_dist_cb =  2. * ds;
+    bool is_empty = true;
+    BinaryImage boundary(attr, 1);
+    NeighborhoodOffsets offsets(&regions, CONNECTIVITY_18);
+    for (int k = 0; k < regions.Z(); ++k)
+    for (int j = 0; j < regions.Y(); ++j)
+    for (int i = 0; i < regions.X(); ++i) {
+      const auto &region = regions(i, j, k);
+      if (region == CB || region == BS) {
+        p = Point(i, j, k);
+        regions.ImageToWorld(p);
+        if (abs(bs_plane.SignedDistance(p)) > (region == CB ? min_dist_cb : min_dist_bs)) {
+          const auto data = regions.Data(i, j, k);
+          for (int n = 0; n < offsets.Size(); ++n) {
+            const auto &label = *(data + offsets(n));
+            if (label == LH || label == RH) {
+              boundary(i, j, k) = 1;
+              is_empty = false;
+              break;
+            }
+          }
+        }
+      } else if (region == GM) {
+        bool next_to_wm = false;
+        bool next_to_cb = false;
+        const auto data = regions.Data(i, j, k);
+        for (int n = 0; n < offsets.Size(); ++n) {
+          const auto &label = *(data + offsets(n));
+          if (label == LH || label == RH) {
+            next_to_wm = true;
+          } else if (label == CB || label == BS) {
+            next_to_cb = true;
+          }
+        }
+        if (next_to_wm && next_to_cb) {
+          boundary(i, j, k) = 1;
+        }
+      }
+    }
+    if (!is_empty) {
+      Dilate<BinaryPixel>(&boundary, 1, CONNECTIVITY_18);
+      for (int vox = 0; vox < nvox; ++vox) {
+        auto &region = regions(vox);
+        if (boundary(vox) != 0 && (region == CB || region == BS || region == BG)) {
+          region = GM;
+        }
+      }
+    }
+  }
+
+  // Merge BS and CB labels
+  if (merge_bs_cb) {
+    const auto old_label = max(BS, CB);
+    const auto new_label = min(BS, CB);
+    for (int vox = 0; vox < nvox; ++vox) {
+      auto &region = regions(vox);
+      if (region == old_label) region = new_label;
     }
   }
 
