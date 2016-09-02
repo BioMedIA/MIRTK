@@ -1180,21 +1180,161 @@ vtkSmartPointer<vtkPolyData> LineStrips(vtkSmartPointer<vtkPolyData> cut)
 }
 
 // -----------------------------------------------------------------------------
-/// Intersection incircle and circumcirlce radius
-double LineStripRadius(vtkSmartPointer<vtkPolyData> cut, double *incircle_radius = nullptr)
+/// Make divider surface from intersection curve
+vtkSmartPointer<vtkPolyData> Divider(vtkSmartPointer<vtkPolyData> cut)
+{
+  vtkSmartPointer<vtkPolyData> divider = LineStrips(cut);
+  if (debug) {
+    static int callId = 0; ++callId;
+    char fname[64];
+    snprintf(fname, 64, "debug_split_surface_lines_%d.vtp", callId);
+    WritePolyData(fname, divider);
+  }
+  vtkIdType npts, *pts, stripPts = 0, *stripIds = nullptr;
+  for (vtkIdType cellId = 0; cellId < divider->GetLines()->GetNumberOfCells(); ++cellId) {
+    divider->GetLines()->GetCell(cellId, npts, pts);
+    if (npts > stripPts) {
+      stripPts = npts;
+      stripIds = pts;
+    }
+  }
+  if (stripPts == 0) {
+    Throw(ERR_LogicError, __FUNCTION__, "Expected at least one contiguous intersection line");
+  }
+  if (stripPts <= 2) {
+    Throw(ERR_LogicError, __FUNCTION__, "Expected polygon with more than two points");
+  }
+  if (stripIds[0] != stripIds[stripPts-1]) {
+    Throw(ERR_LogicError, __FUNCTION__, "Expected closed intersection polygon");
+  }
+  vtkSmartPointer<vtkCellArray> polys = vtkSmartPointer<vtkCellArray>::New();
+  polys->Allocate(polys->EstimateSize(1, stripPts-1));
+  polys->InsertNextCell(stripPts-1, stripIds);
+  divider->SetLines(nullptr);
+  divider->SetPolys(polys);
+  divider->DeleteCells();
+  return divider;
+}
+
+// -----------------------------------------------------------------------------
+/// Check if given intersection curve is acceptable
+bool IsValidIntersection(vtkSmartPointer<vtkPolyData> cut, double tol)
+{
+  if (cut->GetNumberOfCells() == 0) return false;
+  #if 0
+    return true;
+  #else
+    vtkNew<vtkCleanPolyData> merger;
+    SetVTKInput(merger, cut);
+    merger->ConvertStripsToPolysOff();
+    merger->ConvertPolysToLinesOff();
+    merger->ConvertLinesToPointsOn();
+    merger->PointMergingOn();
+    merger->ToleranceIsAbsoluteOn();
+    merger->SetAbsoluteTolerance(2. * tol);
+    merger->Update();
+    merger->GetOutput()->SetVerts(nullptr);
+    cut = merger->GetOutput();
+
+    cut->BuildLinks();
+
+    unsigned short ncells;
+    vtkIdType      *cells;
+    for (vtkIdType ptId = 0; ptId < cut->GetNumberOfPoints(); ++ptId) {
+      cut->GetPointCells(ptId, ncells, cells);
+      if (ncells != 2 || cut->GetCellType(cells[0]) != VTK_LINE || cut->GetCellType(cells[1]) != VTK_LINE) {
+        return false;
+      }
+    }
+
+    return true;
+  #endif
+}
+
+// -----------------------------------------------------------------------------
+/// Smooth line strip
+void SmoothLineStrip(vtkSmartPointer<vtkPolyData> cut, int niter = 1)
+{
+  int   i1, i2;
+  Point p1, p2, p3;
+
+  cut->BuildLinks();
+
+  unsigned short ncells;
+  vtkIdType      *cells, *pts1, *pts2, npts;
+
+  vtkSmartPointer<vtkPoints> points;
+  points = vtkSmartPointer<vtkPoints>::New();
+  points->SetNumberOfPoints(cut->GetNumberOfPoints());
+
+  for (int iter = 0; iter < niter; ++iter) {
+    for (vtkIdType ptId = 0; ptId < cut->GetNumberOfPoints(); ++ptId) {
+      cut->GetPointCells(ptId, ncells, cells);
+      if (ncells == 2 && cut->GetCellType(cells[0]) == VTK_LINE && cut->GetCellType(cells[1]) == VTK_LINE) {
+        cut->GetCellPoints(cells[0], npts, pts1);
+        cut->GetCellPoints(cells[1], npts, pts2);
+        i1 = (pts1[0] == ptId ? 1 : 0);
+        i2 = (pts2[0] == ptId ? 1 : 0);
+        cut->GetPoint(pts1[i1], p1);
+        cut->GetPoint(ptId,     p2);
+        cut->GetPoint(pts2[i2], p3);
+        points->SetPoint(ptId, (p1 + p2 + p3) / 3.);
+      }
+    }
+    vtkSmartPointer<vtkPoints> tmp = cut->GetPoints();
+    cut->SetPoints(points);
+    points = tmp;
+  }
+}
+
+// -----------------------------------------------------------------------------
+/// Intersection incircle radius
+double LineStripIncircleRadius(vtkSmartPointer<vtkPolyData> cut)
 {
   Point p, c;
   cut->GetCenter(c);
-  double r, r1 = inf, r2 = 0.;
+  double r = inf;
   for (vtkIdType ptId = 0; ptId < cut->GetNumberOfPoints(); ++ptId) {
     cut->GetPoint(ptId, p);
-    p -= c;
-    r = p.Distance();
-    r1 = min(r1, r);
-    r2 = max(r2, r);
+    r = min(r, p.Distance(c));
   }
-  if (incircle_radius) *incircle_radius = r1;
-  return r2;
+  return r;
+}
+
+// -----------------------------------------------------------------------------
+/// Intersection incircle radius
+double AverageLineStripRadius(vtkSmartPointer<vtkPolyData> cut)
+{
+  Point p, c;
+  cut->GetCenter(c);
+  double r = 0.;
+  for (vtkIdType ptId = 0; ptId < cut->GetNumberOfPoints(); ++ptId) {
+    cut->GetPoint(ptId, p);
+    r += p.Distance(c);
+  }
+  return r / cut->GetNumberOfPoints();
+}
+
+// -----------------------------------------------------------------------------
+/// Length of line strip
+double LineStripLength(vtkSmartPointer<vtkPolyData> cut)
+{
+  Point p1, p2;
+  vtkIdType npts, *pts;
+  double l = 0.;
+
+  cut->BuildLinks();
+
+  for (vtkIdType cellId = 0; cellId < cut->GetNumberOfCells(); ++cellId) {
+    cut->GetCellPoints(cellId, npts, pts);
+    if (cut->GetCellType(cellId) == VTK_LINE && npts == 2) {
+      cut->GetPoint(pts[0], p1);
+      cut->GetPoint(pts[1], p2);
+      l += p1.Distance(p2);
+    }
+  }
+
+  return l;
 }
 
 // -----------------------------------------------------------------------------
@@ -1230,13 +1370,73 @@ double LineStripCurvature(vtkSmartPointer<vtkPolyData> cut)
       e2 = p3 - p2;
       l1 = e1.Length();
       l2 = e2.Length();
-      angle = 1. - (e1.Dot(e2) / (l1 * l2));
+      angle = acos(e1.Dot(e2) / (l1 * l2));
       curv += angle * angle / (l1 + l2);
       ++n;
     }
   }
 
-  return .5 * curv / n; // may be NaN, that's ok
+  return curv / n;
+}
+
+// -----------------------------------------------------------------------------
+/// Maximum angle made up by adjacent line segments
+double MaxLineStripAngle(vtkSmartPointer<vtkPolyData> cut)
+{
+  double  angle = 0.;
+  int     i1, i2;
+  Vector3 e1, e2;
+  Point   p1, p2, p3;
+
+  cut->BuildLinks();
+
+  unsigned short ncells;
+  vtkIdType      *cells, *pts1, *pts2, npts;
+
+  for (vtkIdType ptId = 0; ptId < cut->GetNumberOfPoints(); ++ptId) {
+    cut->GetPointCells(ptId, ncells, cells);
+    if (ncells == 2 && cut->GetCellType(cells[0]) == VTK_LINE && cut->GetCellType(cells[1]) == VTK_LINE) {
+      cut->GetCellPoints(cells[0], npts, pts1);
+      cut->GetCellPoints(cells[1], npts, pts2);
+      i1 = (pts1[0] == ptId ? 1 : 0);
+      i2 = (pts2[0] == ptId ? 1 : 0);
+      cut->GetPoint(pts1[i1], p1);
+      cut->GetPoint(ptId,     p2);
+      cut->GetPoint(pts2[i2], p3);
+      e1 = p2 - p1;
+      e2 = p3 - p2;
+      e1.Normalize();
+      e2.Normalize();
+      angle = max(angle, acos(e1.Dot(e2)));
+    }
+  }
+
+  return angle;
+}
+
+// -----------------------------------------------------------------------------
+double DividerArea(vtkSmartPointer<vtkPolyData> divider)
+{
+  vtkPolygon *polygon = vtkPolygon::SafeDownCast(divider->GetCell(0));
+  return polygon->ComputeArea();
+}
+
+// -----------------------------------------------------------------------------
+double DividerError(vtkSmartPointer<vtkPolyData> divider, vtkSmartPointer<vtkPoints> points)
+{
+  vtkIdType cellId;
+  int subId;
+  double sum = 0., dist2;
+  Point p, x;
+  vtkNew<vtkCellLocator> locator;
+  locator->SetDataSet(divider);
+  locator->BuildLocator();
+  for (vtkIdType ptId = 0; ptId < points->GetNumberOfPoints(); ++ptId) {
+    points->GetPoint(ptId, p);
+    locator->FindClosestPoint(p, x, cellId, subId, dist2);
+    sum += dist2;
+  }
+  return sqrt(sum / points->GetNumberOfPoints());
 }
 
 // -----------------------------------------------------------------------------
@@ -1245,7 +1445,7 @@ bool FindCuttingPlane(vtkSmartPointer<vtkPolyData> surface,
                       vtkSmartPointer<vtkPointSet> boundary,
                       vtkSmartPointer<vtkPolyData> &plane,
                       vtkSmartPointer<vtkPolyData> &cut,
-                      double ds = 0.)
+                      double ds = 0., double tol = 0.)
 {
   static int call = 0; ++call;
 
@@ -1254,8 +1454,8 @@ bool FindCuttingPlane(vtkSmartPointer<vtkPolyData> surface,
   if (ds <= 0.) ds = AverageEdgeLength(surface);
 
   // Abort search after the specified number of suitable planes were found
-  const int  max_suitable_planes  = 1;
-  const bool prefer_default_plane = true;
+  const int  max_suitable_planes  = 10;
+  const bool prefer_default_plane = false;
 
   // Compute cutting plane from segmentation boundary points
   const PlaneAttributes attr = CuttingPlaneAttributes(boundary);
@@ -1269,8 +1469,8 @@ bool FindCuttingPlane(vtkSmartPointer<vtkPolyData> surface,
   const double margin   =  5. * ds;
   const double bbmargin = 20. * ds;
 
-  double    r1, r2, be;
-  double    best_tn, best_rx, best_ry, best_r2 = inf, best_be = inf;
+  double    r, l;
+  double    best_tn, best_rx, best_ry, best_l = inf;
   vtkIdType best_ct = 0;
 
   // Remove cells which are never cut to speed up vtkPolyDataIntersectionFilter
@@ -1283,6 +1483,7 @@ bool FindCuttingPlane(vtkSmartPointer<vtkPolyData> surface,
     bounds[i  ] -= bbmargin;
     bounds[i+1] += bbmargin;
   }
+  plane = nullptr;
 
   vtkSmartPointer<vtkPolyData> cells;
   cells.TakeReference(surface->NewInstance());
@@ -1315,7 +1516,7 @@ bool FindCuttingPlane(vtkSmartPointer<vtkPolyData> surface,
   int n = 0, m = 0;
   bool abort = false;
   for (double angle = 0., rx, ry; angle <= max_angle && !abort; angle += delta_angle) {
-    for (int dim = 0; dim < 2 && !abort; ++dim) {
+    for (int dim = (angle > 0. ? 0 : 1); dim < 2 && !abort; ++dim) {
       if (dim == 0) {
         rx = angle;
         ry = 0.;
@@ -1336,7 +1537,7 @@ bool FindCuttingPlane(vtkSmartPointer<vtkPolyData> surface,
           }
           plane  = CuttingPlane(attr, stn * tn, srx * rx, sry * ry, margin);
           cut    = LargestClosedIntersection(cells, plane);
-          if (cut->GetNumberOfCells() > 0) {
+          if (IsValidIntersection(cut, tol)) {
             if (verbose == 4) {
               cout << "    Cutting plane with: offset = " << fixed
                    << setprecision(offset_precision) << setw(offset_precision+3) << stn * tn
@@ -1345,8 +1546,9 @@ bool FindCuttingPlane(vtkSmartPointer<vtkPolyData> surface,
                    << " ...";
             }
             bool accept = false;
-            r2 = LineStripRadius(cut, &r1);
-            if (center.Distance(cut->GetCenter()) < r1) {
+            SmoothLineStrip(cut, 2);
+            r = LineStripIncircleRadius(cut);
+            if (center.Distance(cut->GetCenter()) < r) {
               ++m;
               if (verbose == 3) {
                 cout << "    Cutting plane with: offset = " << fixed
@@ -1355,19 +1557,16 @@ bool FindCuttingPlane(vtkSmartPointer<vtkPolyData> surface,
                      << ", beta = "  << setprecision(angle_precision) << setw(angle_precision+3) << sry * ry
                      << " ...";
               }
-              be = LineStripCurvature(cut);
-              if (best_ct == 0 || cut->GetNumberOfCells() < .8 * best_ct) {
+              l = LineStripLength(cut);
+              if (best_ct == 0 || l < .8 * best_l) {
                 accept = true;
-              } else if (cut->GetNumberOfCells() < 1.2 * best_ct) {
-                if (be < best_be || r2 < .5 * best_r2) accept = true;
               }
               if (accept) {
                 if (verbose > 2) cout << " accepted";
                 best_tn = stn * tn;
                 best_rx = srx * rx;
                 best_ry = sry * ry;
-                best_r2 = r2;
-                best_be = be;
+                best_l  = l;
                 best_ct = cut->GetNumberOfCells();
                 if (prefer_default_plane && best_tn == 0. && best_rx == 0. && best_ry == 0.) {
                   abort = true;
@@ -1376,9 +1575,12 @@ bool FindCuttingPlane(vtkSmartPointer<vtkPolyData> surface,
                 if (verbose > 2) cout << " rejected";
               }
               if (verbose > 2) {
-                cout << ": #lines = " << cut->GetNumberOfCells()
-                     << ", radius = "    << setprecision(5) << setw(8) << r2
-                     << ", curvature = " << setprecision(5) << setw(8) << be;
+                vtkSmartPointer<vtkPolyData> divider = Divider(cut);
+                double area  = DividerArea(divider);
+                double error = DividerError(divider, boundary->GetPoints());
+                cout << ": perimeter = " << setprecision(5) << setw(8) << l;
+                cout << ", area = "      << setprecision(5) << setw(8) << area;
+                cout << ", RMS = "       << setprecision(5) << setw(8) << error;
                 cout << endl;
               }
               if (m >= max_suitable_planes && best_ct > 0) {
@@ -1388,7 +1590,7 @@ bool FindCuttingPlane(vtkSmartPointer<vtkPolyData> surface,
               if (verbose > 3) cout << " rejected" << endl;
             }
             if (debug > 1) {
-              if (center.Distance(cut->GetCenter()) < r1 || debug > 2) {
+              if (debug > 2 || center.Distance(cut->GetCenter()) < r) {
                 ++n;
                 char fname[64];
                 const char *suffix = accept ? "accepted" : "rejected";
@@ -1818,29 +2020,7 @@ AddClosedIntersectionDivider(vtkPolyData *surface, vtkPolyData *cut, double tol 
   cut    ->RemoveDeletedCells();
 
   // Create polygonal mesh tesselation of closed intersection polygon
-  vtkSmartPointer<vtkPolyData> divider = LineStrips(cut);
-  if (debug) {
-    static int callId = 0; ++callId;
-    char fname[64];
-    snprintf(fname, 64, "debug_split_surface_lines_%d.vtp", callId);
-    WritePolyData(fname, divider);
-  }
-  if (divider->GetNumberOfCells() != 1) {
-    Throw(ERR_LogicError, __FUNCTION__, "Expected exactly one contiguous intersection line");
-  }
-  divider->GetLines()->GetCell(0, npts, pts);
-  if (npts <= 2) {
-    Throw(ERR_LogicError, __FUNCTION__, "Expected polygon with more than two points");
-  }
-  if (pts[0] != pts[npts-1]) {
-    Throw(ERR_LogicError, __FUNCTION__, "Expected closed intersection polygon");
-  }
-  polys = vtkSmartPointer<vtkCellArray>::New();
-  polys->Allocate(polys->EstimateSize(1, npts-1));
-  polys->InsertNextCell(npts-1, pts);
-  divider->SetLines(nullptr);
-  divider->SetPolys(polys);
-  divider->DeleteCells();
+  vtkSmartPointer<vtkPolyData> divider = Triangulate(Divider(cut));
 
   SurfaceRemeshing remesher;
   remesher.MeltNodesOff();
@@ -1850,8 +2030,6 @@ AddClosedIntersectionDivider(vtkPolyData *surface, vtkPolyData *cut, double tol 
   remesher.InvertTrianglesToIncreaseMinHeightOn();
   remesher.MinEdgeLength(min_edge_length);
   remesher.MaxEdgeLength(max_edge_length);
-
-  divider = Triangulate(divider);
   for (int iter = 0; iter < 20; ++iter) {
     remesher.Input(divider);
     remesher.Run();
@@ -2342,7 +2520,7 @@ int main(int argc, char *argv[])
           msg += " boundary";
           cout << msg << "..." << endl;
         }
-        if (FindCuttingPlane(output, boundaries[i], plane, cut, ds)) {
+        if (FindCuttingPlane(output, boundaries[i], plane, cut, ds, tol)) {
           if (debug > 0) {
             char fname[64];
             snprintf(fname, 64, "debug_cutting_plane_%d.vtp", static_cast<int>(boundaries.size()) - i);
