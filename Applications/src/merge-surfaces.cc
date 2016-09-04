@@ -1798,10 +1798,10 @@ AddClosedIntersectionDivider(vtkPolyData *surface, vtkPolyData *cut, double tol 
 {
   const double tol2 = tol * tol;
 
-  int       bisect[3], subId;
+  int       bisect[3], subId, snapId;
   double    pcoords[3], weights[3], dist2, t1, t2;
   vtkIdType npts, *pts, lineId, cellId, ptId;
-  Vector3   pt[3], a, b, p, q, closestPt;
+  Vector3   pt[3], x[2], p, q, closestPt;
 
   Array<double>                 dists;
   Array<int>                    order;
@@ -1874,9 +1874,9 @@ AddClosedIntersectionDivider(vtkPolyData *surface, vtkPolyData *cut, double tol 
         cut->GetPoint(ptId, p);
         cell->EvaluatePosition(p, nullptr, subId, pcoords, dist2, weights);
         cell->CellBoundary(subId, pcoords, edge1.GetPointer());
-        surface->GetPoint(edge1->GetId(0), a);
-        surface->GetPoint(edge1->GetId(1), b);
-        dists[i] = vtkLine::DistanceToLine(p, a, b, t1, closestPt);
+        surface->GetPoint(edge1->GetId(0), x[0]);
+        surface->GetPoint(edge1->GetId(1), x[1]);
+        dists[i] = vtkLine::DistanceToLine(p, x[0], x[1], t1, closestPt);
       }
       order = IncreasingOrder(dists);
       edge1->SetNumberOfIds(2);
@@ -1903,54 +1903,48 @@ AddClosedIntersectionDivider(vtkPolyData *surface, vtkPolyData *cut, double tol 
     cut->GetPoint(ptIds->GetId(0), p);
     cut->GetPoint(ptIds->GetId(1), q);
 
+    // Snap first intersection line point to either edge point or node
+    cell->EvaluatePosition(p, nullptr, subId, pcoords, dist2, weights);
+    cell->CellBoundary(subId, pcoords, edge1.GetPointer());
+    surface->GetPoint(edge1->GetId(0), x[0]);
+    surface->GetPoint(edge1->GetId(1), x[1]);
+
+    snapId = -1;
     if (tol2 > 0.) {
-      dists.resize(3);
-      for (int i = 0; i < 3; ++i) {
-        dists[i] = (p - pt[i]).SquaredLength();
+      dists.resize(2);
+      dists[0] = (p - x[0]).SquaredLength();
+      dists[1] = (p - x[1]).SquaredLength();
+      snapId = (dists[0] <= dists[1] ? 0 : 1);
+      if (dists[snapId] < tol2) {
+        p = x[snapId], t1 = 0.;
+        edge1->SetId(snapId == 0 ? 1 : 0, edge1->GetId(snapId));
       }
-      order = IncreasingOrder(dists);
-      subId = order[0];
-      dist2 = dists[subId];
-    } else {
-      dist2 = inf;
     }
-    if (dist2 < tol2) {
-      p = pt[subId], t1 = 0.;
-      edge1->SetNumberOfIds(2);
-      edge1->SetId(0, pts[subId]);
-      edge1->SetId(1, pts[subId]);
-    } else {
-      cell->EvaluatePosition(p, nullptr, subId, pcoords, dist2, weights);
-      cell->CellBoundary(subId, pcoords, edge1.GetPointer());
-      surface->GetPoint(edge1->GetId(0), a);
-      surface->GetPoint(edge1->GetId(1), b);
-      vtkLine::DistanceToLine(p, a, b, t1, closestPt);
+    if (snapId == -1) {
+      vtkLine::DistanceToLine(p, x[0], x[1], t1, closestPt);
       t1 = clamp(t1, 0., 1.);
       p  = closestPt;
     }
 
+    // Snap second intersection line point to either edge point or node
+    cell->EvaluatePosition(q, nullptr, subId, pcoords, dist2, weights);
+    cell->CellBoundary(subId, pcoords, edge2.GetPointer());
+    surface->GetPoint(edge2->GetId(0), x[0]);
+    surface->GetPoint(edge2->GetId(1), x[1]);
+
+    snapId = -1;
     if (tol2 > 0.) {
-      dists.resize(3);
-      for (int i = 0; i < 3; ++i) {
-        dists[i] = (q - pt[i]).SquaredLength();
+      dists.resize(2);
+      dists[0] = (q - x[0]).SquaredLength();
+      dists[1] = (q - x[1]).SquaredLength();
+      snapId = (dists[0] <= dists[1] ? 0 : 1);
+      if (dists[snapId] < tol2) {
+        q = x[snapId], t2 = 0.;
+        edge2->SetId(snapId == 0 ? 1 : 0, edge2->GetId(snapId));
       }
-      order = IncreasingOrder(dists);
-      subId = order[0];
-      dist2 = dists[subId];
-    } else {
-      dist2 = inf;
     }
-    if (dist2 < tol2) {
-      q = pt[subId], t2 = 0.;
-      edge2->SetNumberOfIds(2);
-      edge2->SetId(0, pts[subId]);
-      edge2->SetId(1, pts[subId]);
-    } else {
-      cell->EvaluatePosition(q, nullptr, subId, pcoords, dist2, weights);
-      cell->CellBoundary(subId, pcoords, edge2.GetPointer());
-      surface->GetPoint(edge2->GetId(0), a);
-      surface->GetPoint(edge2->GetId(1), b);
-      vtkLine::DistanceToLine(q, a, b, t2, closestPt);
+    if (snapId == -1) {
+      vtkLine::DistanceToLine(q, x[0], x[1], t2, closestPt);
       t2 = clamp(t2, 0., 1.);
       q  = closestPt;
     }
@@ -1988,6 +1982,7 @@ AddClosedIntersectionDivider(vtkPolyData *surface, vtkPolyData *cut, double tol 
     cut->GetPoints()->SetPoint(ptIds->GetId(0), p);
     cut->GetPoints()->SetPoint(ptIds->GetId(1), q);
   }
+  cut->RemoveDeletedCells();
 
   // Split surface cells at edge intersection points
   for (const auto &intersection : intersections) {
@@ -2017,7 +2012,17 @@ AddClosedIntersectionDivider(vtkPolyData *surface, vtkPolyData *cut, double tol 
     }
   }
   surface->RemoveDeletedCells();
-  cut    ->RemoveDeletedCells();
+
+  if (debug) {
+    static int callId = 0; ++callId;
+    char fname[64];
+    snprintf(fname, 64, "debug_split_surface_other_%d.vtp", callId);
+    WritePolyData(fname, surface);
+    snprintf(fname, 64, "debug_split_surface_cells_%d.vtp", callId);
+    WritePolyData(fname, split);
+    snprintf(fname, 64, "debug_split_surface_cut_%d.vtp", callId);
+    WritePolyData(fname, cut);
+  }
 
   // Create polygonal mesh tesselation of closed intersection polygon
   vtkSmartPointer<vtkPolyData> divider = Triangulate(Divider(cut));
@@ -2065,10 +2070,6 @@ AddClosedIntersectionDivider(vtkPolyData *surface, vtkPolyData *cut, double tol 
   if (debug) {
     static int callId = 0; ++callId;
     char fname[64];
-    snprintf(fname, 64, "debug_split_surface_other_%d.vtp", callId);
-    WritePolyData(fname, surface);
-    snprintf(fname, 64, "debug_split_surface_cells_%d.vtp", callId);
-    WritePolyData(fname, split);
     snprintf(fname, 64, "debug_split_surface_divider_%d.vtp", callId);
     WritePolyData(fname, divider);
   }
