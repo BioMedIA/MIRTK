@@ -8,6 +8,10 @@ os:
   - linux
   - osx
 
+env:
+  - WITH_VTK=OFF
+  - WITH_VTK=ON
+
 dist: trusty
 sudo: required
 

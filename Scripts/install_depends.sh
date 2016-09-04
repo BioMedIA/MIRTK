@@ -21,17 +21,22 @@ if [ $os = linux ] || [ $os = Linux ]; then
     libboost-random-dev \
     libeigen3-dev \
     libflann-dev \
-    libgtest-dev \
     libnifti-dev \
     libpng12-dev \
     libsuitesparse-dev \
-    libtbb-dev \
-    libvtk6-dev
+    libtbb-dev
 
-  mkdir "$HOME/gtest-build" && cd "$HOME/gtest-build"
-  cmake /usr/src/gtest && make
-  sudo mv -f libgtest.a libgtest_main.a /usr/lib
-  rm -rf "$HOME/gtest-build"
+  if [ $WITH_VTK = ON ]; then
+    sudo apt-get install -y --no-install-recommends libvtk6-dev
+  fi
+
+  if [ $TESTING = ON ]; then
+    sudo apt-get install -y --no-install-recommends libgtest-dev
+    mkdir "$HOME/gtest-build" && cd "$HOME/gtest-build"
+    cmake /usr/src/gtest && make
+    sudo mv -f libgtest.a libgtest_main.a /usr/lib
+    rm -rf "$HOME/gtest-build"
+  fi
 
 # install pre-requisites on OS X
 elif [ $os = osx ] || [ $os = Darwin ]; then
@@ -43,13 +48,18 @@ elif [ $os = osx ] || [ $os = Darwin ]; then
     eigen \
     flann \
     suite-sparse \
-    tbb \
-    vtk
+    tbb
 
-  git clone --depth=1 https://github.com/google/googletest.git "$HOME/gtest-source"
-  mkdir "$HOME/gtest-build" && cd "$HOME/gtest-build"
-  cmake -DCMAKE_CXX_FLAGS=-std=c++11 -DBUILD_GMOCK=OFF -DBUILD_GTEST=ON ../gtest-source && make
-  sudo make install
-  rm -rf "$HOME/gtest-source" "$HOME/gtest-build"
+  if [ $WITH_VTK = ON ]; then
+    brew install vtk
+  fi
+
+  if [ $TESTING = ON ]; then
+    git clone --depth=1 https://github.com/google/googletest.git "$HOME/gtest-source"
+    mkdir "$HOME/gtest-build" && cd "$HOME/gtest-build"
+    cmake -DCMAKE_CXX_FLAGS=-std=c++11 -DBUILD_GMOCK=OFF -DBUILD_GTEST=ON ../gtest-source && make
+    sudo make install
+    rm -rf "$HOME/gtest-source" "$HOME/gtest-build"
+  fi
 
 fi
