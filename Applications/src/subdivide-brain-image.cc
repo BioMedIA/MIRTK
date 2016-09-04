@@ -1057,9 +1057,9 @@ int main(int argc, char *argv[])
     bool is_empty = true;
     BinaryImage boundary(attr, 1);
     NeighborhoodOffsets offsets(&regions, CONNECTIVITY_18);
-    for (int k = 0; k < regions.Z(); ++k)
-    for (int j = 0; j < regions.Y(); ++j)
-    for (int i = 0; i < regions.X(); ++i) {
+    for (int k = 1; k < regions.Z()-1; ++k)
+    for (int j = 1; j < regions.Y()-1; ++j)
+    for (int i = 1; i < regions.X()-1; ++i) {
       const auto &region = regions(i, j, k);
       if (region == CB || region == BS) {
         p = Point(i, j, k);
