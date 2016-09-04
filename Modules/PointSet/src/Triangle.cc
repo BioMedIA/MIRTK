@@ -238,7 +238,7 @@ bool Triangle
                                      const_cast<double *>(a2),
                                      const_cast<double *>(b2),
                                      const_cast<double *>(c2),
-                                     const_cast<double *>(n2)) > 1e-6) {
+                                     const_cast<double *>(n2)) > 1e-3) {
         return false;
       }
     }
