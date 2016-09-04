@@ -411,9 +411,13 @@ int main(int argc, char **argv)
           const char *aname = nullptr;
           if (HAS_ARGUMENT) {
             aname = ARGUMENT;
-          } else if (dataset && dataset->GetPointData()->HasArray(fname)) {
-            aname = fname;
-            fname = input_name;
+          } else {
+            #if MIRTK_Image_WITH_VTK
+              if (dataset && dataset->GetPointData()->HasArray(fname)) {
+                aname = fname;
+                fname = input_name;
+              }
+            #endif
           }
           UniquePtr<Mask> op(new Mask(fname));
           if (aname) {
@@ -606,9 +610,13 @@ int main(int argc, char **argv)
         const char *aname = nullptr;
         if (HAS_ARGUMENT) {
           aname = ARGUMENT;
-        } else if (dataset && dataset->GetPointData()->HasArray(fname)) {
-          aname = fname;
-          fname = input_name;
+        } else {
+          #if MIRTK_Image_WITH_VTK
+            if (dataset && dataset->GetPointData()->HasArray(fname)) {
+              aname = fname;
+              fname = input_name;
+            }
+          #endif
         }
         UniquePtr<Add> op(new Add(fname));
         if (aname) {
@@ -630,9 +638,13 @@ int main(int argc, char **argv)
         const char *aname = nullptr;
         if (HAS_ARGUMENT) {
           aname = ARGUMENT;
-        } else if (dataset && dataset->GetPointData()->HasArray(fname)) {
-          aname = fname;
-          fname = input_name;
+        } else {
+          #if MIRTK_Image_WITH_VTK
+            if (dataset && dataset->GetPointData()->HasArray(fname)) {
+              aname = fname;
+              fname = input_name;
+            }
+          #endif
         }
         UniquePtr<Sub> op(new Sub(fname));
         if (aname) {
@@ -654,9 +666,13 @@ int main(int argc, char **argv)
         const char *aname = nullptr;
         if (HAS_ARGUMENT) {
           aname = ARGUMENT;
-        } else if (dataset && dataset->GetPointData()->HasArray(fname)) {
-          aname = fname;
-          fname = input_name;
+        } else {
+          #if MIRTK_Image_WITH_VTK
+            if (dataset && dataset->GetPointData()->HasArray(fname)) {
+              aname = fname;
+              fname = input_name;
+            }
+          #endif
         }
         UniquePtr<Mul> op(new Mul(fname));
         if (aname) {
@@ -682,9 +698,13 @@ int main(int argc, char **argv)
         const char *aname = nullptr;
         if (HAS_ARGUMENT) {
           aname = ARGUMENT;
-        } else if (dataset && dataset->GetPointData()->HasArray(fname)) {
-          aname = fname;
-          fname = input_name;
+        } else {
+          #if MIRTK_Image_WITH_VTK
+            if (dataset && dataset->GetPointData()->HasArray(fname)) {
+              aname = fname;
+              fname = input_name;
+            }
+          #endif
         }
         UniquePtr<Div> op(new Div(fname));
         if (aname) {
@@ -701,9 +721,13 @@ int main(int argc, char **argv)
       const char *aname = nullptr;
       if (HAS_ARGUMENT) {
         aname = ARGUMENT;
-      } else if (dataset && dataset->GetPointData()->HasArray(fname)) {
-        aname = fname;
-        fname = input_name;
+      } else {
+        #if MIRTK_Image_WITH_VTK
+          if (dataset && dataset->GetPointData()->HasArray(fname)) {
+            aname = fname;
+            fname = input_name;
+          }
+        #endif
       }
       UniquePtr<DivWithZero> op(new DivWithZero(fname));
       if (aname) {
