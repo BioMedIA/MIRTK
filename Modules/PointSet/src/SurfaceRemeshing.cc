@@ -293,6 +293,17 @@ inline bool SurfaceRemeshing::IsBoundaryEdge(vtkIdType ptId1, vtkIdType ptId2) c
 }
 
 // -----------------------------------------------------------------------------
+inline bool SurfaceRemeshing::IsBoundaryCell(vtkIdType cellId) const
+{
+  vtkIdType npts, *pts;
+  _Output->GetCellPoints(cellId, npts, pts);
+  for (vtkIdType i = 0; i < npts; ++i) {
+    if (IsBoundaryEdge(pts[i], pts[(i+1)%npts])) return true;
+  }
+  return false;
+}
+
+// -----------------------------------------------------------------------------
 inline void SurfaceRemeshing
 ::GetCellPointNeighbors(vtkIdType cellId, vtkIdType ptId, vtkIdList *ptIds) const
 {
@@ -562,8 +573,15 @@ inline double SurfaceRemeshing
 bool SurfaceRemeshing
 ::MeltEdge(vtkIdType cellId, vtkIdType ptId1, vtkIdType ptId2, vtkIdList *cellIds)
 {
-  // Do not merge edge when one of the end points is on the surface boundary
-  if (IsBoundaryPoint(ptId1) || IsBoundaryPoint(ptId2)) return false;
+  // Do not melt edge when either cell affected by it is at surface boundary
+  _Output->GetPointCells(ptId1, cellIds);
+  for (vtkIdType i = 0; i < cellIds->GetNumberOfIds(); ++i) {
+    if (IsBoundaryCell(cellIds->GetId(i))) return false;
+  }
+  _Output->GetPointCells(ptId2, cellIds);
+  for (vtkIdType i = 0; i < cellIds->GetNumberOfIds(); ++i) {
+    if (IsBoundaryCell(cellIds->GetId(i))) return false;
+  }
 
   // Check/resolve node connectivity of adjacent points
   vtkIdType neighborPtId = GetCellEdgeNeighborPoint(cellId, ptId1, ptId2, _MeltNodes);
@@ -577,7 +595,7 @@ bool SurfaceRemeshing
   InterpolatePointData(_Output->GetPointData(), ptId1, ptId1, ptId2);
 
   // Move first point to edge middlepoint
-  Point m = MiddlePoint(ptId1, ptId2);
+  const Point m = MiddlePoint(ptId1, ptId2);
   _Output->GetPoints()->SetPoint(ptId1, m.x, m.y, m.z);
   _Output->GetPoints()->Modified();
 
