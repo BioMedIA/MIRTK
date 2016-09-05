@@ -145,18 +145,19 @@ void PrintHelp(const char *name)
   cout << "      deviation used to set min/max edge length range for local remeshing\n";
   cout << "      of newly inserted triangles at intersection boundaries. (default: 2)\n";
   cout << "  -smoothing, -smooth [<n>]\n";
-  cout << "      Enable smoothing of merged surface points nearby intersection\n";
-  cout << "      boundaries. The default number of smoothing iterations <n> is 100.\n";
-  cout << "      A different value can be specified using this option or\n";
-  cout << "      :option:`-smoothing-iterations`. (default: 100)\n";
+  cout << "      Enable smoothing of merged surface points nearby intersection boundaries.\n";
+  cout << "      When :option:`-smoothing-mu` is zero or NaN, Gaussian weighting function\n";
+  cout << "      is used for the mesh smoothing. Otherwise, a uniform weighting is used. (default: 0)\n";
   cout << "  -smoothing-iterations, -smooth-iterations\n";
-  cout << "      Number of intersection points smoothing iterations. (default: 100)\n";
+  cout << "      Number of intersection points smoothing iterations. (default: 0)\n";
   cout << "  -nosmoothing, -nosmooth\n";
-  cout << "      Disable smoothing of nearby intersection points,\n";
-  cout << "      same as :option:`-smoothing` or :option:`-smoothing-iterations` 0.\n";
+  cout << "      Disable smoothing of nearby intersection points, same as\n";
+  cout << "      :option:`-smoothing` or :option:`-smoothing-iterations` 0.\n";
   cout << "  -smoothing-lambda, -smooth-lambda <float>\n";
   cout << "      Lambda parameter used for odd iterations of Laplacian point :option:`-smoothing`.\n";
   cout << "      The default value is set based on the :option:`-smooth-mu` parameter. (default: abs(mu) - .01)\n";
+  cout << "      When only :option:`-smoothing-lambda` is given, :option:`-smoothing-mu` is set to\n";
+  cout << "      to the same value and a Gaussian weighting function is used.\n";
   cout << "  -smoothing-mu, -smooth-mu <float>\n";
   cout << "      Lambda parameter used for even iterations of Laplacian point :option:`-smoothing`.\n";
   cout << "      The default smoothing parameters avoid shrinking of the surface mesh\n";
@@ -1445,7 +1446,7 @@ bool FindCuttingPlane(vtkSmartPointer<vtkPolyData> surface,
                       vtkSmartPointer<vtkPointSet> boundary,
                       vtkSmartPointer<vtkPolyData> &plane,
                       vtkSmartPointer<vtkPolyData> &cut,
-                      double ds = 0., double tol = 0.)
+                      double max_offset, double ds = 0., double tol = 0.)
 {
   static int call = 0; ++call;
 
@@ -1463,8 +1464,7 @@ bool FindCuttingPlane(vtkSmartPointer<vtkPolyData> surface,
   const double max_angle   = 20.;
   const double delta_angle = 5.;
 
-  const double max_offset   = 2. * ds;
-  const double delta_offset = .5 * ds;
+  const double delta_offset = max_offset / 4.;
 
   const double margin   =  5. * ds;
   const double bbmargin = 20. * ds;
@@ -1558,7 +1558,7 @@ bool FindCuttingPlane(vtkSmartPointer<vtkPolyData> surface,
                      << " ...";
               }
               l = LineStripLength(cut);
-              if (best_ct == 0 || l < .8 * best_l) {
+              if (best_ct == 0 || l < .95 * best_l) {
                 accept = true;
               }
               if (accept) {
@@ -2529,6 +2529,10 @@ int main(int argc, char *argv[])
     output = CalculateNormals(output, output_point_normals, calc_cell_normals, vertex_consistency);
     if (verbose > 0) cout << " done" << endl;
 
+    if (debug > 0) {
+      WritePolyData("debug_joined_boundaries.vtp", output);
+    }
+
     // Insert cutting planes in reverse order
     if (add_dividers) {
       if (verbose > 0) {
@@ -2538,7 +2542,7 @@ int main(int argc, char *argv[])
       }
       const EdgeTable edgeTable(output);
       const double ds  = AverageEdgeLength(output->GetPoints(), edgeTable);
-      const double tol = .1 * ds; // max dist for snapping intersection to surface
+      const double eps = .1 * ds; // max dist for snapping intersection to surface
       vtkSmartPointer<vtkPolyData> plane, polygon, cut;
       for (int i = static_cast<int>(boundaries.size()-1); i >= 0; --i) {
         string msg;
@@ -2552,7 +2556,7 @@ int main(int argc, char *argv[])
           msg += " boundary";
           cout << msg << "..." << endl;
         }
-        if (FindCuttingPlane(output, boundaries[i], plane, cut, ds, tol)) {
+        if (FindCuttingPlane(output, boundaries[i], plane, cut, 2. * tolerance, ds, eps)) {
           if (debug > 0) {
             char fname[64];
             snprintf(fname, 64, "debug_cutting_plane_%d.vtp", static_cast<int>(boundaries.size()) - i);
@@ -2563,7 +2567,7 @@ int main(int argc, char *argv[])
             snprintf(fname, 64, "debug_cutting_polygon_%d.vtp", static_cast<int>(boundaries.size()) - i);
             WritePolyData(fname, cut);
           }
-          output = AddClosedIntersectionDivider(output, cut, tol);
+          output = AddClosedIntersectionDivider(output, cut, eps);
           if (debug > 0) {
             char fname[64];
             snprintf(fname, 64, "debug_output+divider_%d.vtp", static_cast<int>(boundaries.size()) - i);
@@ -2686,9 +2690,14 @@ int main(int argc, char *argv[])
       smoother.Lambda(smooth_lambda);
       smoother.Mu(smooth_mu);
       smoother.NumberOfIterations(max_smooth_steps);
-      smoother.Weighting(MeshSmoothing::Combinatorial);
-      smoother.AdjacentValuesOnly(true);
-      smoother.SmoothPoints(true);
+      if (IsNaN(smooth_mu) || fequal(smooth_lambda, smooth_mu)) {
+        smoother.Weighting(MeshSmoothing::Gaussian);
+        smoother.AdjacentValuesOnlyOff();
+      } else {
+        smoother.Weighting(MeshSmoothing::Combinatorial);
+        smoother.AdjacentValuesOnlyOn();
+      }
+      smoother.SmoothPointsOn();
       smoother.Run();
       output->SetPoints(smoother.Output()->GetPoints());
       if (verbose > 0) cout << " done" << endl;
