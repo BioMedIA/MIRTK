@@ -111,6 +111,8 @@ vtkSmartPointer<vtkPointSet> Erode(vtkSmartPointer<vtkPointSet> input,
                                    const EdgeConnectivity &neighbors,
                                    vtkSmartPointer<vtkDataArray> arr, int niter = 1)
 {
+  const int npoints = static_cast<int>(input->GetNumberOfPoints());
+    
   vtkSmartPointer<vtkPointSet> output;
   output.TakeReference(input->NewInstance());
   output->ShallowCopy(input);
@@ -125,23 +127,40 @@ vtkSmartPointer<vtkPointSet> Erode(vtkSmartPointer<vtkPointSet> input,
     }
   }
 
+  // Attention: vtkDataArray::DeepCopy (of older VTK versions?) does not
+  //            copy array name (and possibly not array component names).
   vtkSmartPointer<vtkDataArray> res;
   res.TakeReference(arr->NewInstance());
-  res->DeepCopy(arr); // in particular size, name, and component names if any
-  const int idx = pd->AddArray(res);
-  if (attr >= 0) pd->SetActiveAttribute(idx, attr);
-
-  for (int iter = 0; iter < niter; ++iter) {
-    if (iter > 0) {
-      if (iter == 1) arr.TakeReference(res->NewInstance());
-      arr->DeepCopy(res);
-    }
-    ErodeScalars body;
-    body._Input     = arr;
-    body._Output    = res;
-    body._Neighbors = &neighbors;
-    parallel_for(blocked_range<int>(0, static_cast<int>(input->GetNumberOfPoints())), body);
+  res->SetNumberOfComponents(arr->GetNumberOfComponents());
+  res->SetNumberOfTuples(arr->GetNumberOfTuples());
+  res->SetName(arr->GetName());
+  for (int j = 0; j < arr->GetNumberOfComponents(); ++j) {
+    res->SetComponentName(j, arr->GetComponentName(j));
   }
+
+  ErodeScalars body;
+  body._Input     = arr;
+  body._Output    = res;
+  body._Neighbors = &neighbors;
+  for (int iter = 0; iter < niter; ++iter) {
+    if (iter == 1) {
+      arr.TakeReference(res->NewInstance());
+      arr->SetNumberOfComponents(res->GetNumberOfComponents());
+      arr->SetNumberOfTuples(res->GetNumberOfTuples());
+      arr->SetName(res->GetName());
+      for (int j = 0; j < res->GetNumberOfComponents(); ++j) {
+        arr->SetComponentName(j, res->GetComponentName(j));
+        arr->CopyComponent(j, res, j);
+      }
+      body._Input = arr;
+    } else if (iter > 1) {
+      swap(body._Input, body._Output);
+    }
+    parallel_for(blocked_range<int>(0, npoints), body);
+  }
+
+  const int idx = pd->AddArray(body._Output);
+  if (attr >= 0) pd->SetActiveAttribute(idx, attr);
 
   return output;
 }
