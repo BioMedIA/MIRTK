@@ -1793,6 +1793,17 @@ void Trisect(vtkPolyData *input, vtkIdType cellId,
 }
 
 // -----------------------------------------------------------------------------
+vtkSmartPointer<vtkDataArray> NonBoundaryPointsMask(vtkSmartPointer<vtkPolyData> input)
+{
+  vtkSmartPointer<vtkDataArray> mask;
+  mask = NewVtkDataArray(VTK_UNSIGNED_CHAR, input->GetNumberOfPoints(), 1);
+  mask->FillComponent(0, 1.);
+  UnorderedSet<int> ptIds = BoundaryPoints(input);
+  for (auto ptId : ptIds) mask->SetComponent(ptId, 0, 0.);
+  return mask;
+}
+
+// -----------------------------------------------------------------------------
 vtkSmartPointer<vtkPolyData>
 AddClosedIntersectionDivider(vtkPolyData *surface, vtkPolyData *cut, double tol = .0)
 {
@@ -2026,20 +2037,40 @@ AddClosedIntersectionDivider(vtkPolyData *surface, vtkPolyData *cut, double tol 
 
   // Create polygonal mesh tesselation of closed intersection polygon
   vtkSmartPointer<vtkPolyData> divider = Triangulate(Divider(cut));
+  if (debug) {
+    static int callId = 0; ++callId;
+    char fname[64];
+    snprintf(fname, 64, "debug_split_surface_polygon_%d.vtp", callId);
+    WritePolyData(fname, divider);
+  }
 
+  // Remesh divider polygon to same average edge length as merged surface mesh
+  // Smoothing resolves possible intersections of boundary due to edge-melting
+  // where the boundary is concave. It also redistributes the points more evenly
   SurfaceRemeshing remesher;
-  remesher.MeltNodesOff();
+  remesher.MeltNodesOn();
   remesher.MeltTrianglesOff();
   remesher.BisectBoundaryEdgesOff();
   remesher.InvertTrianglesSharingOneLongEdgeOn();
   remesher.InvertTrianglesToIncreaseMinHeightOn();
   remesher.MinEdgeLength(min_edge_length);
   remesher.MaxEdgeLength(max_edge_length);
+
+  MeshSmoothing smoother;
+  smoother.AdjacentValuesOnlyOn();
+  smoother.Weighting(MeshSmoothing::Combinatorial);
+  smoother.Lambda(1.);
+  smoother.NumberOfIterations(1);
+
   for (int iter = 0; iter < 20; ++iter) {
     remesher.Input(divider);
     remesher.Run();
     if (remesher.NumberOfChanges() == 0) break;
     divider = remesher.Output();
+    smoother.Input(divider);
+    smoother.Mask(NonBoundaryPointsMask(divider));
+    smoother.Run();
+    divider = smoother.Output();
   }
 
   // Prepare point/cell data before appending polygonal data sets
