@@ -651,6 +651,8 @@ Plane MedialCuttingPlane(const ByteImage &regions)
 // -----------------------------------------------------------------------------
 int main(int argc, char *argv[])
 {
+  Point p;
+
   REQUIRES_POSARGS(0);
 
   const char *labels_name = nullptr; // Input  labels image
@@ -847,6 +849,8 @@ int main(int argc, char *argv[])
     AddLabels(cbmask, labels, cbmask_labels);
   }
 
+  const double ds = max(max(attr._dx, attr._dy), attr._dz);
+
   // Initial brain regions image used to find cutting planes
   ByteImage regions(attr, 1);
   for (int vox = 0; vox < nvox; ++vox) {
@@ -955,7 +959,6 @@ int main(int argc, char *argv[])
     GreyImage wm_rh(wm.Attributes());
     GreyImage wm_lh_cc, wm_rh_cc;
 
-    Point p;
     for (int k = 0; k < wm.Z(); ++k)
     for (int j = 0; j < wm.Y(); ++j)
     for (int i = 0; i < wm.X(); ++i) {
@@ -1012,9 +1015,6 @@ int main(int argc, char *argv[])
       if (gm.IsEmpty()) gm.Initialize(attr);
       AddLabels(gm, labels, gmmask_labels);
     }
-    ConnectedComponents<BytePixel> cc;
-    cc.Input (&gm);
-    cc.Output(&gm);
     for (int vox = 0; vox < nvox; ++vox) {
       if (gm(vox) == 1) {
         regions(vox) = GM;
@@ -1023,7 +1023,6 @@ int main(int argc, char *argv[])
   }
 
   // Cut subcortical structures and brainstem into RH, LH, and BS+CB
-  Point p;
   for (int k = 0; k < regions.Z(); ++k)
   for (int j = 0; j < regions.Y(); ++j)
   for (int i = 0; i < regions.X(); ++i) {
@@ -1047,11 +1046,63 @@ int main(int argc, char *argv[])
     }
   }
 
-  // Change CB(+BS) labels to GM when bordering with WM away from the BS
+  if (debug) {
+    regions.Write("debug_output.nii.gz");
+  }
+
+  // Close holes between RH and LH
+  if ((gmmask_name || !gmmask_labels.empty()) && closing_iter > 0) {
+    const double max_dist_rl = closing_iter * ds;
+    bool is_empty = true;
+    BinaryImage boundary(attr, 1);
+    NeighborhoodOffsets offsets(&regions, CONNECTIVITY_18);
+    for (int k = 1; k < regions.Z()-1; ++k)
+    for (int j = 1; j < regions.Y()-1; ++j)
+    for (int i = 1; i < regions.X()-1; ++i) {
+      const auto &region = regions(i, j, k);
+      if (region == RH || region == LH) {
+        const auto data = regions.Data(i, j, k);
+        for (int n = 0; n < offsets.Size(); ++n) {
+          const auto &label = *(data + offsets(n));
+          if (label == BG) {
+            p = Point(i, j, k);
+            regions.ImageToWorld(p);
+            if (abs(rl_plane.SignedDistance(p)) < max_dist_rl) {
+              boundary(i, j, k) = 1;
+              is_empty = false;
+            }
+            break;
+          }
+        }
+      }
+    }
+    if (!is_empty) {
+      Dilate<BinaryPixel>(&boundary, closing_iter,     CONNECTIVITY_18);
+      Erode <BinaryPixel>(&boundary, closing_iter + 1, CONNECTIVITY_18);
+      for (int k = 0; k < regions.Z(); ++k)
+      for (int j = 0; j < regions.Y(); ++j)
+      for (int i = 0; i < regions.X(); ++i) {
+        auto &region = regions(i, j, k);
+        if (region == BG && boundary(i, j, k) != 0) {
+          p = Point(i, j, k);
+          regions.ImageToWorld(p);
+          if (rl_plane.SignedDistance(p) < 0.) {
+            region = LH;
+          } else {
+            region = RH;
+          }
+        }
+      }
+      if (debug) {
+        regions.Write("debug_output+rl_closed.nii.gz");
+      }
+    }
+  }
+
+  // Change CB(+BS) labels to GM(/BG) when bordering with WM away from the BS
   // cutting plane to ensure that there is some separating cortex between
   // white surface and BS+CB region which may be misclassified as cerebellar GM
   if (gmmask_name || !gmmask_labels.empty()) {
-    const double ds = max(max(regions.XSize(), regions.YSize()), regions.ZSize());
     const double min_dist_bs = 10. * ds;
     const double min_dist_cb =  2. * ds;
     bool is_empty = true;
@@ -1099,6 +1150,53 @@ int main(int argc, char *argv[])
         if (boundary(vox) != 0 && (region == CB || region == BS || region == BG)) {
           region = GM;
         }
+      }
+      if (debug) {
+        regions.Write("debug_output+wm-cb_gap.nii.gz");
+      }
+    }
+  }
+
+  // Change WM labels to BG when bordering with BS below the cutting plane to
+  // ensure at least one voxel gap between white surface and brainstem
+  // (+cerebellum) surface mesh for merge-surfaces to be able to insert a
+  // single cutting plane as divider.
+  if (gmmask_name || !gmmask_labels.empty()) {
+    const double ds = max(max(regions.XSize(), regions.YSize()), regions.ZSize());
+    const double min_dist_bs = 2. * ds;
+    bool is_empty = true;
+    BinaryImage boundary(attr, 1);
+    NeighborhoodOffsets offsets(&regions, CONNECTIVITY_18);
+    for (int k = 1; k < regions.Z()-1; ++k)
+    for (int j = 1; j < regions.Y()-1; ++j)
+    for (int i = 1; i < regions.X()-1; ++i) {
+      const auto &region = regions(i, j, k);
+      if (region == BS) {
+        p = Point(i, j, k);
+        regions.ImageToWorld(p);
+        if (abs(bs_plane.SignedDistance(p)) > min_dist_bs) {
+          const auto data = regions.Data(i, j, k);
+          for (int n = 0; n < offsets.Size(); ++n) {
+            const auto label = data + offsets(n);
+            if (*label == LH || *label == RH) {
+              const auto vox = static_cast<int>(label - regions.Data());
+              boundary(vox) = 1;
+              is_empty = false;
+            }
+          }
+        }
+      }
+    }
+    if (!is_empty) {
+      Dilate<BinaryPixel>(&boundary, 1, CONNECTIVITY_18);
+      for (int vox = 0; vox < nvox; ++vox) {
+        auto &region = regions(vox);
+        if (boundary(vox) != 0 && (region == LH || region == RH)) {
+          region = BG;
+        }
+      }
+      if (debug) {
+        regions.Write("debug_output+wm-bs_gap.nii.gz");
       }
     }
   }
