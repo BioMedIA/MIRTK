@@ -88,8 +88,7 @@ int main(int argc, char **argv)
   // Read image
   InitializeIOLibrary();
   UniquePtr<ImageReader> input_reader(ImageReader::New(input_name));
-  int source_type = input_reader->DataType();
-  UniquePtr<BaseImage> source(input_reader->Run());
+  UniquePtr<BaseImage>   source(input_reader->Run());
 
   // Parse optional arguments
   const char       *dof_name      = NULL;
@@ -148,10 +147,8 @@ int main(int argc, char **argv)
 
   // Read target image
   UniquePtr<BaseImage> target;
-  int target_type = -1;
   if (target_name) {
     UniquePtr<ImageReader> target_reader(ImageReader::New(target_name));
-    target_type = target_reader->DataType();
     target.reset(target_reader->Run());
   }
 
@@ -162,7 +159,7 @@ int main(int argc, char **argv)
   if (target.get()) {
     // Ensure that output image has same number of channels/frames than input
     if (target->T() != source->T()) {
-      UniquePtr<BaseImage> tmp(BaseImage::New(target_type));
+      UniquePtr<BaseImage> tmp(BaseImage::New(source->GetDataType()));
       tmp->Initialize(target->Attributes(), source->T());
       tmp->PutTSize(source->GetTSize());
       for (int l = 0; l < tmp->T(); ++l)
@@ -171,6 +168,11 @@ int main(int argc, char **argv)
       for (int i = 0; i < tmp->X(); ++i) {
         tmp->PutAsDouble(i, j, k, l, target->GetAsDouble(i, j, k, 0));
       }
+      target.reset(tmp.release());
+    // Change type of target image to source image type
+    } else if (target->GetDataType() != source->GetDataType()) {
+      UniquePtr<BaseImage> tmp(BaseImage::New(source->GetDataType()));
+      *tmp = *target;
       target.reset(tmp.release());
     }
   // If there is no target image just copy the source image
@@ -214,13 +216,6 @@ int main(int argc, char **argv)
         << imagetransformation.NumberOfSingularPoints() << " point";
     if (imagetransformation.NumberOfSingularPoints() > 1) msg << 's';
     Warning(msg.str());
-  }
-
-  // Change type of target image to source image type
-  if (source_type != target_type) {
-    UniquePtr<BaseImage> tmp(BaseImage::New(source_type));
-    *tmp = *target;
-    target.reset(tmp.release());
   }
 
   // Write the final transformation estimate
