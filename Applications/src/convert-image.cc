@@ -43,6 +43,7 @@ void PrintHelp(const char *name)
   cout << "Optional arguments:\n";
   cout << "  -char|uchar|short|ushort|float|double   Output voxel type.\n";
   cout << "  -rescale <min> <max>                    Output minimum and maximum intensity.\n";
+  cout << "  -perc    <min> <max>                    Percentile of minimum and maximum intensity for rescaling. (ignored if -rescale is not set)\n";
   PrintStandardOptions(cout);
   cout << "\n";
 }
@@ -64,6 +65,9 @@ int main(int argc, char *argv[])
   double min_value  = numeric_limits<double>::quiet_NaN();
   double max_value  = numeric_limits<double>::quiet_NaN();
 
+  double lperc = 0;
+  double uperc = 100;
+
   for (ALL_OPTIONS) {
     if      (OPTION("-char"))   voxel_type = MIRTK_VOXEL_CHAR;
     else if (OPTION("-uchar"))  voxel_type = MIRTK_VOXEL_UNSIGNED_CHAR;
@@ -78,6 +82,10 @@ int main(int argc, char *argv[])
     else if (OPTION("-rescale")) {
       PARSE_ARGUMENT(min_value);
       PARSE_ARGUMENT(max_value);
+    }
+    else if (OPTION("-perc")) {
+      PARSE_ARGUMENT(lperc);
+      PARSE_ARGUMENT(uperc);
     }
     else HANDLE_STANDARD_OR_UNKNOWN_OPTION();
   }
@@ -101,7 +109,7 @@ int main(int argc, char *argv[])
     if (voxel_type != MIRTK_VOXEL_FLOAT && voxel_type != MIRTK_VOXEL_DOUBLE) {
       input.reset(new GenericImage<double>(*input));
     }
-    input->PutMinMaxAsDouble(min_value, max_value);
+    input->PutMinMaxAsDouble(min_value, max_value, lperc, uperc);
   }
 
   // Convert image
