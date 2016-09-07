@@ -84,9 +84,9 @@ int main(int argc, char *argv[])
       PARSE_ARGUMENT(max_value);
     }
     else if (OPTION("-perc")) {
-	  PARSE_ARGUMENT(lperc);
-	  PARSE_ARGUMENT(uperc);
-	}
+      PARSE_ARGUMENT(lperc);
+      PARSE_ARGUMENT(uperc);
+    }
     else HANDLE_STANDARD_OR_UNKNOWN_OPTION();
   }
 
