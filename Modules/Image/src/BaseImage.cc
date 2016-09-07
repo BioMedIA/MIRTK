@@ -31,6 +31,8 @@
 
 #include "mirtk/GaussianBlurring.h" // GaussianBlurring::KernelSize
 
+#include "mirtk/DataStatistics.h"
+
 #if MIRTK_Image_WITH_VTK
   #include "vtkStructuredPoints.h"
 #endif
@@ -453,7 +455,7 @@ void BaseImage::GetMinMaxAsDouble(double &min, double &max) const
 }
 
 // -----------------------------------------------------------------------------
-void BaseImage::PutMinMaxAsDouble(double min, double max)
+void BaseImage::PutMinMaxAsDouble(double min, double max, int lperc, int uperc)
 {
   // Check if full range can be represented by data type
   if (min < this->GetDataTypeMin()) {
@@ -469,16 +471,65 @@ void BaseImage::PutMinMaxAsDouble(double min, double max)
     exit(1);
   }
 
-  // Get current min and max values
-  double min_val, max_val;
-  this->GetMinMaxAsDouble(min_val, max_val);
+  // Get percentile min and max values
+  double min_val, max_val, value, rank;
+
+  using data::statistic::Percentile;
+  switch (this->GetDataType()) {
+    case MIRTK_VOXEL_CHAR: {
+      min_val = Percentile::Calculate(lperc, rank, this->GetNumberOfVoxels(), static_cast<char *>(this->GetDataPointer()));
+      max_val = Percentile::Calculate(uperc, rank, this->GetNumberOfVoxels(), static_cast<char *>(this->GetDataPointer()));
+      break;
+    }
+    case MIRTK_VOXEL_UNSIGNED_CHAR: {
+      min_val = Percentile::Calculate(lperc, rank, this->GetNumberOfVoxels(), static_cast<unsigned char *>(this->GetDataPointer()));
+      max_val = Percentile::Calculate(uperc, rank, this->GetNumberOfVoxels(), static_cast<unsigned char *>(this->GetDataPointer()));
+      break;
+    }
+    case MIRTK_VOXEL_SHORT: {
+      min_val = Percentile::Calculate(lperc, rank, this->GetNumberOfVoxels(), static_cast<short *>(this->GetDataPointer()));
+      max_val = Percentile::Calculate(uperc, rank, this->GetNumberOfVoxels(), static_cast<short *>(this->GetDataPointer()));
+      break;
+    }
+    case MIRTK_VOXEL_UNSIGNED_SHORT: {
+      min_val = Percentile::Calculate(lperc, rank, this->GetNumberOfVoxels(), static_cast<unsigned short *>(this->GetDataPointer()));
+      max_val = Percentile::Calculate(uperc, rank, this->GetNumberOfVoxels(), static_cast<unsigned short *>(this->GetDataPointer()));
+      break;
+    }
+    case MIRTK_VOXEL_INT: {
+      min_val = Percentile::Calculate(lperc, rank, this->GetNumberOfVoxels(), static_cast<int *>(this->GetDataPointer()));
+      max_val = Percentile::Calculate(uperc, rank, this->GetNumberOfVoxels(), static_cast<int *>(this->GetDataPointer()));
+      break;
+    }
+    case MIRTK_VOXEL_UNSIGNED_INT: {
+      min_val = Percentile::Calculate(lperc, rank, this->GetNumberOfVoxels(), static_cast<unsigned int *>(this->GetDataPointer()));
+      max_val = Percentile::Calculate(uperc, rank, this->GetNumberOfVoxels(), static_cast<unsigned int *>(this->GetDataPointer()));
+      break;
+    }
+    case MIRTK_VOXEL_FLOAT: {
+      min_val = Percentile::Calculate(lperc, rank, this->GetNumberOfVoxels(), static_cast<float *>(this->GetDataPointer()));
+      max_val = Percentile::Calculate(uperc, rank, this->GetNumberOfVoxels(), static_cast<float *>(this->GetDataPointer()));
+      break;
+    }
+    case MIRTK_VOXEL_DOUBLE: {
+      min_val = Percentile::Calculate(lperc, rank, this->GetNumberOfVoxels(), static_cast<double *>(this->GetDataPointer()));
+      max_val = Percentile::Calculate(uperc, rank, this->GetNumberOfVoxels(), static_cast<double *>(this->GetDataPointer()));
+      break;
+    }
+    default: {
+      this->GetMinMaxAsDouble(min_val, max_val);
+    }
+  }
 
   // Rescale foreground to desired [min, max] range
   const double slope = (max - min) / (max_val - min_val);
   const double inter = min - slope * min_val;
   for (int idx = 0; idx < _NumberOfVoxels; ++idx) {
     if (IsForeground(idx)) {
-      this->PutAsDouble(idx, inter + slope * this->GetAsDouble(idx));
+      value = inter + slope * this->GetAsDouble(idx);
+      if (value < min) value = min;
+      if (value > max) value = max;
+      this->PutAsDouble(idx, value);
     }
   }
 }

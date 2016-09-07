@@ -657,7 +657,7 @@ public:
   virtual void GetMinMaxAsDouble(double &, double &) const;
 
   /// Minimum and maximum pixel values put accessor
-  virtual void PutMinMaxAsDouble(double, double);
+  virtual void PutMinMaxAsDouble(double, double, int = 0, int = 100);
   
   // ---------------------------------------------------------------------------
   // Access to raw image data
