@@ -410,6 +410,14 @@ inline double MinSquaredDistance(vtkAbstractCellLocator *cut, const Point &p)
 }
 
 // -----------------------------------------------------------------------------
+/// Minimum squared distance of point to surface boundary
+inline double MinSquaredDistance(const BoundarySegment &seg, const Point &p)
+{
+  const auto i = seg.FindClosestPoint(p);
+  return p.SquaredDistance(seg.Point(i));
+}
+
+// -----------------------------------------------------------------------------
 /// Minimum squared distance of surface boundary segment to segmentation boundary surface
 double MinSquaredDistance(const BoundarySegment &seg, vtkAbstractCellLocator *cut)
 {
@@ -421,6 +429,20 @@ double MinSquaredDistance(const BoundarySegment &seg, vtkAbstractCellLocator *cu
     if (dist2 < min_dist2) min_dist2 = dist2;
   }
   return min_dist2;
+}
+
+// -----------------------------------------------------------------------------
+/// Hausdorff distance of two boundary segments
+double HausdorffDistance(const BoundarySegment &a, const BoundarySegment &b)
+{
+  double d_ab = 0., d_ba = 0.;
+  for (int i = 0; i < a.NumberOfPoints(); ++i) {
+    d_ab = max(d_ab, MinSquaredDistance(b, a.Point(i)));
+  }
+  for (int i = 0; i < b.NumberOfPoints(); ++i) {
+    d_ba = max(d_ba, MinSquaredDistance(a, b.Point(i)));
+  }
+  return sqrt(max(d_ab, d_ba));
 }
 
 // -----------------------------------------------------------------------------
@@ -557,7 +579,7 @@ vtkSmartPointer<vtkPointData> CellToPointData(vtkDataSet *dataset, const Array<i
 
 // -----------------------------------------------------------------------------
 /// Join intersected components at the segmentation boundary
-void JoinBoundaries(SurfaceBoundary &boundary, vtkAbstractCellLocator *cut, double max_dist2)
+void JoinBoundaries(SurfaceBoundary &boundary, vtkAbstractCellLocator *cut, double max_dist2, double max_hdist)
 {
   vtkIdType cellId, ptId1, ptId2, ptId3;
 
@@ -594,11 +616,39 @@ void JoinBoundaries(SurfaceBoundary &boundary, vtkAbstractCellLocator *cut, doub
     for (int j = 0; j < boundary.NumberOfSegments(); ++j) {
       dist2[j] = MinSquaredDistance(boundary.Segment(j), cut);
     }
-    const auto &order = IncreasingOrder(dist2);
-    if (dist2[order[1]] > max_dist2) break;
 
-    const auto &seg1 = boundary.Segment(order[0]);
-    const auto &seg2 = boundary.Segment(order[1]);
+    int idx1, idx2;
+    Array<Array<double>> hdist(boundary.NumberOfSegments());
+    for (idx1 = 0; idx1 < boundary.NumberOfSegments(); ++idx1) {
+      hdist[idx1].resize(boundary.NumberOfSegments(), inf);
+      if (dist2[idx1] <= max_dist2) {
+        const auto &seg1 = boundary.Segment(idx1);
+        for (idx2 = idx1 + 1; idx2 < boundary.NumberOfSegments(); ++idx2) {
+          if (dist2[idx2] <= max_dist2) {
+            const auto &seg2 = boundary.Segment(idx2);
+            hdist[idx1][idx2] = HausdorffDistance(seg1, seg2);
+          }
+        }
+      }
+    }
+    Array<double> min_hdist(boundary.NumberOfSegments());
+    Array<int>    min_idx2 (boundary.NumberOfSegments());
+    for (idx1 = 0; idx1 < boundary.NumberOfSegments(); ++idx1) {
+      min_idx2 [idx1] = IncreasingOrder(hdist[idx1]).front();
+      min_hdist[idx1] = hdist[idx1][min_idx2[idx1]];
+    }
+    idx1 = IncreasingOrder(min_hdist).front();
+    if (min_hdist[idx1] > max_hdist) break;
+    idx2 = min_idx2[idx1];
+
+    if (verbose > 1) {
+      cout << "  Joining boundary segments " << idx1+1 << " and " << idx2+1
+           << " out of " << boundary.NumberOfSegments() << " remaining surface boundaries"
+           << " (Hausdorff distance = " << hdist[idx1][idx2] << ")" << endl;
+    }
+
+    const auto &seg1 = boundary.Segment(idx1);
+    const auto &seg2 = boundary.Segment(idx2);
 
     int i1 = seg1.NumberOfPoints();
     int j1 = seg2.FindClosestPoint(seg1.Point(i1));
@@ -659,7 +709,8 @@ vtkSmartPointer<vtkPolyData>
 Merge(vtkPolyData *s1, vtkPolyData *s2, vtkPolyData *label_boundary, double tol, int smooth, bool join)
 {
   const double tol2      = tol * tol;
-  const double max_dist2 = 4. * tol2;
+  const double max_dist2 =  4. * tol2;
+  const double max_hdist = 10. * tol;
 
   double         p[3], x[3], dist2;
   vtkIdType      cellId;
@@ -727,7 +778,7 @@ Merge(vtkPolyData *s1, vtkPolyData *s2, vtkPolyData *label_boundary, double tol,
   SmoothBoundaries(boundary, cut, max_dist2, smooth);
 
   // Join intersection boundaries
-  if (join) JoinBoundaries(boundary, cut, max_dist2);
+  if (join) JoinBoundaries(boundary, cut, max_dist2, max_hdist);
 
   return output;
 }
@@ -2497,6 +2548,7 @@ int main(int argc, char *argv[])
   // Merge surfaces
   if (verbose > 0) {
     cout << "Merging surfaces at segmentation boundaries...";
+    if (verbose > 1) cout << "\n";
     cout.flush();
   }
   vtkSmartPointer<vtkPolyData> output = surfaces[0];
@@ -2514,6 +2566,7 @@ int main(int argc, char *argv[])
     surfaces.clear();
   }
   if (verbose > 0) {
+    if (verbose > 1) cout << "Merging surfaces at segmentation boundaries...";
     cout << " done" << endl;
   }
 
