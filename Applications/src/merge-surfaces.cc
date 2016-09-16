@@ -109,6 +109,8 @@ void PrintHelp(const char *name)
   cout << "      Whether to join surfaces at intersection boundaries.\n";
   cout << "      When off, the output data set has unconnected components.\n";
   cout << "      (default: on)\n";
+  cout << "  -largest [on|off]\n";
+  cout << "      Retain only largest surface component after :option:`-join`ing of boundaries. (default: off)\n";
   cout << "  -tolerance, -tol <float>\n";
   cout << "      Maximum distance of an input cell from the segmentation\n";
   cout << "      boundary to be removed. The resulting intersection boundary\n";
@@ -2332,6 +2334,7 @@ int main(int argc, char *argv[])
   double smooth_mu            = NaN;
   bool   fill_source_label    = true;
   int    max_smooth_source    = 0;
+  bool   output_largest_comp  = false;
   bool   add_dividers         = false;
   bool   output_point_normals = true;
   bool   output_cell_normals  = true;
@@ -2458,8 +2461,9 @@ int main(int argc, char *argv[])
     }
     else HANDLE_BOOLEAN_OPTION("point-normals", output_point_normals);
     else HANDLE_BOOLEAN_OPTION("cell-normals", output_point_normals);
-    else HANDLE_BOOLEAN_OPTION("dividers", add_dividers);
     else HANDLE_BOOLEAN_OPTION("join", join_boundaries);
+    else HANDLE_BOOLEAN_OPTION("largest", output_largest_comp);
+    else HANDLE_BOOLEAN_OPTION("dividers", add_dividers);
     else HANDLE_COMMON_OR_UNKNOWN_OPTION();
   }
 
@@ -2571,6 +2575,20 @@ int main(int argc, char *argv[])
   }
 
   if (join_boundaries) {
+
+    // Extract largest connected component
+    if (output_largest_comp) {
+      if (verbose > 0) {
+        cout << "Extracting largest surface component...";
+        cout.flush();
+      }
+      vtkNew<vtkPolyDataConnectivityFilter> lcc;
+      SetVTKInput(lcc, output);
+      lcc->SetExtractionModeToLargestRegion();
+      lcc->Update();
+      output = lcc->GetOutput();
+      if (verbose > 0) cout << " done" << endl;
+    }
 
     // Recalculate surface normals and fix vertex order if necessary
     if (verbose > 0) {
