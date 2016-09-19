@@ -2762,60 +2762,6 @@ int main(int argc, char *argv[])
       WritePolyData("debug_joined_boundaries.vtp", output);
     }
 
-    // Insert cutting planes in reverse order
-    if (add_dividers) {
-      if (verbose > 0) {
-        cout << "Adding internal division planes...";
-        if (verbose > 1) cout << "\n";
-        cout.flush();
-      }
-      const EdgeTable edgeTable(output);
-      const double ds = AverageEdgeLength(output->GetPoints(), edgeTable);
-      vtkSmartPointer<vtkPolyData> plane, polygon, cut;
-      for (int i = static_cast<int>(boundaries.size()-1); i >= 0; --i) {
-        string msg;
-        if (verbose > 1) {
-          const int n = i + 1;
-          msg = "  Adding division plane for ";
-          if      (n == 1) msg += "1st";
-          else if (n == 2) msg += "2nd";
-          else if (n == 3) msg += "3rd";
-          else             msg += ToString(n) + "th";
-          msg += " boundary";
-          cout << msg << "..." << endl;
-        }
-        if (FindCuttingPlane(output, boundaries[i], plane, cut, 2. * tolerance, ds, snap_tolerance)) {
-          if (debug > 0) {
-            char fname[64];
-            snprintf(fname, 64, "debug_cutting_plane_%d.vtp", static_cast<int>(boundaries.size()) - i);
-            WritePolyData(fname, plane);
-          }
-          if (debug > 0) {
-            char fname[64];
-            snprintf(fname, 64, "debug_cutting_polygon_%d.vtp", static_cast<int>(boundaries.size()) - i);
-            WritePolyData(fname, cut);
-          }
-          output = AddClosedIntersectionDivider(output, cut, snap_tolerance);
-          if (debug > 0) {
-            char fname[64];
-            snprintf(fname, 64, "debug_output+divider_%d.vtp", static_cast<int>(boundaries.size()) - i);
-            WritePolyData(fname, output);
-          }
-          if (!msg.empty()) cout << msg << "... done" << endl;
-        } else {
-          if (verbose > 0) {
-            if (!msg.empty()) cout << msg << "...";
-            cout << " failed\n" << endl;
-          }
-          FatalError("Could not find a closed intersection with finite cutting plane near segmentation boundary!");
-        }
-      }
-      if (verbose > 0) {
-        if (verbose > 1) cout << "Adding internal division planes...";
-        cout << " done" << endl;
-      }
-    }
-
     // Remesh newly inserted cells which are joining the intersection boundaries
     if (remesh_radius > 0 && max_remesh_steps > 0) {
       if (verbose > 0) {
@@ -2933,6 +2879,60 @@ int main(int argc, char *argv[])
         const int i = output->GetPointData()->AddArray(smoother.Mask());
         WritePolyData("debug_smoothed_transition.vtp", output);
         output->GetPointData()->RemoveArray(i);
+      }
+    }
+
+    // Insert cutting planes in reverse order
+    if (add_dividers) {
+      if (verbose > 0) {
+        cout << "Adding internal division planes...";
+        if (verbose > 1) cout << "\n";
+        cout.flush();
+      }
+      const EdgeTable edgeTable(output);
+      const double ds = AverageEdgeLength(output->GetPoints(), edgeTable);
+      vtkSmartPointer<vtkPolyData> plane, polygon, cut;
+      for (int i = static_cast<int>(boundaries.size()-1); i >= 0; --i) {
+        string msg;
+        if (verbose > 1) {
+          const int n = i + 1;
+          msg = "  Adding division plane for ";
+          if      (n == 1) msg += "1st";
+          else if (n == 2) msg += "2nd";
+          else if (n == 3) msg += "3rd";
+          else             msg += ToString(n) + "th";
+          msg += " boundary";
+          cout << msg << "..." << endl;
+        }
+        if (FindCuttingPlane(output, boundaries[i], plane, cut, 2. * tolerance, ds, snap_tolerance)) {
+          if (debug > 0) {
+            char fname[64];
+            snprintf(fname, 64, "debug_cutting_plane_%d.vtp", static_cast<int>(boundaries.size()) - i);
+            WritePolyData(fname, plane);
+          }
+          if (debug > 0) {
+            char fname[64];
+            snprintf(fname, 64, "debug_cutting_polygon_%d.vtp", static_cast<int>(boundaries.size()) - i);
+            WritePolyData(fname, cut);
+          }
+          output = AddClosedIntersectionDivider(output, cut, snap_tolerance);
+          if (debug > 0) {
+            char fname[64];
+            snprintf(fname, 64, "debug_output+divider_%d.vtp", static_cast<int>(boundaries.size()) - i);
+            WritePolyData(fname, output);
+          }
+          if (!msg.empty()) cout << msg << "... done" << endl;
+        } else {
+          if (verbose > 0) {
+            if (!msg.empty()) cout << msg << "...";
+            cout << " failed\n" << endl;
+          }
+          FatalError("Could not find a closed intersection with finite cutting plane near segmentation boundary!");
+        }
+      }
+      if (verbose > 0) {
+        if (verbose > 1) cout << "Adding internal division planes...";
+        cout << " done" << endl;
       }
     }
 
