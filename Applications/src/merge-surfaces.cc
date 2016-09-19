@@ -1299,24 +1299,25 @@ vtkSmartPointer<vtkPolyData> TesselateDivider(vtkSmartPointer<vtkPolyData> divid
   if (divider->GetNumberOfPoints() < 2) return divider;
 
   const double min_dist2 = pow(.2 * ds, 2);
+
+  int       subId;
+  double    dist2, reverse_dist2;
   vtkIdType otherId, npts, *pts;
   Vector3   c, p, q, x, dir[3];
-
-  // Get center of divider polygon
-  divider->GetCenter(c);
 
   // Compute principle directions of divider polygon plane
   const bool twod = true;
   PrincipalDirections(divider, dir, twod);
 
-  // Choose direction of y axis of divider plane such that order of divider
-  // polygon points is in counter-clockwise order when looking down the z axis
-  divider->GetPolys()->GetCell(0, npts, pts);
-  divider->GetPoint(pts[0], p);
-  divider->GetPoint(pts[1], q);
-  if (dir[2].Dot((p - c).Cross(q - c)) > 0.) {
-    dir[1] *= -1.;
+  // Get center of divider polygon
+  divider->GetCenter(c);
+  double offset = 0.;
+  for (vtkIdType ptId = 0; ptId < divider->GetNumberOfPoints(); ++ptId) {
+    divider->GetPoint(ptId, p);
+    offset += dir[2].Dot(p - c);
   }
+  offset /= divider->GetNumberOfPoints();
+  c += offset * dir[2];
 
   // Set up homogeneous transformation from 3D world to divider plane
   vtkSmartPointer<vtkMatrix4x4> matrix;
@@ -1394,9 +1395,9 @@ vtkSmartPointer<vtkPolyData> TesselateDivider(vtkSmartPointer<vtkPolyData> divid
   }
 
   // Compute constrained Delanauy triangulation of divider polygon
-  vtkSmartPointer<vtkPolyData> plane;
-  plane = vtkSmartPointer<vtkPolyData>::New();
-  plane->SetPoints(points);
+  vtkSmartPointer<vtkPolyData> pointset;
+  pointset = vtkSmartPointer<vtkPolyData>::New();
+  pointset->SetPoints(points);
 
   vtkSmartPointer<vtkPolyData> boundary;
   boundary = vtkSmartPointer<vtkPolyData>::New();
@@ -1404,7 +1405,7 @@ vtkSmartPointer<vtkPolyData> TesselateDivider(vtkSmartPointer<vtkPolyData> divid
   boundary->SetPolys(divider->GetPolys());
 
   vtkNew<vtkDelaunay2D> delaunay;
-  delaunay->SetInputData(plane);
+  delaunay->SetInputData(pointset);
   delaunay->SetSourceData(boundary);
   delaunay->SetAlpha(0.);
   delaunay->SetOffset(1.);
@@ -1412,7 +1413,44 @@ vtkSmartPointer<vtkPolyData> TesselateDivider(vtkSmartPointer<vtkPolyData> divid
   delaunay->SetTransform(transform);
   delaunay->Update();
 
-  return delaunay->GetOutput();
+  vtkSmartPointer<vtkPolyData> output;
+  output = vtkSmartPointer<vtkPolyData>::New();
+  output->DeepCopy(delaunay->GetOutput());
+
+  // TODO: Figure correct order of polygon points before vtkDelaunay2D::Update
+  vtkNew<vtkCellLocator> cell_locator;
+  cell_locator->SetDataSet(delaunay->GetOutput());
+  cell_locator->BuildLocator();
+  cell_locator->FindClosestPoint(c, x, otherId, subId, dist2);
+
+  boundary->GetPolys()->GetCell(0, npts, pts);
+  vtkNew<vtkIdList> reverse_pts;
+  reverse_pts->Allocate(npts);
+  for (vtkIdType i = npts-1; i >= 0; --i) {
+    reverse_pts->InsertNextId(pts[i]);
+  }
+  vtkSmartPointer<vtkCellArray> reverse_polys;
+  reverse_polys = vtkSmartPointer<vtkCellArray>::New();
+  reverse_polys->Allocate(reverse_polys->EstimateSize(1, npts));
+  reverse_polys->InsertNextCell(reverse_pts.GetPointer());
+
+  vtkSmartPointer<vtkPolyData> reverse_boundary;
+  reverse_boundary = vtkSmartPointer<vtkPolyData>::New();
+  reverse_boundary->SetPoints(points);
+  reverse_boundary->SetPolys(reverse_polys);
+
+  delaunay->SetSourceData(reverse_boundary);
+  delaunay->Update();
+
+  cell_locator->SetDataSet(delaunay->GetOutput());
+  cell_locator->BuildLocator();
+  cell_locator->FindClosestPoint(c, x, otherId, subId, reverse_dist2);
+
+  if (reverse_dist2 < dist2) {
+    output = delaunay->GetOutput();
+  }
+
+  return output;
 }
 
 // -----------------------------------------------------------------------------
