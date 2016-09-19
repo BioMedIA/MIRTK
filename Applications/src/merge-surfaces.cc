@@ -42,7 +42,6 @@
 #include "vtkAppendPolyData.h"
 #include "vtkImageData.h"
 #include "vtkImageStencilData.h"
-#include "vtkKdTree.h"
 #include "vtkIdList.h"
 #include "vtkCellArray.h"
 #include "vtkPolygon.h"
@@ -56,6 +55,9 @@
 #include "vtkMergePoints.h"
 #include "vtkPolyDataConnectivityFilter.h"
 #include "vtkLine.h"
+#include "vtkDelaunay2D.h"
+#include "vtkMatrix4x4.h"
+#include "vtkMatrixToLinearTransform.h"
 
 using namespace mirtk;
 
@@ -830,14 +832,14 @@ int AddCellSourceArray(vtkPolyData * const surface, size_t idx)
 // -----------------------------------------------------------------------------
 /// Calculate point normals of surface mesh while fixing vertex order if necessary
 vtkSmartPointer<vtkPolyData>
-CalculateNormals(vtkPolyData *surface, bool point_normals, bool cell_normals, bool consistency = false)
+CalculateNormals(vtkPolyData *surface, bool point_normals, bool cell_normals)
 {
   vtkNew<vtkPolyDataNormals> normals;
   SetVTKInput(normals, surface);
   normals->AutoOrientNormalsOff();
   normals->SplittingOff();
   normals->NonManifoldTraversalOff();
-  normals->SetConsistency(consistency);
+  normals->ConsistencyOn();
   normals->SetComputePointNormals(point_normals);
   normals->SetComputeCellNormals(cell_normals);
   normals->Update();
@@ -1006,7 +1008,7 @@ void GetEdgeLengthRange(vtkPolyData * const surface, vtkDataArray * const mask,
 
 // -----------------------------------------------------------------------------
 /// Principal component analysis of point set
-bool PrincipalDirections(vtkPointSet * const points, Vector3 dir[3])
+bool PrincipalDirections(vtkPointSet * const points, Vector3 dir[3], bool twod = false)
 {
   if (points->GetNumberOfPoints() == 0) return false;
 
@@ -1031,7 +1033,7 @@ bool PrincipalDirections(vtkPointSet * const points, Vector3 dir[3])
   eigval[1] = abs(eigval[1]);
   eigval[2] = abs(eigval[2]);
   Array<int> order = DecreasingOrder(eigval);
-  if (eigval[order[2]] < 1e-6) return false;
+  if (eigval[order[twod ? 1 : 2]] < 1e-6) return false;
 
   dir[0] = axis[order[0]], dir[0].Normalize();
   dir[1] = axis[order[1]], dir[1].Normalize();
@@ -1291,11 +1293,134 @@ vtkSmartPointer<vtkPolyData> Divider(vtkSmartPointer<vtkPolyData> cut)
 }
 
 // -----------------------------------------------------------------------------
+/// Compute Delaunay triangulation of interior of divider polygon after projection to 2D plane
+vtkSmartPointer<vtkPolyData> TesselateDivider(vtkSmartPointer<vtkPolyData> divider, double ds)
+{
+  if (divider->GetNumberOfPoints() < 2) return divider;
+
+  const double min_dist2 = pow(.2 * ds, 2);
+  vtkIdType otherId, npts, *pts;
+  Vector3   c, p, q, x, dir[3];
+
+  // Get center of divider polygon
+  divider->GetCenter(c);
+
+  // Compute principle directions of divider polygon plane
+  const bool twod = true;
+  PrincipalDirections(divider, dir, twod);
+
+  // Choose direction of y axis of divider plane such that order of divider
+  // polygon points is in counter-clockwise order when looking down the z axis
+  divider->GetPolys()->GetCell(0, npts, pts);
+  divider->GetPoint(pts[0], p);
+  divider->GetPoint(pts[1], q);
+  if (dir[2].Dot((p - c).Cross(q - c)) > 0.) {
+    dir[1] *= -1.;
+  }
+
+  // Set up homogeneous transformation from 3D world to divider plane
+  vtkSmartPointer<vtkMatrix4x4> matrix;
+  matrix = vtkSmartPointer<vtkMatrix4x4>::New();
+  matrix->Identity();
+  for (int i = 0; i < 3; ++i) {
+    matrix->SetElement(i, 0, dir[i].x);
+    matrix->SetElement(i, 1, dir[i].y);
+    matrix->SetElement(i, 2, dir[i].z);
+    matrix->SetElement(i, 3, -dir[i].Dot(c));
+  }
+
+  vtkSmartPointer<vtkMatrixToLinearTransform> transform;
+  transform = vtkSmartPointer<vtkMatrixToLinearTransform>::New();
+  transform->SetInput(matrix);
+  transform->Update();
+
+  // Determine extent of divider polygon within divider plane
+  Point minq, maxq;
+  divider->GetPoint(0, minq);
+  divider->GetPoint(0, maxq);
+  for (vtkIdType ptId = 1; ptId < divider->GetNumberOfPoints(); ++ptId) {
+    divider->GetPoint(ptId, p);
+    transform->TransformPoint(p, q);
+    if (q.x < minq.x) minq.x = q.x;
+    if (q.y < minq.y) minq.y = q.y;
+    if (q.z < minq.z) minq.z = q.z;
+    if (q.x > maxq.x) maxq.x = q.x;
+    if (q.y > maxq.y) maxq.y = q.y;
+    if (q.z > maxq.z) maxq.z = q.z;
+  }
+
+  const double margin = ds;
+  minq.x -= margin, maxq.x += margin;
+  minq.y -= margin, maxq.y += margin;
+
+  int nx = iceil((maxq.x - minq.x) / ds) + 1;
+  int ny = iceil((maxq.y - minq.y) / ds) + 1;
+
+  if (nx % 2 == 0) ++nx;
+  if (ny % 2 == 0) ++ny;
+
+  minq.x = minq.x + .5 * (maxq.x - minq.x) - ((nx - 1) / 2) * ds;
+  maxq.x = minq.x + (nx - 1) * ds + 1e-12;
+
+  minq.y = minq.y + .5 * (maxq.y - minq.y) - ((ny - 1) / 2) * ds;
+  maxq.y = minq.y + (ny - 1) * ds + 1e-12;
+
+  // Add additional discrete divider polygon plane grid points
+  vtkNew<vtkPointLocator> locator;
+  locator->SetDataSet(divider);
+  locator->BuildLocator();
+
+  vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
+  points->SetDataTypeToDouble();
+  points->Allocate(divider->GetNumberOfPoints() + nx * ny);
+
+  for (vtkIdType ptId = 0; ptId < divider->GetNumberOfPoints(); ++ptId) {
+    divider->GetPoint(ptId, p);
+    points->InsertNextPoint(p);
+  }
+
+  q.z = 0.;
+  for (q.y = minq.y; q.y <= maxq.y; q.y += ds)
+  for (q.x = minq.x; q.x <= maxq.x; q.x += ds) {
+    p = c + q.x * dir[0] + q.y * dir[1];
+    otherId = locator->FindClosestPoint(p);
+    if (otherId >= 0) {
+      divider->GetPoint(otherId, x);
+      if ((p - x).SquaredLength() < min_dist2) {
+        p = x;
+      }
+    }
+    points->InsertNextPoint(p);
+  }
+
+  // Compute constrained Delanauy triangulation of divider polygon
+  vtkSmartPointer<vtkPolyData> plane;
+  plane = vtkSmartPointer<vtkPolyData>::New();
+  plane->SetPoints(points);
+
+  vtkSmartPointer<vtkPolyData> boundary;
+  boundary = vtkSmartPointer<vtkPolyData>::New();
+  boundary->SetPoints(points);
+  boundary->SetPolys(divider->GetPolys());
+
+  vtkNew<vtkDelaunay2D> delaunay;
+  delaunay->SetInputData(plane);
+  delaunay->SetSourceData(boundary);
+  delaunay->SetAlpha(0.);
+  delaunay->SetOffset(1.);
+  delaunay->SetTolerance(0.);
+  delaunay->SetTransform(transform);
+  delaunay->Update();
+
+  return delaunay->GetOutput();
+}
+
+// -----------------------------------------------------------------------------
 /// Check if given intersection curve is acceptable
 bool IsValidIntersection(vtkSmartPointer<vtkPolyData> cut, double tol)
 {
   if (cut->GetNumberOfCells() == 0) return false;
-  #if 0
+  #if 1
     return true;
   #else
     vtkNew<vtkCleanPolyData> merger;
@@ -1878,7 +2003,7 @@ vtkSmartPointer<vtkDataArray> NonBoundaryPointsMask(vtkSmartPointer<vtkPolyData>
 
 // -----------------------------------------------------------------------------
 vtkSmartPointer<vtkPolyData>
-AddClosedIntersectionDivider(vtkPolyData *surface, vtkPolyData *cut, double tol = .0)
+AddClosedIntersectionDivider(vtkPolyData *surface, vtkPolyData *cut, double tol = 0.)
 {
   const double tol2 = tol * tol;
 
@@ -1897,11 +2022,8 @@ AddClosedIntersectionDivider(vtkPolyData *surface, vtkPolyData *cut, double tol 
   edge1->Allocate(2);
   edge2->Allocate(2);
 
-  // Determine edge length range for remeshing of divider polygon
-  double mean_edge_length, edge_length_sd;
-  EdgeLengthNormalDistribution(surface, mean_edge_length, edge_length_sd);
-  const double min_edge_length = max(0., mean_edge_length - 2. * edge_length_sd);
-  const double max_edge_length = mean_edge_length + 2. * edge_length_sd;
+  // Determine edge length for tesselation of divider polygon
+  const double mean_edge_length = AverageEdgeLength(surface);
 
   // Build needed auxiliary structures
   cut->BuildCells();
@@ -2109,42 +2231,14 @@ AddClosedIntersectionDivider(vtkPolyData *surface, vtkPolyData *cut, double tol 
   }
 
   // Create polygonal mesh tesselation of closed intersection polygon
-  vtkSmartPointer<vtkPolyData> divider = Triangulate(Divider(cut));
+  vtkSmartPointer<vtkPolyData> divider = Divider(cut);
   if (debug) {
     static int callId = 0; ++callId;
     char fname[64];
     snprintf(fname, 64, "debug_split_surface_polygon_%d.vtp", callId);
     WritePolyData(fname, divider);
   }
-
-  // Remesh divider polygon to same average edge length as merged surface mesh
-  // Smoothing resolves possible intersections of boundary due to edge-melting
-  // where the boundary is concave. It also redistributes the points more evenly
-  SurfaceRemeshing remesher;
-  remesher.MeltNodesOn();
-  remesher.MeltTrianglesOff();
-  remesher.BisectBoundaryEdgesOff();
-  remesher.InvertTrianglesSharingOneLongEdgeOn();
-  remesher.InvertTrianglesToIncreaseMinHeightOn();
-  remesher.MinEdgeLength(min_edge_length);
-  remesher.MaxEdgeLength(max_edge_length);
-
-  MeshSmoothing smoother;
-  smoother.AdjacentValuesOnlyOn();
-  smoother.Weighting(MeshSmoothing::Combinatorial);
-  smoother.Lambda(1.);
-  smoother.NumberOfIterations(1);
-
-  for (int iter = 0; iter < 20; ++iter) {
-    remesher.Input(divider);
-    remesher.Run();
-    if (remesher.NumberOfChanges() == 0) break;
-    divider = remesher.Output();
-    smoother.Input(divider);
-    smoother.Mask(NonBoundaryPointsMask(divider));
-    smoother.Run();
-    divider = smoother.Output();
-  }
+  divider = TesselateDivider(divider, mean_edge_length);
 
   // Prepare point/cell data before appending polygonal data sets
   vtkCellData * const surfaceCD = surface->GetCellData();
@@ -2183,6 +2277,9 @@ AddClosedIntersectionDivider(vtkPolyData *surface, vtkPolyData *cut, double tol 
   AddVTKInput(appender, surface);
   AddVTKInput(appender, split);
   AddVTKInput(appender, divider);
+  appender->Update();
+
+  const double merge_tol = 1e-2 * MinEdgeLength(appender->GetOutput());
 
   vtkNew<vtkCleanPolyData> merger;
   SetVTKConnection(merger, appender);
@@ -2191,7 +2288,7 @@ AddClosedIntersectionDivider(vtkPolyData *surface, vtkPolyData *cut, double tol 
   merger->ConvertLinesToPointsOff();
   merger->PointMergingOn();
   merger->ToleranceIsAbsoluteOn();
-  merger->SetAbsoluteTolerance(1e-12);
+  merger->SetAbsoluteTolerance(merge_tol);
   merger->Update();
 
   merger->GetOutput()->SetVerts(nullptr);
@@ -2619,9 +2716,8 @@ int main(int argc, char *argv[])
       cout << "Calculating surface normals...";
       cout.flush();
     }
-    const bool calc_cell_normals  = true;
-    const bool vertex_consistency = true;
-    output = CalculateNormals(output, output_point_normals, calc_cell_normals, vertex_consistency);
+    const bool calc_cell_normals = true;
+    output = CalculateNormals(output, output_point_normals, calc_cell_normals);
     if (verbose > 0) cout << " done" << endl;
 
     if (debug > 0) {
