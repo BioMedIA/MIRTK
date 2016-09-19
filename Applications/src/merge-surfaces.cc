@@ -1256,6 +1256,17 @@ vtkSmartPointer<vtkPolyData> LineStrips(vtkSmartPointer<vtkPolyData> cut)
 }
 
 // -----------------------------------------------------------------------------
+vtkSmartPointer<vtkDataArray> NonBoundaryPointsMask(vtkSmartPointer<vtkPolyData> input)
+{
+  vtkSmartPointer<vtkDataArray> mask;
+  mask = NewVtkDataArray(VTK_UNSIGNED_CHAR, input->GetNumberOfPoints(), 1);
+  mask->FillComponent(0, 1.);
+  UnorderedSet<int> ptIds = BoundaryPoints(input);
+  for (auto ptId : ptIds) mask->SetComponent(ptId, 0, 0.);
+  return mask;
+}
+
+// -----------------------------------------------------------------------------
 /// Make divider surface from intersection curve
 vtkSmartPointer<vtkPolyData> Divider(vtkSmartPointer<vtkPolyData> cut)
 {
@@ -1449,6 +1460,19 @@ vtkSmartPointer<vtkPolyData> TesselateDivider(vtkSmartPointer<vtkPolyData> divid
   if (reverse_dist2 < dist2) {
     output = delaunay->GetOutput();
   }
+
+  // Smooth divider
+  // (needed when boundary points were snapped to surface mesh)
+  MeshSmoothing smoother;
+  smoother.Input(output);
+  smoother.Mask(NonBoundaryPointsMask(output));
+  smoother.Weighting(MeshSmoothing::Combinatorial);
+  smoother.AdjacentValuesOnlyOn();
+  smoother.SmoothPointsOn();
+  smoother.NumberOfIterations(3);
+  smoother.Lambda(1.);
+  smoother.Run();
+  output = smoother.Output();
 
   return output;
 }
@@ -2026,17 +2050,6 @@ void Trisect(vtkPolyData *input, vtkIdType cellId,
   outputCD->CopyData(inputCD, cellId, newCellId);
 
   input->DeleteCell(cellId);
-}
-
-// -----------------------------------------------------------------------------
-vtkSmartPointer<vtkDataArray> NonBoundaryPointsMask(vtkSmartPointer<vtkPolyData> input)
-{
-  vtkSmartPointer<vtkDataArray> mask;
-  mask = NewVtkDataArray(VTK_UNSIGNED_CHAR, input->GetNumberOfPoints(), 1);
-  mask->FillComponent(0, 1.);
-  UnorderedSet<int> ptIds = BoundaryPoints(input);
-  for (auto ptId : ptIds) mask->SetComponent(ptId, 0, 0.);
-  return mask;
 }
 
 // -----------------------------------------------------------------------------
