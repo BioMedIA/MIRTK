@@ -30,6 +30,7 @@
 #include "mirtk/Dilation.h"
 #include "mirtk/Erosion.h"
 #include "mirtk/NearestNeighborInterpolateImageFunction.h"
+#include "mirtk/LinearInterpolateImageFunction.h"
 
 using namespace mirtk;
 
@@ -153,8 +154,11 @@ struct Plane
 
   Plane(const Vector3 &n, const Point &p)
   :
-    c(p), n(n), b(-n.Dot(Vector3(c.x, c.y, c.z)))
-  {}
+    c(p), n(n)
+  {
+    this->n.Normalize();
+    b = - this->n.Dot(Vector3(c.x, c.y, c.z));
+  }
 
   void Center(const Point &p)
   {
@@ -165,6 +169,7 @@ struct Plane
   void Normal(const Vector3 &v)
   {
     n = v;
+    n.Normalize();
     b = - n.Dot(Vector3(c.x, c.y, c.z));
   }
 
@@ -285,11 +290,12 @@ void InitializeSelectionLUT(const UnorderedSet<int> &labels, bool selected[NUM])
 }
 
 // -----------------------------------------------------------------------------
-/// Get set of boundary points
+/// Get set of boundary voxel
 void AddBoundaryPoints(PointSet                &points,
                        const ByteImage         &regions,
                        const UnorderedSet<int> &region1,
-                       const UnorderedSet<int> &region2)
+                       const UnorderedSet<int> &region2,
+                       bool wc = true)
 {
   Point p;
   bool selection1[NUM], selection2[NUM], boundary;
@@ -317,7 +323,7 @@ void AddBoundaryPoints(PointSet                &points,
       }
       if (boundary) {
         p = Point(i, j, k);
-        regions.ImageToWorld(p);
+        if (wc) regions.ImageToWorld(p);
         points.Add(p);
       }
     }
@@ -327,28 +333,39 @@ void AddBoundaryPoints(PointSet                &points,
 // -----------------------------------------------------------------------------
 /// Get set of boundary points
 void AddBoundaryPoints(PointSet &points, const ByteImage &regions,
-                       BrainRegion region1, BrainRegion region2)
+                       BrainRegion region1, BrainRegion region2,
+                       bool wc = true)
 {
   UnorderedSet<int> set1, set2;
   set1.insert(region1);
   set2.insert(region2);
-  AddBoundaryPoints(points, regions, set1, set2);
+  AddBoundaryPoints(points, regions, set1, set2, wc);
 }
 
 // -----------------------------------------------------------------------------
 /// Get set of boundary points
 PointSet BoundaryPoints(const ByteImage         &regions,
                         const UnorderedSet<int> &region1,
-                        const UnorderedSet<int> &region2)
+                        const UnorderedSet<int> &region2,
+                        bool wc = true)
 {
   PointSet points;
-  AddBoundaryPoints(points, regions, region1, region2);
+  AddBoundaryPoints(points, regions, region1, region2, wc);
+  return points;
+}
+
+// -----------------------------------------------------------------------------
+/// Get set of boundary points
+PointSet BoundaryPoints(const ByteImage &regions, BrainRegion region1, BrainRegion region2, bool wc = true)
+{
+  PointSet points;
+  AddBoundaryPoints(points, regions, region1, region2, wc);
   return points;
 }
 
 // -----------------------------------------------------------------------------
 /// Add world coordinates of brain region points to given point set
-void AddPoints(PointSet &points, const ByteImage &regions, BrainRegion region)
+void AddPoints(PointSet &points, const ByteImage &regions, BrainRegion region, bool wc = true)
 {
   Point p;
   for (int k = 0; k < regions.Z(); ++k)
@@ -356,7 +373,7 @@ void AddPoints(PointSet &points, const ByteImage &regions, BrainRegion region)
   for (int i = 0; i < regions.X(); ++i) {
     if (regions(i, j, k) == region) {
       p = Point(i, j, k);
-      regions.ImageToWorld(p);
+      if (wc) regions.ImageToWorld(p);
       points.Add(p);
     }
   }
@@ -515,9 +532,12 @@ bool ValidBrainstemCut(const ByteImage &cut)
 
 // -----------------------------------------------------------------------------
 /// Cutting plane separating brainstem from cerebrum
-Plane BrainstemCuttingPlane(const ByteImage &regions)
+Plane BrainstemCuttingPlane(const ByteImage &regions, const Vector3 &n)
 {
+  // Plane normal direction is longitudinal axis of brainstem
   Plane plane;
+  plane.Normal(n);
+  if (!plane) return plane;
 
   // Sets of brainstem brain regions labels
   UnorderedSet<int> set1, set2;
@@ -526,10 +546,6 @@ Plane BrainstemCuttingPlane(const ByteImage &regions)
   set2.insert(RH);
   set2.insert(LH);
   set2.insert(UH);
-
-  // Plane normal direction is longitudinal axis of brainstem
-  plane.Normal(PrincipalDirection(regions, BS));
-  if (!plane) return plane;
 
   // Choose plane center point which is closest to the boundary with the cerebrum
   plane.Center(BoundaryPoints(regions, set1, set2).Centroid());
@@ -583,6 +599,14 @@ Plane BrainstemCuttingPlane(const ByteImage &regions)
     Cut(regions, plane, r).Write("debug_brainstem_cut.nii.gz");
   }
   return plane;
+}
+
+// -----------------------------------------------------------------------------
+/// Cutting plane separating brainstem from cerebrum
+Plane BrainstemCuttingPlane(const ByteImage &regions)
+{
+  // Plane normal direction is longitudinal axis of brainstem
+  return BrainstemCuttingPlane(regions, PrincipalDirection(regions, BS));
 }
 
 // -----------------------------------------------------------------------------
@@ -644,6 +668,146 @@ Plane MedialCuttingPlane(const ByteImage &regions)
   return plane;
 }
 
+// -----------------------------------------------------------------------------
+/// Resample regions mask such that image axes are aligned with orthogonal cutting planes
+ByteImage Resample(const ByteImage &regions, const Plane &rl_plane, const Plane &bs_plane)
+{
+  const double ds = min(min(regions.XSize(), regions.YSize()), regions.ZSize());
+
+  Vector3 xaxis = rl_plane.n;              // L -> R
+  Vector3 yaxis = xaxis.Cross(bs_plane.n); // P -> A
+  Vector3 zaxis = xaxis.Cross(yaxis);      // I -> S
+
+  xaxis.Normalize();
+  yaxis.Normalize();
+  zaxis.Normalize();
+
+  int i[2], j[2], k[2];
+  regions.BoundingBox(i[0], j[0], k[0], i[1], j[1], k[1]);
+
+  Point  p, q;
+  double bounds[6] = {+inf, -inf, +inf, -inf, +inf, -inf};
+  double limits[6] = {+inf, -inf, +inf, -inf, +inf, -inf};
+  for (int ck = 0; ck < 2; ++ck)
+  for (int cj = 0; cj < 2; ++cj)
+  for (int ci = 0; ci < 2; ++ci) {
+    p = Point(i[ci], j[cj], k[ck]);
+    regions.ImageToWorld(p);
+    bounds[0] = min(bounds[0], p.x);
+    bounds[1] = max(bounds[1], p.x);
+    bounds[2] = min(bounds[2], p.y);
+    bounds[3] = max(bounds[3], p.y);
+    bounds[4] = min(bounds[4], p.z);
+    bounds[5] = max(bounds[5], p.z);
+    q.x = xaxis.Dot(p);
+    q.y = yaxis.Dot(p);
+    q.z = zaxis.Dot(p);
+    limits[0] = min(limits[0], q.x);
+    limits[1] = max(limits[1], q.x);
+    limits[2] = min(limits[2], q.y);
+    limits[3] = max(limits[3], q.y);
+    limits[4] = min(limits[4], q.z);
+    limits[5] = max(limits[5], q.z);
+  }
+
+  ImageAttributes attr;
+  attr._xorigin = bounds[0] + .5 * (bounds[1] - bounds[0]);
+  attr._yorigin = bounds[2] + .5 * (bounds[3] - bounds[2]);
+  attr._zorigin = bounds[4] + .5 * (bounds[5] - bounds[4]);
+  attr._x       = iceil((limits[1] - limits[0]) / ds);
+  attr._y       = iceil((limits[3] - limits[2]) / ds);
+  attr._z       = iceil((limits[5] - limits[4]) / ds);
+  attr._dx      = ds;
+  attr._dy      = ds;
+  attr._dz      = ds;
+  memcpy(attr._xaxis, xaxis, 3 * sizeof(double));
+  memcpy(attr._yaxis, yaxis, 3 * sizeof(double));
+  memcpy(attr._zaxis, zaxis, 3 * sizeof(double));
+
+  ByteImage output(attr, 1);
+  RealImage pbmaps[NUM], input(regions.Attributes(), 1);
+  GenericLinearInterpolateImageFunction<RealImage> pbfunc;
+  pbfunc.Input(&input);
+  pbfunc.Initialize();
+
+  for (BytePixel c = 0; c < NUM; ++c) {
+    for (int k = 0; k < regions.Z(); ++k)
+    for (int j = 0; j < regions.Y(); ++j)
+    for (int i = 0; i < regions.X(); ++i) {
+      input(i, j, k) = (regions(i, j, k) == c ? 1. : 0.);
+    }
+    auto &pbmap = pbmaps[c];
+    pbmap.Initialize(attr, 1);
+    for (int k = 0; k < pbmap.Z(); ++k)
+    for (int j = 0; j < pbmap.Y(); ++j)
+    for (int i = 0; i < pbmap.X(); ++i) {
+      p = Point(i, j, k);
+      output.ImageToWorld(p);
+      pbfunc.WorldToImage(p);
+      pbmap(i, j, k) = pbfunc.Evaluate(p);
+    }
+  }
+
+  RealPixel prob;
+  for (int k = 0; k < output.Z(); ++k)
+  for (int j = 0; j < output.Y(); ++j)
+  for (int i = 0; i < output.X(); ++i) {
+    prob = 0.;
+    for (BytePixel c = 0; c < NUM; ++c) {
+      const auto &pbmap = pbmaps[c];
+      if (pbmap(i, j, k) > prob) {
+        prob = pbmap(i, j, k);
+        output(i, j, k) = c;
+      }
+    }
+  }
+
+  output.PutBackgroundValueAsDouble(0.);
+  output.BoundingBox(i[0], j[0], k[0], i[1], j[1], k[1]);
+  output = output.GetRegion(i[0], j[0], k[0], i[1], j[1], k[1]);
+
+  // Dilate BS 2 voxels into WM at BS/WM boundary to cut it cleanly again
+  for (int k = output.Z()-1; k > 1; --k) {
+    for (int j = 0; j < output.Y(); ++j)
+    for (int i = 0; i < output.X(); ++i) {
+      auto &region = output(i, j, k);
+      if (region == LH || region == RH || region == UH) {
+        if (output(i, j, k-1) == BS || output(i, j, k-2) == BS) {
+          region = BS;
+        }
+      }
+    }
+  }
+
+  // Cut WM and BS(+CB) with cutting planes / output image axes
+  for (int k = 0; k < output.Z(); ++k)
+  for (int j = 0; j < output.Y(); ++j)
+  for (int i = 0; i < output.X(); ++i) {
+    auto &region = output(i, j, k);
+    if (region == BS || region == CB) {
+      p = Point(i, j, k);
+      output.ImageToWorld(p);
+      if (bs_plane.SignedDistance(p) < 0.) {
+        if (rl_plane.SignedDistance(p) < 0.) {
+          region = LH;
+        } else {
+          region = RH;
+        }
+      }
+    } else if (region == UH || region == RH || region == LH) {
+      p = Point(i, j, k);
+      output.ImageToWorld(p);
+      if (rl_plane.SignedDistance(p) < 0.) {
+        region = LH;
+      } else {
+        region = RH;
+      }
+    }
+  }
+
+  return output;
+}
+
 // =============================================================================
 // Main
 // =============================================================================
@@ -651,6 +815,8 @@ Plane MedialCuttingPlane(const ByteImage &regions)
 // -----------------------------------------------------------------------------
 int main(int argc, char *argv[])
 {
+  Point p;
+
   REQUIRES_POSARGS(0);
 
   const char *labels_name = nullptr; // Input  labels image
@@ -738,6 +904,7 @@ int main(int argc, char *argv[])
     FatalError("Missing -output-labels file name!");
   }
 
+  // ---------------------------------------------------------------------------
   // Initialize I/O library
   InitializeIOLibrary();
 
@@ -847,8 +1014,12 @@ int main(int argc, char *argv[])
     AddLabels(cbmask, labels, cbmask_labels);
   }
 
+  const double ds = max(max(attr._dx, attr._dy), attr._dz);
+
+  // ---------------------------------------------------------------------------
   // Initial brain regions image used to find cutting planes
   ByteImage regions(attr, 1);
+  regions.PutBackgroundValueAsDouble(0.);
   for (int vox = 0; vox < nvox; ++vox) {
     if      (rhmask(vox)) regions(vox) = RH;
     else if (lhmask(vox)) regions(vox) = LH;
@@ -933,14 +1104,22 @@ int main(int argc, char *argv[])
     }
   }
 
+  // ---------------------------------------------------------------------------
   // Determine cutting planes
-  Plane bs_plane = BrainstemCuttingPlane(regions);
-  Plane rl_plane = MedialCuttingPlane(regions);
+  Plane rl_plane, bs_plane;
+  {
+    rl_plane = MedialCuttingPlane(regions);
+    Vector3 xaxis = rl_plane.n;
+    Vector3 yaxis = xaxis.Cross(PrincipalDirection(regions, BS));
+    Vector3 zaxis = xaxis.Cross(yaxis);
+    bs_plane = BrainstemCuttingPlane(regions, zaxis);
+  }
   if (verbose) {
     if (bs_plane) cout << "Brainstem cutting plane equation: " << bs_plane << endl;
     if (rl_plane) cout << "Medial cutting plane equation:    " << rl_plane << endl;
   }
 
+  // ---------------------------------------------------------------------------
   // Cut WM segmentation into RH and LH
   if (wmmask_name || !wmmask_labels.empty()) {
     ByteImage wm;
@@ -955,7 +1134,6 @@ int main(int argc, char *argv[])
     GreyImage wm_rh(wm.Attributes());
     GreyImage wm_lh_cc, wm_rh_cc;
 
-    Point p;
     for (int k = 0; k < wm.Z(); ++k)
     for (int j = 0; j < wm.Y(); ++j)
     for (int i = 0; i < wm.X(); ++i) {
@@ -1012,9 +1190,6 @@ int main(int argc, char *argv[])
       if (gm.IsEmpty()) gm.Initialize(attr);
       AddLabels(gm, labels, gmmask_labels);
     }
-    ConnectedComponents<BytePixel> cc;
-    cc.Input (&gm);
-    cc.Output(&gm);
     for (int vox = 0; vox < nvox; ++vox) {
       if (gm(vox) == 1) {
         regions(vox) = GM;
@@ -1023,7 +1198,6 @@ int main(int argc, char *argv[])
   }
 
   // Cut subcortical structures and brainstem into RH, LH, and BS+CB
-  Point p;
   for (int k = 0; k < regions.Z(); ++k)
   for (int j = 0; j < regions.Y(); ++j)
   for (int i = 0; i < regions.X(); ++i) {
@@ -1047,11 +1221,231 @@ int main(int argc, char *argv[])
     }
   }
 
-  // Change CB(+BS) labels to GM when bordering with WM away from the BS
+  // ---------------------------------------------------------------------------
+  // Resample regions mask such that image axes are aligned with determined
+  // orthogonal cutting planes x: L -> R, y: P -> A, z: I -> S
+  regions = Resample(regions, rl_plane, bs_plane);
+  attr = regions.Attributes();
+  nvox = regions.NumberOfSpatialVoxels();
+  if (debug) {
+    regions.Write("debug_output.nii.gz");
+  }
+
+  {
+    // Determine bounding box of interhemisphere WM
+    const bool wc = false;
+    PointSet voxels = BoundaryPoints(regions, RH, LH, wc);
+    int bounds[6] = {static_cast<int>(voxels(0).x), static_cast<int>(voxels(0).x),
+                     static_cast<int>(voxels(0).y), static_cast<int>(voxels(0).y),
+                     static_cast<int>(voxels(0).z), static_cast<int>(voxels(0).z)};
+    for (int n = 1, i, j, k; n < voxels.Size(); ++n) {
+      const auto &voxel = voxels(n);
+      i = static_cast<int>(voxel.x);
+      j = static_cast<int>(voxel.y);
+      k = static_cast<int>(voxel.z);
+      bounds[0] = min(bounds[0], i);
+      bounds[1] = max(bounds[1], i);
+      bounds[2] = min(bounds[2], j);
+      bounds[3] = max(bounds[3], j);
+      bounds[4] = min(bounds[4], k);
+      bounds[5] = max(bounds[5], k);
+    }
+    voxels.Clear();
+
+    bounds[0] = max(0,               bounds[0] - 20);
+    bounds[1] = min(regions.X() - 1, bounds[1] + 20);
+
+    // -------------------------------------------------------------------------
+    // 1. Fill small holes in xz slices nearby interhemispheric bounding box
+
+    // Get first xz slice
+    GreyImage holes = regions.GetRegion(bounds[0],     bounds[2],     bounds[4],
+                                        bounds[1] + 1, bounds[2] + 1, bounds[5] + 1);
+
+    // Mark holes in current xz slice, update y origin after each iteration
+    NeighborhoodOffsets offsets(&regions, CONNECTIVITY_6);
+    for (int j = bounds[2]; j <= bounds[3]; ++j) {
+
+      // Extract non-WM mask in xz slice nearby RH/LH boundary
+      for (int k = bounds[4], kk = 0; k <= bounds[5]; ++k, ++kk)
+      for (int i = bounds[0], ii = 0; i <= bounds[1]; ++i, ++ii) {
+        if (regions(i, j, k) != RH && regions(i, j, k) != LH) {
+          holes(ii, 0, kk) = 1;
+        } else {
+          holes(ii, 0, kk) = 0;
+        }
+      }
+
+      // Label holes
+      ConnectedComponents<GreyPixel> cc;
+      cc.Input (&holes);
+      cc.Output(&holes);
+      cc.Ordering(CC_SmallestFirst);
+      cc.Run();
+
+      // Fill small interhemisphere holes
+      for (GreyPixel hid = 1; hid <= cc.NumberOfComponents(); ++hid) {
+
+        // Hole may not exceed a preset size
+        bool discard = (cc.ComponentSize(hid) > 20);
+
+        // Hole may not extend beyond boundary of extracted mask
+        if (!discard) {
+          for (int ii = 0, kk = holes.Z()-1; ii < holes.X(); ++ii) {
+            if (holes(ii, 0, 0) == hid || holes(ii, 0, kk) == hid) {
+              discard = true;
+              break;
+            }
+          }
+        }
+        if (!discard) {
+          for (int ii = holes.X()-1, kk = 0; kk < holes.Z(); ++kk) {
+            if (holes(0, 0, kk) == hid || holes(ii, 0, kk) == hid) {
+              discard = true;
+              break;
+            }
+          }
+        }
+
+        // Hole must touch both RH and LH segment
+        if (!discard) {
+          bool touches_rh = false;
+          bool touches_lh = false;
+          for (int kk = 1; kk < holes.Z()-1; ++kk)
+          for (int ii = 1; ii < holes.X()-1; ++ii) {
+            if (holes(ii, 0, kk) == hid) {
+              const auto data = regions.Data(bounds[0] + ii, j, bounds[4] + kk);
+              for (int n = 0; n < offsets.Size(); ++n) {
+                const auto region = data + offsets(n);
+                if (*region == RH) {
+                  touches_rh = true;
+                } else if (*region == LH) {
+                  touches_lh = true;
+                }
+              }
+            }
+            if (touches_rh && touches_lh) break;
+          }
+          discard = (!touches_rh || !touches_lh);
+        }
+
+        // Fill hole if not to be discarded
+        if (!discard) {
+          int i, k;
+          for (int kk = 0; kk < holes.Z(); ++kk)
+          for (int ii = 0; ii < holes.X(); ++ii) {
+            if (holes(ii, 0, kk) == hid) {
+              i = bounds[0] + ii;
+              k = bounds[4] + kk;
+              p = Point(i, j, k);
+              regions.ImageToWorld(p);
+              if (rl_plane.SignedDistance(p) < 0.) {
+                regions(i, j, k) = LH;
+              } else {
+                regions(i, j, k) = RH;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // -------------------------------------------------------------------------
+    // 2. Previous step may cut off some BG because of xz hole size threshold.
+    //    Thus, fill in this BG with RH/LH, i.e., when it does not reach the
+    //    boundary of the interhemispheric bounding box in xy slice
+
+    // Get first xy slice
+    holes = regions.GetRegion(bounds[0],     bounds[2],     bounds[4],
+                              bounds[1] + 1, bounds[3] + 1, bounds[5] + 1);
+
+    // Extract non-WM mask in xy slice nearby RH/LH boundary
+    for (int k = bounds[4], kk = 0; k <= bounds[5]; ++k, ++kk)
+    for (int j = bounds[2], jj = 0; j <= bounds[3]; ++j, ++jj)
+    for (int i = bounds[0], ii = 0; i <= bounds[1]; ++i, ++ii) {
+      if (regions(i, j, k) != RH && regions(i, j, k) != LH) {
+        holes(ii, jj, kk) = 1;
+      } else {
+        holes(ii, jj, kk) = 0;
+      }
+    }
+
+    // Label holes
+    ConnectedComponents<GreyPixel> cc;
+    cc.Input (&holes);
+    cc.Output(&holes);
+    cc.Ordering(CC_SmallestFirst);
+    cc.Run();
+
+    // Fill small interhemisphere holes
+    for (GreyPixel hid = 1; hid <= cc.NumberOfComponents(); ++hid) {
+
+      bool discard = false;
+
+      // Hole may not extend beyond boundary of extracted mas
+      if (!discard) {
+        const int ii = holes.X() - 1;
+        for (int kk = 0; kk < holes.Z(); ++kk)
+        for (int jj = 0; jj < holes.Y(); ++jj) {
+          if (holes(0, jj, kk) == hid || holes(ii, jj, kk) == hid) {
+            discard = true;
+            break;
+          }
+        }
+      }
+      if (!discard) {
+        const int jj = holes.Y() - 1;
+        for (int kk = 0; kk < holes.Z(); ++kk)
+        for (int ii = 0; ii < holes.X(); ++ii) {
+          if (holes(ii, 0, kk) == hid || holes(ii, jj, kk) == hid) {
+            discard = true;
+            break;
+          }
+        }
+      }
+      if (!discard) {
+        const int kk = holes.Z() - 1;
+        for (int jj = 0; jj < holes.Y(); ++jj)
+        for (int ii = 0; ii < holes.X(); ++ii) {
+          if (holes(ii, jj, 0) == hid || holes(ii, jj, kk) == hid) {
+            discard = true;
+            break;
+          }
+        }
+      }
+
+      // Fill hole if not to be discarded
+      if (!discard) {
+        int i, j, k;
+        for (int kk = 0; kk < holes.Z(); ++kk)
+        for (int jj = 0; jj < holes.Y(); ++jj)
+        for (int ii = 0; ii < holes.X(); ++ii) {
+          if (holes(ii, jj, kk) == hid) {
+            i = bounds[0] + ii;
+            j = bounds[2] + jj;
+            k = bounds[4] + kk;
+            p = Point(i, j, k);
+            regions.ImageToWorld(p);
+            if (rl_plane.SignedDistance(p) < 0.) {
+              regions(i, j, k) = LH;
+            } else {
+              regions(i, j, k) = RH;
+            }
+          }
+        }
+      }
+    }
+
+    if (debug) {
+      regions.Write("debug_output+rl_closed.nii.gz");
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Change CB(+BS) labels to GM(/BG) when bordering with WM away from the BS
   // cutting plane to ensure that there is some separating cortex between
   // white surface and BS+CB region which may be misclassified as cerebellar GM
   if (gmmask_name || !gmmask_labels.empty()) {
-    const double ds = max(max(regions.XSize(), regions.YSize()), regions.ZSize());
     const double min_dist_bs = 10. * ds;
     const double min_dist_cb =  2. * ds;
     bool is_empty = true;
@@ -1100,9 +1494,58 @@ int main(int argc, char *argv[])
           region = GM;
         }
       }
+      if (debug) {
+        regions.Write("debug_output+wm-cb_gap.nii.gz");
+      }
     }
   }
 
+  // ---------------------------------------------------------------------------
+  // Change WM labels to BG when bordering with BS below the cutting plane to
+  // ensure at least one voxel gap between white surface and brainstem
+  // (+cerebellum) surface mesh for merge-surfaces to be able to insert a
+  // single cutting plane as divider.
+  if (gmmask_name || !gmmask_labels.empty()) {
+    const double ds = max(max(regions.XSize(), regions.YSize()), regions.ZSize());
+    const double min_dist_bs = 2. * ds;
+    bool is_empty = true;
+    BinaryImage boundary(attr, 1);
+    NeighborhoodOffsets offsets(&regions, CONNECTIVITY_18);
+    for (int k = 1; k < regions.Z()-1; ++k)
+    for (int j = 1; j < regions.Y()-1; ++j)
+    for (int i = 1; i < regions.X()-1; ++i) {
+      const auto &region = regions(i, j, k);
+      if (region == BS) {
+        p = Point(i, j, k);
+        regions.ImageToWorld(p);
+        if (abs(bs_plane.SignedDistance(p)) > min_dist_bs) {
+          const auto data = regions.Data(i, j, k);
+          for (int n = 0; n < offsets.Size(); ++n) {
+            const auto label = data + offsets(n);
+            if (*label == LH || *label == RH) {
+              const auto vox = static_cast<int>(label - regions.Data());
+              boundary(vox) = 1;
+              is_empty = false;
+            }
+          }
+        }
+      }
+    }
+    if (!is_empty) {
+      Dilate<BinaryPixel>(&boundary, 1, CONNECTIVITY_18);
+      for (int vox = 0; vox < nvox; ++vox) {
+        auto &region = regions(vox);
+        if (boundary(vox) != 0 && (region == LH || region == RH)) {
+          region = BG;
+        }
+      }
+      if (debug) {
+        regions.Write("debug_output+wm-bs_gap.nii.gz");
+      }
+    }
+  }
+
+  // ---------------------------------------------------------------------------
   // Merge BS and CB labels
   if (merge_bs_cb) {
     const auto old_label = max(BS, CB);
@@ -1113,6 +1556,7 @@ int main(int argc, char *argv[])
     }
   }
 
+  // ---------------------------------------------------------------------------
   // Write output labels
   regions.Write(output_name);
   return 0;

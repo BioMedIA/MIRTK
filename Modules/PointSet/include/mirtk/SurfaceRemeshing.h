@@ -242,6 +242,9 @@ private:
   /// Check if edge is on surface boundary
   bool IsBoundaryEdge(vtkIdType, vtkIdType) const;
 
+  /// Check if cell is at surface boundary
+  bool IsBoundaryCell(vtkIdType) const;
+
   /// Get other vertices of cell edge neighbors
   void GetCellPointNeighbors(vtkIdType, vtkIdType, vtkIdList *) const;
 

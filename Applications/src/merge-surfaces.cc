@@ -31,6 +31,7 @@
 #include "mirtk/MeshSmoothing.h"
 #include "mirtk/Matrix3x3.h"
 #include "mirtk/Vector3.h"
+#include "mirtk/Triangle.h"
 
 #include "mirtk/Vtk.h"
 #include "vtkSmartPointer.h"
@@ -41,7 +42,6 @@
 #include "vtkAppendPolyData.h"
 #include "vtkImageData.h"
 #include "vtkImageStencilData.h"
-#include "vtkKdTree.h"
 #include "vtkIdList.h"
 #include "vtkCellArray.h"
 #include "vtkPolygon.h"
@@ -55,6 +55,9 @@
 #include "vtkMergePoints.h"
 #include "vtkPolyDataConnectivityFilter.h"
 #include "vtkLine.h"
+#include "vtkDelaunay2D.h"
+#include "vtkMatrix4x4.h"
+#include "vtkMatrixToLinearTransform.h"
 
 using namespace mirtk;
 
@@ -109,6 +112,8 @@ void PrintHelp(const char *name)
   cout << "      Whether to join surfaces at intersection boundaries.\n";
   cout << "      When off, the output data set has unconnected components.\n";
   cout << "      (default: on)\n";
+  cout << "  -largest [on|off]\n";
+  cout << "      Retain only largest surface component after :option:`-join`ing of boundaries. (default: off)\n";
   cout << "  -tolerance, -tol <float>\n";
   cout << "      Maximum distance of an input cell from the segmentation\n";
   cout << "      boundary to be removed. The resulting intersection boundary\n";
@@ -145,18 +150,19 @@ void PrintHelp(const char *name)
   cout << "      deviation used to set min/max edge length range for local remeshing\n";
   cout << "      of newly inserted triangles at intersection boundaries. (default: 2)\n";
   cout << "  -smoothing, -smooth [<n>]\n";
-  cout << "      Enable smoothing of merged surface points nearby intersection\n";
-  cout << "      boundaries. The default number of smoothing iterations <n> is 100.\n";
-  cout << "      A different value can be specified using this option or\n";
-  cout << "      :option:`-smoothing-iterations`. (default: 100)\n";
+  cout << "      Enable smoothing of merged surface points nearby intersection boundaries.\n";
+  cout << "      When :option:`-smoothing-mu` is zero or NaN, Gaussian weighting function\n";
+  cout << "      is used for the mesh smoothing. Otherwise, a uniform weighting is used. (default: 0)\n";
   cout << "  -smoothing-iterations, -smooth-iterations\n";
-  cout << "      Number of intersection points smoothing iterations. (default: 100)\n";
+  cout << "      Number of intersection points smoothing iterations. (default: 0)\n";
   cout << "  -nosmoothing, -nosmooth\n";
-  cout << "      Disable smoothing of nearby intersection points,\n";
-  cout << "      same as :option:`-smoothing` or :option:`-smoothing-iterations` 0.\n";
+  cout << "      Disable smoothing of nearby intersection points, same as\n";
+  cout << "      :option:`-smoothing` or :option:`-smoothing-iterations` 0.\n";
   cout << "  -smoothing-lambda, -smooth-lambda <float>\n";
   cout << "      Lambda parameter used for odd iterations of Laplacian point :option:`-smoothing`.\n";
   cout << "      The default value is set based on the :option:`-smooth-mu` parameter. (default: abs(mu) - .01)\n";
+  cout << "      When only :option:`-smoothing-lambda` is given, :option:`-smoothing-mu` is set to\n";
+  cout << "      to the same value and a Gaussian weighting function is used.\n";
   cout << "  -smoothing-mu, -smooth-mu <float>\n";
   cout << "      Lambda parameter used for even iterations of Laplacian point :option:`-smoothing`.\n";
   cout << "      The default smoothing parameters avoid shrinking of the surface mesh\n";
@@ -409,6 +415,14 @@ inline double MinSquaredDistance(vtkAbstractCellLocator *cut, const Point &p)
 }
 
 // -----------------------------------------------------------------------------
+/// Minimum squared distance of point to surface boundary
+inline double MinSquaredDistance(const BoundarySegment &seg, const Point &p)
+{
+  const auto i = seg.FindClosestPoint(p);
+  return p.SquaredDistance(seg.Point(i));
+}
+
+// -----------------------------------------------------------------------------
 /// Minimum squared distance of surface boundary segment to segmentation boundary surface
 double MinSquaredDistance(const BoundarySegment &seg, vtkAbstractCellLocator *cut)
 {
@@ -420,6 +434,20 @@ double MinSquaredDistance(const BoundarySegment &seg, vtkAbstractCellLocator *cu
     if (dist2 < min_dist2) min_dist2 = dist2;
   }
   return min_dist2;
+}
+
+// -----------------------------------------------------------------------------
+/// Hausdorff distance of two boundary segments
+double HausdorffDistance(const BoundarySegment &a, const BoundarySegment &b)
+{
+  double d_ab = 0., d_ba = 0.;
+  for (int i = 0; i < a.NumberOfPoints(); ++i) {
+    d_ab = max(d_ab, MinSquaredDistance(b, a.Point(i)));
+  }
+  for (int i = 0; i < b.NumberOfPoints(); ++i) {
+    d_ba = max(d_ba, MinSquaredDistance(a, b.Point(i)));
+  }
+  return sqrt(max(d_ab, d_ba));
 }
 
 // -----------------------------------------------------------------------------
@@ -556,9 +584,9 @@ vtkSmartPointer<vtkPointData> CellToPointData(vtkDataSet *dataset, const Array<i
 
 // -----------------------------------------------------------------------------
 /// Join intersected components at the segmentation boundary
-void JoinBoundaries(SurfaceBoundary &boundary, vtkAbstractCellLocator *cut, double max_dist2)
+void JoinBoundaries(SurfaceBoundary &boundary, vtkAbstractCellLocator *cut, double max_dist2, double max_hdist)
 {
-  vtkIdType cellId, ptId1, ptId2, ptId3;
+  vtkIdType cellId, ptIds[3];
 
   vtkPolyData  * const surface = boundary.Surface();
   vtkCellArray * const polys   = surface->GetPolys();
@@ -581,60 +609,107 @@ void JoinBoundaries(SurfaceBoundary &boundary, vtkAbstractCellLocator *cut, doub
   }
   vtkSmartPointer<vtkPointData> cd_as_pd = CellToPointData(surface, cd_type);
 
-  vtkSmartPointer<vtkPolygon> polygon   = vtkSmartPointer<vtkPolygon>::New();
-  vtkSmartPointer<vtkIdList>  triangles = vtkSmartPointer<vtkIdList>::New();
-  polygon->Points->SetDataTypeToDouble();
-  polygon->Points->Allocate(10);
-  polygon->PointIds->Allocate(10);
-
   while (boundary.NumberOfSegments() > 1) {
 
     Array<double> dist2(boundary.NumberOfSegments());
     for (int j = 0; j < boundary.NumberOfSegments(); ++j) {
       dist2[j] = MinSquaredDistance(boundary.Segment(j), cut);
     }
-    const auto &order = IncreasingOrder(dist2);
-    if (dist2[order[1]] > max_dist2) break;
 
-    const auto &seg1 = boundary.Segment(order[0]);
-    const auto &seg2 = boundary.Segment(order[1]);
-
-    int i1 = seg1.NumberOfPoints();
-    int j1 = seg2.FindClosestPoint(seg1.Point(i1));
-    for (int i2, j2; i1 > 0; i1 = i2) {
-      polygon->Points->Reset();
-      polygon->PointIds->Reset();
-      i2 = i1 - 1;
-      for (int i = i1; i >= i2; --i) {
-        polygon->Points->InsertNextPoint(seg1.Point(i));
-        polygon->PointIds->InsertNextId(seg1.PointId(i));
-      }
-      j2 = seg2.FindClosestPoint(seg1.Point(i2));
-      if (j1 > j2) j2 += seg2.NumberOfPoints();
-      if ((j2 - j1) < seg2.NumberOfPoints() - (j2 - j1)) {
-        for (int j = j2; j >= j1; --j) {
-          polygon->Points->InsertNextPoint(seg2.Point(j));
-          polygon->PointIds->InsertNextId(seg2.PointId(j));
+    int idx1, idx2;
+    Array<Array<double>> hdist(boundary.NumberOfSegments());
+    for (idx1 = 0; idx1 < boundary.NumberOfSegments(); ++idx1) {
+      hdist[idx1].resize(boundary.NumberOfSegments(), inf);
+      if (dist2[idx1] <= max_dist2) {
+        const auto &seg1 = boundary.Segment(idx1);
+        if (seg1.NumberOfPoints() > 1) {
+          for (idx2 = idx1 + 1; idx2 < boundary.NumberOfSegments(); ++idx2) {
+            if (dist2[idx2] <= max_dist2) {
+              const auto &seg2 = boundary.Segment(idx2);
+              if (seg2.NumberOfPoints() > 1) {
+                hdist[idx1][idx2] = HausdorffDistance(seg1, seg2);
+              }
+            }
+          }
         }
+      }
+    }
+    Array<double> min_hdist(boundary.NumberOfSegments());
+    Array<int>    min_idx2 (boundary.NumberOfSegments());
+    for (idx1 = 0; idx1 < boundary.NumberOfSegments(); ++idx1) {
+      min_idx2 [idx1] = IncreasingOrder(hdist[idx1]).front();
+      min_hdist[idx1] = hdist[idx1][min_idx2[idx1]];
+    }
+    idx1 = IncreasingOrder(min_hdist).front();
+    if (min_hdist[idx1] > max_hdist) break;
+    idx2 = min_idx2[idx1];
+
+    if (verbose > 1) {
+      cout << "  Joining boundary segments " << idx1+1 << " and " << idx2+1
+           << " out of " << boundary.NumberOfSegments() << " remaining surface boundaries"
+           << " (Hausdorff distance = " << hdist[idx1][idx2] << ")" << endl;
+    }
+
+    // Get boundary segments to be joined
+    auto &seg1 = boundary.Segment(idx1);
+    auto &seg2 = boundary.Segment(idx2);
+
+    int i, j;
+    const int i0 = 0;
+    const int j0 = seg2.FindClosestPoint(seg1.Point(i0));
+
+    // Determine in which direction to traverse each boundary segment
+    // such that orientation of newly added triangles is consistent with the
+    // orientation of the boundary triangles
+    const int di = 1; // TODO
+
+    int dj = 1;
+    for (i = seg1.IndexModuloNumberOfPoints(i0 + di); 0 <= i && i < seg1.NumberOfPoints(); i += di) {
+      j = seg2.FindClosestPoint(seg1.Point(i));
+      if (j != j0) {
+        if (j < j0) dj = -1;
+        break;
+      }
+    }
+
+    // Add triangles joining the two boundary segments
+    double l1, l2;
+    i = i0, j = j0;
+
+    seg1.ClearSelection();
+    seg2.ClearSelection();
+
+    const int max_iter = seg1.NumberOfPoints() + seg2.NumberOfPoints();
+    for (int iter = 0; iter < max_iter; ++iter) {
+
+      if (seg1.IsSelected(i + di)) {
+        l1 = inf;
       } else {
-        j1 += seg2.NumberOfPoints();
-        for (int j = j2; j <= j1; ++j) {
-          polygon->Points->InsertNextPoint(seg2.Point(j));
-          polygon->PointIds->InsertNextId(seg2.PointId(j));
-        }
+        l1 = seg2.Point(j).SquaredDistance(seg1.Point(i + di));
       }
-      j1 = seg2.IndexModuloNumberOfPoints(j2);
-      polygon->NonDegenerateTriangulate(triangles);
-      for (vtkIdType n = 0; n < triangles->GetNumberOfIds(); n += 3) {
-        cellId = polys->InsertNextCell(3);
-        ptId1 = polygon->PointIds->GetId(triangles->GetId(n));
-        ptId2 = polygon->PointIds->GetId(triangles->GetId(n+1));
-        ptId3 = polygon->PointIds->GetId(triangles->GetId(n+2));
-        polys->InsertCellPoint(ptId1);
-        polys->InsertCellPoint(ptId2);
-        polys->InsertCellPoint(ptId3);
-        InterpolateCellData(cd, cd_as_pd, cd_type, cellId, ptId1, ptId2, ptId3);
+      if (seg2.IsSelected(j + dj)) {
+        l2 = inf;
+      } else {
+        l2 = seg1.Point(i).SquaredDistance(seg2.Point(j + dj));
       }
+      if (IsInf(l1) && IsInf(l2)) break;
+
+      if (l1 <= l2) {
+        ptIds[0] = seg1.PointId(i);
+        ptIds[1] = seg1.PointId(i + di);
+        ptIds[2] = seg2.PointId(j);
+        i = seg1.IndexModuloNumberOfPoints(i + di);
+        seg1.SelectPoint(i);
+      } else {
+        ptIds[0] = seg1.PointId(i);
+        ptIds[1] = seg2.PointId(j + dj);
+        ptIds[2] = seg2.PointId(j);
+        j = seg2.IndexModuloNumberOfPoints(j + dj);
+        seg2.SelectPoint(j);
+      }
+
+      cellId = polys->InsertNextCell(3, ptIds);
+      InterpolateCellData(cd, cd_as_pd, cd_type, cellId, ptIds[0], ptIds[1], ptIds[2]);
     }
 
     surface->DeleteLinks();
@@ -658,7 +733,8 @@ vtkSmartPointer<vtkPolyData>
 Merge(vtkPolyData *s1, vtkPolyData *s2, vtkPolyData *label_boundary, double tol, int smooth, bool join)
 {
   const double tol2      = tol * tol;
-  const double max_dist2 = 4. * tol2;
+  const double max_dist2 =  4. * tol2;
+  const double max_hdist = 10. * tol;
 
   double         p[3], x[3], dist2;
   vtkIdType      cellId;
@@ -726,7 +802,7 @@ Merge(vtkPolyData *s1, vtkPolyData *s2, vtkPolyData *label_boundary, double tol,
   SmoothBoundaries(boundary, cut, max_dist2, smooth);
 
   // Join intersection boundaries
-  if (join) JoinBoundaries(boundary, cut, max_dist2);
+  if (join) JoinBoundaries(boundary, cut, max_dist2, max_hdist);
 
   return output;
 }
@@ -756,14 +832,14 @@ int AddCellSourceArray(vtkPolyData * const surface, size_t idx)
 // -----------------------------------------------------------------------------
 /// Calculate point normals of surface mesh while fixing vertex order if necessary
 vtkSmartPointer<vtkPolyData>
-CalculateNormals(vtkPolyData *surface, bool point_normals, bool cell_normals, bool consistency = false)
+CalculateNormals(vtkPolyData *surface, bool point_normals, bool cell_normals)
 {
   vtkNew<vtkPolyDataNormals> normals;
   SetVTKInput(normals, surface);
   normals->AutoOrientNormalsOff();
   normals->SplittingOff();
   normals->NonManifoldTraversalOff();
-  normals->SetConsistency(consistency);
+  normals->ConsistencyOn();
   normals->SetComputePointNormals(point_normals);
   normals->SetComputeCellNormals(cell_normals);
   normals->Update();
@@ -932,7 +1008,7 @@ void GetEdgeLengthRange(vtkPolyData * const surface, vtkDataArray * const mask,
 
 // -----------------------------------------------------------------------------
 /// Principal component analysis of point set
-bool PrincipalDirections(vtkPointSet * const points, Vector3 dir[3])
+bool PrincipalDirections(vtkPointSet * const points, Vector3 dir[3], bool twod = false)
 {
   if (points->GetNumberOfPoints() == 0) return false;
 
@@ -957,7 +1033,7 @@ bool PrincipalDirections(vtkPointSet * const points, Vector3 dir[3])
   eigval[1] = abs(eigval[1]);
   eigval[2] = abs(eigval[2]);
   Array<int> order = DecreasingOrder(eigval);
-  if (eigval[order[2]] < 1e-6) return false;
+  if (eigval[order[twod ? 1 : 2]] < 1e-6) return false;
 
   dir[0] = axis[order[0]], dir[0].Normalize();
   dir[1] = axis[order[1]], dir[1].Normalize();
@@ -1180,6 +1256,17 @@ vtkSmartPointer<vtkPolyData> LineStrips(vtkSmartPointer<vtkPolyData> cut)
 }
 
 // -----------------------------------------------------------------------------
+vtkSmartPointer<vtkDataArray> NonBoundaryPointsMask(vtkSmartPointer<vtkPolyData> input)
+{
+  vtkSmartPointer<vtkDataArray> mask;
+  mask = NewVtkDataArray(VTK_UNSIGNED_CHAR, input->GetNumberOfPoints(), 1);
+  mask->FillComponent(0, 1.);
+  UnorderedSet<int> ptIds = BoundaryPoints(input);
+  for (auto ptId : ptIds) mask->SetComponent(ptId, 0, 0.);
+  return mask;
+}
+
+// -----------------------------------------------------------------------------
 /// Make divider surface from intersection curve
 vtkSmartPointer<vtkPolyData> Divider(vtkSmartPointer<vtkPolyData> cut)
 {
@@ -1217,11 +1304,185 @@ vtkSmartPointer<vtkPolyData> Divider(vtkSmartPointer<vtkPolyData> cut)
 }
 
 // -----------------------------------------------------------------------------
+/// Compute Delaunay triangulation of interior of divider polygon after projection to 2D plane
+vtkSmartPointer<vtkPolyData> TesselateDivider(vtkSmartPointer<vtkPolyData> divider, double ds)
+{
+  if (divider->GetNumberOfPoints() < 2) return divider;
+
+  const double min_dist2 = pow(.2 * ds, 2);
+
+  int       subId;
+  double    dist2, reverse_dist2;
+  vtkIdType otherId, npts, *pts;
+  Vector3   c, p, q, x, dir[3];
+
+  // Compute principle directions of divider polygon plane
+  const bool twod = true;
+  PrincipalDirections(divider, dir, twod);
+
+  // Get center of divider polygon
+  divider->GetCenter(c);
+  double offset = 0.;
+  for (vtkIdType ptId = 0; ptId < divider->GetNumberOfPoints(); ++ptId) {
+    divider->GetPoint(ptId, p);
+    offset += dir[2].Dot(p - c);
+  }
+  offset /= divider->GetNumberOfPoints();
+  c += offset * dir[2];
+
+  // Set up homogeneous transformation from 3D world to divider plane
+  vtkSmartPointer<vtkMatrix4x4> matrix;
+  matrix = vtkSmartPointer<vtkMatrix4x4>::New();
+  matrix->Identity();
+  for (int i = 0; i < 3; ++i) {
+    matrix->SetElement(i, 0, dir[i].x);
+    matrix->SetElement(i, 1, dir[i].y);
+    matrix->SetElement(i, 2, dir[i].z);
+    matrix->SetElement(i, 3, -dir[i].Dot(c));
+  }
+
+  vtkSmartPointer<vtkMatrixToLinearTransform> transform;
+  transform = vtkSmartPointer<vtkMatrixToLinearTransform>::New();
+  transform->SetInput(matrix);
+  transform->Update();
+
+  // Determine extent of divider polygon within divider plane
+  Point minq, maxq;
+  divider->GetPoint(0, minq);
+  divider->GetPoint(0, maxq);
+  for (vtkIdType ptId = 1; ptId < divider->GetNumberOfPoints(); ++ptId) {
+    divider->GetPoint(ptId, p);
+    transform->TransformPoint(p, q);
+    if (q.x < minq.x) minq.x = q.x;
+    if (q.y < minq.y) minq.y = q.y;
+    if (q.z < minq.z) minq.z = q.z;
+    if (q.x > maxq.x) maxq.x = q.x;
+    if (q.y > maxq.y) maxq.y = q.y;
+    if (q.z > maxq.z) maxq.z = q.z;
+  }
+
+  const double margin = ds;
+  minq.x -= margin, maxq.x += margin;
+  minq.y -= margin, maxq.y += margin;
+
+  int nx = iceil((maxq.x - minq.x) / ds) + 1;
+  int ny = iceil((maxq.y - minq.y) / ds) + 1;
+
+  if (nx % 2 == 0) ++nx;
+  if (ny % 2 == 0) ++ny;
+
+  minq.x = minq.x + .5 * (maxq.x - minq.x) - ((nx - 1) / 2) * ds;
+  maxq.x = minq.x + (nx - 1) * ds + 1e-12;
+
+  minq.y = minq.y + .5 * (maxq.y - minq.y) - ((ny - 1) / 2) * ds;
+  maxq.y = minq.y + (ny - 1) * ds + 1e-12;
+
+  // Add additional discrete divider polygon plane grid points
+  vtkNew<vtkPointLocator> locator;
+  locator->SetDataSet(divider);
+  locator->BuildLocator();
+
+  vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
+  points->SetDataTypeToDouble();
+  points->Allocate(divider->GetNumberOfPoints() + nx * ny);
+
+  for (vtkIdType ptId = 0; ptId < divider->GetNumberOfPoints(); ++ptId) {
+    divider->GetPoint(ptId, p);
+    points->InsertNextPoint(p);
+  }
+
+  q.z = 0.;
+  for (q.y = minq.y; q.y <= maxq.y; q.y += ds)
+  for (q.x = minq.x; q.x <= maxq.x; q.x += ds) {
+    p = c + q.x * dir[0] + q.y * dir[1];
+    otherId = locator->FindClosestPoint(p);
+    if (otherId >= 0) {
+      divider->GetPoint(otherId, x);
+      if ((p - x).SquaredLength() < min_dist2) {
+        p = x;
+      }
+    }
+    points->InsertNextPoint(p);
+  }
+
+  // Compute constrained Delanauy triangulation of divider polygon
+  vtkSmartPointer<vtkPolyData> pointset;
+  pointset = vtkSmartPointer<vtkPolyData>::New();
+  pointset->SetPoints(points);
+
+  vtkSmartPointer<vtkPolyData> boundary;
+  boundary = vtkSmartPointer<vtkPolyData>::New();
+  boundary->SetPoints(points);
+  boundary->SetPolys(divider->GetPolys());
+
+  vtkNew<vtkDelaunay2D> delaunay;
+  delaunay->SetInputData(pointset);
+  delaunay->SetSourceData(boundary);
+  delaunay->SetAlpha(0.);
+  delaunay->SetOffset(1.);
+  delaunay->SetTolerance(0.);
+  delaunay->SetTransform(transform);
+  delaunay->Update();
+
+  vtkSmartPointer<vtkPolyData> output;
+  output = vtkSmartPointer<vtkPolyData>::New();
+  output->DeepCopy(delaunay->GetOutput());
+
+  // TODO: Figure correct order of polygon points before vtkDelaunay2D::Update
+  vtkNew<vtkCellLocator> cell_locator;
+  cell_locator->SetDataSet(delaunay->GetOutput());
+  cell_locator->BuildLocator();
+  cell_locator->FindClosestPoint(c, x, otherId, subId, dist2);
+
+  boundary->GetPolys()->GetCell(0, npts, pts);
+  vtkNew<vtkIdList> reverse_pts;
+  reverse_pts->Allocate(npts);
+  for (vtkIdType i = npts-1; i >= 0; --i) {
+    reverse_pts->InsertNextId(pts[i]);
+  }
+  vtkSmartPointer<vtkCellArray> reverse_polys;
+  reverse_polys = vtkSmartPointer<vtkCellArray>::New();
+  reverse_polys->Allocate(reverse_polys->EstimateSize(1, npts));
+  reverse_polys->InsertNextCell(reverse_pts.GetPointer());
+
+  vtkSmartPointer<vtkPolyData> reverse_boundary;
+  reverse_boundary = vtkSmartPointer<vtkPolyData>::New();
+  reverse_boundary->SetPoints(points);
+  reverse_boundary->SetPolys(reverse_polys);
+
+  delaunay->SetSourceData(reverse_boundary);
+  delaunay->Update();
+
+  cell_locator->SetDataSet(delaunay->GetOutput());
+  cell_locator->BuildLocator();
+  cell_locator->FindClosestPoint(c, x, otherId, subId, reverse_dist2);
+
+  if (reverse_dist2 < dist2) {
+    output = delaunay->GetOutput();
+  }
+
+  // Smooth divider
+  // (needed when boundary points were snapped to surface mesh)
+  MeshSmoothing smoother;
+  smoother.Input(output);
+  smoother.Mask(NonBoundaryPointsMask(output));
+  smoother.Weighting(MeshSmoothing::Combinatorial);
+  smoother.AdjacentValuesOnlyOn();
+  smoother.SmoothPointsOn();
+  smoother.NumberOfIterations(3);
+  smoother.Lambda(1.);
+  smoother.Run();
+  output = smoother.Output();
+
+  return output;
+}
+
+// -----------------------------------------------------------------------------
 /// Check if given intersection curve is acceptable
 bool IsValidIntersection(vtkSmartPointer<vtkPolyData> cut, double tol)
 {
   if (cut->GetNumberOfCells() == 0) return false;
-  #if 0
+  #if 1
     return true;
   #else
     vtkNew<vtkCleanPolyData> merger;
@@ -1445,7 +1706,7 @@ bool FindCuttingPlane(vtkSmartPointer<vtkPolyData> surface,
                       vtkSmartPointer<vtkPointSet> boundary,
                       vtkSmartPointer<vtkPolyData> &plane,
                       vtkSmartPointer<vtkPolyData> &cut,
-                      double ds = 0., double tol = 0.)
+                      double max_offset, double ds = 0., double tol = 0.)
 {
   static int call = 0; ++call;
 
@@ -1463,8 +1724,7 @@ bool FindCuttingPlane(vtkSmartPointer<vtkPolyData> surface,
   const double max_angle   = 20.;
   const double delta_angle = 5.;
 
-  const double max_offset   = 2. * ds;
-  const double delta_offset = .5 * ds;
+  const double delta_offset = max_offset / 4.;
 
   const double margin   =  5. * ds;
   const double bbmargin = 20. * ds;
@@ -1558,7 +1818,7 @@ bool FindCuttingPlane(vtkSmartPointer<vtkPolyData> surface,
                      << " ...";
               }
               l = LineStripLength(cut);
-              if (best_ct == 0 || l < .8 * best_l) {
+              if (best_ct == 0 || l < .95 * best_l) {
                 accept = true;
               }
               if (accept) {
@@ -1794,7 +2054,7 @@ void Trisect(vtkPolyData *input, vtkIdType cellId,
 
 // -----------------------------------------------------------------------------
 vtkSmartPointer<vtkPolyData>
-AddClosedIntersectionDivider(vtkPolyData *surface, vtkPolyData *cut, double tol = .0)
+AddClosedIntersectionDivider(vtkPolyData *surface, vtkPolyData *cut, double tol = 0.)
 {
   const double tol2 = tol * tol;
 
@@ -1813,11 +2073,8 @@ AddClosedIntersectionDivider(vtkPolyData *surface, vtkPolyData *cut, double tol 
   edge1->Allocate(2);
   edge2->Allocate(2);
 
-  // Determine edge length range for remeshing of divider polygon
-  double mean_edge_length, edge_length_sd;
-  EdgeLengthNormalDistribution(surface, mean_edge_length, edge_length_sd);
-  const double min_edge_length = max(0., mean_edge_length - 2. * edge_length_sd);
-  const double max_edge_length = mean_edge_length + 2. * edge_length_sd;
+  // Determine edge length for tesselation of divider polygon
+  const double mean_edge_length = AverageEdgeLength(surface);
 
   // Build needed auxiliary structures
   cut->BuildCells();
@@ -2025,22 +2282,14 @@ AddClosedIntersectionDivider(vtkPolyData *surface, vtkPolyData *cut, double tol 
   }
 
   // Create polygonal mesh tesselation of closed intersection polygon
-  vtkSmartPointer<vtkPolyData> divider = Triangulate(Divider(cut));
-
-  SurfaceRemeshing remesher;
-  remesher.MeltNodesOff();
-  remesher.MeltTrianglesOff();
-  remesher.BisectBoundaryEdgesOff();
-  remesher.InvertTrianglesSharingOneLongEdgeOn();
-  remesher.InvertTrianglesToIncreaseMinHeightOn();
-  remesher.MinEdgeLength(min_edge_length);
-  remesher.MaxEdgeLength(max_edge_length);
-  for (int iter = 0; iter < 20; ++iter) {
-    remesher.Input(divider);
-    remesher.Run();
-    if (remesher.NumberOfChanges() == 0) break;
-    divider = remesher.Output();
+  vtkSmartPointer<vtkPolyData> divider = Divider(cut);
+  if (debug) {
+    static int callId = 0; ++callId;
+    char fname[64];
+    snprintf(fname, 64, "debug_split_surface_polygon_%d.vtp", callId);
+    WritePolyData(fname, divider);
   }
+  divider = TesselateDivider(divider, mean_edge_length);
 
   // Prepare point/cell data before appending polygonal data sets
   vtkCellData * const surfaceCD = surface->GetCellData();
@@ -2079,6 +2328,9 @@ AddClosedIntersectionDivider(vtkPolyData *surface, vtkPolyData *cut, double tol 
   AddVTKInput(appender, surface);
   AddVTKInput(appender, split);
   AddVTKInput(appender, divider);
+  appender->Update();
+
+  const double merge_tol = 1e-2 * MinEdgeLength(appender->GetOutput());
 
   vtkNew<vtkCleanPolyData> merger;
   SetVTKConnection(merger, appender);
@@ -2087,7 +2339,7 @@ AddClosedIntersectionDivider(vtkPolyData *surface, vtkPolyData *cut, double tol 
   merger->ConvertLinesToPointsOff();
   merger->PointMergingOn();
   merger->ToleranceIsAbsoluteOn();
-  merger->SetAbsoluteTolerance(1e-12);
+  merger->SetAbsoluteTolerance(merge_tol);
   merger->Update();
 
   merger->GetOutput()->SetVerts(nullptr);
@@ -2237,6 +2489,7 @@ int main(int argc, char *argv[])
   const char *labels_name = nullptr;
 
   double tolerance            = NaN;
+  double snap_tolerance       = 0.;
   int    smooth_boundaries    = -1;
   bool   join_boundaries      = true;
   double min_edge_length      = NaN;
@@ -2250,6 +2503,7 @@ int main(int argc, char *argv[])
   double smooth_mu            = NaN;
   bool   fill_source_label    = true;
   int    max_smooth_source    = 0;
+  bool   output_largest_comp  = false;
   bool   add_dividers         = false;
   bool   output_point_normals = true;
   bool   output_cell_normals  = true;
@@ -2293,6 +2547,9 @@ int main(int argc, char *argv[])
     }
     else if (OPTION("-tolerance") || OPTION("-tol")) {
       PARSE_ARGUMENT(tolerance);
+    }
+    else if (OPTION("-snap-tolerance") || OPTION("-snap-tol")) {
+      PARSE_ARGUMENT(snap_tolerance);
     }
     else if (OPTION("-smooth-boundaries") || OPTION("-boundary-smoothing")) {
       if (HAS_ARGUMENT) PARSE_ARGUMENT(smooth_boundaries);
@@ -2376,8 +2633,9 @@ int main(int argc, char *argv[])
     }
     else HANDLE_BOOLEAN_OPTION("point-normals", output_point_normals);
     else HANDLE_BOOLEAN_OPTION("cell-normals", output_point_normals);
-    else HANDLE_BOOLEAN_OPTION("dividers", add_dividers);
     else HANDLE_BOOLEAN_OPTION("join", join_boundaries);
+    else HANDLE_BOOLEAN_OPTION("largest", output_largest_comp);
+    else HANDLE_BOOLEAN_OPTION("dividers", add_dividers);
     else HANDLE_COMMON_OR_UNKNOWN_OPTION();
   }
 
@@ -2466,6 +2724,7 @@ int main(int argc, char *argv[])
   // Merge surfaces
   if (verbose > 0) {
     cout << "Merging surfaces at segmentation boundaries...";
+    if (verbose > 1) cout << "\n";
     cout.flush();
   }
   vtkSmartPointer<vtkPolyData> output = surfaces[0];
@@ -2483,74 +2742,37 @@ int main(int argc, char *argv[])
     surfaces.clear();
   }
   if (verbose > 0) {
+    if (verbose > 1) cout << "Merging surfaces at segmentation boundaries...";
     cout << " done" << endl;
   }
 
   if (join_boundaries) {
+
+    // Extract largest connected component
+    if (output_largest_comp) {
+      if (verbose > 0) {
+        cout << "Extracting largest surface component...";
+        cout.flush();
+      }
+      vtkNew<vtkPolyDataConnectivityFilter> lcc;
+      SetVTKInput(lcc, output);
+      lcc->SetExtractionModeToLargestRegion();
+      lcc->Update();
+      output = lcc->GetOutput();
+      if (verbose > 0) cout << " done" << endl;
+    }
 
     // Recalculate surface normals and fix vertex order if necessary
     if (verbose > 0) {
       cout << "Calculating surface normals...";
       cout.flush();
     }
-    const bool calc_cell_normals  = true;
-    const bool vertex_consistency = true;
-    output = CalculateNormals(output, output_point_normals, calc_cell_normals, vertex_consistency);
+    const bool calc_cell_normals = true;
+    output = CalculateNormals(output, output_point_normals, calc_cell_normals);
     if (verbose > 0) cout << " done" << endl;
 
-    // Insert cutting planes in reverse order
-    if (add_dividers) {
-      if (verbose > 0) {
-        cout << "Adding internal division planes...";
-        if (verbose > 1) cout << "\n";
-        cout.flush();
-      }
-      const EdgeTable edgeTable(output);
-      const double ds  = AverageEdgeLength(output->GetPoints(), edgeTable);
-      const double tol = .1 * ds; // max dist for snapping intersection to surface
-      vtkSmartPointer<vtkPolyData> plane, polygon, cut;
-      for (int i = static_cast<int>(boundaries.size()-1); i >= 0; --i) {
-        string msg;
-        if (verbose > 1) {
-          const int n = i + 1;
-          msg = "  Adding division plane for ";
-          if      (n == 1) msg += "1st";
-          else if (n == 2) msg += "2nd";
-          else if (n == 3) msg += "3rd";
-          else             msg += ToString(n) + "th";
-          msg += " boundary";
-          cout << msg << "..." << endl;
-        }
-        if (FindCuttingPlane(output, boundaries[i], plane, cut, ds, tol)) {
-          if (debug > 0) {
-            char fname[64];
-            snprintf(fname, 64, "debug_cutting_plane_%d.vtp", static_cast<int>(boundaries.size()) - i);
-            WritePolyData(fname, plane);
-          }
-          if (debug > 0) {
-            char fname[64];
-            snprintf(fname, 64, "debug_cutting_polygon_%d.vtp", static_cast<int>(boundaries.size()) - i);
-            WritePolyData(fname, cut);
-          }
-          output = AddClosedIntersectionDivider(output, cut, tol);
-          if (debug > 0) {
-            char fname[64];
-            snprintf(fname, 64, "debug_output+divider_%d.vtp", static_cast<int>(boundaries.size()) - i);
-            WritePolyData(fname, output);
-          }
-          if (!msg.empty()) cout << msg << "... done" << endl;
-        } else {
-          if (verbose > 0) {
-            if (!msg.empty()) cout << msg << "...";
-            cout << " failed\n" << endl;
-          }
-          FatalError("Could not find a closed intersection with finite cutting plane near segmentation boundary!");
-        }
-      }
-      if (verbose > 0) {
-        if (verbose > 1) cout << "Adding internal division planes...";
-        cout << " done" << endl;
-      }
+    if (debug > 0) {
+      WritePolyData("debug_joined_boundaries.vtp", output);
     }
 
     // Remesh newly inserted cells which are joining the intersection boundaries
@@ -2655,9 +2877,14 @@ int main(int argc, char *argv[])
       smoother.Lambda(smooth_lambda);
       smoother.Mu(smooth_mu);
       smoother.NumberOfIterations(max_smooth_steps);
-      smoother.Weighting(MeshSmoothing::Combinatorial);
-      smoother.AdjacentValuesOnly(true);
-      smoother.SmoothPoints(true);
+      if (IsNaN(smooth_mu) || fequal(smooth_lambda, smooth_mu)) {
+        smoother.Weighting(MeshSmoothing::Gaussian);
+        smoother.AdjacentValuesOnlyOff();
+      } else {
+        smoother.Weighting(MeshSmoothing::Combinatorial);
+        smoother.AdjacentValuesOnlyOn();
+      }
+      smoother.SmoothPointsOn();
       smoother.Run();
       output->SetPoints(smoother.Output()->GetPoints());
       if (verbose > 0) cout << " done" << endl;
@@ -2665,6 +2892,60 @@ int main(int argc, char *argv[])
         const int i = output->GetPointData()->AddArray(smoother.Mask());
         WritePolyData("debug_smoothed_transition.vtp", output);
         output->GetPointData()->RemoveArray(i);
+      }
+    }
+
+    // Insert cutting planes in reverse order
+    if (add_dividers) {
+      if (verbose > 0) {
+        cout << "Adding internal division planes...";
+        if (verbose > 1) cout << "\n";
+        cout.flush();
+      }
+      const EdgeTable edgeTable(output);
+      const double ds = AverageEdgeLength(output->GetPoints(), edgeTable);
+      vtkSmartPointer<vtkPolyData> plane, polygon, cut;
+      for (int i = static_cast<int>(boundaries.size()-1); i >= 0; --i) {
+        string msg;
+        if (verbose > 1) {
+          const int n = i + 1;
+          msg = "  Adding division plane for ";
+          if      (n == 1) msg += "1st";
+          else if (n == 2) msg += "2nd";
+          else if (n == 3) msg += "3rd";
+          else             msg += ToString(n) + "th";
+          msg += " boundary";
+          cout << msg << "..." << endl;
+        }
+        if (FindCuttingPlane(output, boundaries[i], plane, cut, 2. * tolerance, ds, snap_tolerance)) {
+          if (debug > 0) {
+            char fname[64];
+            snprintf(fname, 64, "debug_cutting_plane_%d.vtp", static_cast<int>(boundaries.size()) - i);
+            WritePolyData(fname, plane);
+          }
+          if (debug > 0) {
+            char fname[64];
+            snprintf(fname, 64, "debug_cutting_polygon_%d.vtp", static_cast<int>(boundaries.size()) - i);
+            WritePolyData(fname, cut);
+          }
+          output = AddClosedIntersectionDivider(output, cut, snap_tolerance);
+          if (debug > 0) {
+            char fname[64];
+            snprintf(fname, 64, "debug_output+divider_%d.vtp", static_cast<int>(boundaries.size()) - i);
+            WritePolyData(fname, output);
+          }
+          if (!msg.empty()) cout << msg << "... done" << endl;
+        } else {
+          if (verbose > 0) {
+            if (!msg.empty()) cout << msg << "...";
+            cout << " failed\n" << endl;
+          }
+          FatalError("Could not find a closed intersection with finite cutting plane near segmentation boundary!");
+        }
+      }
+      if (verbose > 0) {
+        if (verbose > 1) cout << "Adding internal division planes...";
+        cout << " done" << endl;
       }
     }
 

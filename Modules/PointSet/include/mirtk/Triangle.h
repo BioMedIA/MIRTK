@@ -186,6 +186,24 @@ public:
   /// \returns Cotangent of angle ABC (equals cotangent of angle CBA).
   static double Cotangent(double a[3], double b[3], double c[3]);
 
+  /// Compute angle at triangle corners
+  ///
+  /// \param[in]  a     Position of triangle vertex A.
+  /// \param[in]  b     Position of triangle vertex B.
+  /// \param[in]  c     Position of triangle vertex C.
+  /// \param[out] angle Angles at triangle vertices in radians.
+  static void Angles(const double a[3], const double b[3], const double c[3], double angle[3]);
+
+  /// Compute minimum angle at triangle vertices
+  ///
+  /// \return Minimum angle in radians.
+  static double MinAngle(const double a[3], const double b[3], const double c[3]);
+
+  /// Compute maximum angle at triangle corners
+  ///
+  /// \return Maximum angle in radians.
+  static double MaxAngle(const double a[3], const double b[3], const double c[3]);
+
   /// Tests whether two triangles intersect each other
   static bool TriangleTriangleIntersection(const double a1[3], const double b1[3], const double c1[3],
                                            const double a2[3], const double b2[3], const double c2[3]);
@@ -297,6 +315,33 @@ inline double Triangle::Area2D(const double a[2], const double b[2], const doubl
 // =============================================================================
 // Angles
 // =============================================================================
+
+// -----------------------------------------------------------------------------
+inline void Triangle::Angles(const double a[3], const double b[3], const double c[3], double angle[3])
+{
+  const double ab2 = vtkMath::Distance2BetweenPoints(a, b), ab = sqrt(ab2);
+  const double ac2 = vtkMath::Distance2BetweenPoints(a, c), ac = sqrt(ac2);
+  const double bc2 = vtkMath::Distance2BetweenPoints(b, c), bc = sqrt(bc2);
+  angle[0] = acos((ab2 + ac2 - bc2) / (2.0 * ab * ac));
+  angle[1] = acos((ab2 + bc2 - ac2) / (2.0 * ab * bc));
+  angle[2] = acos((ac2 + bc2 - ab2) / (2.0 * ac * bc));
+}
+
+// -----------------------------------------------------------------------------
+inline double Triangle::MinAngle(const double a[3], const double b[3], const double c[3])
+{
+  double angle[3];
+  Angles(a, b, c, angle);
+  return min(min(angle[0], angle[1]), angle[2]);
+}
+
+// -----------------------------------------------------------------------------
+inline double Triangle::MaxAngle(const double a[3], const double b[3], const double c[3])
+{
+  double angle[3];
+  Angles(a, b, c, angle);
+  return max(max(angle[0], angle[1]), angle[2]);
+}
 
 // -----------------------------------------------------------------------------
 // Meyer et al. (2002). Generalized Barycentric Coordinates on Irregular Polygons.
