@@ -800,8 +800,11 @@ int main(int argc, char *argv[])
   if (output_normals) {
     if (smooth_points || polydata->GetPointData()->GetNormals() == NULL) {
       if (verbose) cout << "\nRecalculating normals...", cout.flush();
-      vtkSmartPointer<vtkPolyDataNormals> filter = vtkSmartPointer<vtkPolyDataNormals>::New();
+      vtkNew<vtkPolyDataNormals> filter;
       filter->SplittingOff();
+      filter->NonManifoldTraversalOff();
+      filter->ConsistencyOff();
+      filter->AutoOrientNormalsOff();
       SetVTKInput(filter, polydata);
       filter->Update();
       polydata = filter->GetOutput();
