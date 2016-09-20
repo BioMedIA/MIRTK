@@ -732,7 +732,7 @@ struct MinMaxEdgeLength
   double           _Min;
   double           _Max;
 
-  MinMaxEdgeLength() : _Min(numeric_limits<double>::infinity()), _Max(-_Min) {}
+  MinMaxEdgeLength() : _Min(+inf), _Max(-inf) {}
 
   MinMaxEdgeLength(const MinMaxEdgeLength &other, split)
   :
@@ -745,7 +745,7 @@ struct MinMaxEdgeLength
   void join(const MinMaxEdgeLength &other)
   {
     if (other._Min < _Min) _Min = other._Min;
-    if (other._Max < _Max) _Max = other._Max;
+    if (other._Max > _Max) _Max = other._Max;
   }
 
   void operator ()(const blocked_range<int> &re)
