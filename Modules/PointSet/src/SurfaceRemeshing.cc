@@ -1463,9 +1463,9 @@ void SurfaceRemeshing::Subdivision()
     max2[2] = SquaredMaxEdgeLength(pts[2], pts[0]);
 
     // Determine which edges to bisect
-    bisect[0] = int(length2[0] > max2[0]);
-    bisect[1] = int(length2[1] > max2[1]);
-    bisect[2] = int(length2[2] > max2[2]);
+    bisect[0] = (length2[0] > max2[0] ? 1 : 0);
+    bisect[1] = (length2[1] > max2[1] ? 1 : 0);
+    bisect[2] = (length2[2] > max2[2] ? 1 : 0);
 
     if (!_BisectBoundaryEdges) {
       if (bisect[0] && IsBoundaryEdge(pts[0], pts[1])) {
@@ -1485,19 +1485,19 @@ void SurfaceRemeshing::Subdivision()
       if (!bisect[0]) {
         min2 = SquaredMinEdgeLength(pts[0], pts[1]);
         if (length2[0] >= 2.0 * min2) {
-          bisect[0] = int(1.0 - vtkMath::Dot(n1, n2) > _MaxFeatureAngleCos);
+          bisect[0] = (1.0 - vtkMath::Dot(n1, n2) > _MaxFeatureAngleCos ? 1 : 0);
         }
       }
       if (!bisect[1]) {
         min2 = SquaredMinEdgeLength(pts[1], pts[2]);
         if (length2[1] >= 2.0 * min2) {
-          bisect[1] = int(1.0 - vtkMath::Dot(n2, n3) > _MaxFeatureAngleCos);
+          bisect[1] = (1.0 - vtkMath::Dot(n2, n3) > _MaxFeatureAngleCos ? 1 : 0);
         }
       }
       if (!bisect[2]) {
         min2 = SquaredMinEdgeLength(pts[2], pts[0]);
         if (length2[2] >= 2.0 * min2) {
-          bisect[2] = int(1.0 - vtkMath::Dot(n3, n1) > _MaxFeatureAngleCos);
+          bisect[2] = (1.0 - vtkMath::Dot(n3, n1) > _MaxFeatureAngleCos ? 1 : 0);
         }
       }
     }
