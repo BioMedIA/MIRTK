@@ -1,8 +1,8 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2013-2015 Imperial College London
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2013-2016 Imperial College London
+ * Copyright 2013-2016 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -115,10 +115,16 @@ void PrintCommonOptions(ostream &out)
 // =============================================================================
 
 // -----------------------------------------------------------------------------
+inline bool _IsOptionName(const char *arg)
+{
+  return arg[0] == '-' && (arg[1] == '-' || !IsNumber(arg));
+}
+
+// -----------------------------------------------------------------------------
 int _GetNumberOfPositionalArguments(int argc, char *argv[])
 {
   int n = 1;
-  while (n < argc && argv[n][0] != '-') n++;
+  while (n < argc && !_IsOptionName(argv[n])) n++;
   return n - 1;
 }
 
@@ -133,7 +139,7 @@ void _DiscardArgument(int &i, int &argc, char *argv[])
 // -----------------------------------------------------------------------------
 bool _IsOption(int &i, int &argc, char *argv[], const char *opt)
 {
-  if ((opt == NULL && argv[i][0] == '-') || (opt != NULL && strcmp(argv[i], opt) == 0)) {
+  if ((opt == NULL && _IsOptionName(argv[i])) || (opt != NULL && strcmp(argv[i], opt) == 0)) {
     if (_discard_parsed_options) _DiscardArgument(i, argc, argv);
     _option = argv[i];
     return true;
@@ -146,7 +152,7 @@ bool _IsOption(int &i, int &argc, char *argv[], const char *opt)
 // -----------------------------------------------------------------------------
 bool _IsArgument(int i, int &argc, char *argv[])
 {
-  return (i+1 < argc && argv[i+1][0] != '-');
+  return (i+1 < argc && !_IsOptionName(argv[i+1]));
 }
 
 // -----------------------------------------------------------------------------
