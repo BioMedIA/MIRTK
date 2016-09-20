@@ -2792,6 +2792,9 @@ int main(int argc, char *argv[])
       GetMinMaxEdgeLength(output, min_global_length, max_global_length);
       GetEdgeLengthRange(output, mask, min_edge_length, max_edge_length, edge_length_sd);
 
+      min_global_length -= 1e-12;
+      max_global_length += 1e-12;
+
       const vtkIdType ncells = output->GetNumberOfCells();
       vtkSmartPointer<vtkDataArray> min_edge_length_arr, max_edge_length_arr;
       min_edge_length_arr = NewVtkDataArray(VTK_FLOAT, ncells, 1, MIN_EDGE_LENGTH_ARRAY_NAME);
@@ -2823,6 +2826,7 @@ int main(int argc, char *argv[])
           SurfaceRemeshing remesher;
           remesher.MeltTrianglesOff();
           remesher.MeltNodesOff();
+          remesher.InvertTrianglesToIncreaseMinHeightOff();
           remesher.Input(output);
           if (iter == 0) {
             remesher.MinCellEdgeLengthArray(min_edge_length_arr);
