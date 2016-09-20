@@ -177,6 +177,25 @@ inline bool FromString(const char *str, double &value)
   }
 }
 
+/// Check if given string represents a value of the specified template type
+template <typename T> bool IsValueOfType(const char *str)
+{
+  T value;
+  return FromString(str, value);
+}
+
+/// Check if given string is a (floating point) number
+inline bool IsNumber(const char *str)
+{
+  return IsValueOfType<double>(str);
+}
+
+/// Check if given string is an integer value
+inline bool IsInteger(const char *str)
+{
+  return IsValueOfType<int>(str);
+}
+
 /// Convert numeric value to string
 template <typename T>
 string ToString(const T &value, int w = 0, char c = ' ', bool left = false)
