@@ -388,6 +388,13 @@ EdgeList BoundaryEdges(vtkDataSet *dataset, const EdgeTable &edgeTable)
 }
 
 // -----------------------------------------------------------------------------
+EdgeList BoundaryEdges(vtkDataSet *dataset)
+{
+  EdgeTable edgeTable(dataset);
+  return BoundaryEdges(dataset, edgeTable);
+}
+
+// -----------------------------------------------------------------------------
 EdgeList GetPointEdges(const EdgeList &edges, int ptId)
 {
   EdgeList result;
