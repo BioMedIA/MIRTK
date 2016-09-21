@@ -196,6 +196,15 @@ int main(int argc, char *argv[])
         cout << "  No. of used points   = " << npoints << "\n";
         cout << "  No. of unused points = " << surface->GetNumberOfPoints() - npoints << "\n";
 
+        // Edges
+        double l_min, l_max;
+        GetMinMaxEdgeLength(surface->GetPoints(), edgeTable, l_min, l_max);
+        cout << "\nEdges:\n";
+        cout << "  No. of edges         = " << edgeTable.NumberOfEdges() << "\n";
+        cout << "  Average edge length  = " << AverageEdgeLength(surface->GetPoints(), edgeTable) << "\n";
+        cout << "  Minimum edge length  = " << l_min << "\n";
+        cout << "  Maximum edge length  = " << l_max << "\n";
+
         // Faces
         cout << "\nFaces:\n";
         int nfaces = static_cast<int>(surface->GetNumberOfCells());
@@ -210,15 +219,6 @@ int main(int argc, char *argv[])
         cout << "  No. of empty faces   = " << nempty << "\n";
         cout << "  Is triangular mesh   = " << (nfaces == ntri  + nempty ? "yes" : "no") << "\n";
         cout << "  Is quadrangular mesh = " << (nfaces == nquad + nempty ? "yes" : "no") << "\n";
-
-        // Edges
-        double l_min, l_max;
-        GetMinMaxEdgeLength(surface->GetPoints(), edgeTable, l_min, l_max);
-        cout << "\nEdges:\n";
-        cout << "  No. of edges         = " << edgeTable.NumberOfEdges() << "\n";
-        cout << "  Average edge length  = " << AverageEdgeLength(surface->GetPoints(), edgeTable) << "\n";
-        cout << "  Minimum edge length  = " << l_min << "\n";
-        cout << "  Maximum edge length  = " << l_max << "\n";
 
         // Boundaries
         cout << "\nBoundaries:\n";
