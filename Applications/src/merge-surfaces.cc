@@ -1428,7 +1428,7 @@ vtkSmartPointer<vtkPolyData> TesselateDivider(vtkSmartPointer<vtkPolyData> divid
   output = vtkSmartPointer<vtkPolyData>::New();
   output->DeepCopy(delaunay->GetOutput());
 
-  // TODO: Figure correct order of polygon points before vtkDelaunay2D::Update
+  // TODO: Determine correct order of polygon points before vtkDelaunay2D::Update
   vtkNew<vtkCellLocator> cell_locator;
   cell_locator->SetDataSet(delaunay->GetOutput());
   cell_locator->BuildLocator();
@@ -1460,6 +1460,16 @@ vtkSmartPointer<vtkPolyData> TesselateDivider(vtkSmartPointer<vtkPolyData> divid
   if (reverse_dist2 < dist2) {
     output = delaunay->GetOutput();
   }
+
+  // Remove unused points
+  vtkNew<vtkCleanPolyData> cleaner;
+  SetVTKInput(cleaner, output);
+  cleaner->ConvertStripsToPolysOff();
+  cleaner->ConvertPolysToLinesOff();
+  cleaner->ConvertLinesToPointsOff();
+  cleaner->PointMergingOff();
+  cleaner->Update();
+  output = cleaner->GetOutput();
 
   // Smooth divider
   // (needed when boundary points were snapped to surface mesh)
@@ -2323,14 +2333,11 @@ AddClosedIntersectionDivider(vtkPolyData *surface, vtkPolyData *cut, double tol 
     WritePolyData(fname, divider);
   }
 
-  // Merge surface with intersected cells and intersection polygon
+  // Merge surface with intersected cells and tesselated divider polygon
   vtkNew<vtkAppendPolyData> appender;
   AddVTKInput(appender, surface);
   AddVTKInput(appender, split);
-  AddVTKInput(appender, divider);
-  appender->Update();
-
-  const double merge_tol = 1e-2 * MinEdgeLength(appender->GetOutput());
+  // divider added as input below
 
   vtkNew<vtkCleanPolyData> merger;
   SetVTKConnection(merger, appender);
@@ -2339,14 +2346,47 @@ AddClosedIntersectionDivider(vtkPolyData *surface, vtkPolyData *cut, double tol 
   merger->ConvertLinesToPointsOff();
   merger->PointMergingOn();
   merger->ToleranceIsAbsoluteOn();
-  merger->SetAbsoluteTolerance(merge_tol);
+  merger->SetAbsoluteTolerance(1e-12);
+
+  if (debug) {
+    static int callId = 0; ++callId;
+    char fname[64];
+    snprintf(fname, 64, "debug_split_surface_interim_%d.vtp", callId);
+    merger->Update();
+    WritePolyData(fname, merger->GetOutput());
+  }
+
+  AddVTKInput(appender, divider);
   merger->Update();
+  vtkSmartPointer<vtkPolyData> output = merger->GetOutput();
 
-  merger->GetOutput()->SetVerts(nullptr);
-  merger->GetOutput()->SetLines(nullptr);
-  merger->GetOutput()->DeleteCells();
+  // Remove those triangles from resulting mesh originating from the tesselated
+  // divider whose three vertices are all on the divider boundary and that have
+  // a corresponding cell in the split surface mesh, i.e., a duplicate triangle
+  output->BuildLinks();
+  vtkNew<vtkIdList> ptIds1, ptIds2;
+  for (vtkIdType cellId = 0; cellId < output->GetNumberOfCells(); ++cellId) {
+    if (output->GetCellType(cellId) != VTK_EMPTY_CELL) {
+      output->GetCellPoints(cellId, ptIds1.GetPointer());
+      for (vtkIdType i = 0; i < ptIds1->GetNumberOfIds(); ++i) {
+        output->GetPointCells(ptIds1->GetId(i), cellIds.GetPointer());
+        for (vtkIdType j = 0; j < cellIds->GetNumberOfIds(); ++j) {
+          if (cellIds->GetId(j) > cellId && output->GetCellType(cellIds->GetId(j)) != VTK_EMPTY_CELL) {
+            output->GetCellPoints(cellIds->GetId(j), ptIds2.GetPointer());
+            if (ptIds1->GetNumberOfIds() == ptIds2->GetNumberOfIds()) {
+              ptIds2->IntersectWith(ptIds1.GetPointer());
+              if (ptIds1->GetNumberOfIds() == ptIds2->GetNumberOfIds()) {
+                output->DeleteCell(cellIds->GetId(j));
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  output->RemoveDeletedCells();
 
-  return merger->GetOutput();
+  return output;
 }
 
 // -----------------------------------------------------------------------------
