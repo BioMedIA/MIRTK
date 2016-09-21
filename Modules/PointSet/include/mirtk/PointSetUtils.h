@@ -253,6 +253,9 @@ bool IsTetrahedralMesh(vtkDataSet *);
 UnorderedSet<int> BoundaryPoints(vtkDataSet *, const EdgeTable * = nullptr);
 
 /// Get list of all boundary edges
+EdgeList BoundaryEdges(vtkDataSet *);
+
+/// Get list of all boundary edges
 EdgeList BoundaryEdges(vtkDataSet *, const EdgeTable &);
 
 /// Get list of edges with given end point

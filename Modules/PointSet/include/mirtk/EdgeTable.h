@@ -212,6 +212,14 @@ public:
     _PointId1(NULL), _ListEnd(NULL), _PointId2(-1)
   {}
 
+  /// Constructor
+  EdgeIterator(const EdgeTable &table, int begin, int end = -1)
+  :
+    EdgeIterator(table)
+  {
+    InitTraversal(begin, end);
+  }
+
   /// Initialize traversal of edges
   ///
   /// @param[in] begin ID of first edge to iterate.
