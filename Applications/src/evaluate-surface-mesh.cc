@@ -223,6 +223,8 @@ int main(int argc, char *argv[])
         // Boundaries
         cout << "\nBoundaries:\n";
         cout << "  No. of boundary segments = " << NumberOfBoundarySegments(surface) << "\n";
+        cout << "  No. of boundary points   = " << BoundaryPoints(surface, &edgeTable).size() << "\n";
+        cout << "  No. of boundary edges    = " << BoundaryEdges(surface, edgeTable).size() << "\n";
       } break;
 
       // -----------------------------------------------------------------------
