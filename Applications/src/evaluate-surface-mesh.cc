@@ -230,7 +230,7 @@ int main(int argc, char *argv[])
       // -----------------------------------------------------------------------
       // Topology
       case MESH_EulerCharacteristic: {
-        int chi = EulerCharacteristic(surface, edgeTable);
+        const auto chi = EulerCharacteristic(surface, edgeTable);
         if (verbose <= 0 && measures.size() == 1) {
           cout << chi << "\n";
         } else {
@@ -243,7 +243,7 @@ int main(int argc, char *argv[])
         }
       } break;
       case MESH_Genus: {
-        double genus = Genus(surface, edgeTable);
+        const auto genus = Genus(surface, edgeTable);
         if (verbose <= 0 && measures.size() == 1) {
           cout << genus << "\n";
         } else {
@@ -253,6 +253,12 @@ int main(int argc, char *argv[])
             cout << "\n" << section << ":\n";
           }
           cout << "  Genus                = " << genus << "\n";
+          if (BoundaryPoints(surface, &edgeTable).empty()) {
+            const auto chi = EulerCharacteristic(surface, edgeTable);
+            cout << "  Demigenus            = " << 2 - chi << "\n";
+          } else {
+            cout << "  Demigenus            = NA\n";
+          }
         }
       } break;
 
