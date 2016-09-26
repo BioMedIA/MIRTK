@@ -53,7 +53,8 @@ void PrintHelp(const char *name)
   cout << "Arguments:" << endl;
   cout << "  input    Input image. Multiple channels/frames are smoothed independently." << endl;
   cout << "  output   Blurred output image." << endl;
-  cout << "  sigma    Standard deviation of Gaussian smoothing kernel. (default: 1)" << endl;
+  cout << "  sigma    Standard deviation of Gaussian smoothing kernel. When negative, its" << endl;
+  cout << "           absolute value is multiplied by the average voxel size. (default: 1)" << endl;
   cout << endl;
   cout << "Options:" << endl;
   cout << "  -3D      Blur image in all spatial directions. (default)" << endl;
@@ -105,8 +106,8 @@ int main(int argc, char *argv[])
     else HANDLE_COMMON_OPTION();
   }
 
-  if (sigma <= .0) {
-    FatalError("Sigma value must be positive!");
+  if (sigma == 0.) {
+    FatalError("Sigma value cannot be zero!");
   }
 
   // Read image
@@ -117,31 +118,35 @@ int main(int argc, char *argv[])
   for (ALL_OPTIONS) {
     if (OPTION("-3D")) {
       default_blurring = false;
-      GaussianBlurring<RealPixel> blur(sigma);
+      GaussianBlurring<RealPixel> blur(
+        sigma < 0. ? abs(sigma) * (input.XSize() + input.YSize() + input.ZSize()) / 3. : sigma
+      );
       blur.Input (&input);
       blur.Output(&input);
       blur.Run();
     } else if (OPTION("-4D")) {
       default_blurring = false;
-      GaussianBlurring4D<RealPixel> blur(sigma);
+      GaussianBlurring<RealPixel> blur(
+        sigma < 0. ? abs(sigma) * (input.XSize() + input.YSize() + input.ZSize() + input.TSize()) / 4. : sigma
+      );
       blur.Input (&input);
       blur.Output(&input);
       blur.Run();
     } else if (OPTION("-x") || OPTION("-X")) {
       default_blurring = false;
-      GaussianBlurring<RealPixel> blur(sigma);
+      GaussianBlurring<RealPixel> blur(sigma < 0. ? abs(sigma) * input.XSize() : sigma);
       blur.Input (&input);
       blur.Output(&input);
       blur.RunX();
     } else if (OPTION("-y") || OPTION("-Y")) {
       default_blurring = false;
-      GaussianBlurring<RealPixel> blur(sigma);
+      GaussianBlurring<RealPixel> blur(sigma < 0. ? abs(sigma) * input.YSize() : sigma);
       blur.Input (&input);
       blur.Output(&input);
       blur.RunY();
     } else if (OPTION("-z") || OPTION("-Z")) {
       default_blurring = false;
-      GaussianBlurring<RealPixel> blur(sigma);
+      GaussianBlurring<RealPixel> blur(sigma < 0. ? abs(sigma) * input.ZSize() : sigma);
       blur.Input (&input);
       blur.Output(&input);
       blur.RunZ();
@@ -152,7 +157,9 @@ int main(int argc, char *argv[])
 
   // Default blurring if no blurring option given
   if (default_blurring) {
-    GaussianBlurring<RealPixel> blur(sigma);
+    GaussianBlurring<RealPixel> blur(
+      sigma < 0. ? abs(sigma) * (input.XSize() + input.YSize() + input.ZSize()) / 3. : sigma
+    );
     blur.Input (&input);
     blur.Output(&input);
     blur.Run();
