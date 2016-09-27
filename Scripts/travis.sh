@@ -3,7 +3,7 @@ set -e
 
 norm_option_value()
 {
-  if [ $1 = on ] || [ $1 = yes ] || [ $1 = YES ] || [ $1 = y ] || [ $1 = Y ] || [ $1 = 1 ]; then
+  if [ $1 = on ] || [ $1 = ON ] || [ $1 = yes ] || [ $1 = YES ] || [ $1 = y ] || [ $1 = Y ] || [ $1 = 1 ]; then
     echo ON
   else
     echo OFF
