@@ -70,6 +70,7 @@ if (MIRTK_PointSet_FOUND)
       vtkCommonCore
       vtkCommonDataModel
       vtkFiltersCore
+      vtkFiltersExtraction
       vtkFiltersFlowPaths
       vtkFiltersGeometry
       vtkFiltersGeneral

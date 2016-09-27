@@ -188,6 +188,7 @@ if (MIRTK_PointSet_FOUND)
   if (MIRTK_Image_FOUND)
 
     add_pointset_command(convert-pointset)
+    add_pointset_command(extract-pointset-cells)
     add_pointset_command(extract-pointset-surface)
     add_pointset_command(extract-surface)
     add_pointset_command(merge-surfaces)

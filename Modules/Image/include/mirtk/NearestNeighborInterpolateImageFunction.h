@@ -17,8 +17,8 @@
  * limitations under the License.
  */
 
-#ifndef MIRTK_NearestNeighorInterpolateImageFunction_H
-#define MIRTK_NearestNeighorInterpolateImageFunction_H
+#ifndef MIRTK_NearestNeighborInterpolateImageFunction_H
+#define MIRTK_NearestNeighborInterpolateImageFunction_H
 
 #include "mirtk/InterpolateImageFunction.h"
 
