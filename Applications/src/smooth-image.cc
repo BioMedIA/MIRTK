@@ -73,6 +73,26 @@ void PrintHelp(const char *name)
 // =============================================================================
 
 // -----------------------------------------------------------------------------
+void ParseSigma(const string &arg, double &sigma)
+{
+  string value;
+  string units = ValueUnits(arg, &value, "signed");
+  if (!FromString(value, sigma)) {
+    FatalError("Invalid sigma value argument: " << value);
+  }
+  if (units != "signed") {
+    if (sigma < 0.) {
+      FatalError("Sigma value cannot be negative when units are specified");
+    }
+    if (units == "vox") {
+      sigma = -sigma;
+    } else if (units != "mm") {
+      FatalError("Invalid sigma value units: " << units);
+    }
+  }
+}
+
+// -----------------------------------------------------------------------------
 int main(int argc, char *argv[])
 {
   // Parse positional arguments
@@ -83,9 +103,7 @@ int main(int argc, char *argv[])
   double      sigma       = 1.0;
 
   if (NUM_POSARGS == 3) {
-    if (!FromString(POSARG(3), sigma)) {
-      FatalError("Invalid sigma value given as third argument");
-    }
+    ParseSigma(string(POSARG(3)), sigma);
   } else if (NUM_POSARGS > 3) {
     PrintHelp(EXECNAME);
     cout << endl;
@@ -151,7 +169,8 @@ int main(int argc, char *argv[])
       blur.Output(&input);
       blur.RunZ();
     } else if (OPTION("-sigma")) {
-      PARSE_ARGUMENT(sigma); // change sigma for next blur operation
+      // change sigma for next blur operation
+      ParseSigma(string(ARGUMENT), sigma);
     } else HANDLE_UNKNOWN_OPTION();
   }
 
