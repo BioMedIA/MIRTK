@@ -53,7 +53,8 @@ void PrintHelp(const char *name)
   cout << "Arguments:" << endl;
   cout << "  input    Input image. Multiple channels/frames are smoothed independently." << endl;
   cout << "  output   Blurred output image." << endl;
-  cout << "  sigma    Standard deviation of Gaussian smoothing kernel. (default: 1)" << endl;
+  cout << "  sigma    Standard deviation of Gaussian smoothing kernel. When negative, its" << endl;
+  cout << "           absolute value is multiplied by the average voxel size. (default: 1)" << endl;
   cout << endl;
   cout << "Options:" << endl;
   cout << "  -3D      Blur image in all spatial directions. (default)" << endl;
@@ -72,6 +73,26 @@ void PrintHelp(const char *name)
 // =============================================================================
 
 // -----------------------------------------------------------------------------
+void ParseSigma(const string &arg, double &sigma)
+{
+  string value;
+  string units = ValueUnits(arg, &value, "signed");
+  if (!FromString(value, sigma)) {
+    FatalError("Invalid sigma value argument: " << value);
+  }
+  if (units != "signed") {
+    if (sigma < 0.) {
+      FatalError("Sigma value cannot be negative when units are specified");
+    }
+    if (units == "vox") {
+      sigma = -sigma;
+    } else if (units != "mm") {
+      FatalError("Invalid sigma value units: " << units);
+    }
+  }
+}
+
+// -----------------------------------------------------------------------------
 int main(int argc, char *argv[])
 {
   // Parse positional arguments
@@ -82,9 +103,7 @@ int main(int argc, char *argv[])
   double      sigma       = 1.0;
 
   if (NUM_POSARGS == 3) {
-    if (!FromString(POSARG(3), sigma)) {
-      FatalError("Invalid sigma value given as third argument");
-    }
+    ParseSigma(string(POSARG(3)), sigma);
   } else if (NUM_POSARGS > 3) {
     PrintHelp(EXECNAME);
     cout << endl;
@@ -105,8 +124,8 @@ int main(int argc, char *argv[])
     else HANDLE_COMMON_OPTION();
   }
 
-  if (sigma <= .0) {
-    FatalError("Sigma value must be positive!");
+  if (sigma == 0.) {
+    FatalError("Sigma value cannot be zero!");
   }
 
   // Read image
@@ -117,42 +136,49 @@ int main(int argc, char *argv[])
   for (ALL_OPTIONS) {
     if (OPTION("-3D")) {
       default_blurring = false;
-      GaussianBlurring<RealPixel> blur(sigma);
+      GaussianBlurring<RealPixel> blur(
+        sigma < 0. ? abs(sigma) * (input.XSize() + input.YSize() + input.ZSize()) / 3. : sigma
+      );
       blur.Input (&input);
       blur.Output(&input);
       blur.Run();
     } else if (OPTION("-4D")) {
       default_blurring = false;
-      GaussianBlurring4D<RealPixel> blur(sigma);
+      GaussianBlurring<RealPixel> blur(
+        sigma < 0. ? abs(sigma) * (input.XSize() + input.YSize() + input.ZSize() + input.TSize()) / 4. : sigma
+      );
       blur.Input (&input);
       blur.Output(&input);
       blur.Run();
     } else if (OPTION("-x") || OPTION("-X")) {
       default_blurring = false;
-      GaussianBlurring<RealPixel> blur(sigma);
+      GaussianBlurring<RealPixel> blur(sigma < 0. ? abs(sigma) * input.XSize() : sigma);
       blur.Input (&input);
       blur.Output(&input);
       blur.RunX();
     } else if (OPTION("-y") || OPTION("-Y")) {
       default_blurring = false;
-      GaussianBlurring<RealPixel> blur(sigma);
+      GaussianBlurring<RealPixel> blur(sigma < 0. ? abs(sigma) * input.YSize() : sigma);
       blur.Input (&input);
       blur.Output(&input);
       blur.RunY();
     } else if (OPTION("-z") || OPTION("-Z")) {
       default_blurring = false;
-      GaussianBlurring<RealPixel> blur(sigma);
+      GaussianBlurring<RealPixel> blur(sigma < 0. ? abs(sigma) * input.ZSize() : sigma);
       blur.Input (&input);
       blur.Output(&input);
       blur.RunZ();
     } else if (OPTION("-sigma")) {
-      PARSE_ARGUMENT(sigma); // change sigma for next blur operation
+      // change sigma for next blur operation
+      ParseSigma(string(ARGUMENT), sigma);
     } else HANDLE_UNKNOWN_OPTION();
   }
 
   // Default blurring if no blurring option given
   if (default_blurring) {
-    GaussianBlurring<RealPixel> blur(sigma);
+    GaussianBlurring<RealPixel> blur(
+      sigma < 0. ? abs(sigma) * (input.XSize() + input.YSize() + input.ZSize()) / 3. : sigma
+    );
     blur.Input (&input);
     blur.Output(&input);
     blur.Run();
