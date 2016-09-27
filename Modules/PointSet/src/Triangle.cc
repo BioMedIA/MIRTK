@@ -204,48 +204,12 @@ bool Triangle
 ::TriangleTriangleIntersection(const double a1[3], const double b1[3], const double c1[3],
                                const double a2[3], const double b2[3], const double c2[3])
 {
-  if (tri_tri_overlap_test_3d(const_cast<double *>(a1),
-                              const_cast<double *>(b1),
-                              const_cast<double *>(c1),
-                              const_cast<double *>(a2),
-                              const_cast<double *>(b2),
-                              const_cast<double *>(c2)) != 0) {
-    // FIXME: Yields on occassion false positive intersection tests of nearby,
-    //        but not even close to intersecting triangles. The following
-    //        additional checks are thus done for the moment...
-    #if 1
-    {
-      double p1[3], p2[3];
-      double d  = Triangle::DistanceBetweenCenters(a1, b1, c1, a2, b2, c2, p1, p2);
-      double r1 = sqrt(max(max(vtkMath::Distance2BetweenPoints(a1, p1),
-                               vtkMath::Distance2BetweenPoints(b1, p1)),
-                               vtkMath::Distance2BetweenPoints(c1, p1)));
-      double r2 = sqrt(max(max(vtkMath::Distance2BetweenPoints(a2, p2),
-                               vtkMath::Distance2BetweenPoints(b2, p2)),
-                               vtkMath::Distance2BetweenPoints(c2, p2)));
-      if (d > r1 + r2) return false;
-    }
-    #endif
-    #if 1
-    {
-      double n1[3], n2[3];
-      Normal(a1, b1, c1, n1);
-      Normal(a2, b2, c2, n2);
-      if (distance_between_triangles(const_cast<double *>(a1),
-                                     const_cast<double *>(b1),
-                                     const_cast<double *>(c1),
-                                     const_cast<double *>(n1),
-                                     const_cast<double *>(a2),
-                                     const_cast<double *>(b2),
-                                     const_cast<double *>(c2),
-                                     const_cast<double *>(n2)) > 1e-3) {
-        return false;
-      }
-    }
-    #endif
-    return true;
-  }
-  return false;
+  return (0 != tri_tri_overlap_test_3d(const_cast<double *>(a1),
+                                       const_cast<double *>(b1),
+                                       const_cast<double *>(c1),
+                                       const_cast<double *>(a2),
+                                       const_cast<double *>(b2),
+                                       const_cast<double *>(c2)));
 }
 
 
