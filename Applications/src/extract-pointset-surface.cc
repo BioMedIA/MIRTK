@@ -94,6 +94,8 @@ void PrintHelp(const char *name)
   cout << "                         maximum integer value of the input data array. This is useful when" << endl;
   cout << "                         successively merging surface meshes instead of with a single execution" << endl;
   cout << "                         of this command. (default: none)" << endl;
+  cout << "  -merge [<float>]       Merge points closer than the specified distance, default is 1e-6. (default: off)" << endl;
+  cout << "  -tolerance <float>     Distance tolerance value to use for boolean operations. (default: 1e-6)" << endl;
   cout << "  -fill-holes [<size>]   Fill holes of given maximum size (i.e., circumsphere radius)." << endl;
   cout << "  -largest [<n>]         Output largest n (default 1 if not specified) components." << endl;
   cout << "  -insphere              Output sphere which is inscribed the surface mesh." << endl;
@@ -106,82 +108,6 @@ void PrintHelp(const char *name)
   cout << "                         (default: fraction of length of bounding box diagonal)" << endl;
   PrintStandardOptions(cout);
   cout << endl;
-}
-
-// =============================================================================
-// Auxiliaries
-// =============================================================================
-
-// -----------------------------------------------------------------------------
-/// Join intersected components at the intersection boundary
-void JoinIntersectionBoundaries(vtkPolyData *surface, vtkPolyData *intersection, double tolerance)
-{
-  if (intersection->GetNumberOfCells() == 0) return;
-
-  vtkSmartPointer<vtkPolygon> polygon   = vtkSmartPointer<vtkPolygon>::New();
-  vtkSmartPointer<vtkIdList>  triangles = vtkSmartPointer<vtkIdList>::New();
-  polygon->Points->SetDataTypeToDouble();
-  polygon->Points->Allocate(10);
-  polygon->PointIds->Allocate(10);
-
-  vtkCellArray * const polys = surface->GetPolys();
-
-  SurfaceBoundary boundary(surface);
-  if (boundary.NumberOfSegments() < 2) return;
-
-  double p[3];
-  intersection->GetPoint(0, p);
-  const Point x(p);
-
-  Array<int>    min_point(boundary.NumberOfSegments(), -1);
-  Array<double> min_dist2(boundary.NumberOfSegments(), inf);
-  for (int j = 0; j < boundary.NumberOfSegments(); ++j) {
-    min_point[j] = boundary.Segment(j).FindClosestPoint(x, &min_dist2[j]);
-  }
-  const auto &order = IncreasingOrder(min_dist2);
-  if (min_dist2[order[1]] > 4. * tolerance * tolerance) return;
-
-  const auto &seg1 = boundary.Segment(order[0]);
-  const auto &seg2 = boundary.Segment(order[1]);
-
-  // Traverse boundary segment backwards to be consistent with node order
-  // of boundary cells, i.e., surface mesh orientation
-  int i1 = seg1.NumberOfPoints();
-  int j1 = seg2.FindClosestPoint(seg1.Point(i1));
-  for (int i2, j2; i1 > 0; --i1) {
-    polygon->Points->Reset();
-    polygon->PointIds->Reset();
-    i2 = i1 - 1;
-    for (int i = i1; i >= i2; --i) {
-      seg1.GetPoint(i, p);
-      polygon->Points->InsertNextPoint(p);
-      polygon->PointIds->InsertNextId(seg1.PointId(i));
-    }
-    j2 = seg2.FindClosestPoint(seg1.Point(i2));
-    if (j1 > j2) j2 += seg2.NumberOfPoints();
-    if ((j2 - j1) < seg2.NumberOfPoints() - (j2 - j1)) {
-      for (int j = j2; j >= j1; --j) {
-        seg2.GetPoint(j, p);
-        polygon->Points->InsertNextPoint(p);
-        polygon->PointIds->InsertNextId(seg2.PointId(j));
-      }
-    } else {
-      j1 += seg2.NumberOfPoints();
-      for (int j = j2; j <= j1; ++j) {
-        seg2.GetPoint(j, p);
-        polygon->Points->InsertNextPoint(p);
-        polygon->PointIds->InsertNextId(seg2.PointId(j));
-      }
-    }
-    j1 = seg2.IndexModuloNumberOfPoints(j2);
-    polygon->NonDegenerateTriangulate(triangles);
-    for (vtkIdType n = 0; n < triangles->GetNumberOfIds(); n += 3) {
-      polys->InsertNextCell(3);
-      polys->InsertCellPoint(polygon->PointIds->GetId(triangles->GetId(n)));
-      polys->InsertCellPoint(polygon->PointIds->GetId(triangles->GetId(n+1)));
-      polys->InsertCellPoint(polygon->PointIds->GetId(triangles->GetId(n+2)));
-    }
-  }
 }
 
 // =============================================================================
@@ -339,7 +265,9 @@ int main(int argc, char *argv[])
 
   for (ALL_OPTIONS) {
     if (OPTION("-i") || OPTION("-input")) {
-      input_names.push_back(ARGUMENT);
+      do {
+        input_names.push_back(ARGUMENT);
+      } while (HAS_ARGUMENT);
     }
     else if (OPTION("-o") || OPTION("-output") || OPTION("-surface")) {
       if (output_name) input_names.push_back(output_name);
@@ -358,6 +286,9 @@ int main(int argc, char *argv[])
     else if (OPTION("-merge")) {
       if (HAS_ARGUMENT) PARSE_ARGUMENT(merge_points_tol);
       else merge_points_tol = 1e-6;
+    }
+    else if (OPTION("-nomerge")) {
+      merge_points_tol = -1.;
     }
     else if (OPTION("-remove-shocks") || OPTION("-removeshocks")) {
       shock_dmap_name = nullptr;
@@ -462,7 +393,6 @@ int main(int argc, char *argv[])
     surface->GetCellData ()->RemoveArray("CellSource");
     surface->GetPointData()->RemoveArray("Distance");
     surface->GetCellData ()->RemoveArray("Distance");
-    JoinIntersectionBoundaries(surface, joiner->GetOutput(1), tolerance);
 
     vtkNew<vtkCleanPolyData> cleaner;
     cleaner->ConvertPolysToLinesOff();
