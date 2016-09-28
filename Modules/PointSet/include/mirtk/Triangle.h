@@ -41,8 +41,18 @@ public:
   /// \param[in]  a      Position of triangle vertex A.
   /// \param[in]  b      Position of triangle vertex B.
   /// \param[in]  c      Position of triangle vertex C.
-  /// \param[out] center Positoin of triangle center.
+  /// \param[out] center Position of triangle center.
   static void Center(const double a[3], const double b[3], const double c[3], double center[3]);
+
+  /// Compute center point of triangle
+  ///
+  /// \param[in]  a      Position of triangle vertex A.
+  /// \param[in]  b      Position of triangle vertex B.
+  /// \param[in]  c      Position of triangle vertex C.
+  /// \param[out] center Position of triangle center.
+  ///
+  /// \returns Radius of bounding sphere with optionally returned \p center point.
+  static double BoundingSphereRadius(const double a[3], const double b[3], const double c[3], double *center = nullptr);
 
   /// Compute normal direction of triangle
   ///
@@ -245,6 +255,17 @@ inline void Triangle::Center(const double a[3], const double b[3], const double 
   center[0] = (a[0] + b[0] + c[0]) / 3.0;
   center[1] = (a[1] + b[1] + c[1]) / 3.0;
   center[2] = (a[2] + b[2] + c[2]) / 3.0;
+}
+
+//----------------------------------------------------------------------------
+inline double Triangle::BoundingSphereRadius(const double a[3], const double b[3], const double c[3], double *center)
+{
+  double p[3];
+  Center(a, b, c, p);
+  if (center) memcpy(center, p, 3 * sizeof(double));
+  return sqrt(max(max(vtkMath::Distance2BetweenPoints(a, p),
+                      vtkMath::Distance2BetweenPoints(b, p)),
+                      vtkMath::Distance2BetweenPoints(c, p)));
 }
 
 // =============================================================================
