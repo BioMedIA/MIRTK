@@ -1,8 +1,8 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2013-2015 Imperial College London
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2013-2016 Imperial College London
+ * Copyright 2013-2016 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -301,7 +301,6 @@ void GenericRegistrationLogger::HandleEvent(Observable *obj, Event event, const 
       }
       _NumberOfIterations = 0;
       _NumberOfSteps      = 0;
-      _Converged          = false;
       break;
     }
 
@@ -310,10 +309,6 @@ void GenericRegistrationLogger::HandleEvent(Observable *obj, Event event, const 
         if (debug_time) os << "\nStep " << left << setw(3) << iter->Count() << "\n";
         else            os <<   "     " << setw(3) << iter->Count() << "   ";
       }
-      // If this event is followed by LineSearchEndEvent without a
-      // LineSearchIterationEndEvent before, one of the convergence
-      // criteria must have been fullfilled
-      _Converged = true;
       break;
 
     case AcceptedStepEvent:
@@ -342,7 +337,6 @@ void GenericRegistrationLogger::HandleEvent(Observable *obj, Event event, const 
         os << "\n              Maximum number of iterations exceeded\n";
         if (_Color) os << xreset;
       }
-      _Converged = false;
       break;
     }
 
@@ -386,7 +380,8 @@ void GenericRegistrationLogger::HandleEvent(Observable *obj, Event event, const 
 
     // End of optimization, but before GenericRegistrationFilter::Finalize
     case EndEvent: {
-      HomogeneousTransformation *lin = dynamic_cast<HomogeneousTransformation *>(reg->_Transformation);
+      HomogeneousTransformation *lin;
+      lin = dynamic_cast<HomogeneousTransformation *>(reg->_Transformation);
       if (lin) {
         bool print_params;
         if (_Verbosity > 0) {
