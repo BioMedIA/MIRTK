@@ -234,6 +234,9 @@ private:
   /// Whether to store detailed information about found collisions
   mirtkPublicAttributeMacro(bool, StoreCollisionDetails);
 
+  /// Whether to clear collision type for unchecked triangles (cf. _Mask)
+  mirtkPublicAttributeMacro(bool, ResetCollisionType);
+
   /// Found self-intersections per face
   /// \note Only non-empty after Run when _StoreIntersectionDetails is \c true.
   mirtkReadOnlyAttributeMacro(IntersectionsArray, Intersections);
@@ -336,6 +339,9 @@ public:
 
   /// Enable/disable storage of details about found intersections
   mirtkOnOffMacro(StoreCollisionDetails);
+
+  /// Enable/disable resetting of optional input collision type array
+  mirtkOnOffMacro(ResetCollisionType);
 
 };
 

@@ -425,6 +425,7 @@ void SurfaceCollisions::CopyAttributes(const SurfaceCollisions &other)
   _FastCollisionTest           = other._FastCollisionTest;
   _StoreIntersectionDetails    = other._StoreIntersectionDetails;
   _StoreCollisionDetails       = other._StoreCollisionDetails;
+  _ResetCollisionType          = other._ResetCollisionType;
   _Intersections               = other._Intersections;
   _Collisions                  = other._Collisions;
 }
@@ -444,7 +445,8 @@ SurfaceCollisions::SurfaceCollisions()
   _BackfaceCollisionTest(false),
   _FastCollisionTest(false),
   _StoreIntersectionDetails(true),
-  _StoreCollisionDetails(true)
+  _StoreCollisionDetails(true),
+  _ResetCollisionType(true)
 {
 }
 
@@ -557,6 +559,7 @@ void SurfaceCollisions::Initialize()
 
   // Precompute bounding spheres and prepare auxiliary data arrays
   bool compute_bounding_spheres = !_UseInputBoundingSpheres;
+  bool reset_collision_types    = _ResetCollisionType;
   vtkSmartPointer<vtkDataArray> center, radius, types;
   center = _Output->GetCellData()->GetArray("BoundingSphereCenter");
   radius = _Output->GetCellData()->GetArray("BoundingSphereRadius");
@@ -583,8 +586,11 @@ void SurfaceCollisions::Initialize()
     types->SetNumberOfComponents(1);
     types->SetNumberOfTuples(_Output->GetNumberOfCells());
     types->SetName("CollisionType");
-    types->FillComponent(0, static_cast<double>(NoCollision));
     _Output->GetCellData()->AddArray(types);
+    reset_collision_types = true;
+  }
+  if (reset_collision_types) {
+    types->FillComponent(0, static_cast<double>(NoCollision));
   }
 
   if (_StoreIntersectionDetails && (_AdjacentIntersectionTest || _NonAdjacentIntersectionTest)) {
