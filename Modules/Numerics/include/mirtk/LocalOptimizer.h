@@ -49,7 +49,7 @@ class LocalOptimizer : public Observable
   /// Objective function
   mirtkPublicAggregateMacro(ObjectiveFunction, Function);
 
-  /// Maximum number of gradient steps
+  /// Maximum number of iterative steps
   mirtkPublicAttributeMacro(int, NumberOfSteps);
 
   /// First convergence criterium: Required minimum change of objective function
@@ -57,6 +57,9 @@ class LocalOptimizer : public Observable
 
   /// Second convergence criterium: Required maximum change of DoFs
   mirtkPublicAttributeMacro(double, Delta);
+
+  /// Whether optimization converged within maximum number of steps
+  mirtkReadOnlyAttributeMacro(bool, Converged);
 
   /// List of stopping criteria
   Array<class StoppingCriterion *> _StoppingCriteria;
