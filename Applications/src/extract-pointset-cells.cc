@@ -20,6 +20,8 @@
 #include "mirtk/Common.h"
 #include "mirtk/Options.h"
 
+#include "mirtk/UnorderedSet.h"
+#include "mirtk/Algorithm.h"
 #include "mirtk/PointSetIO.h"
 #include "mirtk/PointSetUtils.h"
 
@@ -86,7 +88,7 @@ public:
   virtual ~DataSelector() {};
 
   /// Run selection query and return IDs of selected data points
-  virtual vtkSmartPointer<vtkIdList> Evaluate(const Array<double> &values) const = 0;
+  virtual UnorderedSet<int> Evaluate(const Array<double> &values) const = 0;
 };
 
 // -----------------------------------------------------------------------------
@@ -128,15 +130,14 @@ class LogicalAnd : public LogicalOperator
 public:
 
   /// Run selection query and return IDs of selected data points
-  virtual vtkSmartPointer<vtkIdList> Evaluate(const Array<double> &values) const
+  virtual UnorderedSet<int> Evaluate(const Array<double> &values) const
   {
-    vtkSmartPointer<vtkIdList> cellIds = vtkSmartPointer<vtkIdList>::New();
-    cellIds->Allocate(static_cast<vtkIdType>(values.size()) * static_cast<vtkIdType>(NumberOfCriteria()));
-    for (auto criterium : _Criteria) {
-      auto ids = criterium->Evaluate(values);
-      cellIds->IntersectWith(ids.GetPointer());
+    if (_Criteria.empty()) return UnorderedSet<int>();
+    auto criterium = _Criteria.begin();
+    auto cellIds   = (*criterium)->Evaluate(values);
+    while (++criterium != _Criteria.end()) {
+      cellIds = Intersection(cellIds, (*criterium)->Evaluate(values));
     }
-    cellIds->Squeeze();
     return cellIds;
   }
 };
@@ -148,20 +149,14 @@ class LogicalOr : public LogicalOperator
 public:
 
   /// Run selection query and return IDs of selected data points
-  virtual vtkSmartPointer<vtkIdList> Evaluate(const Array<double> &values) const
+  virtual UnorderedSet<int> Evaluate(const Array<double> &values) const
   {
-    UnorderedSet<vtkIdType> set_of_ids;
+    UnorderedSet<int> cellIds;
     for (auto criterium : _Criteria) {
       auto ids = criterium->Evaluate(values);
-      for (vtkIdType i = 0; i < ids->GetNumberOfIds(); ++i) {
-        // Note: vtkIdList::InsertUniqueId is very inefficient
-        set_of_ids.insert(ids->GetId(i));
+      for (auto cellId : ids) {
+        cellIds.insert(cellId);
       }
-    }
-    vtkSmartPointer<vtkIdList> cellIds = vtkSmartPointer<vtkIdList>::New();
-    cellIds->Allocate(static_cast<vtkIdType>(set_of_ids.size()));
-    for (vtkIdType cellId : set_of_ids) {
-      cellIds->InsertNextId(cellId);
     }
     return cellIds;
   }
@@ -173,17 +168,16 @@ class DataCriterium : public DataSelector
 public:
 
   /// Run selection query and return IDs of selected data points
-  virtual vtkSmartPointer<vtkIdList> Evaluate(const Array<double> &values) const
+  virtual UnorderedSet<int> Evaluate(const Array<double> &values) const
   {
-    vtkSmartPointer<vtkIdList> cellIds = vtkSmartPointer<vtkIdList>::New();
-    const vtkIdType n = static_cast<int>(values.size());
-    cellIds->Allocate(n);
-    for (vtkIdType cellId = 0; cellId < n; ++cellId) {
+    UnorderedSet<int> cellIds;
+    cellIds.reserve(values.size());
+    const int n = static_cast<int>(values.size());
+    for (int cellId = 0; cellId < n; ++cellId) {
       if (this->Select(values[cellId])) {
-        cellIds->InsertNextId(cellId);
+        cellIds.insert(cellId);
       }
     }
-    cellIds->Squeeze();
     return cellIds;
   }
 
@@ -408,7 +402,12 @@ int main(int argc, char *argv[])
     }
   }
 
-  vtkSmartPointer<vtkIdList> cellIds = selector->Evaluate(values);
+  auto selection = selector->Evaluate(values);
+  vtkNew<vtkIdList> cellIds;
+  cellIds->Allocate(static_cast<vtkIdType>(selection.size()));
+  for (auto cellId : selection) {
+    cellIds->InsertNextId(static_cast<vtkIdType>(cellId));
+  }
 
   vtkNew<vtkExtractCells> extractor;
   SetVTKInput(extractor, input);
