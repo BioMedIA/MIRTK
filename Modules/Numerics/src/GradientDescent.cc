@@ -262,7 +262,8 @@ double GradientDescent::Run()
     const int iter = step.Iter();
 
     // Descent along computed gradient
-    while (step.Next()) {
+    _Converged = false;
+    while (!_Converged && step.Next()) {
 
       // Notify observers about start of gradient descent iteration
       Broadcast(IterationStartEvent, &step);
@@ -295,13 +296,13 @@ double GradientDescent::Run()
       // Perform line search along computed gradient direction
       value = _LineSearch->Run();
 
-      // Check convergence
-      if (value == _LineSearch->CurrentValue()) break;
-      if (Converged(step.Iter(), _LineSearch->CurrentValue(), value, _Gradient)) break;
-
       // Adjust epsilon if relative to current best value, i.e.,
       // epsilon parameter is set to a negative value
       if (_Epsilon < .0) _LineSearch->Epsilon(abs(_Epsilon * value));
+
+      // Check convergence
+      _Converged = (value == _LineSearch->CurrentValue())
+          || Converged(step.Iter(), _LineSearch->CurrentValue(), value, _Gradient);
 
       // Notify observers about end of gradient descent iteration
       Broadcast(IterationEndEvent, &step);

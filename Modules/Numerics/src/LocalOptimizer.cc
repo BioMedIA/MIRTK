@@ -64,7 +64,8 @@ LocalOptimizer::LocalOptimizer(ObjectiveFunction *f)
   _Function(f),
   _NumberOfSteps(100),
   _Epsilon(1e-4),
-  _Delta(1e-12)
+  _Delta(1e-12),
+  _Converged(false)
 {
 }
 
@@ -75,6 +76,7 @@ void LocalOptimizer::CopyAttributes(const LocalOptimizer &other)
   _NumberOfSteps = other._NumberOfSteps;
   _Epsilon       = other._Epsilon;
   _Delta         = other._Delta;
+  _Converged     = other._Converged;
 
   ClearStoppingCriteria();
   for (int i = 0; i < other.NumberOfStoppingCriteria(); ++i) {
@@ -126,6 +128,7 @@ void LocalOptimizer::Initialize()
     criterion->Function(_Function);
     criterion->Initialize();
   }
+  _Converged = false;
 }
 
 // =============================================================================
