@@ -1,8 +1,8 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2013-2015 Imperial College London
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2013-2016 Imperial College London
+ * Copyright 2013-2016 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -48,10 +48,9 @@ class GenericRegistrationLogger : public Observer
   /// Whether to flush stream buffer after each printed message
   mirtkPublicAttributeMacro(bool, FlushBuffer);
 
-  bool _Converged;             ///< Track whether line search converged
-  int  _NumberOfIterations;    ///< Number of actual line search iterations
-  int  _NumberOfSteps;         ///< Number of iterative line search steps
-  int  _NumberOfGradientSteps; ///< Number of gradient descent steps
+  int _NumberOfIterations;    ///< Number of actual line search iterations
+  int _NumberOfSteps;         ///< Number of iterative line search steps
+  int _NumberOfGradientSteps; ///< Number of gradient descent steps
 
   // ---------------------------------------------------------------------------
   // Construction/Destruction
