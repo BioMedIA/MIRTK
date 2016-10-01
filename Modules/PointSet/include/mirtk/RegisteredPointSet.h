@@ -351,6 +351,9 @@ public:
   /// (cf. BuildNeighborhoodTables).
   const NodeNeighbors *Neighbors(int = -1) const;
 
+  /// Get initial point status array if any
+  vtkDataArray *InitialStatus() const;
+
   /// Get point status array if any
   vtkDataArray *Status() const;
 
@@ -408,6 +411,9 @@ public:
   /// with a neighborhood radius greater or equal the requested minimum radius
   /// (cf. BuildNeighborhoodTables).
   const NodeNeighbors *SurfaceNeighbors(int = -1) const;
+
+  /// Get point status array if any
+  vtkDataArray *InitialSurfaceStatus() const;
 
   /// Get point status array if any
   vtkDataArray *SurfaceStatus() const;
