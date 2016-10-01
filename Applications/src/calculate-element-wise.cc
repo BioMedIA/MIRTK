@@ -172,6 +172,10 @@ void PrintHelp(const char *name)
   cout << "      Clamp values greater than a given percentile.\n";
   cout << "  -rescale <min> <max>\n";
   cout << "      Linearly rescale values to the interval [min, max].\n";
+  cout << "  -map <from> <to>...\n";
+  cout << "      Replaces values equal to <from> by the specified <to> value. Multiple pairs of <from>\n";
+  cout << "      and <to> value replacements can be specified in order to perform the substitutions in\n";
+  cout << "      one step. For example, to swap the two values 1 and 2, use ``-map 1 2 2 1``.\n";
   cout << "\n";
   cout << "Arithmetic operation options:\n";
   cout << "  -add, -plus <value> | <file> [<scalars>]\n";
@@ -629,6 +633,17 @@ int main(int argc, char **argv)
       if (HAS_ARGUMENT) PARSE_ARGUMENT(b);
       else b = inf;
       ops.push_back(UniquePtr<Op>(new Binarize(a, b)));
+    } else if (OPTION("-map")) {
+      UniquePtr<Map> map(new Map());
+      do {
+        const char * const arg1 = ARGUMENT;
+        const char * const arg2 = ARGUMENT;
+        if (!FromString(arg1, a) || !FromString(arg2, b)) {
+          FatalError("Arguments of -map option must be pairs of two numbers (i.e., number of arguments must be even)!");
+        }
+        map->Insert(a, b);
+      } while (HAS_ARGUMENT);
+      ops.push_back(UniquePtr<Op>(map.release()));
     } else if (OPTION("-add") || OPTION("-plus") || OPTION("+")) {
       const char *arg = ARGUMENT;
       double c;

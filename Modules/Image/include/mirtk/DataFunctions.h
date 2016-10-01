@@ -595,6 +595,42 @@ public:
 };
 
 // -----------------------------------------------------------------------------
+/// Map values (e.g. segmentation labels)
+class Map : public ElementWiseUnaryOp
+{
+  typedef UnorderedMap<double, double> ValueMapType;
+
+  /// Map of values
+  mirtkAttributeMacro(ValueMapType, ValueMap);
+
+public:
+
+  /// Insert map from a to b
+  void Insert(double a, double b)
+  {
+    _ValueMap[a] = b;
+  }
+
+  /// Transform data value and/or mask data value by setting *mask = false
+  virtual double Op(double value, bool &) const
+  {
+    auto it = _ValueMap.find(value);
+    if (it != _ValueMap.end()) {
+      return it->second;
+    } else {
+      return value;
+    }
+  }
+
+  /// Process given data (not thread-safe!)
+  virtual void Process(int n, double *data, bool *mask = NULL)
+  {
+    ElementWiseUnaryOp::Process(n, data, mask);
+    parallel_for(blocked_range<int>(0, n), *this);
+  }
+};
+
+// -----------------------------------------------------------------------------
 /// Mask values
 class Mask : public ElementWiseBinaryOp
 {
