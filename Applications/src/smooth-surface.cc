@@ -29,6 +29,7 @@
 #include "mirtk/MeshSmoothing.h"
 #include "mirtk/SurfaceCurvature.h"
 #include "mirtk/PointSetIO.h"
+#include "mirtk/PointSetUtils.h"
 
 #include "mirtk/Vtk.h"
 #include "mirtk/VtkMath.h"
@@ -247,7 +248,7 @@ double meanRadius(vtkPolyData* input, double*cog)
 }
 
 // -----------------------------------------------------------------------------
-void AreaWeightedLaplacianSmoothing(vtkPolyData *input,
+void AreaWeightedLaplacianSmoothing(vtkPolyData *input, vtkDataArray *mask,
                                     int    noOfIterations,
                                     double lambda, double mu,
                                     double smoothnessThreshold = -1.0,
@@ -276,20 +277,23 @@ void AreaWeightedLaplacianSmoothing(vtkPolyData *input,
   double shift[3];
   double scaleFactor;
 
-  int noOfPoints = input->GetNumberOfPoints();
-  vtkDataArray *normals = input->GetPointData()->GetNormals();
+  const int noOfPoints = static_cast<int>(input->GetNumberOfPoints());
+  vtkDataArray * const normals = input->GetPointData()->GetNormals();
 
   // Output points
-  double *pts = new double[3 * noOfPoints];
+  Array<double> pts(3 * noOfPoints);
+  for (j = 0; j < noOfPoints; ++j) {
+    input->GetPoint(j, pts.data() + 3 * j);
+  }
 
   // Sum of signed distances traveled by a point
-  vtkSmartPointer<vtkFloatArray> dists;
+  vtkSmartPointer<vtkDataArray> dists;
   if (trackingOn) {
     dists = vtkSmartPointer<vtkFloatArray>::New();
     dists->SetName("smoothingDists");
     dists->SetNumberOfComponents(1);
     dists->SetNumberOfTuples(noOfPoints);
-    dists->FillComponent(0, .0);
+    dists->FillComponent(0, 0.);
     input->GetPointData()->AddArray(dists);
   }
 
@@ -313,26 +317,27 @@ void AreaWeightedLaplacianSmoothing(vtkPolyData *input,
     radiusOld = meanRadius(input, cogOld);
 
     // Loop over surface.
-    for (j = 0; j < noOfPoints; ++j){
+    for (j = 0; j < noOfPoints; ++j) {
 
-      // Initialisation for current point.
-      totalArea = 0;
-      cells = NULL;
+      // Skip excluded points
+      if (mask && mask->GetComponent(j, 0) == 0.) continue;
 
-      update[0] = 0;
-      update[1] = 0;
-      update[2] = 0;
+      // What cells does this node adjoin?
+      input->GetPointCells(j, noOfCells, cells);
+      if (noOfCells == 0) continue;
 
       // Store the current position of the node.
       input->GetPoint(j, currPos);
 
-      // What cells does this node adjoin?
-      input->GetPointCells(j, noOfCells, cells);
-      if (cells == NULL) continue;
+      // Initialisation for current point.
+      totalArea = 0;
+      update[0] = 0;
+      update[1] = 0;
+      update[2] = 0;
 
-      for (k = 0; k < noOfCells; ++k){
+      for (k = 0; k < noOfCells; ++k) {
         triangle = vtkTriangle::SafeDownCast(input->GetCell(cells[k]));
-        if (triangle == NULL) continue;
+        if (triangle == nullptr) continue;
         ptIds = triangle->GetPointIds();
 
         input->GetPoint(ptIds->GetId(0), v1);
@@ -349,7 +354,7 @@ void AreaWeightedLaplacianSmoothing(vtkPolyData *input,
         update[2] += triangleArea * centre[2];
       }
 
-      if (totalArea <= 0.0) {
+      if (totalArea <= 0.) {
         update[0] = currPos[0];
         update[1] = currPos[1];
         update[2] = currPos[2];
@@ -372,12 +377,12 @@ void AreaWeightedLaplacianSmoothing(vtkPolyData *input,
         normal = normals->GetTuple3(j);
         val = normal[0]*dx + normal[1]*dy + normal[2]*dz;
         if (val < 0) dist = -dist;
-        dists->SetTuple1(j, dists->GetTuple1(j) + dist);
+        dists->SetComponent(j, 0, dists->GetComponent(j, 0) + dist);
       }
     }
 
-    for (j = 0; j < noOfPoints; ++j){
-      input->GetPoints()->SetPoint(j, pts + j*3);
+    for (j = 0; j < noOfPoints; ++j) {
+      input->GetPoints()->SetPoint(j, pts.data() + 3*j);
     }
 
     // update radius and centre of gravity
@@ -398,8 +403,6 @@ void AreaWeightedLaplacianSmoothing(vtkPolyData *input,
     cout << "Final iterations : " << i << endl;
     cout << "Final L_2 norm of H^2 (threshold) : " << h2norm << " (" << smoothnessThreshold << ")" << endl;
   }
-
-  delete[] pts;
 }
 
 // =============================================================================
@@ -447,9 +450,8 @@ void GetScale(vtkPolyData *mesh, const double centroid[3], double scale[3])
 //
 // The translation and scale "fix" is due to a bug in vtkWindowedSincPolyDataFilter:
 // http://vtk.1045678.n5.nabble.com/Bug-in-vtkWindowedSincPolyDataFilter-td1234055.html
-void WindowedSincSmoothing(vtkSmartPointer<vtkPolyData> surface, int niter, double band)
+void WindowedSincSmoothing(vtkSmartPointer<vtkPolyData> surface, vtkDataArray *mask, int niter, double band)
 {
-
   double c1[3], s1[3], c2[3], s2[3], p1[3], p2[3];
 
   GetCentroid(surface, c1);
@@ -466,12 +468,14 @@ void WindowedSincSmoothing(vtkSmartPointer<vtkPolyData> surface, int niter, doub
   GetScale(filter->GetOutput(), c2, s2);
 
   for (vtkIdType ptId = 0; ptId < surface->GetNumberOfPoints(); ++ptId) {
-    surface->GetPoint(ptId, p1);
-    filter->GetOutput()->GetPoint(ptId, p2);
-    p2[0] = c1[0] + s1[0] * (p2[0] - c2[0]) / s2[0];
-    p2[1] = c1[1] + s1[1] * (p2[1] - c2[1]) / s2[1];
-    p2[2] = c1[2] + s1[2] * (p2[2] - c2[2]) / s2[2];
-    surface->GetPoints()->SetPoint(ptId, p2);
+    if (!mask || mask->GetComponent(ptId, 0) != 0.) {
+      surface->GetPoint(ptId, p1);
+      filter->GetOutput()->GetPoint(ptId, p2);
+      p2[0] = c1[0] + s1[0] * (p2[0] - c2[0]) / s2[0];
+      p2[1] = c1[1] + s1[1] * (p2[1] - c2[1]) / s2[1];
+      p2[2] = c1[2] + s1[2] * (p2[2] - c2[2]) / s2[2];
+      surface->GetPoints()->SetPoint(ptId, p2);
+    }
   }
 }
 
@@ -482,7 +486,9 @@ void WindowedSincSmoothing(vtkSmartPointer<vtkPolyData> surface, int niter, doub
 // -----------------------------------------------------------------------------
 /// Smooth gyral points along maximum curvature direction
 void SmoothInMaximumCurvatureDirection(vtkSmartPointer<vtkPolyData> surface,
-                                       double lambda = 1.0, bool adjacent_only = true)
+                                       vtkDataArray *mask = nullptr,
+                                       double lambda = 1.0,
+                                       bool adjacent_only = true)
 {
   vtkDataArray *k2_array = surface->GetPointData()->GetArray("Maximum_Curvature");
   vtkDataArray *e2_array = surface->GetPointData()->GetArray("Maximum_Curvature_Direction");
@@ -509,35 +515,37 @@ void SmoothInMaximumCurvatureDirection(vtkSmartPointer<vtkPolyData> surface,
   double k2, e2[3], p1[3], p2[3], p[3], e[3], d, w, wsum;
   for (vtkIdType ptId = 0; ptId < surface->GetNumberOfPoints(); ++ptId) {
     surface->GetPoint(ptId, p1);
-    k2 = k2_array->GetComponent(ptId, 0);
-    if (k2 > .0) {
-      e2_array->GetTuple(ptId, e2);
-      vtkMath::Normalize(e2);
-      if (adjacent_only) {
-        p[0] = p[1] = p[2] = wsum = .0;
-      } else {
-        p[0] = p1[0], p[1] = p1[1], p[2] = p1[2];
-        wsum = 1.0;
-      }
-      edgeTable.GetAdjacentPoints(ptId, numAdjPts, adjPtIds);
-      for (int i = 0; i < numAdjPts; ++i) {
-        surface->GetPoint(adjPtIds[i], p2);
-        vtkMath::Subtract(p2, p1, e);
-        d = vtkMath::Norm(e);
-        vtkMath::MultiplyScalar(e, 1.0 / d);
-        w = abs(vtkMath::Dot(e, e2));
-        p[0] += w * p2[0];
-        p[1] += w * p2[1];
-        p[2] += w * p2[2];
-        wsum += w;
-      }
-      if (wsum > .0) {
-        alpha = lambda * (k2 / k2_range[1]);
-        beta  = alpha / wsum;
-        alpha = 1.0 - alpha;
-        p1[0] = alpha * p1[0] + beta * p[0];
-        p1[1] = alpha * p1[1] + beta * p[1];
-        p1[2] = alpha * p1[2] + beta * p[2];
+    if (!mask || mask->GetComponent(ptId, 0) != 0.) {
+      k2 = k2_array->GetComponent(ptId, 0);
+      if (k2 > .0) {
+        e2_array->GetTuple(ptId, e2);
+        vtkMath::Normalize(e2);
+        if (adjacent_only) {
+          p[0] = p[1] = p[2] = wsum = .0;
+        } else {
+          p[0] = p1[0], p[1] = p1[1], p[2] = p1[2];
+          wsum = 1.0;
+        }
+        edgeTable.GetAdjacentPoints(ptId, numAdjPts, adjPtIds);
+        for (int i = 0; i < numAdjPts; ++i) {
+          surface->GetPoint(adjPtIds[i], p2);
+          vtkMath::Subtract(p2, p1, e);
+          d = vtkMath::Norm(e);
+          vtkMath::MultiplyScalar(e, 1.0 / d);
+          w = abs(vtkMath::Dot(e, e2));
+          p[0] += w * p2[0];
+          p[1] += w * p2[1];
+          p[2] += w * p2[2];
+          wsum += w;
+        }
+        if (wsum > .0) {
+          alpha = lambda * (k2 / k2_range[1]);
+          beta  = alpha / wsum;
+          alpha = 1.0 - alpha;
+          p1[0] = alpha * p1[0] + beta * p[0];
+          p1[1] = alpha * p1[1] + beta * p[1];
+          p1[2] = alpha * p1[2] + beta * p[2];
+        }
       }
     }
     points->SetPoint(ptId, p1);
@@ -599,13 +607,14 @@ int main(int argc, char *argv[])
 
   // Read the input mesh
   vtkSmartPointer<vtkPolyData> polydata = ReadPolyData(input_name);
+  vtkSmartPointer<vtkDataArray> mask;
 
   // Parse remaining arguments
   Array<string> scalar_names;
   WeightFunction weighting   = Default;
-  const char *tensor_name    = NULL;
-  const char *e1_name        = NULL;
-  const char *e2_name        = NULL;
+  const char *tensor_name    = nullptr;
+  const char *e1_name        = nullptr;
+  const char *e2_name        = nullptr;
   bool   smooth_points       = false;
   double smoothnessThreshold = -1.0;
   double sigma1              = .0;
@@ -614,7 +623,15 @@ int main(int argc, char *argv[])
   bool   adjacent_only       = false;
 
   for (ALL_OPTIONS) {
-    if      (OPTION("-points")) smooth_points = true;
+    if (OPTION("-mask")) {
+      const char *mask_name = ARGUMENT;
+      mask = GetArrayByCaseInsensitiveName(polydata->GetPointData(), mask_name);
+      if (!mask) {
+        FatalError("Surface has no point data array named: " << mask_name);
+      }
+    }
+    else if (OPTION("-nomask")) mask = nullptr;
+    else if (OPTION("-points")) smooth_points = true;
     else if (OPTION("-scalars")) {
       if (HAS_ARGUMENT) {
         do {
@@ -726,6 +743,7 @@ int main(int argc, char *argv[])
 
   if (verbose) {
     cout << "Input:          " << input_name << endl;
+    cout << "Mask:           " << (mask ? mask->GetName() : "None") << endl;
     cout << "Output:         " << output_name << endl;
     cout << "Iterations:     " << noOfIterations << endl;
     cout << "Lambda / mu:    " << lambda << " / " << mu << endl;
@@ -750,9 +768,9 @@ int main(int argc, char *argv[])
 
     for (int iter = 0; iter < noOfIterations; ++iter) {
       if (iter % 2 == 0 || IsNaN(mu)) {
-        SmoothInMaximumCurvatureDirection(polydata, lambda, adjacent_only);
+        SmoothInMaximumCurvatureDirection(polydata, mask, lambda, adjacent_only);
       } else {
-        SmoothInMaximumCurvatureDirection(polydata, mu, adjacent_only);
+        SmoothInMaximumCurvatureDirection(polydata, mask, mu, adjacent_only);
       }
     }
 
@@ -760,13 +778,13 @@ int main(int argc, char *argv[])
   // Smooth node positions and/or scalar data
   else if (weighting == AreaWeighted) {
 
-    AreaWeightedLaplacianSmoothing(polydata, noOfIterations, lambda, mu, smoothnessThreshold, trackingOn);
+    AreaWeightedLaplacianSmoothing(polydata, mask, noOfIterations, lambda, mu, smoothnessThreshold, trackingOn);
 
   }
   // Smooth node positions using windowed sinc filter
   else if (weighting == WindowedSinc) {
 
-    WindowedSincSmoothing(polydata, noOfIterations, lambda);
+    WindowedSincSmoothing(polydata, mask, noOfIterations, lambda);
 
   }
   // Perform Laplacian smoothing
@@ -778,6 +796,7 @@ int main(int argc, char *argv[])
     }
     MeshSmoothing smoother;
     smoother.Input(polydata);
+    smoother.Mask(mask);
     smoother.NumberOfIterations(noOfIterations);
     smoother.Lambda(lambda);
     smoother.Mu(mu);
