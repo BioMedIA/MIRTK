@@ -107,6 +107,7 @@ int main(int argc, char **argv)
   bool   relative         = false;
   bool   implicit         = false;
   double offset           = 0.;
+  bool   along_normal     = false;
 
   FileOption fopt = FO_Default;
 
@@ -302,25 +303,41 @@ int main(int argc, char **argv)
     vtkNew<vtkPolyDataNormals> calc_normals;
     SetVTKInput(calc_normals, copy);
     calc_normals->SplittingOff();
-    calc_normals->ConsistencyOn();
-    calc_normals->AutoOrientNormalsOn();
+    calc_normals->ConsistencyOff();
+    calc_normals->AutoOrientNormalsOff();
     calc_normals->ComputeCellNormalsOff();
     calc_normals->ComputePointNormalsOn();
+    calc_normals->NonManifoldTraversalOff();
     calc_normals->Update();
     vtkSmartPointer<vtkDataArray> normals;
     normals = calc_normals->GetOutput()->GetPointData()->GetNormals();
 
     // Move points of input surface mesh
-    double p[3], n[3];
+    double p[3], n[3], value;
     vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
     points->SetNumberOfPoints(surface->GetNumberOfPoints());
-    for (vtkIdType ptId = 0; ptId < points->GetNumberOfPoints(); ++ptId) {
-      surface->GetPoint(ptId, p);
-      normals->GetTuple(ptId, n);
-      p[0] += offset * n[0];
-      p[1] += offset * n[1];
-      p[2] += offset * n[2];
-      points->SetPoint(ptId, p);
+
+    if (surface == output && scalars != nullptr) {
+      for (vtkIdType ptId = 0; ptId < points->GetNumberOfPoints(); ++ptId) {
+        surface->GetPoint(ptId, p);
+        value = scalars->GetComponent(ptId, 0);
+        if (scalars_min <= value && value <= scalars_max) {
+          normals->GetTuple(ptId, n);
+          p[0] += offset * n[0];
+          p[1] += offset * n[1];
+          p[2] += offset * n[2];
+        }
+        points->SetPoint(ptId, p);
+      }
+    } else {
+      for (vtkIdType ptId = 0; ptId < points->GetNumberOfPoints(); ++ptId) {
+        surface->GetPoint(ptId, p);
+        normals->GetTuple(ptId, n);
+        p[0] += offset * n[0];
+        p[1] += offset * n[1];
+        p[2] += offset * n[2];
+        points->SetPoint(ptId, p);
+      }
     }
 
     // Offset surface
@@ -335,15 +352,15 @@ int main(int argc, char **argv)
   // If no reference surface is given, all points whose scalar values are
   // in the given range are displaced. When neither a reference surface nor
   // a scalar range is given, the output is the offset surface itself.
-  if (surface == output && !scalars) {
+  if (surface == output && (!implicit || scalars == nullptr)) {
 
     output = offset_surface;
 
   } else {
 
     const double mindist2 = offset * offset;
-    const double tol      = 1e-9;
-    double       value, p[3], n[3], p2[3], x[3], t, pcoords[3], dist2;
+    const double tol      = 1e-6;
+    double       value, p[3], n[3], q[3], x[3], t, pcoords[3], dist2;
     vtkIdType    cellId;
     int          subId, nmoved = 0;
 
@@ -356,10 +373,11 @@ int main(int argc, char **argv)
     vtkNew<vtkPolyDataNormals> calc_normals;
     SetVTKInput(calc_normals, copy);
     calc_normals->SplittingOff();
-    calc_normals->ConsistencyOn();
-    calc_normals->AutoOrientNormalsOn();
+    calc_normals->ConsistencyOff();
+    calc_normals->AutoOrientNormalsOff();
     calc_normals->ComputeCellNormalsOff();
     calc_normals->ComputePointNormalsOn();
+    calc_normals->NonManifoldTraversalOff();
     calc_normals->Update();
     vtkSmartPointer<vtkDataArray> normals;
     normals = calc_normals->GetOutput()->GetPointData()->GetNormals();
@@ -376,25 +394,31 @@ int main(int argc, char **argv)
     offset_locator->SetDataSet(offset_surface);
     offset_locator->BuildLocator();
 
-    vtkPoints *points = output->GetPoints();
+    vtkPoints * const points = output->GetPoints();
     for (vtkIdType ptId = 0; ptId < output->GetNumberOfPoints(); ++ptId) {
       if (scalars) {
         value = scalars->GetComponent(ptId, 0);
         if (value < scalars_min || value > scalars_max) continue;
       }
-      output->GetPoint(ptId, p);
+      points->GetPoint(ptId, p);
       if (locator) {
         locator->FindClosestPoint(p, x, cellId, subId, dist2);
         if (dist2 >= mindist2) continue;
       }
-      normals->GetTuple(ptId, n);
-      p2[0] = p[0] + 2. * offset * n[0];
-      p2[1] = p[1] + 2. * offset * n[1];
-      p2[2] = p[2] + 2. * offset * n[2];
-      offset_locator->IntersectWithLine(p, p2, tol, t, x, pcoords, subId);
-      //offset_locator->FindClosestPoint(p, x, cellId, subId, dist2);
-      points->SetPoint(ptId, x);
-      ++nmoved;
+      if (along_normal) {
+        normals->GetTuple(ptId, n);
+        q[0] = p[0] + 1.1 * offset * n[0];
+        q[1] = p[1] + 1.1 * offset * n[1];
+        q[2] = p[2] + 1.1 * offset * n[2];
+        if (offset_locator->IntersectWithLine(p, q, tol, t, x, pcoords, subId)) {
+          points->SetPoint(ptId, x);
+          ++nmoved;
+        }
+      } else {
+        offset_locator->FindClosestPoint(p, x, cellId, subId, dist2);
+        points->SetPoint(ptId, x);
+        ++nmoved;
+      }
     }
 
     if (verbose) {
