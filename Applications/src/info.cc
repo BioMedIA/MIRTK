@@ -243,22 +243,24 @@ struct CountTriangleTriangleIntersections
 
 // -----------------------------------------------------------------------------
 /// Count number of self-intersections of triangulated surface mesh
-int NumberOfTriangleTriangleIntersections(vtkPolyData *polydata)
+int NumberOfTriangleTriangleIntersections(vtkPolyData *polydata, const char *array_name = nullptr)
 {
   vtkSmartPointer<vtkDataArray> mask = vtkSmartPointer<vtkUnsignedCharArray>::New();
-  mask->SetName("TriangleTriangleIntersection");
   mask->SetNumberOfComponents(1);
   mask->SetNumberOfTuples(polydata->GetNumberOfCells());
-  mask->FillComponent(0, .0);
-  polydata->GetCellData()->AddArray(mask);
-  vtkSmartPointer<vtkOctreePointLocator> octree = vtkSmartPointer<vtkOctreePointLocator>::New();
+  mask->FillComponent(0, 0.);
+  vtkNew<vtkOctreePointLocator> octree;
   octree->SetDataSet(polydata);
   octree->BuildLocator();
   CountTriangleTriangleIntersections count;
   count._DataSet      = polydata;
-  count._PointLocator = octree;
+  count._PointLocator = octree.GetPointer();
   count._Mask         = mask;
   parallel_reduce(blocked_range<vtkIdType>(0, polydata->GetNumberOfCells()), count);
+  if (array_name) {
+    mask->SetName(array_name);
+    polydata->GetCellData()->AddArray(mask);
+  }
   return count._NumberOfIntersections;
 }
 
@@ -515,7 +517,7 @@ int main(int argc, char *argv[])
 
     using namespace mirtk::data::statistic;
 
-    bool check_intersections   = false;
+    const char *self_intersections_name = nullptr;
     bool report_bounds         = false;
     bool report_cell_types     = false;
     bool report_cell_volumes   = false;
@@ -533,7 +535,10 @@ int main(int argc, char *argv[])
     int        max_point_index = -1;
 
     for (ALL_OPTIONS) {
-      if      (OPTION("-self-intersections")) check_intersections = true;
+      if (OPTION("-self-intersections")) {
+        if (HAS_ARGUMENT) self_intersections_name = ARGUMENT;
+        else self_intersections_name = "SelfIntersectionsMask";
+      }
       else if (OPTION("-edgelength")) report_edge_lengths = true;
       else if (OPTION("-bounds")) report_bounds = true;
       else if (OPTION("-cell-types")) report_cell_types = true;
@@ -576,7 +581,7 @@ int main(int argc, char *argv[])
     polydata->BuildLinks();
 
     // What info to print by default
-    if (!check_intersections &&
+    if (!self_intersections_name &&
         !report_bounds &&
         !report_cell_types &&
         !report_cell_volumes &&
@@ -723,13 +728,13 @@ int main(int argc, char *argv[])
       }
 
       // Self-intersections
-      if (check_intersections) {
+      if (self_intersections_name) {
         cout << endl;
         cout << "  No. of triangle/triangle intersections: ", cout.flush();
-        cout << NumberOfTriangleTriangleIntersections(polydata) << endl;
+        cout << NumberOfTriangleTriangleIntersections(polydata, self_intersections_name) << endl;
         if (verbose > 2) {
           int count = 0;
-          vtkDataArray *tritri = polydata->GetCellData()->GetArray("TriangleTriangleIntersection");
+          vtkDataArray *tritri = polydata->GetCellData()->GetArray(self_intersections_name);
           for (vtkIdType cellId = 0; cellId < polydata->GetNumberOfCells(); ++cellId) {
             if (tritri->GetComponent(cellId, 0) != .0) {
               ++count;
