@@ -273,8 +273,10 @@ int main(int argc, char *argv[])
     }
   }
 
-  // Merge points
-  if (merge && vtkPolyData::SafeDownCast(output) != nullptr) {
+  // Merge points/cells
+  vtkSmartPointer<vtkPolyData> surface = vtkPolyData::SafeDownCast(output);
+  if (merge && surface) {
+    // Merge points
     vtkNew<vtkCleanPolyData> merger;
     merger->ConvertLinesToPointsOff();
     merger->ConvertPolysToLinesOff();
@@ -284,7 +286,31 @@ int main(int argc, char *argv[])
     merger->SetAbsoluteTolerance(merge_tol);
     SetVTKInput(merger, output);
     merger->Update();
-    output = merger->GetOutput();
+    surface = merger->GetOutput();
+    // Remove duplicate cells
+    surface->BuildLinks();
+    vtkNew<vtkIdList> ptIds1, ptIds2, cellIds;
+    for (vtkIdType cellId = 0; cellId < output->GetNumberOfCells(); ++cellId) {
+      if (surface->GetCellType(cellId) != VTK_EMPTY_CELL) {
+        surface->GetCellPoints(cellId, ptIds1.GetPointer());
+        for (vtkIdType i = 0; i < ptIds1->GetNumberOfIds(); ++i) {
+          surface->GetPointCells(ptIds1->GetId(i), cellIds.GetPointer());
+          for (vtkIdType j = 0; j < cellIds->GetNumberOfIds(); ++j) {
+            if (cellIds->GetId(j) > cellId && surface->GetCellType(cellIds->GetId(j)) != VTK_EMPTY_CELL) {
+              surface->GetCellPoints(cellIds->GetId(j), ptIds2.GetPointer());
+              if (ptIds1->GetNumberOfIds() == ptIds2->GetNumberOfIds()) {
+                ptIds2->IntersectWith(ptIds1.GetPointer());
+                if (ptIds1->GetNumberOfIds() == ptIds2->GetNumberOfIds()) {
+                  surface->DeleteCell(cellIds->GetId(j));
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    surface->RemoveDeletedCells();
+    output = surface;
   }
 
   // Reset point/cell data

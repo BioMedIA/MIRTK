@@ -210,19 +210,18 @@ int PolyDataAttributeType(const char *type)
 // -----------------------------------------------------------------------------
 vtkDataArray *GetArrayByCaseInsensitiveName(vtkDataSetAttributes *data, const char *name, int *loc)
 {
-  string lname = ToLower(name), lower_name;
-  for (int i = 0; i < data->GetNumberOfArrays(); ++i) {
-    const char *array_name = data->GetArrayName(i);
-    if (array_name) {
-      lower_name = ToLower(array_name);
-      if (lower_name == lname) {
-        if (loc) *loc = i;
-        return data->GetArray(i);
-      }
+  int i;
+  vtkDataArray *arr = data->GetArray(name, i);
+  if (arr == nullptr) {
+    const string lname = ToLower(name);
+    for (i = 0; i < data->GetNumberOfArrays(); ++i) {
+      const char * const arr_name = data->GetArrayName(i);
+      if (arr_name && ToLower(arr_name) == lname) break;
     }
+    if (i == data->GetNumberOfArrays()) i = -1;
   }
-  if (loc) *loc = -1;
-  return NULL;
+  if (loc) *loc = i;
+  return arr;
 }
 
 // -----------------------------------------------------------------------------

@@ -94,14 +94,14 @@ int main(int argc, char *argv[])
       const char *name = ARGUMENT;
       pointset->GetPointData()->RemoveArray(name);
       pointset->GetCellData ()->RemoveArray(name);
-    } else if (OPTION("-pointdata")) {
+    } else if (OPTION("-pd") || OPTION("-point-data") || OPTION("-pointdata")) {
       const char *arg = ARGUMENT;
       if (FromString(arg, index)) {
         pointset->GetPointData()->RemoveArray(index);
       } else {
         pointset->GetPointData()->RemoveArray(arg);
       }
-    } else if (OPTION("-celldata")) {
+    } else if (OPTION("-cd") || OPTION("-cell-data") || OPTION("-celldata")) {
       const char *arg = ARGUMENT;
       if (FromString(arg, index)) {
         pointset->GetCellData()->RemoveArray(index);

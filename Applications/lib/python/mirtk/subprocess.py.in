@@ -79,6 +79,17 @@ def path(argv, quiet=False):
     return fpath
 
 # ----------------------------------------------------------------------------
+def flatten(arg):
+    """Given an argument, possibly a list nested to any level, return a flat list."""
+    if isinstance(arg, (tuple, list)):
+        lis = []
+        for item in arg:
+            lis.extend(flatten(item))
+        return lis
+    else:
+        return [arg]
+
+# ----------------------------------------------------------------------------
 def _call(argv, verbose=0, execfunc=subprocess.call):
     """Execute MIRTK command."""
     if not isinstance(argv, list):
@@ -127,9 +138,7 @@ def run(cmd, args=[], opts={}, verbose=0):
         for item in opts:
             if isinstance(item, (tuple, list)):
                 opt = item[0]
-                arg = []
-                for entry in item[1:]:
-                    arg.extend(entry if isinstance(entry, (tuple, list)) else [entry])
+                arg = flatten(item[1:])
             else:
                 opt = item
                 arg = None
@@ -137,7 +146,7 @@ def run(cmd, args=[], opts={}, verbose=0):
                 opt = '-' + opt
             argv.append(opt)
             if not arg is None:
-                argv.extend(arg if isinstance(arg, (tuple, list)) else [arg])
+                argv.extend(flatten(arg))
     # unordered dict of options
     else:
         for opt, arg in opts.items():
@@ -145,5 +154,5 @@ def run(cmd, args=[], opts={}, verbose=0):
                 opt = '-' + opt
             argv.append(opt)
             if not arg is None:
-                argv.extend(arg if isinstance(arg, (tuple, list)) else [arg])
+                argv.extend(flatten(arg))
     check_call(argv, verbose=verbose)

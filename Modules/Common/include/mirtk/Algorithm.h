@@ -21,6 +21,7 @@
 #define MIRTK_Algorithm_H
 
 #include "mirtk/Array.h"
+#include "mirtk/UnorderedSet.h"
 
 #include <algorithm>
 #include <iterator>
@@ -38,6 +39,7 @@ using std::nth_element;
 using std::transform;
 using std::reverse;
 using std::shuffle;
+using std::set_intersection;
 
 using std::copy;
 using std::back_inserter;
@@ -237,6 +239,38 @@ typename Array<T>::const_iterator
 BinarySearch(const Array<T> &values, const T &value, Compare comp)
 {
   return binary_search(values.begin(), values.end(), value, comp);
+}
+
+/// Intersection of two unordered sets
+///
+/// \note set_intersection cannot be used for unsorted containers!
+template <class T>
+UnorderedSet<T> Intersection(const UnorderedSet<T> &a, const UnorderedSet<T> &b)
+{
+  if (b.size() < a.size()) {
+    return Intersection(b, a);
+  } else {
+    UnorderedSet<T> c;
+    for (auto v : a) {
+      if (b.find(v) != b.end()) c.insert(v);
+    }
+    return c;
+  }
+}
+
+/// Intersection of two unordered sets
+///
+/// \note set_union cannot be used for unsorted containers!
+template <class T>
+UnorderedSet<T> Union(const UnorderedSet<T> &a, const UnorderedSet<T> &b)
+{
+  if (b.size() > a.size()) {
+    return Union(b, a);
+  } else {
+    UnorderedSet<T> c = a;
+    for (auto v : b) c.insert(v);
+    return c;
+  }
 }
 
 

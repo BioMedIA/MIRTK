@@ -175,6 +175,7 @@ if (MIRTK_PointSet_FOUND)
   add_pointset_command(project-onto-surface)
   add_pointset_command(remesh-surface)
   add_pointset_command(smooth-surface)
+  add_pointset_command(blend-surface)
 
   if (FLANN_FOUND)
     mirtk_target_dependencies(evaluate-surface-overlap ${FLANN_CPP_LIBRARY})

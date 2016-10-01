@@ -20,6 +20,7 @@
 #include "mirtk/Common.h"
 #include "mirtk/Options.h"
 
+#include "mirtk/DataSelection.h"
 #include "mirtk/PointSetIO.h"
 #include "mirtk/PointSetUtils.h"
 
@@ -34,6 +35,8 @@
 #include "vtkDataArray.h"
 
 using namespace mirtk;
+using namespace mirtk::data;
+using namespace mirtk::data::select;
 
 
 // =============================================================================
@@ -74,232 +77,6 @@ void PrintHelp(const char *name)
 }
 
 // =============================================================================
-// Auxiliaries
-// =============================================================================
-
-// -----------------------------------------------------------------------------
-class DataSelector
-{
-public:
-
-  /// Destructor
-  virtual ~DataSelector() {};
-
-  /// Run selection query and return IDs of selected data points
-  virtual vtkSmartPointer<vtkIdList> Evaluate(const Array<double> &values) const = 0;
-};
-
-// -----------------------------------------------------------------------------
-/// Combine one or more data selection criteria using a logical operator
-class LogicalOperator : public DataSelector
-{
-protected:
-
-  /// Selection criteria
-  List<SharedPtr<const DataSelector> > _Criteria;
-
-public:
-
-  /// Number of data criteria
-  int NumberOfCriteria() const
-  {
-    return static_cast<int>(_Criteria.size());
-  }
-
-  /// Get n-th criterium
-  SharedPtr<const DataSelector> Criterium(int i) const
-  {
-    auto it = _Criteria.begin();
-    for (int pos = 0; pos < i; ++pos) ++it;
-    return *it;
-  }
-
-  /// Add selection criterium
-  void Push(const SharedPtr<const DataSelector> &criterium)
-  {
-    _Criteria.push_back(criterium);
-  }
-};
-
-// -----------------------------------------------------------------------------
-/// Combine one or more data selection criteria using a logical AND
-class LogicalAnd : public LogicalOperator
-{
-public:
-
-  /// Run selection query and return IDs of selected data points
-  virtual vtkSmartPointer<vtkIdList> Evaluate(const Array<double> &values) const
-  {
-    vtkSmartPointer<vtkIdList> cellIds = vtkSmartPointer<vtkIdList>::New();
-    cellIds->Allocate(static_cast<vtkIdType>(values.size()) * static_cast<vtkIdType>(NumberOfCriteria()));
-    for (auto criterium : _Criteria) {
-      auto ids = criterium->Evaluate(values);
-      cellIds->IntersectWith(ids.GetPointer());
-    }
-    cellIds->Squeeze();
-    return cellIds;
-  }
-};
-
-// -----------------------------------------------------------------------------
-/// Combine one or more data selection criteria using a logical OR
-class LogicalOr : public LogicalOperator
-{
-public:
-
-  /// Run selection query and return IDs of selected data points
-  virtual vtkSmartPointer<vtkIdList> Evaluate(const Array<double> &values) const
-  {
-    UnorderedSet<vtkIdType> set_of_ids;
-    for (auto criterium : _Criteria) {
-      auto ids = criterium->Evaluate(values);
-      for (vtkIdType i = 0; i < ids->GetNumberOfIds(); ++i) {
-        // Note: vtkIdList::InsertUniqueId is very inefficient
-        set_of_ids.insert(ids->GetId(i));
-      }
-    }
-    vtkSmartPointer<vtkIdList> cellIds = vtkSmartPointer<vtkIdList>::New();
-    cellIds->Allocate(static_cast<vtkIdType>(set_of_ids.size()));
-    for (vtkIdType cellId : set_of_ids) {
-      cellIds->InsertNextId(cellId);
-    }
-    return cellIds;
-  }
-};
-
-// -----------------------------------------------------------------------------
-class DataCriterium : public DataSelector
-{
-public:
-
-  /// Run selection query and return IDs of selected data points
-  virtual vtkSmartPointer<vtkIdList> Evaluate(const Array<double> &values) const
-  {
-    vtkSmartPointer<vtkIdList> cellIds = vtkSmartPointer<vtkIdList>::New();
-    const vtkIdType n = static_cast<int>(values.size());
-    cellIds->Allocate(n);
-    for (vtkIdType cellId = 0; cellId < n; ++cellId) {
-      if (this->Select(values[cellId])) {
-        cellIds->InsertNextId(cellId);
-      }
-    }
-    cellIds->Squeeze();
-    return cellIds;
-  }
-
-  /// Evaluate criterium for given data value
-  virtual bool Select(double) const = 0;
-};
-
-// -----------------------------------------------------------------------------
-class Equal : public DataCriterium
-{
-  /// Upper data value threshold
-  mirtkPublicAttributeMacro(double, Value);
-
-public:
-
-  /// Constructor
-  Equal(double value) : _Value(value) {}
-
-  /// Evaluate criterium for given data value
-  virtual bool Select(double value) const
-  {
-    return fequal(value, _Value);
-  }
-};
-
-// -----------------------------------------------------------------------------
-class NotEqual : public DataCriterium
-{
-  /// Upper data value threshold
-  mirtkPublicAttributeMacro(double, Value);
-
-public:
-
-  /// Constructor
-  NotEqual(double value) : _Value(value) {}
-
-  /// Evaluate criterium for given data value
-  virtual bool Select(double value) const
-  {
-    return !fequal(value, _Value);
-  }
-};
-
-// -----------------------------------------------------------------------------
-class LessThan : public DataCriterium
-{
-  /// Upper data value threshold
-  mirtkPublicAttributeMacro(double, Threshold);
-
-public:
-
-  /// Constructor
-  LessThan(double threshold) : _Threshold(threshold) {}
-
-  /// Evaluate criterium for given data value
-  virtual bool Select(double value) const
-  {
-    return value < _Threshold;
-  }
-};
-
-// -----------------------------------------------------------------------------
-class LessOrEqual : public DataCriterium
-{
-  /// Upper data value threshold
-  mirtkPublicAttributeMacro(double, Threshold);
-
-public:
-
-  /// Constructor
-  LessOrEqual(double threshold) : _Threshold(threshold) {}
-
-  /// Evaluate criterium for given data value
-  virtual bool Select(double value) const
-  {
-    return value <= _Threshold;
-  }
-};
-
-// -----------------------------------------------------------------------------
-class GreaterThan : public DataCriterium
-{
-  /// Lower data value threshold
-  mirtkPublicAttributeMacro(double, Threshold);
-
-public:
-
-  /// Constructor
-  GreaterThan(double threshold) : _Threshold(threshold) {}
-
-  /// Evaluate criterium for given data value
-  virtual bool Select(double value) const
-  {
-    return value > _Threshold;
-  }
-};
-
-// -----------------------------------------------------------------------------
-class GreaterOrEqual : public DataCriterium
-{
-  /// Lower data value threshold
-  mirtkPublicAttributeMacro(double, Threshold);
-
-public:
-
-  /// Constructor
-  GreaterOrEqual(double threshold) : _Threshold(threshold) {}
-
-  /// Evaluate criterium for given data value
-  virtual bool Select(double value) const
-  {
-    return value >= _Threshold;
-  }
-};
-
-// =============================================================================
 // Main
 // =============================================================================
 
@@ -315,15 +92,15 @@ int main(int argc, char *argv[])
   vtkCellData * const cd = input->GetCellData();
 
   const char *orig_cell_ids = nullptr;
-  bool output_surface = false;
+  int  output_surface = -1;
   bool recalc_normals = false;
 
-  double                     value;
-  Array<double>              values;
-  SharedPtr<LogicalOperator> selector(new LogicalAnd());
+  double               value;
+  Array<double>        values;
+  SharedPtr<LogicalOp> selector(new LogicalAnd());
 
   for (ALL_OPTIONS) {
-    if (OPTION("-select")) {
+    if (OPTION("-a") || OPTION("-array") || OPTION("-select") || OPTION("-where")) {
       const char * const name = ARGUMENT;
       vtkDataArray *scalars = cd->GetArray(name);
       if (scalars == nullptr) {
@@ -391,9 +168,19 @@ int main(int argc, char *argv[])
     else if (OPTION("-origids")) {
       orig_cell_ids = ARGUMENT;
     }
-    else HANDLE_BOOLEAN_OPTION("surface", output_surface);
+    else if (OPTION("-surface")) {
+      bool bval = true;
+      if (HAS_ARGUMENT) PARSE_ARGUMENT(bval);
+      output_surface = (bval ? 1 : 0);
+    }
+    else if (OPTION("-nosurface")) {
+      output_surface = 0;
+    }
     else HANDLE_BOOLEAN_OPTION("normals", recalc_normals);
     else HANDLE_COMMON_OR_UNKNOWN_OPTION();
+  }
+  if (output_surface == -1) {
+    output_surface = (vtkPolyData::SafeDownCast(input) == nullptr ? 0 : 1);
   }
 
   if (values.empty()) {
@@ -408,7 +195,12 @@ int main(int argc, char *argv[])
     }
   }
 
-  vtkSmartPointer<vtkIdList> cellIds = selector->Evaluate(values);
+  auto selection = selector->Evaluate(values);
+  vtkNew<vtkIdList> cellIds;
+  cellIds->Allocate(static_cast<vtkIdType>(selection.size()));
+  for (auto cellId : selection) {
+    cellIds->InsertNextId(static_cast<vtkIdType>(cellId));
+  }
 
   vtkNew<vtkExtractCells> extractor;
   SetVTKInput(extractor, input);

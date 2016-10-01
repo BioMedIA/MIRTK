@@ -1,8 +1,8 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2013-2015 Imperial College London
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2013-2016 Imperial College London
+ * Copyright 2013-2016 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -96,17 +96,27 @@ void PrintHelp(const char *name)
   cout << "  -[no]pointdata\n";
   cout << "      Assign values to points of input surface. (default: on)\n";
   cout << "  -[no]fill\n";
-  cout << "      Fill holes in projected surface parcellation.\n";
+  cout << "      Fill holes/small patches in projected surface parcellation. (default: on)\n";
+  cout << "  -max-hole-size <n>\n";
+  cout << "      Only fill in holes with less than or exactly n points/cells.\n";
+  cout << "      When non-positive, the largest -n holes are kept. A zero value is\n";
+  cout << "      equivalent to -1, i.e., only the largest hole is kept. (default: max value)\n";
   cout << "  -smooth <n>\n";
   cout << "      Number of iterations to smooth. (default: 0)\n";
   cout << "  -min-size <n>\n";
-  cout << "      Surface patches with less than n points are removed. (default: 0)\n";
+  cout << "      Surface patches with less than n points/cells are removed.\n";
+  cout << "      When :option:`-fill` is given, the resulting holes are filled in\n";
+  cout << "      using the non-zero labels of surrounding patches. Otherwise, the\n";
+  cout << "      removed patches remain unlabeled (i.e., label value zero). (default: 0)\n";
   cout << "  -min-ratio <ratio>\n";
   cout << "      Keep only components that are larger than ratio times the size\n";
-  cout << "      of the largest connected component per label, with 0 < ratio <= 1. (default: 0)\n";
+  cout << "      of the largest connected component per label, with 0 < ratio <= 1.\n";
+  cout << "      When :option:`-fill` is given, the resulting holes are filled in\n";
+  cout << "      using the non-zero labels of surrounding patches. Otherwise, the\n";
+  cout << "      removed patches remain unlabeled (i.e., label value zero). (default: 0)\n";
   cout << "  -scalars <input_name> [<output_name>]\n";
-  cout << "      Scalars to be projected from the input surface (can be defined multiple times). \n";
-  cout << "      <name2> can be specified to set the name of the output scalar array\n";
+  cout << "      Scalars to be projected from the input surface (can be defined multiple times).\n";
+  cout << "      <name2> can be specified to set the name of the output scalar array.\n";
   cout << "  -boundary\n";
   cout << "      Output boundary lines between surface parcels. (default: off)\n";
   cout << "      When no :option:`-image` or :option:`-labels` input file is\n";
@@ -133,7 +143,7 @@ typedef GenericImage<ScalarsType>    ScalarsImage;
 typedef GenericImage<LabelType>      LabelImage;
 typedef vtkShortArray                LabelArray;
 typedef OrderedMap<LabelType, long>  CountMap;
-typedef CountMap::const_iterator     CountIter;
+typedef CountMap::iterator           CountIter;
 typedef OrderedSet<LabelType>        LabelSet;
 typedef LabelSet::const_iterator     LabelIter;
 
@@ -630,10 +640,12 @@ void LabelCortex(vtkPolyData *white_surface, vtkPolyData *pial_surface,
 // -----------------------------------------------------------------------------
 /// Set label of unlabeled cells which are not part of the cut between
 /// cortical hemispheres to -1 so they are filled in by FillHoles or SmoothLabels
-void MarkHoles(vtkPolyData *surface, const char *scalars_name = "Labels", bool using_cells = true)
+void MarkHoles(vtkPolyData *surface, int max_hole_size, const char *scalars_name = "Labels", bool using_cells = true)
 {
   vtkSmartPointer<vtkIdList> ids = vtkSmartPointer<vtkIdList>::New();
-  double pcoords[3], p[3];
+
+  Point  p, q;
+  double pcoords[3];
   int    subId;
   vtkCell *cell;
 
@@ -687,9 +699,39 @@ void MarkHoles(vtkPolyData *surface, const char *scalars_name = "Labels", bool u
     }
   }
 
-  // Find largest connected unlabeled region
-  filter->SetExtractionModeToLargestRegion();
-  filter->Update();
+  // Find unlabeled regions to exclude
+  if (max_hole_size == 0) {
+    filter->SetExtractionModeToLargestRegion();
+    filter->Update();
+  } else {
+    filter->SetExtractionModeToAllRegions();
+    filter->Update();
+    filter->SetExtractionModeToSpecifiedRegions();
+    vtkIdTypeArray * const size = filter->GetRegionSizes();
+    if (max_hole_size < 0) {
+      Array<vtkIdType> region_sizes(filter->GetNumberOfExtractedRegions());
+      for (vtkIdType i = 0; i < size->GetNumberOfTuples(); ++i) {
+        region_sizes[i] = size->GetValue(i);
+      }
+      const auto order = DecreasingOrder(region_sizes);
+      const size_t end = static_cast<size_t>(-max_hole_size);
+      for (size_t i = 0; i < end; ++i) {
+        filter->AddSpecifiedRegion(order[i]);
+      }
+      for (size_t i = end; i < order.size(); ++i) {
+        filter->DeleteSpecifiedRegion(order[i]);
+      }
+    } else {
+      for (vtkIdType i = 0; i < size->GetNumberOfTuples(); ++i) {
+        if (size->GetValue(i) > static_cast<vtkIdType>(max_hole_size)) {
+          filter->AddSpecifiedRegion(i);
+        } else {
+          filter->DeleteSpecifiedRegion(i);
+        }
+      }
+    }
+    filter->Update();
+  }
 
   // Replace label of not extracted unlabeled cells by -1 (these can be filled in)
   if (using_cells) {
@@ -708,14 +750,29 @@ void MarkHoles(vtkPolyData *surface, const char *scalars_name = "Labels", bool u
       }
     }
   } else {
+    vtkNew<vtkCleanPolyData> cleaner;
+    SetVTKConnection(cleaner, filter);
+    cleaner->ConvertLinesToPointsOff();
+    cleaner->ConvertPolysToLinesOff();
+    cleaner->ConvertStripsToPolysOff();
+    cleaner->PointMergingOff();
+    cleaner->Update();
+    vtkPolyData * const exclude = cleaner->GetOutput();
     vtkNew<vtkPointLocator> locator;
-    locator->SetDataSet(filter->GetOutput());
+    locator->SetDataSet(exclude);
     locator->BuildLocator();
-    for (vtkIdType ptId = 0; ptId < surface->GetNumberOfPoints(); ++ptId) {
+    const double tol2 = 1e-12;
+    for (vtkIdType ptId = 0, exclId; ptId < surface->GetNumberOfPoints(); ++ptId) {
       if (static_cast<LabelType>(labels->GetComponent(ptId, 0)) == 0) {
-        surface->GetPoint(ptId, pcoords); 
-        if (locator->IsInsertedPoint(p) == -1) {
+        surface->GetPoint(ptId, p);
+        exclId = locator->FindClosestPoint(p);
+        if (exclId < 0) {
           labels->SetComponent(ptId, 0, -1.);
+        } else {
+          exclude->GetPoint(exclId, q);
+          if (p.SquaredDistance(q) > tol2) {
+            labels->SetComponent(ptId, 0, -1.);
+          }
         }
       }
     }
@@ -726,23 +783,23 @@ void MarkHoles(vtkPolyData *surface, const char *scalars_name = "Labels", bool u
 }
 
 // -----------------------------------------------------------------------------
-void MarkUnvisited(OrderedSet<vtkIdType> &cellIds, vtkDataArray *regions, vtkDataArray *labels, LabelType label)
+void MarkUnvisited(OrderedSet<vtkIdType> &ids, vtkDataArray *regions, vtkDataArray *labels, LabelType label)
 {
-  for (vtkIdType cellId = 0; cellId < regions->GetNumberOfTuples(); ++cellId) {
-    if (static_cast<LabelType>(labels->GetComponent(cellId, 0)) == label) {
-      regions->SetComponent(cellId, 0, -1.);
-      cellIds.insert(cellId);
+  for (vtkIdType id = 0; id < regions->GetNumberOfTuples(); ++id) {
+    if (static_cast<LabelType>(labels->GetComponent(id, 0)) == label) {
+      regions->SetComponent(id, 0, -1.);
+      ids.insert(id);
     } else {
-      regions->SetComponent(cellId, 0, -2.);
+      regions->SetComponent(id, 0, -2.);
     }
   }
 }
 
 // -----------------------------------------------------------------------------
-vtkIdType NextSeed(OrderedSet<vtkIdType> &cellIds, vtkDataArray *regions)
+vtkIdType NextSeed(OrderedSet<vtkIdType> &ids, vtkDataArray *regions)
 {
-  for (auto cellId = cellIds.begin(); cellId != cellIds.end(); ++cellId) {
-    if (static_cast<LabelType>(regions->GetComponent(*cellId, 0)) == -1) return *cellId;
+  for (auto id : ids) {
+    if (static_cast<LabelType>(regions->GetComponent(id, 0)) == -1) return id;
   }
   return -1;
 }
@@ -837,14 +894,25 @@ void MarkSmallRegions(vtkPolyData *surface, int min_region_size, const char *sca
   for (LabelIter label = label_set.begin(); label != label_set.end(); ++label) {
     MarkUnvisited(ids, regions, labels, *label);
     while ((id = NextSeed(ids, regions)) != -1) {
+      if (regionSz.size() > static_cast<size_t>(numeric_limits<LabelType>::max())) {
+        FatalError("Label overflow in MarkSmallRegions");
+      }
       LabelType regionId = static_cast<LabelType>(regionSz.size());
       regionSz.push_back(GrowRegion(surface, regions, regionId, id, using_cells));
     }
     for (size_t i = 0; i < regionSz.size(); ++i) {
       if (regionSz[i] < static_cast<vtkIdType>(min_region_size)) {
-        for (id = 0; id < surface->GetNumberOfCells(); ++id) {
-          if (static_cast<size_t>(regions->GetComponent(id, 0)) == i) {
-            labels->SetComponent(id, 0, -1.);
+        if (using_cells) {
+          for (id = 0; id < surface->GetNumberOfCells(); ++id) {
+            if (static_cast<size_t>(regions->GetComponent(id, 0)) == i) {
+              labels->SetComponent(id, 0, -1.);
+            }
+          }
+        } else {
+          for (id = 0; id < surface->GetNumberOfPoints(); ++id) {
+            if (static_cast<size_t>(regions->GetComponent(id, 0)) == i) {
+              labels->SetComponent(id, 0, -1.);
+            }
           }
         }
       }
@@ -984,38 +1052,61 @@ void FillHoles(vtkPolyData *surface, const char *scalars_name = "Labels", bool u
 }
 
 // -----------------------------------------------------------------------------
-void SmoothLabels(vtkPolyData *surface, int niter, const char *scalars_name = "Labels", bool using_cells = true)
+void ReplaceLabel(vtkPolyData *surface, LabelType a, LabelType b, const char *scalars_name = "Labels", bool using_cells = true)
 {
-  if (niter < 1) return;
-
-  // Structured needed for iterating over neighboring cells
-  vtkSmartPointer<vtkIdList> idList          = vtkSmartPointer<vtkIdList>::New();
-  vtkSmartPointer<vtkIdList> cellPointIds    = vtkSmartPointer<vtkIdList>::New();
-  vtkSmartPointer<vtkIdList> neighborCellIds = vtkSmartPointer<vtkIdList>::New();
-  vtkIdType id, neighborCellId;
-  LabelType label,  neighborLabel;
-
-  idList->SetNumberOfIds(2);
-
-  // Get labels
   vtkSmartPointer<vtkDataArray> labels;
-  vtkSmartPointer<LabelArray> new_labels;
-  new_labels = vtkSmartPointer<LabelArray>::New();
-  new_labels->SetName(scalars_name);
-  new_labels->SetNumberOfComponents(1);
   if (using_cells) {
     labels = surface->GetCellData()->GetArray(scalars_name);
     if (labels == NULL) {
       FatalError("Surface has no " <<  scalars_name << " cell data, re-run with -celldata.");
     }
-    new_labels->SetNumberOfTuples(surface->GetNumberOfCells());
   } else {
     labels = surface->GetPointData()->GetArray(scalars_name);
     if (labels == NULL) {
       FatalError("Surface has no " <<  scalars_name << " point data, re-run with -pointdata.");
     }
-    new_labels->SetNumberOfTuples(surface->GetNumberOfPoints());
   }
+  for (vtkIdType id = 0; id < labels->GetNumberOfTuples(); ++id) {
+    if (labels->GetComponent(id, 0) == static_cast<double>(a)) {
+      labels->SetComponent(id, 0, static_cast<double>(b));
+    }
+  }
+}
+
+// -----------------------------------------------------------------------------
+void SmoothLabels(vtkPolyData *surface, int niter, const char *scalars_name = "Labels", bool using_cells = true)
+{
+  if (niter < 1) return;
+
+  vtkNew<vtkIdList> cellIds;
+  LabelType  label;
+  CountMap   hist;
+  CountIter  bin;
+  vtkIdType  ptId1, ptId2;
+  vtkCell   *cell, *edge;
+  int        adjPts;
+  const int *adjIds;
+  long       count;
+
+  // Get labels
+  vtkSmartPointer<vtkDataArray> labels;
+  if (using_cells) {
+    labels = surface->GetCellData()->GetArray(scalars_name);
+    if (labels == nullptr) {
+      FatalError("Surface has no " << scalars_name << " cell data, re-run with -celldata.");
+    }
+  } else {
+    labels = surface->GetPointData()->GetArray(scalars_name);
+    if (labels == nullptr) {
+      FatalError("Surface has no " << scalars_name << " point data, re-run with -pointdata.");
+    }
+  }
+
+  // Buffer for smoothed labels
+  vtkSmartPointer<vtkDataArray> cur_labels = labels, new_labels;
+  new_labels.TakeReference(labels->NewInstance());
+  new_labels->SetNumberOfComponents(1);
+  new_labels->SetNumberOfTuples(labels->GetNumberOfTuples());
 
   // Ensure links are build for better efficiency
   surface->BuildLinks();
@@ -1024,52 +1115,62 @@ void SmoothLabels(vtkPolyData *surface, int niter, const char *scalars_name = "L
   if (!using_cells) edgeTable.Initialize(surface);
 
   // Replace labels by majority of neighboring cell labels
-  CountMap hist;
-  for (int iter = 0; iter < niter; ++iter) {
-    for (id = 0; id < labels->GetNumberOfTuples(); ++id) {
-      hist.clear();
-      label = static_cast<LabelType>(labels->GetComponent(id, 0));
-      if (label != -1) hist[label] = 1;
-
-      if (using_cells) {
-        // Iterate over cell edges
-        surface->GetCellPoints(id, cellPointIds);
-        for (vtkIdType i = 0; i < cellPointIds->GetNumberOfIds(); ++i) {
-          // Get cells sharing these edge points
-          idList->SetId(0, cellPointIds->GetId(i));
-          if (i == cellPointIds->GetNumberOfIds() - 1) {
-            idList->SetId(1, cellPointIds->GetId(0));
-          } else {
-            idList->SetId(1, cellPointIds->GetId(i + 1));
+  for (int iter  = 0; iter < niter; ++iter) {
+  for (int subit = (using_cells ? 0 : 1); subit < 2; ++subit) {
+      for (vtkIdType id = 0; id < labels->GetNumberOfTuples(); ++id) {
+        hist.clear();
+        label = static_cast<LabelType>(cur_labels->GetComponent(id, 0));
+        if (subit == 1 && label != -1) {
+          // when smoothing labels of (triangular) cells, perform two passes
+          // where in the first pass the label of this cell is ignored
+          hist[label] = 1;
+        }
+        if (using_cells) {
+          cell = surface->GetCell(id);
+          for (int edgeId = 0; edgeId < cell->GetNumberOfEdges(); ++edgeId) {
+            edge = cell->GetEdge(edgeId);
+            if (edge->GetNumberOfPoints() > 1) {
+              ptId1 = edge->PointIds->GetId(0);
+              for (vtkIdType i = 1; i < edge->GetNumberOfPoints(); ++i, ptId1 = ptId2) {
+                ptId2 = edge->PointIds->GetId(i);
+                surface->GetCellEdgeNeighbors(id, ptId1, ptId2, cellIds.GetPointer());
+                for (vtkIdType j = 0; j < cellIds->GetNumberOfIds(); ++j) {
+                  label = static_cast<LabelType>(cur_labels->GetComponent(cellIds->GetId(j), 0));
+                  if (label != -1) {
+                    bin = hist.find(label);
+                    if (bin == hist.end()) hist[label]  = 1;
+                    else                   bin->second += 1;
+                  }
+                }
+              }
+            }
           }
-          surface->GetCellNeighbors(id, idList, neighborCellIds);
-          // Count labels of neighboring cells and add unlabeled ones to queue
-          for (vtkIdType j = 0; j < neighborCellIds->GetNumberOfIds(); ++j) {
-            neighborCellId = neighborCellIds->GetId(j);
-            neighborLabel  = static_cast<LabelType>(labels->GetComponent(neighborCellId, 0));
-            if (neighborLabel != -1) ++hist[neighborLabel];
+        } else {
+          edgeTable.GetAdjacentPoints(id, adjPts, adjIds);
+          for (int i = 0; i < adjPts; ++i) {
+            label = static_cast<LabelType>(cur_labels->GetComponent(adjIds[i], 0));
+            if (label != -1) {
+              bin = hist.find(label);
+              if (bin == hist.end()) hist[label]  = 1;
+              else                   bin->second += 1;
+            }
           }
         }
-      } else {
-        int        adjPts;
-        const int *adjIds;
-        edgeTable.GetAdjacentPoints(id, adjPts, adjIds);
-        for (int i = 0; i < adjPts; ++i) {
-          neighborLabel = static_cast<LabelType>(labels->GetComponent(adjIds[i], 0));
-          if (neighborLabel != -1) ++hist[neighborLabel];
+        count = 0;
+        label = static_cast<LabelType>(cur_labels->GetComponent(id, 0));
+        for (bin = hist.begin(); bin != hist.end(); ++bin) {
+          if (bin->second > count) {
+            label = bin->first;
+            count = bin->second;
+          }
         }
+        new_labels->SetComponent(id, 0, static_cast<double>(label));
       }
-      // Assign label with highest frequency
-      long max_count = 0;
-      for (CountIter i = hist.begin(); i != hist.end(); ++i) {
-        if (i->second > max_count) {
-          label     = i->first;
-          max_count = i->second;
-        }
-      }
-      new_labels->SetComponent(id, 0, static_cast<double>(label));
+      swap(cur_labels, new_labels);
     }
-    labels->DeepCopy(new_labels);
+  }
+  if (cur_labels != labels) {
+    labels->DeepCopy(cur_labels);
   }
 }
 
@@ -1326,6 +1427,7 @@ int main(int argc, char *argv[])
   bool        output_boundary_edges   = false;
   bool        label_cells             = false;
   bool        label_points            = false;
+  int         max_hole_size           = numeric_limits<int>::max();
   int         min_region_size         = 0;
   double      min_region_ratio        = 0;
   bool        fill_holes              = true;
@@ -1345,6 +1447,7 @@ int main(int argc, char *argv[])
     else if (OPTION("-image"))  input_image_name    = ARGUMENT;
     else if (OPTION("-labels")) input_labels_name   = ARGUMENT;
     else if (OPTION("-min-size")) PARSE_ARGUMENT(min_region_size);
+    else if (OPTION("-max-hole-size")) PARSE_ARGUMENT(max_hole_size);
     else if (OPTION("-min-ratio")) PARSE_ARGUMENT(min_region_ratio);
     else if (OPTION("-smooth")) PARSE_ARGUMENT(smoothing_iterations);
     else if (OPTION("-pial")) {
@@ -1355,9 +1458,11 @@ int main(int argc, char *argv[])
       csf_gm_boundary = false;
       gm_wm_boundary  = true;
     }
-    else HANDLE_BOOLEAN_OPTION("fill", fill_holes);
-    else HANDLE_BOOLEAN_OPTION("celldata", label_cells);
-    else HANDLE_BOOLEAN_OPTION("pointdata", label_points);
+    else HANDLE_BOOLEAN_OPTION("fill",       fill_holes);
+    else HANDLE_BOOLEAN_OPTION("celldata",   label_cells);
+    else HANDLE_BOOLEAN_OPTION("cell-data",  label_cells);
+    else HANDLE_BOOLEAN_OPTION("pointdata",  label_points);
+    else HANDLE_BOOLEAN_OPTION("point-data", label_points);
     else HANDLE_BOOLEAN_OPTION("boundary", output_boundary_edges);
     else if (OPTION("-surface"))  input_surface_proj_name = ARGUMENT;
     else if (OPTION("-scalars")){
@@ -1432,8 +1537,12 @@ int main(int argc, char *argv[])
   // Compute dilated labels
   LabelImage dilatedLabels;
   if (input_labels_name && (label_points || (label_cells && !csf_gm_boundary && !gm_wm_boundary))) {
-    dilatedLabels = DilateLabels(labels, max_dilation_distance);
-    if (output_label_image_name) dilatedLabels.Write(output_label_image_name);
+    if (max_dilation_distance > 0.) {
+      dilatedLabels = DilateLabels(labels, max_dilation_distance);
+      if (output_label_image_name) dilatedLabels.Write(output_label_image_name);
+    } else {
+      dilatedLabels.Initialize(labels.Attributes(), 1, labels.Data());
+    }
   }
 
   // Assign labels to points (vertices)
@@ -1509,71 +1618,228 @@ int main(int argc, char *argv[])
     }
   }
 
+  if (input_labels_name && (label_cells || label_points)) {
+    bool using_cells = false;
+    for (int i = 0; i < 2; ++i, using_cells = !using_cells) {
+      if ((!using_cells && label_points) || (using_cells && label_cells)) {
+        // Debug output filename
+        const char * const what = (using_cells ? "cells" : "points");
+        const size_t fsize = 128;
+        char         fname[fsize];
 
-  if(input_labels_name && (label_cells || label_points)){
-    bool using_cells;
-    for (int i=0; i<2; i++){
-      if(i==0 && !label_points) continue;
-      if(i==1 && !label_cells) continue;
-      using_cells = i;
+        // Mark holes of unlabeled points/cells
+        if (fill_holes || smoothing_iterations > 0) {
+          if (verbose) cout << "Marking holes in parcellation...", cout.flush();
+          if (surface) {
+            MarkHoles(surface, max_hole_size, output_scalars_name, using_cells);
+            if (debug > 0) {
+              snprintf(fname, fsize, "debug_surface_%s-marked_holes.vtp", what);
+              WritePolyData(fname, surface);
+            }
+          }
+          if (white_surface) {
+            MarkHoles(white_surface, max_hole_size, output_scalars_name, using_cells);
+            if (debug > 0) {
+              snprintf(fname, fsize, "debug_white_surface_%s-marked_holes.vtp", what);
+              WritePolyData(fname, white_surface);
+            }
+          }
+          if (pial_surface) {
+            MarkHoles(pial_surface, max_hole_size, output_scalars_name, using_cells);
+            if (debug > 0) {
+              snprintf(fname, fsize, "debug_pial_surface_%s-marked_holes.vtp", what);
+              WritePolyData(fname, pial_surface);
+            }
+          }
+          if (verbose) cout << " done" << endl;
+        }
 
-      if (fill_holes || smoothing_iterations > 0) {
-        if (verbose) cout << "Marking holes in parcellation...", cout.flush();
-        if (surface)       MarkHoles(surface,       output_scalars_name, using_cells);
-        if (white_surface) MarkHoles(white_surface, output_scalars_name, using_cells);
-        if (pial_surface)  MarkHoles(pial_surface,  output_scalars_name, using_cells);
-        if (verbose) cout << " done" << endl;
-      }
-      if (fill_holes) {
-        if (verbose) cout << "Filling holes...", cout.flush();
-        if (surface)       FillHoles(surface,       output_scalars_name, using_cells);
-        if (white_surface) FillHoles(white_surface, output_scalars_name, using_cells);
-        if (pial_surface)  FillHoles(pial_surface,  output_scalars_name, using_cells);
-        if (verbose) cout << " done" << endl;
-      }
+        // 1. Fill holes of unlabeled points/cells
+        if (fill_holes) {
+          if (verbose) cout << "Filling holes...", cout.flush();
+          if (surface) {
+            FillHoles(surface, output_scalars_name, using_cells);
+            if (debug > 0) {
+              snprintf(fname, fsize, "debug_surface_%s-filled_holes.vtp", what);
+              WritePolyData(fname, surface);
+            }
+          }
+          if (white_surface) {
+            FillHoles(white_surface, output_scalars_name, using_cells);
+            if (debug > 0) {
+              snprintf(fname, fsize, "debug_white_surface_%s-filled_holes.vtp", what);
+              WritePolyData(fname, white_surface);
+            }
+          }
+          if (pial_surface) {
+            FillHoles(pial_surface, output_scalars_name, using_cells);
+            if (debug > 0) {
+              snprintf(fname, fsize, "debug_pial_surface_%s-filled_holes.vtp", what);
+              WritePolyData(fname, pial_surface);
+            }
+          }
+          if (verbose) cout << " done" << endl;
+        }
 
-      if (min_region_size > 1) {
-        if (verbose) cout << "Marking parcels with less than " << min_region_size << " cells...", cout.flush();
-        if (surface)       MarkSmallRegions(surface,       min_region_size, output_scalars_name, using_cells);
-        if (white_surface) MarkSmallRegions(white_surface, min_region_size, output_scalars_name, using_cells);
-        if (pial_surface)  MarkSmallRegions(pial_surface,  min_region_size, output_scalars_name, using_cells);
-        if (verbose) cout << " done" << endl;
-      }else if (min_region_ratio > 0){
-        if (verbose) cout << "Keep largest parcel per label ...", cout.flush();
-        if (surface)       KeepLargestRegionRatio(surface,       min_region_ratio, output_scalars_name, using_cells);
-        if (white_surface) KeepLargestRegionRatio(white_surface, min_region_ratio, output_scalars_name, using_cells);
-        if (pial_surface)  KeepLargestRegionRatio(pial_surface,  min_region_ratio, output_scalars_name, using_cells);
-        if (verbose) cout << " done" << endl;
-      }
+        // 2. Smooth parcel boundaries (incl. unlabeled parcels),
+        //    ignoring small parcels which will be filled in afterwards
+        if (smoothing_iterations > 0) {
+          if (min_region_size > 1) {
+            if (verbose) cout << "Marking parcels with less than " << min_region_size << " " << what << "...", cout.flush();
+            if (surface) {
+              MarkSmallRegions(surface, min_region_size, output_scalars_name, using_cells);
+              if (debug > 0) {
+                snprintf(fname, fsize, "debug_surface_%s-excluded_small_parcels.vtp", what);
+                WritePolyData(fname, surface);
+              }
+            }
+            if (white_surface) {
+              MarkSmallRegions(white_surface, min_region_size, output_scalars_name, using_cells);
+              if (debug > 0) {
+                snprintf(fname, fsize, "debug_white_surface_%s-excluded_small_parcels.vtp", what);
+                WritePolyData(fname, white_surface);
+              }
+            }
+            if (pial_surface) {
+              MarkSmallRegions(pial_surface, min_region_size, output_scalars_name, using_cells);
+              if (debug > 0) {
+                snprintf(fname, fsize, "debug_pial_surface_%s-excluded_small_parcels.vtp", what);
+                WritePolyData(fname, pial_surface);
+              }
+            }
+            if (verbose) cout << " done" << endl;
+          } else if (min_region_ratio > 0) {
+            if (verbose) cout << "Keep largest parcel per label ...", cout.flush();
+            if (surface) {
+              KeepLargestRegionRatio(surface, min_region_ratio, output_scalars_name, using_cells);
+              if (debug > 0) {
+                snprintf(fname, fsize, "debug_surface_%s-excluded_small_parcels.vtp", what);
+                WritePolyData(fname, surface);
+              }
+            }
+            if (white_surface) {
+              KeepLargestRegionRatio(white_surface, min_region_ratio, output_scalars_name, using_cells);
+              if (debug > 0) {
+                snprintf(fname, fsize, "debug_white_surface_%s-excluded_small_parcels.vtp", what);
+                WritePolyData(fname, white_surface);
+              }
+            }
+            if (pial_surface) {
+              KeepLargestRegionRatio(pial_surface, min_region_ratio, output_scalars_name, using_cells);
+              if (debug > 0) {
+                snprintf(fname, fsize, "debug_pial_surface_%s-excluded_small_parcels.vtp", what);
+                WritePolyData(fname, pial_surface);
+              }
+            }
+            if (verbose) cout << " done" << endl;
+          }
+          if (verbose) cout << "Smoothing parcel boundaries (niter=" << smoothing_iterations << ")...", cout.flush();
+          if (surface) {
+            SmoothLabels(surface, smoothing_iterations, output_scalars_name, using_cells);
+            if (debug > 0) {
+              snprintf(fname, fsize, "debug_surface_%s-smoothed_parcels.vtp", what);
+              WritePolyData(fname, surface);
+            }
+          }
+          if (white_surface) {
+            SmoothLabels(white_surface, smoothing_iterations, output_scalars_name, using_cells);
+            if (debug > 0) {
+              snprintf(fname, fsize, "debug_white_surface_%s-smoothed_parcels.vtp", what);
+              WritePolyData(fname, white_surface);
+            }
+          }
+          if (pial_surface) {
+            SmoothLabels(pial_surface, smoothing_iterations, output_scalars_name, using_cells);
+            if (debug > 0) {
+              snprintf(fname, fsize, "debug_pial_surface_%s-smoothed_parcels.vtp", what);
+              WritePolyData(fname, pial_surface);
+            }
+          }
+          if (verbose) cout << " done" << endl;
+        }
 
-      if (smoothing_iterations > 0) {
-        if (verbose) cout << "Smoothing/filling parcels (niter=" << smoothing_iterations << ")...", cout.flush();
-        if (surface)       SmoothLabels(surface, smoothing_iterations,       output_scalars_name, using_cells);
-        if (white_surface) SmoothLabels(white_surface, smoothing_iterations, output_scalars_name, using_cells);
-        if (pial_surface)  SmoothLabels(pial_surface,  smoothing_iterations, output_scalars_name, using_cells);
-        if (verbose) cout << " done" << endl;
-      }
+        // 3. Fill in small parcels
+        if (min_region_size > 1 || min_region_ratio > 0) {
+          if (min_region_size > 1) {
+            if (verbose) cout << "Marking parcels with less than " << min_region_size << " " << what << "...", cout.flush();
+            if (surface) {
+              MarkSmallRegions(surface, min_region_size, output_scalars_name, using_cells);
+              if (debug > 0) {
+                snprintf(fname, fsize, "debug_surface_%s-marked_small_parcels.vtp", what);
+                WritePolyData(fname, surface);
+              }
+            }
+            if (white_surface) {
+              MarkSmallRegions(white_surface, min_region_size, output_scalars_name, using_cells);
+              if (debug > 0) {
+                snprintf(fname, fsize, "debug_white_surface_%s-marked_small_parcels.vtp", what);
+                WritePolyData(fname, white_surface);
+              }
+            }
+            if (pial_surface) {
+              MarkSmallRegions(pial_surface, min_region_size, output_scalars_name, using_cells);
+              if (debug > 0) {
+                snprintf(fname, fsize, "debug_pial_surface_%s-marked_small_parcels.vtp", what);
+                WritePolyData(fname, pial_surface);
+              }
+            }
+            if (verbose) cout << " done" << endl;
+          } else if (min_region_ratio > 0) {
+            if (verbose) cout << "Keep largest parcel per label ...", cout.flush();
+            if (surface) {
+              KeepLargestRegionRatio(surface, min_region_ratio, output_scalars_name, using_cells);
+              if (debug > 0) {
+                snprintf(fname, fsize, "debug_surface_%s-marked_small_parcels.vtp", what);
+                WritePolyData(fname, surface);
+              }
+            }
+            if (white_surface) {
+              KeepLargestRegionRatio(white_surface, min_region_ratio, output_scalars_name, using_cells);
+              if (debug > 0) {
+                snprintf(fname, fsize, "debug_white_surface_%s-marked_small_parcels.vtp", what);
+                WritePolyData(fname, white_surface);
+              }
+            }
+            if (pial_surface) {
+              KeepLargestRegionRatio(pial_surface, min_region_ratio, output_scalars_name, using_cells);
+              if (debug > 0) {
+                snprintf(fname, fsize, "debug_pial_surface_%s-marked_small_parcels.vtp", what);
+                WritePolyData(fname, pial_surface);
+              }
+            }
+            if (verbose) cout << " done" << endl;
+          }
+          if (fill_holes) {
+            if (verbose) cout << "Filling smaller parcels...", cout.flush();
+            if (surface) {
+              FillHoles(surface, output_scalars_name, using_cells);
+              if (debug > 0) {
+                snprintf(fname, fsize, "debug_surface_%s-filled_small_parcels.vtp", what);
+                WritePolyData(fname, surface);
+              }
+            }
+            if (white_surface) {
+              FillHoles(white_surface, output_scalars_name, using_cells);
+              if (debug > 0) {
+                snprintf(fname, fsize, "debug_white_surface_%s-filled_small_parcels.vtp", what);
+                WritePolyData(fname, white_surface);
+              }
+            }
+            if (pial_surface) {
+              FillHoles(pial_surface, output_scalars_name, using_cells);
+              if (debug > 0) {
+                snprintf(fname, fsize, "debug_pial_surface_%s-filled_small_parcels.vtp", what);
+                WritePolyData(fname, pial_surface);
+              }
+            }
+          }
+          if (verbose) cout << " done" << endl;
+        }
 
-      if (min_region_size > 1) {
-        if (verbose) cout << "Marking parcels with less than " << min_region_size << " cells...", cout.flush();
-        if (surface)       MarkSmallRegions(surface,       min_region_size, output_scalars_name, using_cells);
-        if (white_surface) MarkSmallRegions(white_surface, min_region_size, output_scalars_name, using_cells);
-        if (pial_surface)  MarkSmallRegions(pial_surface,  min_region_size, output_scalars_name, using_cells);
-        if (verbose) cout << " done" << endl;
-      }else if (min_region_ratio > 0){
-        if (verbose) cout << "Keep largest parcel per label ...", cout.flush();
-        if (surface)       KeepLargestRegionRatio(surface,       min_region_ratio, output_scalars_name, using_cells);
-        if (white_surface) KeepLargestRegionRatio(white_surface, min_region_ratio, output_scalars_name, using_cells);
-        if (pial_surface)  KeepLargestRegionRatio(pial_surface,  min_region_ratio, output_scalars_name, using_cells);
-        if (verbose) cout << " done" << endl;
-      }
-
-      if (fill_holes) {
-        if (verbose) cout << "Filling remaining holes...", cout.flush();
-        if (surface)       FillHoles(surface,       output_scalars_name, using_cells);
-        if (white_surface) FillHoles(white_surface, output_scalars_name, using_cells);
-        if (pial_surface)  FillHoles(pial_surface,  output_scalars_name, using_cells);
-        if (verbose) cout << " done" << endl;
+        // 4. Replace any left over -1 labels by 0
+        if (surface)       ReplaceLabel(surface,       -1, 0, output_scalars_name, using_cells);
+        if (white_surface) ReplaceLabel(white_surface, -1, 0, output_scalars_name, using_cells);
+        if (pial_surface)  ReplaceLabel(pial_surface,  -1, 0, output_scalars_name, using_cells);
       }
     }
   }

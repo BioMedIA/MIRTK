@@ -22,6 +22,7 @@
 
 #include "mirtk/EdgeConnectivity.h"
 #include "mirtk/PointSetIO.h"
+#include "mirtk/PointSetUtils.h"
 
 #include "vtkSmartPointer.h"
 #include "vtkPointSet.h"
@@ -174,9 +175,10 @@ int main(int argc, char *argv[])
 {
   EXPECTS_POSARGS(2);
 
-  const char *input_name  = POSARG(1);
-  const char *output_name = POSARG(2);
-  const char *array_name  = nullptr;
+  const char *input_name        = POSARG(1);
+  const char *output_name       = POSARG(2);
+  const char *array_name        = nullptr;
+  const char *output_array_name = nullptr;
 
   int iterations    = 1;
   int connectivity  = 1;
@@ -186,6 +188,9 @@ int main(int argc, char *argv[])
   for (ALL_OPTIONS) {
     if (OPTION("-a") || OPTION("-array") || OPTION("-scalars") || OPTION("-name")) {
       array_name = ARGUMENT;
+    }
+    else if (OPTION("-o") || OPTION("-output-array") || OPTION("-output-scalars") || OPTION("-output-name")) {
+      output_array_name = ARGUMENT;
     }
     else if (OPTION("-n") || OPTION("-iterations") || OPTION("-iter")) {
       PARSE_ARGUMENT(iterations);
@@ -204,9 +209,9 @@ int main(int argc, char *argv[])
   vtkSmartPointer<vtkPointSet> pset = ReadPointSet(input_name);
   if (verbose) cout << " done" << endl;
 
-  vtkDataArray *arr = nullptr;
+  vtkSmartPointer<vtkDataArray> arr;
   if (array_name) {
-    arr = pset->GetPointData()->GetArray(array_name);
+    arr = GetArrayByCaseInsensitiveName(pset->GetPointData(), array_name);
     if (arr == nullptr) {
       FatalError("Input point set has not point data array named " << array_name << "!");
     }
@@ -214,6 +219,22 @@ int main(int argc, char *argv[])
     arr = pset->GetPointData()->GetScalars();
     if (arr == nullptr) {
       FatalError("Input point set has no active scalars, use -array, -scalars option!");
+    }
+  }
+  if (output_array_name) {
+    if (arr->GetName()) {
+      if (strcmp(output_array_name, arr->GetName()) != 0) {
+        vtkSmartPointer<vtkDataArray> in = arr;
+        arr.TakeReference(in->NewInstance());
+        arr->DeepCopy(in);
+        arr->SetName(output_array_name);
+        for (int j = 0; j < in->GetNumberOfComponents(); ++j) {
+          arr->SetComponentName(j, in->GetComponentName(j));
+        }
+        pset->GetPointData()->AddArray(arr);
+      }
+    } else {
+      arr->SetName(output_array_name);
     }
   }
 
