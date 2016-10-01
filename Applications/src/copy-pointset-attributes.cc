@@ -147,6 +147,7 @@ struct ArrayInfo
   int           _TargetIndex;
   const char   *_TargetName;
   AttributeType _TargetAttribute;
+  int           _TargetDataType;
   bool          _PointCellConversion;
 
   ArrayInfo()
@@ -157,6 +158,7 @@ struct ArrayInfo
     _TargetIndex(-1),
     _TargetName(nullptr),
     _TargetAttribute(NUM_ATTRIBUTES),
+    _TargetDataType(VTK_VOID),
     _PointCellConversion(false)
   {}
 };
@@ -187,8 +189,44 @@ vtkDataArray *GetSourceArray(const char *type, vtkDataSetAttributes *attr, const
 }
 
 // -----------------------------------------------------------------------------
+/// Parse VTK data type string
+int ParseVtkDataType(const char *arg)
+{
+  const string lstr = ToLower(Trim(arg));
+  if (lstr == "char")   return VTK_CHAR;
+  if (lstr == "uchar")  return VTK_UNSIGNED_CHAR;
+  if (lstr == "binary") return VTK_UNSIGNED_CHAR;
+  if (lstr == "short")  return VTK_SHORT;
+  if (lstr == "grey")   return VTK_SHORT;
+  if (lstr == "ushort") return VTK_UNSIGNED_SHORT;
+  if (lstr == "int")    return VTK_INT;
+  if (lstr == "uint")   return VTK_UNSIGNED_INT;
+  if (lstr == "long")   return VTK_LONG_LONG;
+  if (lstr == "ulong")  return VTK_UNSIGNED_LONG_LONG;
+  if (lstr == "float")  return VTK_FLOAT;
+  if (lstr == "double") return VTK_DOUBLE;
+  if (lstr == "real") {
+    #if MIRTK_USE_FLOAT_BY_DEFAULT
+      return VTK_FLOAT;
+    #else
+      return VTK_DOUBLE;
+    #endif
+  }
+  FatalError("Unknown data type: " << arg);
+}
+
+/// Enumeration of categorical data interpolation methods
+enum LabelInterpolationMode
+{
+  MajorityVote,
+  UnanimousVote
+};
+
+// -----------------------------------------------------------------------------
 /// Convert point data labels to cell data
-vtkSmartPointer<vtkDataArray> ConvertPointToCellLabels(vtkPointSet *pset, vtkDataArray *labels)
+vtkSmartPointer<vtkDataArray>
+ConvertPointToCellLabels(vtkPointSet *pset, vtkDataArray *labels,
+                         LabelInterpolationMode mode = MajorityVote)
 {
   vtkSmartPointer<vtkDataArray> output;
   output.TakeReference(labels->NewInstance());
@@ -199,25 +237,56 @@ vtkSmartPointer<vtkDataArray> ConvertPointToCellLabels(vtkPointSet *pset, vtkDat
   output->SetNumberOfComponents(labels->GetNumberOfComponents());
   output->SetNumberOfTuples(pset->GetNumberOfCells());
 
-  OrderedMap<double, int> label_count;
-  vtkSmartPointer<vtkIdList> ptIds = vtkSmartPointer<vtkIdList>::New();
-  for (vtkIdType cellId = 0; cellId < pset->GetNumberOfCells(); ++cellId) {
-    pset->GetCellPoints(cellId, ptIds);
-    for (int j = 0; j < labels->GetNumberOfComponents(); ++j) {
-      label_count.clear();
-      for (vtkIdType i = 0; i < ptIds->GetNumberOfIds(); ++i) {
-        ++label_count[labels->GetComponent(ptIds->GetId(i), j)];
-      }
-      int    max_cnt   = 0;
-      double max_label = 0.;
-      for (const auto &cnt : label_count) {
-        if (cnt.second > max_cnt) {
-          max_label = cnt.first;
-          max_cnt   = cnt.second;
+  switch (mode) {
+    case MajorityVote: {
+      int    count;
+      double label;
+      OrderedMap<double, int> hist;
+      OrderedMap<double, int>::iterator bin;
+      vtkSmartPointer<vtkIdList> ptIds = vtkSmartPointer<vtkIdList>::New();
+      for (vtkIdType cellId = 0; cellId < pset->GetNumberOfCells(); ++cellId) {
+        pset->GetCellPoints(cellId, ptIds);
+        for (int j = 0; j < labels->GetNumberOfComponents(); ++j) {
+          hist.clear();
+          for (vtkIdType i = 0; i < ptIds->GetNumberOfIds(); ++i) {
+            label = labels->GetComponent(ptIds->GetId(i), j);
+            bin = hist.find(label);
+            if (bin == hist.end()) hist[label] = 1;
+            else bin->second += 1;
+          }
+          label = 0., count = 0;
+          for (bin = hist.begin(); bin != hist.end(); ++bin) {
+            if (bin->second > count) {
+              label = bin->first;
+              count = bin->second;
+            }
+          }
+          output->SetComponent(cellId, j, label);
         }
       }
-      output->SetComponent(cellId, j, max_label);
-    }
+    } break;
+    case UnanimousVote: {
+      const double invalid = NaN;
+      double       label;
+      vtkSmartPointer<vtkIdList> ptIds = vtkSmartPointer<vtkIdList>::New();
+      for (vtkIdType cellId = 0; cellId < pset->GetNumberOfCells(); ++cellId) {
+        pset->GetCellPoints(cellId, ptIds);
+        for (int j = 0; j < labels->GetNumberOfComponents(); ++j) {
+          if (ptIds->GetNumberOfIds() == 0) {
+            label = invalid;
+          } else {
+            label = labels->GetComponent(ptIds->GetId(0), j);
+            for (vtkIdType i = 1; i < ptIds->GetNumberOfIds(); ++i) {
+              if (labels->GetComponent(ptIds->GetId(i), j) != label) {
+                label = invalid;
+                break;
+              }
+            }
+          }
+          output->SetComponent(cellId, j, label);
+        }
+      }
+    } break;
   }
 
   return output;
@@ -225,7 +294,9 @@ vtkSmartPointer<vtkDataArray> ConvertPointToCellLabels(vtkPointSet *pset, vtkDat
 
 // -----------------------------------------------------------------------------
 /// Convert cell data labels to point data
-vtkSmartPointer<vtkDataArray> ConvertCellToPointLabels(vtkPointSet *pset, vtkDataArray *labels)
+vtkSmartPointer<vtkDataArray>
+ConvertCellToPointLabels(vtkPointSet *pset, vtkDataArray *labels,
+                         LabelInterpolationMode mode = MajorityVote)
 {
   vtkSmartPointer<vtkDataArray> output;
   output.TakeReference(labels->NewInstance());
@@ -236,25 +307,56 @@ vtkSmartPointer<vtkDataArray> ConvertCellToPointLabels(vtkPointSet *pset, vtkDat
   output->SetNumberOfComponents(labels->GetNumberOfComponents());
   output->SetNumberOfTuples(pset->GetNumberOfPoints());
 
-  OrderedMap<double, int> label_count;
-  vtkSmartPointer<vtkIdList> cellIds = vtkSmartPointer<vtkIdList>::New();
-  for (vtkIdType ptId = 0; ptId < pset->GetNumberOfPoints(); ++ptId) {
-    pset->GetPointCells(ptId, cellIds);
-    for (int j = 0; j < labels->GetNumberOfComponents(); ++j) {
-      label_count.clear();
-      for (vtkIdType i = 0; i < cellIds->GetNumberOfIds(); ++i) {
-        ++label_count[labels->GetComponent(cellIds->GetId(i), j)];
-      }
-      int    max_cnt   = 0;
-      double max_label = 0.;
-      for (const auto &cnt : label_count) {
-        if (cnt.second > max_cnt) {
-          max_label = cnt.first;
-          max_cnt   = cnt.second;
+  switch (mode) {
+    case MajorityVote: {
+      int    count;
+      double label;
+      OrderedMap<double, int> hist;
+      OrderedMap<double, int>::iterator bin;
+      vtkSmartPointer<vtkIdList> cellIds = vtkSmartPointer<vtkIdList>::New();
+      for (vtkIdType ptId = 0; ptId < pset->GetNumberOfPoints(); ++ptId) {
+        pset->GetPointCells(ptId, cellIds);
+        for (int j = 0; j < labels->GetNumberOfComponents(); ++j) {
+          hist.clear();
+          for (vtkIdType i = 0; i < cellIds->GetNumberOfIds(); ++i) {
+            label = labels->GetComponent(cellIds->GetId(i), j);
+            bin = hist.find(label);
+            if (bin == hist.end()) hist[label] = 1;
+            else bin->second += 1;
+          }
+          label = 0., count = 0;
+          for (bin = hist.begin(); bin != hist.end(); ++bin) {
+            if (bin->second > count) {
+              label = bin->first;
+              count = bin->second;
+            }
+          }
+          output->SetComponent(ptId, j, label);
         }
       }
-      output->SetComponent(ptId, j, max_label);
-    }
+    } break;
+    case UnanimousVote: {
+      double       label;
+      const double invalid = NaN;
+      vtkSmartPointer<vtkIdList> cellIds = vtkSmartPointer<vtkIdList>::New();
+      for (vtkIdType ptId = 0; ptId < pset->GetNumberOfPoints(); ++ptId) {
+        pset->GetPointCells(ptId, cellIds);
+        for (int j = 0; j < labels->GetNumberOfComponents(); ++j) {
+          if (cellIds->GetNumberOfIds() == 0) {
+            label = invalid;
+          } else {
+            label = labels->GetComponent(cellIds->GetId(0), j);
+            for (vtkIdType i = 1; i < cellIds->GetNumberOfIds(); ++i) {
+              if (labels->GetComponent(cellIds->GetId(i), j) != label) {
+                label = invalid;
+                break;
+              }
+            }
+          }
+          output->SetComponent(ptId, j, label);
+        }
+      }
+    } break;
   }
 
   return output;
@@ -262,10 +364,14 @@ vtkSmartPointer<vtkDataArray> ConvertCellToPointLabels(vtkPointSet *pset, vtkDat
 
 // -----------------------------------------------------------------------------
 /// Copy tuples from the input data array
-vtkSmartPointer<vtkDataArray> Copy(vtkDataArray *array, vtkIdType n)
+vtkSmartPointer<vtkDataArray> Copy(vtkDataArray *array, vtkIdType n, int dtype = VTK_VOID)
 {
   vtkSmartPointer<vtkDataArray> copy;
-  copy.TakeReference(array->NewInstance());
+  if (dtype == VTK_VOID) {
+    copy.TakeReference(array->NewInstance());
+  } else {
+    copy = NewVtkDataArray(dtype);
+  }
   copy->SetName(array->GetName());
   copy->SetNumberOfComponents(array->GetNumberOfComponents());
   copy->SetNumberOfTuples(n);
@@ -331,6 +437,7 @@ int main(int argc, char **argv)
   const char *point_mask_name = nullptr;
   const char *cell_mask_name  = nullptr;
   bool        case_sensitive  = false;
+  LabelInterpolationMode label_mode = MajorityVote;
 
   for (ALL_OPTIONS) {
     if (OPTION("-points")) {
@@ -353,11 +460,11 @@ int main(int argc, char **argv)
       info._TargetIndex = -2;
       pd.push_back(info);
     }
-    else if (OPTION("-pointdata") || OPTION("-pointdata-as-celldata") ||
-             OPTION("-celldata")  || OPTION("-celldata-as-pointdata")) {
+    else if (OPTION("-pd") || OPTION("-pointdata") || OPTION("-pd-as-cd") || OPTION("-pointdata-as-celldata") ||
+             OPTION("-cd") || OPTION("-celldata")  || OPTION("-cd-as-pd") || OPTION("-celldata-as-pointdata")) {
       ArrayInfo info;
-      if (strcmp(OPTNAME, "-pointdata-as-celldata") == 0 ||
-          strcmp(OPTNAME, "-celldata-as-pointdata") == 0) {
+      if (strcmp(OPTNAME, "-pointdata-as-celldata") == 0 || strcmp(OPTNAME, "-pd-as-cd") == 0 ||
+          strcmp(OPTNAME, "-celldata-as-pointdata") == 0 || strcmp(OPTNAME, "-cd-as-pd") == 0) {
         info._PointCellConversion = true;
       } else {
         info._PointCellConversion = false;
@@ -372,10 +479,14 @@ int main(int argc, char **argv)
         info._TargetName = ARGUMENT;
       }
       if (HAS_ARGUMENT) PARSE_ARGUMENT(info._TargetAttribute);
-      if (strncmp(OPTNAME, "-pointdata", 10) == 0) pd.push_back(info);
-      else                                         cd.push_back(info);
+      if (HAS_ARGUMENT) info._TargetDataType = ParseVtkDataType(ARGUMENT);
+      if (strncmp(OPTNAME, "-pointdata", 10) == 0 || strncmp(OPTNAME, "-pd", 3) == 0) {
+        pd.push_back(info);
+      } else {
+        cd.push_back(info);
+      }
     }
-    else if (OPTION("-pointdata-as-points")) {
+    else if (OPTION("-pointdata-as-points") || OPTION("-pd-as-points")) {
       ArrayInfo info;
       info._SourceName = ARGUMENT;
       if (FromString(info._SourceName, info._SourceIndex)) {
@@ -386,6 +497,8 @@ int main(int argc, char **argv)
       info._TargetIndex = -2;
       pd.push_back(info);
     }
+    else if (OPTION("-majority"))  label_mode = MajorityVote;
+    else if (OPTION("-unanimous")) label_mode = UnanimousVote;
     else if (OPTION("-pointmask")) point_mask_name = ARGUMENT;
     else if (OPTION("-cellmask"))  cell_mask_name  = ARGUMENT;
     else if (OPTION("-case-sensitive"))   case_sensitive = true;
@@ -511,13 +624,15 @@ int main(int argc, char **argv)
         copy = nullptr;
       } else {
         if (sourceAttr == pd_as_cd.GetPointer()) {
-          if ((array->GetName()  && ToLower(array->GetName()) .find("label") != string::npos) ||
-              (pd[i]._TargetName && ToLower(pd[i]._TargetName).find("label") != string::npos)) {
+          const auto sourceName = (array->GetName()  ? ToLower(array->GetName())  : string());
+          const auto targetName = (pd[i]._TargetName ? ToLower(pd[i]._TargetName) : string());
+          if (sourceName.find("label") != string::npos || sourceName.find("mask") != string::npos ||
+              targetName.find("label") != string::npos || targetName.find("mask") != string::npos) {
             vtkDataArray *labels = GetSourceArray("point", sourcePD, pd[i], case_sensitive);
-            array = ConvertPointToCellLabels(source, labels);
+            array = ConvertPointToCellLabels(source, labels, label_mode);
           }
         }
-        copy = Copy(array, ntuples);
+        copy = Copy(array, ntuples, pd[i]._TargetDataType);
       }
     }
     if (copy) {
@@ -550,13 +665,15 @@ int main(int argc, char **argv)
     }
     array = GetSourceArray("cell", sourceAttr, cd[i], case_sensitive);
     if (sourceAttr == cd_as_pd.GetPointer()) {
-      if ((array->GetName()  && ToLower(array->GetName()) .find("label") != string::npos) ||
-          (cd[i]._TargetName && ToLower(cd[i]._TargetName).find("label") != string::npos)) {
+      const auto sourceName = (array->GetName()  ? ToLower(array->GetName())  : string());
+      const auto targetName = (cd[i]._TargetName ? ToLower(cd[i]._TargetName) : string());
+      if (sourceName.find("label") != string::npos || sourceName.find("mask") != string::npos ||
+          targetName.find("label") != string::npos || targetName.find("mask") != string::npos) {
         vtkDataArray *labels = GetSourceArray("cell", sourceCD, cd[i], case_sensitive);
-        array = ConvertCellToPointLabels(source, labels);
+        array = ConvertCellToPointLabels(source, labels, label_mode);
       }
     }
-    copy = Copy(array, ntuples);
+    copy = Copy(array, ntuples, cd[i]._TargetDataType);
     if (cd[i]._TargetName) copy->SetName(cd[i]._TargetName);
     AddArray(targetAttr, copy, cd[i]._TargetAttribute);
   }
