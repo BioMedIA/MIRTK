@@ -1,8 +1,8 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2013-2015 Imperial College London
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2013-2016 Imperial College London
+ * Copyright 2013-2016 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,8 +32,10 @@
 #include "vtkSmartPointer.h"
 #include "vtkPolyData.h"
 #include "vtkPointData.h"
+#include "vtkCellData.h"
 #include "vtkDataArray.h"
 #include "vtkPolyDataNormals.h"
+#include "vtkGenericCell.h"
 
 using namespace mirtk;
 using namespace mirtk::data::statistic;
@@ -59,7 +61,8 @@ void PrintHelp(const char *name)
   cout << "  output   Output surface mesh.\n";
   cout << "\n";
   cout << "Normals options:\n";
-  cout << "  -normals, -point-normals   Surface point normals.\n";
+  cout << "  -normals                   Surface point and cell normals.\n";
+  cout << "  -point-normals             Surface point normals.\n";
   cout << "  -cell-normals              Surface cell normals.\n";
   cout << "  -[no]auto-orient           Enable/disable auto-orientation of normals. (default: on)\n";
   cout << "  -[no]splitting             Enable/disable splitting of sharp edges. (default: off)\n";
@@ -78,6 +81,14 @@ void PrintHelp(const char *name)
   cout << "  -vtk-curvatures            Use vtkCurvatures when possible.\n";
   cout << "  -robust-curvatures         Do not use vtkCurvatures. Instead, estimate the curvature\n";
   cout << "                             tensor field and decompose it to obtain principle curvatures. (default)\n";
+  cout << "\n";
+  cout << "Parcellation options:\n";
+  cout << "  -labels <name>         Name of surface point and/or cell parcellation array.\n";
+  cout << "  -point-labels <name>   Name of surface point parcellation array.\n";
+  cout << "  -cell-labels <name>    Name of surface cell  parcellation array.\n";
+  cout << "  -border-mask <name>    Add parcellation border mask to output surface mesh,\n";
+  cout << "                         where points/cells adjacent to a given point/cell\n";
+  cout << "                         belong to different parcels have a non-zero value.\n";
   cout << "\n";
   cout << "Local image options:\n";
   cout << "  -image <file>\n";
@@ -153,6 +164,169 @@ void PrintHelp(const char *name)
 // =============================================================================
 
 // -----------------------------------------------------------------------------
+/// Get IDs of all cell edge neighbors
+inline UnorderedSet<vtkIdType>
+GetCellEdgeNeighbors(vtkPolyData *surface, vtkIdType cellId, bool excl_boundary_edges = false)
+{
+  UnorderedSet<vtkIdType> ids;
+  vtkIdType ptId1, ptId2;
+  vtkNew<vtkGenericCell> cell;
+  vtkNew<vtkIdList> cellIds;
+  cellIds->Allocate(10);
+  surface->GetCell(cellId, cell.GetPointer());
+  for (int edgeId = 0; edgeId < cell->GetNumberOfEdges(); ++edgeId) {
+    vtkCell * const edge = cell->GetEdge(edgeId);
+    if (edge->GetNumberOfPoints() > 1) {
+      ptId1 = edge->PointIds->GetId(0);
+      for (vtkIdType i = 1; i < edge->GetNumberOfPoints(); ++i, ptId1 = ptId2) {
+        ptId2 = edge->PointIds->GetId(i);
+        surface->GetCellEdgeNeighbors(cellId, ptId1, ptId2, cellIds.GetPointer());
+        if (cellIds->GetNumberOfIds() == 1) {
+          ids.insert(cellIds->GetId(0));
+        } else if (!excl_boundary_edges) {
+          for (vtkIdType j = 0; j < cellIds->GetNumberOfIds(); ++j) {
+            ids.insert(cellIds->GetId(j));
+          }
+        }
+      }
+    }
+  }
+  return ids;
+}
+
+// -----------------------------------------------------------------------------
+/// Grow genus-1 surface patch
+///
+/// \returns Size of genus-1 surface patch.
+int GrowGenusOnePatch(vtkPolyData *surface, vtkDataArray *labels, vtkIdType seedId, int label)
+{
+  const bool excl_boundary_edges = true;
+  int patch_size = 0;
+  vtkIdType cellId;
+  Queue<vtkIdType> active;
+  active.push(seedId);
+  while (!active.empty()) {
+    cellId = active.front();
+    active.pop();
+    if (labels->GetComponent(cellId, 0) == 0.) {
+      ++patch_size;
+      labels->SetComponent(cellId, 0, label);
+      for (auto nbrId : GetCellEdgeNeighbors(surface, cellId, excl_boundary_edges)) {
+        if (labels->GetComponent(nbrId, 0) == 0.) {
+          active.push(nbrId);
+        }
+      }
+    }
+  }
+  return patch_size;
+}
+
+// -----------------------------------------------------------------------------
+/// Label maximal genus-1 surface patches
+vtkSmartPointer<vtkDataArray> LabelGenusOnePatches(vtkPolyData *surface)
+{
+  vtkSmartPointer<vtkDataArray> labels;
+  labels = NewVtkDataArray(VTK_INT, surface->GetNumberOfCells(), 1, "PatchLabel");
+  labels->FillComponent(0, 0.);
+  int npatches = 0;
+  for (vtkIdType seedId = 0; seedId < surface->GetNumberOfCells(); ++seedId) {
+    if (labels->GetComponent(seedId, 0) == 0.) {
+      GrowGenusOnePatch(surface, labels, seedId, ++npatches);
+    }
+  }
+  return labels;
+}
+
+// -----------------------------------------------------------------------------
+/// Add parcellation border point mask
+vtkSmartPointer<vtkDataArray>
+BorderPointMask(vtkPolyData *surface, vtkDataArray *point_labels,
+                vtkDataArray *cell_labels = nullptr, SharedPtr<const EdgeTable> edgeTable = nullptr)
+{
+  vtkSmartPointer<vtkDataArray> mask;
+  mask = NewVtkDataArray(VTK_UNSIGNED_CHAR, surface->GetNumberOfPoints(), 1, "BorderMask");
+  double label;
+  if (cell_labels) {
+    unsigned short ncells;
+    vtkIdType      *cells;
+    for (vtkIdType ptId = 0; ptId < surface->GetNumberOfPoints(); ++ptId) {
+      surface->GetPointCells(ptId, ncells, cells);
+      if (ncells == 1) {
+        mask->SetComponent(ptId, 0, 1.);
+      } else {
+        mask->SetComponent(ptId, 0, 0.);
+        if (ncells > 0) {
+          label = cell_labels->GetComponent(cells[0], 0);
+          for (unsigned short i = 1; i < ncells; ++i) {
+            if (cell_labels->GetComponent(cells[i], 0) != label) {
+              mask->SetComponent(ptId, 0, 1.);
+              break;
+            }
+          }
+        }
+      }
+    }
+  } else {
+    int        adjPts;
+    const int *adjIds;
+    if (!edgeTable) edgeTable = NewShared<EdgeTable>(surface);
+    for (int ptId = 0; ptId < surface->GetNumberOfPoints(); ++ptId) {
+      mask->SetComponent(ptId, 0, 0.);
+      label = point_labels->GetComponent(ptId, 0);
+      edgeTable->GetAdjacentPoints(static_cast<int>(ptId), adjPts, adjIds);
+      for (unsigned short i = 0; i < adjPts; ++i) {
+        if (point_labels->GetComponent(adjIds[i], 0) != label) {
+          mask->SetComponent(ptId, 0, 1.);
+          break;
+        }
+      }
+    }
+  }
+  return mask;
+}
+
+// -----------------------------------------------------------------------------
+/// Add parcellation border cell mask
+vtkSmartPointer<vtkDataArray>
+BorderCellMask(vtkPolyData *surface, vtkDataArray *cell_labels, bool edge_nbrs = false)
+{
+  vtkSmartPointer<vtkDataArray> mask;
+  mask = NewVtkDataArray(VTK_UNSIGNED_CHAR, surface->GetNumberOfCells(), 1, "BorderMask");
+  double label;
+  if (edge_nbrs) {
+    for (vtkIdType cellId = 0; cellId < surface->GetNumberOfCells(); ++cellId) {
+      mask->SetComponent(cellId, 0, 0.);
+      label = cell_labels->GetComponent(cellId, 0);
+      for (auto nbrId : GetCellEdgeNeighbors(surface, cellId)) {
+        if (cell_labels->GetComponent(nbrId, 0) != label) {
+          mask->SetComponent(cellId, 0, 1.);
+          break;
+        }
+      }
+    }
+  } else {
+    unsigned short ncells;
+    vtkIdType npts, *pts, *cells;
+    for (vtkIdType cellId = 0; cellId < surface->GetNumberOfCells(); ++cellId) {
+      mask->SetComponent(cellId, 0, 0.);
+      label = cell_labels->GetComponent(cellId, 0);
+      surface->GetCellPoints(cellId, npts, pts);
+      for (vtkIdType i = 0; i < npts; ++i) {
+        surface->GetPointCells(pts[i], ncells, cells);
+        for (int j = 0; j < ncells; ++j) {
+          if (cell_labels->GetComponent(cells[j], 0) != label) {
+            mask->SetComponent(cellId, 0, 1.);
+            i = npts; // break all inner loops
+            break;
+          }
+        }
+      }
+    }
+  }
+  return mask;
+}
+
+// -----------------------------------------------------------------------------
 /// Compute surface normals when not available
 vtkSmartPointer<vtkDataArray> Normals(vtkPolyData *surface)
 {
@@ -219,6 +393,14 @@ int main(int argc, char *argv[])
   const char *input_name  = POSARG(1);
   const char *output_name = POSARG(2);
 
+  vtkSmartPointer<vtkPolyData> input = ReadPolyData(input_name);
+
+  bool point_normals       = false;
+  bool cell_normals        = false;
+  bool auto_orient_normals = true;
+  bool splitting           = false;
+  bool consistency         = true;
+
   const char *kmin_name       = SurfaceCurvature::MINIMUM;
   const char *kmax_name       = SurfaceCurvature::MAXIMUM;
   const char *gauss_name      = SurfaceCurvature::GAUSS;
@@ -229,15 +411,16 @@ int main(int argc, char *argv[])
   const char *tensor_name     = SurfaceCurvature::TENSOR;
   const char *inverse_name    = SurfaceCurvature::INVERSE_TENSOR;
 
-  bool   point_normals        = false;
-  bool   cell_normals         = false;
-  bool   auto_orient_normals  = true;
-  bool   splitting            = false;
-  bool   consistency          = true;
-  bool   use_vtkCurvatures    = false;
-  int    curvatures           = 0;
-  int    tensor_averaging     = 3;
-  bool   normalize            = false;
+  bool use_vtkCurvatures = false;
+  int  curvatures        = 0;
+  int  tensor_averaging  = 3;
+  bool normalize         = false;
+
+  vtkSmartPointer<vtkDataArray> point_labels, cell_labels;
+  const char *genus1_patches_name   = nullptr;
+  const char *border_mask_name      = nullptr;
+  bool        border_edge_neighbors = false;
+
   int    smooth_iterations    = 0;
   double smooth_sigma         = .0;
   double smooth_sigma2        = .0;
@@ -253,12 +436,22 @@ int main(int argc, char *argv[])
   bool        calc_image_gradient    = false;
 
   for (ALL_OPTIONS) {
-    if (OPTION("-point-normals") || OPTION("-normals")) point_normals = true;
-    else if (OPTION("-cell-normals")) cell_normals = true;
-    else if (OPTION("-auto-orient"))   auto_orient_normals = true;
-    else if (OPTION("-noauto-orient")) auto_orient_normals = false;
-    else if (OPTION("-consistency"))   consistency = true;
-    else if (OPTION("-noconsistency")) consistency = false;
+    // -------------------------------------------------------------------------
+    // Normals
+    if (OPTION("-normals")) {
+      point_normals = true;
+      if (HAS_ARGUMENT) PARSE_ARGUMENT(point_normals);
+      cell_normals  = point_normals;
+    }
+    else if (OPTION("-nonormals")) {
+      point_normals = cell_normals = false;
+    }
+    else HANDLE_BOOLEAN_OPTION("point-normals", point_normals);
+    else HANDLE_BOOLEAN_OPTION("cell-normals",  cell_normals);
+    else HANDLE_BOOLEAN_OPTION("auto-orient",   auto_orient_normals);
+    else HANDLE_BOOLEAN_OPTION("consistency",   consistency);
+    // -------------------------------------------------------------------------
+    // Curvature
     else if (OPTION("-k1")) {
       curvatures |= SurfaceCurvature::Minimum;
       if (HAS_ARGUMENT) kmin_name = ARGUMENT;
@@ -308,9 +501,47 @@ int main(int argc, char *argv[])
     else if (OPTION("-tensor-averaging")) {
       PARSE_ARGUMENT(tensor_averaging);
     }
-    else if (OPTION("-normalize")) normalize = true;
+    else HANDLE_BOOLEAN_OPTION("normalize", normalize);
+    else HANDLE_BOOLEAN_OPTION("normalise", normalize);
     else if (OPTION("-vtk-curvatures"))    use_vtkCurvatures = true;
     else if (OPTION("-robust-curvatures")) use_vtkCurvatures = false;
+    // -------------------------------------------------------------------------
+    // Parcellation
+    else if (OPTION("-genus-one-patches") || OPTION("-genus-one-surface-patches") || OPTION("-surface-patches")) {
+      if (HAS_ARGUMENT) genus1_patches_name = ARGUMENT;
+      else              genus1_patches_name = "PatchLabel";
+    }
+    else if (OPTION("-labels")) {
+      const char *arr_name = ARGUMENT;
+      point_labels = GetArrayByCaseInsensitiveName(input->GetPointData(), arr_name);
+      cell_labels  = GetArrayByCaseInsensitiveName(input->GetCellData (), arr_name);
+      if (!point_labels && !cell_labels) {
+        FatalError("Input surface has no point and/or cell data array named: " << arr_name);
+      }
+    }
+    else if (OPTION("-point-labels")) {
+      const char *arr_name = ARGUMENT;
+      point_labels = GetArrayByCaseInsensitiveName(input->GetPointData(), arr_name);
+      if (!point_labels) {
+        FatalError("Input surface has no point data array named: " << arr_name);
+      }
+    }
+    else if (OPTION("-cell-labels")) {
+      const char *arr_name = ARGUMENT;
+      cell_labels = GetArrayByCaseInsensitiveName(input->GetCellData(), arr_name);
+      if (!cell_labels) {
+        FatalError("Input surface has no cell data array named: " << arr_name);
+      }
+    }
+    else if (OPTION("-border-mask")) {
+      if (HAS_ARGUMENT) border_mask_name = ARGUMENT;
+      else              border_mask_name = "BorderMask";
+    }
+    else if (OPTION("-border-edge-neighbors")) {
+      border_edge_neighbors = true;
+    }
+    // -------------------------------------------------------------------------
+    // Smoothing
     else if (OPTION("-smooth-iterations")) PARSE_ARGUMENT(smooth_iterations);
     else if (OPTION("-smooth-weighting")){
       if (smooth_iterations == 0) smooth_iterations = 1;
@@ -328,6 +559,8 @@ int main(int argc, char *argv[])
         }
       }
     }
+    // -------------------------------------------------------------------------
+    // Local image attributes
     else if (OPTION("-image")) {
       image_name = ARGUMENT;
     }
@@ -410,16 +643,21 @@ int main(int argc, char *argv[])
     else if (OPTION("-patch-max-abs")) {
       image_stats.Statistics().push_back(NewShared<MaxAbs>());
     }
+    // Common/unknown option
     else HANDLE_COMMON_OR_UNKNOWN_OPTION();
   }
 
+  if (border_mask_name && !point_labels && !cell_labels && !genus1_patches_name) {
+    FatalError("The parcellation -border-mask option requires an input [-point|-cell]-labels array!");
+  }
   if (calc_image_gradient && !image_name) {
     FatalError("The -gradient* options require an input -image!");
   }
 
-  bool calc_normals     = (point_normals || cell_normals);
-  bool calc_image_stats = (image_name && (image_stats.PatchSamples() || !image_stats.Statistics().empty()));
-  if (curvatures == 0 && !calc_normals && !calc_image_stats && !calc_image_gradient) {
+  bool calc_normals      = (point_normals || cell_normals);
+  bool calc_image_stats  = (image_name && (image_stats.PatchSamples() || !image_stats.Statistics().empty()));
+  bool calc_parcel_stats = (genus1_patches_name || border_mask_name);
+  if (curvatures == 0 && !calc_normals && !calc_parcel_stats && !calc_image_stats && !calc_image_gradient) {
     point_normals = true;
     curvatures    = SurfaceCurvature::Scalars;
   }
@@ -432,9 +670,7 @@ int main(int argc, char *argv[])
     curvature_type |= SurfaceCurvature::MaximumDirection;
   }
 
-  // Read input surface
-  vtkSmartPointer<vtkPolyData> input = ReadPolyData(input_name);
-
+  // ---------------------------------------------------------------------------
   // Read input image
   RealImage image;
   if (calc_image_stats || calc_image_gradient) {
@@ -451,6 +687,7 @@ int main(int argc, char *argv[])
   if (curvature_type != 0) surface = Triangulate(input);
   else                     surface = input;
 
+  // ---------------------------------------------------------------------------
   // Calculate normals
   if (point_normals || cell_normals) {
     if (verbose) cout << "Calculating surface normals...", cout.flush();
@@ -466,7 +703,11 @@ int main(int argc, char *argv[])
     surface = filter->GetOutput();
     if (verbose) cout << " done" << endl;
   }
- 
+
+  surface->BuildLinks();
+  SharedPtr<EdgeTable> edgeTable(new EdgeTable(surface));
+
+  // ---------------------------------------------------------------------------
   // Calculate curvatures
   if (curvature_type != 0) {
     if (verbose) cout << "Calculating surface curvature measure(s)...", cout.flush();
@@ -474,6 +715,7 @@ int main(int argc, char *argv[])
     // Compute curvature
     SurfaceCurvature curvature;
     curvature.Input(surface);
+    curvature.EdgeTable(edgeTable);
     curvature.CurvatureType(curvature_type);
     curvature.VtkCurvatures(use_vtkCurvatures);
     curvature.TensorAveraging(tensor_averaging);
@@ -512,6 +754,7 @@ int main(int argc, char *argv[])
 
       MeshSmoothing smoother;
       smoother.Input(surface);
+      smoother.EdgeTable(edgeTable);
       smoother.SmoothPointsOff();
       if (kmin)       smoother.SmoothArray(kmin_name);
       if (kmax)       smoother.SmoothArray(kmax_name);
@@ -546,6 +789,31 @@ int main(int argc, char *argv[])
     }
   }
 
+  // ---------------------------------------------------------------------------
+  // Parcellation attributes
+  if (genus1_patches_name) {
+    vtkSmartPointer<vtkDataArray> labels;
+    labels = LabelGenusOnePatches(surface);
+    labels->SetName(genus1_patches_name);
+    surface->GetCellData()->AddArray(labels);
+    if (!cell_labels) cell_labels = labels;
+  }
+  if (border_mask_name) {
+    if (point_labels) {
+      vtkSmartPointer<vtkDataArray> mask;
+      mask = BorderPointMask(surface, point_labels, cell_labels, edgeTable);
+      mask->SetName(border_mask_name);
+      surface->GetPointData()->AddArray(mask);
+    }
+    if (cell_labels) {
+      vtkSmartPointer<vtkDataArray> mask;
+      mask = BorderCellMask(surface, cell_labels, border_edge_neighbors);
+      mask->SetName(border_mask_name);
+      surface->GetCellData()->AddArray(mask);
+    }
+  }
+
+  // ---------------------------------------------------------------------------
   // Calculate local image patch statistics
   if (calc_image_stats) {
     if (verbose) cout << "Calculating local image statistics...", cout.flush();
@@ -584,6 +852,7 @@ int main(int argc, char *argv[])
     }
   }
 
+  // ---------------------------------------------------------------------------
   // Calculate image gradient
   if (calc_image_gradient) {
     if (verbose) cout << "Evaluating image gradient...", cout.flush();
@@ -596,6 +865,7 @@ int main(int argc, char *argv[])
     if (verbose) cout << " done" << endl;
   }
 
+  // ---------------------------------------------------------------------------
   // Remove not requested output arrays which were used for anisotropic smoothing
   if ((curvatures & SurfaceCurvature::Tensor) == 0) {
     surface->GetPointData()->RemoveArray(tensor_name);
