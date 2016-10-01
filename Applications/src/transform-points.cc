@@ -61,8 +61,15 @@ void PrintHelp(const char *name)
   cout << "  transformations are specified, these are applied in the order as they appear" << endl;
   cout << "  on the command line." << endl;
   cout << endl;
+  cout << "  Attention: When both :option:`-target` and :option:`-source` arguments are given," << endl;
+  cout << "             the points are first mapped from target world to image space and then" << endl;
+  cout << "             the image to world transformation of the source image is applied." << endl;
+  cout << "             This is a relict from the corresponding IRTK command..." << endl;
+  cout << endl;
   cout << "Optional arguments:" << endl;
-  cout << "  -dofin <file>...   Transformation file. (default: identity)" << endl;
+  cout << "  -dofin <file>...   Transformation or image file. When an image file is given," << endl;
+  cout << "                     the image to world transformation is applied. The :option:`-invert`" << endl;
+  cout << "                     can be used to transform points from world to image space. (default: identity)" << endl;
   cout << "  -invert            Invert preceding transformation. (default: no)" << endl;
   cout << "  -source <image>    Reference source image. (default: none)" << endl;
   cout << "  -target <image>    Reference target image. (default: none)" << endl;
@@ -99,8 +106,8 @@ int main(int argc, char **argv)
   PointSet                     points;
 
   // Positional arguments
-  const char *input_name  = NULL;
-  const char *output_name = NULL;
+  const char *input_name  = nullptr;
+  const char *output_name = nullptr;
 
   if (NUM_POSARGS == 2) {
     input_name  = POSARG(1);
@@ -213,13 +220,28 @@ int main(int argc, char **argv)
 
   // Transform first pnumber points
   for (size_t i = 0; i < dofin_name.size(); ++i) {
-    UniquePtr<Transformation> dofin(Transformation::New(dofin_name[i]));
-    if (dofin_invert[i]) {
-      if (verbose) cout << "Apply inverse of " << dofin_name[i] << endl;
-      for (int i = 0; i < pnumber; ++i) dofin->Inverse(points(i), ts, tt);
+    if (Transformation::CheckHeader(dofin_name[i])) {
+      UniquePtr<Transformation> dofin(Transformation::New(dofin_name[i]));
+      if (dofin_invert[i]) {
+        if (verbose) cout << "Apply inverse of " << dofin_name[i] << endl;
+        for (int i = 0; i < pnumber; ++i) dofin->Inverse(points(i), ts, tt);
+      } else {
+        if (verbose) cout << "Apply " << dofin_name[i] << endl;
+        for (int i = 0; i < pnumber; ++i) dofin->Transform(points(i), ts, tt);
+      }
     } else {
-      if (verbose) cout << "Apply " << dofin_name[i] << endl;
-      for (int i = 0; i < pnumber; ++i) dofin->Transform(points(i), ts, tt);
+      GreyImage image(dofin_name[i]);
+      if (dofin_invert[i]) {
+        if (verbose) cout << "Apply world to image transformation of " << dofin_name[i] << endl;
+        for (int i = 0; i < pnumber; ++i) {
+          image.WorldToImage(points(i));
+        }
+      } else {
+        if (verbose) cout << "Apply image to world transformation of " << dofin_name[i] << endl;
+        for (int i = 0; i < pnumber; ++i) {
+          image.ImageToWorld(points(i));
+        }
+      }
     }
   }
 
