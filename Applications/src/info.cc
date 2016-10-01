@@ -572,7 +572,7 @@ int main(int argc, char *argv[])
       else if (OPTION("-s") || OPTION("-output-surface")) {
         output_surface_name = ARGUMENT;
       }
-      else HANDLE_STANDARD_OR_UNKNOWN_OPTION();
+      else HANDLE_COMMON_OR_UNKNOWN_OPTION();
     }
 
     // Read input dataset
