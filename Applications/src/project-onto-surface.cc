@@ -1,8 +1,8 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2013-2015 Imperial College London
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2013-2016 Imperial College London
+ * Copyright 2013-2016 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -643,7 +643,9 @@ void LabelCortex(vtkPolyData *white_surface, vtkPolyData *pial_surface,
 void MarkHoles(vtkPolyData *surface, int max_hole_size, const char *scalars_name = "Labels", bool using_cells = true)
 {
   vtkSmartPointer<vtkIdList> ids = vtkSmartPointer<vtkIdList>::New();
-  double pcoords[3], p[3], q[3];
+
+  Point  p, q;
+  double pcoords[3];
   int    subId;
   vtkCell *cell;
 
@@ -768,7 +770,7 @@ void MarkHoles(vtkPolyData *surface, int max_hole_size, const char *scalars_name
           labels->SetComponent(ptId, 0, -1.);
         } else {
           exclude->GetPoint(exclId, q);
-          if (vtkMath::Distance2BetweenPoints(p, q) > tol2) {
+          if (p.SquaredDistance(q) > tol2) {
             labels->SetComponent(ptId, 0, -1.);
           }
         }
