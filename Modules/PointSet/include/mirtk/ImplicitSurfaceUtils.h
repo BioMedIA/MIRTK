@@ -94,7 +94,7 @@ inline double Evaluate(const DistanceFunction &dist, const double p[3], double o
     x = clamp(x, xmin, xmax);
     y = clamp(y, ymin, ymax);
     z = clamp(z, zmin, zmax);
-    d = dist.GetInside(x, y, z);
+    d = max(0., dist.GetInside(x, y, z));
     dist.ImageToWorld(x, y, z);
     x -= p[0], y -= p[1], z -= p[2];
     d += sqrt(x*x + y*y + z*z);
