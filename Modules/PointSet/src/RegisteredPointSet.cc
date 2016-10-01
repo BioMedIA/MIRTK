@@ -587,6 +587,12 @@ void RegisteredPointSet::GetPoints(class PointSet &pset) const
 }
 
 // -----------------------------------------------------------------------------
+vtkDataArray *RegisteredPointSet::InitialStatus() const
+{
+  return _OutputPointSet->GetPointData()->GetArray("InitialStatus");
+}
+
+// -----------------------------------------------------------------------------
 vtkDataArray *RegisteredPointSet::Status() const
 {
   return _OutputPointSet->GetPointData()->GetArray("Status");
@@ -695,6 +701,12 @@ const RegisteredPointSet::NodeNeighbors *RegisteredPointSet::SurfaceNeighbors(in
     _SurfaceNodeNeighbors.Initialize(_InputSurface, max(n, _NeighborhoodRadius), &_SurfaceEdgeTable);
   }
   return &_SurfaceNodeNeighbors;
+}
+
+// -----------------------------------------------------------------------------
+vtkDataArray *RegisteredPointSet::InitialSurfaceStatus() const
+{
+  return _OutputSurface->GetPointData()->GetArray("InitialStatus");
 }
 
 // -----------------------------------------------------------------------------
