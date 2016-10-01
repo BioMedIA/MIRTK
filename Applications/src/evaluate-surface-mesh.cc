@@ -21,6 +21,7 @@
 #include "mirtk/Options.h"
 
 #include "mirtk/Algorithm.h"
+#include "mirtk/DataSelection.h"
 #include "mirtk/EdgeTable.h"
 #include "mirtk/PointSetIO.h"
 #include "mirtk/PointSetUtils.h"
@@ -36,9 +37,13 @@
 #include "vtkCellData.h"
 #include "vtkIdTypeArray.h"
 #include "vtkPolyDataConnectivityFilter.h"
+#include "vtkExtractCells.h"
+#include "vtkDataSetSurfaceFilter.h"
 
 
 using namespace mirtk;
+using namespace mirtk::data;
+using namespace mirtk::data::select;
 
 
 // =============================================================================
@@ -93,6 +98,42 @@ int CountCellsOfType(vtkDataSet *dataset, int type)
 }
 
 // -----------------------------------------------------------------------------
+void CopyPointData(vtkPolyData *surface, vtkPolyData *input, const char *name)
+{
+  vtkDataArray * const arr = surface->GetPointData()->GetArray(name);
+  vtkDataArray * const ids = surface->GetPointData()->GetArray("OriginalIds");
+  vtkSmartPointer<vtkDataArray> out;
+  out.TakeReference(arr->NewInstance());
+  out->SetNumberOfComponents(arr->GetNumberOfComponents());
+  out->SetNumberOfTuples(input->GetNumberOfPoints());
+  out->SetName(name);
+  out->FillComponent(0, 0.);
+  for (vtkIdType ptId = 0, origId; ptId < surface->GetNumberOfPoints(); ++ptId) {
+    origId = static_cast<vtkIdType>(ids->GetComponent(ptId, 0));
+    out->SetTuple(origId, arr->GetTuple(ptId));
+  }
+  input->GetPointData()->AddArray(out);
+}
+
+// -----------------------------------------------------------------------------
+void CopyCellData(vtkPolyData *surface, vtkPolyData *input, const char *name)
+{
+  vtkDataArray * const arr = surface->GetCellData()->GetArray(name);
+  vtkDataArray * const ids = surface->GetCellData()->GetArray("OriginalIds");
+  vtkSmartPointer<vtkDataArray> out;
+  out.TakeReference(arr->NewInstance());
+  out->SetNumberOfComponents(arr->GetNumberOfComponents());
+  out->SetNumberOfTuples(input->GetNumberOfCells());
+  out->SetName(name);
+  out->FillComponent(0, 0.);
+  for (vtkIdType cellId = 0, origId; cellId < surface->GetNumberOfCells(); ++cellId) {
+    origId = static_cast<vtkIdType>(ids->GetComponent(cellId, 0));
+    out->SetTuple(origId, arr->GetTuple(cellId));
+  }
+  input->GetCellData()->AddArray(out);
+}
+
+// -----------------------------------------------------------------------------
 /// Number of redundant cells, i.e., cells with same shared points
 int NumberOfRedundantCells(vtkPolyData *dataset, const char *mask_name = nullptr)
 {
@@ -100,11 +141,11 @@ int NumberOfRedundantCells(vtkPolyData *dataset, const char *mask_name = nullptr
   if (mask_name) {
     mask = NewVtkDataArray(VTK_UNSIGNED_CHAR, dataset->GetNumberOfCells(), 1, mask_name);
     mask->SetName(mask_name);
+    mask->FillComponent(0, 0.);
     dataset->GetCellData()->RemoveArray(mask->GetName());
     dataset->GetCellData()->AddArray(mask);
   }
   int n = 0;
-  mask->FillComponent(0, 0.);
   vtkSmartPointer<vtkPolyData> surface;
   surface.TakeReference(dataset->NewInstance());
   surface->ShallowCopy(dataset);
@@ -123,8 +164,10 @@ int NumberOfRedundantCells(vtkPolyData *dataset, const char *mask_name = nullptr
               ptIds2->IntersectWith(ptIds1.GetPointer());
               if (ptIds1->GetNumberOfIds() == ptIds2->GetNumberOfIds()) {
                 surface->DeleteCell(cellIds->GetId(j));
-                mask->SetComponent(cellId,            0, 1.);
-                mask->SetComponent(cellIds->GetId(j), 0, 1.);
+                if (mask) {
+                  mask->SetComponent(cellId,            0, 1.);
+                  mask->SetComponent(cellIds->GetId(j), 0, 1.);
+                }
                 ++n;
               }
             }
@@ -169,16 +212,68 @@ int main(int argc, char *argv[])
     boundary_cell_mask   = "BoundaryMask";
   }
 
-  vtkSmartPointer<vtkPolyData> surface = ReadPolyData(input_name);
-  surface->BuildLinks();
-  EdgeTable edgeTable(surface);
+  SharedPtr<LogicalOp> selector(new LogicalAnd());
+  const char *select_name = nullptr;
+  int         select_comp = 0;
 
   Array<MeshProperty> measures;
   double              min_frontface_dist = 1e-2;
   double              min_backface_dist  = 1e-2;
 
+  double value;
   for (ALL_OPTIONS) {
-    if (OPTION("-attributes") || OPTION("-attr")) {
+    if (OPTION("-select") || OPTION("-where")) {
+      select_name = ARGUMENT;
+      if (HAS_ARGUMENT) PARSE_ARGUMENT(select_comp);
+      else select_comp = 0;
+    }
+    else if (OPTION("-and")) {
+      if (dynamic_cast<LogicalAnd *>(selector.get()) == nullptr) {
+        SharedPtr<LogicalAnd> op(new LogicalAnd());
+        if (selector->NumberOfCriteria() > 1) {
+          op->Push(selector);
+        } else if (selector->NumberOfCriteria() == 1) {
+          op->Push(selector->Criterium(0));
+        }
+        selector = op;
+      }
+    }
+    else if (OPTION("-or")) {
+      if (dynamic_cast<LogicalOr *>(selector.get()) == nullptr) {
+        SharedPtr<LogicalOr> op(new LogicalOr());
+        if (selector->NumberOfCriteria() > 1) {
+          op->Push(selector);
+        } else if (selector->NumberOfCriteria() == 1) {
+          op->Push(selector->Criterium(0));
+        }
+        selector = op;
+      }
+    }
+    else if (OPTION("-eq")) {
+      PARSE_ARGUMENT(value);
+      selector->Push(NewShared<Equal>(value));
+    }
+    else if (OPTION("-ne")) {
+      PARSE_ARGUMENT(value);
+      selector->Push(NewShared<NotEqual>(value));
+    }
+    else if (OPTION("-lt")) {
+      PARSE_ARGUMENT(value);
+      selector->Push(NewShared<LessThan>(value));
+    }
+    else if (OPTION("-le")) {
+      PARSE_ARGUMENT(value);
+      selector->Push(NewShared<LessOrEqual>(value));
+    }
+    else if (OPTION("-gt")) {
+      PARSE_ARGUMENT(value);
+      selector->Push(NewShared<GreaterThan>(value));
+    }
+    else if (OPTION("-ge")) {
+      PARSE_ARGUMENT(value);
+      selector->Push(NewShared<GreaterOrEqual>(value));
+    }
+    else if (OPTION("-attributes") || OPTION("-attr")) {
       measures.push_back(MESH_Attributes);
     }
     else if (OPTION("-genus")) {
@@ -219,6 +314,50 @@ int main(int argc, char *argv[])
     cout << "Surface mesh file = " << input_name << endl;
   }
 
+  // Read input surface mesh
+  vtkSmartPointer<vtkPolyData> input   = ReadPolyData(input_name);
+  vtkSmartPointer<vtkPolyData> surface = input;
+  input->BuildLinks();
+
+  // Extract sub-mesh to evaluate
+  if (selector->NumberOfCriteria() > 0) {
+    vtkDataArray *scalars = nullptr;
+    if (select_name) {
+      scalars = GetArrayByCaseInsensitiveName(input->GetCellData(), select_name);
+      if (scalars == nullptr) {
+        FatalError("Input surface has no cell data array named: " << select_name);
+      }
+    } else {
+      FatalError("Cell selection options require the -where option.");
+    }
+    if (select_comp < 0 || select_comp >= scalars->GetNumberOfComponents()) {
+      FatalError("Cell data array " << select_name << " has only " << scalars->GetNumberOfComponents() << " component(s)");
+    }
+    Array<double> values(scalars->GetNumberOfTuples());
+    for (vtkIdType cellId = 0; cellId < scalars->GetNumberOfTuples(); ++cellId) {
+      values[cellId] = scalars->GetComponent(cellId, select_comp);
+    }
+    const auto selection = selector->Evaluate(values);
+    surface.TakeReference(input->NewInstance());
+    surface->SetPoints(input->GetPoints());
+    surface->Allocate(input->GetNumberOfCells());
+    vtkIdType cellId, npts, *pts;
+    vtkSmartPointer<vtkIdTypeArray> origCellIds;
+    origCellIds = vtkSmartPointer<vtkIdTypeArray>::New();
+    origCellIds->SetName("OriginalIds");
+    origCellIds->SetNumberOfComponents(1);
+    origCellIds->SetNumberOfTuples(selection.size());
+    surface->GetCellData()->AddArray(origCellIds);
+    for (auto origCellId : selection) {
+      input->GetCellPoints(origCellId, npts, pts);
+      cellId = surface->InsertNextCell(input->GetCellType(origCellId), npts, pts);
+      origCellIds->SetValue(cellId, origCellId);
+    }
+    surface->BuildLinks();
+    surface->Squeeze();
+  }
+
+  const EdgeTable edgeTable(surface);
   for (auto measure : measures) {
     switch (measure) {
 
@@ -461,7 +600,11 @@ int main(int argc, char *argv[])
   }
 
   if (output_name) {
-    if (!WritePolyData(output_name, surface)) {
+    if (surface != input) {
+      if (boundary_cell_mask)   CopyCellData(surface, input, boundary_cell_mask);
+      if (redundant_cells_mask) CopyCellData(surface, input, redundant_cells_mask);
+    }
+    if (!WritePolyData(output_name, input)) {
       FatalError("Failed to write surface mesh to file " << output_name);
     }
   }
