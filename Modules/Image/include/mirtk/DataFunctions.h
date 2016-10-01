@@ -192,8 +192,11 @@ class ElementWiseBinaryOp : public Op
   mirtkPublicAttributeMacro(string, FileName);
 
 #if MIRTK_Image_WITH_VTK
-  /// Name of input point data array
+  /// Name of input point/cell data array
   mirtkPublicAttributeMacro(string, ArrayName);
+
+  /// Whether input array is cell data
+  mirtkPublicAttributeMacro(bool, IsCellData);
 #endif
 
 private:
@@ -218,9 +221,9 @@ protected:
 
 #if MIRTK_Image_WITH_VTK
   /// Constructor
-  ElementWiseBinaryOp(const char *fname, const char *aname)
+  ElementWiseBinaryOp(const char *fname, const char *aname, bool cell_data = false)
   :
-    _Constant(.0), _FileName(fname), _ArrayName(aname ? aname : ""), _Other(nullptr)
+    _Constant(.0), _FileName(fname), _ArrayName(aname ? aname : ""), _IsCellData(cell_data), _Other(nullptr)
   {}
 #endif
 
@@ -276,7 +279,7 @@ protected:
     if (!_FileName.empty()) {
       if (n !=
       #if MIRTK_Image_WITH_VTK
-        Read(_FileName.c_str(), _Other, nullptr, nullptr, nullptr, _ArrayName.c_str())
+        Read(_FileName.c_str(), _Other, nullptr, nullptr, nullptr, _ArrayName.c_str(), _IsCellData)
       #else
         Read(_FileName.c_str(), _Other)
       #endif

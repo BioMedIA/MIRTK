@@ -114,7 +114,8 @@ DataFileType FileType(const char *name);
 /// Read data sequence from any supported input file type
 #if MIRTK_Image_WITH_VTK
 int Read(const char *name, double *&data, int *dtype = nullptr, ImageAttributes *attr = nullptr,
-         vtkSmartPointer<vtkDataSet> *dataset= nullptr, const char *scalar_name = nullptr);
+         vtkSmartPointer<vtkDataSet> *dataset = nullptr,
+         const char *scalars_name = nullptr, bool cell_data = false);
 #else
 int Read(const char *name, double *&data, int *dtype = nullptr, ImageAttributes *attr = nullptr);
 #endif // MIRTK_Image_WITH_VTK
@@ -131,11 +132,14 @@ class Write : public Op
   /// VTK input dataset whose scalar data was modified
   mirtkPublicAttributeMacro(vtkSmartPointer<vtkDataSet>, DataSet);
 
-  /// Name of input point data array
+  /// Name of input data array
   mirtkPublicAttributeMacro(string, ArrayName);
 
-  /// Name of output point data array
+  /// Name of output data array
   mirtkPublicAttributeMacro(string, OutputName);
+
+  /// Whether to add data as cell data instead of point data
+  mirtkPublicAttributeMacro(bool, AsCellData);
 
 #endif // MIRTK_Image_WITH_VTK
 
@@ -154,10 +158,12 @@ public:
         ImageAttributes attr = ImageAttributes(),
         vtkDataSet *dataset     = nullptr,
         const char *array_name  = nullptr,
-        const char *output_name = nullptr)
+        const char *output_name = nullptr,
+        bool        cell_data   = false)
   :
     _FileName(fname),
     _DataSet(dataset),
+    _AsCellData(cell_data),
     _Attributes(attr),
     _DataType(dtype)
   {
