@@ -87,6 +87,7 @@ enum EnergyMeasure
     EM_RepulsiveForce,          ///< Repels too close non-neighboring nodes
     EM_InflationForce,          ///< Inflate point set surface
     EM_SpringForce,             ///< Spring force
+    EM_NormalForce,             ///< Constant force in normal direction
 
   IFT_End,
   // ---------------------------------------------------------------------------
@@ -160,6 +161,7 @@ inline string ToString(const EnergyMeasure &value, int w, char c, bool left)
     case EM_RepulsiveForce:      str = "Repulsion"; break;
     case EM_InflationForce:      str = "Inflation"; break;
     case EM_SpringForce:         str = "Spring"; break;
+    case EM_NormalForce:         str = "NormalForce"; break;
 
     // -------------------------------------------------------------------------
     // Transformation constraints
@@ -230,6 +232,7 @@ inline string ToPrettyString(const EnergyMeasure &value, int w = 0, char c = ' '
     case EM_RepulsiveForce:      str = "Repulsion"; break;
     case EM_InflationForce:      str = "Inflation"; break;
     case EM_SpringForce:         str = "Spring"; break;
+    case EM_NormalForce:         str = "Normal"; break;
 
     // -------------------------------------------------------------------------
     // Transformation constraints
