@@ -32,6 +32,8 @@
 #include "mirtk/Vtk.h"
 #include "vtkSmartPointer.h"
 #include "vtkPolyData.h"
+#include "vtkPointData.h"
+#include "vtkCellData.h"
 #include "vtkIdTypeArray.h"
 #include "vtkPolyDataConnectivityFilter.h"
 
@@ -90,6 +92,50 @@ int CountCellsOfType(vtkDataSet *dataset, int type)
   return n;
 }
 
+// -----------------------------------------------------------------------------
+/// Number of redundant cells, i.e., cells with same shared points
+int NumberOfRedundantCells(vtkPolyData *dataset, const char *mask_name = nullptr)
+{
+  vtkSmartPointer<vtkDataArray> mask;
+  if (mask_name) {
+    mask = NewVtkDataArray(VTK_UNSIGNED_CHAR, dataset->GetNumberOfCells(), 1, mask_name);
+    mask->SetName(mask_name);
+    dataset->GetCellData()->RemoveArray(mask->GetName());
+    dataset->GetCellData()->AddArray(mask);
+  }
+  int n = 0;
+  mask->FillComponent(0, 0.);
+  vtkSmartPointer<vtkPolyData> surface;
+  surface.TakeReference(dataset->NewInstance());
+  surface->ShallowCopy(dataset);
+  surface->DeleteCells();
+  surface->BuildLinks();
+  vtkNew<vtkIdList> ptIds1, ptIds2, cellIds;
+  for (vtkIdType cellId = 0; cellId < surface->GetNumberOfCells(); ++cellId) {
+    if (surface->GetCellType(cellId) != VTK_EMPTY_CELL) {
+      surface->GetCellPoints(cellId, ptIds1.GetPointer());
+      for (vtkIdType i = 0; i < ptIds1->GetNumberOfIds(); ++i) {
+        surface->GetPointCells(ptIds1->GetId(i), cellIds.GetPointer());
+        for (vtkIdType j = 0; j < cellIds->GetNumberOfIds(); ++j) {
+          if (cellIds->GetId(j) > cellId && surface->GetCellType(cellIds->GetId(j)) != VTK_EMPTY_CELL) {
+            surface->GetCellPoints(cellIds->GetId(j), ptIds2.GetPointer());
+            if (ptIds1->GetNumberOfIds() == ptIds2->GetNumberOfIds()) {
+              ptIds2->IntersectWith(ptIds1.GetPointer());
+              if (ptIds1->GetNumberOfIds() == ptIds2->GetNumberOfIds()) {
+                surface->DeleteCell(cellIds->GetId(j));
+                mask->SetComponent(cellId,            0, 1.);
+                mask->SetComponent(cellIds->GetId(j), 0, 1.);
+                ++n;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  return n;
+}
+
 // =============================================================================
 // WM/cGM interface, i.e., cortical white surface mesh
 // =============================================================================
@@ -112,6 +158,16 @@ int main(int argc, char *argv[])
 
   const char *input_name  = POSARG(1);
   const char *output_name = (NUM_POSARGS == 2 ? POSARG(2) : nullptr);
+
+  const char *redundant_cells_mask = nullptr;
+  const char *boundary_point_mask  = nullptr;
+  const char *boundary_cell_mask   = nullptr;
+
+  if (output_name) {
+    redundant_cells_mask = "DuplicatedMask";
+    boundary_point_mask  = "BoundaryMask";
+    boundary_cell_mask   = "BoundaryMask";
+  }
 
   vtkSmartPointer<vtkPolyData> surface = ReadPolyData(input_name);
   surface->BuildLinks();
@@ -209,22 +265,52 @@ int main(int argc, char *argv[])
         cout << "\nFaces:\n";
         int nfaces = static_cast<int>(surface->GetNumberOfCells());
         int nempty = CountCellsOfType(surface, VTK_EMPTY_CELL);
+        int ndup   = NumberOfRedundantCells(surface, redundant_cells_mask);
         int ntri   = CountCellsOfType(surface, VTK_TRIANGLE);
         int nquad  = CountCellsOfType(surface, VTK_QUAD);
         int nmisc  = surface->GetNumberOfCells() - ntri - nquad - nempty;
-        cout << "  No. of faces         = " << nfaces << "\n";
-        cout << "  No. of triangles     = " << ntri   << "\n";
-        cout << "  No. of quadrangles   = " << nquad  << "\n";
-        cout << "  No. of other faces   = " << nmisc  << "\n";
-        cout << "  No. of empty faces   = " << nempty << "\n";
-        cout << "  Is triangular mesh   = " << (nfaces == ntri  + nempty ? "yes" : "no") << "\n";
-        cout << "  Is quadrangular mesh = " << (nfaces == nquad + nempty ? "yes" : "no") << "\n";
+        cout << "  No. of faces           = " << nfaces << "\n";
+        cout << "  No. of triangles       = " << ntri   << "\n";
+        cout << "  No. of quadrangles     = " << nquad  << "\n";
+        cout << "  No. of other faces     = " << nmisc  << "\n";
+        cout << "  No. of empty faces     = " << nempty << "\n";
+        cout << "  No. of redundant faces = " << ndup   << "\n";
+        cout << "  Is triangular mesh     = " << (nfaces == ntri  + nempty ? "yes" : "no") << "\n";
+        cout << "  Is quadrangular mesh   = " << (nfaces == nquad + nempty ? "yes" : "no") << "\n";
 
         // Boundaries
+        const UnorderedSet<int> boundaryPtIds = BoundaryPoints(surface, &edgeTable);
+        const EdgeList          boundaryEdges = BoundaryEdges(surface, edgeTable);
+        if (boundary_point_mask) {
+          vtkSmartPointer<vtkDataArray> mask;
+          mask = NewVtkDataArray(VTK_UNSIGNED_CHAR, surface->GetNumberOfPoints(), 1, boundary_point_mask);
+          mask->FillComponent(0, 0.);
+          for (auto ptId : boundaryPtIds) {
+            mask->SetComponent(ptId, 0, 1.);
+          }
+          surface->GetPointData()->RemoveArray(mask->GetName());
+          surface->GetPointData()->AddArray(mask);
+        }
+        if (boundary_cell_mask) {
+          vtkSmartPointer<vtkDataArray> mask;
+          mask = NewVtkDataArray(VTK_UNSIGNED_CHAR, surface->GetNumberOfCells(), 1, boundary_cell_mask);
+          mask->FillComponent(0, 0.);
+          vtkNew<vtkIdList> cellIds1, cellIds2;
+          for (auto edge : boundaryEdges) {
+            surface->GetPointCells(edge.first,  cellIds1.GetPointer());
+            surface->GetPointCells(edge.second, cellIds2.GetPointer());
+            cellIds1->IntersectWith(cellIds2.GetPointer());
+            for (vtkIdType i = 0; i < cellIds1->GetNumberOfIds(); ++i) {
+              mask->SetComponent(cellIds1->GetId(i), 0, 1.);
+            }
+          }
+          surface->GetCellData()->RemoveArray(mask->GetName());
+          surface->GetCellData()->AddArray(mask);
+        }
         cout << "\nBoundaries:\n";
         cout << "  No. of boundary segments = " << NumberOfBoundarySegments(surface) << "\n";
-        cout << "  No. of boundary points   = " << BoundaryPoints(surface, &edgeTable).size() << "\n";
-        cout << "  No. of boundary edges    = " << BoundaryEdges(surface, edgeTable).size() << "\n";
+        cout << "  No. of boundary points   = " << boundaryPtIds.size() << "\n";
+        cout << "  No. of boundary edges    = " << boundaryEdges.size() << "\n";
       } break;
 
       // -----------------------------------------------------------------------
