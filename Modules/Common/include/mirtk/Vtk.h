@@ -104,8 +104,9 @@ inline bool FromString(const char *str, vtkDataSetAttributes::AttributeTypes &ty
   else if (name == "globalids")   type = vtkDataSetAttributes::GLOBALIDS;
   else if (name == "pedigreeids") type = vtkDataSetAttributes::PEDIGREEIDS;
   else if (name == "edgeflag")    type = vtkDataSetAttributes::EDGEFLAG;
-  else                            type = vtkDataSetAttributes::NUM_ATTRIBUTES;
-  return (type < vtkDataSetAttributes::NUM_ATTRIBUTES);
+  else if (name == "other")       type = vtkDataSetAttributes::NUM_ATTRIBUTES;
+  else return false;
+  return true;
 }
 
 // -----------------------------------------------------------------------------
@@ -124,7 +125,7 @@ inline string ToString(const vtkDataSetAttributes::AttributeTypes &type,
     case vtkDataSetAttributes::GLOBALIDS:   str = "globalids";   break;
     case vtkDataSetAttributes::PEDIGREEIDS: str = "pedigreeids"; break;
     case vtkDataSetAttributes::EDGEFLAG:    str = "edgeflag";    break;
-    default:                                str = "unknown";     break;
+    default:                                str = "other";       break;
   }
   return ToString(str, w, c, left);
 }
@@ -133,7 +134,7 @@ inline string ToString(const vtkDataSetAttributes::AttributeTypes &type,
 /// Convert vtkDataSetAttributes::AttributeType to string
 inline string VtkAttributeTypeString(int type)
 {
-  if (type < 0) return "other";
+  if (type < 0 || type >= vtkDataSetAttributes::NUM_ATTRIBUTES) return "other";
   return ToString(static_cast<vtkDataSetAttributes::AttributeTypes>(type));
 }
 
