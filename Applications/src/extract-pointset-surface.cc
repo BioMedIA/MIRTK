@@ -86,26 +86,27 @@ void PrintHelp(const char *name)
   cout << "  -intersection          Compute boundary of intersection of input volumes." << endl;
   cout << endl;
   cout << "Output options:" << endl;
-  cout << "  -source-array <name>   Add point/cell data array with the specified name with one-based" << endl;
-  cout << "                         labels corresponding to the input point set from which an output" << endl;
-  cout << "                         point/cell originates from. When the first input point set has" << endl;
-  cout << "                         a scalar array with the specified name, the labels of this first" << endl;
-  cout << "                         surface are preserved, while successive labels are offset by the" << endl;
-  cout << "                         maximum integer value of the input data array. This is useful when" << endl;
-  cout << "                         successively merging surface meshes instead of with a single execution" << endl;
-  cout << "                         of this command. (default: none)" << endl;
-  cout << "  -merge [<float>]       Merge points closer than the specified distance, default is 1e-6. (default: off)" << endl;
-  cout << "  -tolerance <float>     Distance tolerance value to use for boolean operations. (default: 1e-6)" << endl;
-  cout << "  -fill-holes [<size>]   Fill holes of given maximum size (i.e., circumsphere radius)." << endl;
-  cout << "  -largest [<n>]         Output largest n (default 1 if not specified) components." << endl;
-  cout << "  -insphere              Output sphere which is inscribed the surface mesh." << endl;
-  cout << "  -bounding-sphere       Output minimum sphere which fully contains the surface mesh." << endl;
-  cout << "  -o -surface <file>     Write output surface mesh to named file." << endl;
-  cout << "  -mask <file>           Write binary inside/outside mask to named image file." << endl;
-  cout << "  -implicit <file>       Write signed implicit surface distance to named image file." << endl;
-  cout << "  -reference <image>     Reference image for :option:`-mask` or :option:`-implicit` output. (default: bounding box)" << endl;
-  cout << "  -resolution <float>    Resolution of :option:`-insphere`, :option:`-mask`, or :option:`-implicit` output." << endl;
-  cout << "                         (default: fraction of length of bounding box diagonal)" << endl;
+  cout << "  -source-array <name>    Add point/cell data array with the specified name with one-based" << endl;
+  cout << "                          labels corresponding to the input point set from which an output" << endl;
+  cout << "                          point/cell originates from. When the first input point set has" << endl;
+  cout << "                          a scalar array with the specified name, the labels of this first" << endl;
+  cout << "                          surface are preserved, while successive labels are offset by the" << endl;
+  cout << "                          maximum integer value of the input data array. This is useful when" << endl;
+  cout << "                          successively merging surface meshes instead of with a single execution" << endl;
+  cout << "                          of this command. (default: none)" << endl;
+  cout << "  -merge [<float>]        Merge points closer than the specified distance, default is 1e-6. (default: off)" << endl;
+  cout << "  -tolerance <float>      Distance tolerance value to use for boolean operations. (default: 1e-6)" << endl;
+  cout << "  -fill-holes [<size>]    Fill holes of given maximum size (i.e., circumsphere radius)." << endl;
+  cout << "  -largest [<n>]          Output largest n (default 1 if not specified) components." << endl;
+  cout << "  -insphere               Output sphere which is inscribed the surface mesh." << endl;
+  cout << "  -bounding-sphere        Output minimum sphere which fully contains the surface mesh." << endl;
+  cout << "  -o -surface <file>      Write output surface mesh to named file." << endl;
+  cout << "  -mask <file>            Write binary inside/outside mask to named image file." << endl;
+  cout << "  -implicit <file>        Write signed implicit surface distance to named image file." << endl;
+  cout << "  -[no]outside [on|off]   Swap inside/outside of output :option:`-mask` and :option:`-implicit` surface. (default: off)" << endl;
+  cout << "  -reference <image>      Reference image for :option:`-mask` or :option:`-implicit` output. (default: bounding box)" << endl;
+  cout << "  -resolution <float>     Resolution of :option:`-insphere`, :option:`-mask`, or :option:`-implicit` output." << endl;
+  cout << "                          (default: fraction of length of bounding box diagonal)" << endl;
   PrintStandardOptions(cout);
   cout << endl;
 }
@@ -254,6 +255,7 @@ int main(int argc, char *argv[])
   double      resolution        = NaN;
   double      tolerance         = 1e-6;
   const char *source_array_name = nullptr;
+  bool        inside_out        = false;
 
   if (NUM_POSARGS > 0) {
     if (NUM_POSARGS > 1) {
@@ -317,6 +319,7 @@ int main(int argc, char *argv[])
     else if (OPTION("-intersection")) operation = vtkBooleanOperationPolyDataFilter::VTK_INTERSECTION;
     else if (OPTION("-tolerance") || OPTION("-tol")) PARSE_ARGUMENT(tolerance);
     else if (OPTION("-source-array")) source_array_name = ARGUMENT;
+    else HANDLE_BOOLEAN_OPTION("outside", inside_out);
     else HANDLE_COMMON_OR_UNKNOWN_OPTION();
   }
 
@@ -569,6 +572,7 @@ int main(int argc, char *argv[])
       attr._dy      = ds;
       attr._dz      = ds;
     }
+    const int nvox = attr.NumberOfLatticePoints();
 
     // Generate binary inside/outside mask
     BinaryImage mask(attr);
@@ -579,14 +583,19 @@ int main(int argc, char *argv[])
     mask.CopyFrom(reinterpret_cast<BinaryPixel *>(vtkmask->GetScalarPointer()));
     vtkmask = NULL, stencil = NULL;
 
+    // Invert inside/outside mask
+    if (inside_out) {
+      for (int vox = 0; vox < nvox; ++vox) {
+        mask(vox) = BinaryPixel(mask(vox) == 0 ? 1 : 0);
+      }
+    }
+
     // Write binary inside/outside mask
     if (mask_name) mask.Write(mask_name);
 
     // Compute signed distance map
     if (dmap_name) {
-      const int nvox = attr.NumberOfLatticePoints();
-
-    	// Invert inside mask and convert to real type
+    	// Create separate inside/outside masks
       RealImage inside_mask (attr);
       RealImage outside_mask(attr);
       for (int vox = 0; vox < nvox; ++vox) {
