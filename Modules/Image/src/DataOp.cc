@@ -34,6 +34,7 @@
   #include "vtkImageData.h"
   #include "vtkPointSet.h"
   #include "vtkPointData.h"
+  #include "vtkCellData.h"
   #include "vtkFloatArray.h"
   #include "mirtk/Vtk.h"
 #endif
@@ -54,7 +55,7 @@ DataFileType FileType(const char *name)
 // -----------------------------------------------------------------------------
 #if MIRTK_Image_WITH_VTK
 int Read(const char *name, double *&data, int *dtype, ImageAttributes *attr,
-         vtkSmartPointer<vtkDataSet> *dataset, const char *scalar_name)
+         vtkSmartPointer<vtkDataSet> *dataset, const char *scalars_name, bool cell_data)
 #else
 int Read(const char *name, double *&data, int *dtype, ImageAttributes *attr)
 #endif // MIRTK_Image_WITH_VTK
@@ -76,12 +77,14 @@ int Read(const char *name, double *&data, int *dtype, ImageAttributes *attr)
         reader = vtkSmartPointer<vtkDataSetReader>::New();
         reader->SetFileName(name);
         reader->Update();
-        vtkDataSet *output = reader->GetOutput();
+        vtkDataSet * const output = reader->GetOutput();
         if (output) {
-          if (scalar_name && scalar_name[0] != '\0') {
-            scalars = output->GetPointData()->GetArray(scalar_name);
+          vtkDataSetAttributes *arrays = output->GetPointData();
+          if (cell_data) arrays = output->GetCellData();
+          if (scalars_name && scalars_name[0] != '\0') {
+            scalars = arrays->GetArray(scalars_name);
           } else {
-            scalars = output->GetPointData()->GetScalars();
+            scalars = arrays->GetScalars();
           }
         }
         if (dataset) *dataset = output;
@@ -92,23 +95,25 @@ int Read(const char *name, double *&data, int *dtype, ImageAttributes *attr)
         reader->Update();
         vtkDataSet *output = vtkDataSet::SafeDownCast(reader->GetOutput());
         if (output) {
-          if (scalar_name && scalar_name[0] != '\0') {
-            scalars = output->GetPointData()->GetArray(scalar_name);
+          vtkDataSetAttributes *arrays = output->GetPointData();
+          if (cell_data) arrays = output->GetCellData();
+          if (scalars_name && scalars_name[0] != '\0') {
+            scalars = arrays->GetArray(scalars_name);
           } else {
-            scalars = output->GetPointData()->GetScalars();
+            scalars = arrays->GetScalars();
           }
         }
         if (dataset) *dataset = output;
       }
       if (!scalars) {
-        cerr << "Failed to read VTK dataset! Type is either not supported or dataset has no scalar point data." << endl;
-        cerr << "Use -scalars option to specify the name of a point data array to use instead." << endl;
+        cerr << "Failed to read VTK dataset! Type is either not supported or dataset has no scalar " << (cell_data ? "cell" : "point") << " data." << endl;
+        cerr << "Use -point/-cell-data option to specify the name of a point/cell data array to use instead." << endl;
         exit(1);
       }
       if (dtype) *dtype = FromVTKDataType(scalars->GetDataType());
       n = static_cast<int>(scalars->GetNumberOfTuples()) * scalars->GetNumberOfComponents();
       if (n == 0) {
-        cerr << "VTK dataset has empty scalar point data!" << endl;
+        cerr << "VTK dataset has empty scalar " << (cell_data ? "cell" : "point") << " data!" << endl;
         exit(1);
       }
       data = Allocate<double>(n);
@@ -157,8 +162,10 @@ void Write::Process(int n, double *data, bool *)
         exit(1);
       }
       vtkDataArray *input_scalars;
-      if (_ArrayName.empty()) input_scalars = _DataSet->GetPointData()->GetScalars();
-      else                    input_scalars = _DataSet->GetPointData()->GetArray(_ArrayName.c_str());
+      vtkDataSetAttributes *arrays = _DataSet->GetPointData();
+      if (_AsCellData)      arrays = _DataSet->GetCellData();
+      if (_ArrayName.empty()) input_scalars = arrays->GetScalars();
+      else                    input_scalars = arrays->GetArray(_ArrayName.c_str());
       if (input_scalars == nullptr) {
         cerr << "Invalid output array name " << _ArrayName << endl;
         exit(1);
@@ -169,7 +176,7 @@ void Write::Process(int n, double *data, bool *)
         cerr << "Cannot write data sequence to file! Length of data sequence changed." << endl;
         exit(1);
       }
-      vtkSmartPointer<vtkDataArray> output_scalars = NewVTKDataArray(ToVTKDataType(_DataType));
+      vtkSmartPointer<vtkDataArray> output_scalars = NewVtkDataArray(ToVTKDataType(_DataType));
       if (!_OutputName.empty()) {
         output_scalars->SetName(_OutputName.c_str());
       } else if (!_ArrayName.empty()) {
@@ -177,18 +184,21 @@ void Write::Process(int n, double *data, bool *)
       }
       output_scalars->SetNumberOfComponents(m);
       output_scalars->SetNumberOfTuples(ntuples);
+      for (int j = 0; j < m; ++j) {
+        output_scalars->SetComponentName(j, input_scalars->GetComponentName(j));
+      }
       for (vtkIdType i = 0; i < ntuples; ++i) {
         for (int j = 0; j < m; ++j, ++data) {
           output_scalars->SetComponent(i, j, *data);
         }
       }
-      if (input_scalars == _DataSet->GetPointData()->GetScalars() && _OutputName.empty()) {
-        _DataSet->GetPointData()->SetScalars(output_scalars);
+      if (input_scalars == arrays->GetScalars() && _OutputName.empty()) {
+        arrays->SetScalars(output_scalars);
       } else {
         if (!_ArrayName.empty() && (_OutputName.empty() || _OutputName == _ArrayName)) {
-          _DataSet->GetPointData()->RemoveArray(_ArrayName.c_str());
+          arrays->RemoveArray(_ArrayName.c_str());
         }
-        _DataSet->GetPointData()->AddArray(output_scalars);
+        arrays->AddArray(output_scalars);
       }
       if (type == LEGACY_VTK) {
         vtkSmartPointer<vtkDataSetWriter> writer;

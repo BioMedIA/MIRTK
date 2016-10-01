@@ -31,6 +31,7 @@
   #include "vtkDataSet.h"
   #include "vtkSmartPointer.h"
   #include "vtkPointData.h"
+  #include "vtkCellData.h"
   #include "vtkDataArray.h"
 #endif
 
@@ -73,7 +74,8 @@ void PrintHelp(const char *name)
   cout << "  specified column names for the individual output values.\n";
   cout << "\n";
   cout << "Input options:\n";
-  cout << "  -scalars <name>   Name of input point data array. (default: active SCALARS array)\n";
+  cout << "  -pd, -point-data, -scalars <name>   Name of input point data array. (default: active SCALARS array)\n";
+  cout << "  -cd, -cell-data <name>              Name of input cell  data array. Overrides :option:`-pd`.\n";
   cout << "\n";
   cout << "Data masking options:\n";
   cout << "  -even\n";
@@ -170,6 +172,10 @@ void PrintHelp(const char *name)
   cout << "      Clamp values greater than a given percentile.\n";
   cout << "  -rescale <min> <max>\n";
   cout << "      Linearly rescale values to the interval [min, max].\n";
+  cout << "  -map <from> <to>...\n";
+  cout << "      Replaces values equal to <from> by the specified <to> value. Multiple pairs of <from>\n";
+  cout << "      and <to> value replacements can be specified in order to perform the substitutions in\n";
+  cout << "      one step. For example, to swap the two values 1 and 2, use ``-map 1 2 2 1``.\n";
   cout << "\n";
   cout << "Arithmetic operation options:\n";
   cout << "  -add, -plus <value> | <file> [<scalars>]\n";
@@ -325,17 +331,33 @@ int main(int argc, char **argv)
 
   const char *input_name = POSARG(1);
 
-  double *data = NULL;
+  double *data = nullptr;
   int datatype = MIRTK_VOXEL_DOUBLE;
   ImageAttributes attr;
 
 #if MIRTK_Image_WITH_VTK
-  const char *scalars_name = NULL;
+  const char *scalars_name = nullptr;
+  bool        cell_data    = false;
   for (ARGUMENTS_AFTER(1)) {
-    if (OPTION("-scalars")) scalars_name = ARGUMENT;
+    if (OPTION("-point-data") || OPTION("-pointdata") || OPTION("-pd") || OPTION("-scalars")) {
+      scalars_name = ARGUMENT;
+      cell_data    = false;
+    }
+    else if (OPTION("-cell-data") || OPTION("-celldata") || OPTION("-cd")) {
+      scalars_name = ARGUMENT;
+      cell_data    = true;
+    }
   }
   vtkSmartPointer<vtkDataSet> dataset;
-  int n = Read(input_name, data, &datatype, &attr, &dataset, scalars_name);
+  vtkSmartPointer<vtkDataSetAttributes> arrays;
+  int n = Read(input_name, data, &datatype, &attr, &dataset, scalars_name, cell_data);
+  if (dataset) {
+    if (cell_data) {
+      arrays = dataset->GetCellData();
+    } else {
+      arrays = dataset->GetPointData();
+    }
+  }
 #else // MIRTK_Image_WITH_VTK
   int n = Read(input_name, data, &datatype, &attr);
 #endif // MIRTK_Image_WITH_VTK
@@ -359,11 +381,21 @@ int main(int argc, char **argv)
   for (ARGUMENTS_AFTER(1)) {
     if (OPTION("-append")) {
       append_name = ARGUMENT;
-    } else if (OPTION("-scalars")) {
+    } else if (OPTION("-point-data") || OPTION("-pointdata") || OPTION("-pd") || OPTION("-scalars")) {
       #if MIRTK_Image_WITH_VTK
+        // Parsed before Read above
         scalars_name = ARGUMENT;
+        cell_data    = false;
       #else
-        FatalError("Cannot process -scalars of VTK file because MIRTK Image library was built without VTK!");
+        FatalError("Cannot process -point-data of VTK file because MIRTK Image library was built without VTK!");
+      #endif // MIRTK_Image_WITH_VTK
+    } else if (OPTION("-cell-data") || OPTION("-celldata") || OPTION("-cd")) {
+      #if MIRTK_Image_WITH_VTK
+        // Parsed before Read above
+        scalars_name = ARGUMENT;
+        cell_data    = true;
+      #else
+        FatalError("Cannot process -cell-data of VTK file because MIRTK Image library was built without VTK!");
       #endif // MIRTK_Image_WITH_VTK
     } else if (OPTION("-prefix")) {
       do {
@@ -413,7 +445,7 @@ int main(int argc, char **argv)
             aname = ARGUMENT;
           } else {
             #if MIRTK_Image_WITH_VTK
-              if (dataset && dataset->GetPointData()->HasArray(fname)) {
+              if (dataset && arrays->HasArray(fname)) {
                 aname = fname;
                 fname = input_name;
               }
@@ -423,6 +455,7 @@ int main(int argc, char **argv)
           if (aname) {
             #if MIRTK_Image_WITH_VTK
               op->ArrayName(aname);
+              op->IsCellData(cell_data);
             #else
               FatalError("Cannot read point set files when build without VTK or wrong usage!");
             #endif
@@ -600,6 +633,17 @@ int main(int argc, char **argv)
       if (HAS_ARGUMENT) PARSE_ARGUMENT(b);
       else b = inf;
       ops.push_back(UniquePtr<Op>(new Binarize(a, b)));
+    } else if (OPTION("-map")) {
+      UniquePtr<Map> map(new Map());
+      do {
+        const char * const arg1 = ARGUMENT;
+        const char * const arg2 = ARGUMENT;
+        if (!FromString(arg1, a) || !FromString(arg2, b)) {
+          FatalError("Arguments of -map option must be pairs of two numbers (i.e., number of arguments must be even)!");
+        }
+        map->Insert(a, b);
+      } while (HAS_ARGUMENT);
+      ops.push_back(UniquePtr<Op>(map.release()));
     } else if (OPTION("-add") || OPTION("-plus") || OPTION("+")) {
       const char *arg = ARGUMENT;
       double c;
@@ -612,7 +656,7 @@ int main(int argc, char **argv)
           aname = ARGUMENT;
         } else {
           #if MIRTK_Image_WITH_VTK
-            if (dataset && dataset->GetPointData()->HasArray(fname)) {
+            if (dataset && arrays->HasArray(fname)) {
               aname = fname;
               fname = input_name;
             }
@@ -622,6 +666,7 @@ int main(int argc, char **argv)
         if (aname) {
           #if MIRTK_Image_WITH_VTK
             op->ArrayName(aname);
+            op->IsCellData(cell_data);
           #else
             FatalError("Cannot read scalars from point set file when build without VTK or wrong usage!");
           #endif
@@ -640,7 +685,7 @@ int main(int argc, char **argv)
           aname = ARGUMENT;
         } else {
           #if MIRTK_Image_WITH_VTK
-            if (dataset && dataset->GetPointData()->HasArray(fname)) {
+            if (dataset && arrays->HasArray(fname)) {
               aname = fname;
               fname = input_name;
             }
@@ -650,6 +695,7 @@ int main(int argc, char **argv)
         if (aname) {
           #if MIRTK_Image_WITH_VTK
             op->ArrayName(aname);
+            op->IsCellData(cell_data);
           #else
             FatalError("Cannot read point set files when build without VTK or wrong usage!");
           #endif
@@ -668,7 +714,7 @@ int main(int argc, char **argv)
           aname = ARGUMENT;
         } else {
           #if MIRTK_Image_WITH_VTK
-            if (dataset && dataset->GetPointData()->HasArray(fname)) {
+            if (dataset && arrays->HasArray(fname)) {
               aname = fname;
               fname = input_name;
             }
@@ -678,6 +724,7 @@ int main(int argc, char **argv)
         if (aname) {
           #if MIRTK_Image_WITH_VTK
             op->ArrayName(aname);
+            op->IsCellData(cell_data);
           #else
             FatalError("Cannot read point set files when build without VTK or wrong usage!");
           #endif
@@ -700,7 +747,7 @@ int main(int argc, char **argv)
           aname = ARGUMENT;
         } else {
           #if MIRTK_Image_WITH_VTK
-            if (dataset && dataset->GetPointData()->HasArray(fname)) {
+            if (dataset && arrays->HasArray(fname)) {
               aname = fname;
               fname = input_name;
             }
@@ -710,6 +757,7 @@ int main(int argc, char **argv)
         if (aname) {
           #if MIRTK_Image_WITH_VTK
             op->ArrayName(aname);
+            op->IsCellData(cell_data);
           #else
             FatalError("Cannot read point set files when build without VTK or wrong usage!");
           #endif
@@ -723,7 +771,7 @@ int main(int argc, char **argv)
         aname = ARGUMENT;
       } else {
         #if MIRTK_Image_WITH_VTK
-          if (dataset && dataset->GetPointData()->HasArray(fname)) {
+          if (dataset && arrays->HasArray(fname)) {
             aname = fname;
             fname = input_name;
           }
@@ -733,6 +781,7 @@ int main(int argc, char **argv)
       if (aname) {
         #if MIRTK_Image_WITH_VTK
           op->ArrayName(aname);
+          op->IsCellData(cell_data);
         #else
           FatalError("Cannot read point set files when build without VTK or wrong usage!");
         #endif
@@ -817,7 +866,7 @@ int main(int argc, char **argv)
         }
       }
       #if MIRTK_Image_WITH_VTK
-        ops.push_back(UniquePtr<Op>(new Write(fname, dtype, attr, dataset, scalars_name, output_scalars_name)));
+        ops.push_back(UniquePtr<Op>(new Write(fname, dtype, attr, dataset, scalars_name, output_scalars_name, cell_data)));
       #else
         ops.push_back(UniquePtr<Op>(new Write(fname, dtype, attr)));
       #endif

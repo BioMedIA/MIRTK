@@ -192,8 +192,11 @@ class ElementWiseBinaryOp : public Op
   mirtkPublicAttributeMacro(string, FileName);
 
 #if MIRTK_Image_WITH_VTK
-  /// Name of input point data array
+  /// Name of input point/cell data array
   mirtkPublicAttributeMacro(string, ArrayName);
+
+  /// Whether input array is cell data
+  mirtkPublicAttributeMacro(bool, IsCellData);
 #endif
 
 private:
@@ -218,9 +221,9 @@ protected:
 
 #if MIRTK_Image_WITH_VTK
   /// Constructor
-  ElementWiseBinaryOp(const char *fname, const char *aname)
+  ElementWiseBinaryOp(const char *fname, const char *aname, bool cell_data = false)
   :
-    _Constant(.0), _FileName(fname), _ArrayName(aname ? aname : ""), _Other(nullptr)
+    _Constant(.0), _FileName(fname), _ArrayName(aname ? aname : ""), _IsCellData(cell_data), _Other(nullptr)
   {}
 #endif
 
@@ -276,7 +279,7 @@ protected:
     if (!_FileName.empty()) {
       if (n !=
       #if MIRTK_Image_WITH_VTK
-        Read(_FileName.c_str(), _Other, nullptr, nullptr, nullptr, _ArrayName.c_str())
+        Read(_FileName.c_str(), _Other, nullptr, nullptr, nullptr, _ArrayName.c_str(), _IsCellData)
       #else
         Read(_FileName.c_str(), _Other)
       #endif
@@ -588,6 +591,42 @@ public:
     Initialize(n, data, mask);
     parallel_for(blocked_range<int>(0, n), *this);
     Finalize();
+  }
+};
+
+// -----------------------------------------------------------------------------
+/// Map values (e.g. segmentation labels)
+class Map : public ElementWiseUnaryOp
+{
+  typedef UnorderedMap<double, double> ValueMapType;
+
+  /// Map of values
+  mirtkAttributeMacro(ValueMapType, ValueMap);
+
+public:
+
+  /// Insert map from a to b
+  void Insert(double a, double b)
+  {
+    _ValueMap[a] = b;
+  }
+
+  /// Transform data value and/or mask data value by setting *mask = false
+  virtual double Op(double value, bool &) const
+  {
+    auto it = _ValueMap.find(value);
+    if (it != _ValueMap.end()) {
+      return it->second;
+    } else {
+      return value;
+    }
+  }
+
+  /// Process given data (not thread-safe!)
+  virtual void Process(int n, double *data, bool *mask = NULL)
+  {
+    ElementWiseUnaryOp::Process(n, data, mask);
+    parallel_for(blocked_range<int>(0, n), *this);
   }
 };
 
