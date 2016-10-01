@@ -1,9 +1,9 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2008-2015 Imperial College London
+ * Copyright 2008-2016 Imperial College London
  * Copyright 2008-2013 Daniel Rueckert, Julia Schnabel
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2013-2016 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -225,6 +225,8 @@ int main(int argc, char **argv)
 
   if (pointset) {
 
+    vtkPolyData * const surface = vtkPolyData::SafeDownCast(pointset);
+
     // Set output points
     vtkPoints *output_points = pointset->GetPoints();
     for (int i = 0; i < pnumber; ++i) {
@@ -233,19 +235,20 @@ int main(int argc, char **argv)
     }
 
     // Generate surface normals
-    if (pointset->GetPointData()->HasArray("Normals")) compute_point_normals = true;
-    if (pointset->GetCellData ()->HasArray("Normals")) compute_cell_normals  = true;
-
-    if (compute_point_normals || compute_cell_normals) {
-      vtkSmartPointer<vtkPolyDataNormals> normals;
-      normals = vtkSmartPointer<vtkPolyDataNormals>::New();
-      SetVTKInput(normals, pointset);
-      normals->SplittingOff();
-      normals->ConsistencyOn();
-      normals->SetComputePointNormals(compute_point_normals);
-      normals->SetComputeCellNormals (compute_cell_normals);
-      normals->Update();
-      pointset = normals->GetOutput();
+    if (surface) {
+      if (surface->GetPointData()->GetNormals()) compute_point_normals = true;
+      if (surface->GetCellData ()->GetNormals()) compute_cell_normals  = true;
+      if (compute_point_normals || compute_cell_normals) {
+        vtkSmartPointer<vtkPolyDataNormals> normals;
+        normals = vtkSmartPointer<vtkPolyDataNormals>::New();
+        SetVTKInput(normals, surface);
+        normals->SplittingOff();
+        normals->ConsistencyOn();
+        normals->SetComputePointNormals(compute_point_normals);
+        normals->SetComputeCellNormals (compute_cell_normals);
+        normals->Update();
+        pointset = normals->GetOutput();
+      }
     }
 
     // Write the final dataset
