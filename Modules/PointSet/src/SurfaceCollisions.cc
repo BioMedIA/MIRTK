@@ -480,19 +480,19 @@ SurfaceCollisions::~SurfaceCollisions()
 // -----------------------------------------------------------------------------
 vtkDataArray *SurfaceCollisions::GetCenterArray() const
 {
-  return _Output->GetCellData()->GetArray("BoundingSphereCenter");
+  return _Output->GetCellData()->GetArray(BOUNDING_SPHERE_CENTER);
 }
 
 // -----------------------------------------------------------------------------
 vtkDataArray *SurfaceCollisions::GetRadiusArray() const
 {
-  return _Output->GetCellData()->GetArray("BoundingSphereRadius");
+  return _Output->GetCellData()->GetArray(BOUNDING_SPHERE_RADIUS);
 }
 
 // -----------------------------------------------------------------------------
 vtkDataArray *SurfaceCollisions::GetCollisionTypeArray() const
 {
-  return _Output->GetCellData()->GetArray("CollisionType");
+  return _Output->GetCellData()->GetArray(COLLISION_TYPE);
 }
 
 // -----------------------------------------------------------------------------
@@ -561,19 +561,19 @@ void SurfaceCollisions::Initialize()
   bool compute_bounding_spheres = !_UseInputBoundingSpheres;
   bool reset_collision_types    = _ResetCollisionType;
   vtkSmartPointer<vtkDataArray> center, radius, types;
-  center = _Output->GetCellData()->GetArray("BoundingSphereCenter");
-  radius = _Output->GetCellData()->GetArray("BoundingSphereRadius");
-  types  = _Output->GetCellData()->GetArray("CollisionType");
+  center = _Output->GetCellData()->GetArray(BOUNDING_SPHERE_CENTER);
+  radius = _Output->GetCellData()->GetArray(BOUNDING_SPHERE_RADIUS);
+  types  = _Output->GetCellData()->GetArray(COLLISION_TYPE);
 
   if (!center || !radius) {
     if (!center) {
       center = vtkSmartPointer<vtkFloatArray>::New();
-      center->SetName("BoundingSphereCenter");
+      center->SetName(BOUNDING_SPHERE_CENTER);
       _Output->GetCellData()->AddArray(center);
     }
     if (!radius) {
       radius = vtkSmartPointer<vtkFloatArray>::New();
-      radius->SetName("BoundingSphereRadius");
+      radius->SetName(BOUNDING_SPHERE_RADIUS);
       _Output->GetCellData()->AddArray(radius);
     }
     compute_bounding_spheres = true;
@@ -585,7 +585,7 @@ void SurfaceCollisions::Initialize()
     types = vtkSmartPointer<vtkUnsignedCharArray>::New();
     types->SetNumberOfComponents(1);
     types->SetNumberOfTuples(_Output->GetNumberOfCells());
-    types->SetName("CollisionType");
+    types->SetName(COLLISION_TYPE);
     _Output->GetCellData()->AddArray(types);
     reset_collision_types = true;
   }

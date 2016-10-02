@@ -66,6 +66,11 @@ public:
     Ambiguous             ///< Both collisions and self-intersections found
   };
 
+  // Names of output cell data array
+  static constexpr const char * const BOUNDING_SPHERE_CENTER = "BoundingSphereCenter";
+  static constexpr const char * const BOUNDING_SPHERE_RADIUS = "BoundingSphereRadius";
+  static constexpr const char * const COLLISION_TYPE         = "CollisionType";
+
   /// Whether a given collision type indicates a near miss collision
   static bool IsCollision(CollisionType);
 
