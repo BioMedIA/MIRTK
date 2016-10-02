@@ -243,6 +243,20 @@ int DeepCopyArrayUsingCaseInsensitiveName(vtkDataSetAttributes *dst, vtkDataSetA
   return loc;
 }
 
+// -----------------------------------------------------------------------------
+bool IsCategoricalArrayName(const string &name)
+{
+  if (name.length() > 2) {
+    const string suffix = name.substr(name.length() - 2);
+    if (suffix == "Id") return true;
+  }
+  if (name.length() > 4) {
+    const string suffix = name.substr(name.length() - 4);
+    if (suffix == "Label" || suffix == "Mask") return true;
+  }
+  return false;
+}
+
 // =============================================================================
 // Cells
 // =============================================================================

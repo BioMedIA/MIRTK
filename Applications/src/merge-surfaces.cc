@@ -200,7 +200,7 @@ void PrintHelp(const char *name)
 // Constants
 // =============================================================================
 
-const char * const SOURCE_ARRAY_NAME          = "_SourceLabel";
+const char * const SOURCE_ARRAY_NAME          = "_SourceId";
 const char * const INTERSECTION_ARRAY_NAME    = "_IntersectionMask";
 const char * const MIN_EDGE_LENGTH_ARRAY_NAME = "_MinEdgeLength";
 const char * const MAX_EDGE_LENGTH_ARRAY_NAME = "_MaxEdgeLength";

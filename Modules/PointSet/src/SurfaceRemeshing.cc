@@ -1086,12 +1086,10 @@ void SurfaceRemeshing::Initialize()
     outputPD->CopyData(inputPD, ptId, ptId);
   }
 
-  // Determine point data arrays which require NN interpolation
+  // Determine point data arrays which require voting instead of averaging
   _CategoricalPointDataIndices.clear();
   for (int i = 0; i < outputPD->GetNumberOfArrays(); ++i) {
-    string lname = ToLower(outputPD->GetArrayName(i));
-    if (lname.find("label") != lname.npos ||
-        lname.find("mask" ) != lname.npos) {
+    if (IsCategoricalArrayName(outputPD->GetArrayName(i))) {
       _CategoricalPointDataIndices.insert(i);
     }
   }

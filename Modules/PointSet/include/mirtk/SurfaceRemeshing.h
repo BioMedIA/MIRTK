@@ -82,7 +82,7 @@ protected:
   mirtkPublicAggregateMacro(const class Transformation, Transformation);
 
   /// Indices of point data arrays with categorical data that requires
-  /// nearest neighbor interpolation instead of linear interpolation
+  /// a voting scheme instead of arithmetic averaging of data values
   mirtkAttributeMacro(OrderedSet<int>, CategoricalPointDataIndices);
   Array<double> _CategoricalPointDataCache;
 

@@ -624,10 +624,9 @@ int main(int argc, char **argv)
         copy = nullptr;
       } else {
         if (sourceAttr == pd_as_cd.GetPointer()) {
-          const auto sourceName = (array->GetName()  ? ToLower(array->GetName())  : string());
-          const auto targetName = (pd[i]._TargetName ? ToLower(pd[i]._TargetName) : string());
-          if (sourceName.find("label") != string::npos || sourceName.find("mask") != string::npos ||
-              targetName.find("label") != string::npos || targetName.find("mask") != string::npos) {
+          const auto sourceName = (array->GetName()  ? array->GetName()  : string());
+          const auto targetName = (pd[i]._TargetName ? pd[i]._TargetName : string());
+          if (IsCategoricalArrayName(sourceName) || IsCategoricalArrayName(targetName)) {
             vtkDataArray *labels = GetSourceArray("point", sourcePD, pd[i], case_sensitive);
             array = ConvertPointToCellLabels(source, labels, label_mode);
           }
@@ -665,10 +664,9 @@ int main(int argc, char **argv)
     }
     array = GetSourceArray("cell", sourceAttr, cd[i], case_sensitive);
     if (sourceAttr == cd_as_pd.GetPointer()) {
-      const auto sourceName = (array->GetName()  ? ToLower(array->GetName())  : string());
-      const auto targetName = (cd[i]._TargetName ? ToLower(cd[i]._TargetName) : string());
-      if (sourceName.find("label") != string::npos || sourceName.find("mask") != string::npos ||
-          targetName.find("label") != string::npos || targetName.find("mask") != string::npos) {
+      const auto sourceName = (array->GetName()  ? array->GetName()  : string());
+      const auto targetName = (cd[i]._TargetName ? cd[i]._TargetName : string());
+      if (IsCategoricalArrayName(sourceName) || IsCategoricalArrayName(targetName)) {
         vtkDataArray *labels = GetSourceArray("cell", sourceCD, cd[i], case_sensitive);
         array = ConvertCellToPointLabels(source, labels, label_mode);
       }

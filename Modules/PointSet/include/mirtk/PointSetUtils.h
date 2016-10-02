@@ -158,6 +158,11 @@ int DeepCopyArrayUsingCaseInsensitiveName(vtkDataSetAttributes *dst,
                                           vtkDataSetAttributes *src,
                                           const char *name);
 
+/// Determine whether data array name suggests it contains categorical values
+///
+/// \param[in] name Data array name.
+bool IsCategoricalArrayName(const string &name);
+
 // =============================================================================
 // Cell attributes
 // =============================================================================
