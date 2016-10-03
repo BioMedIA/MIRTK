@@ -47,14 +47,14 @@ void PrintHelp(const char *name)
   cout << "  output   Output point set. (default: input)" << endl;
   cout << endl;
   cout << "Optional arguments:" << endl;
-  cout << "  -all                        Remove all point and cell data arrays." << endl;
-  cout << "  -scalars                    Delete SCALARS attribute(s)." << endl;
-  cout << "  -vectors                    Delete VECTORS attribute(s)." << endl;
-  cout << "  -normals                    Delete NORMALS attribute(s)." << endl;
-  cout << "  -tcoords                    Delete TCOORDS attribute(s)." << endl;
-  cout << "  -name <name>                Case-sensitive name of data array to remove." << endl;
-  cout << "  -pointdata <name>|<index>   Case-sensitive name of point data array to remove." << endl;
-  cout << "  -celldata  <name>|<index>   Case-sensitive name of cell data array to remove." << endl;
+  cout << "  -all                           Remove all point and cell data arrays." << endl;
+  cout << "  -scalars                       Delete SCALARS attribute(s)." << endl;
+  cout << "  -vectors                       Delete VECTORS attribute(s)." << endl;
+  cout << "  -normals                       Delete NORMALS attribute(s)." << endl;
+  cout << "  -tcoords                       Delete TCOORDS attribute(s)." << endl;
+  cout << "  -name <name>...                Case-sensitive name of data array to remove." << endl;
+  cout << "  -pointdata <name>|<index>...   Case-sensitive name of point data array to remove." << endl;
+  cout << "  -celldata  <name>|<index>...   Case-sensitive name of cell data array to remove." << endl;
   PrintStandardOptions(cout);
   cout << endl;
 }
@@ -91,23 +91,29 @@ int main(int argc, char *argv[])
       pointset->GetPointData()->Initialize();
       pointset->GetCellData ()->Initialize();
     } else if (OPTION("-name")) {
-      const char *name = ARGUMENT;
-      pointset->GetPointData()->RemoveArray(name);
-      pointset->GetCellData ()->RemoveArray(name);
+      do {
+        const char *name = ARGUMENT;
+        pointset->GetPointData()->RemoveArray(name);
+        pointset->GetCellData ()->RemoveArray(name);
+      } while (HAS_ARGUMENT);
     } else if (OPTION("-pd") || OPTION("-point-data") || OPTION("-pointdata")) {
-      const char *arg = ARGUMENT;
-      if (FromString(arg, index)) {
-        pointset->GetPointData()->RemoveArray(index);
-      } else {
-        pointset->GetPointData()->RemoveArray(arg);
-      }
+      do {
+        const char *arg = ARGUMENT;
+        if (FromString(arg, index)) {
+          pointset->GetPointData()->RemoveArray(index);
+        } else {
+          pointset->GetPointData()->RemoveArray(arg);
+        }
+      } while (HAS_ARGUMENT);
     } else if (OPTION("-cd") || OPTION("-cell-data") || OPTION("-celldata")) {
-      const char *arg = ARGUMENT;
-      if (FromString(arg, index)) {
-        pointset->GetCellData()->RemoveArray(index);
-      } else {
-        pointset->GetCellData()->RemoveArray(arg);
-      }
+      do {
+        const char *arg = ARGUMENT;
+        if (FromString(arg, index)) {
+          pointset->GetCellData()->RemoveArray(index);
+        } else {
+          pointset->GetCellData()->RemoveArray(arg);
+        }
+      } while (HAS_ARGUMENT);
     } else if (OPTION("-scalars")) {
       pointset->GetPointData()->SetScalars(nullptr);
       pointset->GetCellData ()->SetScalars(nullptr);
