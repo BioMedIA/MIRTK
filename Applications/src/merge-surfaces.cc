@@ -598,12 +598,8 @@ void JoinBoundaries(SurfaceBoundary &boundary, vtkAbstractCellLocator *cut, doub
     if (arr->GetName()) {
       if (strcmp(arr->GetName(), SOURCE_ARRAY_NAME) == 0) {
         cd_type[i] = 2;
-      } else {
-        const string lname = ToLower(arr->GetName());
-        if (lname.find("label") != string::npos ||
-            lname.find("mask")  != string::npos) {
-          cd_type[i] = 1;
-        }
+      } else if (IsCategoricalArrayName(arr->GetName())) {
+        cd_type[i] = 1;
       }
     }
   }
@@ -654,62 +650,56 @@ void JoinBoundaries(SurfaceBoundary &boundary, vtkAbstractCellLocator *cut, doub
     auto &seg1 = boundary.Segment(idx1);
     auto &seg2 = boundary.Segment(idx2);
 
-    int i, j;
     const int i0 = 0;
     const int j0 = seg2.FindClosestPoint(seg1.Point(i0));
 
-    // Determine in which direction to traverse each boundary segment
+    // TODO: Determine in which direction to traverse each boundary segment
     // such that orientation of newly added triangles is consistent with the
     // orientation of the boundary triangles
-    const int di = 1; // TODO
+    const int di = 1;
 
-    int dj = 1;
-    for (i = seg1.IndexModuloNumberOfPoints(i0 + di); 0 <= i && i < seg1.NumberOfPoints(); i += di) {
-      j = seg2.FindClosestPoint(seg1.Point(i));
-      if (j != j0) {
-        if (j < j0) dj = -1;
-        break;
+    // Construct list of new triangles based on either dj=-1 or dj=+1 traversal
+    // direction and select those triangles with the least cost/error
+    const int max_iter = seg1.NumberOfPoints() + seg2.NumberOfPoints();
+    double l1, l2, cost1, cost2;
+    Array<Vector3D<vtkIdType>> tris1, tris2;
+    for (int dj = -1; dj <= 1; dj += 2) {
+      int i = i0, j = j0;
+      seg1.ClearSelection();
+      seg2.ClearSelection();
+      auto &tris = (dj == -1 ? tris1 : tris2);
+      auto &cost = (dj == -1 ? cost1 : cost2);
+      cost = 0., tris.reserve(max_iter);
+      for (int iter = 0; iter < max_iter; ++iter) {
+        l1 = (seg1.IsSelected(i + di) ? inf : seg2.Point(j).SquaredDistance(seg1.Point(i + di)));
+        l2 = (seg2.IsSelected(j + dj) ? inf : seg1.Point(i).SquaredDistance(seg2.Point(j + dj)));
+        if (IsInf(l1) && IsInf(l2)) break;
+        if (l1 <= l2) {
+          cost += l1;
+          ptIds[0] = seg1.PointId(i);
+          ptIds[1] = seg1.PointId(i + di);
+          ptIds[2] = seg2.PointId(j);
+          i = seg1.IndexModuloNumberOfPoints(i + di);
+          seg1.SelectPoint(i);
+        } else {
+          cost += l2;
+          ptIds[0] = seg1.PointId(i);
+          ptIds[1] = seg2.PointId(j + dj);
+          ptIds[2] = seg2.PointId(j);
+          j = seg2.IndexModuloNumberOfPoints(j + dj);
+          seg2.SelectPoint(j);
+        }
+        tris.push_back(Vector3D<vtkIdType>(ptIds));
       }
     }
 
     // Add triangles joining the two boundary segments
-    double l1, l2;
-    i = i0, j = j0;
-
-    seg1.ClearSelection();
-    seg2.ClearSelection();
-
-    const int max_iter = seg1.NumberOfPoints() + seg2.NumberOfPoints();
-    for (int iter = 0; iter < max_iter; ++iter) {
-
-      if (seg1.IsSelected(i + di)) {
-        l1 = inf;
-      } else {
-        l1 = seg2.Point(j).SquaredDistance(seg1.Point(i + di));
-      }
-      if (seg2.IsSelected(j + dj)) {
-        l2 = inf;
-      } else {
-        l2 = seg1.Point(i).SquaredDistance(seg2.Point(j + dj));
-      }
-      if (IsInf(l1) && IsInf(l2)) break;
-
-      if (l1 <= l2) {
-        ptIds[0] = seg1.PointId(i);
-        ptIds[1] = seg1.PointId(i + di);
-        ptIds[2] = seg2.PointId(j);
-        i = seg1.IndexModuloNumberOfPoints(i + di);
-        seg1.SelectPoint(i);
-      } else {
-        ptIds[0] = seg1.PointId(i);
-        ptIds[1] = seg2.PointId(j + dj);
-        ptIds[2] = seg2.PointId(j);
-        j = seg2.IndexModuloNumberOfPoints(j + dj);
-        seg2.SelectPoint(j);
-      }
-
-      cellId = polys->InsertNextCell(3, ptIds);
-      InterpolateCellData(cd, cd_as_pd, cd_type, cellId, ptIds[0], ptIds[1], ptIds[2]);
+    for (auto &tri : (cost1 <= cost2 ? tris1 : tris2)) {
+      cellId = polys->InsertNextCell(3);
+      polys->InsertCellPoint(tri._x);
+      polys->InsertCellPoint(tri._y);
+      polys->InsertCellPoint(tri._z);
+      InterpolateCellData(cd, cd_as_pd, cd_type, cellId, tri._x, tri._y, tri._z);
     }
 
     surface->DeleteLinks();
