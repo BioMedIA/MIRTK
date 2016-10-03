@@ -112,9 +112,15 @@ void PrintHelp(const char *name)
   cout << "      Brainstem segmentation mask or labels. (default: none)\n";
   cout << "  -cerebellum, -cb <file>|<labels>\n";
   cout << "      Cerebellum segmentation mask or labels. (default: none)\n";
-  cout << "  -closing-iterations <n>\n";
+  cout << "  -closing, -closing-iterations <n>\n";
   cout << "      No. of iterations used to close holes between right/left subcortical,\n";
-  cout << "      brainstem, and cerebellum segmentations. (default: 5)\n";
+  cout << "      brainstem, and cerebellum segmentations. (default: 0)\n";
+  cout << "  -subcortical-closing <n>\n";
+  cout << "      No. of iterations used to close holes between right/left subcortical segmentation. (default: 0)\n";
+  cout << "  -brainstem-closing <n>\n";
+  cout << "      No. of iterations used to close holes in brainstem segmentation. (default: 0)\n";
+  cout << "  -cerebellum-closing <n>\n";
+  cout << "      No. of iterations used to close holes in cerebellum segmentation. (default: 0)\n";
   cout << "  -brainstem+cerebellum, -cerebellum+brainstem, -bs+cb, -cb+bs [on|off]\n";
   cout << "      Whether to merge brainstem and cerebellum. (default: off)\n";
   PrintStandardOptions(cout);
@@ -839,8 +845,10 @@ int main(int argc, char *argv[])
   UnorderedSet<int> bsmask_labels;
   UnorderedSet<int> cbmask_labels;
 
-  int closing_iter = 5;
-  bool merge_bs_cb = false;
+  int  sb_closing  = 0;     // Subcortical segmentation closing iterations
+  int  bs_closing  = 0;     // Brainstem   segmentation closing iterations
+  int  cb_closing  = 0;     // Cerebellum  segmentation closing iterations
+  bool merge_bs_cb = false; // Whether to merge brainstem and cerebellum segments
 
   if (NUM_POSARGS == 1) {
     output_name = POSARG(1);
@@ -893,8 +901,18 @@ int main(int argc, char *argv[])
       if (HAS_ARGUMENT) PARSE_ARGUMENT(merge_bs_cb);
       else merge_bs_cb = true;
     }
-    else if (OPTION("-closing-iterations")) {
-      PARSE_ARGUMENT(closing_iter);
+    else if (OPTION("-closing") || OPTION("-closing-iterations")) {
+      PARSE_ARGUMENT(sb_closing);
+      bs_closing = cb_closing = sb_closing;
+    }
+    else if (OPTION("-subcortical-closing")) {
+      PARSE_ARGUMENT(sb_closing);
+    }
+    else if (OPTION("-brainstem-closing")) {
+      PARSE_ARGUMENT(bs_closing);
+    }
+    else if (OPTION("-cerebellum-closing")) {
+      PARSE_ARGUMENT(cb_closing);
     }
     else HANDLE_COMMON_OR_UNKNOWN_OPTION();
   }
@@ -1039,15 +1057,15 @@ int main(int argc, char *argv[])
     regions.Write("debug_regions.nii.gz");
   }
 
-  if (closing_iter > 0) {
+  if (sb_closing > 0 || bs_closing > 0 || cb_closing > 0) {
     // Close holes in subcortical mask
-    if (!sbmask.IsEmpty()) {
+    if (!sbmask.IsEmpty() && sb_closing > 0) {
       BinaryImage closed(attr, 1);
       for (int vox = 0; vox < nvox; ++vox) {
         closed(vox) = sbmask(vox);
       }
-      Dilate<BinaryPixel>(&closed, closing_iter,     CONNECTIVITY_18);
-      Erode <BinaryPixel>(&closed, closing_iter + 1, CONNECTIVITY_18);
+      Dilate<BinaryPixel>(&closed, sb_closing,     CONNECTIVITY_18);
+      Erode <BinaryPixel>(&closed, sb_closing + 1, CONNECTIVITY_18);
       for (int vox = 0; vox < nvox; ++vox) {
         if (regions(vox) == BG && (closed(vox) != 0 || sbmask(vox) != 0)) {
           regions(vox) = UH;
@@ -1059,42 +1077,51 @@ int main(int argc, char *argv[])
     }
 
     // Close holes in brainstem+cerebellum region
-    if (!bsmask.IsEmpty()) {
-      BinaryImage closed(attr, 1);
-      for (int vox = 0; vox < nvox; ++vox) {
-        closed(vox) = BinaryPixel(regions(vox) == BS ? 1 : 0);
-      }
-      Dilate<BinaryPixel>(&closed, closing_iter,     CONNECTIVITY_18);
-      Erode <BinaryPixel>(&closed, closing_iter + 1, CONNECTIVITY_18);
+    if (!bsmask.IsEmpty() && (bs_closing > 0 || cb_closing > 0)) {
       int ncb = 0;
-      for (int vox = 0; vox < nvox; ++vox) {
-        const auto &region = regions(vox);
-        if (region == BG) {
-          if (closed(vox) != 0) {
-            regions(vox) = BS;
+      BinaryImage closed(attr, 1);
+      if (bs_closing > 0) {
+        for (int vox = 0; vox < nvox; ++vox) {
+          closed(vox) = BinaryPixel(regions(vox) == BS ? 1 : 0);
+        }
+        Dilate<BinaryPixel>(&closed, bs_closing,     CONNECTIVITY_18);
+        Erode <BinaryPixel>(&closed, bs_closing + 1, CONNECTIVITY_18);
+        for (int vox = 0; vox < nvox; ++vox) {
+          const auto &region = regions(vox);
+          if (region == BG) {
+            if (closed(vox) != 0) {
+              regions(vox) = BS;
+            }
+          } else if (region == CB) {
+            closed(vox) = 1, ++ncb;
+          } else if (region != BS) {
+            closed(vox) = 0;
           }
-        } else if (region == CB) {
-          closed(vox) = 1;
-          ++ncb;
-        } else if (region != BS) {
-          closed(vox) = 0;
+        }
+        if (debug) {
+          regions.Write("debug_regions+brainstem_closed.nii.gz");
+        }
+      } else if (cb_closing > 0) {
+        for (int vox = 0; vox < nvox; ++vox) {
+          if (regions(vox) == CB) {
+            closed(vox) = BinaryPixel(1), ++ncb;
+          } else {
+            closed(vox) = BinaryPixel(0);
+          }
         }
       }
-      if (debug) {
-        regions.Write("debug_regions+brainstem_closed.nii.gz");
-      }
-      if (ncb > 0) {
-        Dilate<BinaryPixel>(&closed, closing_iter,     CONNECTIVITY_18);
-        Erode <BinaryPixel>(&closed, closing_iter + 1, CONNECTIVITY_18);
-      }
-      for (int vox = 0; vox < nvox; ++vox) {
-        const auto &region = regions(vox);
-        if (region == BG && closed(vox) != 0) {
-          regions(vox) = CB;
+      if (ncb > 0 && cb_closing > 0) {
+        Dilate<BinaryPixel>(&closed, cb_closing,     CONNECTIVITY_18);
+        Erode <BinaryPixel>(&closed, cb_closing + 1, CONNECTIVITY_18);
+        for (int vox = 0; vox < nvox; ++vox) {
+          const auto &region = regions(vox);
+          if (region == BG && closed(vox) != 0) {
+            regions(vox) = CB;
+          }
         }
-      }
-      if (debug) {
-        regions.Write("debug_regions+cerebellum_closed.nii.gz");
+        if (debug) {
+          regions.Write("debug_regions+cerebellum_closed.nii.gz");
+        }
       }
     }
 
