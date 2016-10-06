@@ -219,11 +219,23 @@ protected:
     _Constant(.0), _FileName(fname), _Other(nullptr)
   {}
 
+  /// Constructor
+  ElementWiseBinaryOp(const char *fname, double value)
+  :
+    _Constant(value), _FileName(fname), _Other(nullptr)
+  {}
+
 #if MIRTK_Image_WITH_VTK
   /// Constructor
   ElementWiseBinaryOp(const char *fname, const char *aname, bool cell_data = false)
   :
     _Constant(.0), _FileName(fname), _ArrayName(aname ? aname : ""), _IsCellData(cell_data), _Other(nullptr)
+  {}
+
+  /// Constructor
+  ElementWiseBinaryOp(const char *fname, const char *aname, double value, bool cell_data = false)
+  :
+    _Constant(value), _FileName(fname), _ArrayName(aname ? aname : ""), _IsCellData(cell_data), _Other(nullptr)
   {}
 #endif
 
@@ -642,11 +654,14 @@ public:
   /// Constructor
   Mask(const char *fname) : ElementWiseBinaryOp(fname) {}
 
+  /// Constructor
+  Mask(const char *fname, double value) : ElementWiseBinaryOp(fname, value) {}
+
   /// Transform data value and/or mask data value by setting *mask = false
   virtual double Op(double value, double constant, bool &mask) const
   {
-    if (( _FileName.empty() && (fequal(value, constant) || (IsNaN(value) && IsNaN(constant)))) ||
-        (!_FileName.empty() && constant == .0)) {
+    const double v = (_FileName.empty() ? value : _Constant);
+    if (fequal(v, constant) || (IsNaN(v) && IsNaN(constant))) {
       mask = false;
     }
     return value;
