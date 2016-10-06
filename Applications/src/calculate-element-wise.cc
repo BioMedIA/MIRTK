@@ -88,11 +88,14 @@ void PrintHelp(const char *name)
   cout << "      For example, \"-label 1 3 5..6 10 20..50\". This option is a shorthand for\n";
   cout << "        :option:`-mask-all` :option:`-threshold-inside` <lower> <upper> :option:`-invert-mask`\n";
   cout << "      where one :option:`-threshold-inside` operation is performed for each argument.\n";
-  cout << "  -mask <value>... | <file> [<scalars>]\n";
-  cout << "      Exclude values equal a given threshold or with zero input mask value.\n";
-  cout << "      Note that this does not modify the data values, but only marks them to be\n";
-  cout << "      ignored from now on. Use :option:`-pad` following this operation to\n";
-  cout << "      replace these values by a background value.\n";
+  cout << "  -mask <value>... | <file> [<scalars>] [<value>]\n";
+  cout << "      Exclude values equal a given threshold or with specified input mask <value>.\n";
+  cout << "      The default mask value of values to be excluded is zero. When the input file\n";
+  cout << "      is a point set file (e.g., .vtk, .vtp), the optional <scalars> argument can be\n";
+  cout << "      used to specify the name of the point/cell data array to use as mask.\n";
+  cout << "      Note that this operation does not modify the data values, but only marks them\n";
+  cout << "      to be ignored from now on. Use :option:`-pad` following this operation to\n";
+  cout << "      replace these values by a constant background value.\n";
   cout << "  -mask-all\n";
   cout << "      Exclude all values.\n";
   cout << "  -reset-mask\n";
@@ -442,8 +445,15 @@ int main(int argc, char **argv)
           const char *fname = arg;
           const char *aname = nullptr;
           if (HAS_ARGUMENT) {
-            aname = ARGUMENT;
+            arg = ARGUMENT;
+            if (HAS_ARGUMENT) {
+              aname = arg;
+              PARSE_ARGUMENT(c);
+            } else if (!FromString(arg, c)) {
+              aname = arg, c = 0.;
+            }
           } else {
+            c = 0.;
             #if MIRTK_Image_WITH_VTK
               if (dataset && arrays->HasArray(fname)) {
                 aname = fname;
