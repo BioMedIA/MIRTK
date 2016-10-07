@@ -1,8 +1,8 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2013-2015 Imperial College London
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2013-2016 Imperial College London
+ * Copyright 2013-2016 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -351,8 +351,8 @@ void RegisteredPointSet
 ::Initialize(bool deep_copy_points)
 {
   // Clear previous tables
-  _EdgeTable.Clear();
-  _SurfaceEdgeTable.Clear();
+  _EdgeTable = nullptr;
+  _SurfaceEdgeTable = nullptr;
   _NodeNeighbors.Clear();
   _SurfaceNodeNeighbors.Clear();
 
@@ -467,11 +467,15 @@ void RegisteredPointSet::InputPointsChanged()
   }
 
   // Precompute average input point set edge length
-  _AverageInputEdgeLength = AverageEdgeLength(_InputPointSet);
+  {
+    SharedPtr<const EdgeTable> edgeTable = SharedEdgeTable();
+    _AverageInputEdgeLength = AverageEdgeLength(_InputPointSet->GetPoints(), *edgeTable);
+  }
   if (_InputSurface == _InputPointSet) {
     _AverageInputSurfaceEdgeLength = _AverageInputEdgeLength;
   } else {
-    _AverageInputSurfaceEdgeLength = AverageEdgeLength(_InputSurface);
+    SharedPtr<const EdgeTable> edgeTable = SharedSurfaceEdgeTable();
+    _AverageInputSurfaceEdgeLength = AverageEdgeLength(_InputSurface->GetPoints(), *edgeTable);
   }
 
   // Invalidate input surface area
@@ -488,13 +492,13 @@ void RegisteredPointSet::InputPointsChanged()
 // -----------------------------------------------------------------------------
 void RegisteredPointSet::BuildEdgeTables()
 {
-  if (_EdgeTable.Rows() == 0) {
-    _EdgeTable.Initialize(_InputPointSet);
+  if (!_EdgeTable) {
+    _EdgeTable = NewShared<EdgeTable>(_InputPointSet);
   }
-  if (_InputSurface != _InputPointSet) {
-    if (_SurfaceEdgeTable.Rows() == 0) {
-      _SurfaceEdgeTable.Initialize(_InputSurface);
-    }
+  if (_InputSurface == _InputPointSet) {
+    _SurfaceEdgeTable = _EdgeTable;
+  } else if (!_SurfaceEdgeTable) {
+    _SurfaceEdgeTable = NewShared<EdgeTable>(_InputSurface);
   }
 }
 
@@ -503,25 +507,25 @@ void RegisteredPointSet::BuildNeighborhoodTables(int n)
 {
   if (n < _NeighborhoodRadius) n = _NeighborhoodRadius;
   if (_NodeNeighbors.Rows() == 0 || n > _NodeNeighbors.Maximum()) {
-    BuildEdgeTables();
+    SharedPtr<const EdgeTable> edgeTable = SharedEdgeTable();
 //    if (n <= 0) {
 //      double r = _NeighborhoodRadius * _AverageInputEdgeLength;
-//      _NodeNeighbors.Initialize(_InputPointSet, r, &_EdgeTable);
+//      _NodeNeighbors.Initialize(_InputPointSet, r, edgeTable());
 //    } else {
-//      _NodeNeighbors.Initialize(_InputPointSet, n, &_EdgeTable);
+//      _NodeNeighbors.Initialize(_InputPointSet, n, edgeTable());
 //    }
-    _NodeNeighbors.Initialize(_InputPointSet, n, &_EdgeTable);
+    _NodeNeighbors.Initialize(_InputPointSet, n, edgeTable.get());
   }
   if (_InputSurface != _InputPointSet) {
     if (_SurfaceNodeNeighbors.Rows() == 0 || n > _SurfaceNodeNeighbors.Maximum()) {
-      BuildEdgeTables();
+      SharedPtr<const EdgeTable> edgeTable = SharedSurfaceEdgeTable();
 //      if (n <= 0) {
 //        double r = _NeighborhoodRadius * _AverageInputSurfaceEdgeLength;
-//        _SurfaceNodeNeighbors.Initialize(_InputSurface, r, &_SurfaceEdgeTable);
+//        _SurfaceNodeNeighbors.Initialize(_InputSurface, r, edgeTable.get());
 //      } else {
-//        _SurfaceNodeNeighbors.Initialize(_InputSurface, n, &_SurfaceEdgeTable);
+//        _SurfaceNodeNeighbors.Initialize(_InputSurface, n, edgeTable.get());
 //      }
-      _SurfaceNodeNeighbors.Initialize(_InputSurface, n, &_SurfaceEdgeTable);
+      _SurfaceNodeNeighbors.Initialize(_InputSurface, n, edgeTable.get());
     }
   }
 }
@@ -648,38 +652,51 @@ vtkDataArray *RegisteredPointSet::SurfaceFaceNormals() const
 }
 
 // -----------------------------------------------------------------------------
+SharedPtr<const RegisteredPointSet::EdgeTable> RegisteredPointSet::SharedEdgeTable() const
+{
+  if (!_EdgeTable) {
+    _EdgeTable = NewShared<EdgeTable>(_InputPointSet);
+  }
+  return _EdgeTable;
+}
+
+// -----------------------------------------------------------------------------
 const RegisteredPointSet::EdgeTable *RegisteredPointSet::Edges() const
 {
-  if (_EdgeTable.Rows() == 0) {
-    _EdgeTable.Initialize(_InputPointSet);
+  return SharedEdgeTable().get();
+}
+
+// -----------------------------------------------------------------------------
+SharedPtr<const RegisteredPointSet::EdgeTable> RegisteredPointSet::SharedSurfaceEdgeTable() const
+{
+  if (!_SurfaceEdgeTable) {
+    if (_InputSurface == _InputPointSet) {
+      _SurfaceEdgeTable = SharedEdgeTable();
+    } else {
+      _SurfaceEdgeTable = NewShared<EdgeTable>(_InputSurface);
+    }
   }
-  return &_EdgeTable;
+  return _SurfaceEdgeTable;
 }
 
 // -----------------------------------------------------------------------------
 const RegisteredPointSet::EdgeTable *RegisteredPointSet::SurfaceEdges() const
 {
-  if (_InputSurface == _InputPointSet) return Edges();
-  if (_SurfaceEdgeTable.Rows() == 0) {
-    _SurfaceEdgeTable.Initialize(_InputSurface);
-  }
-  return &_SurfaceEdgeTable;
+  return SharedSurfaceEdgeTable().get();
 }
 
 // -----------------------------------------------------------------------------
 const RegisteredPointSet::NodeNeighbors *RegisteredPointSet::Neighbors(int n) const
 {
   if (_NodeNeighbors.Rows() == 0 || n > _NodeNeighbors.Maximum()) {
-    if (_EdgeTable.Rows() == 0) {
-      _EdgeTable.Initialize(_InputPointSet);
-    }
+    SharedPtr<const EdgeTable> edgeTable = SharedEdgeTable();
 //    if (n <= 0) {
 //      double r = _NeighborhoodRadius * _AverageInputEdgeLength;
-//      _NodeNeighbors.Initialize(_InputPointSet, r, &_EdgeTable);
+//      _NodeNeighbors.Initialize(_InputPointSet, r, edgeTable.get());
 //    } else {
-//      _NodeNeighbors.Initialize(_InputPointSet, n, &_EdgeTable);
+//      _NodeNeighbors.Initialize(_InputPointSet, n, edgeTable.get());
 //    }
-    _NodeNeighbors.Initialize(_InputPointSet, max(n, _NeighborhoodRadius), &_EdgeTable);
+    _NodeNeighbors.Initialize(_InputPointSet, max(n, _NeighborhoodRadius), edgeTable.get());
   }
   return &_NodeNeighbors;
 }
@@ -689,16 +706,14 @@ const RegisteredPointSet::NodeNeighbors *RegisteredPointSet::SurfaceNeighbors(in
 {
   if (_InputSurface == _InputPointSet) return Neighbors(n);
   if (_SurfaceNodeNeighbors.Rows() == 0 || n > _SurfaceNodeNeighbors.Maximum()) {
-    if (_SurfaceEdgeTable.Rows() == 0) {
-      _SurfaceEdgeTable.Initialize(_InputSurface);
-    }
+    SharedPtr<const EdgeTable> edgeTable = SharedSurfaceEdgeTable();
 //    if (n <= 0) {
 //      double r = _NeighborhoodRadius * _AverageInputSurfaceEdgeLength;
-//      _SurfaceNodeNeighbors.Initialize(_InputSurface, r, &_SurfaceEdgeTable);
+//      _SurfaceNodeNeighbors.Initialize(_InputSurface, r, edgeTable.get());
 //    } else {
-//      _SurfaceNodeNeighbors.Initialize(_InputSurface, n, &_SurfaceEdgeTable);
+//      _SurfaceNodeNeighbors.Initialize(_InputSurface, n, edgeTable.get());
 //    }
-    _SurfaceNodeNeighbors.Initialize(_InputSurface, max(n, _NeighborhoodRadius), &_SurfaceEdgeTable);
+    _SurfaceNodeNeighbors.Initialize(_InputSurface, max(n, _NeighborhoodRadius), edgeTable.get());
   }
   return &_SurfaceNodeNeighbors;
 }

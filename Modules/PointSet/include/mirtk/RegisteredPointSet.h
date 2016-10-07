@@ -1,8 +1,8 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2013-2015 Imperial College London
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2013-2016 Imperial College London
+ * Copyright 2013-2016 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -159,10 +159,10 @@ protected:
   mirtkReadOnlyAttributeMacro(double, Diameter);
 
   /// Edge table of point set (computed on demand)
-  mutable EdgeTable _EdgeTable;
+  mutable SharedPtr<const EdgeTable> _EdgeTable;
 
   /// Edge table of point set surface (computed on demand)
-  mutable EdgeTable _SurfaceEdgeTable;
+  mutable SharedPtr<const EdgeTable> _SurfaceEdgeTable;
 
   /// Edge-connectivities / neighborhood of point set nodes (computed on demand)
   mutable NodeNeighbors _NodeNeighbors;
@@ -344,6 +344,11 @@ public:
   /// Not thread-safe unless \c _EdgeTable is already initialized (cf. BuildEdgeTables).
   const EdgeTable *Edges() const;
 
+  /// Get shared pointer to edge table
+  ///
+  /// Not thread-safe unless \c _EdgeTable is already initialized (cf. BuildEdgeTables).
+  SharedPtr<const EdgeTable> SharedEdgeTable() const;
+
   /// Get edge-connectivity table of point set node neighbors
   ///
   /// Not thread-safe unless \c _NodeNeighbors is already initialized with a
@@ -404,6 +409,12 @@ public:
   /// Not thread-safe unless \c _SurfaceEdgeTable (or \c _EdgeTable if input
   /// point set is a surface mesh) is already initialized (cf. BuildEdgeTables).
   const EdgeTable *SurfaceEdges() const;
+
+  /// Get shared pointer to surface edge table
+  ///
+  /// Not thread-safe unless \c _SurfaceEdgeTable (or \c _EdgeTable if input
+  /// point set is a surface mesh) is already initialized (cf. BuildEdgeTables).
+  SharedPtr<const EdgeTable> SharedSurfaceEdgeTable() const;
 
   /// Get edge-connectivity table of point set surface node neighbors
   ///
