@@ -168,7 +168,7 @@ int main(int argc, char **argv)
   // Initialize output image
   // Note: Always use floating point for intermediate interpolated image values!
   if (target) {
-    if (target->T() != source->T()) {
+    if (target->T() != source->T() || (target->GetDataType() != MIRTK_VOXEL_FLOAT && target->GetDataType() != MIRTK_VOXEL_DOUBLE)) {
       UniquePtr<BaseImage> tmp(new RealImage(target->Attributes(), source->T()));
       tmp->PutTSize(source->GetTSize());
       for (int l = 0; l < tmp->T(); ++l)
