@@ -171,7 +171,7 @@ MeshFilter::NewCellArray(const char *name, int c, int type) const
 // -----------------------------------------------------------------------------
 void MeshFilter::InitializeEdgeTable()
 {
-  if (_EdgeTable == nullptr || _EdgeTable->Mesh() != _Input) {
+  if (_EdgeTable == nullptr || static_cast<vtkIdType>(_EdgeTable->NumberOfPoints()) != _Input->GetNumberOfPoints()) {
     _EdgeTable = NewShared<class EdgeTable>(_Input);
   }
 }
