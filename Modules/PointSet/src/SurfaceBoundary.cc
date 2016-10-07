@@ -255,7 +255,6 @@ void SurfaceBoundary::DeselectPoint(int i)
 bool SurfaceBoundary::Write(const char *fname) const
 {
   const int npts = this->NumberOfPoints();
-  vtkIdType ptId;
   vtkSmartPointer<vtkPoints> points;
   points = vtkSmartPointer<vtkPoints>::New();
   points->Allocate(npts);
