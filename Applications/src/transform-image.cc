@@ -46,7 +46,8 @@ void PrintHelp(const char *name)
   cout << "  Applies a transformation to an input image. Each voxel center of" << endl;
   cout << "  the target image is mapped by the given transformation to the space of" << endl;
   cout << "  the source image. The output intensity for the target voxel is the" << endl;
-  cout << "  source image intensity interpolated at the mapped point." << endl;
+  cout << "  source image intensity interpolated at the mapped point and cast to" << endl;
+  cout << "  the output data type." << endl;
   cout << endl;
   cout << "Arguments:" << endl;
   cout << "  source   Source image." << endl;
@@ -58,6 +59,8 @@ void PrintHelp(const char *name)
   cout << "  -dofin <file>    Transformation or 'Id'/'Identity'. (default: Id)" << endl;
   cout << "  -interp <mode>   Interpolation mode, e.g., \"NN\". (default: Linear)" << endl;
   cout << "  -target <file>   Target image. (default: source)" << endl;
+  cout << "  -type, -dtype, -datatype <type>" << endl;
+  cout << "      Data type of output image. (default: data type of source)" << endl;
   cout << "  -Tp <value>      Target padding value. (default: none)" << endl;
   cout << "  -Sp <value>      Source padding value. (default: none)" << endl;
   cout << "  -Tt <value>      Time point of target image. (default: torigin)" << endl;
@@ -91,17 +94,18 @@ int main(int argc, char **argv)
   UniquePtr<BaseImage>   source(input_reader->Run());
 
   // Parse optional arguments
-  const char       *dof_name      = NULL;
+  const char       *dof_name      = nullptr;
   bool              dof_invert    = false;
-  const char       *dofin_name    = NULL;
-  const char       *target_name   = NULL;
+  const char       *dofin_name    = nullptr;
+  const char       *target_name   = nullptr;
   InterpolationMode interpolation = Interpolation_NN;
+  ImageDataType     dtype         = MIRTK_VOXEL_UNKNOWN;
 
   double target_t = numeric_limits<double>::quiet_NaN();
   double source_t = numeric_limits<double>::quiet_NaN();
 
   int  source_padding  = 0;
-  int  target_padding  = MIN_GREY;
+  int  target_padding  = NaN;
   bool invert          = false;
   bool twod            = false;
 
@@ -129,7 +133,13 @@ int main(int argc, char **argv)
     else if (OPTION("-cspline")) interpolation  = Interpolation_CSpline;
     else if (OPTION("-sinc")   ) interpolation  = Interpolation_Sinc;
     else if (OPTION("-sbased") ) interpolation  = Interpolation_SBased;
+    else if (OPTION("-type") || OPTION("-dtype") || OPTION("-datatype")) {
+      PARSE_ARGUMENT(dtype);
+    }
     else HANDLE_COMMON_OR_UNKNOWN_OPTION();
+  }
+  if (dtype == MIRTK_VOXEL_UNKNOWN) {
+    dtype = static_cast<ImageDataType>(source->GetDataType());
   }
 
   // Apply affine header transformation
@@ -156,11 +166,10 @@ int main(int argc, char **argv)
   UniquePtr<InterpolateImageFunction> interpolator(InterpolateImageFunction::New(interpolation));
 
   // Initialize output image
-  if (target.get()) {
-    // Ensure that output image has same number of channels/frames than input
-    if (target->T() != source->T()) {
-      UniquePtr<BaseImage> tmp(BaseImage::New(source->GetDataType()));
-      tmp->Initialize(target->Attributes(), source->T());
+  // Note: Always use floating point for intermediate interpolated image values!
+  if (target) {
+    if (target->T() != source->T() || (target->GetDataType() != MIRTK_VOXEL_FLOAT && target->GetDataType() != MIRTK_VOXEL_DOUBLE)) {
+      UniquePtr<BaseImage> tmp(new RealImage(target->Attributes(), source->T()));
       tmp->PutTSize(source->GetTSize());
       for (int l = 0; l < tmp->T(); ++l)
       for (int k = 0; k < tmp->Z(); ++k)
@@ -169,16 +178,17 @@ int main(int argc, char **argv)
         tmp->PutAsDouble(i, j, k, l, target->GetAsDouble(i, j, k, 0));
       }
       target.reset(tmp.release());
-    // Change type of target image to source image type
-    } else if (target->GetDataType() != source->GetDataType()) {
-      UniquePtr<BaseImage> tmp(BaseImage::New(source->GetDataType()));
-      *tmp = *target;
-      target.reset(tmp.release());
     }
-  // If there is no target image just copy the source image
   } else {
-    target.reset(BaseImage::New(source.get()));
+    target.reset(new RealImage(source->Attributes()));
+    if (!IsNaN(target_padding)) {
+      const int nvox = source->NumberOfVoxels();
+      for (int vox = 0; vox < nvox; ++vox) {
+        target->PutAsDouble(vox, source->GetAsDouble(vox));
+      }
+    }
   }
+  if (IsNaN(target_padding)) target_padding = -inf;
 
   // Set temporal offset
   if (!IsNaN(target_t)) target->PutTOrigin(target_t);
@@ -190,7 +200,7 @@ int main(int argc, char **argv)
                          || strcmp(dofin_name, "Identity") == 0
                          || strcmp(dofin_name, "Id")       == 0) {
     // Create identity transformation
-    transformation.reset(new RigidTransformation);
+    transformation.reset(new RigidTransformation());
   } else {
     // Read transformation
     transformation.reset(Transformation::New(dofin_name));
@@ -198,7 +208,6 @@ int main(int argc, char **argv)
 
   // Create image transformation filter
   ImageTransformation imagetransformation;
-
   imagetransformation.Input(source.get());
   imagetransformation.Transformation(transformation.get());
   imagetransformation.Output(target.get());
@@ -218,7 +227,14 @@ int main(int argc, char **argv)
     Warning(msg.str());
   }
 
-  // Write the final transformation estimate
+  // Convert to output data type
+  if (target->GetDataType() != dtype) {
+    UniquePtr<BaseImage> tmp(BaseImage::New(dtype));
+    *tmp = *target;
+    target.reset(tmp.release());
+  }
+
+  // Write the transformed image
   target->Write(output_name);
 
   return 0;
