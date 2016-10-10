@@ -247,23 +247,29 @@ void PrintHelp(const char *name)
   cout << "      in the delimited output row, separated by the specified delimiter. (default: none)\n";
   cout << "  -precision, -digits <int>\n";
   cout << "      Number of significant digits. (default: 5)\n";
+  cout << "  -median\n";
+  cout << "      Print median value, i.e., 50th percentile. (default: off)\n";
   cout << "  -mean, -avg, -average\n";
-  cout << "      Print mean intensity. (default: on)\n";
+  cout << "      Print mean value. (default: on)\n";
   cout << "  -variance, -var\n";
-  cout << "      Print variance of intensity values. (default: off)\n";
+  cout << "      Print variance of values. (default: off)\n";
   cout << "  -sigma, -std, -stddev, -stdev, -sd\n";
-  cout << "      Print standard deviation of intensity values. (default: on)\n";
+  cout << "      Print standard deviation of values. (default: on)\n";
   cout << "  -normal-distribution\n";
-  cout << "      Print mean intensity and standard deviation of intensity values.\n";
+  cout << "      Print mean and standard deviation of values.\n";
   cout << "      Other option names: -mean+sigma, -mean+sd, -avg+std,... (default: off)\n";
+  cout << "  -mad, -mean-absolute-difference, -mean-absolute-deviation\n";
+  cout << "      Print mean absolute difference/deviation around the mean. (default: off)\n";
+  cout << "  -mad-median, -median-absolute-difference, -median-absolute-deviation\n";
+  cout << "      Print mean absolute difference/deviation around the median. (default: off)\n";
   cout << "  -minimum, -min\n";
-  cout << "      Print minimum intensity value. (default: off)\n";
+  cout << "      Print minimum value. (default: off)\n";
   cout << "  -maximum, -max\n";
-  cout << "      Print maximum intensity value. (default: off)\n";
+  cout << "      Print maximum value. (default: off)\n";
   cout << "  -extrema, -minmax\n";
-  cout << "      Print minimum and maximum intensity value. (default: on)\n";
+  cout << "      Print minimum and maximum value. (default: on)\n";
   cout << "  -range\n";
-  cout << "      Print range of intensity values (i.e., max - min). (default: off)\n";
+  cout << "      Print range of values (i.e., max - min). (default: off)\n";
   cout << "  -percentile, -pct, -p <n>...\n";
   cout << "      Print n-th percentile. (default: none)\n";
   cout << "  -lower-percentile-mean, -lpctavg <n>\n";
@@ -881,6 +887,8 @@ int main(int argc, char **argv)
         ops.push_back(UniquePtr<Op>(new Write(fname, dtype, attr)));
       #endif
     // Data statistics
+    } else if (OPTION("-median")) {
+      ops.push_back(UniquePtr<Op>(new Median()));
     } else if (OPTION("-mean") || OPTION("-average") || OPTION("-avg")) {
       ops.push_back(UniquePtr<Op>(new Mean()));
     } else if (OPTION("-sigma") || OPTION("-stddev") || OPTION("-stdev") || OPTION("-std") || OPTION("-sd")) {
@@ -891,6 +899,10 @@ int main(int argc, char **argv)
       ops.push_back(UniquePtr<Op>(new NormalDistribution()));
     } else if (OPTION("-variance") || OPTION("-var")) {
       ops.push_back(UniquePtr<Op>(new Var()));
+    } else if (OPTION("-mean-absolute-difference") || OPTION("-mean-absolute-deviation") || OPTION("-mad") || OPTION("-mad-mean")) {
+      ops.push_back(UniquePtr<Op>(new MeanAbsoluteDifference()));
+    } else if (OPTION("-median-absolute-difference") || OPTION("-median-absolute-deviation") || OPTION("-mad-median")) {
+      ops.push_back(UniquePtr<Op>(new MedianAbsoluteDifference()));
     } else if (OPTION("-minimum")  || OPTION("-min")) {
       ops.push_back(UniquePtr<Op>(new Min()));
     } else if (OPTION("-maximum")  || OPTION("-max")) {
