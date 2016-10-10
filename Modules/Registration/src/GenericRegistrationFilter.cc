@@ -465,7 +465,9 @@ public:
     for (int l = re.begin(); l != re.end(); ++l) {
       if (_Mask[l] != _Domain) Delete(_Mask[l]);
       _Mask[l] = _Domain;
-      if (_Resolution[l]._x > .0 && _Resolution[l]._y > .0 && _Resolution[l]._z > .0) {
+      if ((_Domain->X() > 1 && _Resolution[l]._x > .0) ||
+          (_Domain->Y() > 1 && _Resolution[l]._y > .0) ||
+          (_Domain->Z() > 1 && _Resolution[l]._z > .0)) {
         if (!fequal(_Resolution[l]._x, _VoxelSize._x, TOL) ||
             !fequal(_Resolution[l]._y, _VoxelSize._y, TOL) ||
             !fequal(_Resolution[l]._z, _VoxelSize._z, TOL)) {
@@ -691,10 +693,13 @@ void GenericRegistrationFilter::Reset()
   _DisplacementField.clear();
   Delete(_Transformation);
   Delete(_Optimizer);
-  for (size_t l = 0; l < _Mask.size(); ++l) {
-    if (_Mask[l] != _Domain) Delete(_Mask[l]);
+  if (!_Mask.empty()) {
+    for (size_t l = 1; l < _Mask.size(); ++l) {
+      if (_Mask[l] != _Mask[0]) Delete(_Mask[l]);
+    }
+    if (_Mask[0] != _Domain) Delete(_Mask[0]);
+    _Mask.clear();
   }
-  _Mask.clear();
   // Invalidate all settings such that GuessParameter knows which have been
   // set by the user and which have not been properly initialized
   _TransformationModel.clear();
@@ -2533,11 +2538,11 @@ void GenericRegistrationFilter::InitializePyramid()
   // Resample domain mask
   _Mask.resize(_NumberOfLevels + 1, NULL);
   if (_Domain) {
-    BinaryImage *domain = _Domain;
+    _Mask[0] = _Domain;
     if (_CropPadImages) {
       Broadcast(LogEvent, "Cropping mask ...........");
       if (debug_time) Broadcast(LogEvent, "\n");
-      domain = CropMask(_Domain);
+      _Mask[0] = CropMask(_Domain);
       Broadcast(LogEvent, " done\n");
     }
     Broadcast(LogEvent, "Resample mask ...........");
@@ -2546,11 +2551,10 @@ void GenericRegistrationFilter::InitializePyramid()
     for (int l = 1; l <= _NumberOfLevels; ++l) {
       res[l] = this->AverageOutputResolution(l);
     }
-    ResampleMask resample(domain, _Mask, res);
+    ResampleMask resample(_Mask[0], _Mask, res);
     parallel_for(levels, resample);
     if (debug_time) Broadcast(LogEvent, "Resample mask ...........");
     Broadcast(LogEvent, " done\n");
-    if (domain != _Domain) delete domain;
   }
 
   MIRTK_DEBUG_TIMING(1, "downsampling of images");
