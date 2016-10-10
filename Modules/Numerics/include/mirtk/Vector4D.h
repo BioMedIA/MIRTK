@@ -35,17 +35,22 @@ namespace mirtk {
 template <typename T>
 struct Vector4D
 {
-  /** The x-component. */
-  T _x;
+  typedef T ComponentType;
 
-  /** The y-component. */
-  T _y;
+  // ---------------------------------------------------------------------------
+  // Attributes
 
-  /** The z-component. */
-  T _z;
+  T _x; ///< The x component
+  T _y; ///< The y component
+  T _z; ///< The z component
+  T _t; ///< The t component
 
-  /** The t-component. */
-  T _t;
+  T &x = _x; ///< More convenient/readable _x attribute accessor
+  T &y = _y; ///< More convenient/readable _y attribute accessor
+  T &z = _z; ///< More convenient/readable _z attribute accessor
+  T &t = _t; ///< More convenient/readable _t attribute accessor
+
+  // ---------------------------------------------------------------------------
 
   /** Constructor. */
   Vector4D();
