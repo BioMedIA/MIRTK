@@ -437,6 +437,48 @@ public:
 };
 
 // -----------------------------------------------------------------------------
+/// Median value (50th percentile)
+class Median : public Statistic
+{
+public:
+
+  Median(const char *desc = "Median", const Array<string> *names = nullptr)
+  :
+    Statistic(1, desc, names)
+  {
+    if (!names) _Names[0] = "Median";
+  }
+
+  template <class T>
+  static double Calculate(int n, const T *data, const bool *mask = nullptr)
+  {
+    Array<T> values;
+    if (mask) {
+      values.reserve(n);
+      for (int i = 0; i < n; ++i) {
+        if (mask[i]) values.push_back(data[i]);
+      }
+    } else {
+      values.resize(n);
+      for (int i = 0; i < n; ++i) {
+        values[i] = data[i];
+      }
+    }
+    if (values.size() <= 0) return NaN;
+    return NthElement(values, values.size()/2);
+  }
+
+  void Evaluate(Array<double> &values, int n, const double *data, const bool *mask = nullptr) const
+  {
+    values.resize(1);
+    values[0] = Calculate(n, data, mask);
+  }
+
+  // Add support for vtkDataArray argument
+  mirtkCalculateVtkDataArray1();
+};
+
+// -----------------------------------------------------------------------------
 /// Robust mean/average evaluation
 class Mean : public Statistic
 {
@@ -621,6 +663,182 @@ public:
 
   // Add support for vtkDataArray argument
   mirtkCalculateVtkDataArray2();
+};
+
+// -----------------------------------------------------------------------------
+/// Mean absolute difference/deviation around the specified value
+class AverageAbsoluteDifference : public Statistic
+{
+  /// Mean value
+  mirtkPublicAttributeMacro(double, Mean);
+
+  /// Address of mean value storage
+  ///
+  /// This pointer can be set to the memory location of a double value that
+  /// will be set by a preceeding data statistic operation such as
+  /// data::statistic::Mean and data::statistic::Median. The result of this
+  /// statistic calculation thus becomes the input parameter of this operation.
+  mirtkPublicAggregateMacro(const double, MeanPointer);
+
+public:
+
+  AverageAbsoluteDifference(double mean, const double *mean_ptr,
+                            const char *desc = "Average absolute difference",
+                            const Array<string> *names = nullptr)
+  :
+    Statistic(1, desc, names),
+    _Mean(mean),
+    _MeanPointer(mean_ptr)
+  {
+    if (!names) _Names[0] = "MAD";
+  }
+
+  AverageAbsoluteDifference(double mean)
+  :
+    AverageAbsoluteDifference(mean, nullptr)
+  {}
+
+  AverageAbsoluteDifference(const double *mean)
+  :
+    AverageAbsoluteDifference(0., mean)
+  {}
+
+  template <class T>
+  static double Calculate(double mean, int n, const T *data, const bool *mask = nullptr)
+  {
+    int    num = 0;
+    double mad = 0.;
+    if (mask) {
+      for (int i = 0; i < n; ++i) {
+        if (mask[i]) {
+          mad += abs(data[i] - mean);
+          num += 1;
+        }
+      }
+    } else {
+      for (int i = 0; i < n; ++i) {
+        mad += abs(data[i] - mean);
+      }
+      num = n;
+    }
+    return (num > 0 ? mad / num : 0.);
+  }
+
+  void Evaluate(Array<double> &values, int n, const double *data, const bool *mask = nullptr) const
+  {
+    values.resize(1);
+    values[0] = Calculate(_MeanPointer ? *_MeanPointer : _Mean, n, data, mask);
+  }
+};
+
+// -----------------------------------------------------------------------------
+/// Mean absolute difference/deviation around the mean
+class MeanAbsoluteDifference : public Statistic
+{
+public:
+
+  MeanAbsoluteDifference(const char *desc = "Mean absolute difference", const Array<string> *names = nullptr)
+  :
+    Statistic(1, desc, names)
+  {
+    if (!names) {
+      _Names[0] = "MAD mean";
+    }
+  }
+
+  template <class T>
+  static void Calculate(double &mean, double &mad, int n, const T *data, const bool *mask = nullptr)
+  {
+    int num = 0;
+    mean = Mean::Calculate(n, data, mask);
+    mad  = 0.;
+    if (mask) {
+      for (int i = 0; i < n; ++i) {
+        if (mask[i]) {
+          mad += abs(data[i] - mean);
+          num += 1;
+        }
+      }
+    } else {
+      for (int i = 0; i < n; ++i) {
+        mad += abs(data[i] - mean);
+      }
+      num = n;
+    }
+    if (num > 0) mad /= num;
+  }
+
+  template <class T>
+  static double Calculate(int n, const T *data, const bool *mask = nullptr)
+  {
+    double mean, mad;
+    Calculate(mean, mad, n, data, mask);
+    return mad;
+  }
+
+  void Evaluate(Array<double> &values, int n, const double *data, const bool *mask = nullptr) const
+  {
+    values.resize(1);
+    values[0] = Calculate(n, data, mask);
+  }
+
+  // Add support for vtkDataArray argument
+  mirtkCalculateVtkDataArray1();
+};
+
+// -----------------------------------------------------------------------------
+/// Mean absolute difference/deviation around the median
+class MedianAbsoluteDifference : public Statistic
+{
+public:
+
+  MedianAbsoluteDifference(const char *desc = "Median absolute difference", const Array<string> *names = nullptr)
+  :
+    Statistic(1, desc, names)
+  {
+    if (!names) {
+      _Names[0] = "MAD median";
+    }
+  }
+
+  template <class T>
+  static void Calculate(double &median, double &mad, int n, const T *data, const bool *mask = nullptr)
+  {
+    int num = 0;
+    median = Median::Calculate(n, data, mask);
+    mad    = 0.;
+    if (mask) {
+      for (int i = 0; i < n; ++i) {
+        if (mask[i]) {
+          mad += abs(data[i] - median);
+          num += 1;
+        }
+      }
+    } else {
+      for (int i = 0; i < n; ++i) {
+        mad += abs(data[i] - median);
+      }
+      num = n;
+    }
+    if (num > 0) mad /= num;
+  }
+
+  template <class T>
+  static double Calculate(int n, const T *data, const bool *mask = nullptr)
+  {
+    double median, mad;
+    Calculate(median, mad, n, data, mask);
+    return mad;
+  }
+
+  void Evaluate(Array<double> &values, int n, const double *data, const bool *mask = nullptr) const
+  {
+    values.resize(1);
+    values[0] = Calculate(n, data, mask);
+  }
+
+  // Add support for vtkDataArray argument
+  mirtkCalculateVtkDataArray1();
 };
 
 // -----------------------------------------------------------------------------
