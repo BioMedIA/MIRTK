@@ -908,6 +908,7 @@ MeshSmoothing::MeshSmoothing()
 // -----------------------------------------------------------------------------
 void MeshSmoothing::CopyAttributes(const MeshSmoothing &other)
 {
+  _Mask                  = other._Mask;
   _NumberOfIterations    = other._NumberOfIterations;
   _Lambda                = other._Lambda;
   _Mu                    = other._Mu;
