@@ -59,6 +59,10 @@ struct Vector3D
   T _y; ///< The y component
   T _z; ///< The z component
 
+  T &x = _x;
+  T &y = _y;
+  T &z = _z;
+
   // ---------------------------------------------------------------------------
   // Construction/Destruction
 
@@ -100,6 +104,12 @@ struct Vector3D
 
   /// Get vector component at index 0: _x, 1: _y, or 2: _z
   T operator ()(int) const;
+
+  /// Cast to C array pointer
+  operator T *();
+
+  /// Cast to C array pointer
+  operator const T *() const;
 
   // ---------------------------------------------------------------------------
   // Vector/integral-valued scalar operators
@@ -401,6 +411,20 @@ template <typename T>
 inline T Vector3D<T>::operator ()(int i) const
 {
   return const_cast<Vector3D<T> *>(this)->operator()(i);
+}
+
+// -----------------------------------------------------------------------------
+template <typename T>
+inline Vector3D<T>::operator T *()
+{
+  return &_x;
+}
+
+// -----------------------------------------------------------------------------
+template <typename T>
+inline Vector3D<T>::operator const T *() const
+{
+  return &_x;
 }
 
 // =============================================================================
