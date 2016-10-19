@@ -103,6 +103,12 @@ int main(int argc, char *argv[])
     cout.flush();
   }
 
+  Array<vtkIdType> sizes(nregions, 0);
+  for (int i = 0; i < nregions; ++i) {
+    sizes[i] = lcc->GetRegionSizes()->GetValue(i);
+  }
+  Array<int> order = DecreasingOrder(sizes);
+
   if (m >= nregions) {
     FatalError("Start index -m is greater or equal than the total no. of components!");
   }
@@ -110,10 +116,10 @@ int main(int argc, char *argv[])
 
   if (verbose) cout << "Extracting " << n << " components starting with component " << m+1 << "...", cout.flush();
   for (int i = 0; i < nregions; ++i) {
-    lcc->DeleteSpecifiedRegion(i);
+    lcc->DeleteSpecifiedRegion(order[i]);
   }
   for (int i = m; i < m + n; ++i) {
-    lcc->AddSpecifiedRegion(i);
+    lcc->AddSpecifiedRegion(order[i]);
   }
   lcc->Update();
   if (verbose) cout << " done" << endl;
