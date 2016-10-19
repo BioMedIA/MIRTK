@@ -1,7 +1,7 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2008-2015 Imperial College London
+ * Copyright 2008-2016 Imperial College London
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,12 +22,12 @@
 #include "mirtk/MultiLevelTransformation.h"
 #include "mirtk/Matrix.h"
 
-#include "boost/math/tools/config.hpp"
-#include "boost/math/tools/tuple.hpp"
 #include "boost/numeric/ublas/lu.hpp"
 #include "boost/numeric/ublas/matrix.hpp"
 #include "boost/numeric/ublas/vector.hpp"
 
+#include <cstdint>
+#include <tuple>
 #include <algorithm>
 
 
@@ -69,7 +69,7 @@ bool invert_matrix(const boost::numeric::ublas::matrix<T> & operand,
 template<class F>
 bool multivariate_newton_raphson_iterate(F f,
   typename F::vector_type & x, int digits,
-  boost::uintmax_t max_iter=100)
+  uintmax_t max_iter=100)
 {
   typedef typename F::vector_type vector_type;
   typedef typename F::matrix_type matrix_type;
@@ -80,11 +80,11 @@ bool multivariate_newton_raphson_iterate(F f,
   size_type n = x.size();
   vector_type d_x(n), e_x(n), f0(n);
   matrix_type f1(n, n), f1_inv(n, n);
-  boost::uintmax_t iter=1;
+  uintmax_t iter=1;
 
   do
   {
-    boost::math::tie(f0, f1) = f(x);
+    std::tie(f0, f1) = f(x);
     if(!detail::invert_matrix<value_type>(f1, f1_inv))
       return false;
     d_x = boost::numeric::ublas::prod(f1_inv, f0);
@@ -113,7 +113,7 @@ struct GlobalInverseTransformFunctor
 {
   typedef boost::numeric::ublas::vector<double> vector_type;
   typedef boost::numeric::ublas::matrix<double> matrix_type;
-  typedef boost::math::tuple<vector_type, matrix_type> return_type;
+  typedef std::tuple<vector_type, matrix_type>  return_type;
 
   GlobalInverseTransformFunctor(const Transformation * transformation,
     double x, double y, double z, double t, double t0)
@@ -140,7 +140,7 @@ struct GlobalInverseTransformFunctor
       f1(irow, icol) = J(irow, icol);
     }
 
-    return boost::math::make_tuple(f0, f1);
+    return std::make_tuple(f0, f1);
   }
 
   const Transformation * transformation_;
@@ -174,7 +174,7 @@ struct LocalInverseTransformFunctor
 {
   typedef boost::numeric::ublas::vector<double> vector_type;
   typedef boost::numeric::ublas::matrix<double> matrix_type;
-  typedef boost::math::tuple<vector_type, matrix_type> return_type;
+  typedef std::tuple<vector_type, matrix_type>  return_type;
 
   LocalInverseTransformFunctor(const Transformation * transformation,
     double x, double y, double z, double t, double t0)
@@ -201,7 +201,7 @@ struct LocalInverseTransformFunctor
       f1(irow, icol) = J(irow, icol);
     }
 
-    return boost::math::make_tuple(f0, f1);
+    return std::make_tuple(f0, f1);
   }
 
   const Transformation * transformation_;
@@ -235,7 +235,7 @@ struct InverseTransformFunctor
 {
   typedef boost::numeric::ublas::vector<double> vector_type;
   typedef boost::numeric::ublas::matrix<double> matrix_type;
-  typedef boost::math::tuple<vector_type, matrix_type> return_type;
+  typedef std::tuple<vector_type, matrix_type>  return_type;
 
   InverseTransformFunctor(const Transformation * transformation,
     double x, double y, double z, double t, double t0)
@@ -262,7 +262,7 @@ struct InverseTransformFunctor
       f1(irow, icol) = J(irow, icol);
     }
 
-    return boost::math::make_tuple(f0, f1);
+    return std::make_tuple(f0, f1);
   }
 
   const Transformation * transformation_;
@@ -296,7 +296,7 @@ struct InverseMultiLevelTransformFunctor
 {
   typedef boost::numeric::ublas::vector<double> vector_type;
   typedef boost::numeric::ublas::matrix<double> matrix_type;
-  typedef boost::math::tuple<vector_type, matrix_type> return_type;
+  typedef std::tuple<vector_type, matrix_type>  return_type;
 
   InverseMultiLevelTransformFunctor(const MultiLevelTransformation * transformation,
     double x, double y, double z, int m, int n, double t, double t0)
@@ -323,7 +323,7 @@ struct InverseMultiLevelTransformFunctor
       f1(irow, icol) = J(irow, icol);
     }
 
-    return boost::math::make_tuple(f0, f1);
+    return std::make_tuple(f0, f1);
   }
 
   const MultiLevelTransformation * transformation_;
