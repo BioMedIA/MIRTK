@@ -1,8 +1,8 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2013-2015 Imperial College London
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2013-2016 Imperial College London
+ * Copyright 2013-2016 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -169,7 +169,7 @@ FreeFormTransformation *CastToDisplacements(FreeFormTransformation *ffd)
 // -----------------------------------------------------------------------------
 int main(int argc, char **argv)
 {
-  REQUIRES_POSARGS(2);
+  EXPECTS_POSARGS(2);
 
   // Parse command-line options
   ParameterList params;
@@ -181,9 +181,9 @@ int main(int argc, char **argv)
     if      (OPTION("-disp"))    v2d     = true;
     else if (OPTION("-cast"))    convert = false;
     else if (OPTION("-convert")) convert = true;
-    else if (OPTION("-scale"))   scale   = atof(ARGUMENT);
-    else if (STANDARD_OPTION)    HANDLE_STANDARD_OPTION();
-    else if (IS_OPTION)          Insert(params, ToParameterName(OPTNAME), ARGUMENT);
+    else if (OPTION("-scale"))   PARSE_ARGUMENT(scale);
+    else if (STANDARD_OPTION)    PARSE_STANDARD_OPTION();
+    else if (IS_OPTION) Insert(params, ToParameterName(OPTNAME), ARGUMENT);
     else {
       cerr << "Invalid argument: " << argv[ARGIDX] << endl;
       exit(1);
