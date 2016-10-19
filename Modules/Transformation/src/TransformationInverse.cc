@@ -22,8 +22,7 @@
 #include "mirtk/MultiLevelTransformation.h"
 #include "mirtk/Matrix.h"
 
-#include "boost/cstdint.hpp"
-#include "boost/config/no_tr1/cmath.hpp"
+#include "boost/math/tools/config.hpp"
 #include "boost/math/tools/tuple.hpp"
 #include "boost/numeric/ublas/lu.hpp"
 #include "boost/numeric/ublas/matrix.hpp"
