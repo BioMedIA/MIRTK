@@ -1,7 +1,8 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2008-2015 Imperial College London
+ * Copyright 2016 Imperial College London
+ * Copyright 2016 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,8 +17,8 @@
  * limitations under the License.
  */
 
-#ifndef MIRTK_Erosion_H
-#define MIRTK_Erosion_H
+#ifndef MIRTK_Closing_H
+#define MIRTK_Closing_H
 
 #include "mirtk/ImageToImage.h"
 
@@ -29,33 +30,33 @@ namespace mirtk {
 
 
 /**
- * morphological erosion of images.
+ * morphological closing of images.
  */
 template <class TVoxel>
-class Erosion : public ImageToImage<TVoxel>
+class Closing : public ImageToImage<TVoxel>
 {
-  mirtkImageFilterMacro(Erosion, TVoxel);
+  mirtkInPlaceImageFilterMacro(Closing, TVoxel);
 
   /// What connectivity to assume when running the filter.
   mirtkPublicAttributeMacro(ConnectivityType, Connectivity);
 
-  /// List of voxel offsets of the neighborhood
-  mirtkAttributeMacro(NeighborhoodOffsets, Offsets);
+  /// Number of dilation/erosion iterations
+  mirtkPublicAttributeMacro(int, NumberOfIterations);
 
 public:
 
   /// Constructor
-  Erosion();
+  Closing();
 
   /// Destructor
-  virtual ~Erosion();
+  virtual ~Closing();
 
   /// Run erosion
   virtual void Run();
 
 protected:
 
-  /// Initialize the filter
+  /// Initialize filter
   virtual void Initialize();
 
 };
@@ -63,18 +64,19 @@ protected:
 
 // -----------------------------------------------------------------------------
 template <class TVoxel>
-void Erode(BaseImage *image, int iterations, ConnectivityType connectivity)
+void Close(BaseImage *image, int iterations, ConnectivityType connectivity)
 {
   GenericImage<TVoxel> * const im = dynamic_cast<GenericImage<TVoxel> *>(image);
   mirtkAssert(im != nullptr, "template function called with correct type");
-  Erosion<TVoxel> erosion;
-  erosion.Connectivity(connectivity);
-  erosion.Input (im);
-  erosion.Output(im);
-  for (int i = 0; i < iterations; ++i) erosion.Run();
+  Closing<TVoxel> closing;
+  closing.Connectivity(connectivity);
+  closing.NumberOfIterations(iterations);
+  closing.Input (im);
+  closing.Output(im);
+  closing.Run();
 }
 
 
 } // namespace mirtk
 
-#endif // MIRTK_Erosion_H
+#endif // MIRTK_Closing_H

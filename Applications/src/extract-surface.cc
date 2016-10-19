@@ -111,8 +111,8 @@ int main(int argc, char **argv)
   if (normals) {
     vtkNew<vtkPolyDataNormals> filter;
     filter->SplittingOff();
-    filter->ConsistencyOff();
-    filter->AutoOrientNormalsOff();
+    filter->ConsistencyOn();
+    filter->AutoOrientNormalsOn();
     filter->ComputePointNormalsOn();
     filter->ComputeCellNormalsOff();
     filter->SetInputData(isosurface);

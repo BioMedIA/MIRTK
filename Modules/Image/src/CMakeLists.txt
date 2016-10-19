@@ -38,6 +38,7 @@ set(HEADERS
   BSplineInterpolateImageFunction4D.h
   BSplineInterpolateImageFunction4D.hxx
   CityBlockDistanceTransform.h
+  Closing.h
   ConnectedComponents.h
   ConstExtrapolateImageFunction.h
   ConstExtrapolateImageFunctionWithPeriodicTime.h
@@ -183,6 +184,7 @@ set(SOURCES
   DifferenceOfCompositionLieBracketImageFilter3D.cc
   Dilation.cc
   DisplacementToVelocityFieldBCH.cc
+  Closing.cc
   ConnectedComponents.cc
   Downsampling.cc
   Erosion.cc

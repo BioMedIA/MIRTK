@@ -27,12 +27,12 @@
 #include "vtkDataSet.h"
 #include "vtkPointSet.h"
 #include "vtkPolyData.h"
+#include "vtkPointData.h"
+#include "vtkCellArray.h"
 
 #if MIRTK_IO_WITH_GIFTI
   #include "vtkPoints.h"
-  #include "vtkCellArray.h"
   #include "vtkDataArray.h"
-  #include "vtkPointData.h"
   #include "vtkInformationStringKey.h"
   #include "vtkInformationIntegerKey.h"
   #include "vtkInformationDoubleKey.h"

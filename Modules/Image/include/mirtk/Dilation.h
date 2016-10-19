@@ -21,6 +21,7 @@
 
 #include "mirtk/ImageToImage.h"
 
+#include "mirtk/Assert.h"
 #include "mirtk/NeighborhoodOffsets.h"
 
 
