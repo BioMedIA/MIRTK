@@ -29,8 +29,10 @@
 #include "mirtk/ConnectedComponents.h"
 #include "mirtk/Dilation.h"
 #include "mirtk/Erosion.h"
+#include "mirtk/Closing.h"
 #include "mirtk/NearestNeighborInterpolateImageFunction.h"
 #include "mirtk/LinearInterpolateImageFunction.h"
+#include "mirtk/EuclideanDistanceTransform.h"
 
 using namespace mirtk;
 
@@ -836,6 +838,7 @@ int main(int argc, char *argv[])
   const char *sbmask_name = nullptr; // Subcortical structures mask
   const char *bsmask_name = nullptr; // Brainstem mask
   const char *cbmask_name = nullptr; // Cerebellum mask
+  const char *depth_name  = nullptr; // Output cortical depth map
 
   UnorderedSet<int> rhmask_labels;
   UnorderedSet<int> lhmask_labels;
@@ -871,6 +874,9 @@ int main(int argc, char *argv[])
         FatalError("Use either <output> argument or -output-labels option, not both!");
       }
       output_name = ARGUMENT;
+    }
+    else if (OPTION("-output-inner-cortical-distance")) {
+      depth_name = ARGUMENT;
     }
     else if (OPTION("-hemispheres")) {
       hemis_name = ARGUMENT;
@@ -1586,5 +1592,63 @@ int main(int argc, char *argv[])
   // ---------------------------------------------------------------------------
   // Write output labels
   regions.Write(output_name);
+
+  // ---------------------------------------------------------------------------
+  // Create distance map for interior of cortical surface
+  if (depth_name) {
+
+    // Determine yz plane next to mid-plane cut
+    int bi;
+    for (bi = 0; bi < attr._x; ++bi) {
+      p = Point(bi, 0, 0);
+      regions.ImageToWorld(p);
+      if (rl_plane.SignedDistance(p) > 0.) break;
+    }
+    if (bi > 0) --bi;
+
+    // Initialize mask of cortical surface interior
+    BinaryImage mask(attr, 1);
+    for (int k = 0; k < attr._z; ++k)
+    for (int j = 0; j < attr._y; ++j)
+    for (int i = 0; i < attr._x; ++i) {
+      if (regions(i, j, k) == RH || regions(i, j, k) == LH || regions(i, j, k) == GM) {
+        mask(i, j, k) = 1;
+      } else {
+        mask(i, j, k) = 0;
+      }
+    }
+
+    // Close small holes of BG labeled voxels
+    Close<BinaryPixel>(&mask, 5, CONNECTIVITY_18);
+
+    // Ensure a clear separation of the two hemispheres outside the subcortical
+    // structures such as Corpus Callosum even if it cuts through cortex
+    for (int k =  0; k <  attr._z; ++k)
+    for (int j =  0; j <  attr._y; ++j)
+    for (int i = bi; i <= bi + 1;  ++i) {
+      if (regions(i, j, k) != RH && regions(i, j, k) != LH) {
+        mask(i, j, k) = 0;
+      }
+    }
+    if (debug) {
+      mask.Write("debug_interior_mask.nii.gz");
+    }
+
+    // Compute distance transform
+    RealImage input(attr, 1), output(attr, 1);
+    for (int vox = 0; vox < nvox; ++vox) {
+      input(vox) = (mask(vox) != 0 ? 0. : 1.);
+    }
+    EuclideanDistanceTransform<RealPixel> filter;
+    filter.Input (&input);
+    filter.Output(&output);
+    filter.Run();
+    for (int vox = 0; vox < nvox; ++vox) {
+      output(vox) = sqrt(output(vox));
+    }
+
+    output.Write(depth_name);
+  }
+
   return 0;
 }
