@@ -1497,10 +1497,25 @@ bool WriteMIRTK(const char *fname, Transformation *dof,
 /// @return FSL FLIRT transformation matrix.
 ///
 /// @see fsl/src/newimage/newimagefns.cc : raw_affine_transform
-Matrix ToFLIRTMatrix(const ImageAttributes &target,
-                     const ImageAttributes &source,
+Matrix ToFLIRTMatrix(ImageAttributes target,
+                     ImageAttributes source,
                      const HomogeneousTransformation *dof)
 {
+  // x image axis must be mirrored if determinant of world to image orientation
+  // matrix is positive, i.e., when the image is stored in neurological order
+  if (target.GetWorldToLatticeOrientation().Det() > 0.) {
+    if (verbose) cout << "qform determinant of target image is positive, reflecting x axis" << endl;
+    target._xaxis[0] = -target._xaxis[0];
+    target._xaxis[1] = -target._xaxis[1];
+    target._xaxis[2] = -target._xaxis[2];
+  }
+  if (source.GetWorldToLatticeOrientation().Det() > 0.) {
+    if (verbose) cout << "qform determinant of source image is positive, reflecting x axis" << endl;
+    source._xaxis[0] = -source._xaxis[0];
+    source._xaxis[1] = -source._xaxis[1];
+    source._xaxis[2] = -source._xaxis[2];
+  }
+
   Matrix t2w = target.GetImageToWorldMatrix();
   Matrix w2s = source.GetWorldToImageMatrix();
 
