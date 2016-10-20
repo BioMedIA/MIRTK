@@ -129,10 +129,12 @@ def check_output(argv, verbose=0):
     return _call(argv, verbose=verbose, execfunc=subprocess.check_output)
 
 # ----------------------------------------------------------------------------
-def run(cmd, args=[], opts={}, verbose=0):
+def run(cmd, args=[], opts={}, verbose=0, threads=0):
     """Execute MIRTK command and throw exception on error."""
     argv = [cmd]
     argv.extend(args)
+    if threads > 0:
+        argv.extend(['-threads', str(threads)])
     # ordered list of options
     if isinstance(opts, list):
         for item in opts:
