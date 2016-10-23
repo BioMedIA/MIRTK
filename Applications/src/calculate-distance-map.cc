@@ -66,7 +66,7 @@ void PrintHelp(const char *name)
   cout << "                     the region for which distance values are to be computed.\n";
   cout << "                     Required by ``laplacian`` :option:`-distance`, where it defines\n";
   cout << "                     the boundary voxels with a maximum distance value of 1.\n";
-  PrintStandardOptions(cout);
+  PrintCommonOptions(cout);
   cout << "\n";
 }
 
@@ -301,7 +301,7 @@ int main(int argc, char *argv[])
              OPTION("-max-iter")       || OPTION("-iter")) {
       PARSE_ARGUMENT(maxiter);
     }
-    else HANDLE_STANDARD_OR_UNKNOWN_OPTION();
+    else HANDLE_COMMON_OR_UNKNOWN_OPTION();
   }
 
   // No linear isotropic resampling for city block distance
