@@ -76,7 +76,7 @@ int main(int argc, char **argv)
     else if (OPTION("-yz") || OPTION("-zy")) image->FlipYZ(true);
     else if (OPTION("-yt") || OPTION("-ty")) image->FlipYT(true);
     else if (OPTION("-zt") || OPTION("-tz")) image->FlipZT(true);
-    else HANDLE_STANDARD_OR_UNKNOWN_OPTION();
+    else HANDLE_COMMON_OR_UNKNOWN_OPTION();
   }
 
   image->Write(output_name);

@@ -84,7 +84,7 @@ int main(int argc, char **argv)
   // Parse optional arguments
   for (ALL_OPTIONS) {
     if (OPTION("-iterations") || OPTION("-iter")) iter = atoi(ARGUMENT);
-    else HANDLE_STANDARD_OR_UNKNOWN_OPTION();
+    else HANDLE_COMMON_OR_UNKNOWN_OPTION();
   }
 
   // Read input image

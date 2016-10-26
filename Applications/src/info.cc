@@ -442,7 +442,7 @@ int main(int argc, char *argv[])
 
     for (ALL_OPTIONS) {
       if (OPTION("-a") || OPTION("-attributes") || OPTION("-attr")) attributes = true;
-      else HANDLE_STANDARD_OR_UNKNOWN_OPTION();
+      else HANDLE_COMMON_OR_UNKNOWN_OPTION();
     }
 
     UniquePtr<BaseImage> image(image_reader->Run());
@@ -488,7 +488,7 @@ int main(int argc, char *argv[])
       if      (OPTION("-attributes") || OPTION("-attr") || OPTION("-a")) attributes = true;
       else if (OPTION("-type-name")  || OPTION("-type")) type_name  = true;
       else if (OPTION("-type-id")    || OPTION("-id"))   type_id    = true;
-      else HANDLE_STANDARD_OR_UNKNOWN_OPTION();
+      else HANDLE_COMMON_OR_UNKNOWN_OPTION();
     }
     if (!type_name && !type_id && !attributes) {
       attributes = true;

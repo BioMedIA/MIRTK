@@ -171,7 +171,7 @@ int main(int argc, char **argv)
     else if (OPTION("-cice")) { metric = InverseConsistency; cumulative = true;  }
     else if (OPTION("-mte"))  { metric = Transitivity;       cumulative = false; }
     else if (OPTION("-cte"))  { metric = Transitivity;       cumulative = true;  }
-    else HANDLE_STANDARD_OR_UNKNOWN_OPTION();
+    else HANDLE_COMMON_OR_UNKNOWN_OPTION();
   }
 
   if (list_name) read_list_file(list_name, dofin_name);

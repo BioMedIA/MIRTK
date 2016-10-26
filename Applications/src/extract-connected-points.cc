@@ -83,7 +83,7 @@ int main(int argc, char *argv[])
     if      (OPTION("-m")) PARSE_ARGUMENT(m);
     else if (OPTION("-n")) PARSE_ARGUMENT(n);
     else HANDLE_POINTSETIO_OPTION(fopt);
-    else HANDLE_STANDARD_OR_UNKNOWN_OPTION();
+    else HANDLE_COMMON_OR_UNKNOWN_OPTION();
   }
 
   vtkSmartPointer<vtkPolyData> input = ReadPolyData(input_name, fopt);
