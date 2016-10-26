@@ -201,7 +201,7 @@ int main(int argc, char *argv[])
       image->GetOrientation(xaxis, yaxis, zaxis);
       image->PutOrientation(xaxis, zaxis, yaxis);
     }
-    else HANDLE_STANDARD_OR_UNKNOWN_OPTION();
+    else HANDLE_COMMON_OR_UNKNOWN_OPTION();
   }
 
   if (verbose) image->Print();

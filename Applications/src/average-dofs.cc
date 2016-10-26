@@ -266,7 +266,7 @@ int main(int argc, char **argv)
     else if (OPTION("-add-identity-with-weight")) { PARSE_ARGUMENT(identity_value); }
     else if (OPTION("-add-identity-for-dofname")) { identity_name  = ARGUMENT; }
     else if (OPTION("-max-frechet-iterations")) PARSE_ARGUMENT(frechet_iter);
-    else HANDLE_STANDARD_OR_UNKNOWN_OPTION();
+    else HANDLE_COMMON_OR_UNKNOWN_OPTION();
   }
 
   if (sigma < .0) {

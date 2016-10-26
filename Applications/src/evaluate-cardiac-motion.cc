@@ -350,7 +350,7 @@ int main(int argc, char **argv)
     else if (OPTION("-strain")) compute_strain = true;
     else if (OPTION("-save-local-coord")) save_local_coord = true;
     else HANDLE_POINTSETIO_OPTION(output_mesh_fopt);
-    else HANDLE_STANDARD_OR_UNKNOWN_OPTION();
+    else HANDLE_COMMON_OR_UNKNOWN_OPTION();
   }
 
   if (image_name == nullptr) {

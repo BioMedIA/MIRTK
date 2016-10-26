@@ -2098,7 +2098,7 @@ int main(int argc, char *argv[])
         ARGUMENT; // unused, but needs to be parsed
       #endif // MIRTK_IO_WITH_NIfTI
     }
-    else HANDLE_STANDARD_OR_UNKNOWN_OPTION();
+    else HANDLE_COMMON_OR_UNKNOWN_OPTION();
   }
 
   if (precision < 0) precision = 5;

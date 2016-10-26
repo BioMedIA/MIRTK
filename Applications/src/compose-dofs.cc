@@ -196,7 +196,7 @@ int main(int argc, char **argv)
     else if (OPTION("-approximate")) {
       approximate = true;
     }
-    else HANDLE_STANDARD_OR_UNKNOWN_OPTION();
+    else HANDLE_COMMON_OR_UNKNOWN_OPTION();
   }
 
   HomogeneousTransformation                  *aff;

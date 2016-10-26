@@ -262,7 +262,7 @@ int main(int argc, char *argv[])
     if      (OPTION("-angular"))   measures.push_back(Distortion_Angular);
     else if (OPTION("-areal"))     measures.push_back(Distortion_Areal);
     else if (OPTION("-abs-areal")) measures.push_back(Distortion_ArealAbs);
-    else HANDLE_STANDARD_OR_UNKNOWN_OPTION();
+    else HANDLE_COMMON_OR_UNKNOWN_OPTION();
   }
 
   if (measures.empty()) {
