@@ -79,7 +79,7 @@ int main(int argc, char *argv[])
       PARSE_ARGUMENT(min_value);
       PARSE_ARGUMENT(max_value);
     }
-    else HANDLE_STANDARD_OR_UNKNOWN_OPTION();
+    else HANDLE_COMMON_OR_UNKNOWN_OPTION();
   }
 
   // Read image

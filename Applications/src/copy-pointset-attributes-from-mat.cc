@@ -212,7 +212,7 @@ int main(int argc, char *argv[])
     else if (OPTION("-float"))  out_type = OutputFloat;
     else if (OPTION("-double")) out_type = OutputDouble;
     else HANDLE_POINTSETIO_OPTION(fopt);
-    else HANDLE_STANDARD_OR_UNKNOWN_OPTION();
+    else HANDLE_COMMON_OR_UNKNOWN_OPTION();
   }
 
   // Initialize MCR

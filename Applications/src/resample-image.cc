@@ -200,7 +200,7 @@ int main(int argc, char *argv[])
     else if (OPTION("-extrap")) {
       PARSE_ARGUMENT(extrapolation_mode);
     }
-    else HANDLE_STANDARD_OR_UNKNOWN_OPTION();
+    else HANDLE_COMMON_OR_UNKNOWN_OPTION();
   }
  
   if (!IsNaN(padding_value) && interpolation_mode != Interpolation_Linear) {

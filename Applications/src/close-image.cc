@@ -74,7 +74,7 @@ int main(int argc, char *argv[])
     else if (OPTION("-connectivity") || OPTION("-neighbors") || OPTION("-number-of-neighbors")) {
       PARSE_ARGUMENT(connectivity);
     }
-    else HANDLE_STANDARD_OR_UNKNOWN_OPTION();
+    else HANDLE_COMMON_OR_UNKNOWN_OPTION();
   }
 
   InitializeIOLibrary();

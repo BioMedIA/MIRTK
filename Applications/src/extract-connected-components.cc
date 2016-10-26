@@ -118,7 +118,7 @@ int main(int argc, char *argv[])
     else if (OPTION("-ordering"))     PARSE_ARGUMENT(ordering);
     else if (OPTION("-output-component-labels")) output_type = ComponentLabels;
     else if (OPTION("-output-component-mask"))   output_type = ComponentMask;
-    else HANDLE_STANDARD_OR_UNKNOWN_OPTION();
+    else HANDLE_COMMON_OR_UNKNOWN_OPTION();
   }
 
   InitializeIOLibrary();

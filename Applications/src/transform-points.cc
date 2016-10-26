@@ -157,7 +157,7 @@ int main(int argc, char **argv)
     else if (OPTION("-point-normals")) compute_point_normals = true;
     else if (OPTION("-cell-normals")) compute_cell_normals = true;
     else HANDLE_POINTSETIO_OPTION(fopt);
-    else HANDLE_STANDARD_OR_UNKNOWN_OPTION();
+    else HANDLE_COMMON_OR_UNKNOWN_OPTION();
   }
   dofin_invert.resize(dofin_name.size(), false);
 

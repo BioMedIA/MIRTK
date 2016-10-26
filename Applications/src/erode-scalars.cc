@@ -202,7 +202,7 @@ int main(int argc, char *argv[])
       PARSE_ARGUMENT(radius);
     }
     else HANDLE_POINTSETIO_OPTION(fopt);
-    else HANDLE_STANDARD_OR_UNKNOWN_OPTION();
+    else HANDLE_COMMON_OR_UNKNOWN_OPTION();
   }
 
   if (verbose) cout << "Reading " << input_name << "...", cout.flush();

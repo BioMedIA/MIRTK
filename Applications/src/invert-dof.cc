@@ -63,7 +63,7 @@ int main(int argc, char **argv)
   const char *dofout_name = POSARG(2);
 
   for (ALL_OPTIONS) {
-    HANDLE_STANDARD_OR_UNKNOWN_OPTION();
+    HANDLE_COMMON_OR_UNKNOWN_OPTION();
   }
 
   // Read transformation
