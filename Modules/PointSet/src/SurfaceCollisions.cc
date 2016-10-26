@@ -273,9 +273,29 @@ public:
         // of intersection, but does not handle the coplanar case itself
         else if (shared_vertex1 != -1) {
           if (_Filter->AdjacentIntersectionTest()) {
-            if (vtkIntersectionPolyDataFilter::TriangleTriangleIntersection(
-                  tri1[0], tri1[1], tri1[2],
-                  tri2[0], tri2[1], tri2[2], coplanar, p1, p2)) {
+            // Perform coplanarity test with our TOL instead of the smaller
+            // tolerance value used by vtkIntersectionPolyDataFilter
+            coplanar = 0;
+            Triangle::Normal(tri2[0], tri2[1], tri2[2], n2);
+            if (fequal(n1[0], n2[0], TOL) &&
+                fequal(n1[1], n2[1], TOL) &&
+                fequal(n1[2], n2[2], TOL)) {
+              const double b1 = -vtkMath::Dot(n1, tri1[0]);
+              const double b2 = -vtkMath::Dot(n2, tri2[0]);
+              if (fequal(b1, b2, TOL)) coplanar = 1;
+            }
+            if (coplanar) {
+              // TODO: Either one triangle fully contained within the other
+              //       or one edge of the first triangle intersects an edge of
+              //       the second triangle.
+            }
+            // TODO: Re-implement using own function of mirtk::Triangle,
+            //       re-using already computed normals and b values.
+            //       Also to not use this "private" function of the
+            //       vtkIntersectionPolyDataFilter.
+            else if (vtkIntersectionPolyDataFilter::TriangleTriangleIntersection(
+                         tri1[0], tri1[1], tri1[2],
+                         tri2[0], tri2[1], tri2[2], coplanar, p1, p2)) {
               // Ignore valid intersection of single shared vertex
               if (!fequal(p1[0], p2[0], TOL) ||
                   !fequal(p1[1], p2[1], TOL) ||
@@ -291,10 +311,6 @@ public:
                   type = CollisionType::AdjacentIntersection;
                 }
               }
-            } else if (coplanar) {
-              // TODO: Either one triangle fully contained within the other
-              //       or one edge of the first triangle intersects an edge of
-              //       the second triangle.
             }
           }
         }
