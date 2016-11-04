@@ -678,8 +678,11 @@ Plane MedialCuttingPlane(const ByteImage &regions)
 
 // -----------------------------------------------------------------------------
 /// Resample regions mask such that image axes are aligned with orthogonal cutting planes
-ByteImage Resample(const ByteImage &regions, const Plane &rl_plane, const Plane &bs_plane)
+ByteImage Resample(const ByteImage &regions, const Plane &rl_plane, const Plane &bs_plane,
+                   int xmargin = 0, int ymargin = 0, int zmargin = 0,
+                   const char *fgmask_name = nullptr)
 {
+  // Determine RAS attributes
   const double ds = min(min(regions.XSize(), regions.YSize()), regions.ZSize());
 
   Vector3 xaxis = rl_plane.n;              // L -> R
@@ -690,8 +693,8 @@ ByteImage Resample(const ByteImage &regions, const Plane &rl_plane, const Plane 
   yaxis.Normalize();
   zaxis.Normalize();
 
-  int i[2], j[2], k[2];
-  regions.BoundingBox(i[0], j[0], k[0], i[1], j[1], k[1]);
+  int bi[2], bj[2], bk[2];
+  regions.BoundingBox(bi[0], bj[0], bk[0], bi[1], bj[1], bk[1]);
 
   Point  p, q;
   double bounds[6] = {+inf, -inf, +inf, -inf, +inf, -inf};
@@ -699,7 +702,7 @@ ByteImage Resample(const ByteImage &regions, const Plane &rl_plane, const Plane 
   for (int ck = 0; ck < 2; ++ck)
   for (int cj = 0; cj < 2; ++cj)
   for (int ci = 0; ci < 2; ++ci) {
-    p = Point(i[ci], j[cj], k[ck]);
+    p = Point(bi[ci], bj[cj], bk[ck]);
     regions.ImageToWorld(p);
     bounds[0] = min(bounds[0], p.x);
     bounds[1] = max(bounds[1], p.x);
@@ -732,6 +735,7 @@ ByteImage Resample(const ByteImage &regions, const Plane &rl_plane, const Plane 
   memcpy(attr._yaxis, yaxis, 3 * sizeof(double));
   memcpy(attr._zaxis, zaxis, 3 * sizeof(double));
 
+  // Resample region labels image
   ByteImage output(attr, 1);
   RealImage pbmaps[NUM], input(regions.Attributes(), 1);
   GenericLinearInterpolateImageFunction<RealImage> pbfunc;
@@ -770,9 +774,42 @@ ByteImage Resample(const ByteImage &regions, const Plane &rl_plane, const Plane 
     }
   }
 
+  // Crop image
   output.PutBackgroundValueAsDouble(0.);
-  output.BoundingBox(i[0], j[0], k[0], i[1], j[1], k[1]);
-  output = output.GetRegion(i[0], j[0], k[0], i[1], j[1], k[1]);
+  output.BoundingBox(bi[0], bj[0], bk[0], bi[1], bj[1], bk[1]);
+
+  bi[0] -= xmargin, bi[1] += xmargin;
+  bj[0] -= ymargin, bj[1] += ymargin;
+  bk[0] -= zmargin, bk[1] += zmargin;
+
+  if (fgmask_name) {
+    ByteImage fgmask(fgmask_name);
+    for (int k = 0; k < fgmask.Z(); ++k)
+    for (int j = 0; j < fgmask.Y(); ++j)
+    for (int i = 0; i < fgmask.X(); ++i) {
+      if (fgmask(i, j, k) != 0) {
+        p = Point(i, j, k);
+        fgmask.ImageToWorld(p);
+        output.WorldToImage(p);
+        bi[0] = min(bi[0], ifloor(p._x));
+        bi[1] = max(bi[1], iceil (p._x));
+        bj[0] = min(bj[0], ifloor(p._y));
+        bj[1] = max(bj[1], iceil (p._y));
+        bk[0] = min(bk[0], ifloor(p._z));
+        bk[1] = max(bk[1], iceil (p._z));
+      }
+    }
+  }
+
+  if (bi[0] < 0) bi[0] = 0;
+  if (bj[0] < 0) bj[0] = 0;
+  if (bk[0] < 0) bk[0] = 0;
+
+  if (bi[1] >= output.X()) bi[1] = output.X() - 1;
+  if (bj[1] >= output.Y()) bj[1] = output.Y() - 1;
+  if (bk[1] >= output.Z()) bk[1] = output.Z() - 1;
+
+  output = output.GetRegion(bi[0], bj[0], bk[0], bi[1], bj[1], bk[1]);
 
   // Dilate BS 2 voxels into WM at BS/WM boundary to cut it cleanly again
   for (int k = output.Z()-1; k > 1; --k) {
@@ -830,15 +867,16 @@ int main(int argc, char *argv[])
   const char *labels_name = nullptr; // Input  labels image
   const char *output_name = nullptr; // Output labels image
 
-  const char *hemis_name  = nullptr; // RH/LH cerebrum label image
-  const char *rhmask_name = nullptr; // RH cerebrum mask
-  const char *lhmask_name = nullptr; // LH cerebrum mask
-  const char *wmmask_name = nullptr; // Cerebral WM mask
-  const char *gmmask_name = nullptr; // Cerebral GM mask
-  const char *sbmask_name = nullptr; // Subcortical structures mask
-  const char *bsmask_name = nullptr; // Brainstem mask
-  const char *cbmask_name = nullptr; // Cerebellum mask
-  const char *depth_name  = nullptr; // Output cortical depth map
+  const char *fgmask_name  = nullptr; // brain mask
+  const char *hemis_name   = nullptr; // RH/LH cerebrum label image
+  const char *rhmask_name  = nullptr; // RH cerebrum mask
+  const char *lhmask_name  = nullptr; // LH cerebrum mask
+  const char *wmmask_name  = nullptr; // Cerebral WM mask
+  const char *gmmask_name  = nullptr; // Cerebral GM mask
+  const char *sbmask_name  = nullptr; // Subcortical structures mask
+  const char *bsmask_name  = nullptr; // Brainstem mask
+  const char *cbmask_name  = nullptr; // Cerebellum mask
+  const char *depth_name   = nullptr; // Output cortical depth map
 
   UnorderedSet<int> rhmask_labels;
   UnorderedSet<int> lhmask_labels;
@@ -851,6 +889,9 @@ int main(int argc, char *argv[])
   int  sb_closing  = 0;     // Subcortical segmentation closing iterations
   int  bs_closing  = 0;     // Brainstem   segmentation closing iterations
   int  cb_closing  = 0;     // Cerebellum  segmentation closing iterations
+  int  xmargin     = 0;     // Margin in x direction after resampling in no. of voxels
+  int  ymargin     = 0;     // Margin in y direction after resampling in no. of voxels
+  int  zmargin     = 0;     // Margin in z direction after resampling in no. of voxels
   bool merge_bs_cb = false; // Whether to merge brainstem and cerebellum segments
 
   if (NUM_POSARGS == 1) {
@@ -877,6 +918,22 @@ int main(int argc, char *argv[])
     }
     else if (OPTION("-output-inner-cortical-distance")) {
       depth_name = ARGUMENT;
+    }
+    else if (OPTION("-fg") || OPTION("-foreground") || OPTION("-brain")) {
+      fgmask_name = ARGUMENT;
+    }
+    else if (OPTION("-margin")) {
+      PARSE_ARGUMENT(xmargin);
+      if (HAS_ARGUMENT) {
+        PARSE_ARGUMENT(ymargin);
+        if (HAS_ARGUMENT) {
+          PARSE_ARGUMENT(zmargin);
+        } else {
+          zmargin = 0;
+        }
+      } else {
+        ymargin = zmargin = xmargin;
+      }
     }
     else if (OPTION("-hemispheres")) {
       hemis_name = ARGUMENT;
@@ -1257,17 +1314,18 @@ int main(int argc, char *argv[])
   // ---------------------------------------------------------------------------
   // Resample regions mask such that image axes are aligned with determined
   // orthogonal cutting planes x: L -> R, y: P -> A, z: I -> S
-  regions = Resample(regions, rl_plane, bs_plane);
+  regions = Resample(regions, rl_plane, bs_plane, xmargin, ymargin, zmargin, fgmask_name);
   attr = regions.Attributes();
   nvox = regions.NumberOfSpatialVoxels();
   if (debug) {
     regions.Write("debug_output.nii.gz");
   }
 
+  // ---------------------------------------------------------------------------
   {
     // Determine bounding box of interhemisphere WM
-    const bool wc = false;
-    PointSet voxels = BoundaryPoints(regions, RH, LH, wc);
+    const bool world = false;
+    PointSet voxels = BoundaryPoints(regions, RH, LH, world);
     int bounds[6] = {static_cast<int>(voxels(0).x), static_cast<int>(voxels(0).x),
                      static_cast<int>(voxels(0).y), static_cast<int>(voxels(0).y),
                      static_cast<int>(voxels(0).z), static_cast<int>(voxels(0).z)};
