@@ -39,6 +39,7 @@ set(HEADERS
   MeshFilter.h
   MeshSmoothing.h
   PointCorrespondence.h
+  PointDataFilter.h
   PointLocator.h
   PointSetUtils.h
   Polyhedron.h
@@ -75,6 +76,7 @@ set(SOURCES
   MeshFilter.cc
   MeshSmoothing.cc
   PointCorrespondence.cc
+  PointDataFilter.cc
   PointLocator.cc
   PointSetUtils.cc
   Polyhedron.cc
