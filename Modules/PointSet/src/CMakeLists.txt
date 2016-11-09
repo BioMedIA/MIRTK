@@ -25,11 +25,14 @@
 set(HEADERS
   ${BINARY_INCLUDE_DIR}/mirtk/PointSetExport.h
   BoundarySegment.h
+  ClosePointData.h
   ClosestCell.h
   ClosestPoint.h
   ClosestPointLabel.h
+  DilatePointData.h
   EdgeConnectivity.h
   EdgeTable.h
+  ErodePointData.h
   FiducialMatch.h
   FuzzyCorrespondence.h
   ImageSurfaceStatistics.h
@@ -60,11 +63,14 @@ set(HEADERS
 
 set(SOURCES
   BoundarySegment.cc
+  ClosePointData.cc
   ClosestCell.cc
   ClosestPoint.cc
   ClosestPointLabel.cc
+  DilatePointData.cc
   EdgeConnectivity.cc
   EdgeTable.cc
+  ErodePointData.cc
   FiducialMatch.cc
   FuzzyCorrespondence.cc
   FuzzyCorrespondenceUtils.cc
