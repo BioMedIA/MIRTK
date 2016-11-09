@@ -35,7 +35,7 @@ set(HEADERS
   ImageSurfaceStatistics.h
   ImplicitSurfaceUtils.h
   Stripper.h
-  MedianMeshFilter.h
+  MedianPointData.h
   MeshFilter.h
   MeshSmoothing.h
   PointCorrespondence.h
@@ -72,7 +72,7 @@ set(SOURCES
   ImageSurfaceStatistics.cc
   ImplicitSurfaceUtils.cc
   Stripper.cc
-  MedianMeshFilter.cc
+  MedianPointData.cc
   MeshFilter.cc
   MeshSmoothing.cc
   PointCorrespondence.cc

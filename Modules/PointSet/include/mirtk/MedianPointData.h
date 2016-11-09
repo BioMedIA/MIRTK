@@ -17,13 +17,10 @@
  * limitations under the License.
  */
 
-#ifndef MIRTK_MedianMeshFilter_H
-#define MIRTK_MedianMeshFilter_H
+#ifndef MIRTK_MedianPointData_H
+#define MIRTK_MedianPointData_H
 
-#include "mirtk/MeshFilter.h"
-
-#include "vtkSmartPointer.h"
-#include "vtkDataArray.h"
+#include "mirtk/PointDataFilter.h"
 
 
 namespace mirtk {
@@ -32,29 +29,15 @@ namespace mirtk {
 /**
  * Component-wise median filter for mesh node data
  */
-class MedianMeshFilter : public MeshFilter
+class MedianPointData : public PointDataFilter
 {
-  mirtkObjectMacro(MedianMeshFilter);
+  mirtkObjectMacro(MedianPointData);
 
   // ---------------------------------------------------------------------------
   // Attributes
 
-  /// Maximum edge-connectivity of neighboring nodes
-  mirtkPublicAttributeMacro(int, Connectivity);
-
-  /// Input point data array
-  mirtkPublicAttributeMacro(vtkSmartPointer<vtkDataArray>, DataArray);
-
-  /// Name of (input and) output point data array
-  ///
-  /// When an input _DataArray is given, this name is assigned to the respective
-  /// output point data array. Otherwise, the name of the input data array must
-  /// be set and is used also for the output data array. When no input _DataArray
-  /// is given, the name of the point data array of the input mesh must be set.
-  mirtkPublicAttributeMacro(string, DataArrayName);
-
   /// Copy attributes of this filter from another instance
-  void CopyAttributes(const MedianMeshFilter &);
+  void CopyAttributes(const MedianPointData &);
 
   // ---------------------------------------------------------------------------
   // Construction/Destruction
@@ -62,24 +45,21 @@ class MedianMeshFilter : public MeshFilter
 public:
 
   /// Default constructor
-  MedianMeshFilter();
+  MedianPointData();
 
   /// Copy constructor
-  MedianMeshFilter(const MedianMeshFilter &);
+  MedianPointData(const MedianPointData &);
 
   /// Assignment operator
-  MedianMeshFilter &operator =(const MedianMeshFilter &);
+  MedianPointData &operator =(const MedianPointData &);
 
   /// Destructor
-  virtual ~MedianMeshFilter();
+  virtual ~MedianPointData();
 
   // ---------------------------------------------------------------------------
   // Execution
 
 protected:
-
-  /// Initialize filter after input and parameters are set
-  virtual void Initialize();
 
   /// Execute filter
   virtual void Execute();
@@ -89,4 +69,4 @@ protected:
 
 } // namespace mirtk
 
-#endif // MIRTK_MedianMeshFilter_H
+#endif // MIRTK_MedianPointData_H
