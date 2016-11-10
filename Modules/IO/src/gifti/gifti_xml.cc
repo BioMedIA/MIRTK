@@ -378,7 +378,11 @@ static int apply_da_list_order(gxml_data * xd, const int * orig, int len)
 
     /* create taken list (of all 0) */
     taken = (int *)calloc(nDA, sizeof(int));
-    if(!taken){ fprintf(stderr,"** ADLO: no alloc for taken\n"); return 1; }
+    if(!taken) {
+      fprintf(stderr,"** ADLO: no alloc for taken\n");
+      free(newlist);
+      return 1;
+    }
 
     /* insert pointers to current or copied DA */
     for( newc = 0; newc < len; newc++ ) {
