@@ -41,6 +41,7 @@ set(HEADERS
   MedianPointData.h
   MeshFilter.h
   MeshSmoothing.h
+  OpenPointData.h
   PointCorrespondence.h
   PointDataFilter.h
   PointLocator.h
@@ -81,6 +82,7 @@ set(SOURCES
   MedianPointData.cc
   MeshFilter.cc
   MeshSmoothing.cc
+  OpenPointData.cc
   PointCorrespondence.cc
   PointDataFilter.cc
   PointLocator.cc
