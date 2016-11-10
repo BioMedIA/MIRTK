@@ -73,6 +73,15 @@ void swap32(char *, char *, long);
 /// Swap bytes of four word
 void swap64(char *, char *, long);
 
+/// Returns the peak (maximum so far) resident set size (physical
+/// memory use) measured in bytes, or zero if the value cannot be
+/// determined on this OS.
+size_t GetPeakRSS();
+
+/// Returns the current resident set size (physical memory use) measured
+/// in bytes, or zero if the value cannot be determined on this OS.
+size_t GetCurrentRSS();
+
 
 } // namespace mirtk
 
