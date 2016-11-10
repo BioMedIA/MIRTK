@@ -198,21 +198,16 @@ void EdgeConnectivity::Initialize(vtkDataSet *mesh, int n, const EdgeTable *edge
     _edgeTable.Initialize(mesh);
     edgeTable = &_edgeTable;
   }
-
-  Entries * const entries = new Entries[numPts];
+  Array<Entries> entries(numPts);
 
   ComputeEdgeConnectivity eval;
   eval._EdgeTable    = edgeTable;
   eval._Maximum      = _Maximum;
-  eval._Connectivity = entries;
+  eval._Connectivity = entries.data();
   parallel_for(blocked_range<int>(0, numPts), eval);
 
-  for (int i = 0; i < numPts; ++i) {
-    sort(entries[i].begin(), entries[i].end());
-  }
-
+  for (auto &&col : entries) Sort(col);
   GenericSparseMatrix::Initialize(numPts, numPts, entries, true);
-  delete[] entries;
 
   MIRTK_DEBUG_TIMING(5, "initialization of edge-connectivity table");
 }
@@ -235,22 +230,17 @@ void EdgeConnectivity::Initialize(vtkDataSet *mesh, double r, const EdgeTable *e
     _edgeTable.Initialize(mesh);
     edgeTable = &_edgeTable;
   }
-
-  Entries * const entries = new Entries[numPts];
+  Array<Entries> entries(numPts);
 
   ComputeEdgeConnectivityWithinRadius eval;
   eval._DataSet      = mesh;
   eval._EdgeTable    = edgeTable;
   eval._Radius2      = r * r;
-  eval._Connectivity = entries;
+  eval._Connectivity = entries.data();
   parallel_for(blocked_range<int>(0, numPts), eval);
 
-  for (int i = 0; i < numPts; ++i) {
-    sort(entries[i].begin(), entries[i].end());
-  }
-
+  for (auto &&col : entries) Sort(col);
   GenericSparseMatrix::Initialize(numPts, numPts, entries, true);
-  delete[] entries;
 
   _Maximum = 0;
   for (int i = 0; i < _NNZ; ++i) {
@@ -258,6 +248,13 @@ void EdgeConnectivity::Initialize(vtkDataSet *mesh, double r, const EdgeTable *e
   }
 
   MIRTK_DEBUG_TIMING(5, "initialization of edge-connectivity table (r = " << r << ")");
+}
+
+// -----------------------------------------------------------------------------
+void EdgeConnectivity::Clear()
+{
+  GenericSparseMatrix::Clear();
+  _Maximum = 0;
 }
 
 

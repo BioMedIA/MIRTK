@@ -71,6 +71,9 @@ public:
   /// Initialize edge table from given dataset
   void Initialize(vtkDataSet *);
 
+  /// Clear edge table
+  virtual void Clear();
+
   /// Number of nodes
   int NumberOfPoints() const;
 

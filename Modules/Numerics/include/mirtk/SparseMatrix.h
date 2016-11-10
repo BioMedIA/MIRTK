@@ -156,6 +156,9 @@ public:
 
 #endif
 
+  /// Destructor
+  virtual ~GenericSparseMatrix();
+
   // ---------------------------------------------------------------------------
   // Entries
 
@@ -282,7 +285,7 @@ public:
   void Sub(int, int, const GenericSparseMatrix &);
 
   /// Free all non-zero entries
-  void Clear();
+  virtual void Clear();
 
   /// Set all non-zero entries to zero (i.e., remove)
   void Zero();
@@ -778,6 +781,16 @@ void GenericSparseMatrix<TEntry>::Initialize(const mxArray *pm)
   }
 }
 #endif // MIRTK_Numerics_WITH_MATLAB
+
+// -----------------------------------------------------------------------------
+template <class TEntry>
+GenericSparseMatrix<TEntry>::~GenericSparseMatrix()
+{
+  Deallocate(_Row);
+  Deallocate(_Col);
+  Deallocate(_Data);
+  Deallocate(_Index);
+}
 
 // =============================================================================
 // Entries

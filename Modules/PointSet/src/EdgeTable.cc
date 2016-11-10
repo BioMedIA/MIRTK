@@ -71,16 +71,15 @@ EdgeTable::~EdgeTable()
 // -----------------------------------------------------------------------------
 void EdgeTable::Initialize(vtkDataSet *mesh)
 {
-  _Mesh          = mesh;
-  _NumberOfEdges = 0;
-
-  if (mesh == nullptr) return;
+  if (mesh == nullptr) {
+    this->Clear();
+    return;
+  }
   MIRTK_START_TIMING();
 
   const int       numPts   = static_cast<int>(mesh->GetNumberOfPoints());
   const vtkIdType numCells = mesh->GetNumberOfCells();
-
-  Entries *entries = new Entries[numPts];
+  Array<Entries>  entries(numPts);
 
   vtkSmartPointer<vtkGenericCell> cell = vtkSmartPointer<vtkGenericCell>::New();
 
@@ -89,6 +88,9 @@ void EdgeTable::Initialize(vtkDataSet *mesh)
   int numCellEdges, numEdgePts;
   bool new_edge;
   vtkCell *edge;
+
+  _Mesh = mesh;
+  _NumberOfEdges = 0;
 
   for (cellId = 0; cellId < numCells; ++cellId) {
     mesh->GetCell(cellId, cell);
@@ -127,12 +129,8 @@ void EdgeTable::Initialize(vtkDataSet *mesh)
     }
   }
 
-  for (int i = 0; i < numPts; ++i) {
-    Sort(entries[i]);
-  }
-
+  for (auto &&col : entries) Sort(col);
   GenericSparseMatrix::Initialize(numPts, numPts, entries, true);
-  delete[] entries;
 
   // Reassign edge IDs -- same order as edges are visited by EdgeIterator!
   int i1, i2, j1, j2;
@@ -156,6 +154,14 @@ void EdgeTable::Initialize(vtkDataSet *mesh)
   mirtkAssert(edgeIdPlusOne == _NumberOfEdges, "edge ID reassigned is consistent");
 
   MIRTK_DEBUG_TIMING(5, "initialization of edge table");
+}
+
+// -----------------------------------------------------------------------------
+void EdgeTable::Clear()
+{
+  GenericSparseMatrix::Clear();
+  _NumberOfEdges = 0;
+  _Mesh          = nullptr;
 }
 
 // -----------------------------------------------------------------------------
