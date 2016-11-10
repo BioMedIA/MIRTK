@@ -75,6 +75,9 @@ public:
   /// Initialize edge-connectivity table from given dataset
   void Initialize(vtkDataSet *, double r, const EdgeTable * = NULL);
 
+  /// Clear edge-connectivity table
+  virtual void Clear();
+
   /// Number of nodes
   int NumberOfPoints() const;
 
