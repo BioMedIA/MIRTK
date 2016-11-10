@@ -111,7 +111,9 @@ void MeshFilter::Run()
 void MeshFilter::Initialize()
 {
   // Check input
-  if (!_Input) Throw(ERR_LogicError, __FUNCTION__, "Input mesh not set!");
+  if (_Input == nullptr) {
+    Throw(ERR_LogicError, __FUNCTION__, "Input mesh not set!");
+  }
 
   // Build mesh links
   _Input->BuildLinks();
