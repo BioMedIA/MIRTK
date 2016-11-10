@@ -743,6 +743,19 @@ void SurfaceRemeshing::MeltingOfCells()
       melt[1] = int(length2[1] < min2[1]);
       melt[2] = int(length2[2] < min2[2]);
 
+      // Do not melt edges with un-masked end points
+      if (_Mask) {
+        if (melt[0] && _Mask->GetComponent(pts[0], 0) == 0. && _Mask->GetComponent(pts[1], 0) == 0.) {
+          melt[0] = 0;
+        }
+        if (melt[1] && _Mask->GetComponent(pts[1], 0) == 0. && _Mask->GetComponent(pts[2], 0) == 0.) {
+          melt[1] = 0;
+        }
+        if (melt[2] && _Mask->GetComponent(pts[2], 0) == 0. && _Mask->GetComponent(pts[0], 0) == 0.) {
+          melt[2] = 0;
+        }
+      }
+
       // Do not melt feature edges (otherwise remeshing may smooth surface too much)
       if ((melt[0] || melt[1] || melt[2]) && _MinFeatureAngle < 180.0) {
         GetNormal(pts[0], n1);
@@ -787,6 +800,13 @@ void SurfaceRemeshing::MeltingOfCells()
       if (length2[2] < length2[i]) i = 2;
       j = (i + 1) % 3;
 
+      // Do not melt edges with un-masked end points
+      if (_Mask) {
+        if (_Mask->GetComponent(pts[i], 0) == 0. && _Mask->GetComponent(pts[j], 0) == 0.) {
+          continue;
+        }
+      }
+
       // Melt edge if it is too short and not a feature edge
       min2[i] = SquaredMinEdgeLength(pts[i], pts[j]);
       if (length2[i] < min2[i]) {
@@ -823,6 +843,7 @@ void SurfaceRemeshing::MeltingOfNodes()
   for (int iter = 0; iter < 10 && changed; ++iter) {
     changed = false;
     for (vtkIdType ptId = 0; ptId < _Output->GetNumberOfPoints(); ++ptId) {
+      if (_Mask && _Mask->GetComponent(ptId, 0) == 0.) continue;
       _Output->GetPointCells(ptId, ncells, cells);
       switch (ncells) {
         case 1: case 2: {
@@ -1069,6 +1090,9 @@ void SurfaceRemeshing::Initialize()
     _Surface = calc_normals->GetOutput();
   }
 
+  // Initialize point mask
+  this->InitializeMask();
+
   // Initialize adaptive edge length range
   _MinEdgeLengthSquared = _MinEdgeLength * _MinEdgeLength;
   _MaxEdgeLengthSquared = _MaxEdgeLength * _MaxEdgeLength;
@@ -1108,6 +1132,35 @@ void SurfaceRemeshing::Initialize()
   _NumberOfBisections   = 0;
   _NumberOfTrisections  = 0;
   _NumberOfQuadsections = 0;
+}
+
+// -----------------------------------------------------------------------------
+void SurfaceRemeshing::InitializeMask()
+{
+  if (_PointMask || _CellMask) {
+    _Mask = _Surface->GetPointData()->GetArray("_RemeshingMask");
+    if (_Mask == nullptr) {
+      _Mask = NewVtkDataArray(VTK_UNSIGNED_CHAR, _Surface->GetNumberOfPoints(), 1, "_RemeshingMask");
+      _Surface->GetPointData()->AddArray(_Mask);
+    }
+    if (_PointMask) {
+      _Mask->CopyComponent(0, _PointMask, 0);
+    } else {
+      _Mask->FillComponent(0, 1.);
+    }
+    if (_CellMask) {
+      for (vtkIdType cellId = 0, npts, *pts; cellId < _Surface->GetNumberOfCells(); ++cellId) {
+        if (_CellMask->GetComponent(cellId, 0) == 0.) {
+          _Surface->GetCellPoints(cellId, npts, pts);
+          for (vtkIdType i = 0; i < npts; ++i) {
+            _Mask->SetComponent(pts[i], 0, 0.);
+          }
+        }
+      }
+    }
+  } else {
+    _Mask = nullptr;
+  }
 }
 
 // -----------------------------------------------------------------------------
@@ -1256,6 +1309,15 @@ void SurfaceRemeshing::InversionOfTrianglesSharingOneLongEdge()
     if (npts == 0) continue; // cell marked as deleted (i.e., VTK_EMPTY_CELL)
     mirtkAssert(npts == 3, "surface is triangulated");
 
+    // Skip triangles with un-masked node
+    if (_Mask) {
+      if (_Mask->GetComponent(pts[0], 0) == 0. ||
+          _Mask->GetComponent(pts[1], 0) == 0. ||
+          _Mask->GetComponent(pts[2], 0) == 0.) {
+        continue;
+      }
+    }
+
     // Get (transformed) point coordinates
     GetPoint(pts[0], p[0]);
     GetPoint(pts[1], p[1]);
@@ -1292,6 +1354,7 @@ void SurfaceRemeshing::InversionOfTrianglesSharingOneLongEdge()
         // Get other vertex of triangle sharing long edge
         adjPtId = GetCellEdgeNeighborPoint(cellId, pts[i], pts[j]);
         if (adjPtId == -1 || _Output->IsEdge(pts[k], adjPtId)) continue;
+        if (_Mask && _Mask->GetComponent(adjPtId, 0) == 0.) continue;
         // Check if length of other edges are in range
         GetPoint(adjPtId, p[3]);
         length2[0] = vtkMath::Distance2BetweenPoints(p[i], p[3]);
@@ -1328,6 +1391,15 @@ void SurfaceRemeshing::InversionOfTrianglesToIncreaseMinHeight()
     if (npts == 0) continue; // cell marked as deleted (i.e., VTK_EMPTY_CELL)
     mirtkAssert(npts == 3, "surface is triangulated");
 
+    // Skip triangles with un-masked node
+    if (_Mask) {
+      if (_Mask->GetComponent(pts[0], 0) == 0. ||
+          _Mask->GetComponent(pts[1], 0) == 0. ||
+          _Mask->GetComponent(pts[2], 0) == 0.) {
+        continue;
+      }
+    }
+
     // Get (transformed) point coordinates
     GetPoint(pts[0], p[0]);
     GetPoint(pts[1], p[1]);
@@ -1357,6 +1429,7 @@ void SurfaceRemeshing::InversionOfTrianglesToIncreaseMinHeight()
 
       adjPtId = GetCellEdgeNeighborPoint(cellId, pts[i], pts[j]);
       if (adjPtId == -1 || _Output->IsEdge(pts[k], adjPtId)) continue;
+      if (_Mask && _Mask->GetComponent(adjPtId, 0) == 0.) continue;
       GetPoint(adjPtId, p[3]);
 
       // Do not invert when other edge of neighboring triangle is longer
@@ -1465,6 +1538,17 @@ void SurfaceRemeshing::Subdivision()
     bisect[1] = (length2[1] > max2[1] ? 1 : 0);
     bisect[2] = (length2[2] > max2[2] ? 1 : 0);
 
+    if (_Mask) {
+      if (bisect[0] && _Mask->GetComponent(pts[0], 0) == 0. && _Mask->GetComponent(pts[1], 0) == 0.) {
+        bisect[0] = 0;
+      }
+      if (bisect[1] && _Mask->GetComponent(pts[1], 0) == 0. && _Mask->GetComponent(pts[2], 0) == 0.) {
+        bisect[1] = 0;
+      }
+      if (bisect[2] && _Mask->GetComponent(pts[2], 0) == 0. && _Mask->GetComponent(pts[0], 0) == 0.) {
+        bisect[2] = 0;
+      }
+    }
     if (!_BisectBoundaryEdges) {
       if (bisect[0] && IsBoundaryEdge(pts[0], pts[1])) {
         bisect[0] = 0;
@@ -1539,6 +1623,8 @@ void SurfaceRemeshing::Finalize()
     _Output = _Input;
 
   } else {
+
+    _Output->GetPointData()->RemoveArray("_RemeshingMask");
 
     // Input edge-length arrays no longer valid for possibly next iteration
     _MinCellEdgeLengthArray = nullptr;

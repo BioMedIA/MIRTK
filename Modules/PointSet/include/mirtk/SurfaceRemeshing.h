@@ -75,8 +75,20 @@ public:
 
 protected:
 
+  /// Surface point mask, only melting operations which do not modify points
+  /// or edges connecting two such points that have a zero mask value
+  /// are allowed when this mask is specified
+  mirtkPublicAttributeMacro(vtkSmartPointer<vtkDataArray>, PointMask);
+
+  /// Surface cell mask, only melting operations which do not modify cells
+  /// that have a zero mask value are allowed when this mask is specified
+  mirtkPublicAttributeMacro(vtkSmartPointer<vtkDataArray>, CellMask);
+
   /// Shallow copy of input surface with additional internal point data
   mirtkAttributeMacro(vtkSmartPointer<vtkPolyData>, Surface);
+
+  /// Combined surface point mask
+  mirtkAttributeMacro(vtkSmartPointer<vtkDataArray>, Mask);
 
   /// Optional input transformation used to determine edge length and triangle area
   mirtkPublicAggregateMacro(const class Transformation, Transformation);
@@ -312,6 +324,9 @@ protected:
 
   /// Initialize filter after input and parameters are set
   virtual void Initialize();
+
+  /// Initialize point mask
+  void InitializeMask();
 
   /// Initialize edge length range for each node
   void InitializeEdgeLengthRange();
