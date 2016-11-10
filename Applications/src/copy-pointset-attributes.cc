@@ -126,6 +126,12 @@ void PrintHelp(const char *name)
   cout << endl;
   cout << "  -case-[in]sensitive" << endl;
   cout << "      Lookup source arrays by case [in]sensitive name. (default: insensitive)" << endl;
+  cout << endl;
+  cout << "  -majority" << endl;
+  cout << "      Use majority vote for resampling categorical data. (default)" << endl;
+  cout << endl;
+  cout << "  -unanimous" << endl;
+  cout << "      Use unanimous vote for resampling categorical data." << endl;
   PrintCommonOptions(cout);
   cout << endl;
 }
