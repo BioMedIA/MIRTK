@@ -20,14 +20,11 @@
 #include "mirtk/Common.h"
 #include "mirtk/Options.h"
 
-#include "mirtk/EdgeConnectivity.h"
 #include "mirtk/PointSetIO.h"
-#include "mirtk/PointSetUtils.h"
+#include "mirtk/EdgeTable.h"
+#include "mirtk/EdgeConnectivity.h"
+#include "mirtk/DilatePointData.h"
 
-#include "vtkSmartPointer.h"
-#include "vtkPointSet.h"
-#include "vtkPointData.h"
-#include "vtkDataArray.h"
 
 using namespace mirtk;
 
@@ -75,98 +72,6 @@ void PrintHelp(const char *name)
 }
 
 // =============================================================================
-// Auxiliaries
-// =============================================================================
-
-// -----------------------------------------------------------------------------
-struct DilateScalars
-{
-  vtkDataArray           *_Input;
-  vtkDataArray           *_Output;
-  const EdgeConnectivity *_Neighbors;
-
-  void operator ()(const blocked_range<int> &ptIds) const
-  {
-    int        nbrPts;
-    const int *nbrIds;
-    double     value;
-
-    for (int ptId = ptIds.begin(); ptId != ptIds.end(); ++ptId) {
-      for (int j = 0; j < _Input->GetNumberOfComponents(); ++j) {
-        value = _Input->GetComponent(ptId, j);
-        _Neighbors->GetConnectedPoints(ptId, nbrPts, nbrIds);
-        for (int i = 0; i < nbrPts; ++i) {
-          value = max(value, _Input->GetComponent(nbrIds[i], j));
-        }
-        _Output->SetComponent(ptId, j, value);
-      }
-    }
-  }
-};
-
-// -----------------------------------------------------------------------------
-/// Dilate point data
-///
-/// \todo Implement this as MeshFilter as part of the PointSet module.
-vtkSmartPointer<vtkPointSet> Dilate(vtkSmartPointer<vtkPointSet> input,
-                                    const EdgeConnectivity &neighbors,
-                                    vtkSmartPointer<vtkDataArray> arr, int niter = 1)
-{
-  const int npoints = static_cast<int>(input->GetNumberOfPoints());
-
-  vtkSmartPointer<vtkPointSet> output;
-  output.TakeReference(input->NewInstance());
-  output->ShallowCopy(input);
-
-  int attr = -1;
-  vtkPointData * const pd = output->GetPointData();
-  for (int i = 0; i < pd->GetNumberOfArrays(); ++i) {
-    if (pd->GetArray(i) == arr) {
-      attr = pd->IsArrayAnAttribute(i);
-      pd->RemoveArray(i);
-      break;
-    }
-  }
-
-  // Attention: vtkDataArray::DeepCopy (of older VTK versions?) does not
-  //            copy array name (and possibly not array component names).
-  vtkSmartPointer<vtkDataArray> res;
-  res.TakeReference(arr->NewInstance());
-  res->SetNumberOfComponents(arr->GetNumberOfComponents());
-  res->SetNumberOfTuples(arr->GetNumberOfTuples());
-  res->SetName(arr->GetName());
-  for (int j = 0; j < arr->GetNumberOfComponents(); ++j) {
-    res->SetComponentName(j, arr->GetComponentName(j));
-  }
-
-  DilateScalars body;
-  body._Input     = arr;
-  body._Output    = res;
-  body._Neighbors = &neighbors;
-  for (int iter = 0; iter < niter; ++iter) {
-    if (iter == 1) {
-      arr.TakeReference(res->NewInstance());
-      arr->SetNumberOfComponents(res->GetNumberOfComponents());
-      arr->SetNumberOfTuples(res->GetNumberOfTuples());
-      arr->SetName(res->GetName());
-      for (int j = 0; j < res->GetNumberOfComponents(); ++j) {
-        arr->SetComponentName(j, res->GetComponentName(j));
-        arr->CopyComponent(j, res, j);
-      }
-      body._Input = arr;
-    } else if (iter > 1) {
-      swap(body._Input, body._Output);
-    }
-    parallel_for(blocked_range<int>(0, npoints), body);
-  }
-
-  const int idx = pd->AddArray(body._Output);
-  if (attr >= 0) pd->SetActiveAttribute(idx, attr);
-
-  return output;
-}
-
-// =============================================================================
 // Main
 // =============================================================================
 
@@ -206,51 +111,35 @@ int main(int argc, char *argv[])
   }
 
   if (verbose) cout << "Reading " << input_name << "...", cout.flush();
-  vtkSmartPointer<vtkPointSet> pset = ReadPointSet(input_name);
+  vtkSmartPointer<vtkPolyData> input = ReadPolyData(input_name);
   if (verbose) cout << " done" << endl;
 
-  vtkSmartPointer<vtkDataArray> arr;
-  if (array_name) {
-    arr = GetArrayByCaseInsensitiveName(pset->GetPointData(), array_name);
-    if (arr == nullptr) {
-      FatalError("Input point set has not point data array named " << array_name << "!");
-    }
-  } else {
-    arr = pset->GetPointData()->GetScalars();
-    if (arr == nullptr) {
-      FatalError("Input point set has no active scalars, use -array, -scalars option!");
-    }
-  }
-  if (output_array_name) {
-    if (arr->GetName()) {
-      if (strcmp(output_array_name, arr->GetName()) != 0) {
-        vtkSmartPointer<vtkDataArray> in = arr;
-        arr.TakeReference(in->NewInstance());
-        arr->DeepCopy(in);
-        arr->SetName(output_array_name);
-        for (int j = 0; j < in->GetNumberOfComponents(); ++j) {
-          arr->SetComponentName(j, in->GetComponentName(j));
-        }
-        pset->GetPointData()->AddArray(arr);
-      }
-    } else {
-      arr->SetName(output_array_name);
-    }
-  }
-
-  EdgeConnectivity neighbors;
+  SharedPtr<EdgeTable> edges(new EdgeTable(input));
+  SharedPtr<EdgeConnectivity> neighbors;
   if (radius > 0.) {
-    neighbors.Initialize(pset, radius);
+    neighbors = NewShared<EdgeConnectivity>(input, radius, edges.get());
   } else {
-    neighbors.Initialize(pset, connectivity);
+    neighbors = NewShared<EdgeConnectivity>(input, connectivity, edges.get());
   }
-
-  if (verbose) cout << "Dilating with c=" << neighbors.Maximum() << "...", cout.flush();
-  pset = Dilate(pset, neighbors, arr, iterations);
-  arr  = nullptr;
+  if (verbose) cout << "Dilating with c=" << neighbors->Maximum() << "...", cout.flush();
+  DilatePointData filter;
+  filter.Input(input);
+  filter.DataName(array_name);
+  filter.EdgeTable(edges);
+  filter.Neighbors(neighbors);
+  filter.Connectivity(connectivity);
+  filter.Radius(radius);
+  filter.Iterations(iterations);
+  filter.Run();
+  if (output_array_name && (!array_name || strcmp(array_name, output_array_name) != 0)) {
+    filter.OutputData()->SetName(output_array_name);
+    if (filter.InputData()->GetName()) {
+      filter.Output()->GetPointData()->AddArray(filter.InputData());
+    }
+  }
   if (verbose) cout << " done" << endl;
 
-  if (!WritePointSet(output_name, pset, fopt)) {
+  if (!WritePolyData(output_name, filter.Output(), fopt)) {
     FatalError("Failed to write result to " << output_name << "!");
   }
 

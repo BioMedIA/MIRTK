@@ -25,20 +25,25 @@
 set(HEADERS
   ${BINARY_INCLUDE_DIR}/mirtk/PointSetExport.h
   BoundarySegment.h
+  ClosePointData.h
   ClosestCell.h
   ClosestPoint.h
   ClosestPointLabel.h
+  DilatePointData.h
   EdgeConnectivity.h
   EdgeTable.h
+  ErodePointData.h
   FiducialMatch.h
   FuzzyCorrespondence.h
   ImageSurfaceStatistics.h
   ImplicitSurfaceUtils.h
   Stripper.h
-  MedianMeshFilter.h
+  MedianPointData.h
   MeshFilter.h
   MeshSmoothing.h
+  OpenPointData.h
   PointCorrespondence.h
+  PointDataFilter.h
   PointLocator.h
   PointSetUtils.h
   Polyhedron.h
@@ -59,11 +64,14 @@ set(HEADERS
 
 set(SOURCES
   BoundarySegment.cc
+  ClosePointData.cc
   ClosestCell.cc
   ClosestPoint.cc
   ClosestPointLabel.cc
+  DilatePointData.cc
   EdgeConnectivity.cc
   EdgeTable.cc
+  ErodePointData.cc
   FiducialMatch.cc
   FuzzyCorrespondence.cc
   FuzzyCorrespondenceUtils.cc
@@ -71,10 +79,12 @@ set(SOURCES
   ImageSurfaceStatistics.cc
   ImplicitSurfaceUtils.cc
   Stripper.cc
-  MedianMeshFilter.cc
+  MedianPointData.cc
   MeshFilter.cc
   MeshSmoothing.cc
+  OpenPointData.cc
   PointCorrespondence.cc
+  PointDataFilter.cc
   PointLocator.cc
   PointSetUtils.cc
   Polyhedron.cc

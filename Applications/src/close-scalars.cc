@@ -23,7 +23,7 @@
 #include "mirtk/PointSetIO.h"
 #include "mirtk/EdgeTable.h"
 #include "mirtk/EdgeConnectivity.h"
-#include "mirtk/ErodePointData.h"
+#include "mirtk/ClosePointData.h"
 
 
 using namespace mirtk;
@@ -40,14 +40,13 @@ void PrintHelp(const char *name)
   cout << "Usage: " << name << " <input> <output> [options]\n";
   cout << "\n";
   cout << "Description:\n";
-  cout << "  Erodes scalar point data of an input point set by replacing a point's\n";
-  cout << "  value by the minimum of the values of its neighboring points. When the\n";
-  cout << "  input data array has more than one component, each component is processed\n";
-  cout << "  separately.\n";
+  cout << "  Closes scalar point data of an input point set by perfoming a dilation\n";
+  cout << "  followed by the same number of erosions. When the input data array has more\n";
+  cout << "  than one component, each component is processed separately.\n";
   cout << "\n";
   cout << "Arguments:\n";
   cout << "  input    Input  point set.\n";
-  cout << "  output   Output point set with dilated scalars.\n";
+  cout << "  output   Output point set with closed scalars.\n";
   cout << "\n";
   cout << "Optional arguments:\n";
   cout << "  -a, -array, -scalars <name>\n";
@@ -121,8 +120,8 @@ int main(int argc, char *argv[])
   } else {
     neighbors = NewShared<EdgeConnectivity>(input, connectivity, edges.get());
   }
-  if (verbose) cout << "Eroding with c=" << neighbors->Maximum() << "...", cout.flush();
-  ErodePointData filter;
+  if (verbose) cout << "Closing with c=" << neighbors->Maximum() << "...", cout.flush();
+  ClosePointData filter;
   filter.Input(input);
   filter.DataName(array_name);
   filter.EdgeTable(edges);
