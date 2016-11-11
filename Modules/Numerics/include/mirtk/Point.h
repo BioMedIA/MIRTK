@@ -47,10 +47,6 @@ public:
   double _y; ///< y coordinate of Point
   double _z; ///< z coordinate of Point
 
-  double &x = _x;
-  double &y = _y;
-  double &z = _z;
-
   //
   // Constructors and destructor
   //
@@ -323,9 +319,9 @@ inline Point::Point(const Point& p)
 // -----------------------------------------------------------------------------
 inline Point::Point(const Vector3& v)
 {
-  _x = v.x;
-  _y = v.y;
-  _z = v.z;
+  _x = v._x;
+  _y = v._y;
+  _z = v._z;
 }
 
 // -----------------------------------------------------------------------------
@@ -605,45 +601,45 @@ inline Point Point::operator/ (double x) const
 // -----------------------------------------------------------------------------
 inline Point& Point::operator =(const Vector3& v)
 {
-  _x = v.x;
-  _y = v.y;
-  _z = v.z;
+  _x = v._x;
+  _y = v._y;
+  _z = v._z;
   return *this;
 }
 
 // -----------------------------------------------------------------------------
 inline Point& Point::operator +=(const Vector3 &v)
 {
-  _x += v.x;
-  _y += v.y;
-  _z += v.z;
+  _x += v._x;
+  _y += v._y;
+  _z += v._z;
   return *this;
 }
 
 // -----------------------------------------------------------------------------
 inline Point& Point::operator -=(const Vector3 &v)
 {
-  _x -= v.x;
-  _y -= v.y;
-  _z -= v.z;
+  _x -= v._x;
+  _y -= v._y;
+  _z -= v._z;
   return *this;
 }
 
 // -----------------------------------------------------------------------------
 inline Point& Point::operator *=(const Vector3 &v)
 {
-  _x *= v.x;
-  _y *= v.y;
-  _z *= v.z;
+  _x *= v._x;
+  _y *= v._y;
+  _z *= v._z;
   return *this;
 }
 
 // -----------------------------------------------------------------------------
 inline Point& Point::operator /=(const Vector3 &v)
 {
-  _x /= v.x;
-  _y /= v.y;
-  _z /= v.z;
+  _x /= v._x;
+  _y /= v._y;
+  _z /= v._z;
   return *this;
 }
 

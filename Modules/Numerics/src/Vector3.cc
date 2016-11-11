@@ -18,6 +18,7 @@
 
 #include "mirtk/Vector3.h"
 
+#include "mirtk/Assert.h"
 #include "mirtk/Math.h"
 #include "mirtk/Stream.h"
 #include "mirtk/Point.h"
@@ -42,90 +43,112 @@ Vector3::Vector3 ()
 //----------------------------------------------------------------------------
 Vector3::Vector3 (double fScalar)
 {
-  x = y = z = fScalar;
+  _x = _y = _z = fScalar;
 }
 
 //----------------------------------------------------------------------------
 Vector3::Vector3 (double fX, double fY, double fZ)
 {
-  x = fX;
-  y = fY;
-  z = fZ;
+  _x = fX;
+  _y = fY;
+  _z = fZ;
 }
 
 //----------------------------------------------------------------------------
 Vector3::Vector3 (const double afCoordinate[3])
 {
-  x = afCoordinate[0];
-  y = afCoordinate[1];
-  z = afCoordinate[2];
+  _x = afCoordinate[0];
+  _y = afCoordinate[1];
+  _z = afCoordinate[2];
 }
 
 //----------------------------------------------------------------------------
 Vector3::Vector3 (const Vector3& rkVector)
 {
-  x = rkVector.x;
-  y = rkVector.y;
-  z = rkVector.z;
+  _x = rkVector._x;
+  _y = rkVector._y;
+  _z = rkVector._z;
 }
 
 //----------------------------------------------------------------------------
 Vector3::Vector3 (const Point& p)
 {
-  x = p.x;
-  y = p.y;
-  z = p.z;
+  _x = p._x;
+  _y = p._y;
+  _z = p._z;
 }
 
 //----------------------------------------------------------------------------
-double& Vector3::operator[] (int i) const
+double& Vector3::operator[] (int i)
 {
   // assert:  0 <= i < 2; x, y, and z are packed into 3*sizeof(double)
   //          bytes
-  return (double&) *(&x + i);
+  mirtkAssert(&_y == (&_x + 1), "x, y, and z are packed into 3*sizeof(double) bytes");
+  mirtkAssert(&_z == (&_x + 2), "x, y, and z are packed into 3*sizeof(double) bytes");
+  return *(&_x + i);
+}
+
+//----------------------------------------------------------------------------
+const double& Vector3::operator[] (int i) const
+{
+  // assert:  0 <= i < 2; x, y, and z are packed into 3*sizeof(double)
+  //          bytes
+  mirtkAssert(&_y == (&_x + 1), "x, y, and z are packed into 3*sizeof(double) bytes");
+  mirtkAssert(&_z == (&_x + 2), "x, y, and z are packed into 3*sizeof(double) bytes");
+  return *(&_x + i);
 }
 
 //----------------------------------------------------------------------------
 Vector3::operator double* ()
 {
-  return &x;
+  mirtkAssert(&_y == (&_x + 1), "x, y, and z are packed into 3*sizeof(double) bytes");
+  mirtkAssert(&_z == (&_x + 2), "x, y, and z are packed into 3*sizeof(double) bytes");
+  return &_x;
+}
+
+//----------------------------------------------------------------------------
+Vector3::operator const double* () const
+{
+  mirtkAssert(&_y == (&_x + 1), "x, y, and z are packed into 3*sizeof(double) bytes");
+  mirtkAssert(&_z == (&_x + 2), "x, y, and z are packed into 3*sizeof(double) bytes");
+  return &_x;
 }
 
 //----------------------------------------------------------------------------
 Vector3& Vector3::operator= (const Vector3& rkVector)
 {
-  x = rkVector.x;
-  y = rkVector.y;
-  z = rkVector.z;
+  _x = rkVector._x;
+  _y = rkVector._y;
+  _z = rkVector._z;
   return *this;
 }
 
 //----------------------------------------------------------------------------
 Vector3& Vector3::operator= (double fScalar)
 {
-  x = y = z = fScalar;
+  _x = _y = _z = fScalar;
   return *this;
 }
 
 //----------------------------------------------------------------------------
 bool Vector3::operator== (const Vector3& rkVector) const
 {
-  return ( x == rkVector.x && y == rkVector.y && z == rkVector.z );
+  return (_x == rkVector._x && _y == rkVector._y && _z == rkVector._z);
 }
 
 //----------------------------------------------------------------------------
 bool Vector3::operator!= (const Vector3& rkVector) const
 {
-  return ( x != rkVector.x || y != rkVector.y || z != rkVector.z );
+  return (_x != rkVector._x || _y != rkVector._y || _z != rkVector._z);
 }
 
 //----------------------------------------------------------------------------
 Vector3 Vector3::operator+ (const Vector3& rkVector) const
 {
   Vector3 kSum;
-  kSum.x = x + rkVector.x;
-  kSum.y = y + rkVector.y;
-  kSum.z = z + rkVector.z;
+  kSum._x = _x + rkVector._x;
+  kSum._y = _y + rkVector._y;
+  kSum._z = _z + rkVector._z;
   return kSum;
 }
 
@@ -133,9 +156,9 @@ Vector3 Vector3::operator+ (const Vector3& rkVector) const
 Vector3 Vector3::operator- (const Vector3& rkVector) const
 {
   Vector3 kDiff;
-  kDiff.x = x - rkVector.x;
-  kDiff.y = y - rkVector.y;
-  kDiff.z = z - rkVector.z;
+  kDiff._x = _x - rkVector._x;
+  kDiff._y = _y - rkVector._y;
+  kDiff._z = _z - rkVector._z;
   return kDiff;
 }
 
@@ -143,9 +166,9 @@ Vector3 Vector3::operator- (const Vector3& rkVector) const
 Vector3 Vector3::operator* (double fScalar) const
 {
   Vector3 kProd;
-  kProd.x = fScalar*x;
-  kProd.y = fScalar*y;
-  kProd.z = fScalar*z;
+  kProd._x = fScalar*_x;
+  kProd._y = fScalar*_y;
+  kProd._z = fScalar*_z;
   return kProd;
 }
 
@@ -153,9 +176,9 @@ Vector3 Vector3::operator* (double fScalar) const
 Vector3 Vector3::operator- () const
 {
   Vector3 kNeg;
-  kNeg.x = -x;
-  kNeg.y = -y;
-  kNeg.z = -z;
+  kNeg._x = -_x;
+  kNeg._y = -_y;
+  kNeg._z = -_z;
   return kNeg;
 }
 
@@ -163,49 +186,49 @@ Vector3 Vector3::operator- () const
 Vector3 operator* (double fScalar, const Vector3& rkVector)
 {
   Vector3 kProd;
-  kProd.x = fScalar*rkVector.x;
-  kProd.y = fScalar*rkVector.y;
-  kProd.z = fScalar*rkVector.z;
+  kProd._x = fScalar*rkVector._x;
+  kProd._y = fScalar*rkVector._y;
+  kProd._z = fScalar*rkVector._z;
   return kProd;
 }
 
 //----------------------------------------------------------------------------
 Vector3& Vector3::operator+= (const Vector3& rkVector)
 {
-  x += rkVector.x;
-  y += rkVector.y;
-  z += rkVector.z;
+  _x += rkVector._x;
+  _y += rkVector._y;
+  _z += rkVector._z;
   return *this;
 }
 
 //----------------------------------------------------------------------------
 Vector3& Vector3::operator-= (const Vector3& rkVector)
 {
-  x -= rkVector.x;
-  y -= rkVector.y;
-  z -= rkVector.z;
+  _x -= rkVector._x;
+  _y -= rkVector._y;
+  _z -= rkVector._z;
   return *this;
 }
 
 //----------------------------------------------------------------------------
 Vector3& Vector3::operator*= (double fScalar)
 {
-  x *= fScalar;
-  y *= fScalar;
-  z *= fScalar;
+  _x *= fScalar;
+  _y *= fScalar;
+  _z *= fScalar;
   return *this;
 }
 
 //----------------------------------------------------------------------------
 double Vector3::SquaredLength () const
 {
-  return x*x + y*y + z*z;
+  return _x*_x + _y*_y + _z*_z;
 }
 
 //----------------------------------------------------------------------------
 double Vector3::Dot (const Vector3& rkVector) const
 {
-  return x*rkVector.x + y*rkVector.y + z*rkVector.z;
+  return _x*rkVector._x + _y*rkVector._y + _z*rkVector._z;
 }
 
 //----------------------------------------------------------------------------
@@ -215,9 +238,9 @@ Vector3 Vector3::operator/ (double fScalar) const
 
   if ( fScalar != 0.0 ) {
     double fInvScalar = 1.0/fScalar;
-    kQuot.x = fInvScalar*x;
-    kQuot.y = fInvScalar*y;
-    kQuot.z = fInvScalar*z;
+    kQuot._x = fInvScalar*_x;
+    kQuot._y = fInvScalar*_y;
+    kQuot._z = fInvScalar*_z;
     return kQuot;
   } else {
     cerr << "Vector3::operator/: division by 0" << endl;
@@ -230,9 +253,9 @@ Vector3& Vector3::operator/= (double fScalar)
 {
   if ( fScalar != 0.0 ) {
     double fInvScalar = 1.0/fScalar;
-    x *= fInvScalar;
-    y *= fInvScalar;
-    z *= fInvScalar;
+    _x *= fInvScalar;
+    _y *= fInvScalar;
+    _z *= fInvScalar;
   } else {
     cerr << "Vector3::operator/=: division by 0" << endl;
     exit(1);
@@ -244,7 +267,7 @@ Vector3& Vector3::operator/= (double fScalar)
 //----------------------------------------------------------------------------
 double Vector3::Length () const
 {
-  return sqrt(x*x + y*y + z*z);
+  return sqrt(_x*_x + _y*_y + _z*_z);
 }
 
 //----------------------------------------------------------------------------
@@ -254,9 +277,9 @@ double Vector3::Normalize(double fTolerance)
 
   if ( fLength > fTolerance ) {
     double fInvLength = 1.0/fLength;
-    x *= fInvLength;
-    y *= fInvLength;
-    z *= fInvLength;
+    _x *= fInvLength;
+    _y *= fInvLength;
+    _z *= fInvLength;
   } else {
     fLength = 0.0;
   }
@@ -275,9 +298,9 @@ Vector3 Vector3::Cross (const Vector3& rkVector) const
 {
   Vector3 kCross;
 
-  kCross.x = y*rkVector.z - z*rkVector.y;
-  kCross.y = z*rkVector.x - x*rkVector.z;
-  kCross.z = x*rkVector.y - y*rkVector.x;
+  kCross._x = _y*rkVector._z - _z*rkVector._y;
+  kCross._y = _z*rkVector._x - _x*rkVector._z;
+  kCross._z = _x*rkVector._y - _y*rkVector._x;
 
   return kCross;
 }
@@ -287,9 +310,9 @@ Vector3 Vector3::UnitCross (const Vector3& rkVector) const
 {
   Vector3 kCross;
 
-  kCross.x = y*rkVector.z - z*rkVector.y;
-  kCross.y = z*rkVector.x - x*rkVector.z;
-  kCross.z = x*rkVector.y - y*rkVector.x;
+  kCross._x = _y*rkVector._z - _z*rkVector._y;
+  kCross._y = _z*rkVector._x - _x*rkVector._z;
+  kCross._z = _x*rkVector._y - _y*rkVector._x;
   kCross.Unitize();
 
   return kCross;
@@ -330,15 +353,15 @@ void Vector3::GenerateOrthonormalBasis(Vector3& rkU, Vector3& rkV,
   if ( !bUnitLengthW )
     rkW.Unitize();
 
-  if (abs(rkW.x) >= abs(rkW.y) &&
-      abs(rkW.x) >= abs(rkW.z)) {
-    rkU.x = -rkW.y;
-    rkU.y = +rkW.x;
-    rkU.z = 0.0;
+  if (abs(rkW._x) >= abs(rkW._y) &&
+      abs(rkW._x) >= abs(rkW._z)) {
+    rkU._x = -rkW._y;
+    rkU._y = +rkW._x;
+    rkU._z = 0.0;
   } else {
-    rkU.x = 0.0;
-    rkU.y = +rkW.z;
-    rkU.z = -rkW.y;
+    rkU._x = 0.0;
+    rkU._y = +rkW._z;
+    rkU._z = -rkW._y;
   }
 
   rkU.Unitize();

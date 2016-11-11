@@ -370,10 +370,10 @@ void EvaluateImageDerivative(vtkPolyData *surface, const RealImage &image, const
     surface->GetPoint(ptId, p);
     normals->GetTuple(ptId, n);
     f.WorldToImage(p);
-    f.Jacobian3D(jac, p.x, p.y, p.z);
-    g.x = jac(0, 0);
-    g.y = jac(0, 1);
-    g.z = jac(0, 2);
+    f.Jacobian3D(jac, p._x, p._y, p._z);
+    g._x = jac(0, 0);
+    g._y = jac(0, 1);
+    g._z = jac(0, 2);
     f.ImageToWorld(g);
     if (normalize) g.Normalize();
     value = n.Dot(g);

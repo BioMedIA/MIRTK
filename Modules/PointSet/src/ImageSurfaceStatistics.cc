@@ -66,7 +66,7 @@ protected:
 
     // Sample patch values
     _Points->GetPoint(ptId, o);
-    _Image->WorldToImage(o.x, o.y, o.z);
+    _Image->WorldToImage(o._x, o._y, o._z);
     o -= (_Size.x / 2.) * dx;
     o -= (_Size.y / 2.) * dy;
     o -= (_Size.z / 2.) * dz;
@@ -75,7 +75,7 @@ protected:
     for (int j = 0; j < _Size.y; ++j) {
       p = o + j * dy + k * dz;
       for (int i = 0; i < _Size.x; ++i, ++v, p += dx) {
-        (*v) = _Image->Evaluate(p.x, p.y, p.z);
+        (*v) = _Image->Evaluate(p._x, p._y, p._z);
       }
     }
 
