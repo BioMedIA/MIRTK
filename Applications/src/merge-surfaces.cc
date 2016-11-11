@@ -1094,9 +1094,9 @@ vtkSmartPointer<vtkPolyData> CuttingPlane(const PlaneAttributes &attr, double tn
   // Map to world vectors of unit length
   Vector3 e1(attr.x), e2(attr.y), e3(attr.z);
   e1.Normalize(), e2.Normalize(), e3.Normalize();
-  dx = dx.x * e1 + dx.y * e2 + dx.z * e3;
-  dy = dy.x * e1 + dy.y * e2 + dy.z * e3;
-  n  = n .x * e1 + n .y * e2 + n .z * e3;
+  dx = dx._x * e1 + dx._y * e2 + dx._z * e3;
+  dy = dy._x * e1 + dy._y * e2 + dy._z * e3;
+  n  = n ._x * e1 + n ._y * e2 + n ._z * e3;
 
   // Add plane margin to initial plane extend
   dx *= (attr.x.Length() + 2. * margin);
@@ -1325,9 +1325,9 @@ vtkSmartPointer<vtkPolyData> TesselateDivider(vtkSmartPointer<vtkPolyData> divid
   matrix = vtkSmartPointer<vtkMatrix4x4>::New();
   matrix->Identity();
   for (int i = 0; i < 3; ++i) {
-    matrix->SetElement(i, 0, dir[i].x);
-    matrix->SetElement(i, 1, dir[i].y);
-    matrix->SetElement(i, 2, dir[i].z);
+    matrix->SetElement(i, 0, dir[i]._x);
+    matrix->SetElement(i, 1, dir[i]._y);
+    matrix->SetElement(i, 2, dir[i]._z);
     matrix->SetElement(i, 3, -dir[i].Dot(c));
   }
 
@@ -1343,29 +1343,29 @@ vtkSmartPointer<vtkPolyData> TesselateDivider(vtkSmartPointer<vtkPolyData> divid
   for (vtkIdType ptId = 1; ptId < divider->GetNumberOfPoints(); ++ptId) {
     divider->GetPoint(ptId, p);
     transform->TransformPoint(p, q);
-    if (q.x < minq.x) minq.x = q.x;
-    if (q.y < minq.y) minq.y = q.y;
-    if (q.z < minq.z) minq.z = q.z;
-    if (q.x > maxq.x) maxq.x = q.x;
-    if (q.y > maxq.y) maxq.y = q.y;
-    if (q.z > maxq.z) maxq.z = q.z;
+    if (q._x < minq._x) minq._x = q._x;
+    if (q._y < minq._y) minq._y = q._y;
+    if (q._z < minq._z) minq._z = q._z;
+    if (q._x > maxq._x) maxq._x = q._x;
+    if (q._y > maxq._y) maxq._y = q._y;
+    if (q._z > maxq._z) maxq._z = q._z;
   }
 
   const double margin = ds;
-  minq.x -= margin, maxq.x += margin;
-  minq.y -= margin, maxq.y += margin;
+  minq._x -= margin, maxq._x += margin;
+  minq._y -= margin, maxq._y += margin;
 
-  int nx = iceil((maxq.x - minq.x) / ds) + 1;
-  int ny = iceil((maxq.y - minq.y) / ds) + 1;
+  int nx = iceil((maxq._x - minq._x) / ds) + 1;
+  int ny = iceil((maxq._y - minq._y) / ds) + 1;
 
   if (nx % 2 == 0) ++nx;
   if (ny % 2 == 0) ++ny;
 
-  minq.x = minq.x + .5 * (maxq.x - minq.x) - ((nx - 1) / 2) * ds;
-  maxq.x = minq.x + (nx - 1) * ds + 1e-12;
+  minq._x = minq._x + .5 * (maxq._x - minq._x) - ((nx - 1) / 2) * ds;
+  maxq._x = minq._x + (nx - 1) * ds + 1e-12;
 
-  minq.y = minq.y + .5 * (maxq.y - minq.y) - ((ny - 1) / 2) * ds;
-  maxq.y = minq.y + (ny - 1) * ds + 1e-12;
+  minq._y = minq._y + .5 * (maxq._y - minq._y) - ((ny - 1) / 2) * ds;
+  maxq._y = minq._y + (ny - 1) * ds + 1e-12;
 
   // Add additional discrete divider polygon plane grid points
   vtkNew<vtkPointLocator> locator;
@@ -1381,10 +1381,10 @@ vtkSmartPointer<vtkPolyData> TesselateDivider(vtkSmartPointer<vtkPolyData> divid
     points->InsertNextPoint(p);
   }
 
-  q.z = 0.;
-  for (q.y = minq.y; q.y <= maxq.y; q.y += ds)
-  for (q.x = minq.x; q.x <= maxq.x; q.x += ds) {
-    p = c + q.x * dir[0] + q.y * dir[1];
+  q._z = 0.;
+  for (q._y = minq._y; q._y <= maxq._y; q._y += ds)
+  for (q._x = minq._x; q._x <= maxq._x; q._x += ds) {
+    p = c + q._x * dir[0] + q._y * dir[1];
     otherId = locator->FindClosestPoint(p);
     if (otherId >= 0) {
       divider->GetPoint(otherId, x);

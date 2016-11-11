@@ -59,10 +59,6 @@ struct Vector3D
   T _y; ///< The y component
   T _z; ///< The z component
 
-  T &x = _x;
-  T &y = _y;
-  T &z = _z;
-
   // ---------------------------------------------------------------------------
   // Construction/Destruction
 

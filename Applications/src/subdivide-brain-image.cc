@@ -165,20 +165,20 @@ struct Plane
     c(p), n(n)
   {
     this->n.Normalize();
-    b = - this->n.Dot(Vector3(c.x, c.y, c.z));
+    b = - this->n.Dot(Vector3(c._x, c._y, c._z));
   }
 
   void Center(const Point &p)
   {
     c = p;
-    b = - n.Dot(Vector3(c.x, c.y, c.z));
+    b = - n.Dot(Vector3(c._x, c._y, c._z));
   }
 
   void Normal(const Vector3 &v)
   {
     n = v;
     n.Normalize();
-    b = - n.Dot(Vector3(c.x, c.y, c.z));
+    b = - n.Dot(Vector3(c._x, c._y, c._z));
   }
 
   operator bool() const
@@ -188,7 +188,7 @@ struct Plane
 
   double SignedDistance(const Point &p) const
   {
-    return n.Dot(Vector3(p.x, p.y, p.z)) + b;
+    return n.Dot(Vector3(p._x, p._y, p._z)) + b;
   }
 
   static bool Tangents(const Vector3 &n, Vector3 &e1, Vector3 &e2)
@@ -216,7 +216,7 @@ struct Plane
 /// Print plane equation
 ostream &operator <<(ostream &os, const Plane &plane)
 {
-  os << "x^T [" << plane.n.x << " " << plane.n.y << " " << plane.n.z << "] + " << plane.b << " = 0";
+  os << "x^T [" << plane.n._x << " " << plane.n._y << " " << plane.n._z << "] + " << plane.b << " = 0";
   return os;
 }
 
@@ -453,21 +453,21 @@ ByteImage Cut(const ByteImage &regions, const Plane &plane, double r)
   attr._x = attr._y = 2 * iceil(r / ds) + 1;
   attr._z = 1;
 
-  attr._xorigin = plane.c.x;
-  attr._yorigin = plane.c.y;
-  attr._zorigin = plane.c.z;
+  attr._xorigin = plane.c._x;
+  attr._yorigin = plane.c._y;
+  attr._zorigin = plane.c._z;
 
-  attr._xaxis[0] = e1.x;
-  attr._xaxis[1] = e1.y;
-  attr._xaxis[2] = e1.z;
+  attr._xaxis[0] = e1._x;
+  attr._xaxis[1] = e1._y;
+  attr._xaxis[2] = e1._z;
 
-  attr._yaxis[0] = e2.x;
-  attr._yaxis[1] = e2.y;
-  attr._yaxis[2] = e2.z;
+  attr._yaxis[0] = e2._x;
+  attr._yaxis[1] = e2._y;
+  attr._yaxis[2] = e2._z;
 
-  attr._zaxis[0] = plane.n.x;
-  attr._zaxis[1] = plane.n.y;
-  attr._zaxis[2] = plane.n.z;
+  attr._zaxis[0] = plane.n._x;
+  attr._zaxis[1] = plane.n._y;
+  attr._zaxis[2] = plane.n._z;
 
   const Matrix w2i = attr.GetWorldToImageMatrix();
   const Matrix i2w = attr.GetImageToWorldMatrix();
@@ -506,7 +506,7 @@ double MaxBrainstemDiameter(const ByteImage &regions, const Plane &plane)
   for (int i = 0; i < regions.X(); ++i) {
     if (regions(i, j, k) == BS) {
       p = Vector3(i, j, k);
-      regions.ImageToWorld(p.x, p.y, p.z);
+      regions.ImageToWorld(p._x, p._y, p._z);
       x = e1.Dot(p);
       y = e2.Dot(p);
       x1 = min(x1, x);
@@ -642,9 +642,9 @@ Plane SymmetricCuttingPlane(const ByteImage &regions, BrainRegion a, BrainRegion
   center[0] /= numvox[0];
   center[1] /= numvox[1];
   Plane plane;
-  plane.n[0] = center[0].x - center[1].x;
-  plane.n[1] = center[0].y - center[1].y;
-  plane.n[2] = center[0].z - center[1].z;
+  plane.n[0] = center[0]._x - center[1]._x;
+  plane.n[1] = center[0]._y - center[1]._y;
+  plane.n[2] = center[0]._z - center[1]._z;
   plane.n.Normalize();
   plane.Center((center[0] + center[1]) / 2.0);
   return plane;
@@ -704,21 +704,21 @@ ByteImage Resample(const ByteImage &regions, const Plane &rl_plane, const Plane 
   for (int ci = 0; ci < 2; ++ci) {
     p = Point(bi[ci], bj[cj], bk[ck]);
     regions.ImageToWorld(p);
-    bounds[0] = min(bounds[0], p.x);
-    bounds[1] = max(bounds[1], p.x);
-    bounds[2] = min(bounds[2], p.y);
-    bounds[3] = max(bounds[3], p.y);
-    bounds[4] = min(bounds[4], p.z);
-    bounds[5] = max(bounds[5], p.z);
-    q.x = xaxis.Dot(p);
-    q.y = yaxis.Dot(p);
-    q.z = zaxis.Dot(p);
-    limits[0] = min(limits[0], q.x);
-    limits[1] = max(limits[1], q.x);
-    limits[2] = min(limits[2], q.y);
-    limits[3] = max(limits[3], q.y);
-    limits[4] = min(limits[4], q.z);
-    limits[5] = max(limits[5], q.z);
+    bounds[0] = min(bounds[0], p._x);
+    bounds[1] = max(bounds[1], p._x);
+    bounds[2] = min(bounds[2], p._y);
+    bounds[3] = max(bounds[3], p._y);
+    bounds[4] = min(bounds[4], p._z);
+    bounds[5] = max(bounds[5], p._z);
+    q._x = xaxis.Dot(p);
+    q._y = yaxis.Dot(p);
+    q._z = zaxis.Dot(p);
+    limits[0] = min(limits[0], q._x);
+    limits[1] = max(limits[1], q._x);
+    limits[2] = min(limits[2], q._y);
+    limits[3] = max(limits[3], q._y);
+    limits[4] = min(limits[4], q._z);
+    limits[5] = max(limits[5], q._z);
   }
 
   ImageAttributes attr;
@@ -1326,14 +1326,14 @@ int main(int argc, char *argv[])
     // Determine bounding box of interhemisphere WM
     const bool world = false;
     PointSet voxels = BoundaryPoints(regions, RH, LH, world);
-    int bounds[6] = {static_cast<int>(voxels(0).x), static_cast<int>(voxels(0).x),
-                     static_cast<int>(voxels(0).y), static_cast<int>(voxels(0).y),
-                     static_cast<int>(voxels(0).z), static_cast<int>(voxels(0).z)};
+    int bounds[6] = {static_cast<int>(voxels(0)._x), static_cast<int>(voxels(0)._x),
+                     static_cast<int>(voxels(0)._y), static_cast<int>(voxels(0)._y),
+                     static_cast<int>(voxels(0)._z), static_cast<int>(voxels(0)._z)};
     for (int n = 1, i, j, k; n < voxels.Size(); ++n) {
       const auto &voxel = voxels(n);
-      i = static_cast<int>(voxel.x);
-      j = static_cast<int>(voxel.y);
-      k = static_cast<int>(voxel.z);
+      i = static_cast<int>(voxel._x);
+      j = static_cast<int>(voxel._y);
+      k = static_cast<int>(voxel._z);
       bounds[0] = min(bounds[0], i);
       bounds[1] = max(bounds[1], i);
       bounds[2] = min(bounds[2], j);

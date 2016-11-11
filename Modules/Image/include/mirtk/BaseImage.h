@@ -1184,10 +1184,10 @@ inline void BaseImage::ImageToWorld(Point &p) const
 // -----------------------------------------------------------------------------
 inline void BaseImage::ImageToWorld(Vector3 &v) const
 {
-  double a = _matI2W(0, 0) * v.x + _matI2W(0, 1) * v.y + _matI2W(0, 2) * v.z;
-  double b = _matI2W(1, 0) * v.x + _matI2W(1, 1) * v.y + _matI2W(1, 2) * v.z;
-  double c = _matI2W(2, 0) * v.x + _matI2W(2, 1) * v.y + _matI2W(2, 2) * v.z;
-  v.x = a, v.y = b, v.z = c;
+  double a = _matI2W(0, 0) * v._x + _matI2W(0, 1) * v._y + _matI2W(0, 2) * v._z;
+  double b = _matI2W(1, 0) * v._x + _matI2W(1, 1) * v._y + _matI2W(1, 2) * v._z;
+  double c = _matI2W(2, 0) * v._x + _matI2W(2, 1) * v._y + _matI2W(2, 2) * v._z;
+  v._x = a, v._y = b, v._z = c;
 }
 
 // -----------------------------------------------------------------------------
@@ -1216,10 +1216,10 @@ inline void BaseImage::WorldToImage(Point &p) const
 // -----------------------------------------------------------------------------
 inline void BaseImage::WorldToImage(Vector3 &v) const
 {
-  double a = _matW2I(0, 0) * v.x + _matW2I(0, 1) * v.y + _matW2I(0, 2) * v.z;
-  double b = _matW2I(1, 0) * v.x + _matW2I(1, 1) * v.y + _matW2I(1, 2) * v.z;
-  double c = _matW2I(2, 0) * v.x + _matW2I(2, 1) * v.y + _matW2I(2, 2) * v.z;
-  v.x = a, v.y = b, v.z = c;
+  double a = _matW2I(0, 0) * v._x + _matW2I(0, 1) * v._y + _matW2I(0, 2) * v._z;
+  double b = _matW2I(1, 0) * v._x + _matW2I(1, 1) * v._y + _matW2I(1, 2) * v._z;
+  double c = _matW2I(2, 0) * v._x + _matW2I(2, 1) * v._y + _matW2I(2, 2) * v._z;
+  v._x = a, v._y = b, v._z = c;
 }
 
 // -----------------------------------------------------------------------------

@@ -45,11 +45,6 @@ struct Vector4D
   T _z; ///< The z component
   T _t; ///< The t component
 
-  T &x = _x; ///< More convenient/readable _x attribute accessor
-  T &y = _y; ///< More convenient/readable _y attribute accessor
-  T &z = _z; ///< More convenient/readable _z attribute accessor
-  T &t = _t; ///< More convenient/readable _t attribute accessor
-
   // ---------------------------------------------------------------------------
 
   /** Constructor. */

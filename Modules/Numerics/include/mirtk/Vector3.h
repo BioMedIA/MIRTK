@@ -41,10 +41,13 @@ public:
   Vector3 (const Vector3& rkVector);
   Vector3 (const Point &);
 
-  // member access (allows V.x or V[0], V.y or V[1], V.z or V[2])
-  double x, y, z;
-  double& operator[] (int i) const;
+  // member access
+  // (allows V._x or V(0) or V[0], V._y or V(1) or V[1], V._z or V(2) or or V[2])
+  double _x, _y, _z;
+  double& operator[] (int i);
+  const double& operator[] (int i) const;
   operator double* ();
+  operator const double* () const;
 
   // assignment and comparison
   Vector3& operator= (const Vector3& rkVector);

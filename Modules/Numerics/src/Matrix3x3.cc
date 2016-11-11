@@ -1084,9 +1084,9 @@ void Matrix3x3::ToAxisAngle (Vector3& rkAxis, double& rfRadians) const
 
   if ( rfRadians > 0.0 ) {
     if ( rfRadians < pi ) {
-      rkAxis.x = m_aafEntry[2][1]-m_aafEntry[1][2];
-      rkAxis.y = m_aafEntry[0][2]-m_aafEntry[2][0];
-      rkAxis.z = m_aafEntry[1][0]-m_aafEntry[0][1];
+      rkAxis._x = m_aafEntry[2][1]-m_aafEntry[1][2];
+      rkAxis._y = m_aafEntry[0][2]-m_aafEntry[2][0];
+      rkAxis._z = m_aafEntry[1][0]-m_aafEntry[0][1];
       rkAxis.Unitize();
     } else {
       // angle is PI
@@ -1095,40 +1095,40 @@ void Matrix3x3::ToAxisAngle (Vector3& rkAxis, double& rfRadians) const
         // r00 >= r11
         if ( m_aafEntry[0][0] >= m_aafEntry[2][2] ) {
           // r00 is maximum diagonal term
-          rkAxis.x = 0.5*Sqrt(m_aafEntry[0][0] - m_aafEntry[1][1] - m_aafEntry[2][2] + 1.0);
-          fHalfInverse = 0.5/rkAxis.x;
-          rkAxis.y = fHalfInverse*m_aafEntry[0][1];
-          rkAxis.z = fHalfInverse*m_aafEntry[0][2];
+          rkAxis._x = 0.5*Sqrt(m_aafEntry[0][0] - m_aafEntry[1][1] - m_aafEntry[2][2] + 1.0);
+          fHalfInverse = 0.5/rkAxis._x;
+          rkAxis._y = fHalfInverse*m_aafEntry[0][1];
+          rkAxis._z = fHalfInverse*m_aafEntry[0][2];
         } else {
           // r22 is maximum diagonal term
-          rkAxis.z = 0.5*Sqrt(m_aafEntry[2][2] - m_aafEntry[0][0] - m_aafEntry[1][1] + 1.0);
-          fHalfInverse = 0.5/rkAxis.z;
-          rkAxis.x = fHalfInverse*m_aafEntry[0][2];
-          rkAxis.y = fHalfInverse*m_aafEntry[1][2];
+          rkAxis._z = 0.5*Sqrt(m_aafEntry[2][2] - m_aafEntry[0][0] - m_aafEntry[1][1] + 1.0);
+          fHalfInverse = 0.5/rkAxis._z;
+          rkAxis._x = fHalfInverse*m_aafEntry[0][2];
+          rkAxis._y = fHalfInverse*m_aafEntry[1][2];
         }
       } else {
         // r11 > r00
         if ( m_aafEntry[1][1] >= m_aafEntry[2][2] ) {
           // r11 is maximum diagonal term
-          rkAxis.y = 0.5*Sqrt(m_aafEntry[1][1] - m_aafEntry[0][0] - m_aafEntry[2][2] + 1.0);
-          fHalfInverse  = 0.5/rkAxis.y;
-          rkAxis.x = fHalfInverse*m_aafEntry[0][1];
-          rkAxis.z = fHalfInverse*m_aafEntry[1][2];
+          rkAxis._y = 0.5*Sqrt(m_aafEntry[1][1] - m_aafEntry[0][0] - m_aafEntry[2][2] + 1.0);
+          fHalfInverse  = 0.5/rkAxis._y;
+          rkAxis._x = fHalfInverse*m_aafEntry[0][1];
+          rkAxis._z = fHalfInverse*m_aafEntry[1][2];
         } else {
           // r22 is maximum diagonal term
-          rkAxis.z = 0.5*Sqrt(m_aafEntry[2][2] - m_aafEntry[0][0] - m_aafEntry[1][1] + 1.0);
-          fHalfInverse = 0.5/rkAxis.z;
-          rkAxis.x = fHalfInverse*m_aafEntry[0][2];
-          rkAxis.y = fHalfInverse*m_aafEntry[1][2];
+          rkAxis._z = 0.5*Sqrt(m_aafEntry[2][2] - m_aafEntry[0][0] - m_aafEntry[1][1] + 1.0);
+          fHalfInverse = 0.5/rkAxis._z;
+          rkAxis._x = fHalfInverse*m_aafEntry[0][2];
+          rkAxis._y = fHalfInverse*m_aafEntry[1][2];
         }
       }
     }
   } else {
     // The angle is 0 and the matrix is the identity.  Any axis will
     // work, so just use the x-axis.
-    rkAxis.x = 1.0;
-    rkAxis.y = 0.0;
-    rkAxis.z = 0.0;
+    rkAxis._x = 1.0;
+    rkAxis._y = 0.0;
+    rkAxis._z = 0.0;
   }
 }
 
@@ -1138,15 +1138,15 @@ void Matrix3x3::FromAxisAngle (const Vector3& rkAxis, double fRadians)
   double fCos = Cos(fRadians);
   double fSin = Sin(fRadians);
   double fOneMinusCos = 1.0-fCos;
-  double fX2 = rkAxis.x*rkAxis.x;
-  double fY2 = rkAxis.y*rkAxis.y;
-  double fZ2 = rkAxis.z*rkAxis.z;
-  double fXYM = rkAxis.x*rkAxis.y*fOneMinusCos;
-  double fXZM = rkAxis.x*rkAxis.z*fOneMinusCos;
-  double fYZM = rkAxis.y*rkAxis.z*fOneMinusCos;
-  double fXSin = rkAxis.x*fSin;
-  double fYSin = rkAxis.y*fSin;
-  double fZSin = rkAxis.z*fSin;
+  double fX2 = rkAxis._x*rkAxis._x;
+  double fY2 = rkAxis._y*rkAxis._y;
+  double fZ2 = rkAxis._z*rkAxis._z;
+  double fXYM = rkAxis._x*rkAxis._y*fOneMinusCos;
+  double fXZM = rkAxis._x*rkAxis._z*fOneMinusCos;
+  double fYZM = rkAxis._y*rkAxis._z*fOneMinusCos;
+  double fXSin = rkAxis._x*fSin;
+  double fYSin = rkAxis._y*fSin;
+  double fZSin = rkAxis._z*fSin;
 
   m_aafEntry[0][0] = fX2*fOneMinusCos+fCos;
   m_aafEntry[0][1] = fXYM-fZSin;

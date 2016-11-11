@@ -22,7 +22,6 @@
 
 #include "mirtk/Stream.h"
 
-
 // -----------------------------------------------------------------------------
 #ifndef NDEBUG
 #  define mirtkAssert(condition, message)                                      \

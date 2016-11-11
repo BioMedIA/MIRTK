@@ -597,7 +597,7 @@ bool SurfaceRemeshing
 
   // Move first point to edge middlepoint
   const Point m = MiddlePoint(ptId1, ptId2);
-  _Output->GetPoints()->SetPoint(ptId1, m.x, m.y, m.z);
+  _Output->GetPoints()->SetPoint(ptId1, m._x, m._y, m._z);
   _Output->GetPoints()->Modified();
 
   // Replace second point in (remaining) adjacent cells by first point
@@ -903,7 +903,7 @@ void SurfaceRemeshing
   vtkCellData  * const cd     = output->GetCellData();
 
   const Point     midPoint = MiddlePoint(ptId1, ptId2);
-  const vtkIdType midPtId  = points->InsertNextPoint(midPoint.x, midPoint.y, midPoint.z);
+  const vtkIdType midPtId  = points->InsertNextPoint(midPoint._x, midPoint._y, midPoint._z);
   vtkIdType       newId, pts[3];
 
   InterpolatePointData(pd, midPtId, ptId1, ptId2);
@@ -934,8 +934,8 @@ void SurfaceRemeshing
 
   const Point     midPoint1 = MiddlePoint(ptId1, ptId2);
   const Point     midPoint2 = MiddlePoint(ptId2, ptId3);
-  const vtkIdType midPtId1  = points->InsertNextPoint(midPoint1.x, midPoint1.y, midPoint1.z);
-  const vtkIdType midPtId2  = points->InsertNextPoint(midPoint2.x, midPoint2.y, midPoint2.z);
+  const vtkIdType midPtId1  = points->InsertNextPoint(midPoint1._x, midPoint1._y, midPoint1._z);
+  const vtkIdType midPtId2  = points->InsertNextPoint(midPoint2._x, midPoint2._y, midPoint2._z);
   vtkIdType       newId, pts[3];
 
   InterpolatePointData(pd, midPtId1, ptId1, ptId2);
@@ -974,9 +974,9 @@ void SurfaceRemeshing
   const Point     midPoint1 = MiddlePoint(ptId1, ptId2);
   const Point     midPoint2 = MiddlePoint(ptId2, ptId3);
   const Point     midPoint3 = MiddlePoint(ptId3, ptId1);
-  const vtkIdType midPtId1  = points->InsertNextPoint(midPoint1.x, midPoint1.y, midPoint1.z);
-  const vtkIdType midPtId2  = points->InsertNextPoint(midPoint2.x, midPoint2.y, midPoint2.z);
-  const vtkIdType midPtId3  = points->InsertNextPoint(midPoint3.x, midPoint3.y, midPoint3.z);
+  const vtkIdType midPtId1  = points->InsertNextPoint(midPoint1._x, midPoint1._y, midPoint1._z);
+  const vtkIdType midPtId2  = points->InsertNextPoint(midPoint2._x, midPoint2._y, midPoint2._z);
+  const vtkIdType midPtId3  = points->InsertNextPoint(midPoint3._x, midPoint3._y, midPoint3._z);
   vtkIdType       newId, pts[3];
 
   InterpolatePointData(pd, midPtId1, ptId1, ptId2);
