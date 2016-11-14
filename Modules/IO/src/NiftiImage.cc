@@ -34,7 +34,6 @@ NiftiImage::NiftiImage(const char *fname)
   nim(nullptr)
 {
   if (fname) Read(fname);
-  else nim = nifti_simple_init_nim();
 }
 
 // -----------------------------------------------------------------------------
@@ -50,7 +49,10 @@ NiftiImage::~NiftiImage()
 // -----------------------------------------------------------------------------
 void NiftiImage::Read(const char *filename)
 {
-  if (nim != nullptr) nifti_image_free(nim);
+  if (nim != nullptr) {
+    nim->data = nullptr; // (de)allocated elsewhere
+    nifti_image_free(nim);
+  }
   const int read_data = 0;
   nim = nifti_image_read(filename, read_data);
 }
@@ -65,6 +67,13 @@ void NiftiImage::Initialize(int x, int y, int z, int t, int u,
   nifti_dmat44 mat_44;
   int nbytepix = 0, ss = 0;
   int i, j;
+
+  // Initialize NIfTI I/O data structure
+  if (nim != nullptr) {
+    nim->data = nullptr; // (de)allocated elsewhere
+    nifti_image_free(nim);
+  }
+  nim = nifti_simple_init_nim();
 
   // Spatial dimensions
   nim->nifti_type = 1;               // 1==nii (1 file) - should set the magic in nhdr in Write()

@@ -61,14 +61,13 @@ static inline nifti_dmat33 nifti_dmat44_to_dmat33(const nifti_dmat44 &x)
 // -----------------------------------------------------------------------------
 NiftiImageReader::NiftiImageReader()
 :
-  _Nifti(new NiftiImage)
+  _Nifti(new NiftiImage())
 {
 }
 
 // -----------------------------------------------------------------------------
 NiftiImageReader::~NiftiImageReader()
 {
-  delete _Nifti;
 }
 
 // =============================================================================
@@ -79,7 +78,7 @@ NiftiImageReader::~NiftiImageReader()
 bool NiftiImageReader::CheckHeader(const char *fname)
 {
   // Get name of corresponding image header file
-  const char *hname = nifti_findhdrname(fname);
+  char *hname = nifti_findhdrname(fname);
   if (hname == nullptr) return false;
   // Open header file stream
   Cifstream from(hname);
@@ -87,7 +86,10 @@ bool NiftiImageReader::CheckHeader(const char *fname)
   // (cf. has_ascii_header function defined in nifti2_io.cc)
   char nia_magic[16];
   if (from.ReadAsChar(nia_magic, 12)) {
-    if (strncmp(nia_magic, "<nifti_image", 12) == 0) return true;
+    if (strncmp(nia_magic, "<nifti_image", 12) == 0) {
+      free(hname);
+      return true;
+    }
     from.Seek(0);
   }
   // Try to read NIfTI-1 header
@@ -105,6 +107,7 @@ bool NiftiImageReader::CheckHeader(const char *fname)
     const size_t h2size = sizeof(nifti_2_header);
     memcpy(&n2hdr, &n1hdr, h1size);
     if (!from.ReadAsChar((char *)&n2hdr + h1size, static_cast<int>(h2size - h1size))) {
+      free(hname);
       return false;
     }
     // Check if header has extensions
@@ -143,8 +146,12 @@ bool NiftiImageReader::CheckHeader(const char *fname)
       }
     }
     // CIFTI file is no image file
-    if (is_cifti) return false;
+    if (is_cifti) {
+      free(hname);
+      return false;
+    }
   }
+  free(hname);
   return true;
 }
 
@@ -161,13 +168,14 @@ void NiftiImageReader::Initialize()
   this->ReadHeader();
 
   // Open image data file
-  const char *iname = nifti_findimgname(_FileName.c_str(), _Nifti->nim->nifti_type);
+  char *iname = nifti_findimgname(_FileName.c_str(), _Nifti->nim->nifti_type);
   if (iname == nullptr) {
     cerr << this->NameOfClass() << "::ReadHeader: Could not find image data file for " << _FileName << endl;
     exit(1);
   }
-  this->Open(iname);
   _ImageName = iname;
+  free(iname);
+  this->Open(_ImageName.c_str());
 }
 
 // -----------------------------------------------------------------------------
@@ -179,12 +187,13 @@ void NiftiImageReader::ReadHeader()
   nifti_dmat33 mat_33;
 
   // Read header
-  const char *hname = nifti_findhdrname(_FileName.c_str());
+  char *hname = nifti_findhdrname(_FileName.c_str());
   if (hname == nullptr) {
     cerr << this->NameOfClass() << "::ReadHeader: Could not find header file for " << _FileName << endl;
     exit(1);
   }
   _Nifti->Read(hname);
+  free(hname);
 
   // Check dimension
   if (_Nifti->nim->dim[0] > 5) {

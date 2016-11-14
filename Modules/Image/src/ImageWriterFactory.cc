@@ -47,7 +47,10 @@ ImageWriterFactory::~ImageWriterFactory()
 // -----------------------------------------------------------------------------
 bool ImageWriterFactory::Register(const Array<string> &exts, ImageWriterCreator creator)
 {
-  mirtkAssert(creator() != nullptr, "ImageWriterCreator produces object");
+  #ifndef NDEBUG
+    UniquePtr<ImageWriter> writer(creator());
+    mirtkAssert(writer != nullptr, "ImageWriterCreator produces object");
+  #endif
   for (auto ext = exts.begin(); ext != exts.end(); ++ext) {
     _Associations[*ext] = creator;
   }
