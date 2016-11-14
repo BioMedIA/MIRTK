@@ -45,7 +45,10 @@ ImageReaderFactory::~ImageReaderFactory()
 // -----------------------------------------------------------------------------
 bool ImageReaderFactory::Register(ImageReaderCreator creator)
 {
-  mirtkAssert(creator() != nullptr, "ImageReaderCreator produces object");
+  #ifndef NDEBUG
+    UniquePtr<ImageReader> reader(creator());
+    mirtkAssert(reader != nullptr, "ImageReaderCreator produces object");
+  #endif
   _Creators.push_back(creator);
   return true;
 }
@@ -53,14 +56,13 @@ bool ImageReaderFactory::Register(ImageReaderCreator creator)
 // -----------------------------------------------------------------------------
 ImageReader *ImageReaderFactory::New(const char *fname) const
 {
-  ImageReader *reader = nullptr;
   for (auto it = _Creators.begin(); it != _Creators.end(); ++it) {
-    reader = (*it)();
-    if (reader->CanRead(fname)) break;
-    delete reader;
-    reader = nullptr;
+    UniquePtr<ImageReader> reader((*it)());
+    if (reader->CanRead(fname)) {
+      return reader.release();
+    }
   }
-  return reader;
+  return nullptr;
 }
 
 
