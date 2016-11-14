@@ -735,16 +735,24 @@ void MarkHoles(vtkPolyData *surface, int max_hole_size, const char *scalars_name
 
   // Replace label of not extracted unlabeled cells by -1 (these can be filled in)
   if (using_cells) {
-    vtkNew<vtkCellLocator> locator;
-    locator->SetDataSet(filter->GetOutput());
-    locator->BuildLocator();
-    Array<double> pweights(surface->GetMaxCellSize());
-    for (vtkIdType cellId = 0; cellId < surface->GetNumberOfCells(); ++cellId) {
-      if (static_cast<LabelType>(labels->GetComponent(cellId, 0)) == 0) {
-        cell  = surface->GetCell(cellId);
-        subId = cell->GetParametricCenter(pcoords);
-        cell->EvaluateLocation(subId, pcoords, p, pweights.data());
-        if (locator->FindCell(p) == -1) {
+    if (filter->GetOutput()->GetNumberOfCells() > 0) {
+      vtkNew<vtkCellLocator> locator;
+      locator->SetDataSet(filter->GetOutput());
+      locator->BuildLocator();
+      Array<double> pweights(surface->GetMaxCellSize());
+      for (vtkIdType cellId = 0; cellId < surface->GetNumberOfCells(); ++cellId) {
+        if (static_cast<LabelType>(labels->GetComponent(cellId, 0)) == 0) {
+          cell  = surface->GetCell(cellId);
+          subId = cell->GetParametricCenter(pcoords);
+          cell->EvaluateLocation(subId, pcoords, p, pweights.data());
+          if (locator->FindCell(p) == -1) {
+            labels->SetComponent(cellId, 0, -1.);
+          }
+        }
+      }
+    } else {
+      for (vtkIdType cellId = 0; cellId < surface->GetNumberOfCells(); ++cellId) {
+        if (static_cast<LabelType>(labels->GetComponent(cellId, 0)) == 0) {
           labels->SetComponent(cellId, 0, -1.);
         }
       }
@@ -758,21 +766,29 @@ void MarkHoles(vtkPolyData *surface, int max_hole_size, const char *scalars_name
     cleaner->PointMergingOff();
     cleaner->Update();
     vtkPolyData * const exclude = cleaner->GetOutput();
-    vtkNew<vtkPointLocator> locator;
-    locator->SetDataSet(exclude);
-    locator->BuildLocator();
-    const double tol2 = 1e-12;
-    for (vtkIdType ptId = 0, exclId; ptId < surface->GetNumberOfPoints(); ++ptId) {
-      if (static_cast<LabelType>(labels->GetComponent(ptId, 0)) == 0) {
-        surface->GetPoint(ptId, p);
-        exclId = locator->FindClosestPoint(p);
-        if (exclId < 0) {
-          labels->SetComponent(ptId, 0, -1.);
-        } else {
-          exclude->GetPoint(exclId, q);
-          if (p.SquaredDistance(q) > tol2) {
+    if (exclude->GetNumberOfPoints() > 0) {
+      vtkNew<vtkPointLocator> locator;
+      locator->SetDataSet(exclude);
+      locator->BuildLocator();
+      const double tol2 = 1e-12;
+      for (vtkIdType ptId = 0, exclId; ptId < surface->GetNumberOfPoints(); ++ptId) {
+        if (static_cast<LabelType>(labels->GetComponent(ptId, 0)) == 0) {
+          surface->GetPoint(ptId, p);
+          exclId = locator->FindClosestPoint(p);
+          if (exclId < 0) {
             labels->SetComponent(ptId, 0, -1.);
+          } else {
+            exclude->GetPoint(exclId, q);
+            if (p.SquaredDistance(q) > tol2) {
+              labels->SetComponent(ptId, 0, -1.);
+            }
           }
+        }
+      }
+    } else {
+      for (vtkIdType ptId = 0, exclId; ptId < surface->GetNumberOfPoints(); ++ptId) {
+        if (static_cast<LabelType>(labels->GetComponent(ptId, 0)) == 0) {
+          labels->SetComponent(ptId, 0, -1.);
         }
       }
     }
