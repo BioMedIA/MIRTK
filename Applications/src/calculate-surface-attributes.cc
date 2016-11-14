@@ -67,6 +67,7 @@ void PrintHelp(const char *name)
   cout << "  -[no]auto-orient           Enable/disable auto-orientation of normals. (default: on)\n";
   cout << "  -[no]splitting             Enable/disable splitting of sharp edges. (default: off)\n";
   cout << "  -[no]consistency           Enable/disable enforcement of vertex order consistency. (default: on)\n";
+  cout << "  -[no]flip-normals          Enable/disable flipping of normals. (default: off)\n";
   cout << "\n";
   cout << "Curvature options:\n";
   cout << "  -k1k2 [<name>] [<name>]    Principal curvatures.\n";
@@ -400,6 +401,7 @@ int main(int argc, char *argv[])
   bool auto_orient_normals = true;
   bool splitting           = false;
   bool consistency         = true;
+  bool flip_normals        = false;
 
   const char *kmin_name       = SurfaceCurvature::MINIMUM;
   const char *kmax_name       = SurfaceCurvature::MAXIMUM;
@@ -450,6 +452,7 @@ int main(int argc, char *argv[])
     else HANDLE_BOOLEAN_OPTION("cell-normals",  cell_normals);
     else HANDLE_BOOLEAN_OPTION("auto-orient",   auto_orient_normals);
     else HANDLE_BOOLEAN_OPTION("consistency",   consistency);
+    else HANDLE_BOOLEAN_OPTION("flip-normals",  flip_normals);
     // -------------------------------------------------------------------------
     // Curvature
     else if (OPTION("-k1")) {
@@ -698,7 +701,7 @@ int main(int argc, char *argv[])
     filter->SetComputeCellNormals(cell_normals);
     filter->SetConsistency(consistency);
     filter->SetAutoOrientNormals(auto_orient_normals);
-    filter->FlipNormalsOff();
+    filter->SetFlipNormals(flip_normals);
     filter->Update();
     surface = filter->GetOutput();
     if (verbose) cout << " done" << endl;
