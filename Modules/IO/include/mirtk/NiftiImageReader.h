@@ -21,6 +21,7 @@
 #define MIRTK_NiftiImageReader_H
 
 #include "mirtk/ImageReader.h"
+#include "mirtk/Memory.h"
 
 
 namespace mirtk {
@@ -46,7 +47,7 @@ class NiftiImageReader : public ImageReader
   mirtkReadOnlyAttributeMacro(string, ImageName);
 
   /// NIfTI image
-  NiftiImage *_Nifti;
+  UniquePtr<NiftiImage> _Nifti;
 
 public:
 

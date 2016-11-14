@@ -86,7 +86,6 @@ NiftiImageWriter::NiftiImageWriter()
 // -----------------------------------------------------------------------------
 NiftiImageWriter::~NiftiImageWriter()
 {
-  delete _Nifti;
 }
 
 // =============================================================================
@@ -105,90 +104,90 @@ void NiftiImageWriter::Initialize()
   double xsize, ysize, zsize, tsize;
   _Input->GetPixelSize(&xsize, &ysize, &zsize, &tsize);
 
-  Matrix  qmat = _Input->GetImageToWorldMatrix();
-  Matrix *smat = NULL;
+  Matrix qmat = _Input->GetImageToWorldMatrix();
+  UniquePtr<Matrix> smat;
   if (!_Input->GetAffineMatrix().IsIdentity()) {
-    smat = new Matrix(qmat);
+    smat.reset(new Matrix(qmat));
     qmat = _Input->GetAffineMatrix().Inverse() * qmat;
   }
   const double torigin = _Input->ImageToTime(0);
 
   // Init header
-  const void *data = _Input->GetDataPointer();
+  const void * const data = _Input->GetDataPointer();
   switch (_Input->GetDataType()) {
     case MIRTK_VOXEL_CHAR: {
       _Nifti->Initialize(nx, ny, nz, nt, xsize, ysize, zsize, tsize,
-                         NIFTI_TYPE_INT8, qmat, smat, torigin, data);
+                         NIFTI_TYPE_INT8, qmat, smat.get(), torigin, data);
       break;
     }
     case MIRTK_VOXEL_UNSIGNED_CHAR: {
       _Nifti->Initialize(nx, ny, nz, nt, xsize, ysize, zsize, tsize,
-                         NIFTI_TYPE_UINT8, qmat, smat, torigin, data);
+                         NIFTI_TYPE_UINT8, qmat, smat.get(), torigin, data);
       break;
     }
     case MIRTK_VOXEL_SHORT: {
       _Nifti->Initialize(nx, ny, nz, nt, xsize, ysize, zsize, tsize,
-                         NIFTI_TYPE_INT16, qmat, smat, torigin, data);
+                         NIFTI_TYPE_INT16, qmat, smat.get(), torigin, data);
       break;
     }
     case MIRTK_VOXEL_UNSIGNED_SHORT: {
       _Nifti->Initialize(nx, ny, nz, nt, xsize, ysize, zsize, tsize,
-                         NIFTI_TYPE_UINT16, qmat, smat, torigin, data);
+                         NIFTI_TYPE_UINT16, qmat, smat.get(), torigin, data);
       break;
     }
     case MIRTK_VOXEL_INT: {
       _Nifti->Initialize(nx, ny, nz, nt, xsize, ysize, zsize, tsize,
-                         NIFTI_TYPE_INT32, qmat, smat, torigin, data);
+                         NIFTI_TYPE_INT32, qmat, smat.get(), torigin, data);
       break;
     }
     case MIRTK_VOXEL_UNSIGNED_INT: {
       _Nifti->Initialize(nx, ny, nz, nt, xsize, ysize, zsize, tsize,
-                         NIFTI_TYPE_UINT32, qmat, smat, torigin, data);
+                         NIFTI_TYPE_UINT32, qmat, smat.get(), torigin, data);
       break;
     }
     case MIRTK_VOXEL_FLOAT: {
       _Nifti->Initialize(nx, ny, nz, nt, xsize, ysize, zsize, tsize,
-                         NIFTI_TYPE_FLOAT32, qmat, smat, torigin, data);
+                         NIFTI_TYPE_FLOAT32, qmat, smat.get(), torigin, data);
       break;
     }
 //    case MIRTK_VOXEL_FLOAT2: {
 //      _Nifti->Initialize(nx, ny, nz, nt, 2, xsize, ysize, zsize, tsize,
-//                         NIFTI_TYPE_FLOAT32, qmat, smat, torigin,
+//                         NIFTI_TYPE_FLOAT32, qmat, smat.get(), torigin,
 //                         ReformatImageData<Float2>(data, nx, ny, nz, nt, 2));
 //      break;
 //    }
     case MIRTK_VOXEL_FLOAT3: {
       _Nifti->Initialize(nx, ny, nz, nt, 3, xsize, ysize, zsize, tsize,
-                         NIFTI_TYPE_FLOAT32, qmat, smat, torigin,
+                         NIFTI_TYPE_FLOAT32, qmat, smat.get(), torigin,
                          ReformatImageData<Float3>(data, nx, ny, nz, nt, 3));
       break;
     }
     case MIRTK_VOXEL_FLOAT4: {
       _Nifti->Initialize(nx, ny, nz, nt, 4, xsize, ysize, zsize, tsize,
-                         NIFTI_TYPE_FLOAT32, qmat, smat, torigin,
+                         NIFTI_TYPE_FLOAT32, qmat, smat.get(), torigin,
                          ReformatImageData<Float4>(data, nx, ny, nz, nt, 4));
       break;
     }
     case MIRTK_VOXEL_DOUBLE: {
       _Nifti->Initialize(nx, ny, nz, nt, xsize, ysize, zsize, tsize,
-                         NIFTI_TYPE_FLOAT64, qmat, smat, torigin, data);
+                         NIFTI_TYPE_FLOAT64, qmat, smat.get(), torigin, data);
       break;
     }
 //    case MIRTK_VOXEL_DOUBLE2: {
 //      _Nifti->Initialize(nx, ny, nz, nt, 2, xsize, ysize, zsize, tsize,
-//                         NIFTI_TYPE_FLOAT64, qmat, smat, torigin,
+//                         NIFTI_TYPE_FLOAT64, qmat, smat.get(), torigin,
 //                         ReformatImageData<Double2>(data, nx, ny, nz, nt, 2));
 //      break;
 //    }
     case MIRTK_VOXEL_DOUBLE3: {
       _Nifti->Initialize(nx, ny, nz, nt, 3, xsize, ysize, zsize, tsize,
-                         NIFTI_TYPE_FLOAT64, qmat, smat, torigin,
+                         NIFTI_TYPE_FLOAT64, qmat, smat.get(), torigin,
                          ReformatImageData<Double3>(data, nx, ny, nz, nt, 3));
       break;
     }
     case MIRTK_VOXEL_DOUBLE4: {
       _Nifti->Initialize(nx, ny, nz, nt, 4, xsize, ysize, zsize, tsize,
-                         NIFTI_TYPE_FLOAT64, qmat, smat, torigin,
+                         NIFTI_TYPE_FLOAT64, qmat, smat.get(), torigin,
                          ReformatImageData<Double4>(data, nx, ny, nz, nt, 4));
       break;
     }
@@ -196,8 +195,6 @@ void NiftiImageWriter::Initialize()
       cerr << this->NameOfClass() << "::Initialize(): Unsupported voxel type: " << _Input->GetDataType() << endl;
       exit(1);
   }
-
-  delete smat;
 }
 
 // -----------------------------------------------------------------------------

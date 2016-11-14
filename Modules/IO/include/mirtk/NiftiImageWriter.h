@@ -23,6 +23,7 @@
 
 #include "mirtk/ImageWriter.h"
 
+#include "mirtk/Memory.h"
 #include "mirtk/Array.h"
 
 
@@ -44,7 +45,7 @@ class NiftiImageWriter : public ImageWriter
   mirtkObjectMacro(NiftiImageWriter);
 
   /// NIfTI image
-  NiftiImage *_Nifti;
+  UniquePtr<NiftiImage> _Nifti;
 
 public:
 
