@@ -95,6 +95,9 @@ void PrintHelp(const char *name)
   cout << "      argument is required.\n";
   cout << "  -labels <file>\n";
   cout << "      Segmentation labels image. Currently required.\n";
+  cout << "  -labels-percentage <value>\n";
+  cout << "      Percentage of voxels within an input surface that must have the same label\n";
+  cout << "      to be considered for determining boundaries between segments.\n";
   cout << "  -source-array <name>\n";
   cout << "      Add point/cell data array with the specified name with one-based\n";
   cout << "      labels corresponding to the input point set from which an output\n";
@@ -224,7 +227,7 @@ BinaryImage InsideMask(const ImageAttributes &attr, vtkSmartPointer<vtkPolyData>
 
 // -----------------------------------------------------------------------------
 /// Determine dominant surface label
-UnorderedSet<int> InsideLabels(const GreyImage &labels, vtkPolyData *surface)
+UnorderedSet<int> InsideLabels(const GreyImage &labels, double percentage, vtkPolyData *surface)
 {
   OrderedMap<int, int> hist;
   BinaryImage mask = InsideMask(labels.Attributes(), surface);
@@ -238,7 +241,7 @@ UnorderedSet<int> InsideLabels(const GreyImage &labels, vtkPolyData *surface)
   }
   UnorderedSet<int> label_set;
   if (size == 0) return label_set;
-  const int min_count = iround(.33 * size);
+  const int min_count = ifloor(percentage * static_cast<double>(size) / 100.);
   for (const auto &bin : hist) {
     if (bin.second > min_count) {
       label_set.insert(bin.first);
@@ -2518,6 +2521,7 @@ int main(int argc, char *argv[])
   const char *output_name = nullptr;
   const char *labels_name = nullptr;
 
+  double labels_percentage    = 33.;
   double tolerance            = NaN;
   double snap_tolerance       = 0.;
   int    smooth_boundaries    = -1;
@@ -2554,6 +2558,9 @@ int main(int argc, char *argv[])
   for (ALL_OPTIONS) {
     if (OPTION("-labels")) {
       labels_name = ARGUMENT;
+    }
+    else if (OPTION("-labels-percentage")) {
+      PARSE_ARGUMENT(labels_percentage);
     }
     else if (OPTION("-i") || OPTION("-input")) {
       do {
@@ -2761,12 +2768,12 @@ int main(int argc, char *argv[])
   Array<vtkSmartPointer<vtkPolyData>> boundaries;
   {
     vtkSmartPointer<vtkPolyData> boundary;
-    UnorderedSet<int> output_labels = InsideLabels(labels_image, output);
+    UnorderedSet<int> output_labels = InsideLabels(labels_image, labels_percentage, output);
     if (output_labels.empty()) {
       FatalError("Could not determine labels corresponding to the inside of the first input surface!");
     }
     for (size_t i = 1; i < surfaces.size(); ++i) {
-      UnorderedSet<int> surface_labels = InsideLabels(labels_image, surfaces[i]);
+      UnorderedSet<int> surface_labels = InsideLabels(labels_image, labels_percentage, surfaces[i]);
       if (surface_labels.empty()) {
         FatalError("Could not determine labels corresponding to the inside of the "
                    << (i == 1 ? "1st" : (i == 2 ? "2nd" : (i == 3 ? "3rd" : ((ToString(i) + "th").c_str()))))
