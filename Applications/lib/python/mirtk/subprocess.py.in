@@ -124,9 +124,11 @@ def check_call(argv, verbose=0):
     _call(argv, verbose=verbose, execfunc=subprocess.check_call)
 
 # ----------------------------------------------------------------------------
-def check_output(argv, verbose=0):
+def check_output(argv, verbose=0, code='utf-8'):
     """Execute MIRTK command and return its output."""
-    return _call(argv, verbose=verbose, execfunc=subprocess.check_output)
+    output = _call(argv, verbose=verbose, execfunc=subprocess.check_output)
+    if code: output = output.decode(code)
+    return output
 
 # ----------------------------------------------------------------------------
 def run(cmd, args=[], opts={}, verbose=0, threads=0):
