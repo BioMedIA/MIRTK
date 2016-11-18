@@ -238,7 +238,7 @@ UnorderedSet<int> InsideLabels(const GreyImage &labels, vtkPolyData *surface)
   }
   UnorderedSet<int> label_set;
   if (size == 0) return label_set;
-  const int min_count = iround(.5 * size);
+  const int min_count = iround(.33 * size);
   for (const auto &bin : hist) {
     if (bin.second > min_count) {
       label_set.insert(bin.first);
@@ -2762,8 +2762,16 @@ int main(int argc, char *argv[])
   {
     vtkSmartPointer<vtkPolyData> boundary;
     UnorderedSet<int> output_labels = InsideLabels(labels_image, output);
+    if (output_labels.empty()) {
+      FatalError("Could not determine labels corresponding to the inside of the first input surface!");
+    }
     for (size_t i = 1; i < surfaces.size(); ++i) {
       UnorderedSet<int> surface_labels = InsideLabels(labels_image, surfaces[i]);
+      if (surface_labels.empty()) {
+        FatalError("Could not determine labels corresponding to the inside of the "
+                   << (i == 1 ? "1st" : (i == 2 ? "2nd" : (i == 3 ? "3rd" : ((ToString(i) + "th").c_str()))))
+                   << " input surface!");
+      }
       boundary = LabelBoundary(labels_image, output_labels, surface_labels);
       output = Merge(output, surfaces[i], boundary, tolerance, smooth_boundaries, join_boundaries);
       output_labels.insert(surface_labels.begin(), surface_labels.end());
