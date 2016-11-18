@@ -96,7 +96,6 @@ void OpenPointData::Execute()
   DilatePointData dilate;
   dilate.Input(erode.Output());
   dilate.InputData(erode.OutputData());
-  erode.DataName(_DataName);
   dilate.EdgeTable(_EdgeTable);
   dilate.Neighbors(_Neighbors);
   dilate.Iterations(_Iterations);
