@@ -17,10 +17,10 @@
  * limitations under the License.
  */
 
-#include "mirtk/ClosePointData.h"
+#include "mirtk/OpenCellData.h"
 
-#include "mirtk/DilatePointData.h"
-#include "mirtk/ErodePointData.h"
+#include "mirtk/DilateCellData.h"
+#include "mirtk/ErodeCellData.h"
 
 
 namespace mirtk {
@@ -31,38 +31,38 @@ namespace mirtk {
 // =============================================================================
 
 // -----------------------------------------------------------------------------
-void ClosePointData::CopyAttributes(const ClosePointData &other)
+void OpenCellData::CopyAttributes(const OpenCellData &other)
 {
   _Iterations = other._Iterations;
 }
 
 // -----------------------------------------------------------------------------
-ClosePointData::ClosePointData()
+OpenCellData::OpenCellData()
 :
   _Iterations(1)
 {
 }
 
 // -----------------------------------------------------------------------------
-ClosePointData::ClosePointData(const ClosePointData &other)
+OpenCellData::OpenCellData(const OpenCellData &other)
 :
-  PointDataFilter(other)
+  CellDataFilter(other)
 {
   CopyAttributes(other);
 }
 
 // -----------------------------------------------------------------------------
-ClosePointData &ClosePointData::operator =(const ClosePointData &other)
+OpenCellData &OpenCellData::operator =(const OpenCellData &other)
 {
   if (this != &other) {
-    PointDataFilter::operator =(other);
+    CellDataFilter::operator =(other);
     CopyAttributes(other);
   }
   return *this;
 }
 
 // -----------------------------------------------------------------------------
-ClosePointData::~ClosePointData()
+OpenCellData::~OpenCellData()
 {
 }
 
@@ -71,38 +71,29 @@ ClosePointData::~ClosePointData()
 // =============================================================================
 
 // -----------------------------------------------------------------------------
-void ClosePointData::Initialize()
+void OpenCellData::Initialize()
 {
   // Nothing to be done
 }
 
 // -----------------------------------------------------------------------------
-void ClosePointData::Execute()
+void OpenCellData::Execute()
 {
-  DilatePointData dilate;
-  dilate.Input(_Input);
-  dilate.InputData(_InputData);
-  dilate.DataName(_DataName);
-  dilate.Connectivity(_Connectivity);
-  dilate.Radius(_Radius);
-  dilate.EdgeTable(_EdgeTable);
-  dilate.Neighbors(_Neighbors);
-  dilate.Iterations(_Iterations);
-  dilate.Run();
-
-  _EdgeTable = dilate.EdgeTable();
-  _Neighbors = dilate.Neighbors();
-
-  ErodePointData erode;
-  erode.Input(dilate.Output());
-  erode.InputData(dilate.OutputData());
-  erode.EdgeTable(_EdgeTable);
-  erode.Neighbors(_Neighbors);
+  ErodeCellData erode;
+  erode.Input(_Input);
+  erode.InputData(_InputData);
+  erode.DataName(_DataName);
   erode.Iterations(_Iterations);
   erode.Run();
 
-  _Output     = erode.Output();
-  _OutputData = erode.OutputData();
+  DilateCellData dilate;
+  dilate.Input(erode.Output());
+  dilate.InputData(erode.OutputData());
+  dilate.Iterations(_Iterations);
+  dilate.Run();
+
+  _Output     = dilate.Output();
+  _OutputData = dilate.OutputData();
 }
 
 

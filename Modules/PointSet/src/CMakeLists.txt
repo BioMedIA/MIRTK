@@ -25,13 +25,17 @@
 set(HEADERS
   ${BINARY_INCLUDE_DIR}/mirtk/PointSetExport.h
   BoundarySegment.h
+  CellDataFilter.h
+  CloseCellData.h
   ClosePointData.h
   ClosestCell.h
   ClosestPoint.h
   ClosestPointLabel.h
+  DilateCellData.h
   DilatePointData.h
   EdgeConnectivity.h
   EdgeTable.h
+  ErodeCellData.h
   ErodePointData.h
   FiducialMatch.h
   FuzzyCorrespondence.h
@@ -41,6 +45,7 @@ set(HEADERS
   MedianPointData.h
   MeshFilter.h
   MeshSmoothing.h
+  OpenCellData.h
   OpenPointData.h
   PointCorrespondence.h
   PointDataFilter.h
@@ -64,13 +69,17 @@ set(HEADERS
 
 set(SOURCES
   BoundarySegment.cc
+  CellDataFilter.cc
+  CloseCellData.cc
   ClosePointData.cc
   ClosestCell.cc
   ClosestPoint.cc
   ClosestPointLabel.cc
+  DilateCellData.cc
   DilatePointData.cc
   EdgeConnectivity.cc
   EdgeTable.cc
+  ErodeCellData.cc
   ErodePointData.cc
   FiducialMatch.cc
   FuzzyCorrespondence.cc
@@ -82,6 +91,7 @@ set(SOURCES
   MedianPointData.cc
   MeshFilter.cc
   MeshSmoothing.cc
+  OpenCellData.cc
   OpenPointData.cc
   PointCorrespondence.cc
   PointDataFilter.cc
