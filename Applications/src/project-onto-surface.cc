@@ -64,6 +64,7 @@ void PrintHelp(const char *name)
   cout << "\n";
   cout << "Usage:  " << name << " <input> <output> -image <file> [options]\n";
   cout << "        " << name << " <input> <output> -labels <file> [options]\n";
+  cout << "        " << name << " <input> <output> -constant <value>... [options]\n";
   cout << "        " << name << " <input> <output> -surface <file> [-scalars <scalars> [<scalars_new_name>] ]\n";
   cout << "        " << name << " <input> <output> -boundary [-nolabel-points] [-nolabel-cells] [-name <scalars>]\n";
   cout << "\n";
@@ -89,8 +90,12 @@ void PrintHelp(const char *name)
   cout << "      Input segmentation image with positive integer labels.\n";
   cout << "  -surface <file>\n";
   cout << "      Input surface from which to project scalars.\n";
+  cout << "  -constant <value>...\n";
+  cout << "      Assign tuple of constant values to all points/cells.\n";
   cout << "  -name <name>\n";
   cout << "      Name of output scalar array. (default: Scalars or Labels)\n";
+  cout << "  -type char|uchar|short|ushort|int|uint|float|double\n";
+  cout << "      Type of output scalar array. (default: float)\n";
   cout << "  -[no]celldata\n";
   cout << "      Assign values to cells of input surface. (default: off)\n";
   cout << "  -[no]pointdata\n";
@@ -153,7 +158,8 @@ typedef LabelSet::const_iterator     LabelIter;
 
 // -----------------------------------------------------------------------------
 /// Assign linearly interpolated real-valued image values to surface points
-void AssignValuesToPoints(vtkPolyData *surface, const ScalarsImage &scalars, const char *name = "Scalars")
+void AssignValuesToPoints(vtkPolyData *surface, const ScalarsImage &scalars,
+                          int type = VTK_FLOAT, const char *name = "Scalars")
 {
   const vtkIdType noOfPoints = surface->GetNumberOfPoints();
 
@@ -162,10 +168,8 @@ void AssignValuesToPoints(vtkPolyData *surface, const ScalarsImage &scalars, con
     return;
   }
 
-  vtkSmartPointer<vtkFloatArray> array = vtkSmartPointer<vtkFloatArray>::New();
-  array->SetName(name);
-  array->SetNumberOfComponents(scalars.T());
-  array->SetNumberOfTuples(noOfPoints);
+  vtkSmartPointer<vtkDataArray> array;
+  array = NewVtkDataArray(type, static_cast<int>(noOfPoints), scalars.T(), name);
   surface->GetPointData()->AddArray(array);
 
   GenericLinearInterpolateImageFunction<ScalarsImage> interp;
@@ -184,7 +188,8 @@ void AssignValuesToPoints(vtkPolyData *surface, const ScalarsImage &scalars, con
 
 // -----------------------------------------------------------------------------
 /// Assign linearly interpolated real-valued image values to surface cells
-void AssignValuesToCells(vtkPolyData *surface, const ScalarsImage &scalars, const char *name = "Scalars")
+void AssignValuesToCells(vtkPolyData *surface, const ScalarsImage &scalars,
+                         int type = VTK_FLOAT, const char *name = "Scalars")
 {
   const vtkIdType noOfCells = surface->GetNumberOfCells();
 
@@ -193,10 +198,8 @@ void AssignValuesToCells(vtkPolyData *surface, const ScalarsImage &scalars, cons
     return;
   }
 
-  vtkSmartPointer<vtkFloatArray> array = vtkSmartPointer<vtkFloatArray>::New();
-  array->SetName(name);
-  array->SetNumberOfComponents(scalars.T());
-  array->SetNumberOfTuples(noOfCells);
+  vtkSmartPointer<vtkDataArray> array;
+  array = NewVtkDataArray(type, static_cast<int>(noOfCells), scalars.T(), name);
   surface->GetCellData()->AddArray(array);
 
   GenericLinearInterpolateImageFunction<ScalarsImage> interp;
@@ -220,6 +223,44 @@ void AssignValuesToCells(vtkPolyData *surface, const ScalarsImage &scalars, cons
 
   delete[] values;
   delete[] weights;
+}
+
+// =============================================================================
+// Assign constant values
+// =============================================================================
+
+// -----------------------------------------------------------------------------
+/// Assign constant values to surface points
+void AssignValuesToPoints(vtkPolyData *surface, const Array<double> &values, int type = VTK_FLOAT, const char *name = "Scalars")
+{
+  const int noOfPoints = static_cast<int>(surface->GetNumberOfPoints());
+  if (noOfPoints == 0) {
+    Warning("Cannot project scalars onto surface mesh without any points!");
+    return;
+  }
+  vtkSmartPointer<vtkDataArray> array;
+  array = NewVtkDataArray(type, noOfPoints, static_cast<int>(values.size()), name);
+  for (int j = 0; j < array->GetNumberOfComponents(); ++j) {
+    array->FillComponent(j, values[j]);
+  }
+  surface->GetPointData()->AddArray(array);
+}
+
+// -----------------------------------------------------------------------------
+/// Assign linearly interpolated real-valued image values to surface cells
+void AssignValuesToCells(vtkPolyData *surface, const Array<double> &values, int type = VTK_FLOAT, const char *name = "Scalars")
+{
+  const int noOfCells = static_cast<int>(surface->GetNumberOfCells());
+  if (noOfCells == 0) {
+    Warning("Cannot project scalars onto surface mesh without any cells!");
+    return;
+  }
+  vtkSmartPointer<vtkDataArray> array;
+  array = NewVtkDataArray(type, noOfCells, static_cast<int>(values.size()), name);
+  for (int j = 0; j < array->GetNumberOfComponents(); ++j) {
+    array->FillComponent(j, values[j]);
+  }
+  surface->GetCellData()->AddArray(array);
 }
 
 // =============================================================================
@@ -1190,7 +1231,6 @@ void SmoothLabels(vtkPolyData *surface, int niter, const char *scalars_name = "L
   }
 }
 
-
 // -----------------------------------------------------------------------------
 void KeepLargestRegionRatio(vtkPolyData *surface, double min_region_ratio, const char *scalars_name = "Labels", bool using_cells = true)
 {
@@ -1362,9 +1402,9 @@ vtkSmartPointer<vtkPolyData> ExtractLabelBoundaries(vtkPolyData *surface, const 
   return cleaner->GetOutput();
 }
 
-
 // -----------------------------------------------------------------------------
-void CheckBounds(vtkPolyData *surface, const LabelImage &labels, bool verbose, string surface_name="")
+void CheckBounds(vtkPolyData *surface, const BaseImage *image, bool verbose,
+                 string image_name="", string surface_name="")
 {
   double bounds[6];
   for (int b=0; b<6; b+=2) bounds[b] = numeric_limits<double>::max();
@@ -1374,7 +1414,7 @@ void CheckBounds(vtkPolyData *surface, const LabelImage &labels, bool verbose, s
   const vtkIdType npoints = surface->GetNumberOfPoints();
   for (vtkIdType i = 0; i < npoints; ++i) {
     surface->GetPoint(i, p);
-    labels.WorldToImage(p);
+    image->WorldToImage(p);
     for (int d = 0; d < 3; ++d) {
       if (p(d) < bounds[d*2  ]) bounds[d*2  ] = p(d);
       if (p(d) > bounds[d*2+1]) bounds[d*2+1] = p(d);
@@ -1393,11 +1433,10 @@ void CheckBounds(vtkPolyData *surface, const LabelImage &labels, bool verbose, s
     cout << "(" << xmin << ", " << ymin << ", " << zmin << ") and ";
     cout << "(" << xmax << ", " << ymax << ", " << zmax << ")" << endl;
   }
-
-  if (xmin < -0.5 || xmax > labels.X() - .5 ||
-      ymin < -0.5 || ymax > labels.Y() - .5 ||
-      zmin < -0.5 || zmax > labels.Z() - .5) {
-    FatalError("Surface outside bounds of input image!");
+  if (xmin < -0.5 || xmax > image->X() - .5 ||
+      ymin < -0.5 || ymax > image->Y() - .5 ||
+      zmin < -0.5 || zmax > image->Z() - .5) {
+    FatalError("Surface outside bounds of input image: " << image_name);
   }
 } 
 
@@ -1438,17 +1477,19 @@ int main(int argc, char *argv[])
   }
 
   // Optional arguments
-  const char *output_label_image_name = NULL;
-  const char *output_scalars_name     = NULL;
-  bool        output_boundary_edges   = false;
-  bool        label_cells             = false;
-  bool        label_points            = false;
-  int         max_hole_size           = numeric_limits<int>::max();
-  int         min_region_size         = 0;
-  double      min_region_ratio        = 0;
-  bool        fill_holes              = true;
-  int         smoothing_iterations    = 0;
-  double      max_dilation_distance   = inf;
+  Array<double> constant_value;
+  int           output_scalars_type     = VTK_FLOAT;
+  const char   *output_label_image_name = NULL;
+  const char   *output_scalars_name     = NULL;
+  bool          output_boundary_edges   = false;
+  bool          label_cells             = false;
+  bool          label_points            = false;
+  int           max_hole_size           = numeric_limits<int>::max();
+  int           min_region_size         = 0;
+  double        min_region_ratio        = 0;
+  bool          fill_holes              = true;
+  int           smoothing_iterations    = 0;
+  double        max_dilation_distance   = inf;
 
   // arguments for scalars projection from surface
   const char *input_surface_proj_name   = NULL;
@@ -1462,6 +1503,26 @@ int main(int argc, char *argv[])
     else if (OPTION("-name"))   output_scalars_name = ARGUMENT;
     else if (OPTION("-image"))  input_image_name    = ARGUMENT;
     else if (OPTION("-labels")) input_labels_name   = ARGUMENT;
+    else if (OPTION("-constant")) {
+      do {
+        constant_value.resize(constant_value.size()+1);
+        PARSE_ARGUMENT(constant_value.back());
+      } while (HAS_ARGUMENT);
+    }
+    else if (OPTION("-type")) {
+      const string arg = ToLower(ARGUMENT);
+      if      (arg == "char"  ) output_scalars_type = VTK_CHAR;
+      else if (arg == "uchar" ) output_scalars_type = VTK_UNSIGNED_CHAR;
+      else if (arg == "short" ) output_scalars_type = VTK_SHORT;
+      else if (arg == "ushort") output_scalars_type = VTK_UNSIGNED_SHORT;
+      else if (arg == "int"   ) output_scalars_type = VTK_INT;
+      else if (arg == "uint"  ) output_scalars_type = VTK_UNSIGNED_INT;
+      else if (arg == "long"  ) output_scalars_type = VTK_LONG_LONG;
+      else if (arg == "ulong" ) output_scalars_type = VTK_UNSIGNED_LONG_LONG;
+      else if (arg == "float" ) output_scalars_type = VTK_FLOAT;
+      else if (arg == "double") output_scalars_type = VTK_DOUBLE;
+      else FatalError("Invalid -type argument: " << arg);
+    }
     else if (OPTION("-min-size")) PARSE_ARGUMENT(min_region_size);
     else if (OPTION("-max-hole-size")) PARSE_ARGUMENT(max_hole_size);
     else if (OPTION("-min-ratio")) PARSE_ARGUMENT(min_region_ratio);
@@ -1490,6 +1551,15 @@ int main(int argc, char *argv[])
     else HANDLE_COMMON_OR_UNKNOWN_OPTION();
   }
 
+  int num_input_options = 0;
+  if (input_image_name) ++num_input_options;
+  if (input_labels_name) ++num_input_options;
+  if (input_surface_proj_name) ++num_input_options;
+  if (!constant_value.empty()) ++num_input_options;
+  if (num_input_options > 1) {
+    FatalError("Options -image, -labels, -surface, and -constant are mutually exclusive!");
+  }
+
   if (input_image_name) {
     if (!output_scalars_name) output_scalars_name = "Scalars";
   } else if (input_labels_name) {
@@ -1503,8 +1573,8 @@ int main(int argc, char *argv[])
         label_points = true;
       }
     }
-  } else if (!input_surface_proj_name && !output_boundary_edges) {
-    FatalError("Input -image or -labels or -surface or -boundary required!");
+  } else if (!input_surface_proj_name && !output_boundary_edges && constant_value.empty()) {
+    FatalError("One of the options -image, -labels, -surface, -constant, or -boundary required!");
   }
 
   // Read input surface
@@ -1541,13 +1611,28 @@ int main(int argc, char *argv[])
 
   // Check that surface does not go outside fov of label image.
   if (surface && (input_image_name || input_labels_name) && (label_points || label_cells)) {
-    CheckBounds(surface, labels, verbose > 0, "");
+    if (input_image_name) {
+      CheckBounds(surface, &image, verbose > 0, input_image_name, "");
+    }
+    if (input_labels_name) {
+      CheckBounds(surface, &labels, verbose > 0, input_labels_name, "");
+    }
   }
   if (white_surface && (input_image_name || input_labels_name) && (label_points || label_cells)) {
-    CheckBounds(white_surface, labels, verbose > 0, "WM/cGM");
+    if (input_image_name) {
+      CheckBounds(white_surface, &image, verbose > 0, input_image_name, "WM/cGM");
+    }
+    if (input_labels_name) {
+      CheckBounds(white_surface, &labels, verbose > 0, input_labels_name, "WM/cGM");
+    }
   }
   if (pial_surface && (input_image_name || input_labels_name) && (label_points || label_cells)) {
-    CheckBounds(white_surface, labels, verbose > 0, "cGM/CSF");
+    if (input_image_name) {
+      CheckBounds(pial_surface, &image, verbose > 0, input_image_name, "cGM/CSF");
+    }
+    if (input_labels_name) {
+      CheckBounds(pial_surface, &labels, verbose > 0, input_labels_name, "cGM/CSF");
+    }
   }
 
   // Compute dilated labels
@@ -1582,17 +1667,33 @@ int main(int argc, char *argv[])
     } else if (input_image_name) {
       if (surface) {
         if (verbose) cout << "Assigning values to the vertices of the input surface...", cout.flush();
-        AssignValuesToPoints(surface, image, output_scalars_name);
+        AssignValuesToPoints(surface, image, output_scalars_type, output_scalars_name);
         if (verbose) cout << " done" << endl;
       }
       if (white_surface) {
         if (verbose) cout << "Assigning values to the vertices of the WM/cGM surface...", cout.flush();
-        AssignValuesToPoints(white_surface, image, output_scalars_name);
+        AssignValuesToPoints(white_surface, image, output_scalars_type, output_scalars_name);
         if (verbose) cout << " done" << endl;
       }
       if (pial_surface) {
         if (verbose) cout << "Assigning values to the vertices of the cGM/CSF surface...", cout.flush();
-        AssignValuesToPoints(pial_surface, image, output_scalars_name);
+        AssignValuesToPoints(pial_surface, image, output_scalars_type, output_scalars_name);
+        if (verbose) cout << " done" << endl;
+      }
+    } else if (!constant_value.empty()) {
+      if (surface) {
+        if (verbose) cout << "Assigning constant values to the vertices of the input surface...", cout.flush();
+        AssignValuesToPoints(surface, constant_value, output_scalars_type, output_scalars_name);
+        if (verbose) cout << " done" << endl;
+      }
+      if (white_surface) {
+        if (verbose) cout << "Assigning constant values to the vertices of the WM/cGM surface...", cout.flush();
+        AssignValuesToPoints(white_surface, constant_value, output_scalars_type, output_scalars_name);
+        if (verbose) cout << " done" << endl;
+      }
+      if (pial_surface) {
+        if (verbose) cout << "Assigning constant values to the vertices of the cGM/CSF surface...", cout.flush();
+        AssignValuesToPoints(pial_surface, constant_value, output_scalars_type, output_scalars_name);
         if (verbose) cout << " done" << endl;
       }
     }
@@ -1618,17 +1719,33 @@ int main(int argc, char *argv[])
     } else if (input_image_name) {
       if (surface) {
         if (verbose) cout << "Assigning values to cells of input surface...", cout.flush();
-        AssignValuesToCells(surface, image, output_scalars_name);
+        AssignValuesToCells(surface, image, output_scalars_type, output_scalars_name);
         if (verbose) cout << " done" << endl;
       }
       if (white_surface) {
         if (verbose) cout << "Assigning values to cells of WM/cGM surface...", cout.flush();
-        AssignValuesToCells(white_surface, image, output_scalars_name);
+        AssignValuesToCells(white_surface, image, output_scalars_type, output_scalars_name);
         if (verbose) cout << " done" << endl;
       }
       if (pial_surface) {
         if (verbose) cout << "Assigning values to cells of cGM/CSF surface...", cout.flush();
-        AssignValuesToCells(pial_surface, image, output_scalars_name);
+        AssignValuesToCells(pial_surface, image, output_scalars_type, output_scalars_name);
+        if (verbose) cout << " done" << endl;
+      }
+    } else if (!constant_value.empty()) {
+      if (surface) {
+        if (verbose) cout << "Assigning constant values to cells of input surface...", cout.flush();
+        AssignValuesToCells(surface, constant_value, output_scalars_type, output_scalars_name);
+        if (verbose) cout << " done" << endl;
+      }
+      if (white_surface) {
+        if (verbose) cout << "Assigning constant values to cells of WM/cGM surface...", cout.flush();
+        AssignValuesToCells(white_surface, constant_value, output_scalars_type, output_scalars_name);
+        if (verbose) cout << " done" << endl;
+      }
+      if (pial_surface) {
+        if (verbose) cout << "Assigning constant values to cells of cGM/CSF surface...", cout.flush();
+        AssignValuesToCells(pial_surface, constant_value, output_scalars_type, output_scalars_name);
         if (verbose) cout << " done" << endl;
       }
     }
