@@ -116,15 +116,17 @@ void RobustClosestPoint::CalculateWeights()
   Array<int   > corr12, corr21;
   Array<double> dist12, dist21;
 
-  PointLocator *source_locator;
-  source_locator = PointLocator::New(_Source->PointSet(), _SourceSample, &_SourceFeatures);
+  UniquePtr<PointLocator> source_locator;
+  source_locator.reset(PointLocator::New(_Source->PointSet(), _SourceSample, &_SourceFeatures));
+  source_locator->GlobalIndices(true);
   corr12 = source_locator->FindClosestPoint(_Target->PointSet(), _TargetSample, &_TargetFeatures, &dist12);
-  delete source_locator;
+  source_locator.reset();
 
-  PointLocator *target_locator;
-  target_locator = PointLocator::New(_Target->PointSet(), _TargetSample, &_TargetFeatures);
+  UniquePtr<PointLocator> target_locator;
+  target_locator.reset(PointLocator::New(_Target->PointSet(), _TargetSample, &_TargetFeatures));
+  target_locator->GlobalIndices(true);
   corr21 = target_locator->FindClosestPoint(_Source->PointSet(), _SourceSample, &_SourceFeatures, &dist21);
-  delete target_locator;
+  target_locator.reset();
 
   // Allocate lists for non-zero weight entries
   const int nentries = (_Weight.Layout() == WeightMatrix::CRS ? _M : _N);

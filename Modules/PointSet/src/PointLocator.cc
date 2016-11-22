@@ -34,6 +34,7 @@
 #include "mirtk/Deallocate.h"
 #include "mirtk/Parallel.h"
 
+#include "vtkNew.h"
 #include "vtkSmartPointer.h"
 #include "vtkPoints.h"
 #include "vtkPointSet.h"
@@ -376,18 +377,15 @@ PointLocator::PointLocator()
 :
   _DataSet(NULL),
   _Sample(NULL),
+  _GlobalIndices(false),
   _NumberOfPoints(0),
-  _PointDimension(0),
-  _FlannLocator(nullptr)
+  _PointDimension(0)
 {
 }
 
 // -----------------------------------------------------------------------------
 PointLocator::~PointLocator()
 {
-#ifdef HAVE_FLANN
-  delete _FlannLocator;
-#endif
 }
 
 // -----------------------------------------------------------------------------
@@ -396,7 +394,6 @@ void PointLocator::Initialize()
   // Destruct previous internal locator(s)
   _VtkLocator = NULL;
 #ifdef HAVE_FLANN
-  delete _FlannLocator;
   _FlannLocator = nullptr;
 #endif
   // Check inputs
@@ -434,7 +431,7 @@ void PointLocator::Initialize()
   } else {
 #ifdef HAVE_FLANN
     // Build FLANN tree for N-D feature vectors
-    _FlannLocator = new FlannPointLocator();
+    _FlannLocator = NewShared<FlannPointLocator>();
     _FlannLocator->DataSet(_DataSet);
     _FlannLocator->Sample(_Sample);
     _FlannLocator->Features(_Features);
@@ -449,12 +446,12 @@ PointLocator *PointLocator::New(vtkPointSet       *dataset,
                                 const Array<int>  *sample,
                                 const FeatureList *features)
 {
-  PointLocator *locator = new PointLocator();
+  UniquePtr<PointLocator> locator(new PointLocator());
   locator->DataSet(dataset);
   locator->Sample(sample);
   if (features) locator->Features(*features);
   locator->Initialize();
-  return locator;
+  return locator.release();
 }
 
 // =============================================================================
@@ -464,42 +461,51 @@ PointLocator *PointLocator::New(vtkPointSet       *dataset,
 // -----------------------------------------------------------------------------
 int PointLocator::FindClosestPoint(double *point, double *dist2)
 {
+  int index;
+
   // ---------------------------------------------------------------------------
   // Using VTK
   if (_VtkLocator) {
     vtkIdType j = _VtkLocator->FindClosestPoint(point);
     if (dist2) {
       double p[3] = {0};
-      _DataSet->GetPoint(j, p);
+      _VtkLocator->GetDataSet()->GetPoint(j, p);
       *dist2 = Distance2BetweenPoints(p, point);
     }
-    return static_cast<int>(j);
+    index = static_cast<int>(j);
   }
 
   // ---------------------------------------------------------------------------
   // Using FLANN
 #ifdef HAVE_FLANN
-  if (_FlannLocator) {
-    return _FlannLocator->FindClosestPoint(point, dist2);
+  else if (_FlannLocator) {
+    index = _FlannLocator->FindClosestPoint(point, dist2);
   }
 #endif
 
   // ---------------------------------------------------------------------------
   // Brute force
-  double *p = new double[_PointDimension];
-  int    idx, index = -1;
-  double d2, mind2 = numeric_limits<double>::infinity();
-  for (int i = 0; i < _NumberOfPoints; ++i) {
-    idx = GetPointIndex(_DataSet, _Sample, i);
-    GetPoint(p, _DataSet, idx, &_Features);
-    d2 = Distance2BetweenPoints(p, point, _PointDimension);
-    if (d2 < mind2) {
-      index = idx;
-      mind2 = d2;
+  else {
+    index = -1;
+    Array<double> p(_PointDimension);
+    double d2, mind2 = inf;
+    for (int i = 0, idx; i < _NumberOfPoints; ++i) {
+      idx = GetPointIndex(_DataSet, _Sample, i);
+      GetPoint(p.data(), _DataSet, idx, &_Features);
+      d2 = Distance2BetweenPoints(p.data(), point, _PointDimension);
+      if (d2 < mind2) {
+        index = i;
+        mind2 = d2;
+      }
     }
+    if (dist2) (*dist2) = mind2;
   }
-  delete[] p;
-  if (dist2) (*dist2) = mind2;
+
+  // ---------------------------------------------------------------------------
+  // Map to global point ID
+  if (_Sample && _GlobalIndices) {
+    index = (*_Sample)[index];
+  }
   return index;
 }
 
@@ -536,7 +542,14 @@ Array<int> PointLocator
 {
 #ifdef HAVE_FLANN
   if (!_VtkLocator && _FlannLocator) {
-    return _FlannLocator->FindClosestPoint(dataset, sample, features, dist2);
+    Array<int> index;
+    index = _FlannLocator->FindClosestPoint(dataset, sample, features, dist2);
+    if (_Sample && _GlobalIndices) {
+      for (auto &&i : index) {
+        i = (*_Sample)[i];
+      }
+    }
+    return index;
   }
 #endif
 
@@ -560,59 +573,69 @@ Array<int> PointLocator
 // -----------------------------------------------------------------------------
 Array<int> PointLocator::FindClosestNPoints(int k, double *point, Array<double> *dist2)
 {
+  Array<int> indices;
+
   // ---------------------------------------------------------------------------
   // Using VTK
   if (_VtkLocator) {
     double p[3];
     vtkSmartPointer<vtkIdList> ids = vtkSmartPointer<vtkIdList>::New();
     _VtkLocator->FindClosestNPoints(k, point, ids);
-    Array<int> indices(ids->GetNumberOfIds());
+    indices.resize(ids->GetNumberOfIds());
     if (dist2) dist2->resize(ids->GetNumberOfIds());
     for (vtkIdType i = 0; i < ids->GetNumberOfIds(); ++i) {
-      indices[i] = ids->GetId(i);
+      indices[i] = static_cast<int>(ids->GetId(i));
       if (dist2) {
-        _VtkLocator->GetDataSet()->GetPoint(indices[i], p);
+        _VtkLocator->GetDataSet()->GetPoint(ids->GetId(i), p);
         (*dist2)[i] = Distance2BetweenPoints(point, p);
       }
     }
-    return indices;
   }
 
   // ---------------------------------------------------------------------------
   // Using FLANN
 #ifdef HAVE_FLANN
-  if (_FlannLocator) {
-    return _FlannLocator->FindClosestNPoints(k, point, dist2);
+  else if (_FlannLocator) {
+    indices = _FlannLocator->FindClosestNPoints(k, point, dist2);
   }
 #endif
 
   // ---------------------------------------------------------------------------
   // Brute force
-  struct Comp
-  {
-    bool operator()(const Pair<double, int> &a, const Pair<double, int> &b)
+  else {
+    struct Comp
     {
-      return a.first > b.first;
-    }
-  } comp;
+      bool operator()(const Pair<double, int> &a, const Pair<double, int> &b)
+      {
+        return a.first > b.first;
+      }
+    } comp;
 
-  double *p = Allocate<double>(_PointDimension);
-  Array<Pair<double, int> > dists(_NumberOfPoints);
-  for (int i = 0; i < _NumberOfPoints; ++i) {
-    int idx = GetPointIndex(_DataSet, _Sample, i);
-    GetPoint(p, _DataSet, idx, &_Features);
-    dists[i] = MakePair(Distance2BetweenPoints(point, p, _PointDimension), idx);
+    Array<double> p(_PointDimension);
+    Array<Pair<double, int> > dists(_NumberOfPoints);
+    for (int i = 0; i < _NumberOfPoints; ++i) {
+      int idx = GetPointIndex(_DataSet, _Sample, i);
+      GetPoint(p.data(), _DataSet, idx, &_Features);
+      dists[i] = MakePair(Distance2BetweenPoints(point, p.data(), _PointDimension), i);
+    }
+    make_heap(dists.begin(), dists.end(), comp);
+    indices.resize(k);
+    for (int i = 0; i < k; ++i) {
+      Pair<double, int> &min = dists.front();
+      if (dist2) (*dist2)[i] = min.first;
+      indices[i] = min.second;
+      pop_heap(dists.begin(), dists.end(), comp);
+      dists.pop_back();
+    }
   }
-  make_heap(dists.begin(), dists.end(), comp);
-  Array<int> indices(k);
-  for (int i = 0; i < k; ++i) {
-    Pair<double, int> &min = dists.front();
-    if (dist2) (*dist2)[i] = min.first;
-    indices[i] = min.second;
-    pop_heap(dists.begin(), dists.end(), comp);
-    dists.pop_back();
+
+  // ---------------------------------------------------------------------------
+  // Map to global point IDs
+  if (_Sample && _GlobalIndices) {
+    for (auto &&i : indices) {
+      i = (*_Sample)[i];
+    }
   }
-  Deallocate(p);
   return indices;
 }
 
@@ -658,7 +681,16 @@ Array<Array<int> > PointLocator
 
 #ifdef HAVE_FLANN
   if (!_VtkLocator && _FlannLocator) {
-    return _FlannLocator->FindClosestNPoints(k, dataset, sample, features, dist2);
+    Array<Array<int> > indices;
+    indices = _FlannLocator->FindClosestNPoints(k, dataset, sample, features, dist2);
+    if (_Sample && _GlobalIndices) {
+      for (auto &&index : indices) {
+        for (auto &&i : index) {
+          i = (*_Sample)[i];
+        }
+      }
+    }
+    return indices;
   }
 #endif
 
@@ -684,63 +716,71 @@ Array<Array<int> > PointLocator
 Array<int> PointLocator
 ::FindPointsWithinRadius(double radius, double *point, Array<double> *dist2)
 {
+  Array<int> indices;
+
   // ---------------------------------------------------------------------------
   // Using VTK
   if (_VtkLocator) {
     double p[3] = {0};
-    vtkSmartPointer<vtkIdList> ids = vtkSmartPointer<vtkIdList>::New();
-    _VtkLocator->FindPointsWithinRadius(radius, point, ids);
-    Array<int> indices(ids->GetNumberOfIds());
+    vtkNew<vtkIdList> ids;
+    _VtkLocator->FindPointsWithinRadius(radius, point, ids.GetPointer());
+    indices.resize(ids->GetNumberOfIds());
     if (dist2) dist2->resize(ids->GetNumberOfIds());
     for (vtkIdType i = 0; i < ids->GetNumberOfIds(); ++i) {
-      indices[i] = ids->GetId(i);
+      indices[i] = static_cast<int>(ids->GetId(i));
       if (dist2) {
-        _VtkLocator->GetDataSet()->GetPoint(indices[i], p);
+        _VtkLocator->GetDataSet()->GetPoint(ids->GetId(i), p);
         (*dist2)[i] = Distance2BetweenPoints(point, p);
       }
     }
-    return indices;
   }
 
   // ---------------------------------------------------------------------------
   // Using FLANN
 #ifdef HAVE_FLANN
-  if (_FlannLocator) {
-    return _FlannLocator->FindPointsWithinRadius(radius, point, dist2);
+  else if (_FlannLocator) {
+    indices = _FlannLocator->FindPointsWithinRadius(radius, point, dist2);
   }
 #endif
 
   // ---------------------------------------------------------------------------
   // Brute force
-  struct Comp
-  {
-    bool operator()(const Pair<double, int> &a, const Pair<double, int> &b)
+  else {
+    struct Comp
     {
-      return a.first > b.first;
-    }
-  } comp;
+      bool operator()(const Pair<double, int> &a, const Pair<double, int> &b)
+      {
+        return a.first > b.first;
+      }
+    } comp;
 
-  const double maxdist2 = radius * radius;
-  double *p = Allocate<double>(_PointDimension);
-  Array<Pair<double, int> > dists(_NumberOfPoints);
-  int idx, k = 0;
-  for (int i = 0; i < _NumberOfPoints; ++i) {
-    idx = GetPointIndex(_DataSet, _Sample, i);
-    GetPoint(p, _DataSet, idx, &_Features);
-    dists[i] = MakePair(Distance2BetweenPoints(point, p, _PointDimension), idx);
-    if (dists[i].first <= maxdist2) ++k;
+    const double maxdist2 = radius * radius;
+    Array<double> p(_PointDimension);
+    Array<Pair<double, int> > dists(_NumberOfPoints);
+    int idx, k = 0;
+    for (int i = 0; i < _NumberOfPoints; ++i) {
+      idx = GetPointIndex(_DataSet, _Sample, i);
+      GetPoint(p.data(), _DataSet, idx, &_Features);
+      dists[i] = MakePair(Distance2BetweenPoints(point, p.data(), _PointDimension), i);
+      if (dists[i].first <= maxdist2) ++k;
+    }
+    make_heap(dists.begin(), dists.end(), comp);
+    indices.resize(k);
+    if (dist2) dist2->resize(k);
+    for (int i = 0; i < k; ++i) {
+      Pair<double, int> &min = dists.front();
+      if (dist2) (*dist2)[i] = min.first;
+      indices[i] = min.second;
+      pop_heap(dists.begin(), dists.end(), comp);
+      dists.pop_back();
+    }
   }
-  make_heap(dists.begin(), dists.end(), comp);
-  Array<int> indices(k);
-  if (dist2) dist2->resize(k);
-  for (int i = 0; i < k; ++i) {
-    Pair<double, int> &min = dists.front();
-    if (dist2) (*dist2)[i] = min.first;
-    indices[i] = min.second;
-    pop_heap(dists.begin(), dists.end(), comp);
-    dists.pop_back();
+
+  // ---------------------------------------------------------------------------
+  // Map to global point IDs
+  if (_Sample && _GlobalIndices) {
+    for (auto &&i : indices) i = (*_Sample)[i];
   }
-  Deallocate(p);
   return indices;
 }
 
@@ -783,7 +823,16 @@ Array<Array<int> > PointLocator
 
 #ifdef HAVE_FLANN
   if (!_VtkLocator && _FlannLocator) {
-    return _FlannLocator->FindPointsWithinRadius(radius, dataset, sample, features, dist2);
+    Array<Array<int> > indices;
+    indices = _FlannLocator->FindPointsWithinRadius(radius, dataset, sample, features, dist2);
+    if (_Sample && _GlobalIndices) {
+      for (auto &&index : indices) {
+        for (auto &&i : index) {
+          i = (*_Sample)[i];
+        }
+      }
+    }
+    return indices;
   }
 #endif
 

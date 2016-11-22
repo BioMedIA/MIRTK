@@ -599,8 +599,8 @@ void PointCorrespondenceDistance
 void PointCorrespondenceDistance
 ::ParametricGradient(const RegisteredPointSet *target,
                      const Vector3D<double>   *np_gradient,
-                     double                       *gradient,
-                     double                        weight)
+                     double                   *gradient,
+                     double                    weight)
 {
   // Debug assertions
   mirtkAssert(target->Transformation() != NULL,
