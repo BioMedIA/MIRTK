@@ -1085,7 +1085,7 @@ bool GenericRegistrationFilter::Read(istream &from, bool echo)
           char *p = strchr(value, ' ');
           if (p != NULL) *p = '\0';
           // parse resolution level number
-          if (!FromString(value, level) || level <= 0) {
+          if (!FromString(value, level) || level < 0) {
             cerr << "Error in configuration at line: " << no << ": " << name << " = " << value << endl;
             ok = false;
           }
@@ -2142,27 +2142,55 @@ void GenericRegistrationFilter::GuessParameter()
   }
 
   // Average edge length range for surface meshes
-  for (int level = 0; level <= _NumberOfLevels; ++level) {
-    const int npointsets = NumberOfPointSets();
+  const int npointsets = NumberOfPointSets();
+  if (_MinEdgeLength[0].size() == 1) {
+    _MinEdgeLength[0].resize(npointsets, _MinEdgeLength[0][0]);
+  } else {
+    _MinEdgeLength[0].resize(npointsets, -1.);
+  }
+  if (_MaxEdgeLength[0].size() == 1) {
+    _MaxEdgeLength[0].resize(npointsets, _MaxEdgeLength[0][0]);
+  } else {
+    _MaxEdgeLength[0].resize(npointsets, -1.);
+  }
+  for (int level = 1; level <= _NumberOfLevels; ++level) {
     const Vector3D<double> avgres = this->AverageOutputResolution(level);
     const double dmin = min(min(avgres._x, avgres._y), avgres._z);
     if (_MinEdgeLength[level].size() == 1) {
       _MinEdgeLength[level].resize(npointsets, _MinEdgeLength[level][0]);
     } else {
-      _MinEdgeLength[level].resize(npointsets, -1.0);
+      _MinEdgeLength[level].resize(npointsets, -1.);
     }
     if (_MaxEdgeLength[level].size() == 1) {
       _MaxEdgeLength[level].resize(npointsets, _MaxEdgeLength[level][0]);
     } else {
-      _MaxEdgeLength[level].resize(npointsets, -1.0);
+      _MaxEdgeLength[level].resize(npointsets, -1.);
     }
     for (int n = 0; n < npointsets; ++n) {
-      if (_MinEdgeLength[level][n] < .0) {
-        _MinEdgeLength[level][n] = (level == 1 ? .0 : dmin);
+      if (_MinEdgeLength[level][n] < 0.) {
+        if (_MinEdgeLength[0][n] < 0.) {
+          _MinEdgeLength[level][n] = (level == 1 ? 0. : dmin);
+        } else {
+          _MinEdgeLength[level][n] = _MinEdgeLength[0][n];
+        }
       }
-      if (_MaxEdgeLength[level][n] < .0) {
-        _MaxEdgeLength[level][n] = 2.0 * sqrt(3.0) * max(dmin, _MinEdgeLength[level][n]);
+      if (_MaxEdgeLength[level][n] < 0.) {
+        if (_MaxEdgeLength[0][n] < 0.) {
+          _MaxEdgeLength[level][n] = 2. * sqrt(3.) * max(dmin, _MinEdgeLength[level][n]);
+        } else {
+          _MaxEdgeLength[level][n] = _MaxEdgeLength[0][n];
+        }
       }
+    }
+  }
+  for (int n = 0; n < npointsets; ++n) {
+    const Vector3D<double> avgres = this->AverageOutputResolution(0);
+    const double dmin = min(min(avgres._x, avgres._y), avgres._z);
+    if (_MinEdgeLength[0][n] < 0.) {
+      _MinEdgeLength[0][n] = dmin;
+    }
+    if (_MaxEdgeLength[0][n] < 0.) {
+      _MaxEdgeLength[0][n] = 2. * sqrt(3.) * max(dmin, _MinEdgeLength[0][n]);
     }
   }
 
