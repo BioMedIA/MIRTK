@@ -49,7 +49,7 @@ class FlannPointLocator;
  * This point locator implementation is specialized for use by
  * PointCorrespondence subclass implementations. It allows the search of
  * nearest neighbors within the n-dimensional feature space spanned by the
- * feature Arrays used to establish point correspondences.
+ * feature arrays used to establish point correspondences.
  *
  * The implementation uses either VTK for point search in three dimensions or
  * FLANN for higher dimensional feature spaces if available. Alternatively,
@@ -57,6 +57,13 @@ class FlannPointLocator;
  * force search without actual Kd tree search structure is performed.
  *
  * \todo Consider actual implementation of own thread-safe N-dimensional Kd tree?
+ *
+ * \attention When only a subset of the points is used, i.e., an index array
+ *            of point set samples is given (_Sample attribute), the indices
+ *            returned by this locator are the respective closest sample
+ *            indices into this sample point index array. Set the _GlobalIndices
+ *            flag to enable the internal mapping of closest sample indices to
+ *            global point indices.
  */
 class PointLocator : public Object
 {
@@ -188,6 +195,9 @@ public:
   /// Indices/names and rescaling parameters of point data arrays
   mirtkPublicAttributeMacro(FeatureList, Features);
 
+  /// Return global _DataSet point indices instead of _Sample indices
+  mirtkPublicAttributeMacro(bool, GlobalIndices);
+
   /// Number of points in search structure
   mirtkReadOnlyAttributeMacro(int, NumberOfPoints);
 
@@ -198,7 +208,7 @@ public:
   vtkSmartPointer<vtkOctreePointLocator> _VtkLocator;
 
   /// FLANN point locator used for higher-dimensional feature spaces when available
-  FlannPointLocator *_FlannLocator;
+  SharedPtr<FlannPointLocator> _FlannLocator;
 
   // ---------------------------------------------------------------------------
   // Construction/Destruction

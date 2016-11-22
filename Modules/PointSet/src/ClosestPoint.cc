@@ -124,18 +124,18 @@ void ClosestPoint::Update()
 
   // Find closest points
   if (_FromTargetToSource) {
-    PointLocator *locator = PointLocator::New(_Source->PointSet(), _SourceSample, &_SourceFeatures);
+    UniquePtr<PointLocator> locator(PointLocator::New(_Source->PointSet(), _SourceSample, &_SourceFeatures));
+    locator->GlobalIndices(true);
     _SourceIndex = locator->FindClosestPoint(_Target->PointSet(), _TargetSample, &_TargetFeatures, &_SourceDistance);
-    delete locator;
   } else {
     _SourceIndex   .clear();
     _SourceDistance.clear();
   }
 
   if (_FromSourceToTarget) {
-    PointLocator *locator = PointLocator::New(_Target->PointSet(), _TargetSample, &_TargetFeatures);
+    UniquePtr<PointLocator> locator(PointLocator::New(_Target->PointSet(), _TargetSample, &_TargetFeatures));
+    locator->GlobalIndices(true);
     _TargetIndex = locator->FindClosestPoint(_Source->PointSet(), _SourceSample, &_SourceFeatures, &_TargetDistance);
-    delete locator;
   } else {
     _TargetIndex   .clear();
     _TargetDistance.clear();
