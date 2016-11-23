@@ -394,7 +394,7 @@ EdgeList BoundaryEdges(vtkDataSet *dataset, const EdgeTable &edgeTable)
     dataset->GetPointCells(ptId2, cellIds2);
     cellIds1->IntersectWith(cellIds2);
     if (cellIds1->GetNumberOfIds() < 2) {
-      boundaryEdges.push_back(MakePair(ptId1, ptId2));
+      boundaryEdges.push_back(MakePair(static_cast<int>(ptId1), static_cast<int>(ptId2)));
     }
   }
   return boundaryEdges;

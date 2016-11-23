@@ -487,7 +487,7 @@ ByteImage Cut(const ByteImage &regions, const Plane &plane, double r)
     x = i, y = j, z = 0.;
     attr.LatticeToWorld(x, y, z);
     regions.WorldToImage(x, y, z);
-    cut(i, j) = nn.Evaluate(x, y, z);
+    cut(i, j) = static_cast<BytePixel>(nn.Evaluate(x, y, z));
   }
 
   return cut;

@@ -465,7 +465,7 @@ public:
       }
     }
     if (values.size() <= 0) return NaN;
-    return NthElement(values, values.size()/2);
+    return NthElement(values, static_cast<int>(values.size())/2);
   }
 
   void Evaluate(Array<double> &values, int n, const double *data, const bool *mask = nullptr) const

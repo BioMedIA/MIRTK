@@ -397,7 +397,7 @@ vtkSmartPointer<vtkPointSet> ReadPointSetTable(const char *fname, char sep, vtkP
     const auto pos = ifs.tellg();
     Array<Point> coords;
     double p[3] = {0.};
-    size_t ptId = 0;
+    vtkIdType ptId = 0;
     size_t irow = 0;
     while (getline(ifs, line)) {
       ++irow;
@@ -423,12 +423,12 @@ vtkSmartPointer<vtkPointSet> ReadPointSetTable(const char *fname, char sep, vtkP
         }
       }
       if (id_col != -1) {
-        if (!FromString(cols[id_col], value) || static_cast<double>(static_cast<size_t>(value)) != value) {
+        if (!FromString(cols[id_col], value) || static_cast<double>(static_cast<vtkIdType>(value)) != value) {
           if (errmsg) cerr << "Invalid point ID in row " << irow << endl;
           return vtkSmartPointer<vtkPolyData>::New();
         }
-        ptId = static_cast<size_t>(value);
-        if (ptId >= coords.size()) {
+        ptId = static_cast<vtkIdType>(value);
+        if (ptId >= static_cast<vtkIdType>(coords.size())) {
           coords.resize(ptId + 1);
         }
         coords[ptId] = Point(p);
@@ -460,9 +460,9 @@ vtkSmartPointer<vtkPointSet> ReadPointSetTable(const char *fname, char sep, vtkP
     if (pos != string::npos && pos != header[i].length()-1) {
       const string name = header[i].substr(0, pos);
       const string comp = header[i].substr(pos + 1);
-      comps[name].insert(MakePair(i, move(comp)));
+      comps[name].insert(MakePair(static_cast<int>(i), move(comp)));
     } else {
-      comps[header[i]].insert(MakePair(i, ""));
+      comps[header[i]].insert(MakePair(static_cast<int>(i), ""));
     }
   }
 
