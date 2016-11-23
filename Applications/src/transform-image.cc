@@ -101,31 +101,26 @@ int main(int argc, char **argv)
   InterpolationMode interpolation = Interpolation_NN;
   ImageDataType     dtype         = MIRTK_VOXEL_UNKNOWN;
 
-  double target_t = numeric_limits<double>::quiet_NaN();
-  double source_t = numeric_limits<double>::quiet_NaN();
+  double target_t = NaN;
+  double source_t = NaN;
 
-  int  source_padding  = 0;
-  int  target_padding  = NaN;
-  bool invert          = false;
-  bool twod            = false;
+  double source_padding = 0;
+  double target_padding = NaN;
+  bool  invert          = false;
+  bool  twod            = false;
 
   for (ALL_OPTIONS) {
-    if      (OPTION("-dof")    ) dof_name       = ARGUMENT, dof_invert = false;
-    else if (OPTION("-dof_i")  ) dof_name       = ARGUMENT, dof_invert = true;
-    else if (OPTION("-dofin")  ) dofin_name     = ARGUMENT;
-    else if (OPTION("-target") ) target_name    = ARGUMENT;
-    else if (OPTION("-Tp")     ) target_padding = atoi(ARGUMENT);
-    else if (OPTION("-Sp")     ) source_padding = atoi(ARGUMENT);
-    else if (OPTION("-Tt")     ) target_t       = atof(ARGUMENT);
-    else if (OPTION("-St")     ) source_t       = atof(ARGUMENT);
-    else if (OPTION("-invert") ) invert         = true;
-    else if (OPTION("-2d")     ) twod           = true;
-    else if (OPTION("-interp")) {
-      const char *arg = ARGUMENT;
-      if (!FromString(arg, interpolation)) {
-        FatalError("Invalid -interp mode: " << arg);
-      }
-    }
+    if      (OPTION("-dof")   ) dof_name       = ARGUMENT, dof_invert = false;
+    else if (OPTION("-dof_i") ) dof_name       = ARGUMENT, dof_invert = true;
+    else if (OPTION("-dofin") ) dofin_name     = ARGUMENT;
+    else if (OPTION("-target")) target_name    = ARGUMENT;
+    else if (OPTION("-Tp")    ) PARSE_ARGUMENT(target_padding);
+    else if (OPTION("-Sp")    ) PARSE_ARGUMENT(source_padding);
+    else if (OPTION("-Tt")    ) PARSE_ARGUMENT(target_t);
+    else if (OPTION("-St")    ) PARSE_ARGUMENT(source_t);
+    else if (OPTION("-interp")) PARSE_ARGUMENT(interpolation);
+    else HANDLE_BOOL_OPTION(invert);
+    else HANDLE_BOOLEAN_OPTION("2d", twod);
     // backwards compatibility options
     else if (OPTION("-nn")     ) interpolation  = Interpolation_NN;
     else if (OPTION("-linear") ) interpolation  = Interpolation_Linear;
