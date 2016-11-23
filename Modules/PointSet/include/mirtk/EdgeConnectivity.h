@@ -58,7 +58,10 @@ class EdgeConnectivity : public GenericSparseMatrix<int>
 public:
 
   /// Construct edge-connectivity table for given dataset
-  EdgeConnectivity(vtkDataSet * = NULL, int n = 3, const EdgeTable * = NULL);
+  EdgeConnectivity(vtkDataSet * = nullptr, int n = 3, const EdgeTable * = nullptr);
+
+  /// Construct edge-connectivity table for given dataset
+  EdgeConnectivity(vtkDataSet *, double r, const EdgeTable * = nullptr);
 
   /// Copy constructor
   EdgeConnectivity(const EdgeConnectivity &);
@@ -70,10 +73,10 @@ public:
   virtual ~EdgeConnectivity();
 
   /// Initialize edge-connectivity table from given dataset
-  void Initialize(vtkDataSet *, int n = 3, const EdgeTable * = NULL);
+  void Initialize(vtkDataSet *, int n = 3, const EdgeTable * = nullptr);
 
   /// Initialize edge-connectivity table from given dataset
-  void Initialize(vtkDataSet *, double r, const EdgeTable * = NULL);
+  void Initialize(vtkDataSet *, double r, const EdgeTable * = nullptr);
 
   /// Clear edge-connectivity table
   virtual void Clear();

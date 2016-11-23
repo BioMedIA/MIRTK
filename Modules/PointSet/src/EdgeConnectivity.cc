@@ -157,6 +157,14 @@ EdgeConnectivity::EdgeConnectivity(vtkDataSet *mesh, int n, const EdgeTable *edg
 }
 
 // -----------------------------------------------------------------------------
+EdgeConnectivity::EdgeConnectivity(vtkDataSet *mesh, double r, const EdgeTable *edgeTable)
+  :
+  _Maximum(-1)
+{
+  if (mesh) Initialize(mesh, r, edgeTable);
+}
+
+// -----------------------------------------------------------------------------
 EdgeConnectivity::EdgeConnectivity(const EdgeConnectivity &other)
 :
   GenericSparseMatrix(other),
