@@ -46,6 +46,7 @@ using std::ostringstream;
 using std::cin;
 using std::cout;
 using std::cerr;
+using std::flush;
 
 // Bidirectional stream
 using std::iostream;
