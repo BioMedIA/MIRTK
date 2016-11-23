@@ -24,6 +24,7 @@
 
 #include "mirtk/Point.h"
 #include "mirtk/OrderedSet.h"
+#include "mirtk/PointSetExport.h"
 
 #include "vtkPriorityQueue.h"
 
@@ -65,10 +66,10 @@ public:
   };
 
   /// Name of minimum edge length point data array
-  static const char * const MIN_EDGE_LENGTH;
+  MIRTK_PointSet_EXPORT static const char * const MIN_EDGE_LENGTH;
 
   /// Name of maximum edge length point data array
-  static const char * const MAX_EDGE_LENGTH;
+  MIRTK_PointSet_EXPORT static const char * const MAX_EDGE_LENGTH;
 
   // ---------------------------------------------------------------------------
   // Attributes

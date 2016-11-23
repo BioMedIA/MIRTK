@@ -26,6 +26,7 @@
 #include "mirtk/Array.h"
 #include "mirtk/OrderedSet.h"
 #include "mirtk/Memory.h"
+#include "mirtk/PointSetExport.h"
 
 #include "vtkSmartPointer.h"
 
@@ -66,10 +67,10 @@ public:
     Ambiguous             ///< Both collisions and self-intersections found
   };
 
-  // Names of output cell data array
-  static constexpr const char * const BOUNDING_SPHERE_CENTER = "BoundingSphereCenter";
-  static constexpr const char * const BOUNDING_SPHERE_RADIUS = "BoundingSphereRadius";
-  static constexpr const char * const COLLISION_TYPE         = "CollisionType";
+  // Names of data arrays
+  MIRTK_PointSet_EXPORT static const char * const BOUNDING_SPHERE_CENTER;
+  MIRTK_PointSet_EXPORT static const char * const BOUNDING_SPHERE_RADIUS;
+  MIRTK_PointSet_EXPORT static const char * const COLLISION_TYPE;
 
   /// Whether a given collision type indicates a near miss collision
   static bool IsCollision(CollisionType);

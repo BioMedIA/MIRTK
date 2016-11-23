@@ -48,20 +48,20 @@ namespace mirtk {
 
 
 // =============================================================================
-// Names of output point data arrays
+// Names of data arrays
 // =============================================================================
 
-MIRTK_PointSet_EXPORT const char *SurfaceCurvature::MINIMUM            = "Minimum_Curvature";
-MIRTK_PointSet_EXPORT const char *SurfaceCurvature::MAXIMUM            = "Maximum_Curvature";
-MIRTK_PointSet_EXPORT const char *SurfaceCurvature::PRINCIPAL          = "Principal_Curvatures";
-MIRTK_PointSet_EXPORT const char *SurfaceCurvature::MEAN               = "Mean_Curvature";
-MIRTK_PointSet_EXPORT const char *SurfaceCurvature::GAUSS              = "Gauss_Curvature";
-MIRTK_PointSet_EXPORT const char *SurfaceCurvature::CURVEDNESS         = "Curvedness";
-MIRTK_PointSet_EXPORT const char *SurfaceCurvature::MINIMUM_DIRECTION  = "Minimum_Curvature_Direction";
-MIRTK_PointSet_EXPORT const char *SurfaceCurvature::MAXIMUM_DIRECTION  = "Maximum_Curvature_Direction";
-MIRTK_PointSet_EXPORT const char *SurfaceCurvature::TENSOR             = "Curvature_Tensor";
-MIRTK_PointSet_EXPORT const char *SurfaceCurvature::INVERSE_TENSOR     = "Inverse_Curvature_Tensor";
-MIRTK_PointSet_EXPORT const char *SurfaceCurvature::NORMALS            = "Normals";
+MIRTK_PointSet_EXPORT const char * const SurfaceCurvature::MINIMUM            = "Minimum_Curvature";
+MIRTK_PointSet_EXPORT const char * const SurfaceCurvature::MAXIMUM            = "Maximum_Curvature";
+MIRTK_PointSet_EXPORT const char * const SurfaceCurvature::PRINCIPAL          = "Principal_Curvatures";
+MIRTK_PointSet_EXPORT const char * const SurfaceCurvature::MEAN               = "Mean_Curvature";
+MIRTK_PointSet_EXPORT const char * const SurfaceCurvature::GAUSS              = "Gauss_Curvature";
+MIRTK_PointSet_EXPORT const char * const SurfaceCurvature::CURVEDNESS         = "Curvedness";
+MIRTK_PointSet_EXPORT const char * const SurfaceCurvature::MINIMUM_DIRECTION  = "Minimum_Curvature_Direction";
+MIRTK_PointSet_EXPORT const char * const SurfaceCurvature::MAXIMUM_DIRECTION  = "Maximum_Curvature_Direction";
+MIRTK_PointSet_EXPORT const char * const SurfaceCurvature::TENSOR             = "Curvature_Tensor";
+MIRTK_PointSet_EXPORT const char * const SurfaceCurvature::INVERSE_TENSOR     = "Inverse_Curvature_Tensor";
+MIRTK_PointSet_EXPORT const char * const SurfaceCurvature::NORMALS            = "Normals";
 
 // =============================================================================
 // Auxiliary functors
