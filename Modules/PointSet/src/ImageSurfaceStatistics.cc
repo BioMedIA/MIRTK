@@ -248,7 +248,7 @@ void ImageSurfaceStatistics::ExecuteInParallel(Body &body)
   if (body._Samples) {
     char name[64];
     for (int i = 0; i < body._N; ++i) {
-      sprintf(name, "Sample %d", i+1);
+      snprintf(name, 64, "Sample %d", i+1);
       output->SetComponentName(i, name);
     }
   }
