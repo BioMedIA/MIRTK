@@ -159,7 +159,7 @@ void Stripper::Execute()
     // Add new joined line (**after** RemoveDeletedCells)
     vtkCellArray * const arr = _Output->GetLines();
     for (const auto &line : lines) {
-      arr->InsertNextCell(line.size());
+      arr->InsertNextCell(static_cast<int>(line.size()));
       for (const auto &ptId : line) {
         arr->InsertCellPoint(ptId);
       }

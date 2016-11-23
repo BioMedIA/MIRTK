@@ -314,7 +314,7 @@ int main(int argc, char **argv)
       for (int i = 0; i < target.X(); ++i) {
         x = i, y = j, z = k;
         target.ImageToWorld(x, y, z);
-        mask(i, j, k) = nn.Evaluate(x, y, z);
+        mask(i, j, k) = static_cast<BinaryPixel>(nn.Evaluate(x, y, z));
       }
     }
     if (verbose > 1) cout << " done" << endl;
