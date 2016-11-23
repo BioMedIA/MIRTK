@@ -94,17 +94,18 @@ public:
     XX = 0, YY = 1, ZZ = 2, XY = 3, YX = XY, YZ = 4, ZY = YZ, XZ = 5, ZX = XZ
   };
 
-  MIRTK_PointSet_EXPORT static const char *MINIMUM;           ///< Name of minimum curvature array
-  MIRTK_PointSet_EXPORT static const char *MAXIMUM;           ///< Name of maximum curvature array
-  MIRTK_PointSet_EXPORT static const char *PRINCIPAL;         ///< Name of principal curvatures array
-  MIRTK_PointSet_EXPORT static const char *MEAN;              ///< Name of mean curvature array
-  MIRTK_PointSet_EXPORT static const char *GAUSS;             ///< Name of Gauss curvature array
-  MIRTK_PointSet_EXPORT static const char *CURVEDNESS;        ///< Name of curvedness array
-  MIRTK_PointSet_EXPORT static const char *NORMALS;           ///< Name of curvature-based normals array
-  MIRTK_PointSet_EXPORT static const char *MINIMUM_DIRECTION; ///< Name of minimum curvature direction array
-  MIRTK_PointSet_EXPORT static const char *MAXIMUM_DIRECTION; ///< Name of maximum curvature direction array
-  MIRTK_PointSet_EXPORT static const char *TENSOR;            ///< Name of curvature tensor array
-  MIRTK_PointSet_EXPORT static const char *INVERSE_TENSOR;    ///< Name of inverse curvature tensor array
+  // Names of data arrays
+  MIRTK_PointSet_EXPORT static const char * const MINIMUM;           ///< Name of minimum curvature array
+  MIRTK_PointSet_EXPORT static const char * const MAXIMUM;           ///< Name of maximum curvature array
+  MIRTK_PointSet_EXPORT static const char * const PRINCIPAL;         ///< Name of principal curvatures array
+  MIRTK_PointSet_EXPORT static const char * const MEAN;              ///< Name of mean curvature array
+  MIRTK_PointSet_EXPORT static const char * const GAUSS;             ///< Name of Gauss curvature array
+  MIRTK_PointSet_EXPORT static const char * const CURVEDNESS;        ///< Name of curvedness array
+  MIRTK_PointSet_EXPORT static const char * const NORMALS;           ///< Name of curvature-based normals array
+  MIRTK_PointSet_EXPORT static const char * const MINIMUM_DIRECTION; ///< Name of minimum curvature direction array
+  MIRTK_PointSet_EXPORT static const char * const MAXIMUM_DIRECTION; ///< Name of maximum curvature direction array
+  MIRTK_PointSet_EXPORT static const char * const TENSOR;            ///< Name of curvature tensor array
+  MIRTK_PointSet_EXPORT static const char * const INVERSE_TENSOR;    ///< Name of inverse curvature tensor array
 
   // ---------------------------------------------------------------------------
   // Attributes

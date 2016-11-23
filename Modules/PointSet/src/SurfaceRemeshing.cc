@@ -52,11 +52,11 @@ namespace mirtk {
 
 
 // =============================================================================
-// Constants
+// Names of data arrays
 // =============================================================================
 
-const char * const SurfaceRemeshing::MIN_EDGE_LENGTH = "MinEdgeLength";
-const char * const SurfaceRemeshing::MAX_EDGE_LENGTH = "MaxEdgeLength";
+MIRTK_PointSet_EXPORT const char * const SurfaceRemeshing::MIN_EDGE_LENGTH = "MinEdgeLength";
+MIRTK_PointSet_EXPORT const char * const SurfaceRemeshing::MAX_EDGE_LENGTH = "MaxEdgeLength";
 
 // =============================================================================
 // Construction/Destruction

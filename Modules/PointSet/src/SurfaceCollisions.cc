@@ -46,6 +46,14 @@ namespace mirtk {
 
 
 // =============================================================================
+// Names of data arrays
+// =============================================================================
+
+MIRTK_PointSet_EXPORT const char * const SurfaceCollisions::BOUNDING_SPHERE_CENTER = "BoundingSphereCenter";
+MIRTK_PointSet_EXPORT const char * const SurfaceCollisions::BOUNDING_SPHERE_RADIUS = "BoundingSphereRadius";
+MIRTK_PointSet_EXPORT const char * const SurfaceCollisions::COLLISION_TYPE         = "CollisionType";
+
+// =============================================================================
 // Auxiliary functors
 // =============================================================================
 
