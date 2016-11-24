@@ -677,6 +677,35 @@ Plane MedialCuttingPlane(const ByteImage &regions)
 }
 
 // -----------------------------------------------------------------------------
+void FixHemisphereLabels(ByteImage &regions)
+{
+  const auto attr = regions.Attributes();
+  const int  nvox = regions.NumberOfVoxels();
+
+  ConnectedComponents<GreyPixel> cc;
+  GreyImage wm_lh(attr), wm_rh(attr);
+  GreyImage wm_lh_cc, wm_rh_cc;
+
+  for (int vox = 0; vox < nvox; ++vox) {
+    if      (regions(vox) == RH) wm_rh(vox) = 1;
+    else if (regions(vox) == LH) wm_lh(vox) = 1;
+  }
+
+  cc.Input (&wm_rh);
+  cc.Output(&wm_rh_cc);
+  cc.Run();
+
+  cc.Input (&wm_lh);
+  cc.Output(&wm_lh_cc);
+  cc.Run();
+
+  for (int vox = 0; vox < nvox; ++vox) {
+    if      (regions(vox) == RH && wm_rh_cc(vox) != 1) regions(vox) = LH;
+    else if (regions(vox) == LH && wm_lh_cc(vox) != 1) regions(vox) = RH;
+  }
+}
+
+// -----------------------------------------------------------------------------
 /// Resample regions mask such that image axes are aligned with orthogonal cutting planes
 ByteImage Resample(const ByteImage &regions, const Plane &rl_plane, const Plane &bs_plane,
                    int xmargin = 0, int ymargin = 0, int zmargin = 0,
@@ -849,6 +878,7 @@ ByteImage Resample(const ByteImage &regions, const Plane &rl_plane, const Plane 
       }
     }
   }
+  FixHemisphereLabels(output);
 
   return output;
 }
