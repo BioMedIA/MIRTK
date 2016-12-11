@@ -9,4 +9,7 @@
 	url = https://github.com/MIRTK/Mapping.git
 [submodule "Packages/DrawEM"]
 	path = Packages/DrawEM
-	url = https://github.com/MIRTK/DrawEM
+	url = https://github.com/MIRTK/DrawEM.git
+[submodule "Packages/Scripting"]
+	path = Packages/Scripting
+	url = https://github.com/MIRTK/Scripting.git
