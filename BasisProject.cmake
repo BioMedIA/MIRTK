@@ -74,6 +74,7 @@ basis_project (
     Packages/Deformable
     Packages/Mapping
     Packages/DrawEM
+    Packages/Scripting
 
   # --------------------------------------------------------------------------
   # list of modules enabled by default
@@ -91,6 +92,7 @@ basis_project (
     Deformable
     Mapping
     DrawEM
+    Scripting
 
   # --------------------------------------------------------------------------
   # dependencies
