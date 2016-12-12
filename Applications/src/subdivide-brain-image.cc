@@ -677,6 +677,37 @@ Plane MedialCuttingPlane(const ByteImage &regions)
 }
 
 // -----------------------------------------------------------------------------
+bool TouchesOtherHemisphere(const GreyImage &cc, const GreyImage &other, int vox)
+{
+  const GreyPixel label = cc(vox);
+  int i, j, k;
+  Stack<int> active;
+  UnorderedSet<int> visited;
+  active.push(vox);
+  while (!active.empty()) {
+    vox = active.top();
+    active.pop();
+    visited.insert(vox);
+    cc.IndexToVoxel(vox, i, j, k);
+    for (int nk = k-1; nk <= k+1; ++nk)
+    for (int nj = j-1; nj <= j+1; ++nj)
+    for (int ni = i-1; ni <= i+1; ++ni) {
+      if (cc.IsInside(ni, nj, nk)) {
+        if (other(ni, nj, nk) == 1) {
+          return true;
+        } else if (cc(ni, nj, nk) == label) {
+          vox = cc.VoxelToIndex(ni, nj, nk);
+          if (visited.find(vox) == visited.end()) {
+            active.push(vox);
+          }
+        }
+      }
+    }
+  }
+  return false;
+}
+
+// -----------------------------------------------------------------------------
 void FixHemisphereLabels(ByteImage &regions)
 {
   const auto attr = regions.Attributes();
@@ -700,8 +731,19 @@ void FixHemisphereLabels(ByteImage &regions)
   cc.Run();
 
   for (int vox = 0; vox < nvox; ++vox) {
-    if      (regions(vox) == RH && wm_rh_cc(vox) != 1) regions(vox) = LH;
-    else if (regions(vox) == LH && wm_lh_cc(vox) != 1) regions(vox) = RH;
+    if (regions(vox) == RH && wm_rh_cc(vox) != 1) {
+      if (TouchesOtherHemisphere(wm_rh_cc, wm_lh_cc, vox)) {
+        regions(vox) = LH;
+      } else {
+        regions(vox) = BG;
+      }
+    } else if (regions(vox) == LH && wm_lh_cc(vox) != 1) {
+      if (TouchesOtherHemisphere(wm_lh_cc, wm_rh_cc, vox)) {
+        regions(vox) = RH;
+      } else {
+        regions(vox) = BG;
+      }
+    }
   }
 }
 
