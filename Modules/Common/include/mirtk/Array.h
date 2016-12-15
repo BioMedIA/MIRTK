@@ -21,12 +21,13 @@
 #define MIRTK_Array_H
 
 #include <vector>
+#include <memory>
 
 namespace mirtk {
 
 
-template <class T>
-using Array = std::vector<T>;
+template <class T, class Alloc = std::allocator<T> >
+using Array = std::vector<T, Alloc>;
 
 
 } // namespace mirtk

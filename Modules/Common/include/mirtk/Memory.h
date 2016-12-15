@@ -41,6 +41,12 @@ using SharedPtr = std::shared_ptr<T>;
 template <class T>
 using WeakPtr = std::weak_ptr<T>;
 
+template <class T>
+SharedPtr<T> NewShared()
+{
+  return std::make_shared<T>();
+}
+
 template <class T, class... Args>
 SharedPtr<T> NewShared(Args&&... args)
 {

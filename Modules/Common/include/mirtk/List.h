@@ -21,12 +21,13 @@
 #define MIRTK_List_H
 
 #include <list>
+#include <memory>
 
 namespace mirtk {
 
 
-template <class T>
-using List = std::list<T>;
+template <class T, class Alloc = std::allocator<T> >
+using List = std::list<T, Alloc>;
 
 
 } // namespace mirtk
