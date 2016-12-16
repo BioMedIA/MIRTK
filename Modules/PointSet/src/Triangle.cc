@@ -21,9 +21,11 @@
 #include "mirtk/Memory.h"
 
 #include "mirtk/VtkMath.h"
+#include "vtkVersion.h"
 #include "vtkLine.h"
 #include "vtkPlane.h"
 #include "vtkTriangle.h"
+#include "vtkIntersectionPolyDataFilter.h"
 
 
 namespace mirtk {
@@ -210,6 +212,34 @@ bool Triangle
                                        const_cast<double *>(a2),
                                        const_cast<double *>(b2),
                                        const_cast<double *>(c2)));
+}
+
+// -----------------------------------------------------------------------------
+bool Triangle
+::TriangleTriangleIntersection(const double a1[3], const double b1[3], const double c1[3],
+                               const double a2[3], const double b2[3], const double c2[3],
+                               int &coplanar, double *p1, double *p2)
+{
+  #if VTK_MAJOR_VERSION < 7 || (VTK_MAJOR_VERSION == 7 && VTK_MINOR_VERSION == 0)
+    return vtkIntersectionPolyDataFilter
+        ::TriangleTriangleIntersection(const_cast<double *>(a1),
+                                       const_cast<double *>(b1),
+                                       const_cast<double *>(c1),
+                                       const_cast<double *>(a2),
+                                       const_cast<double *>(b2),
+                                       const_cast<double *>(c2),
+                                       coplanar, p1, p2) != 0;
+  #else
+    double surfaceid[2], tol = 0.;
+    return vtkIntersectionPolyDataFilter
+        ::TriangleTriangleIntersection(const_cast<double *>(a1),
+                                       const_cast<double *>(b1),
+                                       const_cast<double *>(c1),
+                                       const_cast<double *>(a2),
+                                       const_cast<double *>(b2),
+                                       const_cast<double *>(c2),
+                                       coplanar, p1, p2, surfaceid, tol) != 0;
+  #endif
 }
 
 
