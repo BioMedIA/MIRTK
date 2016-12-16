@@ -39,7 +39,6 @@
 
 #include "vtkAbstractPointLocator.h"
 #include "vtkOctreePointLocator.h"
-#include "vtkIntersectionPolyDataFilter.h"
 
 
 namespace mirtk {
@@ -301,9 +300,9 @@ public:
             //       re-using already computed normals and b values.
             //       Also to not use this "private" function of the
             //       vtkIntersectionPolyDataFilter.
-            else if (vtkIntersectionPolyDataFilter::TriangleTriangleIntersection(
-                         tri1[0], tri1[1], tri1[2],
-                         tri2[0], tri2[1], tri2[2], coplanar, p1, p2)) {
+            else if (Triangle::TriangleTriangleIntersection(tri1[0], tri1[1], tri1[2],
+                                                            tri2[0], tri2[1], tri2[2],
+                                                            coplanar, p1, p2)) {
               // Ignore valid intersection of single shared vertex
               if (!fequal(p1[0], p2[0], TOL) ||
                   !fequal(p1[1], p2[1], TOL) ||

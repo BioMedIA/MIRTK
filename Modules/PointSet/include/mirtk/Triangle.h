@@ -218,6 +218,11 @@ public:
   static bool TriangleTriangleIntersection(const double a1[3], const double b1[3], const double c1[3],
                                            const double a2[3], const double b2[3], const double c2[3]);
 
+  /// Tests whether two triangles intersect each other
+  static bool TriangleTriangleIntersection(const double a1[3], const double b1[3], const double c1[3],
+                                           const double a2[3], const double b2[3], const double c2[3],
+                                           int &coplanar, double *p1, double *p2);
+
   /// Compute distance between triangle center points
   static double DistanceBetweenCenters(const double a1[3], const double b1[3], const double c1[3],
                                        const double a2[3], const double b2[3], const double c2[3],
