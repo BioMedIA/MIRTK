@@ -30,15 +30,16 @@
 
 basis_install(DESTINATION "${INSTALL_CMAKE_MODULES_DIR}" FILES
   # MIRTK modules
-  "mirtkTools.cmake"           # includes MIRTK command definitions
-  "mirtkPolicies.cmake"        # common CMake policies
-  "mirtkAddLibrary.cmake"      # defines mirtk_add_library
-  "mirtkAddExecutable.cmake"   # defines mirtk_add_executable
-  "mirtkAddTest.cmake"         # defines mirtk_add_test
-  "mirtkGetTargetName.cmake"   # defines mirtk_get_target_name
-  "mirtkProjectBegin.cmake"    # defines mirtk_project_begin
-  "mirtkProjectEnd.cmake"      # defines mirtk_project_end
-  "mirtkConfigureModule.cmake" # defines mirtk_configure_module
+  "mirtkTools.cmake"              # includes MIRTK command definitions
+  "mirtkPolicies.cmake"           # common CMake policies
+  "mirtkAddLibrary.cmake"         # defines mirtk_add_library
+  "mirtkAddExecutable.cmake"      # defines mirtk_add_executable
+  "mirtkAddTest.cmake"            # defines mirtk_add_test
+  "mirtkTargetDependencies.cmake" # defines mirtk_target_dependencies
+  "mirtkGetTargetName.cmake"      # defines mirtk_get_target_name
+  "mirtkProjectBegin.cmake"       # defines mirtk_project_begin
+  "mirtkProjectEnd.cmake"         # defines mirtk_project_end
+  "mirtkConfigureModule.cmake"    # defines mirtk_configure_module
   # Find modules
   "FindARPACK.cmake"
   "FindEigen3.cmake"
@@ -47,6 +48,7 @@ basis_install(DESTINATION "${INSTALL_CMAKE_MODULES_DIR}" FILES
   "FindPython.cmake"
   "FindPythonInterp.cmake"
   "FindSphinx.cmake"
+  "FindSuiteSparse.cmake"
   "FindTBB.cmake"
   "FindUMFPACK.cmake"
 )
