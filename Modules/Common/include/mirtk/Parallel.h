@@ -38,6 +38,8 @@
 #  include <tbb/parallel_for.h>
 #  include <tbb/parallel_reduce.h>
 #  include <tbb/concurrent_queue.h>
+#  include <tbb/scalable_allocator.h>
+#  include <tbb/cache_aligned_allocator.h>
 #  include <tbb/mutex.h>
 #  ifdef MIRTK_UNDEF_NOMINMAX
 #    undef MIRTK_UNDEF_NOMINMAX
@@ -102,6 +104,8 @@ using tbb::parallel_reduce;
 using tbb::concurrent_queue;
 using tbb::mutex;
 using tbb::split;
+using tbb::scalable_allocator;
+using tbb::cache_aligned_allocator;
 
 // A task scheduler is created/terminated automatically by TBB since
 // version 2.2. It is recommended by Intel not to instantiate any task
@@ -120,6 +124,11 @@ MIRTK_Common_EXPORT extern UniquePtr<task_scheduler_init> tbb_scheduler;
 // This avoids code duplication and unnecessary conditional code compilation.
 #else // HAVE_TBB
 
+template <class T>
+using scalable_allocator = std::allocator<T>;
+
+template <class T>
+using cache_aligned_allocator = std::allocator<T>;
 
 /// Dummy type used to distinguish split constructor from copy constructor
 struct split {};

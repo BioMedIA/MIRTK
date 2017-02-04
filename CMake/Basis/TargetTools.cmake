@@ -1611,6 +1611,9 @@ function (basis_finalize_targets)
     endforeach ()
   else ()
     basis_get_project_property (TARGETS PROPERTY TARGETS)
+    if (NOT TARGETS)
+      return()
+    endif ()
     # targets of BASIS utilities are finalized separately
     # because some properties still have to be set by
     # basis_configure_utilities, see UtilitiesTools module
