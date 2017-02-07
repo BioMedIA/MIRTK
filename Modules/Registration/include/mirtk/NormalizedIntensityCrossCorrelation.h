@@ -1,8 +1,8 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2013-2015 Imperial College London
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2013-2017 Imperial College London
+ * Copyright 2013-2017 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,11 +32,11 @@ namespace mirtk {
 
 
 /**
- * Normalized/Local cross correlation image similarity measure
+ * (Local) Normalized cross correlation image similarity measure
  */
 class NormalizedIntensityCrossCorrelation : public ImageSimilarity
 {
-  mirtkEnergyTermMacro(NormalizedIntensityCrossCorrelation, EM_LNCC);
+  mirtkEnergyTermMacro(NormalizedIntensityCrossCorrelation, EM_NCC);
 
   // ---------------------------------------------------------------------------
   // Types
@@ -87,18 +87,22 @@ private:
   /// Mean normalized target image
   mirtkComponentMacro(RealImage, T);
 
+  /// Global inner products computed over whole image domain
+  double _GlobalA, _GlobalB, _GlobalC, _GlobalS, _GlobalT;
+
   /// Temporary image used by ComputeWeightedAverage and WriteDataSets
   mutable RealImage _Temp;
 
   /// Size of box window or Full Width at Tenth Maximum (FWTM) of Gaussian kernel.
   /// A negative value indicates voxel units, while a positive value corresponds
-  /// to world units (i.e., mm).
+  /// to world units (i.e., mm). When 0, the global normalized cross correlation
+  /// is computed instead of local cross correlation within a neighborhood.
   mirtkPublicAttributeMacro(Vector3D<double>, NeighborhoodSize);
 
   /// Radius of local neighborhood window in number of voxels
   mirtkReadOnlyAttributeMacro(Vector3D<int>, NeighborhoodRadius);
 
-  /// Sum of local correlation coefficients
+  /// Sum of local correlation coefficients / global normalized cross correlation
   double _Sum;
 
   /// Size of overlap domain

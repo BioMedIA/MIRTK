@@ -47,7 +47,8 @@ enum EnergyMeasure
     EM_K,                       ///< Kappa statistic
     EM_ML,                      ///< Maximum likelihood
     EM_NGF_COS,                 ///< Cosine of normalzed gradient field
-    EM_LNCC,                    ///< Normalized/Local cross-correlation
+    EM_NCC,                     ///< Normalized cross-correlation
+    EM_LNCC = EM_NCC,           ///< Local normalized cross-correlation
     EM_CoVar,                   ///< Covariance
     EM_PSNR,                    ///< Peak signal-to-noise ratio
 
@@ -130,7 +131,7 @@ inline string ToString(const EnergyMeasure &value, int w, char c, bool left)
     case EM_K:       str = "K"; break;
     case EM_ML:      str = "ML"; break;
     case EM_NGF_COS: str = "NGF_COS"; break;
-    case EM_LNCC:    str = "LNCC"; break;
+    case EM_NCC:     str = "NCC"; break;
     case EM_CoVar:   str = "CoVar"; break;
     case EM_PSNR:    str = "PSNR"; break;
 
@@ -191,7 +192,7 @@ inline string ToPrettyString(const EnergyMeasure &value, int w = 0, char c = ' '
     // ---------------------------------------------------------------------------
     // Image (dis-)similarity measures
     case EM_JE:      str = "Joint entropy"; break;
-    case EM_CC:      str = "Cross-correlation"; break;
+    case EM_CC:      str = "Normalized cross-correlation"; break;
     case EM_MI:      str = "Mutual information"; break;
     case EM_NMI:     str = "Normalized mutual information"; break;
     case EM_SSD:     str = "Sum of squared differences"; break;
@@ -201,7 +202,7 @@ inline string ToPrettyString(const EnergyMeasure &value, int w = 0, char c = ' '
     case EM_K:       str = "Kappa statistic"; break;
     case EM_ML:      str = "Maximum likelihood"; break;
     case EM_NGF_COS: str = "Cosine of normalized gradient field"; break;
-    case EM_LNCC:    str = "Local normalized cross-correlation"; break;
+    case EM_NCC:     str = "(Local) Normalized cross-correlation"; break;
     case EM_CoVar:   str = "Covariance"; break;
     case EM_PSNR:    str = "Peak signal-to-noise ratio"; break;
 
@@ -265,8 +266,8 @@ inline bool FromString(const char *str, EnergyMeasure &value)
   // ---------------------------------------------------------------------------
   // Alternative names for image (dis-)similarity measures
   if (value == EM_Unknown) {
-    if      (lstr == "ncc")   value = EM_LNCC;
-    else if (lstr == "lcc")   value = EM_LNCC;
+    if      (lstr == "lcc")   value = EM_NCC;
+    else if (lstr == "lncc")  value = EM_NCC;
     else if (lstr == "kappa") value = EM_K;
     else if (lstr == "correlation ratio xy" ||
              lstr == "correlationratioxy") value = EM_CR_XY;
