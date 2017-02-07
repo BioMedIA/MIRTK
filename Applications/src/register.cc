@@ -222,6 +222,7 @@ int read_input_list_file(const char *input_list_name, Array<string>& names, Arra
   // Read base directory and default extensionf for image files
   while (getline(iff, line)) {
     l++;
+    if (line.empty()) continue;
     // Discard leading white space characters
     line = line.substr(line.find_first_not_of(" \t"));
     // Ignore comment lines starting with # character
@@ -273,6 +274,7 @@ int read_input_list_file(const char *input_list_name, Array<string>& names, Arra
   while (getline(iff, line)) {
     l++;
     // Discard leading white space characters
+    if (line.empty()) continue;
     line = line.substr(line.find_first_not_of(" \t"));
     // Ignore comment lines starting with # character
     if (line[0] == '#') continue;
