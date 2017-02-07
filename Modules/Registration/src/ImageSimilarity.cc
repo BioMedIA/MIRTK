@@ -27,7 +27,6 @@
 #include "mirtk/VoxelFunction.h"
 #include "mirtk/MultiLevelTransformation.h"
 
-#include "mirtk/NormalizedMutualImageInformation.h"
 
 namespace mirtk {
 
