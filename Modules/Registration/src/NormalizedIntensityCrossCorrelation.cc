@@ -1,8 +1,8 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2013-2015 Imperial College London
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2013-2017 Imperial College London
+ * Copyright 2013-2017 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@
 
 #include "mirtk/NormalizedIntensityCrossCorrelation.h"
 
+#include "mirtk/Assert.h"
 #include "mirtk/Config.h" // WINDOWS
 #include "mirtk/Math.h"
 #include "mirtk/Memory.h"
@@ -30,7 +31,6 @@
 #include "mirtk/BinaryVoxelFunction.h"
 #include "mirtk/ScalarFunctionToImage.h"
 #include "mirtk/ConvolutionFunction.h"
-#include "mirtk/GenericImageIterator.h"
 #include "mirtk/ScalarGaussian.h"
 #include "mirtk/ObjectFactory.h"
 
@@ -328,40 +328,61 @@ struct UpdateBoxWindowLNCC : public VoxelFunction
   {}
 
   // ---------------------------------------------------------------------------
+  static void Calculate(int cnt, double sums, double sumt, double sumss, double sumts, double sumtt,
+                        VoxelType *a, VoxelType *b, VoxelType *c, VoxelType *s, VoxelType *t)
+  {
+    const double ms = sums / cnt;
+    const double mt = sumt / cnt;
+    *a = voxel_cast<VoxelType>(sumts - ms * sumt - mt * sums + cnt * ms * mt); // <T, S>
+    *b = voxel_cast<VoxelType>(sumss -       2.0 * ms * sums + cnt * ms * ms); // <S, S>
+    *c = voxel_cast<VoxelType>(sumtt -       2.0 * mt * sumt + cnt * mt * mt); // <T, T>
+    *s = ms;
+    *t = mt;
+  }
+
+  // ---------------------------------------------------------------------------
   void operator()(int i, int j, int k, int, const VoxelType *tgt, const VoxelType *src,
                   VoxelType *a, VoxelType *b, VoxelType *c, VoxelType *s, VoxelType *t)
   {
     int    cnt  =  0;
-    double sumt = .0, sums = .0, sumss = .0, sumts = .0, sumtt = .0;
+    double sumt = .0, sums = .0, sumss = .0, sumts = .0, sumtt = .0, vt, vs;
 
     if (_This->IsForeground(i, j, k)) {
       const Vector3D<int> &radius = _This->NeighborhoodRadius();
-      GenericImageIterator<VoxelType> _TargetNeighborhood(_This->Target());
-      GenericImageIterator<VoxelType> _SourceNeighborhood(_This->Source());
-      _TargetNeighborhood.SetNeighborhood(i, j, k, radius._x, radius._y, radius._z);
-      _SourceNeighborhood.SetNeighborhood(i, j, k, radius._x, radius._y, radius._z);
-      _TargetNeighborhood.GoToBegin();
-      _SourceNeighborhood.GoToBegin();
-      while (!_TargetNeighborhood.IsAtEnd()) {
-        sums  += _SourceNeighborhood.Value();
-        sumt  += _TargetNeighborhood.Value();
-        sumss += _SourceNeighborhood.Value() * _SourceNeighborhood.Value();
-        sumts += _TargetNeighborhood.Value() * _SourceNeighborhood.Value();
-        sumtt += _TargetNeighborhood.Value() * _TargetNeighborhood.Value();
-        ++_TargetNeighborhood;
-        ++_SourceNeighborhood;
-        ++cnt;
+      const int &nx = _This->Domain()._x;
+      const int &ny = _This->Domain()._y;
+      const int &nz = _This->Domain()._z;
+
+      int i1 = i - radius._x, i2 = i + radius._x;
+      int j1 = j - radius._y, j2 = j + radius._y;
+      int k1 = k - radius._z, k2 = k + radius._z;
+      if (i1 <   0) i1 = 0;
+      if (i2 >= nx) i2 = nx - 1;
+      if (j1 <   0) j1 = 0;
+      if (j2 >= ny) j2 = ny - 1;
+      if (k1 <   0) k1 = 0;
+      if (k2 >= nz) k2 = nz - 1;
+
+      for (int nk = k1; nk <= k2; ++nk)
+      for (int nj = j1; nj <= j2; ++nj)
+      for (int ni = i1; ni <= i2; ++ni) {
+        if (_This->IsForeground(ni, nj, nk)) {
+          vt = _This->Target()->Get(ni, nj, nk);
+          vs = _This->Source()->Get(ni, nj, nk);
+          sums  += vs;
+          sumt  += vt;
+          sumss += vs * vs;
+          sumts += vt * vs;
+          sumtt += vt * vt;
+          ++cnt;
+        }
       }
     }
 
     if (cnt) {
-      const double ms = sums / cnt;
-      const double mt = sumt / cnt;
-      *a = voxel_cast<VoxelType>(sumts - ms * sumt - mt * sums + cnt * ms * mt); // <T, S>
-      *b = voxel_cast<VoxelType>(sumss -       2.0 * ms * sums + cnt * ms * ms); // <S, S>
-      *c = voxel_cast<VoxelType>(sumtt -       2.0 * mt * sumt + cnt * mt * mt); // <T, T>
-      *s = voxel_cast<VoxelType>((*src) - ms);
-      *t = voxel_cast<VoxelType>((*tgt) - mt);
+      Calculate(cnt, sums, sumt, sumss, sumts, sumtt, a, b, c, s, t);
+      *s = voxel_cast<VoxelType>(*src) - (*s);
+      *t = voxel_cast<VoxelType>(*tgt) - (*t);
     } else {
       *a = *b = *c = *s = *t = voxel_cast<VoxelType>(.0);
     }
@@ -386,12 +407,18 @@ struct EvaluateBoxWindowLNCC : public VoxelReduction
     _Cnt += rhs._Cnt;
   }
 
+  static double Calculate(double a, double b, double c)
+  {
+    double cc = (a * a) / (b * c);
+    if (abs(cc) > 1.) cc = NaN;
+    return cc;
+  }
+
   template <class TImage, class T>
   void operator()(const TImage &, int, const T *a, const T *b, const T *c)
   {
-    double bc = static_cast<double>(*b) * static_cast<double>(*c);
-    double cc = static_cast<double>(*a) * static_cast<double>(*a) / bc;
-    if (!IsNaN(cc) && abs(cc) <= 1.0) {
+    double cc = Calculate(*a, *b, *c);
+    if (!IsNaN(cc)) {
       _Sum += cc;
       ++_Cnt;
     }
@@ -400,9 +427,8 @@ struct EvaluateBoxWindowLNCC : public VoxelReduction
   template <class T>
   void operator()(int, int, int, int, const T *a, const T *b, const T *c)
   {
-    double bc = static_cast<double>(*b) * static_cast<double>(*c);
-    double cc = static_cast<double>(*a) * static_cast<double>(*a) / bc;
-    if (!IsNaN(cc) && abs(cc) <= 1.0) {
+    double cc = Calculate(*a, *b, *c);
+    if (!IsNaN(cc)) {
       _Sum += cc;
       ++_Cnt;
     }
@@ -411,9 +437,8 @@ struct EvaluateBoxWindowLNCC : public VoxelReduction
   template <class TImage, class T>
   void operator()(const TImage &, int, const T *a, const T *b, const T *c, double *cc)
   {
-    double bc = static_cast<double>(*b) * static_cast<double>(*c);
-    (*cc) = static_cast<double>(*a) * static_cast<double>(*a) / bc;
-    if (!IsNaN(*cc) && abs(*cc) <= 1.0) {
+    (*cc) = Calculate(*a, *b, *c);
+    if (!IsNaN(*cc)) {
       _Sum += (*cc);
       ++_Cnt;
     } else {
@@ -424,9 +449,8 @@ struct EvaluateBoxWindowLNCC : public VoxelReduction
   template <class T>
   void operator()(int, int, int, int, const T *a, const T *b, const T *c, double *cc)
   {
-    double bc = static_cast<double>(*b) * static_cast<double>(*c);
-    (*cc) = static_cast<double>(*a) * static_cast<double>(*a) / bc;
-    if (!IsNaN(*cc) && abs(*cc) <= 1.0) {
+    (*cc) = Calculate(*a, *b, *c);
+    if (!IsNaN(*cc)) {
       _Sum += (*cc);
       ++_Cnt;
     } else {
@@ -444,13 +468,36 @@ private:
 };
 
 // -----------------------------------------------------------------------------
+struct EvaluateNCCGradient : public VoxelFunction
+{
+  double _A, _B, _C, _S, _T;
+  EvaluateNCCGradient(double a, double b, double c, double s, double t)
+  :
+    _A(a), _B(b), _C(c), _S(s), _T(t)
+  {}
+
+  static double Calculate(double a, double b, double c, double s, double t)
+  {
+    double g = (a / (b * c)) * (t - (a / b) * s);
+    if (IsNaN(g) || IsInf(g)) g = .0;
+    else g *= 2.;
+    return g;
+  }
+
+  template <class TImage, class T>
+  void operator()(const TImage &, int, const T *s, const T *t, T *g)
+  {
+    (*g) = Calculate(_A, _B, _C, (*s) - _S, (*t) - _T);
+  }
+};
+
+// -----------------------------------------------------------------------------
 struct EvaluateBoxWindowLNCCGradient : public VoxelFunction
 {
   template <class TImage, class T>
   void operator()(const TImage &, int, const T *a, const T *b, const T *c, const T *s, const T *t, T *g)
   {
-    (*g) = 2.0 * ((*a) / ((*b) * (*c))) * ((*t) - ((*a) / (*b)) * (*s));
-    if (IsNaN(*g) || IsInf(*g)) (*g) = .0;
+    (*g) = EvaluateNCCGradient::Calculate(*a, *b, *c, *s, *t);
   }
 };
 
@@ -525,10 +572,10 @@ NormalizedIntensityCrossCorrelation
 ::NormalizedIntensityCrossCorrelation(const char *name)
 :
   ImageSimilarity(name),
-  _KernelType(GaussianKernel),
+  _KernelType(BoxWindow),
   _KernelX(NULL), _KernelY(NULL), _KernelZ(NULL),
   _A(NULL), _B(NULL), _C(NULL), _S(NULL), _T(NULL),
-  _NeighborhoodSize(-21.0), // 21 vox FWTM / 5 vox StdDev
+  _NeighborhoodSize(0.),
   _NeighborhoodRadius(0)
 {
 }
@@ -866,65 +913,80 @@ void NormalizedIntensityCrossCorrelation::Initialize()
   // Initialize base class
   ImageSimilarity::Initialize();
 
-  // Rescale interpolated intensities to [0, 1], bg = -1
+  // Rescale interpolated intensities to [0, 1], bg < 0
+  const double bg = -.01;
   _Target->MinIntensity(0.0);
   _Target->MaxIntensity(1.0);
-  _Target->PutBackgroundValueAsDouble(-.01);
+  _Target->PutBackgroundValueAsDouble(bg);
 
   _Source->MinIntensity(0.0);
   _Source->MaxIntensity(1.0);
-  _Source->PutBackgroundValueAsDouble(-.01);
+  _Source->PutBackgroundValueAsDouble(bg);
 
   // Initialize intermediate memory
-  const ImageAttributes &attr = _Target->Attributes();
+  if (_NeighborhoodSize._x == 0. && _NeighborhoodSize._y == 0. && _NeighborhoodSize._z == 0.) {
 
-  if (!_A) _A = new RealImage;
-  if (!_B) _B = new RealImage;
-  if (!_C) _C = new RealImage;
-  if (!_S) _S = new RealImage;
-  if (!_T) _T = new RealImage;
+    _NeighborhoodRadius = 0;
 
-  _A->Initialize(attr, 1);
-  _B->Initialize(attr, 1);
-  _C->Initialize(attr, 1);
-  _S->Initialize(attr, 1);
-  _T->Initialize(attr, 1);
-
-  if (_KernelType == BoxWindow) {
-
-    // Initialize local neighborhood radius given window size in voxels
-    if (_NeighborhoodSize._x < .0) _NeighborhoodRadius._x = iround((-_NeighborhoodSize._x - 1) / 2.0);
-    if (_NeighborhoodSize._y < .0) _NeighborhoodRadius._y = iround((-_NeighborhoodSize._y - 1) / 2.0);
-    if (_NeighborhoodSize._z < .0) _NeighborhoodRadius._z = iround((-_NeighborhoodSize._z - 1) / 2.0);
-
-    // Initialize local neighborhood radius given window size in mm
-    if (_NeighborhoodSize._x > .0) _NeighborhoodRadius._x = iround(_NeighborhoodSize._x / (2.0 * attr._dx));
-    if (_NeighborhoodSize._y > .0) _NeighborhoodRadius._y = iround(_NeighborhoodSize._y / (2.0 * attr._dy));
-    if (_NeighborhoodSize._z > .0) _NeighborhoodRadius._z = iround(_NeighborhoodSize._z / (2.0 * attr._dz));
+    Delete(_A);
+    Delete(_B);
+    Delete(_C);
+    Delete(_S);
+    Delete(_T);
 
   } else {
 
-    _Temp.Initialize(attr, 1);
+    const ImageAttributes &attr = _Target->Attributes();
 
-    // FWTM -> StdDev in voxel units
-    double sigmaX = _NeighborhoodSize._x / 4.29193;
-    double sigmaY = _NeighborhoodSize._y / 4.29193;
-    double sigmaZ = _NeighborhoodSize._z / 4.29193;
-    if (sigmaX > .0) sigmaX /= attr._dx;
-    if (sigmaY > .0) sigmaY /= attr._dy;
-    if (sigmaZ > .0) sigmaZ /= attr._dz;
-    if (attr._z == 1) sigmaZ = .0;
+    if (!_A) _A = new RealImage;
+    if (!_B) _B = new RealImage;
+    if (!_C) _C = new RealImage;
+    if (!_S) _S = new RealImage;
+    if (!_T) _T = new RealImage;
 
-    // Initialize local neighborhood kernel
-    if (sigmaX != .0) _KernelX = CreateGaussianKernel(sigmaX);
-    if (sigmaY != .0) _KernelY = CreateGaussianKernel(sigmaY);
-    if (sigmaZ != .0) _KernelZ = CreateGaussianKernel(sigmaZ);
-    _NeighborhoodRadius._x = (_KernelX ? (_KernelX->X() - 1) / 2 : 0);
-    _NeighborhoodRadius._y = (_KernelY ? (_KernelY->X() - 1) / 2 : 0);
-    _NeighborhoodRadius._z = (_KernelZ ? (_KernelZ->X() - 1) / 2 : 0);
+    _A->Initialize(attr, 1);
+    _B->Initialize(attr, 1);
+    _C->Initialize(attr, 1);
+    _S->Initialize(attr, 1);
+    _T->Initialize(attr, 1);
+
+    if (_KernelType == BoxWindow) {
+
+      // Initialize local neighborhood radius given window size in voxels
+      if (_NeighborhoodSize._x < .0) _NeighborhoodRadius._x = iround((-_NeighborhoodSize._x - 1) / 2.0);
+      if (_NeighborhoodSize._y < .0) _NeighborhoodRadius._y = iround((-_NeighborhoodSize._y - 1) / 2.0);
+      if (_NeighborhoodSize._z < .0) _NeighborhoodRadius._z = iround((-_NeighborhoodSize._z - 1) / 2.0);
+
+      // Initialize local neighborhood radius given window size in mm
+      if (_NeighborhoodSize._x > .0) _NeighborhoodRadius._x = iround(_NeighborhoodSize._x / (2.0 * attr._dx));
+      if (_NeighborhoodSize._y > .0) _NeighborhoodRadius._y = iround(_NeighborhoodSize._y / (2.0 * attr._dy));
+      if (_NeighborhoodSize._z > .0) _NeighborhoodRadius._z = iround(_NeighborhoodSize._z / (2.0 * attr._dz));
+
+    } else {
+
+      _Temp.Initialize(attr, 1);
+
+      // FWTM -> StdDev in voxel units
+      double sigmaX = _NeighborhoodSize._x / 4.29193;
+      double sigmaY = _NeighborhoodSize._y / 4.29193;
+      double sigmaZ = _NeighborhoodSize._z / 4.29193;
+      if (sigmaX > .0) sigmaX /= attr._dx;
+      if (sigmaY > .0) sigmaY /= attr._dy;
+      if (sigmaZ > .0) sigmaZ /= attr._dz;
+      if (attr._z == 1) sigmaZ = .0;
+
+      // Initialize local neighborhood kernel
+      if (sigmaX != .0) _KernelX = CreateGaussianKernel(sigmaX);
+      if (sigmaY != .0) _KernelY = CreateGaussianKernel(sigmaY);
+      if (sigmaZ != .0) _KernelZ = CreateGaussianKernel(sigmaZ);
+      _NeighborhoodRadius._x = (_KernelX ? (_KernelX->X() - 1) / 2 : 0);
+      _NeighborhoodRadius._y = (_KernelY ? (_KernelY->X() - 1) / 2 : 0);
+      _NeighborhoodRadius._z = (_KernelZ ? (_KernelZ->X() - 1) / 2 : 0);
+    }
+
   }
 
-  MIRTK_DEBUG_TIMING(2, "initialization of LNCC");
+  MIRTK_DEBUG_TIMING(2, "initialization of NCC");
 }
 
 // -----------------------------------------------------------------------------
@@ -932,20 +994,37 @@ void NormalizedIntensityCrossCorrelation::Update(bool gradient)
 {
   MIRTK_START_TIMING();
 
-  // Registered image domain
-  blocked_range3d<int> domain(0, _Domain._z, 0, _Domain._y, 0, _Domain._x);
+  // Update images
+  const blocked_range3d<int> domain(0, _Domain._z, 0, _Domain._y, 0, _Domain._x);
+  const bool initial_update = _InitialUpdate;
+  ImageSimilarity::Update(gradient);
 
-  // Update images and compute mean and variance of fixed image(s)
-  if (_InitialUpdate && _KernelType != BoxWindow) {
-    ImageSimilarity::Update(gradient);
-    if (!Target()->Transformation()) ComputeStatistics(domain, _Target, _T, _C);
-    if (!Source()->Transformation()) ComputeStatistics(domain, _Source, _S, _B);
-  } else {
-    ImageSimilarity::Update(gradient);
-  }
+  // Global normalized cross correlation
+  if (_A == nullptr) {
 
-  // Update inner product images similar to ANTs
-  if (_KernelType == BoxWindow) {
+    int cnt = 0;
+    double sums = 0., sumt = 0., sumss = 0., sumts = 0., sumtt = 0., s, t;
+    for (int k = 0; k < _Domain._z; ++k)
+    for (int j = 0; j < _Domain._y; ++j)
+    for (int i = 0; i < _Domain._x; ++i) {
+      if (IsForeground(i, j, k)) {
+        t = _Target->Get(i, j, k);
+        s = _Source->Get(i, j, k);
+        sums  += s;
+        sumt  += t;
+        sumss += s * s;
+        sumts += t * s;
+        sumtt += t * t;
+        ++cnt;
+      }
+    }
+
+    UpdateBoxWindowLNCC<double>::Calculate(cnt, sums, sumt, sumss, sumts, sumtt,
+                                           &_GlobalA, &_GlobalB, &_GlobalC, &_GlobalS, &_GlobalT);
+    _Sum = EvaluateBoxWindowLNCC::Calculate(_GlobalA, _GlobalB, _GlobalC), _N = 1;
+
+  // Update LNCC inner product images similar to ANTs
+  } else if (_KernelType == BoxWindow) {
 
     // Compute dot products
     UpdateBoxWindowLNCC<RealType> update(this);
@@ -955,9 +1034,14 @@ void NormalizedIntensityCrossCorrelation::Update(bool gradient)
     ParallelForEachVoxel(domain, _A, _B, _C, cc);
     _Sum = cc.Sum(), _N = cc.Num();
 
-  // Update intermediate images similar to NiftyReg
+  // Update LNCC intermediate images similar to NiftyReg
   } else {
 
+    // Compute mean and variance of fixed image(s)
+    if (initial_update) {
+      if (!Target()->Transformation()) ComputeStatistics(domain, _Target, _T, _C);
+      if (!Source()->Transformation()) ComputeStatistics(domain, _Source, _S, _B);
+    }
     // Compute mean and standard deviation of moving image(s)
     if (Target()->Transformation()) ComputeStatistics(domain, _Target, _T, _C);
     if (Source()->Transformation()) ComputeStatistics(domain, _Source, _S, _B);
@@ -974,13 +1058,17 @@ void NormalizedIntensityCrossCorrelation::Update(bool gradient)
 
   }
 
-  MIRTK_DEBUG_TIMING(2, "update of LNCC");
+  MIRTK_DEBUG_TIMING(2, "update of NCC");
 }
 
 // -----------------------------------------------------------------------------
 void NormalizedIntensityCrossCorrelation::Exclude(const blocked_range3d<int> &region)
 {
-  if (_KernelType == BoxWindow) {
+  if (_A == nullptr) {
+
+    ImageSimilarity::Exclude(region);
+
+  } else if (_KernelType == BoxWindow) {
 
     // Subtract LNCC values for specified region
     EvaluateBoxWindowLNCC cc;
@@ -1015,7 +1103,11 @@ void NormalizedIntensityCrossCorrelation::Exclude(const blocked_range3d<int> &re
 // -----------------------------------------------------------------------------
 void NormalizedIntensityCrossCorrelation::Include(const blocked_range3d<int> &region)
 {
-  if (_KernelType == BoxWindow) {
+  if (_A == nullptr) {
+
+    ImageSimilarity::Include(region);
+
+  } else if (_KernelType == BoxWindow) {
 
     // Compute dot products
     UpdateBoxWindowLNCC<RealType> update(this);
@@ -1088,10 +1180,20 @@ bool NormalizedIntensityCrossCorrelation
   // Select normalized fixed (T) and moving (S) images
   const RegisteredImage *tgt = _Target, *src = _Source;
   const RealImage *T = _T, *S = _S, *B = _B, *C = _C;
-  if (image == _Target) swap(tgt, src), swap(T, S), swap(B, C);
+  if (image == _Target) {
+    swap(tgt, src);
+    swap(T, S);
+    swap(B, C);
+  }
+
+  // Evaluate gradient of global normalized cross correlation
+  if (_A == nullptr) {
+
+    EvaluateNCCGradient eval(_GlobalA, _GlobalB, _GlobalC, _GlobalS, _GlobalT);
+    ParallelForEachVoxel(src, tgt, gradient, eval);
 
   // Evaluate gradient of LNCC w.r.t S similar to ANTs
-  if (_KernelType == BoxWindow) {
+  } else if (_KernelType == BoxWindow) {
 
     EvaluateBoxWindowLNCCGradient eval;
     ParallelForEachVoxel(_A, B, C, S, T, gradient, eval);
@@ -1142,15 +1244,15 @@ void NormalizedIntensityCrossCorrelation::Print(Indent indent) const
   }
   cout << indent << "Neighborhood kernel:  " << kernel_type << endl;
   cout << indent << "Neighborhood size:    " << abs(_NeighborhoodSize._x)
-                                         << " x " << abs(_NeighborhoodSize._y)
-                                         << " x " << abs(_NeighborhoodSize._z)
-                                         << (_NeighborhoodSize._x < .0 ? " mm" : " vox")
-                                         << endl;
+                                    << " x " << abs(_NeighborhoodSize._y)
+                                    << " x " << abs(_NeighborhoodSize._z)
+                                    << (_NeighborhoodSize._x < .0 ? " mm" : " vox")
+                                    << endl;
   if (_A /* i.e., initialized */) {
     cout << indent << "  --> Kernel size:    " << (2*_NeighborhoodRadius._x+1)
-                                           << " x " << (2*_NeighborhoodRadius._y+1)
-                                           << " x " << (2*_NeighborhoodRadius._z+1)
-                                           << " vox" << endl;
+                                      << " x " << (2*_NeighborhoodRadius._y+1)
+                                      << " x " << (2*_NeighborhoodRadius._z+1)
+                                      << " vox" << endl;
   }
 }
 
