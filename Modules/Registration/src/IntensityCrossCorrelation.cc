@@ -1,8 +1,8 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2013-2015 Imperial College London
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2013-2017 Imperial College London
+ * Copyright 2013-2017 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,7 +19,6 @@
 
 #include "mirtk/IntensityCrossCorrelation.h"
 
-#include "mirtk/Math.h"
 #include "mirtk/ObjectFactory.h"
 
 
@@ -38,7 +37,7 @@ mirtkAutoRegisterEnergyTermMacro(IntensityCrossCorrelation);
 IntensityCrossCorrelation
 ::IntensityCrossCorrelation(const char *name)
 :
-  ImageSimilarity(name)
+  NormalizedIntensityCrossCorrelation(name)
 {
 }
 
@@ -46,52 +45,13 @@ IntensityCrossCorrelation
 IntensityCrossCorrelation
 ::IntensityCrossCorrelation(const IntensityCrossCorrelation &other)
 :
-  ImageSimilarity(other)
+  NormalizedIntensityCrossCorrelation(other)
 {
 }
 
 // -----------------------------------------------------------------------------
 IntensityCrossCorrelation::~IntensityCrossCorrelation()
 {
-}
-
-// =============================================================================
-// Evaluation
-// =============================================================================
-
-// -----------------------------------------------------------------------------
-double IntensityCrossCorrelation::Evaluate()
-{
-  VoxelType *tgt = Target()->Data();
-  VoxelType *src = Source()->Data();
-
-  double x = .0, y = .0, xy = .0, x2 = .0, y2 = .0;
-  int    n =  0;
-  for (int idx = 0; idx < NumberOfVoxels(); ++idx, ++tgt, ++src) {
-    if (IsForeground(idx)) {
-      x  += *tgt;
-      y  += *src;
-      xy += (*tgt) * (*src);
-      x2 += (*tgt) * (*tgt);
-      y2 += (*tgt) * (*tgt);
-      ++n;
-    }
-  }
-
-  if (n == 0) return .0;
-  return (xy - (x * y) / n) / (sqrt(x2 - x * x / n) * sqrt(y2 - y *y / n));
-}
-
-// -----------------------------------------------------------------------------
-bool IntensityCrossCorrelation
-::NonParametricGradient(const RegisteredImage *image, GradientImageType *gradient)
-{
-  cerr << "IntensityCrossCorrelation::NonParametricGradient: Not implemented" << endl;
-  exit(1);
-
-  // Apply chain rule to obtain gradient w.r.t y = T(x)
-  MultiplyByImageGradient(image, gradient);
-  return true;
 }
 
 

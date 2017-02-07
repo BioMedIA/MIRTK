@@ -1,8 +1,8 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2013-2015 Imperial College London
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2013-2017 Imperial College London
+ * Copyright 2013-2017 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,16 +20,18 @@
 #ifndef MIRTK_IntensityCrossCorrelation_H
 #define MIRTK_IntensityCrossCorrelation_H
 
-#include "mirtk/ImageSimilarity.h"
+#include "mirtk/NormalizedIntensityCrossCorrelation.h"
 
 
 namespace mirtk {
 
 
 /**
- * Cross correlation image similarity measure
+ * Normalized cross correlation image similarity measure
+ *
+ * \deprecated Use NormalizedIntensityCrossCorrelation with (default) window size zero instead.
  */
-class IntensityCrossCorrelation : public ImageSimilarity
+class IntensityCrossCorrelation : public NormalizedIntensityCrossCorrelation
 {
   mirtkEnergyTermMacro(IntensityCrossCorrelation, EM_CC);
 
@@ -47,17 +49,7 @@ public:
   IntensityCrossCorrelation &operator =(const IntensityCrossCorrelation &);
 
   /// Destructor
-  ~IntensityCrossCorrelation();
-
-  // ---------------------------------------------------------------------------
-  // Evaluation
-protected:
-
-  /// Evaluate similarity of images
-  virtual double Evaluate();
-
-  /// Evaluate non-parametric similarity gradient w.r.t the given image
-  virtual bool NonParametricGradient(const RegisteredImage *, GradientImageType *);
+  virtual ~IntensityCrossCorrelation();
 
 };
 
