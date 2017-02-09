@@ -2855,24 +2855,26 @@ void GenericRegistrationFilter::InitializeTransformation()
   // Compute domain on which free-form deformation must be defined
   struct ImageAttributes domain = _RegistrationDomain;
 
-  const HomogeneousTransformation        *ilin = NULL;
-  const MultiLevelFreeFormTransformation *iffd = NULL;
-
-  (ilin = dynamic_cast<const HomogeneousTransformation        *>(_InitialGuess)) ||
-  (iffd = dynamic_cast<const MultiLevelFreeFormTransformation *>(_InitialGuess));
-  if (iffd) ilin = iffd->GetGlobalTransformation();
-
-  if (ilin) {
-    // In case the global transformation is to be merged into the local one,
-    // make sure that the domain on which the local transformation is defined
-    // is large enough to avoid unpleasant boundary effects
-    if (_MergeGlobalAndLocalTransformation) {
-      domain = ffd->ApproximationDomain(domain, _InitialGuess);
-    // In case of fluid composition of global and local transformation,
-    // i.e., T = T_local o T_global, linearly transform attributes such that
-    // local transformation is defined for the mapped image region
-    } else if (_MultiLevelMode == MFFD_Fluid) {
-      domain.PutAffineMatrix(ilin->GetMatrix());
+  if (_InitialGuess && !_InitialGuess->IsIdentity()) {
+    const HomogeneousTransformation *ilin;
+    ilin = dynamic_cast<const HomogeneousTransformation *>(_InitialGuess);
+    if (!ilin) {
+      const MultiLevelFreeFormTransformation *iffd;
+      iffd = dynamic_cast<const MultiLevelFreeFormTransformation *>(_InitialGuess);
+      if (iffd) ilin = iffd->GetGlobalTransformation();
+    }
+    if (ilin) {
+      // In case the global transformation is to be merged into the local one,
+      // make sure that the domain on which the local transformation is defined
+      // is large enough to avoid unpleasant boundary effects
+      if (_MergeGlobalAndLocalTransformation) {
+        domain = ffd->ApproximationDomain(domain, _InitialGuess);
+      // In case of fluid composition of global and local transformation,
+      // i.e., T = T_local o T_global, linearly transform attributes such that
+      // local transformation is defined for the mapped image region
+      } else if (_MultiLevelMode == MFFD_Fluid) {
+        domain.PutAffineMatrix(ilin->GetMatrix());
+      }
     }
   }
 
