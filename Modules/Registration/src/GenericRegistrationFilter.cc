@@ -2219,7 +2219,10 @@ void GenericRegistrationFilter::GuessParameter()
   }
 
   // By default, crop/pad FFD lattice only if domain not explicitly specified
-  if (_CropPadFFD == -1) _CropPadFFD = (_Domain == NULL);
+  // and none of the transformation models is parameterised by velocities
+  if (_CropPadFFD == -1) {
+    _CropPadFFD = (_Domain == nullptr && !IsDiffeo(_TransformationModel));
+  }
 
   // Optimization parameters
   double value;
