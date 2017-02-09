@@ -243,6 +243,9 @@ struct ImageAttributes
   // Output
 
   /// Print attributes
+  void Print(ostream &, Indent = 0) const;
+
+  /// Print attributes
   void Print(Indent = 0) const;
 
 };

@@ -288,21 +288,21 @@ void SimilarityTransformation::DeriveJacobianWrtDOF(Matrix &dJdp, int dof, doubl
 // =============================================================================
 
 // -----------------------------------------------------------------------------
-void SimilarityTransformation::Print(Indent indent) const
+void SimilarityTransformation::Print(ostream &os, Indent indent) const
 {
-  RigidTransformation::Print(indent);
+  RigidTransformation::Print(os, indent);
 
-  cout.setf(ios::right);
-  cout.setf(ios::fixed);
-  streamsize previous_precision = cout.precision(4);
+  os.setf(ios::right);
+  os.setf(ios::fixed);
+  streamsize previous_precision = os.precision(4);
 
   if (_Status[SX] == Active || !fequal(_Param[SX], 100.0, 1e-4)) {
-    cout << indent << "s   = " << setw(8) << _Param[SG] << endl;
+    os << indent << "s   = " << setw(8) << _Param[SG] << endl;
   }
 
-  cout.precision(previous_precision);
-  cout.unsetf(ios::right);
-  cout.unsetf(ios::fixed);
+  os.precision(previous_precision);
+  os.unsetf(ios::right);
+  os.unsetf(ios::fixed);
 }
 
 // -----------------------------------------------------------------------------

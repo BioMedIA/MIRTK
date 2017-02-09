@@ -308,11 +308,11 @@ void PartialBSplineFreeFormTransformationSV
 // =============================================================================
 
 // -----------------------------------------------------------------------------
-void PartialBSplineFreeFormTransformationSV::Print(Indent indent) const
+void PartialBSplineFreeFormTransformationSV::Print(ostream &os, Indent indent) const
 {
-  cout << indent << "Partial B-spline SV FFD" << endl;
-  _Transformation->Print(indent+1);
-  cout << indent << "Fraction of transformation applied: " << _Fraction << endl;
+  os << indent << "Partial B-spline SV FFD" << endl;
+  _Transformation->Print(os, indent + 1);
+  os << indent << "Fraction of transformation applied: " << _Fraction << endl;
 }
 
 // -----------------------------------------------------------------------------

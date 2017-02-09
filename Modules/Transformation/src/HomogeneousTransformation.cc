@@ -528,9 +528,9 @@ bool HomogeneousTransformation::IsIdentity() const
 // =============================================================================
 
 // -----------------------------------------------------------------------------
-void HomogeneousTransformation::Print(Indent indent) const
+void HomogeneousTransformation::Print(ostream &os, Indent indent) const
 {
-  _matrix.Print(indent);
+  _matrix.Print(os, indent);
 }
 
 // ---------------------------------------------------------------------------

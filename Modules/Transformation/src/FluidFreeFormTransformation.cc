@@ -977,12 +977,12 @@ ParametricGradient(const PointSet &pos, const Vector3D<double> *in,
 // =============================================================================
 
 // -----------------------------------------------------------------------------
-void FluidFreeFormTransformation::Print(Indent indent) const
+void FluidFreeFormTransformation::Print(ostream &os, Indent indent) const
 {
-  cout << indent << "Fluid FFD:" << endl;
-  MultiLevelTransformation::Print(indent + 1);
-  cout << (indent + 1) << "Affine post-transformation:" << endl;
-  _AffineTransformation.Print(indent + 2);
+  os << indent << "Fluid FFD:" << endl;
+  MultiLevelTransformation::Print(os, indent + 1);
+  os << (indent + 1) << "Affine post-transformation:" << endl;
+  _AffineTransformation.Print(os, indent + 2);
 }
 
 // -----------------------------------------------------------------------------

@@ -1390,10 +1390,10 @@ void BSplineFreeFormTransformation4D::BendingEnergyGradient(double *gradient, do
 // =============================================================================
 
 // -----------------------------------------------------------------------------
-void BSplineFreeFormTransformation4D::Print(Indent indent) const
+void BSplineFreeFormTransformation4D::Print(ostream &os, Indent indent) const
 {
-  cout << indent << "4D B-spline FFD:" << endl;
-  FreeFormTransformation4D::Print(indent + 1);
+  os << indent << "4D B-spline FFD:" << endl;
+  FreeFormTransformation4D::Print(os, indent + 1);
 }
 
 // -----------------------------------------------------------------------------

@@ -373,34 +373,34 @@ void RigidTransformation::DeriveJacobianWrtDOF(Matrix &dJdp, int dof, double, do
 // =============================================================================
 
 // -----------------------------------------------------------------------------
-void RigidTransformation::Print(Indent indent) const
+void RigidTransformation::Print(ostream &os, Indent indent) const
 {
-  cout.setf(ios::right);
-  cout.setf(ios::fixed);
-  streamsize previous_precision = cout.precision(4);
+  os.setf(ios::right);
+  os.setf(ios::fixed);
+  streamsize previous_precision = os.precision(4);
 
   if (_Status[TX] == Active || !fequal(_Param[TX], .0, 1e-4) ||
       _Status[TY] == Active || !fequal(_Param[TY], .0, 1e-4) ||
       _Status[TZ] == Active || !fequal(_Param[TZ], .0, 1e-4)) {
-    cout << indent;
-    if (_Status[TX] == Active) cout << "tx  = " << setw(8) << _Param[TX] << "  ";
-    if (_Status[TY] == Active) cout << "ty  = " << setw(8) << _Param[TY] << "  ";
-    if (_Status[TZ] == Active) cout << "tz  = " << setw(8) << _Param[TZ];
-    cout << endl;
+    os << indent;
+    if (_Status[TX] == Active) os << "tx  = " << setw(8) << _Param[TX] << "  ";
+    if (_Status[TY] == Active) os << "ty  = " << setw(8) << _Param[TY] << "  ";
+    if (_Status[TZ] == Active) os << "tz  = " << setw(8) << _Param[TZ];
+    os << endl;
   }
   if (_Status[RX] == Active || !fequal(_Param[RX], .0, 1e-4) ||
       _Status[RY] == Active || !fequal(_Param[RY], .0, 1e-4) ||
       _Status[RZ] == Active || !fequal(_Param[RZ], .0, 1e-4)) {
-    cout << indent;
-    if (_Status[RX] == Active) cout << "rx  = " << setw(8) << _Param[RX] << "  ";
-    if (_Status[RY] == Active) cout << "ry  = " << setw(8) << _Param[RY] << "  ";
-    if (_Status[RZ] == Active) cout << "rz  = " << setw(8) << _Param[RZ];
-    cout << endl;
+    os << indent;
+    if (_Status[RX] == Active) os << "rx  = " << setw(8) << _Param[RX] << "  ";
+    if (_Status[RY] == Active) os << "ry  = " << setw(8) << _Param[RY] << "  ";
+    if (_Status[RZ] == Active) os << "rz  = " << setw(8) << _Param[RZ];
+    os << endl;
   }
 
-  cout.precision(previous_precision);
-  cout.unsetf(ios::right);
-  cout.unsetf(ios::fixed);
+  os.precision(previous_precision);
+  os.unsetf(ios::right);
+  os.unsetf(ios::fixed);
 }
 
 

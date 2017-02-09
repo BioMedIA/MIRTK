@@ -373,10 +373,10 @@ void MultiLevelStationaryVelocityTransformation::Invert()
 // =============================================================================
 
 // -----------------------------------------------------------------------------
-void MultiLevelStationaryVelocityTransformation::Print(Indent indent) const
+void MultiLevelStationaryVelocityTransformation::Print(ostream &os, Indent indent) const
 {
-  cout << indent << "Multi-level SV FFD:" << endl;
-  MultiLevelTransformation::Print(indent + 1);
+  os << indent << "Multi-level SV FFD:" << endl;
+  MultiLevelTransformation::Print(os, indent + 1);
 }
 
 

@@ -161,10 +161,12 @@ public:
   // ---------------------------------------------------------------------------
   // I/O
 
+  // Do not hide methods of base class
+  using BSplineFreeFormTransformation3D::Print;
   using BSplineFreeFormTransformation3D::Write;
 
   /// Prints the parameters of the transformation
-  virtual void Print(Indent = 0) const;
+  virtual void Print(ostream &, Indent = 0) const;
 
   /// Writes a transformation to a file stream
   virtual Cofstream &Write(Cofstream &) const;

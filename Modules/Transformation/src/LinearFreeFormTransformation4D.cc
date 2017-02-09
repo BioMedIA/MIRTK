@@ -524,10 +524,10 @@ void LinearFreeFormTransformation4D
 // =============================================================================
 
 // -----------------------------------------------------------------------------
-void LinearFreeFormTransformation4D::Print(Indent indent) const
+void LinearFreeFormTransformation4D::Print(ostream &os, Indent indent) const
 {
-  cout << indent << "4D Linear FFD:" << endl;
-  FreeFormTransformation4D::Print(indent + 1);
+  os << indent << "4D Linear FFD:" << endl;
+  FreeFormTransformation4D::Print(os, indent + 1);
 }
 
 // -----------------------------------------------------------------------------

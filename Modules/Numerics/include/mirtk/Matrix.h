@@ -460,6 +460,9 @@ public:
   /// Print matrix
   void Print(Indent = 0) const;
 
+  /// Print matrix
+  void Print(ostream &, Indent = 0) const;
+
   /// Read matrix from file
   void Read(const char *);
 

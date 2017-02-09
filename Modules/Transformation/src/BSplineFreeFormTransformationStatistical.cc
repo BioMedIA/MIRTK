@@ -337,10 +337,10 @@ void BSplineFreeFormTransformationStatistical
 // =============================================================================
 
 // -----------------------------------------------------------------------------
-void BSplineFreeFormTransformationStatistical::Print(Indent indent) const
+void BSplineFreeFormTransformationStatistical::Print(ostream &os, Indent indent) const
 {
-  cout << indent << "3D Statistical B-spline FFD:" << endl;
-  FreeFormTransformation3D::Print(indent + 1);
+  os << indent << "3D Statistical B-spline FFD:" << endl;
+  FreeFormTransformation3D::Print(os, indent + 1);
 }
 
 // -----------------------------------------------------------------------------

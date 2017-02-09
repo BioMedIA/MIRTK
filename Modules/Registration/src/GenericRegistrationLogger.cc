@@ -26,6 +26,7 @@
 #include "mirtk/EnergyTerm.h"
 #include "mirtk/HomogeneousTransformation.h"
 #include "mirtk/GenericRegistrationFilter.h"
+#include "mirtk/ImageSimilarity.h"
 
 #include "mirtk/CommonExport.h"
 
@@ -134,10 +135,21 @@ void GenericRegistrationLogger::HandleEvent(Observable *obj, Event event, const 
     case StartEvent: {
       if (_Verbosity > 1) {
         os << "\nRegistration domain:\n\n";
-        reg->_RegistrationDomain.Print(2);
+        reg->_RegistrationDomain.Print(os, 2);
         if (reg->NumberOfImages() > 0) {
-          os << "\nAttributes of registered images:\n\n";
-          reg->_Image[reg->_CurrentLevel][0].Attributes().Print(2);
+          os << "\nAttributes of downsampled images:\n";
+          for (int n = 0; n < reg->NumberOfImages(); ++n) {
+            os << "\n";
+            reg->_Image[reg->_CurrentLevel][n].Attributes().Print(os, 2);
+          }
+          const int nterms = reg->_Energy.NumberOfTerms();
+          for (int t = 0; t < nterms; ++t) {
+            const ImageSimilarity * const sim = dynamic_cast<ImageSimilarity *>(reg->_Energy.Term(t));
+            if (sim) {
+              os << "\nAttributes of registered images (" << sim->Name() << "):\n\n";
+              sim->Domain().Print(os, 2);
+            }
+          }
         }
         os << "\nInitial transformation:\n\n";
         HomogeneousTransformation *lin = dynamic_cast<HomogeneousTransformation *>(reg->_Transformation);
@@ -154,10 +166,10 @@ void GenericRegistrationLogger::HandleEvent(Observable *obj, Event event, const 
           post(1, 3) = + reg->_SourceOffset._y;
           post(2, 3) = + reg->_SourceOffset._z;
           lin->PutMatrix(post * mat * pre);
-          lin->Print(Indent(2, 2));
+          lin->Print(os, Indent(2, 2));
           lin->PutMatrix(mat);
         } else {
-          reg->_Transformation->Print(Indent(2, 2));
+          reg->_Transformation->Print(os, Indent(2, 2));
         }
       }
       if (_Verbosity == 0) {
@@ -406,7 +418,7 @@ void GenericRegistrationLogger::HandleEvent(Observable *obj, Event event, const 
           post(1, 3) = + reg->_SourceOffset._y;
           post(2, 3) = + reg->_SourceOffset._z;
           lin->PutMatrix(post * mat * pre);
-          lin->Print(Indent(2, 2));
+          lin->Print(os, Indent(2, 2));
           lin->PutMatrix(mat);
         }
       }

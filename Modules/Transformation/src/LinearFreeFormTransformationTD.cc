@@ -245,13 +245,13 @@ void LinearFreeFormTransformationTD::Interpolate(const double *, const double *,
 // =============================================================================
 
 // -----------------------------------------------------------------------------
-void LinearFreeFormTransformationTD::Print(Indent indent) const
+void LinearFreeFormTransformationTD::Print(ostream &os, Indent indent) const
 {
-  cout << indent << "Linear TD FFD:" << endl;
+  os << indent << "Linear TD FFD:" << endl;
   ++indent;
-  FreeFormTransformation4D::Print(indent);
-  cout << indent << "Minimum length of steps: " << _MinTimeStep << endl;
-  cout << indent << "Maximum length of steps: " << _MaxTimeStep << endl;
+  FreeFormTransformation4D::Print(os, indent);
+  os << indent << "Minimum length of steps: " << _MinTimeStep << endl;
+  os << indent << "Maximum length of steps: " << _MaxTimeStep << endl;
 }
 
 // -----------------------------------------------------------------------------

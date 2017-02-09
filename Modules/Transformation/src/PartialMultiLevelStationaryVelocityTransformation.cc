@@ -339,11 +339,11 @@ void PartialMultiLevelStationaryVelocityTransformation
 // =============================================================================
 
 // -----------------------------------------------------------------------------
-void PartialMultiLevelStationaryVelocityTransformation::Print(Indent indent) const
+void PartialMultiLevelStationaryVelocityTransformation::Print(ostream &os, Indent indent) const
 {
-  cout << indent << "Partial Multi-level B-spline SV FFD" << endl;
-  _Transformation->Print(indent+1);
-  cout << indent << "Fraction of transformation applied: " << _Fraction << endl;
+  os << indent << "Partial Multi-level B-spline SV FFD" << endl;
+  _Transformation->Print(os, indent + 1);
+  os << indent << "Fraction of transformation applied: " << _Fraction << endl;
 }
 
 // -----------------------------------------------------------------------------
