@@ -3786,7 +3786,8 @@ void GenericRegistrationFilter::AddImageSimilarityTerm()
       if (sim->IsSymmetric() || sim->_SourceTransformation.IsIdentity()) {
         attrs.push_back(OrthogonalFieldOfView(this->ImageAttributes(sim->_SourceIndex)));
       }
-      attr = OverallFieldOfView(attrs);
+      if (attrs.empty()) attr = this->RegistrationDomain();
+      else               attr = OverallFieldOfView(attrs);
     }
     // Instantiate new similarity measure term
     similarity = ImageSimilarity::New(sim->_Measure);
