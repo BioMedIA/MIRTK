@@ -2219,7 +2219,10 @@ void GenericRegistrationFilter::GuessParameter()
   }
 
   // By default, crop/pad FFD lattice only if domain not explicitly specified
-  if (_CropPadFFD == -1) _CropPadFFD = (_Domain == NULL);
+  // and none of the transformation models is parameterised by velocities
+  if (_CropPadFFD == -1) {
+    _CropPadFFD = (_Domain == nullptr && !IsDiffeo(_TransformationModel));
+  }
 
   // Optimization parameters
   double value;
@@ -2652,58 +2655,64 @@ void GenericRegistrationFilter::InitializeStatus(HomogeneousTransformation *lin)
 // -----------------------------------------------------------------------------
 void GenericRegistrationFilter::InitializeStatus(FreeFormTransformation *ffd)
 {
-  // Determine target data sets
-  Array<bool> is_target_image(NumberOfImages());
-  for (int n = 0; n < NumberOfImages(); ++n) {
-    is_target_image[n] = IsTargetImage(n);
-  }
-  #if MIRTK_Registration_WITH_PointSet
-    Array<bool> is_moving_pointset(NumberOfPointSets());
-    for (int n = 0; n < NumberOfPointSets(); ++n) {
-      is_moving_pointset[n] = IsMovingPointSet(n);
-    }
-  #endif // MIRTK_Registration_WITH_PointSet
-  // In case of fluid multi-level transformation, apply the global transformation
-  // to the target images because the FFDs are defined on this transformed lattice
-  Matrix             *smat = NULL;
-  ResampledImageType *image;
-  const FluidFreeFormTransformation *fluid;
-  if ((fluid = dynamic_cast<const FluidFreeFormTransformation *>(_Transformation))) {
-    smat = new Matrix[NumberOfImages()];
-    for (int n = 0; n < NumberOfImages(); ++n) {
-      if (is_target_image[n]) {
-        image   = const_cast<ResampledImageType *>(&_Image[_CurrentLevel][n]);
-        smat[n] = image->GetAffineMatrix();
-        image->PutAffineMatrix(fluid->GetGlobalTransformation()->GetMatrix());
-      }
-    }
-  }
-  // Initialize status of control points
-  InitializeCPStatus init_status(_Mask [_CurrentLevel],
-                                 _Image[_CurrentLevel], is_target_image,
-                                 _Transformation, ffd,
-                                 #if MIRTK_Registration_WITH_PointSet
-                                   _PointSet[_CurrentLevel], is_moving_pointset,
-                                 #endif // MIRTK_Registration_WITH_PointSet
-                                 _RegisterX, _RegisterY, _RegisterZ);
-  blocked_range<int> cps(0, ffd->NumberOfCPs());
-  parallel_for(cps, init_status);
-  // Restore affine transformation matrices of input images
-  if (smat) {
-    for (int n = 0; n < NumberOfImages(); ++n) {
-      if (is_target_image[n]) {
-        image = const_cast<ResampledImageType *>(&_Image[_CurrentLevel][n]);
-        image->PutAffineMatrix(smat[n]);
-      }
-    }
-    delete[] smat;
-  }
+  if (!IsDiffeo(_CurrentModel) || _CropPadFFD) {
 
-  // Discard passive DoFs to reduce memory/disk use
-  if (_CropPadFFD) {
-    ffd->CropPadPassiveCPs(ffd->KernelSize(),
-                           ffd->KernelSize(),
-                           ffd->KernelSize(), 0, true);
+    // Determine target data sets
+    Array<bool> is_target_image(NumberOfImages());
+    for (int n = 0; n < NumberOfImages(); ++n) {
+      is_target_image[n] = !IsMovingImage(n);
+    }
+    #if MIRTK_Registration_WITH_PointSet
+      Array<bool> is_moving_pointset(NumberOfPointSets());
+      for (int n = 0; n < NumberOfPointSets(); ++n) {
+        is_moving_pointset[n] = IsMovingPointSet(n);
+      }
+    #endif // MIRTK_Registration_WITH_PointSet
+
+    // In case of fluid multi-level transformation, apply the global transformation
+    // to the target images because the FFDs are defined on this transformed lattice
+    Matrix             *smat = NULL;
+    ResampledImageType *image;
+    const FluidFreeFormTransformation *fluid;
+    if ((fluid = dynamic_cast<const FluidFreeFormTransformation *>(_Transformation))) {
+      smat = new Matrix[NumberOfImages()];
+      for (int n = 0; n < NumberOfImages(); ++n) {
+        if (is_target_image[n]) {
+          image   = const_cast<ResampledImageType *>(&_Image[_CurrentLevel][n]);
+          smat[n] = image->GetAffineMatrix();
+          image->PutAffineMatrix(fluid->GetGlobalTransformation()->GetMatrix());
+        }
+      }
+    }
+
+    // Initialize status of control points
+    InitializeCPStatus init_status(_Mask [_CurrentLevel],
+                                   _Image[_CurrentLevel], is_target_image,
+                                   _Transformation, ffd,
+                                   #if MIRTK_Registration_WITH_PointSet
+                                     _PointSet[_CurrentLevel], is_moving_pointset,
+                                   #endif // MIRTK_Registration_WITH_PointSet
+                                   _RegisterX, _RegisterY, _RegisterZ);
+    blocked_range<int> cps(0, ffd->NumberOfCPs());
+    parallel_for(cps, init_status);
+
+    // Restore affine transformation matrices of input images
+    if (smat) {
+      for (int n = 0; n < NumberOfImages(); ++n) {
+        if (is_target_image[n]) {
+          image = const_cast<ResampledImageType *>(&_Image[_CurrentLevel][n]);
+          image->PutAffineMatrix(smat[n]);
+        }
+      }
+      delete[] smat;
+    }
+
+    // Discard passive DoFs to reduce memory/disk use
+    if (_CropPadFFD) {
+      ffd->CropPadPassiveCPs(ffd->KernelSize(),
+                             ffd->KernelSize(),
+                             ffd->KernelSize(), 0, true);
+    }
   }
 
   // In case of a transformation parameterized by a (stationary) velocity
@@ -2849,24 +2858,26 @@ void GenericRegistrationFilter::InitializeTransformation()
   // Compute domain on which free-form deformation must be defined
   struct ImageAttributes domain = _RegistrationDomain;
 
-  const HomogeneousTransformation        *ilin = NULL;
-  const MultiLevelFreeFormTransformation *iffd = NULL;
-
-  (ilin = dynamic_cast<const HomogeneousTransformation        *>(_InitialGuess)) ||
-  (iffd = dynamic_cast<const MultiLevelFreeFormTransformation *>(_InitialGuess));
-  if (iffd) ilin = iffd->GetGlobalTransformation();
-
-  if (ilin) {
-    // In case the global transformation is to be merged into the local one,
-    // make sure that the domain on which the local transformation is defined
-    // is large enough to avoid unpleasant boundary effects
-    if (_MergeGlobalAndLocalTransformation) {
-      domain = ffd->ApproximationDomain(domain, _InitialGuess);
-    // In case of fluid composition of global and local transformation,
-    // i.e., T = T_local o T_global, linearly transform attributes such that
-    // local transformation is defined for the mapped image region
-    } else if (_MultiLevelMode == MFFD_Fluid) {
-      domain.PutAffineMatrix(ilin->GetMatrix());
+  if (_InitialGuess && !_InitialGuess->IsIdentity()) {
+    const HomogeneousTransformation *ilin;
+    ilin = dynamic_cast<const HomogeneousTransformation *>(_InitialGuess);
+    if (!ilin) {
+      const MultiLevelFreeFormTransformation *iffd;
+      iffd = dynamic_cast<const MultiLevelFreeFormTransformation *>(_InitialGuess);
+      if (iffd) ilin = iffd->GetGlobalTransformation();
+    }
+    if (ilin) {
+      // In case the global transformation is to be merged into the local one,
+      // make sure that the domain on which the local transformation is defined
+      // is large enough to avoid unpleasant boundary effects
+      if (_MergeGlobalAndLocalTransformation) {
+        domain = ffd->ApproximationDomain(domain, _InitialGuess);
+      // In case of fluid composition of global and local transformation,
+      // i.e., T = T_local o T_global, linearly transform attributes such that
+      // local transformation is defined for the mapped image region
+      } else if (_MultiLevelMode == MFFD_Fluid) {
+        domain.PutAffineMatrix(ilin->GetMatrix());
+      }
     }
   }
 
@@ -3786,7 +3797,8 @@ void GenericRegistrationFilter::AddImageSimilarityTerm()
       if (sim->IsSymmetric() || sim->_SourceTransformation.IsIdentity()) {
         attrs.push_back(OrthogonalFieldOfView(this->ImageAttributes(sim->_SourceIndex)));
       }
-      attr = OverallFieldOfView(attrs);
+      if (attrs.empty()) attr = this->RegistrationDomain();
+      else               attr = OverallFieldOfView(attrs);
     }
     // Instantiate new similarity measure term
     similarity = ImageSimilarity::New(sim->_Measure);

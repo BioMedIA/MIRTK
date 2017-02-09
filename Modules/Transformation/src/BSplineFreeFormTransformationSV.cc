@@ -554,6 +554,15 @@ ImageAttributes BSplineFreeFormTransformationSV
     if (z >= grid._z - 1 && z - grid._z - 1 > margin_back)   margin_back   = z - grid._z - 1;
   }
 
+  // Disregard small precision errors
+  const double eps = 1e-6;
+  margin_left   = round(margin_left   / eps) * eps;
+  margin_right  = round(margin_right  / eps) * eps;
+  margin_bottom = round(margin_bottom / eps) * eps;
+  margin_top    = round(margin_top    / eps) * eps;
+  margin_front  = round(margin_front  / eps) * eps;
+  margin_back   = round(margin_back   / eps) * eps;
+
   // Account for inter-/extrapolation error on boundary of FFD lattice and
   // therefore make lattice a bit bigger than otherwise needed
   const double margin_safety = 1.5;
@@ -566,14 +575,14 @@ ImageAttributes BSplineFreeFormTransformationSV
 
   // Compute of offsets by which lattice origin must be moved such that
   // the lattice origin is the center of the extended lattice again
-  const double ox = (margin_right - margin_left)   * grid._dx / 2.0;
+  const double ox = (margin_right - margin_left  )  * grid._dx / 2.0;
   const double oy = (margin_top   - margin_bottom) * grid._dy / 2.0;
-  const double oz = (margin_back  - margin_front)  * grid._dz / 2.0;
+  const double oz = (margin_back  - margin_front ) * grid._dz / 2.0;
 
   // Initialize free-form deformation (for extended image grid)
-  grid._x       += static_cast<int>(margin_left + margin_right);
-  grid._y       += static_cast<int>(margin_bottom + margin_top);
-  grid._z       += static_cast<int>(margin_front + margin_back);
+  grid._x       += static_cast<int>(margin_left   + margin_right);
+  grid._y       += static_cast<int>(margin_bottom + margin_top  );
+  grid._z       += static_cast<int>(margin_front  + margin_back );
   grid._xorigin += grid._xaxis[0] * ox + grid._yaxis[0] * oy + grid._zaxis[0] * oz;
   grid._yorigin += grid._xaxis[1] * ox + grid._yaxis[1] * oy + grid._zaxis[1] * oz;
   grid._zorigin += grid._xaxis[2] * ox + grid._yaxis[2] * oy + grid._zaxis[2] * oz;
