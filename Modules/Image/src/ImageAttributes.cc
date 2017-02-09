@@ -363,49 +363,55 @@ bool ImageAttributes::EqualInTime(const ImageAttributes &attr) const
 }
 
 // -----------------------------------------------------------------------------
-void ImageAttributes::Print(Indent indent) const
+void ImageAttributes::Print(ostream &os, Indent indent) const
 {
   // Change output stream settings
-  const streamsize    w = cout.width    (0);
-  const streamsize    p = cout.precision(5);
-  const ios::fmtflags f = cout.flags    ();
+  const streamsize    w = os.width    (0);
+  const streamsize    p = os.precision(5);
+  const ios::fmtflags f = os.flags    ();
   // Print attributes of lattice
   bool sz = (_z > 1 && _dz);
   bool st = (_t > 1 && _dt);
   bool dz = (_dz && (_dz != 1.0 || _z > 1));
   bool dt = (_dt && (_dt != 1.0 || _t > 1));
-  if (_t > 1 && !_dt) cout << indent << "Channels: " << setw(10) << _t << "\n";
-  cout << indent << "Size:     "     << setw(10) << _x
-                            << " x " << setw(10) << _y;
-  if (sz || st) cout        << " x " << setw(10) << _z;
-  if (      st) cout        << " x " << setw(10) << _t;
-  cout << "\n";
-  cout << indent << "Spacing:  "       << fixed << setw(10) << _dx
-                              << " x " << fixed << setw(10) << _dy;
-  if (dz || dt) cout     << " x " << fixed << setw(10) << _dz;
-  if (      dt) cout     << " x " << fixed << setw(10) << _dt;
-  cout << "\n";
-  cout << indent << "Origin:  [" << fixed << setw(10) << _xorigin
-                        << " , " << fixed << setw(10) << _yorigin
-                        << " , " << fixed << setw(10) << _zorigin
-                        << " , " << fixed << setw(10) << _torigin
-                        <<   "]\n";
-  cout << indent << "X-axis:  [" << fixed << setw(10) << _xaxis[0]
-                        << " , " << fixed << setw(10) << _xaxis[1]
-                        << " , " << fixed << setw(10) << _xaxis[2]
-                        <<   "]\n";
-  cout << indent << "Y-axis:  [" << fixed << setw(10) << _yaxis[0]
-                        << " , " << fixed << setw(10) << _yaxis[1]
-                        << " , " << fixed << setw(10) << _yaxis[2]
-                        <<   "]\n";
-  cout << indent << "Z-axis:  [" << fixed << setw(10) << _zaxis[0]
-                        << " , " << fixed << setw(10) << _zaxis[1]
-                        << " , " << fixed << setw(10) << _zaxis[2]
-                        <<   "]\n";
+  if (_t > 1 && !_dt) os << indent << "Channels: " << setw(10) << _t << "\n";
+  os << indent << "Size:     "     << setw(10) << _x
+                          << " x " << setw(10) << _y;
+  if (sz || st) os        << " x " << setw(10) << _z;
+  if (      st) os        << " x " << setw(10) << _t;
+  os << "\n";
+  os << indent << "Spacing:  "       << fixed << setw(10) << _dx
+                            << " x " << fixed << setw(10) << _dy;
+  if (dz || dt) os     << " x " << fixed << setw(10) << _dz;
+  if (      dt) os     << " x " << fixed << setw(10) << _dt;
+  os << "\n";
+  os << indent << "Origin:  [" << fixed << setw(10) << _xorigin
+                      << " , " << fixed << setw(10) << _yorigin
+                      << " , " << fixed << setw(10) << _zorigin
+                      << " , " << fixed << setw(10) << _torigin
+                      <<   "]\n";
+  os << indent << "X-axis:  [" << fixed << setw(10) << _xaxis[0]
+                      << " , " << fixed << setw(10) << _xaxis[1]
+                      << " , " << fixed << setw(10) << _xaxis[2]
+                      <<   "]\n";
+  os << indent << "Y-axis:  [" << fixed << setw(10) << _yaxis[0]
+                      << " , " << fixed << setw(10) << _yaxis[1]
+                      << " , " << fixed << setw(10) << _yaxis[2]
+                      <<   "]\n";
+  os << indent << "Z-axis:  [" << fixed << setw(10) << _zaxis[0]
+                      << " , " << fixed << setw(10) << _zaxis[1]
+                      << " , " << fixed << setw(10) << _zaxis[2]
+                      <<   "]\n";
   // Restore output stream settings
-  cout.width    (w);
-  cout.precision(p);
-  cout.flags    (f);
+  os.width    (w);
+  os.precision(p);
+  os.flags    (f);
+}
+
+// -----------------------------------------------------------------------------
+void ImageAttributes::Print(Indent indent) const
+{
+  Print(cout, indent);
 }
 
 // -----------------------------------------------------------------------------
