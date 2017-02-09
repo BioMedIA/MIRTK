@@ -1098,21 +1098,27 @@ Cifstream& operator >>(Cifstream &from, Matrix &m)
 // -----------------------------------------------------------------------------
 void Matrix::Print(Indent indent) const
 {
-  cout << indent << "Matrix " << _rows << " x " << _cols << endl;
+  Print(cout, indent);
+}
+
+// -----------------------------------------------------------------------------
+void Matrix::Print(ostream &os, Indent indent) const
+{
+  os << indent << "Matrix " << _rows << " x " << _cols << endl;
   ++indent;
-  cout.setf(ios::right);
-  cout.setf(ios::fixed);
-  cout.precision(4);
+  os.setf(ios::right);
+  os.setf(ios::fixed);
+  os.precision(4);
   for (int i = 0; i < _rows; i++) {
-    cout << indent;
+    os << indent;
     for (int j = 0; j < _cols; j++) {
-      cout << setw(15) << _matrix[j][i] << " ";
+      os << setw(15) << _matrix[j][i] << " ";
     }
-    cout << endl;
+    os << endl;
   }
-  cout.precision(6);
-  cout.unsetf(ios::right);
-  cout.unsetf(ios::fixed);
+  os.precision(6);
+  os.unsetf(ios::right);
+  os.unsetf(ios::fixed);
 }
 
 // -----------------------------------------------------------------------------
