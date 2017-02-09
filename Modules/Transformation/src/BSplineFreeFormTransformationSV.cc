@@ -1624,30 +1624,30 @@ void BSplineFreeFormTransformationSV
 // =============================================================================
 
 // -----------------------------------------------------------------------------
-void BSplineFreeFormTransformationSV::Print(Indent indent) const
+void BSplineFreeFormTransformationSV::Print(ostream &os, Indent indent) const
 {
-  cout << indent << "B-spline SV FFD:" << endl;
+  os << indent << "B-spline SV FFD:" << endl;
   indent++;
   // Print FFD attributes
-  FreeFormTransformation3D::Print(indent);
+  FreeFormTransformation3D::Print(os, indent);
   // Change output stream settings
-  const streamsize    w = cout.width    (0);
-  const streamsize    p = cout.precision(2);
-  const ios::fmtflags f = cout.flags();
+  const streamsize    w = os.width    (0);
+  const streamsize    p = os.precision(2);
+  const ios::fmtflags f = os.flags();
   cout.unsetf(ios::floatfield);
   // Print SV FFD parameters
-  cout << indent << "Integration method:                " << setw(6) << ToString(_IntegrationMethod) << endl;
-  cout << indent << "Cross-sectional time interval:     " << setw(6) << _T << endl;
-  cout << indent << "Time unit of integration interval: " << setw(6) << _TimeUnit << endl;
-  cout << indent << "Maximum scaled velocity:           " << setw(6) << _MaxScaledVelocity << endl;
-  cout << indent << "No. of integration steps per unit: " << setw(6) << _NumberOfSteps << endl;
-  cout << indent << "No. of cross-sectional steps:      " << setw(6) << NumberOfStepsForIntervalLength(_T) << endl;
-  cout << indent << "No. of BCH terms:                  " << setw(6) << _NumberOfBCHTerms << endl;
-  cout << indent << "Use Lie derivative:                " << setw(6) << ToString(_LieDerivative) << endl;
+  os << indent << "Integration method:                " << setw(6) << ToString(_IntegrationMethod) << endl;
+  os << indent << "Cross-sectional time interval:     " << setw(6) << _T << endl;
+  os << indent << "Time unit of integration interval: " << setw(6) << _TimeUnit << endl;
+  os << indent << "Maximum scaled velocity:           " << setw(6) << _MaxScaledVelocity << endl;
+  os << indent << "No. of integration steps per unit: " << setw(6) << _NumberOfSteps << endl;
+  os << indent << "No. of cross-sectional steps:      " << setw(6) << NumberOfStepsForIntervalLength(_T) << endl;
+  os << indent << "No. of BCH terms:                  " << setw(6) << _NumberOfBCHTerms << endl;
+  os << indent << "Use Lie derivative:                " << setw(6) << ToString(_LieDerivative) << endl;
   // Restore output stream settings
-  cout.width    (w);
-  cout.precision(p);
-  cout.flags    (f);
+  os.width    (w);
+  os.precision(p);
+  os.flags    (f);
 }
 
 // -----------------------------------------------------------------------------

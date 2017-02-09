@@ -577,7 +577,10 @@ public:
   // I/O
 
   /// Prints information about the transformation
-  virtual void Print(Indent = 0) const = 0;
+  void Print(Indent = 0) const;
+
+  /// Prints information about the transformation
+  virtual void Print(ostream &os, Indent = 0) const = 0;
 
   /// Reads a transformation from a file
   virtual void Read(const char *);
@@ -1036,6 +1039,12 @@ inline void Transformation
 // =============================================================================
 // Others
 // =============================================================================
+
+// -----------------------------------------------------------------------------
+inline void Transformation::Print(Indent indent) const
+{
+  this->Print(cout, indent);
+}
 
 // -----------------------------------------------------------------------------
 inline TransformationType Transformation::TypeOfClass() const

@@ -292,8 +292,11 @@ public:
   // ---------------------------------------------------------------------------
   // I/O
 
+  // Do not hide methods of base class
+  using MultiLevelTransformation::Print;
+
   /// Prints the parameters of the transformation
-  virtual void Print(Indent = 0) const;
+  virtual void Print(ostream &, Indent = 0) const;
 
   /// Whether this transformation can read a file of specified type (i.e. format)
   virtual bool CanRead(TransformationType) const;

@@ -274,7 +274,7 @@ public:
   // I/O
 
   /// Prints the parameters of the transformation
-  virtual void Print(Indent = 0) const;
+  virtual void Print(ostream &, Indent = 0) const;
 
   // ---------------------------------------------------------------------------
   // Others

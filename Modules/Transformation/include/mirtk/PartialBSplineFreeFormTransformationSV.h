@@ -241,11 +241,14 @@ public:
 
   // ---------------------------------------------------------------------------
   // I/O
+
+  // Do not hide methods of base class
+  using Transformation::Print;
   using Transformation::Read;
   using Transformation::Write;
 
   /// Prints information about the transformation
-  virtual void Print(Indent = 0) const;
+  virtual void Print(ostream &, Indent = 0) const;
 
   /// Reads transformation from a file stream
   virtual Cifstream &Read(Cifstream &);

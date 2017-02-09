@@ -769,10 +769,10 @@ void MultiLevelFreeFormTransformation
 // =============================================================================
 
 // -----------------------------------------------------------------------------
-void MultiLevelFreeFormTransformation::Print(Indent indent) const
+void MultiLevelFreeFormTransformation::Print(ostream &os, Indent indent) const
 {
-  cout << indent << "Multi-level FFD:" << endl;
-  MultiLevelTransformation::Print(indent + 1);
+  os << indent << "Multi-level FFD:" << endl;
+  MultiLevelTransformation::Print(os, indent + 1);
 }
 
 

@@ -419,19 +419,19 @@ void BSplineFreeFormTransformationTD
 // =============================================================================
 
 // -----------------------------------------------------------------------------
-void BSplineFreeFormTransformationTD::Print(Indent indent) const
+void BSplineFreeFormTransformationTD::Print(ostream &os, Indent indent) const
 {
-  cout << indent << "B-spline TD FFD:" << endl;
+  os << indent << "B-spline TD FFD:" << endl;
   ++indent;
-  FreeFormTransformation4D::Print(indent);
-  cout << indent << "Numerical integration:" << endl;
+  FreeFormTransformation4D::Print(os, indent);
+  os << indent << "Numerical integration:" << endl;
   ++indent;
-  cout << indent << "Method:      " << ToString(_IntegrationMethod) << endl;
+  os << indent << "Method:      " << ToString(_IntegrationMethod) << endl;
   if (_MinTimeStep < _MaxTimeStep && _IntegrationMethod >= FFDIM_RKEH12) {
-    cout << indent << "Step size:   [" << _MinTimeStep << ", " << _MaxTimeStep << "]" << endl;
-    cout << indent << "Local error: " << _Tolerance << endl;
+    os << indent << "Step size:   [" << _MinTimeStep << ", " << _MaxTimeStep << "]" << endl;
+    os << indent << "Local error: " << _Tolerance << endl;
   } else {
-    cout << indent << "Step size:   " << _MinTimeStep << endl;  
+    os << indent << "Step size:   " << _MinTimeStep << endl;
   }
 }
 

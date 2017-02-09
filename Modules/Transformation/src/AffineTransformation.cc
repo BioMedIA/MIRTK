@@ -626,36 +626,36 @@ void AffineTransformation::DeriveJacobianWrtDOF(Matrix &dJdp, int dof, double x,
 // =============================================================================
 
 // -----------------------------------------------------------------------------
-void AffineTransformation::Print(Indent indent) const
+void AffineTransformation::Print(ostream &os, Indent indent) const
 {
-  RigidTransformation::Print(indent);
+  RigidTransformation::Print(os, indent);
 
-  cout.setf(ios::right);
-  cout.setf(ios::fixed);
-  streamsize previous_precision = cout.precision(4);
+  os.setf(ios::right);
+  os.setf(ios::fixed);
+  streamsize previous_precision = os.precision(4);
 
   if (_Status[SX] == Active || !fequal(_Param[SX], 100.0, 1e-4) ||
       _Status[SY] == Active || !fequal(_Param[SY], 100.0, 1e-4) ||
       _Status[SZ] == Active || !fequal(_Param[SZ], 100.0, 1e-4)) {
-    cout << indent;
-    if (_Status[SX]  == Active) cout << "sx  = "  << setw(8) << _Param[SX]  << "  ";
-    if (_Status[SY]  == Active) cout << "sy  = "  << setw(8) << _Param[SY]  << "  ";
-    if (_Status[SZ]  == Active) cout << "sz  = "  << setw(8) << _Param[SZ]  << "  ";
-    cout << endl;
+    os << indent;
+    if (_Status[SX]  == Active) os << "sx  = "  << setw(8) << _Param[SX]  << "  ";
+    if (_Status[SY]  == Active) os << "sy  = "  << setw(8) << _Param[SY]  << "  ";
+    if (_Status[SZ]  == Active) os << "sz  = "  << setw(8) << _Param[SZ]  << "  ";
+    os << endl;
   }
   if (_Status[SXY] == Active || !fequal(_Param[SXY], .0, 1e-4) ||
       _Status[SXZ] == Active || !fequal(_Param[SXZ], .0, 1e-4) ||
       _Status[SYZ] == Active || !fequal(_Param[SYZ], .0, 1e-4)) {
-    cout << indent;
-    if (_Status[SXY] == Active) cout << "sxy = " << setw(8) << _Param[SXY] << "  ";
-    if (_Status[SYZ] == Active) cout << "syz = " << setw(8) << _Param[SYZ] << "  ";
-    if (_Status[SXZ] == Active) cout << "sxz = " << setw(8) << _Param[SXZ] << "  ";
-    cout << endl;
+    os << indent;
+    if (_Status[SXY] == Active) os << "sxy = " << setw(8) << _Param[SXY] << "  ";
+    if (_Status[SYZ] == Active) os << "syz = " << setw(8) << _Param[SYZ] << "  ";
+    if (_Status[SXZ] == Active) os << "sxz = " << setw(8) << _Param[SXZ] << "  ";
+    os << endl;
   }
 
-  cout.precision(previous_precision);
-  cout.unsetf(ios::right);
-  cout.unsetf(ios::fixed);
+  os.precision(previous_precision);
+  os.unsetf(ios::right);
+  os.unsetf(ios::fixed);
 }
 
 // -----------------------------------------------------------------------------

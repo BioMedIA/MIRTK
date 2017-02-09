@@ -951,20 +951,20 @@ void MultiLevelTransformation
 // =============================================================================
 
 // -----------------------------------------------------------------------------
-void MultiLevelTransformation::Print(Indent indent) const
+void MultiLevelTransformation::Print(ostream &os, Indent indent) const
 {
   Indent subindent(indent + 1);
 
   // Print global transformation
-  cout << indent << "Global transformation:" << endl;
-  this->GetGlobalTransformation()->Print(subindent);
+  os << indent << "Global transformation:" << endl;
+  this->GetGlobalTransformation()->Print(os, subindent);
 
   // Print local transformations
   for (int l = 0; l < _NumberOfLevels; ++l) {
-    cout << indent << "Local transformation";
-    cout << (this->LocalTransformationIsActive(l) ? " (active)" : " (passive)");
-    cout << ":" << endl;
-    this->GetLocalTransformation(l)->Print(subindent);
+    os << indent << "Local transformation";
+    os << (this->LocalTransformationIsActive(l) ? " (active)" : " (passive)");
+    os << ":" << endl;
+    this->GetLocalTransformation(l)->Print(os, subindent);
   }
 }
 

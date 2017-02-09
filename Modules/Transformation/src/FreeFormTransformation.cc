@@ -1312,16 +1312,16 @@ void FreeFormTransformation::BendingEnergyGradient(double *, double, bool, bool)
 // =============================================================================
 
 // -----------------------------------------------------------------------------
-void FreeFormTransformation::Print(Indent indent) const
+void FreeFormTransformation::Print(ostream &os, Indent indent) const
 {
   // Print no. of transformation parameters
-  cout << indent << "Number of DOFs:          " << this->NumberOfDOFs() << endl;
-  cout << indent << "Number of CPs (active):  " << this->NumberOfActiveCPs()<< endl;
-  cout << indent << "Number of CPs (passive): " << this->NumberOfPassiveCPs()<< endl;
-  cout << indent << "Extrapolation mode:      " << ToString(_ExtrapolationMode) << endl;
+  os << indent << "Number of DOFs:          " << this->NumberOfDOFs() << endl;
+  os << indent << "Number of CPs (active):  " << this->NumberOfActiveCPs()<< endl;
+  os << indent << "Number of CPs (passive): " << this->NumberOfPassiveCPs()<< endl;
+  os << indent << "Extrapolation mode:      " << ToString(_ExtrapolationMode) << endl;
   // Print lattice attributes
-  cout << indent << "Control point lattice:" << endl;
-  _attr.Print(indent + 1);
+  os << indent << "Control point lattice:" << endl;
+  _attr.Print(os, indent + 1);
 }
 
 // -----------------------------------------------------------------------------

@@ -450,10 +450,10 @@ void LinearFreeFormTransformation3D::BendingEnergyGradient(double *gradient, dou
 // =============================================================================
 
 // -----------------------------------------------------------------------------
-void LinearFreeFormTransformation3D::Print(Indent indent) const
+void LinearFreeFormTransformation3D::Print(ostream &os, Indent indent) const
 {
-  cout << indent << "3D Linear FFD:" << endl;
-  FreeFormTransformation3D::Print(indent + 1);
+  os << indent << "3D Linear FFD:" << endl;
+  FreeFormTransformation3D::Print(os, indent + 1);
 }
 
 // -----------------------------------------------------------------------------
