@@ -772,7 +772,7 @@ GenericImage<VoxelType>& GenericImage<VoxelType>::operator+=(double scalar)
   VoxelType *ptr = this->Data();
   for (int idx = 0; idx < _NumberOfVoxels; ++idx) {
     if (IsForeground(idx)) {
-      ptr[idx] = voxel_cast<VoxelType>(voxel_cast<double>(ptr[idx]) + scalar);
+      ptr[idx] += scalar;
     }
   }
   return *this;
@@ -785,7 +785,7 @@ GenericImage<VoxelType>& GenericImage<VoxelType>::operator-=(double scalar)
   VoxelType *ptr = this->Data();
   for (int idx = 0; idx < _NumberOfVoxels; ++idx) {
     if (IsForeground(idx)) {
-      ptr[idx] = voxel_cast<VoxelType>(voxel_cast<double>(ptr[idx]) - scalar);
+      ptr[idx] -= scalar;
     }
   }
   return *this;
@@ -798,7 +798,7 @@ GenericImage<VoxelType>& GenericImage<VoxelType>::operator*=(double scalar)
   VoxelType *ptr = this->Data();
   for (int idx = 0; idx < _NumberOfVoxels; ++idx) {
     if (IsForeground(idx)) {
-      ptr[idx] = voxel_cast<VoxelType>(voxel_cast<double>(ptr[idx]) * scalar);
+      ptr[idx] *= scalar;
     }
   }
   return *this;
@@ -812,7 +812,7 @@ GenericImage<VoxelType>& GenericImage<VoxelType>::operator/=(double scalar)
     VoxelType *ptr = this->Data();
     for (int idx = 0; idx < _NumberOfVoxels; ++idx) {
       if (IsForeground(idx)) {
-        ptr[idx] = voxel_cast<VoxelType>(voxel_cast<double>(ptr[idx]) / scalar);
+        ptr[idx] /= scalar;
       }
     }
   } else {
