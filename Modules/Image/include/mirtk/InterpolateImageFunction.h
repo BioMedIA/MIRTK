@@ -84,7 +84,8 @@ public:
   virtual ~InterpolateImageFunction();
 
   /// Construct interpolator with default infinite extension of input image
-  static InterpolateImageFunction *New(enum InterpolationMode, const BaseImage * = NULL);
+  static InterpolateImageFunction *New(enum InterpolationMode = Interpolation_Default,
+                                       const BaseImage * = NULL);
 
   /// Construct extrapolator which is compatible with this interpolator
   virtual ExtrapolateImageFunction *New(enum ExtrapolationMode,
@@ -525,7 +526,7 @@ public:
   virtual ~GenericInterpolateImageFunction();
 
   /// Construct interpolator with default infinite extension of input image
-  static GenericInterpolateImageFunction *New(enum InterpolationMode,
+  static GenericInterpolateImageFunction *New(enum InterpolationMode = Interpolation_Default,
                                               const TImage * = NULL);
 
   /// Construct extrapolator which is compatible with this interpolator

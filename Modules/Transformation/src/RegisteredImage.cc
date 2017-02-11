@@ -48,7 +48,7 @@ RegisteredImage::RegisteredImage()
   _InputGradient         (NULL),
   _InputHessian          (NULL),
   _Transformation        (NULL),
-  _InterpolationMode     (Interpolation_FastLinear),
+  _InterpolationMode     (Interpolation_Default),
   _ExtrapolationMode     (Extrapolation_Default),
   _WorldCoordinates      (NULL),
   _ImageToWorld          (NULL),
@@ -224,13 +224,26 @@ void RegisteredImage::Initialize(const ImageAttributes &attr, int t)
   }
 
   // Pre-compute input derivatives
+  if (!_PrecomputeDerivatives) {
+    enum InterpolationMode interp;
+    if (_InterpolationMode == Interpolation_Default) {
+      interp = DefaultInterpolationMode();
+    } else {
+      interp = InterpolationWithoutPadding(_InterpolationMode);
+    }
+    if (interp != Interpolation_Linear && interp != Interpolation_FastLinear) {
+      _PrecomputeDerivatives = true;
+    }
+  }
   if (t > 1) ComputeInputGradient(_GradientSigma);
   if (t > 4) ComputeInputHessian (_HessianSigma );
 
   // Initialize offsets of registered image channels
   _Offset[0] = 0;
   _Offset[1] = this->NumberOfVoxels();
-  for (int c = 2; c < 13; ++c) _Offset[c] = _Offset[c-1] + _Offset[1];
+  for (int c = 2; c < 13; ++c) {
+    _Offset[c] = _Offset[c-1] + _Offset[1];
+  }
 
   // Attention: Initialization of actual image content must be forced upon first
   //            Update call. This is initiated by the ImageSimilarity::Update
@@ -519,7 +532,11 @@ void New(
   if (image) {
     f = new ImageFunction();
 #ifndef NDEBUG
-    interp = InterpolationWithoutPadding(interp);
+    if (interp == Interpolation_Default) {
+      interp = DefaultInterpolationMode();
+    } else {
+      interp = InterpolationWithoutPadding(interp);
+    }
     if (interp == Interpolation_FastLinear) interp = Interpolation_Linear;
     InterpolationMode mode = f->InterpolationMode();
     if (mode == Interpolation_FastLinear) mode = Interpolation_Linear;
@@ -683,8 +700,14 @@ public:
   /// Initialize interpolators
   void Initialize(RegisteredImage *o)
   {
+    InterpolationMode interp;
+    if (o->InterpolationMode() == Interpolation_Default) {
+      interp = DefaultInterpolationMode();
+    } else {
+      interp = o->InterpolationMode();
+    }
     _PrecomputedDerivatives = o->PrecomputeDerivatives();
-    _InterpolateWithPadding = (ToString(o->InterpolationMode()).find("with padding") != string::npos);
+    _InterpolateWithPadding = (interp != InterpolationWithoutPadding(interp));
     if (o->HasBackgroundValue()) _PaddingValue = o->GetBackgroundValueAsDouble();
     _NumberOfVoxels   = o->X() * o->Y() * o->Z();
     _NumberOfChannels = o->T();
@@ -694,9 +717,9 @@ public:
     const double f_bg = (f->HasBackgroundValue() ? f->GetBackgroundValueAsDouble() : MIN_GREY);
     const double g_bg = (g && g->HasBackgroundValue() ? g->GetBackgroundValueAsDouble() : .0);
     const double h_bg = (h && h->HasBackgroundValue() ? h->GetBackgroundValueAsDouble() : .0);
-    New<IntensityFunction>(_IntensityFunction, f, o->InterpolationMode(), o->ExtrapolationMode(), f_bg, f_bg);
-    New<GradientFunction >(_GradientFunction,  g, o->InterpolationMode(), Extrapolation_Default,  g_bg, .0);
-    New<HessianFunction  >(_HessianFunction,   h, o->InterpolationMode(), Extrapolation_Default,  h_bg, .0);
+    New<IntensityFunction>(_IntensityFunction, f, interp, o->ExtrapolationMode(), f_bg, f_bg);
+    New<GradientFunction >(_GradientFunction,  g, interp, Extrapolation_Default,  g_bg, .0);
+    New<HessianFunction  >(_HessianFunction,   h, interp, Extrapolation_Default,  h_bg, .0);
     f->GetMinMaxAsDouble(_MinIntensity, _MaxIntensity);
     if (f->HasBackgroundValue() && _MinIntensity > f->GetBackgroundValueAsDouble()) {
       _MinIntensity = f->GetBackgroundValueAsDouble();
@@ -1134,13 +1157,17 @@ template <class Transformer>
 void RegisteredImage::Update1(const blocked_range3d<int> &region,
                               bool intensity, bool gradient, bool hessian)
 {
-  enum InterpolationMode interpolation = InterpolationWithoutPadding(_InterpolationMode);
+  enum InterpolationMode interp;
+  if (_InterpolationMode == Interpolation_Default) {
+    interp = DefaultInterpolationMode();
+  } else {
+    interp = InterpolationWithoutPadding(_InterpolationMode);
+  }
 
   if (_PrecomputeDerivatives) {
     // Instantiate image functions for commonly used interpolation methods
     // to allow the compiler to generate optimized code for these
-    if (interpolation == Interpolation_Linear ||
-        interpolation == Interpolation_FastLinear) {
+    if (interp == Interpolation_Linear || interp == Interpolation_FastLinear) {
       // Auxiliary macro -- undefined again at the end of this body
       #define _update_using(InterpolatorType)                                  \
         Update2<Transformer, InterpolatorType<InputImageType>,                 \
@@ -1170,7 +1197,7 @@ void RegisteredImage::Update1(const blocked_range3d<int> &region,
           (region, intensity, gradient, hessian)
     // Instantiate image functions for commonly used interpolation methods
     // to allow the compiler to generate optimized code for these
-    if (interpolation == Interpolation_Linear) {
+    if (interp == Interpolation_Linear) {
 
       if (this->GetZ() == 1) {
         _update_using(GenericLinearInterpolateImageFunction2D,
@@ -1179,7 +1206,7 @@ void RegisteredImage::Update1(const blocked_range3d<int> &region,
         _update_using(GenericLinearInterpolateImageFunction3D,
                       GenericLinearImageGradientFunction3D);
       }
-    } else if (interpolation == Interpolation_FastLinear) {
+    } else if (interp == Interpolation_FastLinear) {
       if (this->GetZ() == 1) {
         _update_using(GenericLinearInterpolateImageFunction2D,
                       GenericFastLinearImageGradientFunction2D);

@@ -229,20 +229,23 @@ public:
   /// Number of resolution levels
   mirtkPublicAttributeMacro(int, NumberOfLevels);
 
+  /// Level at which to stop multi-resolution optimization
+  mirtkPublicAttributeMacro(int, FinalLevel);
+
   /// Multi-level transformation mode
   mirtkPublicAttributeMacro(MFFDMode, MultiLevelMode);
 
   /// Transformation model
   mirtkPublicAttributeMacro(Array<enum TransformationModel>, TransformationModel);
 
-  /// Interpolation mode
-  mirtkPublicAttributeMacro(enum InterpolationMode, InterpolationMode);
+  ///< Default image interpolation mode
+  mirtkPublicAttributeMacro(enum InterpolationMode, DefaultInterpolationMode);
 
-  /// Extrapolation mode
-  mirtkPublicAttributeMacro(enum ExtrapolationMode, ExtrapolationMode);
+  ///< Default image extrapolation mode
+  mirtkPublicAttributeMacro(enum ExtrapolationMode, DefaultExtrapolationMode);
 
   /// Whether to precompute image derivatives or compute them on the fly
-  mirtkPublicAttributeMacro(int, PrecomputeDerivatives);
+  mirtkPublicAttributeMacro(bool, PrecomputeDerivatives);
 
   /// Default similarity measure
   mirtkPublicAttributeMacro(enum SimilarityMeasure, SimilarityMeasure);
@@ -298,6 +301,8 @@ protected:
   Transformation            *_Transformation;                 ///< Current estimate
   Array<TransformationInfo>  _TransformationInfo;             ///< Meta-data of partial transformation
   Array<Transformation *>    _TransformationInstance;         ///< Partial transformations
+  Array<enum InterpolationMode> _InterpolationMode;           ///< Interpolation mode of each input image
+  Array<enum ExtrapolationMode> _ExtrapolationMode;           ///< Extrapolation mode of each input image
   RegistrationEnergy         _Energy;                         ///< Registration energy
   LocalOptimizer            *_Optimizer;                      ///< Used optimizer
   enum TransformationModel   _CurrentModel;                   ///< Current transformation model
@@ -456,6 +461,24 @@ public:
   /// Determine whether the specified input image will be transformed.
   bool IsMovingImage(int) const;
 
+  /// Set common/default interpolation mode for all input images
+  void InterpolationMode(enum InterpolationMode);
+
+  /// Set interpolation mode of n-th input image
+  void InterpolationMode(int, enum InterpolationMode);
+
+  /// Get interpolation mode of n-th input image or default mode, respectively
+  enum InterpolationMode InterpolationMode(int = -1);
+
+  /// Set common/default extrapolation mode for all input images
+  void ExtrapolationMode(enum ExtrapolationMode);
+
+  /// Set extrapolation mode of n-th input image
+  void ExtrapolationMode(int, enum ExtrapolationMode);
+
+  /// Get extrapolation mode of n-th input image or default mode, respectively
+  enum ExtrapolationMode ExtrapolationMode(int = -1);
+
   // ---------------------------------------------------------------------------
   // Input simplicial complexes (points, curves, surfaces, tetrahedral meshes)
 
@@ -500,6 +523,7 @@ public:
   // Parameter
 
   using RegistrationFilter::Read;
+  using RegistrationFilter::Parameter;
 
   /// Set (single) transformation model
   virtual void TransformationModel(enum TransformationModel);
@@ -542,10 +566,10 @@ public:
 protected:
 
   /// Whether current level is the initial resolution level
-  bool InitialLevel() const;
+  bool AtInitialLevel() const;
 
   /// Whether current level is the final resolution level
-  bool FinalLevel() const;
+  bool AtFinalLevel() const;
 
   /// Run multi-resolution registration
   virtual void MultiResolutionOptimization();

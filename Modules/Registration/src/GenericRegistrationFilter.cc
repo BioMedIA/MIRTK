@@ -699,11 +699,12 @@ void GenericRegistrationFilter::Reset()
   // set by the user and which have not been properly initialized
   _TransformationModel.clear();
   _NumberOfLevels                      = -1;
+  _FinalLevel                          = 1;
   _MultiLevelMode                      = MFFD_Default;
   _MergeGlobalAndLocalTransformation   = false;
-  _InterpolationMode                   = Interpolation_FastLinear;
-  _ExtrapolationMode                   = Extrapolation_Default;
-  _PrecomputeDerivatives               = -1;
+  InterpolationMode(Interpolation_Default);
+  ExtrapolationMode(Extrapolation_Default);
+  _PrecomputeDerivatives               = true;
   _SimilarityMeasure                   = SIM_NMI;
   _PointSetDistanceMeasure             = PDM_FRE;
   _OptimizationMethod                  = OM_ConjugateGradientDescent;
@@ -874,6 +875,58 @@ bool GenericRegistrationFilter::IsMovingImage(int n) const
   return false;
 }
 
+// -----------------------------------------------------------------------------
+void GenericRegistrationFilter::InterpolationMode(enum InterpolationMode mode)
+{
+  _InterpolationMode.clear();
+  _DefaultInterpolationMode = mode;
+}
+
+// -----------------------------------------------------------------------------
+void GenericRegistrationFilter::InterpolationMode(int n, enum InterpolationMode mode)
+{
+  if (static_cast<size_t>(n) >= _InterpolationMode.size()) {
+    _InterpolationMode.resize(n + 1, Interpolation_Default);
+  }
+  _InterpolationMode[n] = mode;
+}
+
+// -----------------------------------------------------------------------------
+enum InterpolationMode GenericRegistrationFilter::InterpolationMode(int n)
+{
+  if (n < 0 || static_cast<size_t>(n) >= _InterpolationMode.size() || _InterpolationMode[n] == Interpolation_Default) {
+    return _DefaultInterpolationMode;
+  } else {
+    return _InterpolationMode[n];
+  }
+}
+
+// -----------------------------------------------------------------------------
+void GenericRegistrationFilter::ExtrapolationMode(enum ExtrapolationMode mode)
+{
+  _ExtrapolationMode.clear();
+  _DefaultExtrapolationMode = mode;
+}
+
+// -----------------------------------------------------------------------------
+void GenericRegistrationFilter::ExtrapolationMode(int n, enum ExtrapolationMode mode)
+{
+  if (static_cast<size_t>(n) >= _ExtrapolationMode.size()) {
+    _ExtrapolationMode.resize(n + 1, Extrapolation_Default);
+  }
+  _ExtrapolationMode[n] = mode;
+}
+
+// -----------------------------------------------------------------------------
+enum ExtrapolationMode GenericRegistrationFilter::ExtrapolationMode(int n)
+{
+  if (n < 0 || static_cast<size_t>(n) >= _ExtrapolationMode.size() || _ExtrapolationMode[n] == Extrapolation_Default) {
+    return _DefaultExtrapolationMode;
+  } else {
+    return _ExtrapolationMode[n];
+  }
+}
+
 // =============================================================================
 // Input points, lines, and/or surfaces
 // =============================================================================
@@ -984,15 +1037,15 @@ void GenericRegistrationFilter::TransformationModel(enum TransformationModel mod
 }
 
 // -----------------------------------------------------------------------------
-bool GenericRegistrationFilter::InitialLevel() const
+bool GenericRegistrationFilter::AtInitialLevel() const
 {
   return (_CurrentLevel == NumberOfLevels());
 }
 
 // -----------------------------------------------------------------------------
-bool GenericRegistrationFilter::FinalLevel() const
+bool GenericRegistrationFilter::AtFinalLevel() const
 {
-  return (_CurrentLevel == 1);
+  return (_CurrentLevel == _FinalLevel);
 }
 
 // -----------------------------------------------------------------------------
@@ -1150,17 +1203,6 @@ bool GenericRegistrationFilter::Set(const char *param, const char *value, int le
     if (!version) version = current_version;
     return true;
 
-  // Interpolation mode
-  } else if (name == "Interpolation mode") {
-    return FromString(value, _InterpolationMode);
-  } else if (name == "Extrapolation mode") {
-    return FromString(value, _ExtrapolationMode);
-  } else if (name == "Precompute image derivatives") {
-    bool bval;
-    if (!FromString(value, bval)) return false;
-    _PrecomputeDerivatives = (bval ? 1 : 0);
-    return true;
-
   // (Default) Similarity measure
   } else if (name == "Image (dis-)similarity measure" ||
              name == "Image dissimilarity measure" ||
@@ -1170,6 +1212,8 @@ bool GenericRegistrationFilter::Set(const char *param, const char *value, int le
              name == "Similarity measure" ||
              name == "SIM") {
     return FromString(value, _SimilarityMeasure);
+  } else if (name == "Precompute image derivatives") {
+    return FromString(value, _PrecomputeDerivatives);
 
   // (Default) Point set distance measure
   } else if (name == "Point set distance measure" ||
@@ -1245,8 +1289,16 @@ bool GenericRegistrationFilter::Set(const char *param, const char *value, int le
   } else if (name == "No. of levels" ||
              name == "Number of levels" ||
              name == "No. of resolution levels" ||
-             name == "Number of resolution levels") {
-    return FromString(value, _NumberOfLevels) && _NumberOfLevels >= 1;
+             name == "Number of resolution levels" ||
+             name == "First level" ||
+             name == "First resolution level") {
+    return FromString(value, _NumberOfLevels) && (_NumberOfLevels >= 1 || _NumberOfLevels == -1);
+
+  } else if (name == "Final level" ||
+             name == "Final resolution level" ||
+             name == "Last level" ||
+             name == "Last resolution level") {
+    return FromString(value, _FinalLevel);
 
   // Whether to use Gaussian resolution pyramid
   } else if (name == "Use Gaussian resolution pyramid" ||
@@ -1385,6 +1437,42 @@ bool GenericRegistrationFilter::Set(const char *param, const char *value, int le
     } else {
       return FromString(value, _DefaultPadding);
     }
+
+  // Image interpolation
+  } else if (name == "Image interpolation" || name == "Image interpolation mode" || name == "Interpolation mode") {
+    return FromString(value, _DefaultInterpolationMode);
+  } else if (name.compare(0, 23, "Interpolation of image ", 23) == 0) {
+    int n = -1;
+    if (!FromString(name.substr(23), n) || n < 1) return false;
+    enum InterpolationMode mode;
+    if (!FromString(value, mode)) return false;
+    InterpolationMode(n, mode);
+    return true;
+  } else if (name.compare(0, 28, "Interpolation mode of image ", 28) == 0) {
+    int n = -1;
+    if (!FromString(name.substr(28), n) || n < 1) return false;
+    enum InterpolationMode mode;
+    if (!FromString(value, mode)) return false;
+    InterpolationMode(n, mode);
+    return true;
+
+  // Image extrapolation
+  } else if (name == "Image extrapolation" || name == "Image extrapolation mode" || name == "Extrapolation mode") {
+    return FromString(value, _DefaultExtrapolationMode);
+  } else if (name.compare(0, 23, "Extrapolation of image ", 23) == 0) {
+    int n = -1;
+    if (!FromString(name.substr(23), n) || n < 1) return false;
+    enum ExtrapolationMode mode;
+    if (!FromString(value, mode)) return false;
+    ExtrapolationMode(n, mode);
+    return true;
+  } else if (name.compare(0, 28, "Extrapolation mode of image ", 28) == 0) {
+    int n = -1;
+    if (!FromString(name.substr(28), n) || n < 1) return false;
+    enum ExtrapolationMode mode;
+    if (!FromString(value, mode)) return false;
+    ExtrapolationMode(n, mode);
+    return true;
 
   // Image centering
   } else if (name == "Foreground-centric global transformation") {
@@ -1628,9 +1716,8 @@ ParameterList GenericRegistrationFilter::Parameter(int level) const
     Insert(params, "Merge global and local transformation", _MergeGlobalAndLocalTransformation);
     Insert(params, "Optimization method",                   _OptimizationMethod);
     Insert(params, "No. of resolution levels",              _NumberOfLevels);
-    Insert(params, "Interpolation mode",                    _InterpolationMode);
-    Insert(params, "Extrapolation mode",                    _ExtrapolationMode);
-    Insert(params, "Precompute image derivatives",          _PrecomputeDerivatives == 0 ? false : true);
+    Insert(params, "Final level",                           _FinalLevel);
+    Insert(params, "Precompute image derivatives",          _PrecomputeDerivatives);
     Insert(params, "Normalize weights of energy terms",     _NormalizeWeights);
     Insert(params, "Downsample images with padding",        _DownsampleWithPadding);
     Insert(params, "Crop/pad images",                       _CropPadImages);
@@ -1647,15 +1734,34 @@ ParameterList GenericRegistrationFilter::Parameter(int level) const
     }
     if (NumberOfImages() > 0) {
       int n = 1;
+      double bg = _Background[0];
+      while (n < NumberOfImages() && bg == _Background[n]) ++n;
+      if (n == NumberOfImages()) {
+        Insert(params, "Background value", bg);
+      } else {
+        for (n = 0; n < NumberOfImages(); ++n) {
+          Insert(params, string("Background value of image ") + ToString(n + 1), _Background[n]);
+        }
+      }
       double padding = _Padding[0];
       while (n < NumberOfImages() && padding == _Padding[n]) ++n;
       if (n == NumberOfImages()) {
-        Insert(params, "Padding value", ToString(padding));
+        Insert(params, "Padding value", padding);
       } else {
-        char name[64];
-        for (int n = 0; n < NumberOfImages(); ++n) {
-          snprintf(name, 64, "Padding value of image %d", n+1);
-          Insert(params, name, ToString(_Padding[n]));
+        for (n = 0; n < NumberOfImages(); ++n) {
+          Insert(params, string("Padding value of image ") + ToString(n + 1), _Padding[n]);
+        }
+      }
+      Insert(params, "Image interpolation", _DefaultInterpolationMode);
+      Insert(params, "Image extrapolation", _DefaultExtrapolationMode);
+      for (n = 0; n < NumberOfImages(); ++n) {
+        if (static_cast<size_t>(n) < _InterpolationMode.size() && _InterpolationMode[n] != Interpolation_Default) {
+          Insert(params, string("Interpolation of image ") + ToString(n + 1), _InterpolationMode[n]);
+        }
+      }
+      for (n = 0; n < NumberOfImages(); ++n) {
+        if (static_cast<size_t>(n) < _ExtrapolationMode.size() && _ExtrapolationMode[n] != Extrapolation_Default) {
+          Insert(params, string("Extrapolation of image ") + ToString(n + 1), _ExtrapolationMode[n]);
         }
       }
     }
@@ -1904,6 +2010,10 @@ void GenericRegistrationFilter::GuessParameter()
          << (MAX_NO_RESOLUTIONS-1) << ") exceeded" << endl;
     exit(1);
   }
+  if (_FinalLevel <= 0) _FinalLevel = 1;
+  if (_FinalLevel > _NumberOfLevels) {
+    Throw(ERR_InvalidArgument, __FUNCTION__, "Final level cannot be greater than total number of levels!");
+  }
 
   // Default transformation model(s)
   if (_TransformationModel.empty()) {
@@ -1933,21 +2043,6 @@ void GenericRegistrationFilter::GuessParameter()
   if (!IsNaN(_DefaultPadding)) {
     for (int n = 0; n < _NumberOfImages; ++n) {
       if (IsNaN(_Padding[n])) _Padding[n] = _DefaultPadding;
-    }
-  }
-
-  // Whether to precompute image derivatives
-  if (_PrecomputeDerivatives == -1) {
-    enum InterpolationMode mode = InterpolationWithoutPadding(_InterpolationMode);
-    if (mode == Interpolation_Linear || mode == Interpolation_FastLinear) {
-      _PrecomputeDerivatives = 0;
-    } else {
-      _PrecomputeDerivatives = 1;
-    }
-  } else {
-    enum InterpolationMode mode = InterpolationWithoutPadding(_InterpolationMode);
-    if (_PrecomputeDerivatives == 0 && mode != Interpolation_Linear && mode != Interpolation_FastLinear) {
-      Throw(ERR_InvalidArgument, __FUNCTION__, "Precomputation of image derivatives currently required for non-linear interpolation modes");
     }
   }
 
@@ -2417,7 +2512,7 @@ void GenericRegistrationFilter::MultiResolutionOptimization()
 {
   // For each resolution level (coarse to fine)...
   // Note: Zero-th level is used to store global registration settings
-  Iteration level(_NumberOfLevels, 0);
+  Iteration level(_NumberOfLevels, _FinalLevel - 1);
   while (!level.End()) {
     _CurrentLevel = level.Iter();
     MIRTK_START_TIMING();
@@ -3238,7 +3333,7 @@ void GenericRegistrationFilter::InitializeOutput()
   }
 
   // Initialize transformation for first resolution level
-  if (InitialLevel()) {
+  if (AtInitialLevel()) {
 
     // Leave no potential memory leaks...
     if (_Transformation != Output()) delete _Transformation;
@@ -3670,9 +3765,9 @@ void GenericRegistrationFilter::SetInputOf(RegisteredImage *output, const struct
 
   // Set input of registered image
   output->InputImage           (&_Image[_CurrentLevel][n]);
-  output->InterpolationMode    (_InterpolationMode);
-  output->ExtrapolationMode    (_ExtrapolationMode);
-  output->PrecomputeDerivatives(_PrecomputeDerivatives == 0 ? false : true);
+  output->InterpolationMode    (InterpolationMode(n));
+  output->ExtrapolationMode    (ExtrapolationMode(n));
+  output->PrecomputeDerivatives(_PrecomputeDerivatives);
   output->Transformation       (this->OutputTransformation(ti));
 
   // Add/Amend displacement cache entry
@@ -4123,7 +4218,7 @@ void GenericRegistrationFilter::InitializeOptimizer()
 {
   MIRTK_START_TIMING();
 
-  if (InitialLevel()) {
+  if (AtInitialLevel()) {
     // Instantiate optimizer
     _Optimizer = LocalOptimizer::New(_OptimizationMethod, &_Energy);
     // Enable forwarding of optimization events
@@ -4228,7 +4323,7 @@ void GenericRegistrationFilter::Finalize()
   _TargetOffset = _SourceOffset = Point(.0, .0, .0);
 
   // Destroy optimizer
-  if (FinalLevel()) Delete(_Optimizer);
+  if (AtFinalLevel()) Delete(_Optimizer);
 
   // Update output transformation
   Output(_Transformation);

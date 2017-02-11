@@ -1021,7 +1021,8 @@ void NormalizedIntensityCrossCorrelation::Update(bool gradient)
 
     UpdateBoxWindowLNCC<double>::Calculate(cnt, sums, sumt, sumss, sumts, sumtt,
                                            &_GlobalA, &_GlobalB, &_GlobalC, &_GlobalS, &_GlobalT);
-    _Sum = EvaluateBoxWindowLNCC::Calculate(_GlobalA, _GlobalB, _GlobalC), _N = 1;
+    _Sum = EvaluateBoxWindowLNCC::Calculate(_GlobalA, _GlobalB, _GlobalC);
+    _N = cnt;
 
   // Update LNCC inner product images similar to ANTs
   } else if (_KernelType == BoxWindow) {
@@ -1164,7 +1165,13 @@ void NormalizedIntensityCrossCorrelation::Include(const blocked_range3d<int> &re
 // -----------------------------------------------------------------------------
 double NormalizedIntensityCrossCorrelation::Evaluate()
 {
-  return (_N > 0 ? (1.0 - _Sum / _N) : .0);
+  if (_N <= 0) {
+    return 0.;
+  }
+  if (_A == nullptr) {
+    return 1. - _Sum;
+  }
+  return 1. - _Sum / _N;
 }
 
 // -----------------------------------------------------------------------------
@@ -1219,8 +1226,8 @@ bool NormalizedIntensityCrossCorrelation
 
   }
 
-  // Negation of LNCC value
-  (*gradient) *= -1.0;
+  // Normalize and negate NCC
+  (*gradient) *= -1.0 / _N;
 
   // Apply chain rule to obtain gradient w.r.t y = T(x)
   MultiplyByImageGradient(image, gradient);
@@ -1266,31 +1273,37 @@ void NormalizedIntensityCrossCorrelation::WriteDataSets(const char *p, const cha
   string _prefix = Prefix(p);
   const char  *prefix = _prefix.c_str();
 
-  if (_T) {
-    snprintf(fname, sz, "%starget_mean%s", prefix, suffix);
-    _T->Write(fname);
+  if (_Target->Transformation() || all) {
+    if (_T) {
+      snprintf(fname, sz, "%starget_mean%s", prefix, suffix);
+      _T->Write(fname);
+    }
+    if (_C) {
+      snprintf(fname, sz, "%starget_sdev%s", prefix, suffix);
+      _C->Write(fname);
+    }
   }
-  if (_C) {
-    snprintf(fname, sz, "%starget_sdev%s", prefix, suffix);
-    _C->Write(fname);
+  if (_Source->Transformation() || all) {
+    if (_S) {
+      snprintf(fname, sz, "%ssource_mean%s", prefix, suffix);
+      _S->Write(fname);
+    }
+    if (_B) {
+      snprintf(fname, sz, "%ssource_sdev%s", prefix, suffix);
+      _B->Write(fname);
+    }
   }
-  if (_S) {
-    snprintf(fname, sz, "%ssource_mean%s", prefix, suffix);
-    _S->Write(fname);
-  }
-  if (_B) {
-    snprintf(fname, sz, "%ssource_sdev%s", prefix, suffix);
-    _B->Write(fname);
-  }
-  if (_A) {
-    if (_KernelType == BoxWindow) {
-      snprintf(fname, sz, "%sa%s", prefix, suffix);
-      _A->Write(fname);
-    } else {
-      snprintf(fname, sz, "%svalue%s", prefix, suffix);
-      GenerateLNCCImage eval;
-      ParallelForEachVoxel(_A, _B, _C, &_Temp, eval);
-      _Temp.Write(fname);
+  if (_Target->Transformation() || _Source->Transformation() || all) {
+    if (_A) {
+      if (_KernelType == BoxWindow) {
+        snprintf(fname, sz, "%sa%s", prefix, suffix);
+        _A->Write(fname);
+      } else {
+        snprintf(fname, sz, "%svalue%s", prefix, suffix);
+        GenerateLNCCImage eval;
+        ParallelForEachVoxel(_A, _B, _C, &_Temp, eval);
+        _Temp.Write(fname);
+      }
     }
   }
 }
