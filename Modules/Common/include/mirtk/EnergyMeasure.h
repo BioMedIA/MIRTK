@@ -266,8 +266,11 @@ inline bool FromString(const char *str, EnergyMeasure &value)
   // ---------------------------------------------------------------------------
   // Alternative names for image (dis-)similarity measures
   if (value == EM_Unknown) {
-    if      (lstr == "lcc")   value = EM_NCC;
-    else if (lstr == "lncc")  value = EM_NCC;
+    if      (lstr == "mse") value = EM_SSD;
+    else if (lstr == "meansquarederror") value = EM_SSD;
+    else if (lstr == "mean squared error") value = EM_SSD;
+    else if (lstr == "lcc") value = EM_NCC;
+    else if (lstr == "lncc") value = EM_NCC;
     else if (lstr == "kappa") value = EM_K;
     else if (lstr == "correlation ratio xy" ||
              lstr == "correlationratioxy") value = EM_CR_XY;
