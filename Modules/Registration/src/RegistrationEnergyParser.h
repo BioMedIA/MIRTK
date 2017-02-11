@@ -530,8 +530,18 @@ protected:
       token = NextToken(in, false);
       name.clear();
       bool var_name = false;
-      while (token == NAME || token == SPACE || token == LCB || token == RCB) {
-        if (token == SPACE) name += ' ';
+      while (token == NAME  || token == NUMBER || token == SPACE || token == COLON ||
+             token == PLUS  || token == MINUS  || token == MUL   || token == DIV   ||
+             token == CARET || token == CIRC   || token == LCB   || token == RCB) {
+        if      (token == SPACE)  name += ' ';
+        else if (token == COLON)  name += ':';
+        else if (token == PLUS)   name += '+';
+        else if (token == MINUS)  name += '-';
+        else if (token == MUL)    name += '*';
+        else if (token == DIV)    name += '/';
+        else if (token == CARET)  name += '^';
+        else if (token == CIRC)   name += 'o';
+        else if (token == NUMBER) name += ToString(token._Number);
         else if (token == LCB) {
           if (var_name) {
             cerr << "Expected closing } in custom energy term name" << name << endl;
@@ -546,8 +556,11 @@ protected:
           }
           var_name = false;
           name += '}';
-        } else {
+        } else if (token == NAME) {
           name += token._Name;
+        } else {
+          cerr << "Internal error: Unhandled token in energy term name" << endl;
+          exit(1);
         }
         token = NextToken(in, false);
       }
