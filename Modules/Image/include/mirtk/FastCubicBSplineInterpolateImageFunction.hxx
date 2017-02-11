@@ -97,6 +97,7 @@ void GenericFastCubicBSplineInterpolateImageFunction<TImage>
       Real pole;
       int  unused;
       SplinePoles(3, &pole, unused);
+      FillBackgroundBeforeConversionToSplineCoefficients(_Coefficient);
       switch (this->NumberOfDimensions()) {
         case 4:  ConvertToInterpolationCoefficientsT(_Coefficient, &pole, 1);
         case 3:  ConvertToInterpolationCoefficientsZ(_Coefficient, &pole, 1);
@@ -161,26 +162,19 @@ GenericFastCubicBSplineInterpolateImageFunction<TImage>
   --i, --j;
 
   RealType val = voxel_cast<RealType>(0);
-  Real     nrm(0), w;
+  Real     w;
 
   int ia, jb;
   for (int b = 0; b <= 3; ++b) {
     jb = j + b;
-    if (0 <= jb && jb < _Coefficient.Y()) {
-      for (int a = 0; a <= 3; ++a) {
-        ia = i + a;
-        if (0 <= ia && ia < _Coefficient.X()) {
-          w    = Kernel::LookupTable[A][a]
-               * Kernel::LookupTable[B][b];
-          val += w * _Coefficient(ia, jb, k, l);
-          nrm += w;
-        }
-      }
+    DefaultExtrapolator::Apply(jb, _Coefficient.Y() - 1);
+    for (int a = 0; a <= 3; ++a) {
+      ia = i + a;
+      DefaultExtrapolator::Apply(ia, _Coefficient.X() - 1);
+      w = Kernel::LookupTable[A][a] * Kernel::LookupTable[B][b];
+      val += w * _Coefficient(ia, jb, k, l);
     }
   }
-
-  if (nrm) val /= nrm;
-  else     val  = voxel_cast<RealType>(this->DefaultValue());
 
   return voxel_cast<VoxelType>(val);
 }
@@ -212,11 +206,13 @@ GenericFastCubicBSplineInterpolateImageFunction<TImage>
   int ia, jb;
   for (int b = 0; b <= 3; ++b) {
     jb = j + b;
+    DefaultExtrapolator::Apply(jb, _Coefficient.Y() - 1);
     for (int a = 0; a <= 3; ++a) {
       ia = i + a;
-      w  = Kernel::LookupTable[A][a] * Kernel::LookupTable[B][b];
-      if (this->Input()->IsInsideForeground(ia, jb, k, l)) {
-        val += w * _Coefficient(ia, jb, k, l);
+      DefaultExtrapolator::Apply(ia, _Coefficient.X() - 1);
+      w = Kernel::LookupTable[A][a] * Kernel::LookupTable[B][b];
+      val += w * _Coefficient(ia, jb, k, l);
+      if (this->Input()->IsInsideForeground(i + a, j + b, k, l)) {
         fgw += w;
       } else {
         bgw += w;
@@ -224,9 +220,9 @@ GenericFastCubicBSplineInterpolateImageFunction<TImage>
     }
   }
 
-  if (fgw > bgw) val /= fgw;
-  else           val  = voxel_cast<RealType>(this->DefaultValue());
-
+  if (bgw > fgw) {
+    val  = voxel_cast<RealType>(this->DefaultValue());
+  }
   return voxel_cast<VoxelType>(val);
 }
 
@@ -284,7 +280,7 @@ GenericFastCubicBSplineInterpolateImageFunction<TImage>
   --i, --j;
 
   RealType val = voxel_cast<RealType>(0);
-  Real     fgw = .0, bgw = .0, w;
+  Real     fgw(0), bgw(0), w;
 
   int ia, jb;
   for (int b = 0; b <= 3; ++b) {
@@ -292,8 +288,8 @@ GenericFastCubicBSplineInterpolateImageFunction<TImage>
     for (int a = 0; a <= 3; ++a) {
       ia = i + a;
       w = Kernel::LookupTable[A][a] * Kernel::LookupTable[B][b];
+      val += w * voxel_cast<RealType>(coeff->Get(ia, jb, k, l));
       if (input->IsForeground(ia, jb, k, l)) {
-        val += w * voxel_cast<RealType>(coeff->Get(ia, jb, k, l));
         fgw += w;
       } else {
         bgw += w;
@@ -301,9 +297,9 @@ GenericFastCubicBSplineInterpolateImageFunction<TImage>
     }
   }
 
-  if (fgw > bgw) val /= fgw;
-  else           val  = voxel_cast<RealType>(this->DefaultValue());
-
+  if (bgw > fgw) {
+    val  = voxel_cast<RealType>(this->DefaultValue());
+  }
   return voxel_cast<VoxelType>(val);
 }
 
@@ -334,26 +330,19 @@ GenericFastCubicBSplineInterpolateImageFunction<TImage>
   int ia, jb, kc;
   for (int c = 0; c <= 3; ++c) {
     kc = k + c;
-    if (0 <= kc && kc < _Coefficient.Z()) {
-      for (int b = 0; b <= 3; ++b) {
-        jb = j + b;
-        if (0 <= jb && jb < _Coefficient.Y()) {
-          wyz = Kernel::LookupTable[B][b] * Kernel::LookupTable[C][c];
-          for (int a = 0; a <= 3; ++a) {
-            ia = i + a;
-            if (0 <= ia && ia < _Coefficient.X()) {
-              w    = Kernel::LookupTable[A][a] * wyz;
-              val += w * _Coefficient(ia, jb, kc, l);
-              nrm += w;
-            }
-          }
-        }
+    DefaultExtrapolator::Apply(kc, _Coefficient.Z() - 1);
+    for (int b = 0; b <= 3; ++b) {
+      jb = j + b;
+      DefaultExtrapolator::Apply(jb, _Coefficient.Y() - 1);
+      wyz = Kernel::LookupTable[B][b] * Kernel::LookupTable[C][c];
+      for (int a = 0; a <= 3; ++a) {
+        ia = i + a;
+        DefaultExtrapolator::Apply(ia, _Coefficient.X() - 1);
+        w = Kernel::LookupTable[A][a] * wyz;
+        val += w * _Coefficient(ia, jb, kc, l);
       }
     }
   }
-
-  if (nrm) val /= nrm;
-  else     val  = voxel_cast<RealType>(this->DefaultValue());
 
   return voxel_cast<VoxelType>(val);
 }
@@ -385,14 +374,17 @@ GenericFastCubicBSplineInterpolateImageFunction<TImage>
   int ia, jb, kc;
   for (int c = 0; c <= 3; ++c) {
     kc = k + c;
+    DefaultExtrapolator::Apply(kc, _Coefficient.Z() - 1);
     for (int b = 0; b <= 3; ++b) {
       jb = j + b;
+      DefaultExtrapolator::Apply(jb, _Coefficient.Y() - 1);
       wyz = Kernel::LookupTable[B][b] * Kernel::LookupTable[C][c];
       for (int a = 0; a <= 3; ++a) {
         ia = i + a;
-        w  = Kernel::LookupTable[A][a] * wyz;
-        if (this->Input()->IsInsideForeground(ia, jb, kc, l)) {
-          val += w * _Coefficient(ia, jb, kc, l);
+        DefaultExtrapolator::Apply(ia, _Coefficient.X() - 1);
+        w = Kernel::LookupTable[A][a] * wyz;
+        val += w * _Coefficient(ia, jb, kc, l);
+        if (this->Input()->IsInsideForeground(i + a, j + b, k + c, l)) {
           fgw += w;
         } else {
           bgw += w;
@@ -401,9 +393,9 @@ GenericFastCubicBSplineInterpolateImageFunction<TImage>
     }
   }
 
-  if (fgw > bgw) val /= fgw;
-  else           val  = voxel_cast<RealType>(this->DefaultValue());
-
+  if (bgw > fgw) {
+    val  = voxel_cast<RealType>(this->DefaultValue());
+  }
   return voxel_cast<VoxelType>(val);
 }
 
@@ -468,19 +460,22 @@ GenericFastCubicBSplineInterpolateImageFunction<TImage>
   --i, --j, --k;
 
   RealType val = voxel_cast<RealType>(0);
-  Real     fgw = .0, bgw = .0, wyz, w;
+  Real     fgw(0), bgw(0), wyz, w;
 
   int ia, jb, kc;
   for (int c = 0; c <= 3; ++c) {
     kc = k + c;
+    DefaultExtrapolator::Apply(kc, _Coefficient.Z() - 1);
     for (int b = 0; b <= 3; ++b) {
-      jb  = j + b;
+      jb = j + b;
+      DefaultExtrapolator::Apply(jb, _Coefficient.Y() - 1);
       wyz = Kernel::LookupTable[B][b] * Kernel::LookupTable[C][c];
       for (int a = 0; a <= 3; ++a) {
         ia = i + a;
-        w  = Kernel::LookupTable[A][a] * wyz;
-        if (input->IsForeground(ia, jb, kc, l)) {
-          val += w * voxel_cast<RealType>(coeff->Get(ia, jb, kc, l));
+        DefaultExtrapolator::Apply(ia, _Coefficient.X() - 1);
+        w = Kernel::LookupTable[A][a] * wyz;
+        val += w * voxel_cast<RealType>(coeff->Get(ia, jb, kc, l));
+        if (input->IsForeground(i + a, j + b, k + c, l)) {
           fgw += w;
         } else {
           bgw += w;
@@ -489,9 +484,9 @@ GenericFastCubicBSplineInterpolateImageFunction<TImage>
     }
   }
 
-  if (fgw > bgw) val /= fgw;
-  else           val  = voxel_cast<RealType>(this->DefaultValue());
-
+  if (bgw > fgw) {
+    val  = voxel_cast<RealType>(this->DefaultValue());
+  }
   return voxel_cast<VoxelType>(val);
 }
 
@@ -514,37 +509,29 @@ GenericFastCubicBSplineInterpolateImageFunction<TImage>
   --i, --j, --k, --l;
 
   RealType val = voxel_cast<RealType>(0);
-  Real     nrm(0), wzt, wyzt, w;
+  Real     wzt, wyzt, w;
 
   int ia, jb, kc, ld;
   for (int d = 0; d <= 3; ++d) {
     ld = l + d;
-    if (0 <= ld && ld < _Coefficient.T()) {
-      for (int c = 0; c <= 3; ++c) {
-        kc = k + c;
-        if (0 <= kc && kc < _Coefficient.Z()) {
-          wzt = Kernel::LookupTable[C][c] * Kernel::LookupTable[D][d];
-          for (int b = 0; b <= 3; ++b) {
-            jb = j + b;
-            if (0 <= jb && jb < _Coefficient.Y()) {
-              wyzt = Kernel::LookupTable[B][b] * wzt;
-              for (int a = 0; a <= 3; ++a) {
-                ia = i + a;
-                if (0 <= ia && ia < _Coefficient.X()) {
-                  w    = Kernel::LookupTable[A][a] * wyzt;
-                  val += w * _Coefficient(ia, jb, kc, ld);
-                  nrm += w;
-                }
-              }
-            }
-          }
+    DefaultExtrapolator::Apply(ld, _Coefficient.T() - 1);
+    for (int c = 0; c <= 3; ++c) {
+      kc = k + c;
+      DefaultExtrapolator::Apply(kc, _Coefficient.Z() - 1);
+      wzt = Kernel::LookupTable[C][c] * Kernel::LookupTable[D][d];
+      for (int b = 0; b <= 3; ++b) {
+        jb = j + b;
+        DefaultExtrapolator::Apply(jb, _Coefficient.Y() - 1);
+        wyzt = Kernel::LookupTable[B][b] * wzt;
+        for (int a = 0; a <= 3; ++a) {
+          ia = i + a;
+          DefaultExtrapolator::Apply(ia, _Coefficient.X() - 1);
+          w = Kernel::LookupTable[A][a] * wyzt;
+          val += w * _Coefficient(ia, jb, kc, ld);
         }
       }
     }
   }
-
-  if (nrm) val /= nrm;
-  else     val  = voxel_cast<RealType>(this->DefaultValue());
 
   return voxel_cast<VoxelType>(val);
 }
@@ -573,17 +560,21 @@ GenericFastCubicBSplineInterpolateImageFunction<TImage>
   int ia, jb, kc, ld;
   for (int d = 0; d <= 3; ++d) {
     ld = l + d;
+    DefaultExtrapolator::Apply(ld, _Coefficient.T() - 1);
     for (int c = 0; c <= 3; ++c) {
       kc = k + c;
+      DefaultExtrapolator::Apply(kc, _Coefficient.Z() - 1);
       wzt = Kernel::LookupTable[C][c] * Kernel::LookupTable[D][d];
       for (int b = 0; b <= 3; ++b) {
         jb = j + b;
+        DefaultExtrapolator::Apply(jb, _Coefficient.Y() - 1);
         wyzt = Kernel::LookupTable[B][b] * wzt;
         for (int a = 0; a <= 3; ++a) {
           ia = i + a;
-          w  = Kernel::LookupTable[A][a] * wyzt;
-          if (this->Input()->IsInsideForeground(ia, jb, kc, ld)) {
-            val += w * _Coefficient(ia, jb, kc, ld);
+          DefaultExtrapolator::Apply(ia, _Coefficient.X() - 1);
+          w = Kernel::LookupTable[A][a] * wyzt;
+          val += w * _Coefficient(ia, jb, kc, ld);
+          if (this->Input()->IsInsideForeground(i + a, j + b, k + c, l + d)) {
             fgw += w;
           } else {
             bgw += w;
@@ -593,9 +584,9 @@ GenericFastCubicBSplineInterpolateImageFunction<TImage>
     }
   }
 
-  if (fgw > bgw) val /= fgw;
-  else           val  = voxel_cast<RealType>(this->DefaultValue());
-
+  if (bgw > fgw) {
+    val  = voxel_cast<RealType>(this->DefaultValue());
+  }
   return voxel_cast<VoxelType>(val);
 }
 
@@ -679,9 +670,9 @@ GenericFastCubicBSplineInterpolateImageFunction<TImage>
         wyzt = Kernel::LookupTable[B][b] * wzt;
         for (int a = 0; a <= 3; ++a) {
           ia = i + a;
-          w  = Kernel::LookupTable[A][a] * wyzt;
+          w = Kernel::LookupTable[A][a] * wyzt;
+          val += w * voxel_cast<RealType>(coeff->Get(ia, jb, kc, ld));
           if (input->IsForeground(ia, jb, kc, ld)) {
-            val += w * voxel_cast<RealType>(coeff->Get(ia, jb, kc, ld));
             fgw += w;
           } else {
             bgw += w;
@@ -691,9 +682,9 @@ GenericFastCubicBSplineInterpolateImageFunction<TImage>
     }
   }
 
-  if (fgw > bgw) val /= fgw;
-  else           val  = voxel_cast<RealType>(this->DefaultValue());
-
+  if (bgw > fgw) {
+    val  = voxel_cast<RealType>(this->DefaultValue());
+  }
   return voxel_cast<VoxelType>(val);
 }
 
@@ -937,18 +928,16 @@ void GenericFastCubicBSplineInterpolateImageFunction<TImage>
   int ia, jb;
   for (int b = 0; b <= 3; ++b) {
     jb = j + b;
-    if (0 <= jb && jb < _Coefficient.Y()) {
-      wy[0] = Kernel::LookupTable  [B][b];
-      wy[1] = Kernel::LookupTable_I[B][b];
-      for (int a = 0; a <= 3; ++a) {
-        ia = i + a;
-        if (0 <= ia && ia < _Coefficient.X()) {
-          wx[0] = Kernel::LookupTable  [A][a];
-          wx[1] = Kernel::LookupTable_I[A][a];
-          dx += (wx[1] * wy[0]) * _Coefficient(ia, jb, k, l);
-          dy += (wx[0] * wy[1]) * _Coefficient(ia, jb, k, l);
-        }
-      }
+    DefaultExtrapolator::Apply(jb, _Coefficient.Y() - 1);
+    wy[0] = Kernel::LookupTable  [B][b];
+    wy[1] = Kernel::LookupTable_I[B][b];
+    for (int a = 0; a <= 3; ++a) {
+      ia = i + a;
+      DefaultExtrapolator::Apply(ia, _Coefficient.X() - 1);
+      wx[0] = Kernel::LookupTable  [A][a];
+      wx[1] = Kernel::LookupTable_I[A][a];
+      dx += (wx[1] * wy[0]) * _Coefficient(ia, jb, k, l);
+      dy += (wx[0] * wy[1]) * _Coefficient(ia, jb, k, l);
     }
   }
 
@@ -1030,25 +1019,22 @@ void GenericFastCubicBSplineInterpolateImageFunction<TImage>
   int ia, jb, kc;
   for (int c = 0; c <= 3; ++c) {
     kc = k + c;
-    if (0 <= kc && kc < _Coefficient.Z()) {
-      wz[0] = Kernel::LookupTable  [C][c];
-      wz[1] = Kernel::LookupTable_I[C][c];
-      for (int b = 0; b <= 3; ++b) {
-        jb = j + b;
-        if (0 <= jb && jb < _Coefficient.Y()) {
-          wy[0] = Kernel::LookupTable  [B][b];
-          wy[1] = Kernel::LookupTable_I[B][b];
-          for (int a = 0; a <= 3; ++a) {
-            ia = i + a;
-            if (0 <= ia && ia < _Coefficient.X()) {
-              wx[0] = Kernel::LookupTable  [A][a];
-              wx[1] = Kernel::LookupTable_I[A][a];
-              dx += (wx[1] * wy[0] * wz[0]) * _Coefficient(ia, jb, kc, l);
-              dy += (wx[0] * wy[1] * wz[0]) * _Coefficient(ia, jb, kc, l);
-              dz += (wx[0] * wy[0] * wz[1]) * _Coefficient(ia, jb, kc, l);
-            }
-          }
-        }
+    DefaultExtrapolator::Apply(kc, _Coefficient.Z() - 1);
+    wz[0] = Kernel::LookupTable  [C][c];
+    wz[1] = Kernel::LookupTable_I[C][c];
+    for (int b = 0; b <= 3; ++b) {
+      jb = j + b;
+      DefaultExtrapolator::Apply(jb, _Coefficient.Y() - 1);
+      wy[0] = Kernel::LookupTable  [B][b];
+      wy[1] = Kernel::LookupTable_I[B][b];
+      for (int a = 0; a <= 3; ++a) {
+        ia = i + a;
+        DefaultExtrapolator::Apply(ia, _Coefficient.X() - 1);
+        wx[0] = Kernel::LookupTable  [A][a];
+        wx[1] = Kernel::LookupTable_I[A][a];
+        dx += (wx[1] * wy[0] * wz[0]) * _Coefficient(ia, jb, kc, l);
+        dy += (wx[0] * wy[1] * wz[0]) * _Coefficient(ia, jb, kc, l);
+        dz += (wx[0] * wy[0] * wz[1]) * _Coefficient(ia, jb, kc, l);
       }
     }
   }
@@ -1139,32 +1125,28 @@ void GenericFastCubicBSplineInterpolateImageFunction<TImage>
   int ia, jb, kc, ld;
   for (int d = 0; d <= 3; ++d) {
     ld = l + d;
-    if (0 <= ld && ld < _Coefficient.T()) {
-      wt[0] = Kernel::LookupTable  [D][d];
-      wt[1] = Kernel::LookupTable_I[D][d];
-      for (int c = 0; c <= 3; ++c) {
-        kc = k + c;
-        if (0 <= kc && kc < _Coefficient.Z()) {
-          wz[0] = Kernel::LookupTable  [C][c];
-          wz[1] = Kernel::LookupTable_I[C][c];
-          for (int b = 0; b <= 3; ++b) {
-            jb = j + b;
-            if (0 <= jb && jb < _Coefficient.Y()) {
-              wy[0] = Kernel::LookupTable  [B][b];
-              wy[1] = Kernel::LookupTable_I[B][b];
-              for (int a = 0; a <= 3; ++a) {
-                ia = i + a;
-                if (0 <= ia && ia < _Coefficient.X()) {
-                  wx[0] = Kernel::LookupTable  [A][a];
-                  wx[1] = Kernel::LookupTable_I[A][a];
-                  dx += (wx[1] * wy[0] * wz[0] * wt[0]) * _Coefficient(ia, jb, kc, ld);
-                  dy += (wx[0] * wy[1] * wz[0] * wt[0]) * _Coefficient(ia, jb, kc, ld);
-                  dz += (wx[0] * wy[0] * wz[1] * wt[0]) * _Coefficient(ia, jb, kc, ld);
-                  dt += (wx[0] * wy[0] * wz[0] * wt[1]) * _Coefficient(ia, jb, kc, ld);
-                }
-              }
-            }
-          }
+    DefaultExtrapolator::Apply(ld, _Coefficient.T() - 1);
+    wt[0] = Kernel::LookupTable  [D][d];
+    wt[1] = Kernel::LookupTable_I[D][d];
+    for (int c = 0; c <= 3; ++c) {
+      kc = k + c;
+      DefaultExtrapolator::Apply(kc, _Coefficient.Z() - 1);
+      wz[0] = Kernel::LookupTable  [C][c];
+      wz[1] = Kernel::LookupTable_I[C][c];
+      for (int b = 0; b <= 3; ++b) {
+        jb = j + b;
+        DefaultExtrapolator::Apply(jb, _Coefficient.Y() - 1);
+        wy[0] = Kernel::LookupTable  [B][b];
+        wy[1] = Kernel::LookupTable_I[B][b];
+        for (int a = 0; a <= 3; ++a) {
+          ia = i + a;
+          DefaultExtrapolator::Apply(ia, _Coefficient.X() - 1);
+          wx[0] = Kernel::LookupTable  [A][a];
+          wx[1] = Kernel::LookupTable_I[A][a];
+          dx += (wx[1] * wy[0] * wz[0] * wt[0]) * _Coefficient(ia, jb, kc, ld);
+          dy += (wx[0] * wy[1] * wz[0] * wt[0]) * _Coefficient(ia, jb, kc, ld);
+          dz += (wx[0] * wy[0] * wz[1] * wt[0]) * _Coefficient(ia, jb, kc, ld);
+          dt += (wx[0] * wy[0] * wz[0] * wt[1]) * _Coefficient(ia, jb, kc, ld);
         }
       }
     }
