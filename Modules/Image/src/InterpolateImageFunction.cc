@@ -50,7 +50,11 @@ InterpolateImageFunction::~InterpolateImageFunction()
 template <class TImage>
 InterpolateImageFunction *NewInterpolator(enum InterpolationMode mode, int dim = 0)
 {
-  mode = InterpolationWithoutPadding(mode);
+  if (mode == Interpolation_Default) {
+    mode = DefaultInterpolationMode();
+  } else {
+    mode = InterpolationWithoutPadding(mode);
+  }
   switch (dim) {
     case 2: {
       switch (mode) {
@@ -115,8 +119,12 @@ InterpolateImageFunction *NewInterpolator(enum InterpolationMode mode, int dim =
 InterpolateImageFunction *
 InterpolateImageFunction::New(enum InterpolationMode mode, const BaseImage *image)
 {
-  mode = InterpolationWithoutPadding(mode);
   InterpolateImageFunction *p = NULL;
+  if (mode == Interpolation_Default) {
+    mode = DefaultInterpolationMode();
+  } else {
+    mode = InterpolationWithoutPadding(mode);
+  }
 
   // Dimensionality of image to interpolate
   int dim  = 0;

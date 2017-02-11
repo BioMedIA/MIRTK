@@ -29,6 +29,7 @@ namespace mirtk {
 // ----------------------------------------------------------------------------
 /// Image interpolation modes
 enum InterpolationMode {
+  Interpolation_Default,
   Interpolation_NN,
   Interpolation_Linear,
   Interpolation_FastLinear,
@@ -59,6 +60,7 @@ inline string ToString(const InterpolationMode &m, int w, char c, bool left)
 {
   const char *str;
   switch(m) {
+    case Interpolation_Default:                     str = "Default"; break;
     case Interpolation_NN:                          str = "NN"; break;
     case Interpolation_Linear:                      str = "Linear"; break;
     case Interpolation_FastLinear:                  str = "Fast linear"; break;
@@ -89,14 +91,21 @@ template <>
 inline bool FromString(const char *str, InterpolationMode &m)
 {
   const string lstr = ToLower(str);
-  if      (lstr == "nn") m = Interpolation_NN;
+  if      (lstr == "default") m = Interpolation_Default;
+  else if (lstr == "nn") m = Interpolation_NN;
   else if (lstr == "linear") m = Interpolation_Linear;
   else if (lstr == "fast linear") m = Interpolation_FastLinear;
   else if (lstr == "bspline") m = Interpolation_BSpline;
+  else if (lstr == "b-spline") m = Interpolation_BSpline;
   else if (lstr == "cspline") m = Interpolation_CSpline;
+  else if (lstr == "c-spline") m = Interpolation_CSpline;
   else if (lstr == "cubic bspline") m = Interpolation_CubicBSpline;
+  else if (lstr == "cubic b-spline") m = Interpolation_CubicBSpline;
   else if (lstr == "fast cubic bspline") m = Interpolation_FastCubicBSpline;
+  else if (lstr == "fast cubic b-spline") m = Interpolation_FastCubicBSpline;
   else if (lstr == "sbased") m = Interpolation_SBased;
+  else if (lstr == "shapebased") m = Interpolation_SBased;
+  else if (lstr == "shape-based") m = Interpolation_SBased;
   else if (lstr == "sinc") m = Interpolation_Sinc;
   else if (lstr == "gaussian") m = Interpolation_Gaussian;
   else if (lstr == "nn with padding") m = Interpolation_NNWithPadding;
@@ -106,21 +115,40 @@ inline bool FromString(const char *str, InterpolationMode &m)
   else if (lstr == "fast linear with padding") m = Interpolation_FastLinearWithPadding;
   else if (lstr == "fast linear (with padding)") m = Interpolation_FastLinearWithPadding;
   else if (lstr == "bspline with padding") m = Interpolation_BSplineWithPadding;
+  else if (lstr == "b-spline with padding") m = Interpolation_BSplineWithPadding;
   else if (lstr == "bspline (with padding)") m = Interpolation_BSplineWithPadding;
+  else if (lstr == "b-spline (with padding)") m = Interpolation_BSplineWithPadding;
   else if (lstr == "cubic bspline with padding") m = Interpolation_CubicBSplineWithPadding;
+  else if (lstr == "cubic b-spline with padding") m = Interpolation_CubicBSplineWithPadding;
   else if (lstr == "cubic bspline (with padding)") m = Interpolation_CubicBSplineWithPadding;
+  else if (lstr == "cubic b-spline (with padding)") m = Interpolation_CubicBSplineWithPadding;
   else if (lstr == "fast cubic bspline with padding") m = Interpolation_FastCubicBSplineWithPadding;
+  else if (lstr == "fast cubic b-spline with padding") m = Interpolation_FastCubicBSplineWithPadding;
   else if (lstr == "fast cubic bspline (with padding)") m = Interpolation_FastCubicBSplineWithPadding;
+  else if (lstr == "fast cubic b-spline (with padding)") m = Interpolation_FastCubicBSplineWithPadding;
   else if (lstr == "cspline with padding") m = Interpolation_CSplineWithPadding;
+  else if (lstr == "c-spline with padding") m = Interpolation_CSplineWithPadding;
   else if (lstr == "cspline (with padding)") m = Interpolation_CSplineWithPadding;
+  else if (lstr == "c-spline (with padding)") m = Interpolation_CSplineWithPadding;
   else if (lstr == "sbased with padding") m = Interpolation_SBasedWithPadding;
+  else if (lstr == "shapebased with padding") m = Interpolation_SBasedWithPadding;
+  else if (lstr == "shape-based with padding") m = Interpolation_SBasedWithPadding;
   else if (lstr == "sbased (with padding)") m = Interpolation_SBasedWithPadding;
+  else if (lstr == "shapebased (with padding)") m = Interpolation_SBasedWithPadding;
+  else if (lstr == "shape-based (with padding)") m = Interpolation_SBasedWithPadding;
   else if (lstr == "sinc with padding") m = Interpolation_SincWithPadding;
   else if (lstr == "sinc (with padding)") m = Interpolation_SincWithPadding;
   else if (lstr == "gaussian with padding") m = Interpolation_GaussianWithPadding;
   else if (lstr == "gaussian (with padding)") m = Interpolation_GaussianWithPadding;
   else return false;
   return true;
+}
+
+// ----------------------------------------------------------------------------
+/// Get default interpolation mode
+inline InterpolationMode DefaultInterpolationMode()
+{
+  return Interpolation_FastLinear;
 }
 
 // ----------------------------------------------------------------------------
