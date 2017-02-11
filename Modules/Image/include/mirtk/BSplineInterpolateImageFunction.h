@@ -21,6 +21,7 @@
 #define MIRTK_BSplineInterpolateImageFunction_H
 
 #include "mirtk/InterpolateImageFunction.h"
+#include "mirtk/MirrorExtrapolateImageFunction.h"
 
 
 namespace mirtk {
@@ -51,8 +52,9 @@ class GenericBSplineInterpolateImageFunction
 
 public:
 
-  typedef GenericImage<RealType>                             CoefficientImage;
-  typedef GenericExtrapolateImageFunction<CoefficientImage>  CoefficientExtrapolator;
+  typedef GenericImage<RealType>                                   CoefficientImage;
+  typedef GenericExtrapolateImageFunction<CoefficientImage>        CoefficientExtrapolator;
+  typedef GenericMirrorExtrapolateImageFunction<CoefficientImage>  DefaultExtrapolator;
 
   // ---------------------------------------------------------------------------
   // Attributes
