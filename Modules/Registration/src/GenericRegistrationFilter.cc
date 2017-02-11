@@ -1940,9 +1940,9 @@ void GenericRegistrationFilter::GuessParameter()
   if (_PrecomputeDerivatives == -1) {
     enum InterpolationMode mode = InterpolationWithoutPadding(_InterpolationMode);
     if (mode == Interpolation_Linear || mode == Interpolation_FastLinear) {
-      _PrecomputeDerivatives = 1;
-    } else {
       _PrecomputeDerivatives = 0;
+    } else {
+      _PrecomputeDerivatives = 1;
     }
   } else {
     enum InterpolationMode mode = InterpolationWithoutPadding(_InterpolationMode);
