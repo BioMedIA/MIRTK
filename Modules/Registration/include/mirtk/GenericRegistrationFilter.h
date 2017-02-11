@@ -229,6 +229,9 @@ public:
   /// Number of resolution levels
   mirtkPublicAttributeMacro(int, NumberOfLevels);
 
+  /// Level at which to stop multi-resolution optimization
+  mirtkPublicAttributeMacro(int, FinalLevel);
+
   /// Multi-level transformation mode
   mirtkPublicAttributeMacro(MFFDMode, MultiLevelMode);
 
@@ -520,6 +523,7 @@ public:
   // Parameter
 
   using RegistrationFilter::Read;
+  using RegistrationFilter::Parameter;
 
   /// Set (single) transformation model
   virtual void TransformationModel(enum TransformationModel);
@@ -562,10 +566,10 @@ public:
 protected:
 
   /// Whether current level is the initial resolution level
-  bool InitialLevel() const;
+  bool AtInitialLevel() const;
 
   /// Whether current level is the final resolution level
-  bool FinalLevel() const;
+  bool AtFinalLevel() const;
 
   /// Run multi-resolution registration
   virtual void MultiResolutionOptimization();

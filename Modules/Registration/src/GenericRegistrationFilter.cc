@@ -699,6 +699,7 @@ void GenericRegistrationFilter::Reset()
   // set by the user and which have not been properly initialized
   _TransformationModel.clear();
   _NumberOfLevels                      = -1;
+  _FinalLevel                          = 1;
   _MultiLevelMode                      = MFFD_Default;
   _MergeGlobalAndLocalTransformation   = false;
   InterpolationMode(Interpolation_Default);
@@ -1036,15 +1037,15 @@ void GenericRegistrationFilter::TransformationModel(enum TransformationModel mod
 }
 
 // -----------------------------------------------------------------------------
-bool GenericRegistrationFilter::InitialLevel() const
+bool GenericRegistrationFilter::AtInitialLevel() const
 {
   return (_CurrentLevel == NumberOfLevels());
 }
 
 // -----------------------------------------------------------------------------
-bool GenericRegistrationFilter::FinalLevel() const
+bool GenericRegistrationFilter::AtFinalLevel() const
 {
-  return (_CurrentLevel == 1);
+  return (_CurrentLevel == _FinalLevel);
 }
 
 // -----------------------------------------------------------------------------
@@ -1288,8 +1289,16 @@ bool GenericRegistrationFilter::Set(const char *param, const char *value, int le
   } else if (name == "No. of levels" ||
              name == "Number of levels" ||
              name == "No. of resolution levels" ||
-             name == "Number of resolution levels") {
-    return FromString(value, _NumberOfLevels) && _NumberOfLevels >= 1;
+             name == "Number of resolution levels" ||
+             name == "First level" ||
+             name == "First resolution level") {
+    return FromString(value, _NumberOfLevels) && (_NumberOfLevels >= 1 || _NumberOfLevels == -1);
+
+  } else if (name == "Final level" ||
+             name == "Final resolution level" ||
+             name == "Last level" ||
+             name == "Last resolution level") {
+    return FromString(value, _FinalLevel);
 
   // Whether to use Gaussian resolution pyramid
   } else if (name == "Use Gaussian resolution pyramid" ||
@@ -1707,6 +1716,7 @@ ParameterList GenericRegistrationFilter::Parameter(int level) const
     Insert(params, "Merge global and local transformation", _MergeGlobalAndLocalTransformation);
     Insert(params, "Optimization method",                   _OptimizationMethod);
     Insert(params, "No. of resolution levels",              _NumberOfLevels);
+    Insert(params, "Final level",                           _FinalLevel);
     Insert(params, "Precompute image derivatives",          _PrecomputeDerivatives);
     Insert(params, "Normalize weights of energy terms",     _NormalizeWeights);
     Insert(params, "Downsample images with padding",        _DownsampleWithPadding);
@@ -1999,6 +2009,10 @@ void GenericRegistrationFilter::GuessParameter()
          // but the registration goes from level _NumberOfLevels to level 1.
          << (MAX_NO_RESOLUTIONS-1) << ") exceeded" << endl;
     exit(1);
+  }
+  if (_FinalLevel <= 0) _FinalLevel = 1;
+  if (_FinalLevel > _NumberOfLevels) {
+    Throw(ERR_InvalidArgument, __FUNCTION__, "Final level cannot be greater than total number of levels!");
   }
 
   // Default transformation model(s)
@@ -2498,7 +2512,7 @@ void GenericRegistrationFilter::MultiResolutionOptimization()
 {
   // For each resolution level (coarse to fine)...
   // Note: Zero-th level is used to store global registration settings
-  Iteration level(_NumberOfLevels, 0);
+  Iteration level(_NumberOfLevels, _FinalLevel - 1);
   while (!level.End()) {
     _CurrentLevel = level.Iter();
     MIRTK_START_TIMING();
@@ -3319,7 +3333,7 @@ void GenericRegistrationFilter::InitializeOutput()
   }
 
   // Initialize transformation for first resolution level
-  if (InitialLevel()) {
+  if (AtInitialLevel()) {
 
     // Leave no potential memory leaks...
     if (_Transformation != Output()) delete _Transformation;
@@ -4204,7 +4218,7 @@ void GenericRegistrationFilter::InitializeOptimizer()
 {
   MIRTK_START_TIMING();
 
-  if (InitialLevel()) {
+  if (AtInitialLevel()) {
     // Instantiate optimizer
     _Optimizer = LocalOptimizer::New(_OptimizationMethod, &_Energy);
     // Enable forwarding of optimization events
@@ -4309,7 +4323,7 @@ void GenericRegistrationFilter::Finalize()
   _TargetOffset = _SourceOffset = Point(.0, .0, .0);
 
   // Destroy optimizer
-  if (FinalLevel()) Delete(_Optimizer);
+  if (AtFinalLevel()) Delete(_Optimizer);
 
   // Update output transformation
   Output(_Transformation);
