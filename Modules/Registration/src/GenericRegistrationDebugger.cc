@@ -313,13 +313,17 @@ void GenericRegistrationDebugger::HandleEvent(Observable *obj, Event event, cons
           BaseImage *hessian  = NULL;
           for (size_t j = 0; j < _Similarity.size(); ++j) {
             if (_Similarity[j]->Target()->InputImage() == &r->_Image[r->_CurrentLevel][i]) {
-              gradient = _Similarity[j]->Target()->InputGradient();
-              hessian  = _Similarity[j]->Target()->InputHessian();
+              if (_Similarity[j]->Target()->PrecomputeDerivatives()) {
+                gradient = _Similarity[j]->Target()->InputGradient();
+                hessian  = _Similarity[j]->Target()->InputHessian();
+              }
               break;
             }
             if (_Similarity[j]->Source()->InputImage() == &r->_Image[r->_CurrentLevel][i]) {
-              gradient = _Similarity[j]->Source()->InputGradient();
-              hessian  = _Similarity[j]->Source()->InputHessian();
+              if (_Similarity[j]->Source()->PrecomputeDerivatives()) {
+                gradient = _Similarity[j]->Source()->InputGradient();
+                hessian  = _Similarity[j]->Source()->InputHessian();
+              }
               break;
             }
           }
