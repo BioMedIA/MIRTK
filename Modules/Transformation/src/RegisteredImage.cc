@@ -139,11 +139,17 @@ RegisteredImage::~RegisteredImage()
   if (_InputGradient != _InputImage) delete _InputGradient;
   delete _InputHessian;
 }
+// =============================================================================
+// Initialization
+// =============================================================================
 
 // -----------------------------------------------------------------------------
 void RegisteredImage::Initialize(const ImageAttributes &attr, int t)
 {
   MIRTK_START_TIMING();
+
+  // Destroy previous interpolators
+  _Evaluator.reset();
 
   // Clear possibly previously allocated displacement cache
   if (!_Transformation) Delete(_Displacement);
@@ -338,7 +344,7 @@ void RegisteredImage::ComputeInputHessian(double sigma)
 }
 
 // =============================================================================
-// Update
+// Internally used voxel-wise update function
 // =============================================================================
 
 // -----------------------------------------------------------------------------
@@ -350,20 +356,20 @@ struct Transformer
   /// Constructor
   Transformer()
   :
-    _Input         (NULL),
-    _Transformation(NULL),
-    _Output        (NULL),
+    _Input(nullptr),
+    _Transformation(nullptr),
+    _Output(nullptr),
     _y(0), _z(0)
   {}
 
   /// Initialize data members
-  void Initialize(RegisteredImage *o, const BaseImage *i, const Transformation *t)
+  void Initialize(const BaseImage *i, const Transformation *t, RegisteredImage *o)
   {
-    _Input               = i;
-    _t                   = i->GetTOrigin();
-    _t0                  = o->GetTOrigin();
-    _Transformation      = t;
-    _Output              = o;
+    _Input          = i;
+    _t              = i->GetTOrigin();
+    _t0             = o->GetTOrigin();
+    _Transformation = t;
+    _Output         = o;
 
     _y = o->X() * o->Y() * o->Z();
     _z = 2 * _y;
@@ -574,16 +580,25 @@ void New(ImageGradientFunction *&f, const BaseImage *image,
 // TODO: Add template specialization for ImageHessianFunction
 
 // -----------------------------------------------------------------------------
-// Base class of voxel interpolation functions
-template <class IntensityFunction, class GradientFunction, class HessianFunction>
-class Interpolator
+// Auxiliary evaluator functions
+template <class TIntensityFunction, class TGradientFunction, class THessianFunction>
+class Interpolator : public Object
 {
+  mirtkObjectMacro(RegisteredImageInterpolator);
+
+public:
+
+  typedef TIntensityFunction  IntensityFunction;
+  typedef TGradientFunction   GradientFunction;
+  typedef THessianFunction    HessianFunction;
+
 protected:
 
   IntensityFunction *_IntensityFunction;
   GradientFunction  *_GradientFunction;
   HessianFunction   *_HessianFunction;
   bool               _InterpolateWithPadding;
+  bool               _PrecomputedDerivatives;
   double             _PaddingValue;
   double             _MinIntensity;
   double             _MaxIntensity;
@@ -596,28 +611,32 @@ protected:
 public:
 
   /// Constructor
-  Interpolator()
+  Interpolator(RegisteredImage *o = nullptr)
   :
-    _IntensityFunction     (NULL),
-    _GradientFunction      (NULL),
-    _HessianFunction       (NULL),
+    _IntensityFunction     (nullptr),
+    _GradientFunction      (nullptr),
+    _HessianFunction       (nullptr),
     _InterpolateWithPadding(false),
-    _PaddingValue          (-1),
+    _PrecomputedDerivatives(false),
+    _PaddingValue          (-1.),
     _MinIntensity          (numeric_limits<double>::quiet_NaN()),
     _MaxIntensity          (numeric_limits<double>::quiet_NaN()),
-    _RescaleSlope          (1.0),
+    _RescaleSlope          (1.),
     _RescaleIntercept      (.0),
     _NumberOfVoxels        (0),
     _NumberOfChannels      (0)
-  {}
+  {
+    if (o) Initialize(o);
+  }
 
   /// Copy constructor
   Interpolator(const Interpolator &other)
   :
-    _IntensityFunction     (NULL),
-    _GradientFunction      (NULL),
-    _HessianFunction       (NULL),
+    _IntensityFunction     (nullptr),
+    _GradientFunction      (nullptr),
+    _HessianFunction       (nullptr),
     _InterpolateWithPadding(other._InterpolateWithPadding),
+    _PrecomputedDerivatives(other._PrecomputedDerivatives),
     _PaddingValue          (other._PaddingValue),
     _MinIntensity          (other._MinIntensity),
     _MaxIntensity          (other._MaxIntensity),
@@ -661,31 +680,36 @@ public:
     Delete(_HessianFunction);
   }
 
-  /// Initialize data members
-  void Initialize(RegisteredImage *o, const BaseImage *f,
-                  const BaseImage *g, const BaseImage *h,
-                  double omin = numeric_limits<double>::quiet_NaN(),
-                  double omax = numeric_limits<double>::quiet_NaN())
+  /// Initialize interpolators
+  void Initialize(RegisteredImage *o)
   {
+    _PrecomputedDerivatives = o->PrecomputeDerivatives();
     _InterpolateWithPadding = (ToString(o->InterpolationMode()).find("with padding") != string::npos);
     if (o->HasBackgroundValue()) _PaddingValue = o->GetBackgroundValueAsDouble();
     _NumberOfVoxels   = o->X() * o->Y() * o->Z();
     _NumberOfChannels = o->T();
+    const BaseImage * const f = o->InputImage();
+    const BaseImage * const g = o->InputGradient();
+    const BaseImage * const h = o->InputHessian();
     const double f_bg = (f->HasBackgroundValue() ? f->GetBackgroundValueAsDouble() : MIN_GREY);
     const double g_bg = (g && g->HasBackgroundValue() ? g->GetBackgroundValueAsDouble() : .0);
     const double h_bg = (h && h->HasBackgroundValue() ? h->GetBackgroundValueAsDouble() : .0);
     New<IntensityFunction>(_IntensityFunction, f, o->InterpolationMode(), o->ExtrapolationMode(), f_bg, f_bg);
     New<GradientFunction >(_GradientFunction,  g, o->InterpolationMode(), Extrapolation_Default,  g_bg, .0);
     New<HessianFunction  >(_HessianFunction,   h, o->InterpolationMode(), Extrapolation_Default,  h_bg, .0);
-    _MinIntensity = omin;
-    _MaxIntensity = omax;
+    f->GetMinMaxAsDouble(_MinIntensity, _MaxIntensity);
+    if (f->HasBackgroundValue() && _MinIntensity > f->GetBackgroundValueAsDouble()) {
+      _MinIntensity = f->GetBackgroundValueAsDouble();
+    }
+    double omin = o->MinIntensity();
+    double omax = o->MaxIntensity();
     if (!IsNaN(omin) || !IsNaN(omax)) {
-      double imin, imax;
-      f->GetMinMaxAsDouble(imin, imax);
-      if (IsNaN(omin)) omin = imin;
-      if (IsNaN(omax)) omax = imax;
-      _RescaleSlope     = (omax - omin) / (imax - imin);
-      _RescaleIntercept = omin - _RescaleSlope * imin;
+      if (IsNaN(omin)) omin = _MinIntensity;
+      if (IsNaN(omax)) omax = _MaxIntensity;
+      _RescaleSlope     = (omax - omin) / (_MaxIntensity - _MinIntensity);
+      _RescaleIntercept = omin - _RescaleSlope * _MinIntensity;
+      _MinIntensity     = omin;
+      _MaxIntensity     = omax;
     } else {
       _RescaleSlope     = 1.0;
       _RescaleIntercept = 0.0;
@@ -693,56 +717,69 @@ public:
     _InputSize = Vector3D<int>(f->X(), f->Y(), f->Z());
   }
 
+  /// Get input image
+  const BaseImage *Input() const
+  {
+    return _IntensityFunction->Input();
+  }
+
   /// Determine interpolation mode at given location
   ///
-  /// \retval  1 Output channels should be interpolated without boundary checks.
-  /// \retval  0 Output channels should be interpolated at boundary.
+  /// \retval  1 Output channels can be interpolated without boundary checks.
+  /// \retval  0 Output channels must be interpolated with boundary checks.
   /// \retval -1 Output channels should be padded.
-  ///
-  /// \note The return value 0 was used in a previous implementation but is
-  ///       currently unused. The mode is either 1 (inside) or -1 (outside).
-  int InterpolationMode(double x, double y, double z, bool check_value = true) const
+  int Mode(double x, double y, double z, bool check_value = true) const
   {
-    // Use bounds suitable also for _GradientFunction and _HessianFunction.
-    // The linear image gradient function requires more strict bounds than
-    // the linear image intensity interpolation function.
-    bool inside = (.5 < x && x < _InputSize._x - 1.5 &&
-                   .5 < y && y < _InputSize._y - 1.5);
-    if (inside) {
-      if (_InputSize._z == 1) inside = fequal(z, .0, 1e-3);
-      else inside = (.5 < z && z < _InputSize._z - 1.5);
-      if (inside && check_value) {
-        if (_InterpolateWithPadding) {
-          double value = _IntensityFunction->EvaluateWithPadding(x, y, z);
-          if (value == _IntensityFunction->DefaultValue()) return -1;
-        }
-      }
-      return inside ? 1 : -1;
+    bool inside;
+    if (_InputSize._z == 1) {
+      inside = (abs(z) < 1e-3) && _IntensityFunction->IsInside(x, y) &&
+               (!_GradientFunction || _GradientFunction->IsInside(x, y)) &&
+               (!_HessianFunction  || _HessianFunction ->IsInside(x, y));
+    } else {
+      inside = _IntensityFunction->IsInside(x, y, z) &&
+               (!_GradientFunction || _GradientFunction->IsInside(x, y, z)) &&
+               (!_HessianFunction  || _HessianFunction ->IsInside(x, y, z));
     }
+    if (inside && check_value && _InterpolateWithPadding) {
+      double value = _IntensityFunction->EvaluateWithPadding(x, y, z);
+      if (value == _IntensityFunction->DefaultValue()) inside = false;
+    }
+    if (inside) return 1;
+    if (0. <= x && x <= _InputSize._x - 1. &&
+        0. <= y && y <= _InputSize._y - 1. &&
+        0. <= z && z <= _InputSize._z - 1.) return 0;
     return -1;
   }
 
   /// Interpolate input intensity function
   ///
   /// \return The interpolation mode, i.e., result of inside/outside domain check.
-  int InterpolateIntensity(double x, double y, double z, double *o)
+  int Intensity(double x, double y, double z, double *o) const
   {
     // Check if location is inside image domain
-    int mode = InterpolationMode(x, y, z, false);
-    if (mode == 1) {
+    int mode = Mode(x, y, z, false);
+    if (mode != -1) {
       // Either interpolate using the input padding value to exclude background
       if (_InterpolateWithPadding) {
-        *o = _IntensityFunction->EvaluateWithPaddingInside(x, y, z);
+        if (mode == 1) {
+          *o = _IntensityFunction->EvaluateWithPaddingInside(x, y, z);
+        } else {
+          *o = _IntensityFunction->EvaluateWithPaddingOutside(x, y, z);
+        }
       // or simply ignore the input background value as done by nreg2
       } else {
-        *o = _IntensityFunction->EvaluateInside(x, y, z);
+        if (mode == 1) {
+          *o = _IntensityFunction->EvaluateInside(x, y, z);
+        } else {
+          *o = _IntensityFunction->EvaluateOutside(x, y, z);
+        }
       }
       // Set background to output padding value
       if (*o == _IntensityFunction->DefaultValue()) {
         *o = _PaddingValue;
         if (_InterpolateWithPadding) return -1;
-      // Rescale foreground to desired [min, max] range
-      } else if (_RescaleSlope != 1.0 || _RescaleIntercept != .0) {
+      // Rescale/clamp foreground to [min, max] range
+      } else {
         *o = (*o) * _RescaleSlope + _RescaleIntercept;
         if      (*o < _MinIntensity) *o = _MinIntensity;
         else if (*o > _MaxIntensity) *o = _MaxIntensity;
@@ -758,7 +795,7 @@ public:
   }
 
   /// Interpolate 1st order derivatives of input intensity function
-  void InterpolateGradient(double x, double y, double z, double *o, int mode = 0)
+  void Gradient(double x, double y, double z, double *o, int mode = 0) const
   {
     o += _NumberOfVoxels;
     switch (mode) {
@@ -770,13 +807,25 @@ public:
           _GradientFunction->EvaluateInside(o, x, y, z, _NumberOfVoxels);
         }
         break;
-      // Outside/Boundary
-      default: for (int c = 1; c <= 3; ++c, o += _NumberOfVoxels) *o = .0;
+      // Boundary
+      case 0:
+        if (_PrecomputedDerivatives) {
+          if (_InterpolateWithPadding) {
+            _GradientFunction->EvaluateWithPaddingOutside(o, x, y, z, _NumberOfVoxels);
+          } else {
+            _GradientFunction->EvaluateOutside(o, x, y, z, _NumberOfVoxels);
+          }
+          break;
+        } // otherwise continue with Outside case
+      // Outside
+      default: {
+        for (int c = 1; c <= 3; ++c, o += _NumberOfVoxels) *o = .0;
+      } break;
     }
   }
 
   /// Interpolate 2nd order derivatives of input intensity function
-  void InterpolateHessian(double x, double y, double z, double *o, int mode = 0)
+  void Hessian(double x, double y, double z, double *o, int mode = 0) const
   {
     o += 4 * _NumberOfVoxels;
     switch (mode) {
@@ -788,8 +837,20 @@ public:
           _HessianFunction->EvaluateInside(o, x, y, z, _NumberOfVoxels);
         }
         break;
-      // Outside/Boundary
-      default: for (int c = 4; c < _NumberOfChannels; ++c, o += _NumberOfVoxels) *o = .0;
+      // Boundary
+      case 0:
+        if (_PrecomputedDerivatives) {
+          if (_InterpolateWithPadding) {
+            _HessianFunction->EvaluateWithPaddingOutside(o, x, y, z, _NumberOfVoxels);
+          } else {
+            _HessianFunction->EvaluateOutside(o, x, y, z, _NumberOfVoxels);
+          }
+          break;
+        } // otherwise continue with Outside case
+      // Outside
+      default: {
+        for (int c = 4; c < _NumberOfChannels; ++c, o += _NumberOfVoxels) *o = .0;
+      } break;
     }
   }
 };
@@ -797,96 +858,153 @@ public:
 // -----------------------------------------------------------------------------
 // Interpolates intensity
 template <class IntensityFunction, class GradientFunction, class HessianFunction>
-struct IntensityInterpolator : public Interpolator<IntensityFunction, GradientFunction, HessianFunction>
+struct IntensityInterpolator
 {
+  typedef Interpolator<IntensityFunction, GradientFunction, HessianFunction> Evaluator;
+
+  const Evaluator *_Evaluate;
+  IntensityInterpolator(const Evaluator *eval = nullptr)
+  :
+    _Evaluate(eval)
+  {}
+
   void operator()(double x, double y, double z, double *o)
   {
-    this->InterpolateIntensity(x, y, z, o);
+    _Evaluate->Intensity(x, y, z, o);
   }
 };
 
 // -----------------------------------------------------------------------------
 // Interpolates 1st order derivatives
 template <class IntensityFunction, class GradientFunction, class HessianFunction>
-struct GradientInterpolator : public Interpolator<IntensityFunction, GradientFunction, HessianFunction>
+struct GradientInterpolator
 {
+  typedef Interpolator<IntensityFunction, GradientFunction, HessianFunction> Evaluator;
+
+  const Evaluator *_Evaluate;
+  GradientInterpolator(const Evaluator *eval = nullptr)
+  :
+    _Evaluate(eval)
+  {}
+
   void operator()(double x, double y, double z, double *o)
   {
-    int mode = this->InterpolationMode  (x, y, z);
-    this           ->InterpolateGradient(x, y, z, o, mode);
+    int mode = _Evaluate->Mode(x, y, z);
+    _Evaluate->Gradient(x, y, z, o, mode);
   }
 };
 
 // -----------------------------------------------------------------------------
 // Interpolates 2nd order derivatives
 template <class IntensityFunction, class GradientFunction, class HessianFunction>
-struct HessianInterpolator : public Interpolator<IntensityFunction, GradientFunction, HessianFunction>
+struct HessianInterpolator
 {
+  typedef Interpolator<IntensityFunction, GradientFunction, HessianFunction> Evaluator;
+
+  const Evaluator *_Evaluate;
+  HessianInterpolator(const Evaluator *eval = nullptr)
+  :
+    _Evaluate(eval)
+  {}
+
   void operator()(double x, double y, double z, double *o)
   {
-    int mode = this->InterpolationMode (x, y, z);
-    this           ->InterpolateHessian(x, y, z, o, mode);
+    int mode = _Evaluate->Mode(x, y, z);
+    _Evaluate->Hessian(x, y, z, o, mode);
   }
 };
 
 // -----------------------------------------------------------------------------
 // Interpolates intensity and 1st order derivatives
 template <class IntensityFunction, class GradientFunction, class HessianFunction>
-struct IntensityAndGradientInterpolator : public Interpolator<IntensityFunction, GradientFunction, HessianFunction>
+struct IntensityAndGradientInterpolator
 {
+  typedef Interpolator<IntensityFunction, GradientFunction, HessianFunction> Evaluator;
+
+  const Evaluator *_Evaluate;
+  IntensityAndGradientInterpolator(const Evaluator *eval = nullptr)
+  :
+    _Evaluate(eval)
+  {}
+
   void operator()(double x, double y, double z, double *o)
   {
-    int mode = this->InterpolateIntensity(x, y, z, o);
-    this           ->InterpolateGradient (x, y, z, o, mode);
+    int mode = _Evaluate->Intensity(x, y, z, o);
+    _Evaluate->Gradient(x, y, z, o, mode);
   }
 };
 
 // -----------------------------------------------------------------------------
 // Interpolates intensity and 2nd order derivatives
 template <class IntensityFunction, class GradientFunction, class HessianFunction>
-struct IntensityAndHessianInterpolator : public Interpolator<IntensityFunction, GradientFunction, HessianFunction>
+struct IntensityAndHessianInterpolator
 {
+  typedef Interpolator<IntensityFunction, GradientFunction, HessianFunction> Evaluator;
+
+  const Evaluator *_Evaluate;
+  IntensityAndHessianInterpolator(const Evaluator *eval = nullptr)
+  :
+    _Evaluate(eval)
+  {}
+
   void operator()(double x, double y, double z, double *o)
   {
-    int mode = this->InterpolateIntensity(x, y, z, o);
-    this           ->InterpolateHessian  (x, y, z, o, mode);
+    int mode = _Evaluate->Intensity(x, y, z, o);
+    _Evaluate->Hessian(x, y, z, o, mode);
   }
 };
 
 // -----------------------------------------------------------------------------
 // Interpolates 1st and 2nd order derivatives
 template <class IntensityFunction, class GradientFunction, class HessianFunction>
-struct GradientAndHessianInterpolator : public Interpolator<IntensityFunction, GradientFunction, HessianFunction>
+struct GradientAndHessianInterpolator
 {
+  typedef Interpolator<IntensityFunction, GradientFunction, HessianFunction> Evaluator;
+
+  const Evaluator *_Evaluate;
+  GradientAndHessianInterpolator(const Evaluator *eval = nullptr)
+  :
+    _Evaluate(eval)
+  {}
+
   void operator()(double x, double y, double z, double *o)
   {
-    int mode = this->InterpolationMode  (x, y, z);
-    this           ->InterpolateGradient(x, y, z, o, mode);
-    this           ->InterpolateHessian (x, y, z, o, mode);
+    int mode = _Evaluate->Mode(x, y, z);
+    _Evaluate->Gradient(x, y, z, o, mode);
+    _Evaluate->Hessian(x, y, z, o, mode);
   }
 };
 
 // -----------------------------------------------------------------------------
 // Interpolates intensity, 1st and 2nd order derivatives
 template <class IntensityFunction, class GradientFunction, class HessianFunction>
-struct IntensityAndGradientAndHessianInterpolator : public Interpolator<IntensityFunction, GradientFunction, HessianFunction>
+struct IntensityAndGradientAndHessianInterpolator
 {
+  typedef Interpolator<IntensityFunction, GradientFunction, HessianFunction> Evaluator;
+
+  const Evaluator *_Evaluate;
+  IntensityAndGradientAndHessianInterpolator(const Evaluator *eval = nullptr)
+  :
+    _Evaluate(eval)
+  {}
+
   void operator()(double x, double y, double z, double *o)
   {
-    int mode = this->InterpolateIntensity(x, y, z, o);
-    this           ->InterpolateGradient (x, y, z, o, mode);
-    this           ->InterpolateHessian  (x, y, z, o, mode);
+    int mode = _Evaluate->Intensity(x, y, z, o);
+    _Evaluate->Gradient(x, y, z, o, mode);
+    _Evaluate->Hessian(x, y, z, o, mode);
   }
 };
 
 // -----------------------------------------------------------------------------
 // Voxel update function
 template <class Transformer, class Interpolator>
-struct UpdateFunction : public VoxelFunction
+struct UpdateVoxelFunction : public VoxelFunction
 {
 private:
 
-  typedef typename Transformer::CoordType CoordType;
+  typedef typename Transformer::CoordType  CoordType;
+  typedef typename Interpolator::Evaluator Evaluator;
 
   Transformer  _Transform;
   Interpolator _Interpolate;
@@ -894,16 +1012,11 @@ private:
 public:
 
   /// Constructor
-  UpdateFunction(const BaseImage      *f,
-                 const BaseImage      *g,
-                 const BaseImage      *h,
-                 const Transformation *t,
-                 RegisteredImage      *o,
-                 double omin = numeric_limits<double>::quiet_NaN(),
-                 double omax = numeric_limits<double>::quiet_NaN())
+  UpdateVoxelFunction(const Evaluator *eval, const Transformation *t, RegisteredImage *o)
+  :
+    _Interpolate(eval)
   {
-    _Transform  .Initialize(o, f, t);
-    _Interpolate.Initialize(o, f, g, h, omin, omax);
+    _Transform.Initialize(eval->Input(), t, o);
   }
 
   /// Resample input without pre-computed maps
@@ -939,31 +1052,36 @@ public:
   }
 };
 
+// =============================================================================
+// Update
+// =============================================================================
+
 // -----------------------------------------------------------------------------
 template <class Transformer, class Interpolator>
-void RegisteredImage::Update3(const blocked_range3d<int> &region,
-                              bool intensity, bool gradient, bool hessian)
+void RegisteredImage::Update3(const blocked_range3d<int> &region, bool, bool, bool)
 {
-  typedef UpdateFunction<Transformer, Interpolator> Function;
-  Function f(intensity  ? _InputImage          : NULL,
-             gradient   ? _InputGradient       : NULL,
-             hessian    ? _InputHessian        : NULL,
-             _Transformation, this,
-             _MinIntensity, _MaxIntensity);
+  typedef typename Interpolator::Evaluator Evaluator;
+  typedef UpdateVoxelFunction<Transformer, Interpolator> UpdateFunction;
+  Evaluator *eval = dynamic_cast<Evaluator *>(_Evaluator.get());
+  if (eval == nullptr) {
+    eval = new Evaluator(this);
+    _Evaluator.reset(eval);
+  }
+  UpdateFunction func(eval, _Transformation, this);
   if (_ImageToWorld) {
     if (_ExternalDisplacement) {
-      ParallelForEachVoxel(region, _ImageToWorld, _ExternalDisplacement, this, f);
+      ParallelForEachVoxel(region, _ImageToWorld, _ExternalDisplacement, this, func);
     } else if (_FixedDisplacement && _Displacement) {
-      ParallelForEachVoxel(region, _ImageToWorld, _FixedDisplacement, _Displacement, this, f);
+      ParallelForEachVoxel(region, _ImageToWorld, _FixedDisplacement, _Displacement, this, func);
     } else if (_Displacement) {
-      ParallelForEachVoxel(region, _ImageToWorld, _Displacement, this, f);
+      ParallelForEachVoxel(region, _ImageToWorld, _Displacement, this, func);
     } else if (_FixedDisplacement) {
-      ParallelForEachVoxel(region, _ImageToWorld, _FixedDisplacement, this, f);
+      ParallelForEachVoxel(region, _ImageToWorld, _FixedDisplacement, this, func);
     } else {
-      ParallelForEachVoxel(region, _ImageToWorld, this, f);
+      ParallelForEachVoxel(region, _ImageToWorld, this, func);
     }
   } else {
-    ParallelForEachVoxel(region, this, f);
+    ParallelForEachVoxel(region, this, func);
   }
 }
 

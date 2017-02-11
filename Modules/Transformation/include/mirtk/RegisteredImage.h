@@ -181,6 +181,11 @@ protected:
   /// \param[in] sigma Standard deviation of Gaussian smoothing filter in voxels.
   void ComputeInputHessian(double sigma);
 
+private:
+
+  /// Internal voxel-wise update functor object
+  SharedPtr<Object> _Evaluator;
+
   // ---------------------------------------------------------------------------
   // Construction/Destruction
 public:
