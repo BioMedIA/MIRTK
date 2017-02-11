@@ -242,7 +242,7 @@ public:
   mirtkPublicAttributeMacro(enum ExtrapolationMode, ExtrapolationMode);
 
   /// Whether to precompute image derivatives or compute them on the fly
-  mirtkPublicAttributeMacro(int, PrecomputeDerivatives);
+  mirtkPublicAttributeMacro(bool, PrecomputeDerivatives);
 
   /// Default similarity measure
   mirtkPublicAttributeMacro(enum SimilarityMeasure, SimilarityMeasure);

@@ -703,7 +703,7 @@ void GenericRegistrationFilter::Reset()
   _MergeGlobalAndLocalTransformation   = false;
   _InterpolationMode                   = Interpolation_FastLinear;
   _ExtrapolationMode                   = Extrapolation_Default;
-  _PrecomputeDerivatives               = -1;
+  _PrecomputeDerivatives               = true;
   _SimilarityMeasure                   = SIM_NMI;
   _PointSetDistanceMeasure             = PDM_FRE;
   _OptimizationMethod                  = OM_ConjugateGradientDescent;
@@ -1155,12 +1155,6 @@ bool GenericRegistrationFilter::Set(const char *param, const char *value, int le
     return FromString(value, _InterpolationMode);
   } else if (name == "Extrapolation mode") {
     return FromString(value, _ExtrapolationMode);
-  } else if (name == "Precompute image derivatives") {
-    bool bval;
-    if (!FromString(value, bval)) return false;
-    _PrecomputeDerivatives = (bval ? 1 : 0);
-    return true;
-
   // (Default) Similarity measure
   } else if (name == "Image (dis-)similarity measure" ||
              name == "Image dissimilarity measure" ||
@@ -1170,6 +1164,8 @@ bool GenericRegistrationFilter::Set(const char *param, const char *value, int le
              name == "Similarity measure" ||
              name == "SIM") {
     return FromString(value, _SimilarityMeasure);
+  } else if (name == "Precompute image derivatives") {
+    return FromString(value, _PrecomputeDerivatives);
 
   // (Default) Point set distance measure
   } else if (name == "Point set distance measure" ||
@@ -1630,7 +1626,7 @@ ParameterList GenericRegistrationFilter::Parameter(int level) const
     Insert(params, "No. of resolution levels",              _NumberOfLevels);
     Insert(params, "Interpolation mode",                    _InterpolationMode);
     Insert(params, "Extrapolation mode",                    _ExtrapolationMode);
-    Insert(params, "Precompute image derivatives",          _PrecomputeDerivatives == 0 ? false : true);
+    Insert(params, "Precompute image derivatives",          _PrecomputeDerivatives);
     Insert(params, "Normalize weights of energy terms",     _NormalizeWeights);
     Insert(params, "Downsample images with padding",        _DownsampleWithPadding);
     Insert(params, "Crop/pad images",                       _CropPadImages);
@@ -1933,21 +1929,6 @@ void GenericRegistrationFilter::GuessParameter()
   if (!IsNaN(_DefaultPadding)) {
     for (int n = 0; n < _NumberOfImages; ++n) {
       if (IsNaN(_Padding[n])) _Padding[n] = _DefaultPadding;
-    }
-  }
-
-  // Whether to precompute image derivatives
-  if (_PrecomputeDerivatives == -1) {
-    enum InterpolationMode mode = InterpolationWithoutPadding(_InterpolationMode);
-    if (mode == Interpolation_Linear || mode == Interpolation_FastLinear) {
-      _PrecomputeDerivatives = 0;
-    } else {
-      _PrecomputeDerivatives = 1;
-    }
-  } else {
-    enum InterpolationMode mode = InterpolationWithoutPadding(_InterpolationMode);
-    if (_PrecomputeDerivatives == 0 && mode != Interpolation_Linear && mode != Interpolation_FastLinear) {
-      Throw(ERR_InvalidArgument, __FUNCTION__, "Precomputation of image derivatives currently required for non-linear interpolation modes");
     }
   }
 
@@ -3672,7 +3653,7 @@ void GenericRegistrationFilter::SetInputOf(RegisteredImage *output, const struct
   output->InputImage           (&_Image[_CurrentLevel][n]);
   output->InterpolationMode    (_InterpolationMode);
   output->ExtrapolationMode    (_ExtrapolationMode);
-  output->PrecomputeDerivatives(_PrecomputeDerivatives == 0 ? false : true);
+  output->PrecomputeDerivatives(_PrecomputeDerivatives);
   output->Transformation       (this->OutputTransformation(ti));
 
   // Add/Amend displacement cache entry
