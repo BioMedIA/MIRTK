@@ -458,7 +458,7 @@ template <class TData>
 void FillBackgroundBeforeConversionToSplineCoefficients(GenericImage<TData> &image)
 {
   int idx, nbr, i, j, k, l;
-  Queue<int> active;
+  Queue<int> active, next;
   BinaryImage bg(image.Attributes());
   for (idx = 0; idx < image.NumberOfVoxels(); ++idx) {
     if (image.IsBackground(idx)) {
@@ -468,33 +468,36 @@ void FillBackgroundBeforeConversionToSplineCoefficients(GenericImage<TData> &ima
       bg(idx) = 1;
     }
   }
-  while (!active.empty()) {
-    idx = active.front();
-    active.pop();
-    if (bg(idx)) {
-      int   count = 0;
-      TData value = voxel_cast<TData>(0);
-      image.IndexToVoxel(idx, i, j, k, l);
-      for (int nl = l - 1; nl <= l + 1; ++nl)
-      for (int nk = k - 1; nk <= k + 1; ++nk)
-      for (int nj = j - 1; nj <= j + 1; ++nj)
-      for (int ni = i - 1; ni <= i + 1; ++ni) {
-        nbr = image.VoxelToIndex(ni, nj, nk, nl);
-        if (nbr != idx && image.IsInside(nbr)) {
-          if (bg(nbr)) {
-            active.push(nbr);
-          } else {
-            value += image(nbr);
-            count += 1;
+  for (int gen = 0; gen < 3; ++gen) {
+    while (!active.empty()) {
+      idx = active.front();
+      active.pop();
+      if (bg(idx)) {
+        int   count = 0;
+        TData value = voxel_cast<TData>(0);
+        image.IndexToVoxel(idx, i, j, k, l);
+        for (int nl = l - 1; nl <= l + 1; ++nl)
+        for (int nk = k - 1; nk <= k + 1; ++nk)
+        for (int nj = j - 1; nj <= j + 1; ++nj)
+        for (int ni = i - 1; ni <= i + 1; ++ni) {
+          nbr = image.VoxelToIndex(ni, nj, nk, nl);
+          if (nbr != idx && image.IsInside(nbr)) {
+            if (bg(nbr)) {
+              next.push(nbr);
+            } else {
+              value += image(nbr);
+              count += 1;
+            }
           }
         }
+        value /= count;
+        image.Put(idx, value);
+        bg(idx) = 0;
       }
-      value /= count;
-      image.Put(idx, value);
-      bg(idx) = 0;
     }
+    if (next.empty()) break;
+    active = move(next);
   }
-  image.ClearBackgroundValue();
 }
 
 
