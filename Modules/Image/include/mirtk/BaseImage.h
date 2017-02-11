@@ -558,6 +558,18 @@ public:
   /// Whether all voxels within a 4D bounding region are inside foreground region
   bool IsBoundingBoxInsideForeground(int, int, int, int, int, int, int, int) const;
 
+  /// Whether at least one neighboring voxel is outside the finite foreground region
+  bool IsNextToBackground(int) const;
+
+  /// Whether at least one neighboring voxel is outside the finite foreground region
+  bool IsNextToBackground(int, int, int = 0, int = 0) const;
+
+  /// Whether at least one neighboring voxel is inside the finite foreground region
+  bool IsNextToForeground(int) const;
+
+  /// Whether at least one neighboring voxel is inside the finite foreground region
+  bool IsNextToForeground(int, int, int = 0, int = 0) const;
+
   /// Whether any voxel is within background
   bool HasBackground() const;
 
@@ -1638,6 +1650,54 @@ inline bool BaseImage::IsBoundingBoxInsideForeground(int i1, int j1, int k1, int
     }
   }
   return true;
+}
+
+// -----------------------------------------------------------------------------
+inline bool BaseImage::IsNextToBackground(int i, int j, int k, int l) const
+{
+  for (int nl = l - 1; nl <= l + 1; ++nl)
+  for (int nk = k - 1; nk <= k + 1; ++nk)
+  for (int nj = j - 1; nj <= j + 1; ++nj)
+  for (int ni = i - 1; ni <= i + 1; ++ni) {
+    if (ni != 0 || nj != 0 || nk != 0 || nl != 0) {
+      if (IsOutsideForeground(ni, nj, nk, nl)) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+// -----------------------------------------------------------------------------
+inline bool BaseImage::IsNextToBackground(int idx) const
+{
+  int i, j, k, l;
+  IndexToVoxel(idx, i, j, k, l);
+  return IsNextToBackground(i, j, k, l);
+}
+
+// -----------------------------------------------------------------------------
+inline bool BaseImage::IsNextToForeground(int i, int j, int k, int l) const
+{
+  for (int nl = l - 1; nl <= l + 1; ++nl)
+  for (int nk = k - 1; nk <= k + 1; ++nk)
+  for (int nj = j - 1; nj <= j + 1; ++nj)
+  for (int ni = i - 1; ni <= i + 1; ++ni) {
+    if (ni != 0 || nj != 0 || nk != 0 || nl != 0) {
+      if (IsInsideForeground(ni, nj, nk, nl)) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+// -----------------------------------------------------------------------------
+inline bool BaseImage::IsNextToForeground(int idx) const
+{
+  int i, j, k, l;
+  IndexToVoxel(idx, i, j, k, l);
+  return IsNextToForeground(i, j, k, l);
 }
 
 // -----------------------------------------------------------------------------
