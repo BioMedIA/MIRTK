@@ -1266,31 +1266,37 @@ void NormalizedIntensityCrossCorrelation::WriteDataSets(const char *p, const cha
   string _prefix = Prefix(p);
   const char  *prefix = _prefix.c_str();
 
-  if (_T) {
-    snprintf(fname, sz, "%starget_mean%s", prefix, suffix);
-    _T->Write(fname);
+  if (_Target->Transformation() || all) {
+    if (_T) {
+      snprintf(fname, sz, "%starget_mean%s", prefix, suffix);
+      _T->Write(fname);
+    }
+    if (_C) {
+      snprintf(fname, sz, "%starget_sdev%s", prefix, suffix);
+      _C->Write(fname);
+    }
   }
-  if (_C) {
-    snprintf(fname, sz, "%starget_sdev%s", prefix, suffix);
-    _C->Write(fname);
+  if (_Source->Transformation() || all) {
+    if (_S) {
+      snprintf(fname, sz, "%ssource_mean%s", prefix, suffix);
+      _S->Write(fname);
+    }
+    if (_B) {
+      snprintf(fname, sz, "%ssource_sdev%s", prefix, suffix);
+      _B->Write(fname);
+    }
   }
-  if (_S) {
-    snprintf(fname, sz, "%ssource_mean%s", prefix, suffix);
-    _S->Write(fname);
-  }
-  if (_B) {
-    snprintf(fname, sz, "%ssource_sdev%s", prefix, suffix);
-    _B->Write(fname);
-  }
-  if (_A) {
-    if (_KernelType == BoxWindow) {
-      snprintf(fname, sz, "%sa%s", prefix, suffix);
-      _A->Write(fname);
-    } else {
-      snprintf(fname, sz, "%svalue%s", prefix, suffix);
-      GenerateLNCCImage eval;
-      ParallelForEachVoxel(_A, _B, _C, &_Temp, eval);
-      _Temp.Write(fname);
+  if (_Target->Transformation() || _Source->Transformation() || all) {
+    if (_A) {
+      if (_KernelType == BoxWindow) {
+        snprintf(fname, sz, "%sa%s", prefix, suffix);
+        _A->Write(fname);
+      } else {
+        snprintf(fname, sz, "%svalue%s", prefix, suffix);
+        GenerateLNCCImage eval;
+        ParallelForEachVoxel(_A, _B, _C, &_Temp, eval);
+        _Temp.Write(fname);
+      }
     }
   }
 }
