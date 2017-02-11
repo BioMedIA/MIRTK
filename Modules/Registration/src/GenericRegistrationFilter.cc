@@ -701,8 +701,8 @@ void GenericRegistrationFilter::Reset()
   _NumberOfLevels                      = -1;
   _MultiLevelMode                      = MFFD_Default;
   _MergeGlobalAndLocalTransformation   = false;
-  _InterpolationMode                   = Interpolation_FastLinear;
-  _ExtrapolationMode                   = Extrapolation_Default;
+  InterpolationMode(Interpolation_Default);
+  ExtrapolationMode(Extrapolation_Default);
   _PrecomputeDerivatives               = true;
   _SimilarityMeasure                   = SIM_NMI;
   _PointSetDistanceMeasure             = PDM_FRE;
@@ -872,6 +872,58 @@ bool GenericRegistrationFilter::IsMovingImage(int n) const
     if (it->_SourceIndex == n && !it->_SourceTransformation.IsIdentity()) return true;
   }
   return false;
+}
+
+// -----------------------------------------------------------------------------
+void GenericRegistrationFilter::InterpolationMode(enum InterpolationMode mode)
+{
+  _InterpolationMode.clear();
+  _DefaultInterpolationMode = mode;
+}
+
+// -----------------------------------------------------------------------------
+void GenericRegistrationFilter::InterpolationMode(int n, enum InterpolationMode mode)
+{
+  if (static_cast<size_t>(n) >= _InterpolationMode.size()) {
+    _InterpolationMode.resize(n + 1, Interpolation_Default);
+  }
+  _InterpolationMode[n] = mode;
+}
+
+// -----------------------------------------------------------------------------
+enum InterpolationMode GenericRegistrationFilter::InterpolationMode(int n)
+{
+  if (n < 0 || static_cast<size_t>(n) >= _InterpolationMode.size() || _InterpolationMode[n] == Interpolation_Default) {
+    return _DefaultInterpolationMode;
+  } else {
+    return _InterpolationMode[n];
+  }
+}
+
+// -----------------------------------------------------------------------------
+void GenericRegistrationFilter::ExtrapolationMode(enum ExtrapolationMode mode)
+{
+  _ExtrapolationMode.clear();
+  _DefaultExtrapolationMode = mode;
+}
+
+// -----------------------------------------------------------------------------
+void GenericRegistrationFilter::ExtrapolationMode(int n, enum ExtrapolationMode mode)
+{
+  if (static_cast<size_t>(n) >= _ExtrapolationMode.size()) {
+    _ExtrapolationMode.resize(n + 1, Extrapolation_Default);
+  }
+  _ExtrapolationMode[n] = mode;
+}
+
+// -----------------------------------------------------------------------------
+enum ExtrapolationMode GenericRegistrationFilter::ExtrapolationMode(int n)
+{
+  if (n < 0 || static_cast<size_t>(n) >= _ExtrapolationMode.size() || _ExtrapolationMode[n] == Extrapolation_Default) {
+    return _DefaultExtrapolationMode;
+  } else {
+    return _ExtrapolationMode[n];
+  }
 }
 
 // =============================================================================
@@ -1150,11 +1202,6 @@ bool GenericRegistrationFilter::Set(const char *param, const char *value, int le
     if (!version) version = current_version;
     return true;
 
-  // Interpolation mode
-  } else if (name == "Interpolation mode") {
-    return FromString(value, _InterpolationMode);
-  } else if (name == "Extrapolation mode") {
-    return FromString(value, _ExtrapolationMode);
   // (Default) Similarity measure
   } else if (name == "Image (dis-)similarity measure" ||
              name == "Image dissimilarity measure" ||
@@ -1381,6 +1428,42 @@ bool GenericRegistrationFilter::Set(const char *param, const char *value, int le
     } else {
       return FromString(value, _DefaultPadding);
     }
+
+  // Image interpolation
+  } else if (name == "Image interpolation" || name == "Image interpolation mode" || name == "Interpolation mode") {
+    return FromString(value, _DefaultInterpolationMode);
+  } else if (name.compare(0, 23, "Interpolation of image ", 23) == 0) {
+    int n = -1;
+    if (!FromString(name.substr(23), n) || n < 1) return false;
+    enum InterpolationMode mode;
+    if (!FromString(value, mode)) return false;
+    InterpolationMode(n, mode);
+    return true;
+  } else if (name.compare(0, 28, "Interpolation mode of image ", 28) == 0) {
+    int n = -1;
+    if (!FromString(name.substr(28), n) || n < 1) return false;
+    enum InterpolationMode mode;
+    if (!FromString(value, mode)) return false;
+    InterpolationMode(n, mode);
+    return true;
+
+  // Image extrapolation
+  } else if (name == "Image extrapolation" || name == "Image extrapolation mode" || name == "Extrapolation mode") {
+    return FromString(value, _DefaultExtrapolationMode);
+  } else if (name.compare(0, 23, "Extrapolation of image ", 23) == 0) {
+    int n = -1;
+    if (!FromString(name.substr(23), n) || n < 1) return false;
+    enum ExtrapolationMode mode;
+    if (!FromString(value, mode)) return false;
+    ExtrapolationMode(n, mode);
+    return true;
+  } else if (name.compare(0, 28, "Extrapolation mode of image ", 28) == 0) {
+    int n = -1;
+    if (!FromString(name.substr(28), n) || n < 1) return false;
+    enum ExtrapolationMode mode;
+    if (!FromString(value, mode)) return false;
+    ExtrapolationMode(n, mode);
+    return true;
 
   // Image centering
   } else if (name == "Foreground-centric global transformation") {
@@ -1624,8 +1707,6 @@ ParameterList GenericRegistrationFilter::Parameter(int level) const
     Insert(params, "Merge global and local transformation", _MergeGlobalAndLocalTransformation);
     Insert(params, "Optimization method",                   _OptimizationMethod);
     Insert(params, "No. of resolution levels",              _NumberOfLevels);
-    Insert(params, "Interpolation mode",                    _InterpolationMode);
-    Insert(params, "Extrapolation mode",                    _ExtrapolationMode);
     Insert(params, "Precompute image derivatives",          _PrecomputeDerivatives);
     Insert(params, "Normalize weights of energy terms",     _NormalizeWeights);
     Insert(params, "Downsample images with padding",        _DownsampleWithPadding);
@@ -1643,15 +1724,34 @@ ParameterList GenericRegistrationFilter::Parameter(int level) const
     }
     if (NumberOfImages() > 0) {
       int n = 1;
+      double bg = _Background[0];
+      while (n < NumberOfImages() && bg == _Background[n]) ++n;
+      if (n == NumberOfImages()) {
+        Insert(params, "Background value", bg);
+      } else {
+        for (n = 0; n < NumberOfImages(); ++n) {
+          Insert(params, string("Background value of image ") + ToString(n + 1), _Background[n]);
+        }
+      }
       double padding = _Padding[0];
       while (n < NumberOfImages() && padding == _Padding[n]) ++n;
       if (n == NumberOfImages()) {
-        Insert(params, "Padding value", ToString(padding));
+        Insert(params, "Padding value", padding);
       } else {
-        char name[64];
-        for (int n = 0; n < NumberOfImages(); ++n) {
-          snprintf(name, 64, "Padding value of image %d", n+1);
-          Insert(params, name, ToString(_Padding[n]));
+        for (n = 0; n < NumberOfImages(); ++n) {
+          Insert(params, string("Padding value of image ") + ToString(n + 1), _Padding[n]);
+        }
+      }
+      Insert(params, "Image interpolation", _DefaultInterpolationMode);
+      Insert(params, "Image extrapolation", _DefaultExtrapolationMode);
+      for (n = 0; n < NumberOfImages(); ++n) {
+        if (static_cast<size_t>(n) < _InterpolationMode.size() && _InterpolationMode[n] != Interpolation_Default) {
+          Insert(params, string("Interpolation of image ") + ToString(n + 1), _InterpolationMode[n]);
+        }
+      }
+      for (n = 0; n < NumberOfImages(); ++n) {
+        if (static_cast<size_t>(n) < _ExtrapolationMode.size() && _ExtrapolationMode[n] != Extrapolation_Default) {
+          Insert(params, string("Extrapolation of image ") + ToString(n + 1), _ExtrapolationMode[n]);
         }
       }
     }
@@ -3651,8 +3751,8 @@ void GenericRegistrationFilter::SetInputOf(RegisteredImage *output, const struct
 
   // Set input of registered image
   output->InputImage           (&_Image[_CurrentLevel][n]);
-  output->InterpolationMode    (_InterpolationMode);
-  output->ExtrapolationMode    (_ExtrapolationMode);
+  output->InterpolationMode    (InterpolationMode(n));
+  output->ExtrapolationMode    (ExtrapolationMode(n));
   output->PrecomputeDerivatives(_PrecomputeDerivatives);
   output->Transformation       (this->OutputTransformation(ti));
 
