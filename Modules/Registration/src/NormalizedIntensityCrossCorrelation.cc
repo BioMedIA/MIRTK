@@ -1021,7 +1021,8 @@ void NormalizedIntensityCrossCorrelation::Update(bool gradient)
 
     UpdateBoxWindowLNCC<double>::Calculate(cnt, sums, sumt, sumss, sumts, sumtt,
                                            &_GlobalA, &_GlobalB, &_GlobalC, &_GlobalS, &_GlobalT);
-    _Sum = EvaluateBoxWindowLNCC::Calculate(_GlobalA, _GlobalB, _GlobalC), _N = 1;
+    _Sum = EvaluateBoxWindowLNCC::Calculate(_GlobalA, _GlobalB, _GlobalC);
+    _N = cnt;
 
   // Update LNCC inner product images similar to ANTs
   } else if (_KernelType == BoxWindow) {
@@ -1164,7 +1165,13 @@ void NormalizedIntensityCrossCorrelation::Include(const blocked_range3d<int> &re
 // -----------------------------------------------------------------------------
 double NormalizedIntensityCrossCorrelation::Evaluate()
 {
-  return (_N > 0 ? (1.0 - _Sum / _N) : .0);
+  if (_N <= 0) {
+    return 0.;
+  }
+  if (_A == nullptr) {
+    return 1. - _Sum;
+  }
+  return 1. - _Sum / _N;
 }
 
 // -----------------------------------------------------------------------------
@@ -1219,8 +1226,8 @@ bool NormalizedIntensityCrossCorrelation
 
   }
 
-  // Negation of LNCC value
-  (*gradient) *= -1.0;
+  // Normalize and negate NCC
+  (*gradient) *= -1.0 / _N;
 
   // Apply chain rule to obtain gradient w.r.t y = T(x)
   MultiplyByImageGradient(image, gradient);
