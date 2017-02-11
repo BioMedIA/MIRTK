@@ -55,82 +55,82 @@ using namespace mirtk;
 /// Print command synopsis
 void PrintSynopsis(const char *name)
 {
-  cout << "Usage: " << name << " -images <images.lst> [options]" << endl;
-  cout << "       " << name << " -image <image1> [-dof <dof1>] -image <image2> [-dof <dof2>]... [options]" << endl;
-  cout << "       " << name << " -image <image1> <image2>... [options]" << endl;
-  cout << "       " << name << " <image1> <image2>... [options]" << endl;
-  cout << "       " << name << " <image_sequence> [options]" << endl;
+  cout << "Usage: " << name << " -images <images.lst> [options]\n";
+  cout << "       " << name << " -image <image1> [-dof <dof1>] -image <image2> [-dof <dof2>]... [options]\n";
+  cout << "       " << name << " -image <image1> <image2>... [options]\n";
+  cout << "       " << name << " <image1> <image2>... [options]\n";
+  cout << "       " << name << " <image_sequence> [options]\n";
 #if MIRTK_Registration_WITH_PointSet
-  cout << "       " << name << " -pset <pointset1> [-dof <dof1>] -pset <pointset2> [-dof <dof2>]... [options]" << endl;
-  cout << "       " << name << " <dataset1> <dataset2>... [options]" << endl;
-  cout << "       " << name << " -pset <pointset1> <pointset2>... [options]" << endl;
-  cout << "       " << name << " -image <image1> -points <pointset1> [-dof <dof1>]... [options]" << endl;
+  cout << "       " << name << " -pset <pointset1> [-dof <dof1>] -pset <pointset2> [-dof <dof2>]... [options]\n";
+  cout << "       " << name << " <dataset1> <dataset2>... [options]\n";
+  cout << "       " << name << " -pset <pointset1> <pointset2>... [options]\n";
+  cout << "       " << name << " -image <image1> -points <pointset1> [-dof <dof1>]... [options]\n";
 #endif
 }
 
 /// Print brief program usage information
 void PrintUsage(const char* name)
 {
-  cout << endl;
+  cout << "\n";
   PrintSynopsis(name);
-  cout << endl;
-  cout << "Required options:" << endl;
-  cout << "  -dofout <file>          Write transformation to specified file." << endl;
-  cout << endl;
-  cout << "Optional arguments:" << endl;
-  cout << "  -model  <name>          Transformation model(s). (default: Rigid+Affine+FFD)" << endl;
-  cout << "  -image  <file>...       Input image(s) to be registered." << endl;
+  cout << "\n";
+  cout << "Required options:\n";
+  cout << "  -dofout <file>          Write transformation to specified file.\n";
+  cout << "\n";
+  cout << "Optional arguments:\n";
+  cout << "  -model  <name>          Transformation model(s). (default: Rigid+Affine+FFD)\n";
+  cout << "  -image  <file>...       Input image(s) to be registered.\n";
 #if MIRTK_Registration_WITH_PointSet
-  cout << "  -pset <file>...         Input points, curve(s), surface(s), and/or other simplicial complex(es)." << endl;
+  cout << "  -pset <file>...         Input points, curve(s), surface(s), and/or other simplicial complex(es).\n";
 #endif
-  cout << "  -dof    <file>          Affine transformation to be applied to the preceeding image and/or polydata." << endl;
-  cout << "  -dof_i  <file>          Apply inverse of pre-computed affine transformation instead (cf. -dof)." << endl;
-  cout << "  -mask   <file>          Reference mask which defines the domain within which to evaluate the" << endl;
-  cout << "                          energy function (i.e. data fidelity terms). (default: none)" << endl;
-  cout << "  -dofin  <file>          Initial transformation estimate. (default: align centroids)" << endl;
-  cout << "  -par <name> <value>     Specify parameter value directly as command argument." << endl;
-  cout << "  -parin  <file>          Read parameters from configuration file. If \"stdin\" or \"cin\"," << endl;
-  cout << "                          the parameters are read from standard input instead. (default: none)" << endl;
-  cout << "  -parout <file>          Write parameters to the named configuration file. (default: none)" << endl;
-  cout << "  -v, -verbose [n]        Increase/Set verbosity of output messages. (default: " << verbose << ")" << endl;
-  cout << "  -h -[-]help             Print complete help and exit." << endl;
-  cout << endl;
+  cout << "  -dof    <file>          Affine transformation to be applied to the preceeding image and/or polydata.\n";
+  cout << "  -dof_i  <file>          Apply inverse of pre-computed affine transformation instead (cf. -dof).\n";
+  cout << "  -mask   <file>          Reference mask which defines the domain within which to evaluate the\n";
+  cout << "                          energy function (i.e. data fidelity terms). (default: none)\n";
+  cout << "  -dofin  <file>          Initial transformation estimate. (default: align centroids)\n";
+  cout << "  -par <name> <value>     Specify parameter value directly as command argument.\n";
+  cout << "  -parin  <file>          Read parameters from configuration file. If \"stdin\" or \"cin\",\n";
+  cout << "                          the parameters are read from standard input instead. (default: none)\n";
+  cout << "  -parout <file>          Write parameters to the named configuration file. (default: none)\n";
+  cout << "  -v, -verbose [n]        Increase/Set verbosity of output messages. (default: " << verbose << ")\n";
+  cout << "  -h -[-]help             Print complete help and exit.\n";
+  cout << "\n";
 }
 
 /// Print full program usage information
 void PrintHelp(const char* name)
 {
-  cout << endl;
+  cout << "\n";
   PrintSynopsis(name);
-  cout << endl;
-  cout << "Description:" << endl;
-  cout << "  Registers a set of images, polygonal surface meshes, and/or point clouds (e.g. fiducial markers)." << endl;
-  cout << "  The set of input images can be comprised of multiple channels (e.g., acquired with different imaging" << endl;
-  cout << "  modalities) at different time points. For longitudinal data, the temporal origin in the NIfTI header" << endl;
-  cout << "  identifies the time point that each input image belongs to. How all input images and polydata sets are" << endl;
-  cout << "  registered with one another is determined by an energy function. This energy function is formulated in" << endl;
-  cout << "  a simplified math expression using MATLAB-style indexing for the individual input files, i.e.," << endl;
-  cout << endl;
-  cout << "  Energy function =      SIM[Image dissimilarity](I(1), I(2:end) o T)" << endl;
-  cout << "                  +      PDM[Point set distance](T o P(1), P(2:end))" << endl;
-  cout << "                  + 1e-3 BE [Bending energy](T)" << endl;
-  cout << "                  +    0 VP [Volume preservation](T)" << endl;
-  cout << "                  +    0 JAC[Jacobian penalty](T)" << endl;
-  cout << "                  +    0 Sparsity(T)" << endl;
-  cout << endl;
-  cout << "  where only energy terms with non-zero weights are active during the registration." << endl;
-  cout << "  The image dissimilarity term is only added if at least two input images are given." << endl;
-  cout << "  Similarly, only with at least two input polydata sets, the PDM term is added." << endl;
-  cout << "  These energy terms are referenced in the configuration file using their respective" << endl;
-  cout << "  identifier in square brackets. For example, to change the weight of the bending energy" << endl;
-  cout << "  smoothness term, add \"Bending energy weight = 0.01\" to the configuration file or" << endl;
-  cout << "  use the -par option on the command-line. To enable volume preservation, set the" << endl;
-  cout << "  parameter \"Volume preservation weight\" to a positive value." << endl;
-  cout << endl;
-  cout << "Required arguments:" << endl;
-  cout << "  -dofout <file>               Write transformation to specified file." << endl;
-  cout << endl;
-  cout << "Optional arguments:" << endl;
+  cout << "\n";
+  cout << "Description:\n";
+  cout << "  Registers a set of images, polygonal surface meshes, and/or point clouds (e.g. fiducial markers).\n";
+  cout << "  The set of input images can be comprised of multiple channels (e.g., acquired with different imaging\n";
+  cout << "  modalities) at different time points. For longitudinal data, the temporal origin in the NIfTI header\n";
+  cout << "  identifies the time point that each input image belongs to. How all input images and polydata sets are\n";
+  cout << "  registered with one another is determined by an energy function. This energy function is formulated in\n";
+  cout << "  a simplified math expression using MATLAB-style indexing for the individual input files, i.e.,\n";
+  cout << "\n";
+  cout << "  Energy function =      SIM[Image dissimilarity](I(1), I(2:end) o T)\n";
+  cout << "                  +      PDM[Point set distance](T o P(1), P(2:end))\n";
+  cout << "                  + 1e-3 BE [Bending energy](T)\n";
+  cout << "                  +    0 VP [Volume preservation](T)\n";
+  cout << "                  +    0 JAC[Jacobian penalty](T)\n";
+  cout << "                  +    0 Sparsity(T)\n";
+  cout << "\n";
+  cout << "  where only energy terms with non-zero weights are active during the registration.\n";
+  cout << "  The image dissimilarity term is only added if at least two input images are given.\n";
+  cout << "  Similarly, only with at least two input polydata sets, the PDM term is added.\n";
+  cout << "  These energy terms are referenced in the configuration file using their respective\n";
+  cout << "  identifier in square brackets. For example, to change the weight of the bending energy\n";
+  cout << "  smoothness term, add \"Bending energy weight = 0.01\" to the configuration file or\n";
+  cout << "  use the -par option on the command-line. To enable volume preservation, set the\n";
+  cout << "  parameter \"Volume preservation weight\" to a positive value.\n";
+  cout << "\n";
+  cout << "Required arguments:\n";
+  cout << "  -dofout <file>               Write transformation to specified file.\n";
+  cout << "\n";
+  cout << "Optional arguments:\n";
   cout << "  -model <m1>[+<m2>...]        Transformation model(s). (default: Rigid+Affine+FFD)" << endl;
   cout << "                               Alternatively, use \"-par 'Transformation model' <name>\" (see :option:`-par`)." << endl;
   cout << "  -image <file>...             Input image to be registered. The order in which the images are" << endl;
@@ -185,7 +185,6 @@ void PrintHelp(const char* name)
   cout << "                               of the chosen transformation model at the initial resolution level." << endl;
   cout << "                               The input transformation may thus be of different type than the" << endl;
   cout << "                               output transformation of the registration. (default: none)" << endl;
-  cout << "  -par <name> <value>          Specify parameter value directly as command argument." << endl;
   cout << "  -parin <file>                Read parameters from configuration file. If \"stdin\" or \"cin\"," << endl;
   cout << "                               the parameters are read from standard input instead. (default: none)" << endl;
   cout << "  -parout <file>               Write parameters to the named configuration file. Note that after" << endl;
@@ -193,6 +192,43 @@ void PrintHelp(const char* name)
   cout << "                               written. This file is overwritten once the registration finished with" << endl;
   cout << "                               final configuration used during the course of the registration." << endl;
   cout << "                               (default: none)" << endl;
+  cout << "Configuration options:\n";
+  cout << "  -par <name> <value>\n";
+  cout << "      Specify any parameter value usually found in :option:`-parin` file as command argument.\n";
+  cout << "      The other configuration options are convenient shortcuts for commonly customized parameters.\n";
+  cout << "  -sim <value>\n";
+  cout << "      Specifies concrete \"Image (dis-)similarity\" measure of SIM \"Energy function\" term.\n";
+  cout << "      Most often used measures are MSE/SSD, NMI, and NCC/LNCC.\n";
+  cout << "  -bins <n>\n";
+  cout << "      \"No. of bins\" used for NMI image similarity measure.\n";
+  cout << "  -window <width> [<units> [<type>]]\n";
+  cout << "      Local window used for (local) NCC/LNCC image similarity measure.\n";
+  cout << "      A window <width> of zero corresponds to a global NCC measure.\n";
+  cout << "      The <units> can be either \"vox\" (default) or \"mm\". The type\n";
+  cout << "      of the window can be \"box\" (default), \"sigma\", \"fwhm\", or \"fwtm\",\n";
+  cout << "      where the latter correspond to a Gaussian window with either the specified\n";
+  cout << "      standard deviation, full width at half maximum, or full width at tenth maximum,\n";
+  cout << "      respectively. The default is a box window with uniform weights for each voxel.\n";
+  cout << "  -interp, -interpolation <mode>\n";
+  cout << "      \"Image interpolation\" mode. (default: \"Fast linear\")\n";
+  cout << "  -extrap, -extrapolation <mode>\n";
+  cout << "      \"Image extrapolation\" mode. (default: \"Default\" for used interpolation mode)\n";
+  cout << "  -levels <from> [<to>]\n";
+  cout << "      Image/FFD resolution levels. The <from> number corresponds to the \"No. of levels\",\n";
+  cout << "      and the <to> number is the final level which is 1 by default.\n";
+  cout << "      When images are given as input, the default number of levels is 4 and 1 otherwise.\n";
+  cout << "  -level <n>\n";
+  cout << "      Alias for :option:`-levels` <n> <n> which only performs the registration on a single level.\n";
+  cout << "  -ds <width>\n";
+  cout << "      \"Control point spacing\" of free-form deformation on highest resolution level.\n";
+  cout << "  -be <w>\n";
+  cout << "      \"Bending energy weight\" of free-form deformation.\n";
+  cout << "  -vp <w>\n";
+  cout << "      \"Volume preservation weight\" of free-form deformation.\n";
+  cout << "  -jl, -jac <w>\n";
+  cout << "      \"Jacobian penalty weight\" of free-form deformation. For a classic FFD transformation model\n";
+  cout << "      this penalty term is equivalent to the volume preservation term. When applied to the SVFFD\n";
+  cout << "      model, however, this penalty applies to the Jacobian determinant of the velocity field.\n";
   PrintCommonOptions(cout);
   cout << endl;
 }
@@ -605,7 +641,7 @@ int main(int argc, char **argv)
   const char *parin_name         = NULL;
   const char *parout_name        = NULL;
   const char *mask_name          = NULL;
-  stringstream params;
+  ParameterList params;
 
   enum {
     UnknownTransformation,
@@ -669,7 +705,9 @@ int main(int argc, char **argv)
           exit(1);
       }
     }
-    else if (OPTION("-images")) image_list_name = ARGUMENT;
+    else if (OPTION("-images")) {
+      image_list_name = ARGUMENT;
+    }
     else if (OPTION("-pointsets") || OPTION("-psets") || OPTION("-meshes") || OPTION("-polys")) {
       pset_list_name = ARGUMENT;
     }
@@ -677,23 +715,85 @@ int main(int argc, char **argv)
     else if (OPTION("-dofin" )) dofin_name      = ARGUMENT;
     else if (OPTION("-dofout")) dofout_name     = ARGUMENT;
     else if (OPTION("-mask"))   mask_name       = ARGUMENT;
-    else if (OPTION("-nodebug-level-prefix")) debug_output_level_prefix = false;
+    else if (OPTION("-nodebug-level-prefix")) {
+      debug_output_level_prefix = false;
+    }
     // Parameter
     else if (OPTION("-par")) {
-      const char *name  = ARGUMENT;
-      const char *value = ARGUMENT;
-      params << name << " = " << value << endl;
+      Insert(params, ARGUMENT, ARGUMENT);
     }
-    else if (OPTION("-parin" )) parin_name      = ARGUMENT;
-    else if (OPTION("-parout")) parout_name     = ARGUMENT;
+    else if (OPTION("-parin" )) {
+      parin_name = ARGUMENT;
+    }
+    else if (OPTION("-parout")) {
+      parout_name = ARGUMENT;
+    }
     // Shortcuts for often used -par "<parameter> = <value>"
-    else if (OPTION("-model"))  params << "Transformation model = " << ARGUMENT << endl;
-    else if (OPTION("-sim"))    params << "Image (dis-)similarity measure = " << ARGUMENT << endl;
-    else if (OPTION("-ds"))     params << "Control point spacing [mm] = " << ARGUMENT << endl;
-    else if (OPTION("-be"))     params << "Bending energy weight = " << ARGUMENT << endl;
-    else if (OPTION("-vp"))     params << "Volume preservation weight = " << ARGUMENT << endl;
-    else if (OPTION("-jl") ||
-             OPTION("-jac"))    params << "Jacobian penalty weight = " << ARGUMENT << endl;
+    else if (OPTION("-model")) {
+      Insert(params, "Transformation model", ARGUMENT);
+    }
+    else if (OPTION("-multi-level-model") || OPTION("-composition")) {
+      Insert(params, "Multi-level transformation model", ARGUMENT);
+    }
+    else if (OPTION("-sim")) {
+      Insert(params, "Image (dis-)similarity measure", ARGUMENT);
+    }
+    else if (OPTION("-bins")) {
+      int n;
+      PARSE_ARGUMENT(n);
+      Insert(params, "No. of bins", n);
+    }
+    else if (OPTION("-window-size") || OPTION("-window")) {
+      float width;
+      PARSE_ARGUMENT(width);
+      string units = "vox";
+      if (HAS_ARGUMENT) units = ARGUMENT;
+      string type  = "box";
+      if (HAS_ARGUMENT) type = ARGUMENT;
+      Insert(params, string("Local window size [") + type + string("]"), ToString(width) + units);
+    }
+    else if (OPTION("-pdm")) {
+      Insert(params, "Point set distance measure", ARGUMENT);
+    }
+    else if (OPTION("-level")) {
+      int n;
+      PARSE_ARGUMENT(n);
+      Insert(params, "First level", n);
+      Insert(params, "Final level", n);
+    }
+    else if (OPTION("-levels")) {
+      int n, m = 1;
+      PARSE_ARGUMENT(n);
+      if (HAS_ARGUMENT) PARSE_ARGUMENT(m);
+      Insert(params, "First level", n);
+      Insert(params, "Final level", m);
+    }
+    else if (OPTION("-interp") || OPTION("-interpolation")) {
+      Insert(params, "Image interpolation mode", ARGUMENT);
+    }
+    else if (OPTION("-extrap") || OPTION("-extrapolation")) {
+      Insert(params, "Image extrapolation mode", ARGUMENT);
+    }
+    else if (OPTION("-ds")) {
+      double ds;
+      PARSE_ARGUMENT(ds);
+      Insert(params, "Control point spacing", ds);
+    }
+    else if (OPTION("-be")) {
+      double w;
+      PARSE_ARGUMENT(w);
+      Insert(params, "Bending energy weight", w);
+    }
+    else if (OPTION("-vp")) {
+      double w;
+      PARSE_ARGUMENT(w);
+      Insert(params, "Volume preservation weight", w);
+    }
+    else if (OPTION("-jl") || OPTION("-jac")) {
+      double w;
+      PARSE_ARGUMENT(w);
+      Insert(params, "Jacobian penalty weight", w);
+    }
     // Unknown option
     else HANDLE_COMMON_OR_UNKNOWN_OPTION();
   }
@@ -733,7 +833,7 @@ int main(int argc, char **argv)
     exit(1);
   }
   // 2. Set parameters provided as command arguments
-  if (!registration.Read(params, verbose > 2)) {
+  if (!registration.Parameter(params)) {
     cerr << "Failed to parse configuration given as command arguments!" << endl;
     exit(1);
   }
@@ -756,7 +856,7 @@ int main(int argc, char **argv)
 
   // ---------------------------------------------------------------------------
   // Determine number of input images
-  Array<double>                 image_times;
+  Array<double>                image_times;
   Array<UniquePtr<BaseImage> > images;
 
   if (image_names.size() == 1) {
