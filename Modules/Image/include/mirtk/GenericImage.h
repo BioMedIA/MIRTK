@@ -175,10 +175,6 @@ public:
   /// Number of vector components per voxel
   int N() const;
 
-  /// Function to convert pixel to index
-  /// more efficient than overwritten base class implementation
-  int VoxelToIndex(int, int, int = 0, int = 0) const;
-
   // ---------------------------------------------------------------------------
   // Image data access
 
@@ -524,13 +520,6 @@ template <class VoxelType>
 inline int GenericImage<VoxelType>::N() const
 {
   return voxel_info<VoxelType>::vector_size();
-}
-
-// -----------------------------------------------------------------------------
-template <class VoxelType>
-inline int GenericImage<VoxelType>::VoxelToIndex(int x, int y, int z, int t) const
-{
-  return static_cast<int>(&_matrix[t][z][y][x] - &_matrix[0][0][0][0]);
 }
 
 // =============================================================================
