@@ -20,6 +20,7 @@
 #ifndef MIRTK_ImageGradientFunction_H
 #define MIRTK_ImageGradientFunction_H
 
+#include "mirtk/Object.h"
 #include "mirtk/Matrix.h"
 #include "mirtk/Vector3D.h"
 #include "mirtk/BaseImage.h"
@@ -40,7 +41,7 @@ namespace mirtk {
  * image derivatives instead of the image intensity value. Note that it
  * cannot be applied to multi-channel or vector-valued images.
  */
-class ImageGradientFunction
+class ImageGradientFunction : public Object
 {
   mirtkAbstractMacro(ImageGradientFunction);
 
