@@ -74,7 +74,7 @@ public:
   virtual ParameterList Parameter() const;
 
   /// Set parameters from name/value pairs
-  void Parameter(const ParameterList &);
+  bool Parameter(const ParameterList &);
 
   // ---------------------------------------------------------------------------
   // Error handling
@@ -137,11 +137,13 @@ inline ParameterList Object::Parameter() const
 }
 
 // -----------------------------------------------------------------------------
-inline void Object::Parameter(const ParameterList &param)
+inline bool Object::Parameter(const ParameterList &param)
 {
+  bool ok = true;
   for (ParameterConstIterator it = param.begin(); it != param.end(); ++it) {
-    this->Set(it->first.c_str(), it->second.c_str());
+    ok = this->Set(it->first.c_str(), it->second.c_str()) && ok;
   }
+  return ok;
 }
 
 // -----------------------------------------------------------------------------
