@@ -1999,17 +1999,25 @@ void GenericRegistrationFilter::GuessParameter()
         _Resolution[level][n]._y = s * _Resolution[level-1][n]._y;
         _Resolution[level][n]._z = s * _Resolution[level-1][n]._z;
       } else {
-        if (IsNaN(_Resolution[level][n]._x) || _Resolution[level][n]._x == .0) {
+        if (_Resolution[level][n]._x < .0) {
+          _Resolution[level][n]._x = abs(_Resolution[level][n]._x) * image->XSize();
+        } else if (IsNaN(_Resolution[level][n]._x) || _Resolution[level][n]._x == .0) {
           _Resolution[level][n]._x = s * _Resolution[level-1][n]._x;
         }
-        if (IsNaN(_Resolution[level][n]._y) || _Resolution[level][n]._y == .0) {
+        if (_Resolution[level][n]._y < .0) {
+          _Resolution[level][n]._y = abs(_Resolution[level][n]._y) * image->YSize();
+        } else if (IsNaN(_Resolution[level][n]._y) || _Resolution[level][n]._y == .0) {
           _Resolution[level][n]._y = s * _Resolution[level-1][n]._y;
         }
-        if (IsNaN(_Resolution[level][n]._z) || _Resolution[level][n]._z == .0) {
+        if (_Resolution[level][n]._z < .0) {
+          _Resolution[level][n]._z = abs(_Resolution[level][n]._z) * image->ZSize();
+        } else if (IsNaN(_Resolution[level][n]._z) || _Resolution[level][n]._z == .0) {
           _Resolution[level][n]._z = s * _Resolution[level-1][n]._z;
         }
       }
-      if (image->Z() == 1) _Resolution[level][n]._z = _Resolution[0][n]._z;
+      if (image->Z() == 1) {
+        _Resolution[level][n]._z = _Resolution[0][n]._z;
+      }
       // Blurring
       const double ds = max(max(_Resolution[level][n]._x,
                                 _Resolution[level][n]._y),
