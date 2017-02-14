@@ -721,9 +721,6 @@ public:
     New<GradientFunction >(_GradientFunction,  g, interp, Extrapolation_Default,  g_bg, .0);
     New<HessianFunction  >(_HessianFunction,   h, interp, Extrapolation_Default,  h_bg, .0);
     f->GetMinMaxAsDouble(_MinIntensity, _MaxIntensity);
-    if (f->HasBackgroundValue() && _MinIntensity > f->GetBackgroundValueAsDouble()) {
-      _MinIntensity = f->GetBackgroundValueAsDouble();
-    }
     double omin = o->MinIntensity();
     double omax = o->MaxIntensity();
     if (!IsNaN(omin) || !IsNaN(omax)) {
@@ -736,6 +733,9 @@ public:
     } else {
       _RescaleSlope     = 1.0;
       _RescaleIntercept = 0.0;
+      if (f->HasBackgroundValue() && _MinIntensity > f->GetBackgroundValueAsDouble()) {
+        _MinIntensity = f->GetBackgroundValueAsDouble();
+      }
     }
     _InputSize = Vector3D<int>(f->X(), f->Y(), f->Z());
   }
