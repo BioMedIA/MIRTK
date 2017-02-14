@@ -2250,7 +2250,9 @@ void GenericRegistrationFilter::GuessParameter()
     _RegistrationDomain = OverallFieldOfView(attrs);
   }
   // Set z spacing to zero for 2D domain
-  if (_RegistrationDomain._z == 1) _RegistrationDomain._dz = .0;
+  if (_RegistrationDomain._z == 1) {
+    _RegistrationDomain._dz = .0;
+  }
   // Adjust temporal attributes
   if (_RegistrationDomain._t == 1) {
     if (numt > 2 || (numt == 2 && IsSpatioTemporal(_TransformationModel))) {
@@ -2776,7 +2778,8 @@ void GenericRegistrationFilter::InitializeStatus(HomogeneousTransformation *lin)
 // -----------------------------------------------------------------------------
 void GenericRegistrationFilter::InitializeStatus(FreeFormTransformation *ffd)
 {
-  if (!IsDiffeo(_CurrentModel) || _CropPadFFD) {
+  const bool diffeo = IsDiffeo(_CurrentModel);
+  if (_CropPadFFD || !diffeo) {
 
     // Determine target data sets
     Array<bool> is_target_image(NumberOfImages());
@@ -2830,9 +2833,8 @@ void GenericRegistrationFilter::InitializeStatus(FreeFormTransformation *ffd)
 
     // Discard passive DoFs to reduce memory/disk use
     if (_CropPadFFD) {
-      ffd->CropPadPassiveCPs(ffd->KernelSize(),
-                             ffd->KernelSize(),
-                             ffd->KernelSize(), 0, true);
+      const int margin = (diffeo ? 2 : 1) * ffd->KernelSize();
+      ffd->CropPadPassiveCPs(margin, margin, margin, 0, true);
     }
   }
 
@@ -3013,8 +3015,8 @@ void GenericRegistrationFilter::InitializeTransformation()
   //       This makes no difference for the classical MFFD, but for the
   //       fluid transformation where the order of composition matters.
 
-  const double * const min = _MinControlPointSpacing[_CurrentLevel];
-  const double * const max = _MaxControlPointSpacing[_CurrentLevel];
+  const double * const min_ds = _MinControlPointSpacing[_CurrentLevel];
+  const double * const max_ds = _MaxControlPointSpacing[_CurrentLevel];
 
   const MultiLevelTransformation *mffdin = NULL;
   const FreeFormTransformation   *ffdin  = NULL;
@@ -3026,11 +3028,13 @@ void GenericRegistrationFilter::InitializeTransformation()
 
   // If...
   if (// ...levels of FFD are not optimized simultaneously
-      fequal(min[0], max[0]) && fequal(min[1], max[1]) && fequal(min[2], max[2]) &&
+      fequal(min_ds[0], max_ds[0]) && fequal(min_ds[1], max_ds[1]) && fequal(min_ds[2], max_ds[2]) &&
       // ...input FFD model is identical to output FFD model
       ffdin && strcmp(ffdin->NameOfClass(), ffd->NameOfClass()) == 0 &&
       // ...spacing of FFD models is identical
-      fequal(ffdin->GetXSpacing(), max[0]) && fequal(ffdin->GetYSpacing(), max[1]) && fequal(ffdin->GetZSpacing(), max[2]) &&
+      fequal(ffdin->GetXSpacing(), max_ds[0]) &&
+      fequal(ffdin->GetYSpacing(), max_ds[1]) &&
+      fequal(ffdin->GetZSpacing(), max_ds[2]) &&
       // ...input MFFD model is identical to output MFFD model (if any used)
       (!mffdin || (_MultiLevelMode != MFFD_None && strcmp(mffdin->NameOfClass(), mffd->NameOfClass()) == 0))) {
     // then copy input transformation and continue optimizing it
@@ -3054,43 +3058,45 @@ void GenericRegistrationFilter::InitializeTransformation()
     return;
   }
 
-  double ds   [4] = {.0, .0, .0, .0};
-  double oldds[4] = {.0, .0, .0, .0};
-  double next [4] = {max[0], max[1], max[2], max[3]};
+  double ds  [4] = {.0, .0, .0, .0};
+  double prev[4] = {.0, .0, .0, .0};
+  double next[4] = {max_ds[0], max_ds[1], max_ds[2], max_ds[3]};
   bool   done = false, skip = false;
 
   // Extend domain to add a layer of (active) control points at the boundary
-  if (_Domain == NULL) {
-    if (_CropPadFFD) {
-      if (domain._x > 1) domain._dx += ffd->KernelRadius() * fmax(min[0], max[0]) / (domain._x - 1);
-      if (domain._y > 1) domain._dy += ffd->KernelRadius() * fmax(min[1], max[1]) / (domain._y - 1);
-      if (domain._z > 1) domain._dz += ffd->KernelRadius() * fmax(min[2], max[2]) / (domain._z - 1);
-    }
-    // Add layer of (active) control points at the outermost time points
-    // of a 4D FFD if it is not extended periodically by the extrapolator
-    enum ExtrapolationMode m = ffd->ExtrapolationMode();
-    const bool periodic = (m == ExtrapolationWithPeriodicTime(m));
-    if (!periodic) {
-      if (domain._t > 1) {
-        // Note: Image/FFD lattices are not centered in the temporal domain
-        domain._dt      += ffd->KernelRadius() * fmax(min[3], max[3]) / (domain._t - 1);
-        domain._torigin -= ffd->KernelRadius() * fmax(min[3], max[3]) / 2.0;
-      }
+  if (_CropPadImages) {
+    const double margin = (IsDiffeo(_CurrentModel) ? 2. : 1.) * ffd->KernelRadius();
+    if (domain._x > 1) domain._dx += margin * mirtk::max(min_ds[0], max_ds[0]) / (domain._x - 1);
+    if (domain._y > 1) domain._dy += margin * mirtk::max(min_ds[1], max_ds[1]) / (domain._y - 1);
+    if (domain._z > 1) domain._dz += margin * mirtk::max(min_ds[2], max_ds[2]) / (domain._z - 1);
+  }
+  // Add layer of (active) control points at the outermost time points
+  // of a 4D FFD if it is not extended periodically by the extrapolator
+  enum ExtrapolationMode m = ffd->ExtrapolationMode();
+  const bool periodic = (m == ExtrapolationWithPeriodicTime(m));
+  if (!periodic) {
+    if (domain._t > 1) {
+      // Note: Image/FFD lattices are not centered in the temporal domain
+      const double margin = ffd->KernelRadius();
+      domain._dt      += margin * max(min_ds[3], max_ds[3]) / (domain._t - 1);
+      domain._torigin -= margin * max(min_ds[3], max_ds[3]) / 2.0;
     }
   }
 
   // At least two control points in each (used) dimension
-  const double maxds[4] = { (domain._x - 1) * domain._dx,
-                            (domain._y - 1) * domain._dy,
-                            (domain._z - 1) * domain._dz,
-                            (domain._t - 1) * domain._dt };
+  const double threshold[4] = {
+    (domain._x - 1) * domain._dx,
+    (domain._y - 1) * domain._dy,
+    (domain._z - 1) * domain._dz,
+    (domain._t - 1) * domain._dt
+  };
 
   do {
     skip = true;
     for (int d = 0; d < 4; ++d) {
       ds[d] = next[d];
-      if (ds[d] >  maxds[d]) ds[d] = maxds[d];
-      if (ds[d] != oldds[d]) skip  = false;
+      if (ds[d] > threshold[d]) ds[d] = threshold[d];
+      if (ds[d] != prev[d]) skip  = false;
     }
 
     if (!skip) {
@@ -3105,7 +3111,7 @@ void GenericRegistrationFilter::InitializeTransformation()
       }
       // Initialize FFD with desired control point spacing
       ffd->Initialize(ffd->DefaultAttributes(domain, ds[0], ds[1], ds[2], ds[3]));
-      memcpy(oldds, ds, 4 * sizeof(double));
+      memcpy(prev, ds, 4 * sizeof(double));
       // Push FFD onto MFFD stack
       mffd->PushLocalTransformation(ffd);
     }
@@ -3113,12 +3119,12 @@ void GenericRegistrationFilter::InitializeTransformation()
     // Control point spacing of next level
     done = true;
     for (int d = 0; d < 4; ++d) {
-      if (min[d] < max[d]) {
+      if (min_ds[d] < max_ds[d]) {
         next[d] = next[d] / 2.0;
-        if (next[d] >= min[d]) done = false;
-      } else if (max[d] < min[d]) {
+        if (next[d] >= min_ds[d]) done = false;
+      } else if (max_ds[d] < min_ds[d]) {
         next[d] = next[d] * 2.0;
-        if (next[d] <= min[d]) done = false;
+        if (next[d] <= min_ds[d]) done = false;
       }
     }
   } while (!done);
