@@ -402,6 +402,10 @@ void ImageAttributes::Print(ostream &os, Indent indent) const
                       << " , " << fixed << setw(10) << _zaxis[1]
                       << " , " << fixed << setw(10) << _zaxis[2]
                       <<   "]\n";
+  if (!_smat.IsIdentity()) {
+    os << indent << "Affine";
+    _smat.Print(os, indent);
+  }
   // Restore output stream settings
   os.width    (w);
   os.precision(p);
