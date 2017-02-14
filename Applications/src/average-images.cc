@@ -61,11 +61,12 @@ void PrintHelp(const char* name)
   cout << "  <output>                 Voxel-wise average image." << endl;
   cout << "  -images <file>           Text file with N lines containing the file name of each input image," << endl;
   cout << "                           optionally a transformation file name (see :option:`-dof` and :option:`-dof_i`)," << endl;
-  cout << "                            optionally followed by a weight for a weighted output average (default weight is 1)." << endl;
+  cout << "                           optionally followed by a weight for a weighted output average (default weight is 1)." << endl;
   cout << "                           The first line of the text file must specify the common base directory" << endl;
   cout << "                           of all relative image and transformation file paths occurring on the" << endl;
   cout << "                           subsequent N lines. A path starting with './' must be relative to the" << endl;
   cout << "                           directory containing the input text file itself." << endl;
+  cout << "  -invert                  Invert transformations specified in :option:`-images` file." << endl;
   cout << "  -image <file>            A single input image." << endl;
 #ifdef HAVE_MIRTK_Transformation
   cout << "  -dof <file>              Specifies a transformation to be applied to the preceeding image. (default: none)" << endl;
@@ -365,6 +366,7 @@ int main(int argc, char **argv)
   double             padding         = numeric_limits<double>::quiet_NaN();
   InterpolationMode  interpolation   = Interpolation_Linear;
   bool               voxelwise       = false;
+  bool               invert_dofs     = false;
   int                label           = -1;
   int                margin          = -1;
   double             dx = .0, dy = .0, dz = .0;
@@ -383,6 +385,7 @@ int main(int argc, char **argv)
     }
     else if (OPTION("-padding"))   PARSE_ARGUMENT(padding);
     else if (OPTION("-voxelwise")) voxelwise = true;
+    else if (OPTION("-invert"))    invert_dofs = true;
     else if (OPTION("-margin"))    PARSE_ARGUMENT(margin);
     else if (OPTION("-label"))     PARSE_ARGUMENT(label);
     else if (OPTION("-interp"))    PARSE_ARGUMENT(interpolation);
@@ -421,7 +424,7 @@ int main(int argc, char **argv)
     image_name  .insert(image_name  .end(), names  .begin(), names  .end());
     image_weight.insert(image_weight.end(), weights.begin(), weights.end());
     imdof_name  .insert(imdof_name  .end(), imdofs .begin(), imdofs .end());
-    imdof_invert.resize(nimages, false);
+    imdof_invert.resize(nimages, invert_dofs);
   }
 
   // Check that any input image is given
