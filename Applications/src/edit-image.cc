@@ -25,6 +25,7 @@
 #include "mirtk/IOConfig.h"
 
 #ifdef HAVE_MIRTK_Transformation
+  #include "mirtk/Matrix.h"
   #include "mirtk/Transformation.h"
   #include "mirtk/HomogeneousTransformation.h"
   #include "mirtk/MultiLevelTransformation.h"
@@ -40,44 +41,83 @@ using namespace mirtk;
 // -----------------------------------------------------------------------------
 void PrintHelp(const char *name)
 {
-  cout << endl;
-  cout << "Usage: " << name << " <input> <output> [options]" << endl;
-  cout << endl;
-  cout << "Description:" << endl;
-  cout << "  Modifies the attributes of an image stored in the header." << endl;
-  cout << endl;
-  cout << "Arguments:" << endl;
-  cout << "  input    Input image." << endl;
-  cout << "  output   Output image." << endl;
-  cout << endl;
-  cout << "Optional arguments:" << endl;
-  cout << "  -size <dx> <dy> <dz>   Voxel size   (in mm)" << endl;
-  cout << "  -tsize <dt>            Voxel size   (in ms)" << endl;
-  cout << "  -origin <x> <y> <z>    Image spatial origin (in mm)" << endl;
-  cout << "  -torigin <t>           Image temporal origin (in ms)" << endl;
-  cout << "  -orientation <x1> <x2> <x3>  <y1> <y2> <y3>  <z1> <z2> <z3>" << endl;
-  cout << "                         Image orientation." << endl;
-  cout << endl;
-  cout << "  -copy-size <image>                      Copy voxel size." << endl;
-  cout << "  -copy-origin <image>                    Copy origin." << endl;
-  cout << "  -copy-orientation <image>               Copy orientation." << endl;
-  cout << "  -copy-origin-orientation <image>        Alias for :option:`-copy-origin` :option:`-copy-orientation`." << endl;
-  cout << "  -copy-origin-orientation-size <image>   Alias for :option:`-copy-origin` :option:`-copy-orientation` :option:`-copy-size`." << endl;
-  cout << endl;
-  cout << "  -reset           Set orientation, origin, and affine transformation matrix to default." << endl;
-  cout << "  -reset-dof       Set affine transformation matrix to default." << endl;
+  cout << "\n";
+  cout << "Usage: " << name << " <input> <output> [options]\n";
+  cout << "\n";
+  cout << "Description:\n";
+  cout << "  Modifies the attributes of an image stored in the header.\n";
+  cout << "\n";
+  cout << "Arguments:\n";
+  cout << "  input    Input image.\n";
+  cout << "  output   Output image.\n";
+  cout << "\n";
+  cout << "Optional arguments:\n";
+  cout << "  -spacing, -voxel-size, -size <dx> [<dy> [<dz> [<dt>]]]\n";
+  cout << "      Voxel size (dx, dy, dz in mm, dt in ms)\n";
+  cout << "  -dx <dx>\n";
+  cout << "      Spatial voxel size in x dimension.\n";
+  cout << "  -dy <dy>\n";
+  cout << "      Spatial voxel size in y dimension.\n";
+  cout << "  -dz <dz>\n";
+  cout << "      Spatial voxel size in z dimension.\n";
+  cout << "  -dt, tsize <dt>\n";
+  cout << "      Temporal voxel size (in ms)\n";
+  cout << "  -origin <x> <y> [<z> [<t>]]\n";
+  cout << "      Image spatial origin (in mm)\n";
+  cout << "  -torigin <t>\n";
+  cout << "      Temporal image origin (in ms)\n";
+  cout << "  -orientation <x1> <x2> <x3>  <y1> <y2> <y3>  <z1> <z2> <z3>\n";
+  cout << "      Image orientation. The axes direction vectors are normalized to unit length.\n";
+  cout << "\n";
+  cout << "  -copy-spacing, -copy-voxel-size, -copy-size <image>\n";
+  cout << "      Copy voxel size.\n";
+  cout << "  -copy-origin <image>\n";
+  cout << "      Copy origin.\n";
+  cout << "  -copy-orientation <image>\n";
+  cout << "      Copy orientation.\n";
+  cout << "  -copy-origin-orientation <image>\n";
+  cout << "      Alias for :option:`-copy-origin` :option:`-copy-orientation`.\n";
+  cout << "  -copy-origin-orientation-spacing, -copy-origin-orientation-voxel-size, -copy-origin-orientation-size <image>\n";
+  cout << "      Alias for :option:`-copy-origin` :option:`-copy-orientation` :option:`-copy-spacing`.\n";
+  cout << "  -reset\n";
+  cout << "      Set orientation, origin, and affine transformation matrix to default.\n";
+  cout << "  -reset-dof\n";
+  cout << "      Set affine transformation matrix to default.\n";
 #ifdef HAVE_MIRTK_Transformation
-  cout << "  -dofin <file>    Apply transformation to axis, spacing and origin information" << endl;
-  cout << "                   in the header. Note that any shearing that is present is" << endl;
-  cout << "                   stored as additional affine transformation (c.f. -putdof)." << endl;
-  cout << "  -putdof <file>   Store affine transformation in image header (NIfTI only)." << endl;
+  cout << "  -dofin <file>\n";
+  cout << "      Apply transformation to axis, spacing and origin information\n";
+  cout << "      in the header. Note that any shearing that is present is\n";
+  cout << "      stored as additional affine transformation (c.f. :option:`-putdof`).\n";
+  cout << "  -dofin_i <fil>\n";
+  cout << "      Same as :option:`-dofin` but using the inverse transformation.\n";
+  cout << "  -putdof <file>\n";
+  cout << "      Store affine transformation in image header (NIfTI only).\n";
+  cout << "  -putdof_i <fil>\n";
+  cout << "      Same as :option:`-putdof` but using the inverse transformation.\n";
+  cout << "  -dofout <file>\n";
+  cout << "      Save transformation which maps the world coordinates of the\n";
+  cout << "      output image to the world coordinates of the input image.\n";
+  cout << "      Applying this output transformation to the output image\n";
+  cout << "      using the :option:`-dofin` option restores the previous\n";
+  cout << "      image origin, orientation, and voxel size.\n";
 #endif // HAVE_MIRTK_Transformation
-  cout << endl;
-  cout << "  -swapxy   Swap the x and y axis vectors." << endl;
-  cout << "  -swapxz   Swap the x and z axis vectors." << endl;
-  cout << "  -swapyz   Swap the y and z axis vectors." << endl;
+  cout << "\n";
+  cout << "  -swapxy\n";
+  cout << "      Swap the x and y axis vectors.\n";
+  cout << "  -swapxz\n";
+  cout << "      Swap the x and z axis vectors.\n";
+  cout << "  -swapyz\n";
+  cout << "      Swap the y and z axis vectors.\n";
   PrintStandardOptions(cout);
   cout << endl;
+}
+
+// -----------------------------------------------------------------------------
+double Normalize(double v[3])
+{
+  double l = sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
+  v[0] /= l, v[1] /= l, v[2] /= l;
+  return l;
 }
 
 // =============================================================================
@@ -99,22 +139,52 @@ int main(int argc, char *argv[])
   double xsize, ysize, zsize, tsize;
   double xaxis[3], yaxis[3], zaxis[3];
 
+  #ifdef HAVE_MIRTK_Transformation
+    ImageAttributes input_attr = image->Attributes();
+    input_attr._smat.Ident();
+    const Matrix input_mat = input_attr.GetImageToWorldMatrix();
+    const char *dofout_name = nullptr;
+  #endif
+
   for (ALL_OPTIONS) {
-    if (OPTION("-size")) {
+    if (OPTION("-spacing") || OPTION("-voxel-size") || OPTION("-size")) {
+      image->GetPixelSize(xsize, ysize, zsize, tsize);
       PARSE_ARGUMENT(xsize);
+      if (HAS_ARGUMENT) {
+        PARSE_ARGUMENT(ysize);
+        if (HAS_ARGUMENT) PARSE_ARGUMENT(zsize);
+      } else {
+        ysize = zsize = xsize;
+      }
+      if (HAS_ARGUMENT) PARSE_ARGUMENT(tsize);
+      image->PutPixelSize(xsize, ysize, zsize, tsize);
+    }
+    else if (OPTION("-dx")) {
+      image->GetPixelSize(xsize, ysize, zsize);
+      PARSE_ARGUMENT(xsize);
+      image->PutPixelSize(xsize, ysize, zsize);
+    }
+    else if (OPTION("-dy")) {
+      image->GetPixelSize(xsize, ysize, zsize);
       PARSE_ARGUMENT(ysize);
+      image->PutPixelSize(xsize, ysize, zsize);
+    }
+    else if (OPTION("-dz")) {
+      image->GetPixelSize(xsize, ysize, zsize);
       PARSE_ARGUMENT(zsize);
       image->PutPixelSize(xsize, ysize, zsize);
     }
-    else if (OPTION("-tsize")) {
+    else if (OPTION("-dt") || OPTION("-tsize")) {
       PARSE_ARGUMENT(tsize);
       image->PutTSize(tsize);
     }
     else if (OPTION("-origin")) {
+      image->GetOrigin(origin[0], origin[1], origin[2], origin[3]);
       PARSE_ARGUMENT(origin[0]);
       PARSE_ARGUMENT(origin[1]);
-      PARSE_ARGUMENT(origin[2]);
-      image->PutOrigin(origin[0], origin[1], origin[2]);
+      if (HAS_ARGUMENT) PARSE_ARGUMENT(origin[2]);
+      if (HAS_ARGUMENT) PARSE_ARGUMENT(origin[3]);
+      image->PutOrigin(origin[0], origin[1], origin[2], origin[3]);
     }
     else if (OPTION("-torigin")) {
       PARSE_ARGUMENT(origin[3]);
@@ -124,18 +194,21 @@ int main(int argc, char *argv[])
       PARSE_ARGUMENT(xaxis[0]);
       PARSE_ARGUMENT(xaxis[1]);
       PARSE_ARGUMENT(xaxis[2]);
+      Normalize(xaxis);
       PARSE_ARGUMENT(yaxis[0]);
       PARSE_ARGUMENT(yaxis[1]);
       PARSE_ARGUMENT(yaxis[2]);
+      Normalize(yaxis);
       PARSE_ARGUMENT(zaxis[0]);
       PARSE_ARGUMENT(zaxis[1]);
       PARSE_ARGUMENT(zaxis[2]);
+      Normalize(zaxis);
       image->PutOrientation(xaxis, yaxis, zaxis);
     }
-    else if (OPTION("-copy-size")) {
+    else if (OPTION("-copy-spacing") || OPTION("-copy-voxel-size") || OPTION("-copy-size")) {
       GreyImage target(ARGUMENT);
-      target.GetPixelSize(&xsize, &ysize, &zsize);
-      image->PutPixelSize(xsize, ysize, zsize);
+      target.GetPixelSize(&xsize, &ysize, &zsize, &tsize);
+      image->PutPixelSize(xsize, ysize, zsize, tsize);
     }
     else if (OPTION("-copy-origin")) {
       GreyImage target(ARGUMENT);
@@ -154,7 +227,9 @@ int main(int argc, char *argv[])
       target.GetOrientation(xaxis, yaxis, zaxis);
       image->PutOrientation(xaxis, yaxis, zaxis);
     }
-    else if (OPTION("-copy-origin-orientation-size")) {
+    else if (OPTION("-copy-origin-orientation-spacing") ||
+             OPTION("-copy-origin-orientation-voxel-size") ||
+             OPTION("-copy-origin-orientation-size")) {
       GreyImage target(ARGUMENT);
       target.GetPixelSize(&xsize, &ysize, &zsize);
       image->PutPixelSize(xsize, ysize, zsize);
@@ -178,6 +253,9 @@ int main(int argc, char *argv[])
       else if (strcmp(OPTNAME, "-dofin_i"  ) == 0) image->PutAffineMatrix(m.Invert(), true);
       else if (strcmp(OPTNAME, "-putdof"   ) == 0) image->PutAffineMatrix(m,          false);
       else if (strcmp(OPTNAME, "-putdof_i" ) == 0) image->PutAffineMatrix(m.Invert(), false);
+    }
+    else if (OPTION("-dofout")) {
+      dofout_name = ARGUMENT;
     }
     #endif // HAVE_MIRTK_Transformation
     else if (OPTION("-reset")) {
@@ -203,6 +281,17 @@ int main(int argc, char *argv[])
     }
     else HANDLE_COMMON_OR_UNKNOWN_OPTION();
   }
+
+  #ifdef HAVE_MIRTK_Transformation
+    if (dofout_name) {
+      ImageAttributes output_attr = image->Attributes();
+      output_attr._smat.Ident();
+      const Matrix output_mat = output_attr.GetImageToWorldMatrix();
+      AffineTransformation dofout;
+      dofout.PutMatrix(input_mat * output_mat.Inverse());
+      dofout.Write(dofout_name);
+    }
+  #endif
 
   if (verbose) image->Print();
   image->Write(output_name);
