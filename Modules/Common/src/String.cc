@@ -147,46 +147,77 @@ string TrimAll(const string &str, const string &what)
 }
 
 // ------------------------------------------------------------------------
-Array<string> Split(string s, const char *d, int n, bool discard_empty)
+Array<string> Split(string s, const char *d, int n, bool discard_empty, bool handle_quotes)
 {
-  const size_t delimiter_length = strlen(d);
+  size_t i, j, pos, start, end;
   Array<string> parts;
-  if (n <= 0) {
+  const size_t delimiter_length = strlen(d);
+  string whitespace(" \t\f\v\n\r");
+  if (delimiter_length == 0) {
+    parts.push_back(s);
+    return parts;
+  }
+  pos = whitespace.find(d[0]);
+  if (pos != string::npos) {
+    whitespace.erase(pos, 1);
+  }
+  if (n < 0 && !handle_quotes) {
     n = abs(n);
-    size_t pos;
-    while (n == 0 || parts.size() < static_cast<size_t>(n)) {
-      pos = s.rfind(d);
-      if (pos == string::npos) {
+    while (parts.size() < static_cast<size_t>(n)) {
+      start = s.rfind(d);
+      if (start == string::npos) {
         parts.push_back(s);
         break;
       }
-      parts.push_back(s.substr(pos + delimiter_length));
-      s.erase(pos);
+      parts.push_back(s.substr(start + delimiter_length));
+      if (discard_empty && parts.back().empty()) {
+        parts.pop_back();
+      }
+      s.erase(start);
     }
     reverse(parts.begin(), parts.end());
   } else {
-    size_t start = 0;
-    size_t end   = string::npos;
-    while (start < s.length() && (n == 0 || parts.size() < static_cast<size_t>(n))) {
-      end = s.find(d, start);
-      parts.push_back(s.substr(start, end));
+    start = 0;
+    size_t m = static_cast<size_t>(n > 0 ? n : 0);
+    while (start < s.length() && (m == 0 || parts.size() < m)) {
+      i = j = string::npos;
+      if (handle_quotes) {
+        i = s.find_first_not_of(whitespace, start);
+        if (i != string::npos && (s[i] == '\"' || s[i] == '\'')) {
+          j = i;
+          do {
+            j = s.find(s[i], ++j);
+            if (j == string::npos) break;
+            pos = s.find_first_not_of(whitespace, j + 1);
+            end = s.find(d, j + 1);
+          } while (pos < end);
+          ++i;
+        }
+      }
+      if (i == string::npos || j == string::npos) {
+        i = start;
+        j = end = s.find(d, start);
+      }
+      if (j != string::npos) j -= i;
+      parts.push_back(s.substr(i, j));
+      if (discard_empty && parts.back().empty()) {
+        parts.pop_back();
+      }
       if (end == string::npos) break;
       start = end + delimiter_length;
     }
-  }
-  if (discard_empty) {
-    for (Array<string>::iterator part = parts.begin(); part != parts.end(); ++part) {
-      if (part->empty()) parts.erase(part--);
+    if (n < 0) {
+      parts.erase(parts.begin(), parts.end() + n);
     }
   }
   return parts;
 }
 
 // ------------------------------------------------------------------------
-Array<string> Split(string s, char d, int n, bool discard_empty)
+Array<string> Split(string s, char d, int n, bool discard_empty, bool handle_quotes)
 {
   const char delim[2] = {d, '\0'};
-  return Split(s, delim, n, discard_empty);
+  return Split(s, delim, n, discard_empty, handle_quotes);
 }
 
 // ------------------------------------------------------------------------
