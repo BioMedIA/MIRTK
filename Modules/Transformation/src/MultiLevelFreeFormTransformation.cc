@@ -605,7 +605,7 @@ void MultiLevelFreeFormTransformation
 int MultiLevelFreeFormTransformation
 ::InverseDisplacement(int m, int n, GenericImage<double> &disp, double t, double t0, const WorldCoordsImage *wc) const
 {
-  if (m < 0 || !this->RequiresCachingOfDisplacements()) {
+  if ((m < 0 && !_GlobalTransformation.IsIdentity()) || !this->RequiresCachingOfDisplacements()) {
     return MultiLevelTransformation::InverseDisplacement(m, n, disp, t, t0, wc);
   }
 
@@ -633,7 +633,7 @@ int MultiLevelFreeFormTransformation
 int MultiLevelFreeFormTransformation
 ::InverseDisplacement(int m, int n, GenericImage<float> &disp, double t, double t0, const WorldCoordsImage *wc) const
 {
-  if (m < 0 || !this->RequiresCachingOfDisplacements()) {
+  if ((m < 0 && !_GlobalTransformation.IsIdentity()) || !this->RequiresCachingOfDisplacements()) {
     return MultiLevelTransformation::InverseDisplacement(m, n, disp, t, t0, wc);
   }
 

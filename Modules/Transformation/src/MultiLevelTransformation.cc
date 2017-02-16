@@ -53,7 +53,8 @@ MultiLevelTransformation::MultiLevelTransformation()
   _NumberOfLevels(0)
 {
   for (int l = 0; l < MAX_TRANS; ++l) {
-    _LocalTransformation      [l] = NULL;
+    _LocalTransformation      [l] = nullptr;
+    _LocalTransformationOwner [l] = false;
     _LocalTransformationStatus[l] = Passive;
   }
 }
@@ -65,7 +66,8 @@ MultiLevelTransformation::MultiLevelTransformation(const RigidTransformation &t)
   _NumberOfLevels(0)
 {
   for (int l = 0; l < MAX_TRANS; ++l) {
-    _LocalTransformation      [l] = NULL;
+    _LocalTransformation      [l] = nullptr;
+    _LocalTransformationOwner [l] = false;
     _LocalTransformationStatus[l] = Passive;
   }
 }
@@ -77,7 +79,8 @@ MultiLevelTransformation::MultiLevelTransformation(const AffineTransformation &t
   _NumberOfLevels(0)
 {
   for (int l = 0; l < MAX_TRANS; ++l) {
-    _LocalTransformation      [l] = NULL;
+    _LocalTransformation      [l] = nullptr;
+    _LocalTransformationOwner [l] = false;
     _LocalTransformationStatus[l] = Passive;
   }
 }
@@ -90,11 +93,12 @@ MultiLevelTransformation::MultiLevelTransformation(const MultiLevelTransformatio
 {
   for (int l = 0; l < _NumberOfLevels; ++l) {
     _LocalTransformation[l] = dynamic_cast<FreeFormTransformation *>(Transformation::New(t._LocalTransformation[l]));
-    if (_LocalTransformation[l] == NULL) {
+    if (_LocalTransformation[l] == nullptr) {
       cerr << "MultiLevelTransformation::MultiLevelTransformation: Failed to copy local transformation at level ";
       cerr << l << " and of type " << t._LocalTransformation[l]->NameOfClass() << endl;
       exit(1);
     }
+    _LocalTransformationOwner [l] = true;
     _LocalTransformationStatus[l] = t._LocalTransformationStatus[l];
   }
 }
@@ -102,7 +106,7 @@ MultiLevelTransformation::MultiLevelTransformation(const MultiLevelTransformatio
 // -----------------------------------------------------------------------------
 MultiLevelTransformation::~MultiLevelTransformation()
 {
-  for (int l = 0; l < MAX_TRANS; ++l) Delete(_LocalTransformation[l]);
+  Clear();
 }
 
 // =============================================================================
@@ -401,7 +405,12 @@ void MultiLevelTransformation::Clear()
 {
   _GlobalTransformation.Reset();
   for (int l = 0; l < _NumberOfLevels; ++l) {
-    Delete(_LocalTransformation[l]);
+    if (_LocalTransformationOwner[l]) {
+      Delete(_LocalTransformation[l]);
+    }
+    _LocalTransformation      [l] = nullptr;
+    _LocalTransformationOwner [l] = false;
+    _LocalTransformationStatus[l] = Passive;
   }
   _NumberOfLevels = 0;
 }
@@ -974,9 +983,7 @@ Cifstream &MultiLevelTransformation::ReadDOFs(Cifstream &from, TransformationTyp
   unsigned int magic_no, trans_type;
 
   // Delete old local transformations
-  for (int l = 0; l < _NumberOfLevels; ++l) {
-    Delete(_LocalTransformation[l]);
-  }
+  this->Clear();
 
   // Read number of local transformations
   from.ReadAsInt(&_NumberOfLevels, 1);
@@ -1003,11 +1010,13 @@ Cifstream &MultiLevelTransformation::ReadDOFs(Cifstream &from, TransformationTyp
     // Instantiate new local transformation
     Transformation *ffd = Transformation::New(static_cast<TransformationType>(trans_type));
     _LocalTransformation[l] = dynamic_cast<FreeFormTransformation *>(ffd);
-    if (_LocalTransformation[l] == NULL) {
+    if (_LocalTransformation[l] == nullptr) {
       delete ffd;
       cerr << this->NameOfClass() << "::Read: Not a valid FFD (ID " << trans_type << ") found at file offset " << offset << endl;
       exit(1);
     }
+    _LocalTransformationOwner [l] = true;
+    _LocalTransformationStatus[l] = Passive;
 
     // Read local transformation
     from.Seek(offset);
@@ -1027,7 +1036,9 @@ Cofstream &MultiLevelTransformation::WriteDOFs(Cofstream &to) const
   _GlobalTransformation.Write(to);
 
   // Write local transformations
-  for (int l = 0; l < _NumberOfLevels; ++l) _LocalTransformation[l]->Write(to);
+  for (int l = 0; l < _NumberOfLevels; ++l) {
+    _LocalTransformation[l]->Write(to);
+  }
 
   return to;
 }

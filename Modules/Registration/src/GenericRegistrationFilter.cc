@@ -3235,17 +3235,22 @@ void GenericRegistrationFilter::ApplyInitialGuess()
   if (_Transformation->CopyFrom(_InitialGuess)) return;
 
   // Input...
-  const HomogeneousTransformation        *ilin  = NULL; // ...linear transformation
-  const FreeFormTransformation           *iffd  = NULL; // or non-linear  FFD
-  const MultiLevelFreeFormTransformation *imffd = NULL; // or multi-level FFD
+  const HomogeneousTransformation        *ilin = NULL; // ...linear transformation
+  const FreeFormTransformation           *iffd = NULL; // or non-linear  FFD
+  const MultiLevelFreeFormTransformation *isum = NULL; // or multi-level FFD
 
-  ( ilin = dynamic_cast<const HomogeneousTransformation        *>(_InitialGuess)) ||
-  ( iffd = dynamic_cast<const FreeFormTransformation           *>(_InitialGuess)) ||
-  (imffd = dynamic_cast<const MultiLevelFreeFormTransformation *>(_InitialGuess));
+  (ilin = dynamic_cast<const HomogeneousTransformation        *>(_InitialGuess)) ||
+  (iffd = dynamic_cast<const FreeFormTransformation           *>(_InitialGuess)) ||
+  (isum = dynamic_cast<const MultiLevelFreeFormTransformation *>(_InitialGuess));
 
-  if (imffd && imffd->NumberOfLevels() == 0) {
-    ilin  = imffd->GetGlobalTransformation();
-    imffd = NULL;
+  if (isum) {
+    if (isum->NumberOfLevels() == 0) {
+      ilin = isum->GetGlobalTransformation();
+      isum = nullptr;
+    } else if (isum->NumberOfLevels() == 1 && isum->GetGlobalTransformation()->IsIdentity()) {
+      iffd = isum->GetLocalTransformation(0);
+      isum = nullptr;
+    }
   }
 
   // Output...
@@ -3286,10 +3291,10 @@ void GenericRegistrationFilter::ApplyInitialGuess()
   } else if (iffd && offd) {
     if (offd->CopyFrom(iffd)) return;
   // Copy global and local transformation (additive MFFD only!)
-  } else if (imffd && imffd->NumberOfLevels() == 1 &&
+  } else if (isum && isum->NumberOfLevels() == 1 &&
              osum && offd && !_MergeGlobalAndLocalTransformation) {
-    osum->GetGlobalTransformation()->CopyFrom(imffd->GetGlobalTransformation());
-    if (offd->CopyFrom(imffd->GetLocalTransformation(0))) return;
+    osum->GetGlobalTransformation()->CopyFrom(isum->GetGlobalTransformation());
+    if (offd->CopyFrom(isum->GetLocalTransformation(0))) return;
   }
 
   // Determine common attributes of (downsampled) target images

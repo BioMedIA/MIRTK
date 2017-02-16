@@ -30,6 +30,7 @@
 #include "mirtk/NaryVoxelFunction.h"
 #include "mirtk/ImageToInterpolationCoefficients.h"
 #include "mirtk/HomogeneousTransformation.h"
+#include "mirtk/MultiLevelTransformation.h"
 
 #include "FreeFormTransformationIntegration.h"
 
@@ -595,11 +596,23 @@ double BSplineFreeFormTransformationSV
 ::ApproximateAsNew(const ImageAttributes &domain, const Transformation *dof,
                    int niter, double max_error)
 {
-  const HomogeneousTransformation       *lin   = NULL;
-  const BSplineFreeFormTransformationSV *svffd = NULL;
+  const HomogeneousTransformation       *lin   = nullptr;
+  const BSplineFreeFormTransformationSV *svffd = nullptr;
+  const MultiLevelTransformation        *mffd  = nullptr;
 
   (lin   = dynamic_cast<const HomogeneousTransformation       *>(dof)) ||
-  (svffd = dynamic_cast<const BSplineFreeFormTransformationSV *>(dof));
+  (svffd = dynamic_cast<const BSplineFreeFormTransformationSV *>(dof)) ||
+  (mffd  = dynamic_cast<const MultiLevelTransformation        *>(dof));
+
+  if (mffd) {
+    if (mffd->NumberOfLevels() == 0) {
+      lin = mffd->GetGlobalTransformation();
+    } else if (mffd->NumberOfLevels() == 1) {
+      if (mffd->GetGlobalTransformation()->IsIdentity()) {
+        svffd = dynamic_cast<const BSplineFreeFormTransformationSV *>(mffd->GetLocalTransformation(0));
+      }
+    }
+  }
 
   // Approximate any other transformation using the base class implementation
   // which simply evaluates the displacement of the transformation at each
@@ -607,6 +620,11 @@ double BSplineFreeFormTransformationSV
   // control point displacements
   if (!lin && !svffd) {
     return BSplineFreeFormTransformation3D::ApproximateAsNew(domain, dof, niter, max_error);
+  }
+  // Check if input is the identity transformation
+  if ((lin && lin->IsIdentity()) || (svffd && svffd->IsIdentity())) {
+    _CPImage = 0.;
+    return 0.;
   }
 
   double error = numeric_limits<double>::infinity();
