@@ -45,8 +45,8 @@ void PrintHelp(const char* name)
 {
   cout << endl;
   cout << "Usage: " << name << " <output> -images <images.lst> [options]" << endl;
-  cout << "       " << name << " <output> -image <image1> [-dof <dof1>] -image <image2> [-dof <dof2>]... [options]" << endl;
-  cout << "       " << name << " <output> <image1> [<dof1>] <image2> [<dof2>]... [options]" << endl;
+  cout << "       " << name << " <output> -image <image1> [-dof <dof1>...] -image <image2> [-dof <dof2>...]... [options]" << endl;
+  cout << "       " << name << " <output> <image1> [<dof1>...] <image2> [<dof2>...]... [options]" << endl;
   cout << "       " << name << " <output> <sequence> [options]" << endl;
   cout << endl;
   cout << "Description:" << endl;
@@ -66,12 +66,14 @@ void PrintHelp(const char* name)
   cout << "                           of all relative image and transformation file paths occurring on the" << endl;
   cout << "                           subsequent N lines. A path starting with './' must be relative to the" << endl;
   cout << "                           directory containing the input text file itself." << endl;
+  cout << " -delim, -delimiter <c>    Delimiter used in :option:`-images` file." << endl;
+  cout << "                           (default: ',' for .csv, '\\t' for .tsv, and ' ' otherwise)" << endl;
   cout << "  -invert                  Invert transformations specified in :option:`-images` file." << endl;
   cout << "  -image <file>            A single input image." << endl;
 #ifdef HAVE_MIRTK_Transformation
   cout << "  -dof <file>              Specifies a transformation to be applied to the preceeding image. (default: none)" << endl;
   cout << "  -dof_i <file>            Specifies a transformation whose inverse is to be applied to the" << endl;
-  cout << "                           preceeding image. (default: none)" << endl;
+  cout << "                           preceeding image similar to :option:`-dof`. (default: none)" << endl;
 #endif
   cout << endl;
   cout << "Optional arguments:" << endl;
@@ -80,6 +82,10 @@ void PrintHelp(const char* name)
   cout << "                             Output background value zero by default or minimum average intensity minus 1. (default: 0)" << endl;
   cout << "  -interp <mode>             Interpolation mode, e.g., NN, Linear, BSpline, Cubic, Sinc. (default: Linear)" << endl;
   cout << "  -label <value>             Segmentation label of which to create an average probability map." << endl;
+  cout << "  -datatype, -dtype, -type char|uchar|short|float|double" << endl;
+  cout << "      Data type of output image. The intermediate average image always has floating point data type." << endl;
+  cout << "      When this option is given, this average is cast to the respective output type before writing" << endl;
+  cout << "      the result to the output image file. (default: float)" << endl;
   PrintCommonOptions(cout);
   cout << endl;
 }
@@ -93,26 +99,25 @@ typedef RealPixel                                   InputType;
 typedef GenericImage<InputType>                     InputImage;
 typedef GenericInterpolateImageFunction<InputImage> InputImageFunction;
 
-// Type of output image
-typedef float                     OutputType;
-typedef GenericImage<OutputType>  OutputImage;
+// Type of average image
+typedef GenericImage<float>  AverageImage;
 
 // =============================================================================
 // Auxiliary functions
 // =============================================================================
 
 /// Read image file names and times from input list file
-int read_image_list_file(const char        *image_list_name,
-                         Array<string>     &names,
-                         Array<string>     &dofs,
-                         Array<OutputType> &weights)
+int read_image_list_file(const char *image_list_name,
+                         Array<string> &names,
+                         Array<Array<string> > &dofs,
+                         Array<double> &weights,
+                         const char *delim = " ")
 {
-  string   base_dir = Directory(image_list_name); // Base directory containing image files
+  Array<string> dof_names;
+  string   base_dir = Directory(image_list_name); // Base directory for relative paths
   ifstream iff(image_list_name);                  // List input file stream
   string   line;                                  // Input line
-  string   part;                                  // Line part
-  string   entry;                                 // Column entry
-  bool     inquote = false;                       // Parsing parts of a quoted string
+  double   weight;                                // Image weight
   int      l = 0;                                 // Line number
 
   names  .clear();
@@ -124,11 +129,14 @@ int read_image_list_file(const char        *image_list_name,
     cerr << "Error: Cannot parse list file " << image_list_name << endl;
     return 0;
   }
-
-  if (!base_dir.empty() && line[0] != PATHSEP) {
-    if (line != ".") base_dir += PATHSEP + line;
+  const bool discard_empty = true;
+  const bool handle_quotes = true;
+  auto columns = Split(line, delim, 0, discard_empty, handle_quotes);
+  if (columns[0].empty()) columns[0] = ".";
+  if (!base_dir.empty() && columns[0].front() != PATHSEP) {
+    if (columns[0] != ".") base_dir += PATHSEP + columns[0];
   } else {
-    base_dir  = line;
+    base_dir = columns[0];
   }
   l++;
 
@@ -136,55 +144,36 @@ int read_image_list_file(const char        *image_list_name,
     l++;
     // Ignore comment lines starting with # character
     if (line[0] == '#') continue;
-    // Split line at space
-    istringstream lss(line);
-    int c = 0;
-    while (getline(lss, part, ' ')) {
-      if (inquote) entry += ' ';
-      if (part.empty()) continue;
-      if (part[0] == '"') {
-        part.erase(0, 1);
-        inquote = !inquote;
-      }
-      if (part[part.size()-1] == '"') {
-        part.erase(part.size()-1, 1);
-        inquote = !inquote;
-      }
-      entry += part;
-      if (inquote) continue;
-      // Add column entry to the proper output container
-      if (c == 0) {
-        if (!base_dir.empty() && entry[0] != PATHSEP) entry = base_dir + PATHSEP + entry;
-        names.push_back(entry);
-      } else if (c == 1 && !isdigit(entry[0])) {
-        if (!base_dir.empty() && entry[0] != PATHSEP) entry = base_dir + PATHSEP + entry;
-        dofs.push_back(entry);
-      } else if (c == 2 || (c == 1 && isdigit(entry[0]))) {
-        if (c == 1) dofs.push_back("");
-        istringstream iss(entry);
-        OutputType          weight;
-        iss >> weight;
-        if (!iss) {
-          cerr << "Error: " << image_list_name << ":" << l << ": Failed to parse weight!" << endl;
-          names  .clear();
-          weights.clear();
-          return 0;
-        }
-        weights.push_back(weight);
-      } else {
-        cerr << "Error: " << image_list_name << ":" << l << ": Too many entries!"<< endl;
-        names  .clear();
-        weights.clear();
-        return 0;
-      }
-      // Parse next column
-      entry.clear();
-      c++;
+    // Split line at delimiter
+    columns = Split(line, delim, 0, discard_empty, handle_quotes);
+    if (columns.empty()) continue;
+    // Insert columns into output containers
+    if (!base_dir.empty() && columns[0].front() != PATHSEP) {
+      names.push_back(base_dir + PATHSEP + columns[0]);
+    } else {
+      names.push_back(columns[0]);
     }
-    if (c == 0) continue; // Skip empty lines
-    // Add default for non-specified columns
-    dofs   .resize(names.size());
-    weights.resize(names.size(), 1.0);
+    auto ndofs = columns.size() - 1;
+    if (FromString(columns.back(), weight)) {
+      weights.push_back(weight);
+      ndofs -= 1;
+    } else {
+      weights.push_back(1.0);
+    }
+    dof_names.clear();
+    if (ndofs > 0) {
+      dof_names.reserve(ndofs);
+      for (size_t i = 1; i <= ndofs; ++i) {
+        if (!columns[i].empty()) {
+          if (!base_dir.empty() && columns[i].front() != PATHSEP) {
+            dof_names.push_back(base_dir + PATHSEP + columns[i]);
+          } else {
+            dof_names.push_back(columns[i]);
+          }
+        }
+      }
+    }
+    dofs.push_back(dof_names);
   }
 
   return static_cast<int>(names.size());
@@ -192,25 +181,47 @@ int read_image_list_file(const char        *image_list_name,
 
 // -----------------------------------------------------------------------------
 #ifdef HAVE_MIRTK_Transformation
-void Read(const string &image_name, const string    &imdof_name,
-          InputImage   &image,      Transformation *&imdof,
-          bool imdof_invert = false)
+void Read(const string &image_name, const Array<string> &imdof_names, const Array<bool> &imdof_invert,
+          InputImage &image, Array<UniquePtr<Transformation> > &dofs, Array<bool> &invert)
 {
+  dofs.clear();
+  invert.clear();
   image.Read(image_name.c_str());
-  if (imdof_name.empty()) {
-    imdof = NULL;
-  } else {
-    imdof = Transformation::New(imdof_name.c_str());
-    HomogeneousTransformation   *lin   = dynamic_cast<HomogeneousTransformation   *>(imdof);
-    FluidFreeFormTransformation *fluid = dynamic_cast<FluidFreeFormTransformation *>(imdof);
-    if (fluid && imdof_invert) lin = fluid->GetGlobalTransformation();
-    if (lin) {
-      Matrix mat = lin->GetMatrix();
-      if (imdof_invert) mat.Invert();
-      image.PutAffineMatrix(mat, true);
-      Delete(imdof);
+  if (!imdof_names.empty()) {
+    size_t i;
+    for (i = 0; i < imdof_names.size(); ++i) {
+      if (imdof_names[i].empty()) continue;
+      dofs.push_back(UniquePtr<Transformation>(Transformation::New(imdof_names[i].c_str())));
+      invert.push_back(imdof_invert[i]);
     }
-    if (fluid && lin) fluid->GetGlobalTransformation()->Reset();
+    if (!dofs.empty()) {
+      HomogeneousTransformation *lin;
+      MultiLevelTransformation *mffd;
+      FluidFreeFormTransformation *fluid;
+      for (i = 0; i < dofs.size(); ++i) {
+        lin = dynamic_cast<HomogeneousTransformation *>(dofs[i].get());
+        if (!lin) {
+          mffd = dynamic_cast<MultiLevelTransformation *>(dofs[i].get());
+          if (!mffd || mffd->NumberOfLevels() > 0) break;
+          lin = mffd->GetGlobalTransformation();
+        }
+        Matrix mat = lin->GetMatrix();
+        if (invert[i]) mat.Invert();
+        image.PutAffineMatrix(mat, true);
+      }
+      if (i > 0) {
+        dofs  .erase(dofs  .begin(), dofs  .begin() + i);
+        invert.erase(invert.begin(), invert.begin() + i);
+      }
+      if (!dofs.empty()) {
+        fluid = dynamic_cast<FluidFreeFormTransformation *>(dofs.front().get());
+        if (fluid && !invert.front()) {
+          Matrix mat = fluid->GetGlobalTransformation()->GetMatrix();
+          image.PutAffineMatrix(mat, true);
+          fluid->GetGlobalTransformation()->Reset();
+        }
+      }
+    }
   }
 }
 #endif // HAVE_MIRTK_Transformation
@@ -218,18 +229,19 @@ void Read(const string &image_name, const string    &imdof_name,
 // -----------------------------------------------------------------------------
 struct AddVoxelValueToAverage : public VoxelFunction
 {
-  OutputImage        *_Average;
+  AverageImage       *_Average;
   InputImageFunction *_Image;
   double              _Weight;
   int                 _Label;
 
   #ifdef HAVE_MIRTK_Transformation
-    Transformation       *_Transformation;
-    GenericImage<double> *_Displacement;
-    bool                  _Invert;
+    const Array<UniquePtr<Transformation> > *_Transformation;
+    const Array<bool>                       *_Invert;
+    const GenericImage<double>              *_Displacement;
   #endif
 
-  void operator()(int i, int j, int k, int, OutputType *avg)
+  template <class T>
+  void operator()(int i, int j, int k, int, T *avg)
   {
     double x = i, y = j, z = k;
     _Average->ImageToWorld(x, y, z);
@@ -240,56 +252,76 @@ struct AddVoxelValueToAverage : public VoxelFunction
         z += _Displacement->Get(i, j, k, 2);
       } else if (_Transformation) {
         // Note: Input transformation is from image to average!
-        if (_Invert) _Transformation->Transform(x, y, z);
-        else         _Transformation->Inverse  (x, y, z);
+        const int ndofs = static_cast<int>(_Transformation->size());
+        for (int n = ndofs - 1; n >= 0; --n) {
+          if ((*_Invert)[n]) (*_Transformation)[n]->Transform(x, y, z);
+          else               (*_Transformation)[n]->Inverse  (x, y, z);
+        }
       }
     #endif // HAVE_MIRTK_Transformation
     _Image->Input()->WorldToImage(x, y, z);
     if (_Label > 0) {
       if (static_cast<int>(_Image->Evaluate(x, y, z)) == _Label) {
-        *avg += static_cast<OutputType>(_Weight);
+        *avg += static_cast<T>(_Weight);
       }
     } else {
-      const OutputType bg = static_cast<OutputType>(_Average->GetBackgroundValueAsDouble());
+      const T bg = static_cast<T>(_Average->GetBackgroundValueAsDouble());
       if ((IsNaN(bg) && IsNaN(*avg)) || (*avg == bg)) {
-        *avg = static_cast<OutputType>(_Weight * _Image->Evaluate(x, y, z));
+        *avg = static_cast<T>(_Weight * _Image->Evaluate(x, y, z));
       } else {
-        *avg += static_cast<OutputType>(_Weight * _Image->Evaluate(x, y, z));
+        *avg += static_cast<T>(_Weight * _Image->Evaluate(x, y, z));
       }
     }
   }
 };
 
 // -----------------------------------------------------------------------------
-void Add(OutputImage &average, InputImage &image, int label = -1,
+void Add(AverageImage &average, InputImage &image,
          #ifdef HAVE_MIRTK_Transformation
-           Transformation   *transformation = NULL,
-           bool              invert         = false,
+           const Array<UniquePtr<Transformation> > &dof,
+           const Array<bool>                       &inv,
          #endif // HAVE_MIRTK_Transformation
-         OutputType        weight         = 1.0,
-         InterpolationMode interpolation  = Interpolation_Linear)
+         double            weight        = 1.0,
+         int               label         = -1,
+         InterpolationMode interpolation = Interpolation_Linear)
 {
-  if (label > 0) interpolation = Interpolation_NN;
   AddVoxelValueToAverage add;
+  if (label > 0) interpolation = Interpolation_NN;
+  UniquePtr<InputImageFunction> interp;
+  interp.reset(InputImageFunction::New(interpolation, &image));
+  interp->Initialize();
   #ifdef HAVE_MIRTK_Transformation
+    bool cache = false;
     GenericImage<double> disp;
-    if (transformation && transformation->RequiresCachingOfDisplacements()) {
+    const int ndofs = static_cast<int>(dof.size());
+    for (int n = ndofs - 1; n >= 0; --n) {
+      if (dof[n]->RequiresCachingOfDisplacements()) {
+        cache = true;
+        break;
+      }
+    }
+    if (cache) {
+      const double t  = average.GetTOrigin();
+      const double t0 = -1.;
       disp.Initialize(average.Attributes(), 3);
       // Note: Input transformation is from image to average!
-      if (invert) transformation->Displacement(disp);
-      else        transformation->InverseDisplacement(disp);
+      for (int n = ndofs - 1; n >= 0; --n) {
+        // Attention: Must specify both t and t0 to call the overloaded
+        //            [Inverse]Displacement function which does not reset
+        //            the current displacement vectors to zero before!
+        if (inv[n]) dof[n]->Displacement       (disp, t, t0);
+        else        dof[n]->InverseDisplacement(disp, t, t0);
+      }
     }
-    add._Transformation = transformation;
-    add._Displacement   = (disp.IsEmpty() ? NULL : &disp);
-    add._Invert         = invert;
+    add._Transformation = &dof;
+    add._Invert         = &inv;
+    add._Displacement   = (cache ? &disp : nullptr);
   #endif // HAVE_MIRTK_Transformation
   add._Average = &average;
   add._Weight  = weight;
   add._Label   = label;
-  add._Image   = InputImageFunction::New(interpolation, &image);
-  add._Image->Initialize();
+  add._Image   = interp.get();
   ParallelForEachVoxel(average.Attributes(), average, add);
-  delete add._Image;
 }
 
 // =============================================================================
@@ -299,15 +331,16 @@ void Add(OutputImage &average, InputImage &image, int label = -1,
 // -----------------------------------------------------------------------------
 int main(int argc, char **argv)
 {
-  InputImage        sequence, image;
-  Array<string>     image_name;
-  Array<OutputType> image_weight;
-  int               nimages;
+  InputImage    sequence, image;
+  Array<string> image_name;
+  Array<double> image_weight;
+  int           nimages;
 
   #ifdef HAVE_MIRTK_Transformation
-    Transformation *imdof = NULL;
-    Array<string>   imdof_name;
-    Array<bool>     imdof_invert;
+    Array<UniquePtr<Transformation> > dofs;
+    Array<Array<string> >             imdof_name;
+    Array<Array<bool> >               imdof_invert;
+    Array<bool>                       invert;
   #endif // HAVE_MIRTK_Transformation
 
   InitializeIOLibrary();
@@ -342,8 +375,8 @@ int main(int argc, char **argv)
       #ifdef HAVE_MIRTK_Transformation
         imdof_name  .resize(image_name.size());
         imdof_invert.resize(image_name.size());
-        imdof_name  .back() = argv[nposarg];
-        imdof_invert.back() = inv;
+        imdof_name  .back().push_back(argv[nposarg]);
+        imdof_invert.back().push_back(inv);
       #else // HAVE_MIRTK_Transformation
         FatalError("Cannot apply an image transformation, rebuild with Transformation module enabled!");
       #endif // HAVE_MIRTK_Transformation
@@ -361,19 +394,27 @@ int main(int argc, char **argv)
   #endif // HAVE_MIRTK_Transformation
 
   // Parse arguments
-  const char        *image_list_name = NULL;
-  const char        *reference_name  = NULL;
-  double             padding         = numeric_limits<double>::quiet_NaN();
-  InterpolationMode  interpolation   = Interpolation_Linear;
-  bool               voxelwise       = false;
-  bool               invert_dofs     = false;
-  int                label           = -1;
-  int                margin          = -1;
+  const char        *image_list_name  = nullptr;
+  const char        *image_list_delim = nullptr;
+  const char        *reference_name   = nullptr;
+  double             padding          = numeric_limits<double>::quiet_NaN();
+  InterpolationMode  interpolation    = Interpolation_Linear;
+  bool               invert_dofs      = false;
+  int                label            = -1;
+  ImageDataType      dtype            = MIRTK_VOXEL_FLOAT;
+  int                margin           = -1;
   double             dx = .0, dy = .0, dz = .0;
 
   for (ARGUMENTS_AFTER(nposarg)) {
-    if      (OPTION("-images" ))   image_list_name = ARGUMENT;
-    else if (OPTION("-reference")) reference_name = ARGUMENT;
+    if (OPTION("-images")) {
+      image_list_name = ARGUMENT;
+    }
+    else if (OPTION("-delim") || OPTION("-delimiter")) {
+      image_list_delim = ARGUMENT;
+    }
+    else if (OPTION("-reference")) {
+      reference_name = ARGUMENT;
+    }
     else if (OPTION("-size")) {
       PARSE_ARGUMENT(dx);
       dy = dz = dx;
@@ -384,11 +425,13 @@ int main(int argc, char **argv)
       }
     }
     else if (OPTION("-padding"))   PARSE_ARGUMENT(padding);
-    else if (OPTION("-voxelwise")) voxelwise = true;
     else if (OPTION("-invert"))    invert_dofs = true;
     else if (OPTION("-margin"))    PARSE_ARGUMENT(margin);
     else if (OPTION("-label"))     PARSE_ARGUMENT(label);
     else if (OPTION("-interp"))    PARSE_ARGUMENT(interpolation);
+    else if (OPTION("-datatype") || OPTION("-dtype") || OPTION("-type")) {
+      PARSE_ARGUMENT(dtype);
+    }
     else HANDLE_COMMON_OR_UNKNOWN_OPTION();
   }
 
@@ -407,14 +450,21 @@ int main(int argc, char **argv)
       FatalError("Input sequence contains only one temporal frame!");
     }
     if (verbose) cout << " done\n" << endl;
+    image_weight.resize(nimages, 1.0);
   }
 
   // ...from files specified in list file
   if (image_list_name) {
-    Array<string> names;
-    Array<string> imdofs;
-    Array<OutputType>   weights;
-    int n = read_image_list_file(image_list_name, names, imdofs, weights);
+    Array<string>         names;
+    Array<Array<string> > imdofs;
+    Array<double>         weights;
+    if (image_list_delim == nullptr) {
+      const string ext = Extension(image_list_name);
+      if      (ext == ".csv") image_list_delim = ",";
+      else if (ext == ".tsv") image_list_delim = "\t";
+      else                    image_list_delim = " ";
+    }
+    const int n = read_image_list_file(image_list_name, names, imdofs, weights, image_list_delim);
     if (n == 0) {
       if (verbose) cout << endl;
       FatalError("Failed to parse input list file " << image_list_name << "!");
@@ -424,7 +474,10 @@ int main(int argc, char **argv)
     image_name  .insert(image_name  .end(), names  .begin(), names  .end());
     image_weight.insert(image_weight.end(), weights.begin(), weights.end());
     imdof_name  .insert(imdof_name  .end(), imdofs .begin(), imdofs .end());
-    imdof_invert.resize(nimages, invert_dofs);
+    imdof_invert.resize(nimages);
+    for (int i = nimages - n; i < nimages; ++i) {
+      imdof_invert[i].resize(imdof_name[i].size(), invert_dofs);
+    }
   }
 
   // Check that any input image is given
@@ -434,8 +487,10 @@ int main(int argc, char **argv)
   }
 
   // Compute sum of weights
-  OutputType wsum = .0;
-  for (int n = 0; n < nimages; ++n) wsum += image_weight[n];
+  double wsum = .0;
+  for (int n = 0; n < nimages; ++n) {
+    wsum += image_weight[n];
+  }
 
   // Compute voxel-wise average of (interpolated) input intensities on
   // common (mapped) image domain of all input images; for example,
@@ -447,12 +502,13 @@ int main(int argc, char **argv)
   if (reference_name) {
     GreyImage reference(reference_name);
     fov = reference.Attributes();
-  } else {
+  } else if (sequence.IsEmpty()) {
     Array<ImageAttributes> attr;
     for (int n = 0; n < nimages; ++n) {
       #ifdef HAVE_MIRTK_Transformation
-        Read(image_name[n], imdof_name[n], image, imdof, imdof_invert[n]);
-        Delete(imdof);
+        Read(image_name[n], imdof_name[n], imdof_invert[n], image, dofs, invert);
+        dofs.clear(); // unused here
+        invert.clear();
       #else // HAVE_MIRTK_Transformation
         image.Read(image_name[n].c_str());
       #endif // HAVE_MIRTK_Transformation
@@ -463,6 +519,9 @@ int main(int argc, char **argv)
       attr.push_back(OrthogonalFieldOfView(image.Attributes()));
     }
     fov = OverallFieldOfView(attr);
+  } else {
+    fov = sequence.Attributes();
+    fov._t = 1, fov._dt *= nimages;
   }
   if (verbose) cout << " done" << endl;
 
@@ -481,8 +540,8 @@ int main(int argc, char **argv)
   }
 
   // Compute average image
-  OutputImage average(fov);
-  average = static_cast<OutputType>(padding);
+  AverageImage average(fov);
+  average = padding;
   average.PutBackgroundValueAsDouble(padding);
   for (int n = 0; n < nimages; ++n) {
     if (sequence.IsEmpty()) {
@@ -491,7 +550,7 @@ int main(int argc, char **argv)
         cout.flush();
       }
       #ifdef HAVE_MIRTK_Transformation
-        Read(image_name[n], imdof_name[n], image, imdof, imdof_invert[n]);
+        Read(image_name[n], imdof_name[n], imdof_invert[n], image, dofs, invert);
       #else // HAVE_MIRTK_Transformation
         image.Read(image_name[n].c_str());
       #endif // HAVE_MIRTK_Transformation
@@ -502,18 +561,17 @@ int main(int argc, char **argv)
       }
       sequence.GetFrame(image, n);
       #ifdef HAVE_MIRTK_Transformation
-        imdof = NULL;
+        dofs.clear();
+        invert.clear();
       #endif
     }
 
-    Add(average, image, label, 
-        #ifdef HAVE_MIRTK_Transformation
-          imdof, imdof_invert[n],
-        #endif
-        image_weight[n], interpolation);
-
     #ifdef HAVE_MIRTK_Transformation
-      Delete(imdof);
+      Add(average, image, dofs, invert, image_weight[n], label, interpolation);
+      dofs.clear();
+      invert.clear();
+    #else
+      Add(average, image, image_weight[n], label, interpolation);
     #endif
 
     if (verbose) cout << " done" << endl;
@@ -521,24 +579,31 @@ int main(int argc, char **argv)
   if (wsum > .0) average /= wsum;
 
   // Crop/pad average image
-  if (margin >= 0) average.CropPad(margin);
+  if (margin >= 0) {
+    average.CropPad(margin);
+  }
 
   // Replace NaN background values
   if (IsNaN(average.GetBackgroundValueAsDouble())) {
-    OutputImage::VoxelType min_value, max_value;
+    AverageImage::VoxelType min_value, max_value;
     average.GetMinMax(min_value, max_value);
     padding = min(.0, double(min_value) - 1.0);
     for (int idx = 0; idx < average.NumberOfVoxels(); ++idx) {
       if (IsNaN(average(idx))) {
-        average(idx) = voxel_cast<OutputImage::VoxelType>(padding);
+        average(idx) = voxel_cast<AverageImage::VoxelType>(padding);
       }
     }
     average.PutBackgroundValueAsDouble(padding);
   }
 
   // Write average image
-  average.Write(output_name);
-
+  if (average.GetDataType() != dtype) {
+    UniquePtr<BaseImage> output(BaseImage::New(dtype));
+    *output = average;
+    output->Write(output_name);
+  } else {
+    average.Write(output_name);
+  }
 
   return 0;
 }
