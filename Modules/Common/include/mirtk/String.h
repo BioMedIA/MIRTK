@@ -283,9 +283,11 @@ string TrimAll(const string &str, const string &what = " \t\r\n");
 ///          if negative, the last n parts are returned, and if positive,
 ///          the first n parts are returned.
 /// @param e Discard empty strings.
+/// @param q Do not split quoted parts. Double quotes within quotes
+///          have to be escaped with a preceding backslash character.
 ///
 /// @returns Parts of the string.
-Array<string> Split(string s, const char *d, int n = 0, bool e = false);
+Array<string> Split(string s, const char *d, int n = 0, bool e = false, bool q = false);
 
 /// Split string into parts separated by specified delimiting character
 ///
@@ -295,9 +297,11 @@ Array<string> Split(string s, const char *d, int n = 0, bool e = false);
 ///          if negative, the last n parts are returned, and if positive,
 ///          the first n parts are returned.
 /// @param e Discard empty strings.
+/// @param q Do not split quoted parts. Double quotes within quotes
+///          have to be escaped with a preceding backslash character.
 ///
 /// @returns Parts of the string.
-Array<string> Split(string s, char d, int n = 0, bool e = false);
+Array<string> Split(string s, char d, int n = 0, bool e = false, bool q = false);
 
 /// Convert (upper) camel case string to space separated string
 ///

@@ -87,6 +87,8 @@ TEST(String, Trim)
 // -----------------------------------------------------------------------------
 TEST(String, Split)
 {
+  const int n = 5;
+  const char *delim[n] = {" ", ",", "\t", ";", "_@#$"};
   {
     Array<string> parts = Split("a b c d", " ");
     ASSERT_EQ(4u, parts.size());
@@ -96,8 +98,7 @@ TEST(String, Split)
     EXPECT_EQ(string("d"), parts[3]);
   }
   {
-    const char *delim[] = {" ", ",", "\t", ";", "_@#$"};
-    for (int i = 0; i < 3; ++i) {
+    for (int i = 0; i < n; ++i) {
       string str = string("a") + delim[i] + delim[i] + "b" + delim[i] + "c";
       for (int j = 0; j < 5; ++j) {
         str += delim[i];
@@ -117,20 +118,94 @@ TEST(String, Split)
     }
   }
   {
-    const char *delim[] = {" ", ",", "\t", ";", "_@#$"};
-    for (int i = 0; i < 3; ++i) {
+    const bool discard_empty = true;
+    for (int i = 0; i < n; ++i) {
       string str = string("a") + delim[i] + delim[i] + "b" + delim[i] + "c";
       for (int j = 0; j < 5; ++j) {
         str += delim[i];
       }
       str += "d";
-      Array<string> parts = Split(str, delim[i], 0, true);
+      Array<string> parts = Split(str, delim[i], 0, discard_empty);
       ASSERT_EQ(4u, parts.size());
       EXPECT_EQ(string("a"), parts[0]);
       EXPECT_EQ(string("b"), parts[1]);
       EXPECT_EQ(string("c"), parts[2]);
       EXPECT_EQ(string("d"), parts[3]);
     }
+  }
+  {
+    const bool discard_empty = true;
+    for (int i = 0; i < n; ++i) {
+      string str = string("a") + delim[i] + delim[i] + "b" + delim[i] + "c";
+      for (int j = 0; j < 5; ++j) {
+        str += delim[i];
+      }
+      str += "d";
+      Array<string> parts = Split(str, delim[i], -1, discard_empty);
+      ASSERT_EQ(1u, parts.size());
+      EXPECT_EQ(string("d"), parts[0]);
+    }
+  }
+  {
+    const bool discard_empty = true;
+    for (int i = 0; i < n; ++i) {
+      string str = string("a") + delim[i] + delim[i] + "b" + delim[i] + "c";
+      for (int j = 0; j < 5; ++j) {
+        str += delim[i];
+      }
+      str += "d";
+      Array<string> parts = Split(str, delim[i], -4, discard_empty);
+      ASSERT_EQ(4u, parts.size());
+      EXPECT_EQ(string("a"), parts[0]);
+      EXPECT_EQ(string("b"), parts[1]);
+      EXPECT_EQ(string("c"), parts[2]);
+      EXPECT_EQ(string("d"), parts[3]);
+    }
+  }
+  {
+    const bool discard_empty = false;
+    const bool handle_quotes = true;
+    auto parts = Split(" \t 'a'  \"b\"b  \tc \t\"d\"", " ", 0, discard_empty, handle_quotes);
+    ASSERT_EQ(5u, parts.size());
+    EXPECT_TRUE(parts[0].empty());
+    EXPECT_EQ(string("\t"), parts[1]);
+    EXPECT_EQ(string("a"), parts[2]);
+    EXPECT_TRUE(parts[3].empty());
+    EXPECT_EQ(string("b\"b  \tc \t\"d"), parts[4]);
+  }
+  {
+    const bool discard_empty = false;
+    const bool handle_quotes = true;
+    auto parts = Split(" \t 'a'  \"b\"b  \tc \t\"d\"", " ", -2, discard_empty, handle_quotes);
+    EXPECT_TRUE(parts[0].empty());
+    EXPECT_EQ(string("b\"b  \tc \t\"d"), parts[1]);
+  }
+  {
+    const bool discard_empty = true;
+    const bool handle_quotes = true;
+    auto parts = Split(" \t 'a'  \"b\"b  \tc \t\"d\"", " ", -2, discard_empty, handle_quotes);
+    EXPECT_EQ(string("a"), parts[0]);
+    EXPECT_EQ(string("b\"b  \tc \t\"d"), parts[1]);
+  }
+  {
+    const bool discard_empty = true;
+    const bool handle_quotes = true;
+    auto parts = Split(" first 'sec ond '  t \t\"fo\"ur  th\"", " ", 0, discard_empty, handle_quotes);
+    ASSERT_EQ(4u, parts.size());
+    EXPECT_EQ(string("first"), parts[0]);
+    EXPECT_EQ(string("sec ond "), parts[1]);
+    EXPECT_EQ(string("t"), parts[2]);
+    EXPECT_EQ(string("fo\"ur  th"), parts[3]);
+  }
+  {
+    const bool discard_empty = true;
+    const bool handle_quotes = true;
+    auto parts = Split(" first,'sec o,nd ' , t,\t \"fo\"ur  th\"\n", ",", 0, discard_empty, handle_quotes);
+    ASSERT_EQ(4u, parts.size());
+    EXPECT_EQ(string(" first"), parts[0]);
+    EXPECT_EQ(string("sec o,nd "), parts[1]);
+    EXPECT_EQ(string(" t"), parts[2]);
+    EXPECT_EQ(string("fo\"ur  th"), parts[3]);
   }
 }
 
