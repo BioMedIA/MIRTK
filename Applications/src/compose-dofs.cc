@@ -48,9 +48,13 @@ void PrintHelp(const char *name)
   cout << "     T(x) = Tn o ... o T2 o T1(x)" << endl;
   cout << endl;
   cout << "Optional arguments:" << endl;
-  cout << "  -target <image>   Target image on which images will be resampled using" << endl;
-  cout << "                    the composed transformation." << endl;
-  cout << "  -approximate      Approximate the composed transformation using a single FFD. (default: off)" << endl;
+  cout << "  -target <image>    Target image on which images will be resampled using" << endl;
+  cout << "                     the composed transformation." << endl;
+  cout << "  -[no]rotation      Whether to allow rotation    when composite transformation is affine. (default: on)" << endl;
+  cout << "  -[no]translation   Whether to allow translation when composite transformation is affine. (default: on)" << endl;
+  cout << "  -[no]scaling       Whether to allow scaling     when composite transformation is affine. (default: on)" << endl;
+  cout << "  -[no]shearing      Whether to allow shearing    when composite transformation is affine. (default: on)" << endl;
+  cout << "  -approximate       Approximate the composed transformation using a single FFD. (default: off)" << endl;
   PrintStandardOptions(cout);
   cout << endl;
 }
@@ -185,6 +189,10 @@ int main(int argc, char **argv)
 
   ImageAttributes attr;
   FluidFreeFormTransformation t;
+  bool translation = true;
+  bool rotation    = true;
+  bool scaling     = true;
+  bool shearing    = true;
   bool approximate = false;
 
   for (ALL_OPTIONS) {
@@ -193,9 +201,11 @@ int main(int argc, char **argv)
       GreyImage target(ARGUMENT);
       attr = target.Attributes();
     }
-    else if (OPTION("-approximate")) {
-      approximate = true;
-    }
+    else HANDLE_BOOL_OPTION(translation);
+    else HANDLE_BOOL_OPTION(rotation);
+    else HANDLE_BOOL_OPTION(scaling);
+    else HANDLE_BOOL_OPTION(shearing);
+    else HANDLE_BOOL_OPTION(approximate);
     else HANDLE_COMMON_OR_UNKNOWN_OPTION();
   }
 
@@ -281,7 +291,7 @@ int main(int argc, char **argv)
     for (int i = 0; i < t.NumberOfLevels(); ++i) {
       const auto &attr = t.GetLocalTransformation(i)->Attributes();
       if (attr.NumberOfLatticePoints() > ffd_attr.NumberOfLatticePoints()) {
-	ffd_attr = attr;
+        ffd_attr = attr;
       }
     }
 
@@ -301,6 +311,31 @@ int main(int argc, char **argv)
   // Write composite transformation
   const char *output_name = POSARG(NUM_POSARGS);
   if (verbose) cout << "Writing composite transformation to " << output_name << endl;
-  t.Write(output_name);
-  if (verbose) t.Print(2);
+  if (t.NumberOfLevels() == 0) {
+    AffineTransformation aff(*t.GetGlobalTransformation());
+    aff.PutMatrix(t.GetAffineTransformation()->GetMatrix() * aff.GetMatrix());
+    if (!translation) {
+      aff.PutTranslationX(0.);
+      aff.PutTranslationY(0.);
+      aff.PutTranslationZ(0.);
+    }
+    if (!rotation) {
+      aff.PutRotationX(0.);
+      aff.PutRotationY(0.);
+      aff.PutRotationZ(0.);
+    }
+    if (!scaling) {
+      aff.PutScale(100.);
+    }
+    if (!shearing) {
+      aff.PutShearXY(0.);
+      aff.PutShearYZ(0.);
+      aff.PutShearXZ(0.);
+    }
+    aff.Write(output_name);
+    if (verbose) aff.Print(2);
+  } else {
+    t.Write(output_name);
+    if (verbose) t.Print(2);
+  }
 }
