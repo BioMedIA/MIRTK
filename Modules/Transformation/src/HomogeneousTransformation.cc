@@ -497,6 +497,7 @@ bool HomogeneousTransformation::CopyFrom(const Transformation *other)
 void HomogeneousTransformation::Reset()
 {
   _matrix.Ident();
+  _inverse.Ident();
   this->Update(DOFS);
 }
 
