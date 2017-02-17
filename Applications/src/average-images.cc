@@ -44,9 +44,15 @@ using namespace mirtk;
 void PrintHelp(const char* name)
 {
   cout << endl;
+#ifdef HAVE_MIRTK_Transformation
   cout << "Usage: " << name << " <output> -images <images.lst> [options]" << endl;
   cout << "       " << name << " <output> -image <image1> [-dof <dof1>...] -image <image2> [-dof <dof2>...]... [options]" << endl;
   cout << "       " << name << " <output> <image1> [<dof1>...] <image2> [<dof2>...]... [options]" << endl;
+#else
+  cout << "Usage: " << name << " <output> -images <images.lst> [options]" << endl;
+  cout << "       " << name << " <output> -image <image1> -image <image2> ... [options]" << endl;
+  cout << "       " << name << " <output> <image1> <image2>... [options]" << endl;
+#endif
   cout << "       " << name << " <output> <sequence> [options]" << endl;
   cout << endl;
   cout << "Description:" << endl;
@@ -66,7 +72,7 @@ void PrintHelp(const char* name)
   cout << "                           of all relative image and transformation file paths occurring on the" << endl;
   cout << "                           subsequent N lines. A path starting with './' must be relative to the" << endl;
   cout << "                           directory containing the input text file itself." << endl;
-  cout << " -delim, -delimiter <c>    Delimiter used in :option:`-images` file." << endl;
+  cout << "  -delim, -delimiter <c>   Delimiter used in :option:`-images` file." << endl;
   cout << "                           (default: ',' for .csv, '\\t' for .tsv, and ' ' otherwise)" << endl;
   cout << "  -invert                  Invert transformations specified in :option:`-images` file." << endl;
   cout << "  -image <file>            A single input image." << endl;
@@ -77,6 +83,7 @@ void PrintHelp(const char* name)
 #endif
   cout << endl;
   cout << "Optional arguments:" << endl;
+  cout << "  -reference <file>          Reference image for output image attributes.\n";
   cout << "  -size <dx> [<dy> [<dz>]]   Voxel size of intensity average image. (default: average of input images)" << endl;
   cout << "  -padding <value>           Input padding and output background value. No input padding if not specified." << endl;
   cout << "                             Output background value zero by default or minimum average intensity minus 1. (default: 0)" << endl;
