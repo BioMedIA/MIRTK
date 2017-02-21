@@ -101,6 +101,9 @@ int main(int argc, char **argv)
 
     // Invert local FFD
     if ((ffd1 = mffd->PopLocalTransformation())) {
+      if (verbose > 1) {
+        cout << "Invert local transformation of type " << ffd1->NameOfClass() << endl;
+      }
       if (strcmp(ffd1->NameOfClass(), "BSplineFreeFormTransformationTD") == 0) {
 
         BSplineFreeFormTransformationTD *affd1 = dynamic_cast<BSplineFreeFormTransformationTD *>(ffd1);
@@ -170,7 +173,7 @@ int main(int argc, char **argv)
   dof->Write(dofout_name);
 
   // Evaluate error
-  if (ffd1 && ffd2) {
+  if (verbose > 0 && ffd1 && ffd2) {
     double x1, y1, z1, x2, y2, z2;
 
     double error     = 0.0;
