@@ -535,7 +535,7 @@ int main(int argc, char **argv)
     if (rigid     ) global     = rigid;
     // Get local transformation parameters
     if (deformation && ffd) {
-      if (invert) {
+      if (invert && (!avgdofs || type != "BSplineFreeFormTransformationSV") && (avgdofs || !logspace)) {
         cerr << EXECNAME << ": -invert option only supported for rigid/affine transformations" << endl;
         exit(1);
       }
@@ -559,6 +559,14 @@ int main(int argc, char **argv)
               d(i, j, k, 1) = invA(1, 0) * x + invA(1, 1) * y + invA(1, 2) * z;
               d(i, j, k, 2) = invA(2, 0) * x + invA(2, 1) * y + invA(2, 2) * z;
             }
+          }
+        }
+        if (invert) {
+          if (type == "BSplineFreeFormTransformationSV") {
+            d *= -1.;
+          } else {
+            cerr << EXECNAME << ": -invert option only supported for affine transformation and SV FFD" << endl;
+            exit(1);
           }
         }
       // Otherwise,...
@@ -595,6 +603,12 @@ int main(int argc, char **argv)
             blur.Output(&d);
             blur.Run();
           }
+          if (invert) {
+            d *= -1.;
+          }
+        } else if (invert) {
+          cerr << EXECNAME << ": -invert option requires -log space average" << endl;
+          exit(1);
         }
       }
       // Add to sum of local transformations
@@ -679,11 +693,15 @@ int main(int argc, char **argv)
   // Otherwise,...
   } else {
 
+    // Invert average stationary velocity field
     if (invavg) {
-      cerr << EXECNAME << ": -inverse[-dofs] option only supported for global transformations" << endl;
-      exit(1);
+      if (logspace || type == "BSplineFreeFormTransformationSV") {
+        W *= -1.;
+      } else {
+        cerr << EXECNAME << ": -inverse[-dofs] option only supported for global transformations, SV FFDs, or when average computed in -log space" << endl;
+        exit(1);
+      }
     }
-
     // Divide sum of local transformations by total weight to get average
     avgD /= W;
     // Convert velocities back to displacements, unless the output transformation
