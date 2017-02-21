@@ -543,6 +543,9 @@ public:
   void Put(int, const Vector &);
 
   /// Puts values of the parameters at a control point
+  void Put(int, double, double, double);
+
+  /// Puts values of the parameters at a control point
   void Put(int, int, int, double, double, double);
   
   /// Puts values of the parameters at a control point
@@ -550,6 +553,9 @@ public:
 
   /// Gets values of the parameters at a control point
   void Get(int, Vector &) const;
+
+  /// Gets values of the parameters at a control point
+  void Get(int, double &, double &, double &) const;
 
   /// Gets values of the parameters at a control point
   void Get(int, int, int, double &, double &, double &) const;
@@ -1305,15 +1311,21 @@ inline void FreeFormTransformation::Put(int cp, const Vector &x)
 }
 
 // -----------------------------------------------------------------------------
+inline void FreeFormTransformation::Put(int cp, double x, double y, double z)
+{
+  _CPImage(cp) = Vector(x, y, z);
+}
+
+// -----------------------------------------------------------------------------
 inline void FreeFormTransformation::Put(int i, int j, int k, int l,
-                                            double x, double y, double z)
+                                        double x, double y, double z)
 {
   _CPImage(i, j, k, l) = Vector(x, y, z);
 }
 
 // -----------------------------------------------------------------------------
 inline void FreeFormTransformation::Put(int i, int j, int k,
-                                            double x, double y, double z)
+                                        double x, double y, double z)
 {
   Put(i, j, k, 0, x, y, z);
 }
@@ -1325,8 +1337,15 @@ inline void FreeFormTransformation::Get(int cp, Vector &x) const
 }
 
 // -----------------------------------------------------------------------------
+inline void FreeFormTransformation::Get(int cp, double &x, double &y, double &z) const
+{
+  const Vector &param = _CPImage(cp);
+  x = param._x, y = param._y, z = param._z;
+}
+
+// -----------------------------------------------------------------------------
 inline void FreeFormTransformation::Get(int i, int j, int k, int l,
-                                            double &x, double &y, double &z) const
+                                        double &x, double &y, double &z) const
 {
   const Vector &param = _CPImage(i, j, k, l);
   x = param._x, y = param._y, z = param._z;
@@ -1334,7 +1353,7 @@ inline void FreeFormTransformation::Get(int i, int j, int k, int l,
 
 // -----------------------------------------------------------------------------
 inline void FreeFormTransformation::Get(int i, int j, int k,
-                                            double &x, double &y, double &z) const
+                                        double &x, double &y, double &z) const
 {
   Get(i, j, k, 0, x, y, z);
 }
@@ -1347,7 +1366,7 @@ inline void FreeFormTransformation::PutStatus(int cp, const CPStatus &status)
 
 // -----------------------------------------------------------------------------
 inline void FreeFormTransformation::PutStatus(int i, int j, int k, int l,
-                                                  DOFStatus sx, DOFStatus sy, DOFStatus sz)
+                                              DOFStatus sx, DOFStatus sy, DOFStatus sz)
 {
   CPStatus &status = _CPStatus[l][k][j][i];
   status._x = sx;
@@ -1357,7 +1376,7 @@ inline void FreeFormTransformation::PutStatus(int i, int j, int k, int l,
 
 // -----------------------------------------------------------------------------
 inline void FreeFormTransformation::PutStatus(int i, int j, int k,
-                                                  DOFStatus sx, DOFStatus sy, DOFStatus sz)
+                                              DOFStatus sx, DOFStatus sy, DOFStatus sz)
 {
   PutStatus(i, j, k, 0, sx, sy, sz);
 }
@@ -1373,7 +1392,7 @@ inline void FreeFormTransformation::GetStatus(int cp, CPStatus &status) const
 
 // -----------------------------------------------------------------------------
 inline void FreeFormTransformation::GetStatus(int i, int j, int k, int l,
-                                                  DOFStatus &sx, DOFStatus &sy, DOFStatus &sz) const
+                                              DOFStatus &sx, DOFStatus &sy, DOFStatus &sz) const
 {
   const CPStatus &status = _CPStatus[l][k][j][i];
   sx = status._x;
@@ -1383,7 +1402,7 @@ inline void FreeFormTransformation::GetStatus(int i, int j, int k, int l,
 
 // -----------------------------------------------------------------------------
 inline void FreeFormTransformation::GetStatus(int i, int j, int k,
-                                                  DOFStatus &sx, DOFStatus &sy, DOFStatus &sz) const
+                                              DOFStatus &sx, DOFStatus &sy, DOFStatus &sz) const
 {
   GetStatus(i, j, k, 0, sx, sy, sz);
 }
