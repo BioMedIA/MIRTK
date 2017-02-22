@@ -671,8 +671,10 @@ int main(int argc, char **argv)
       const Matrix avgAInv = avgA.Inverse();
       Matrix residual(4, 4);
       for (int i = 0; i < N; ++i) {
-        if (w[i] == .0) continue;
-        residual += (avgAInv * A[i]).Log() * w[i];
+        const double weight = (w ? w[i] : 1.);
+        if (weight != .0) {
+          residual += (avgAInv * A[i]).Log() * weight;
+        }
       }
       residual /= W;
       cout << "\n" << indent << "Deviation from barycentric equation   = " << residual.Norm() << endl;
