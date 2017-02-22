@@ -204,11 +204,11 @@ int main(int argc, char **argv)
   for (OPTIONAL_POSARGS) dofin.push_back(ARGUMENT);
 
   // Parse options
-  const char *target_name    = NULL;
-  const char *doflist        = NULL;
-  const char *dofdir         = NULL;
-  const char *prefix         = NULL;
-  const char *suffix         = NULL;
+  const char *target_name    = nullptr;
+  const char *doflist        = nullptr;
+  const char *dofdir         = nullptr;
+  const char *prefix         = nullptr;
+  const char *suffix         = nullptr;
   bool        translation    = false;
   bool        rotation       = false;
   bool        scaling        = true;
@@ -325,8 +325,8 @@ int main(int argc, char **argv)
   const int N = static_cast<int>(IsInf(identity_value) ? dofin.size() : dofin.size()+1u);
 
   // Compute actual weights
-  double *w = NULL; // actual weights
-  double  W = .0;   // sum of all weights
+  double *w = nullptr;  // actual weights
+  double  W = .0;       // sum of all weights
 
   if (value.size() > 0) {
     // Add value for implicit identity transformation
@@ -476,7 +476,7 @@ int main(int argc, char **argv)
   }
 
   // Initialize intermediate data structures
-  Matrix              *A = NULL;
+  Matrix              *A = nullptr;
   GenericImage<double> d, avgD;
 
   if (translation || rotation || scaling || shearing) {
@@ -497,13 +497,13 @@ int main(int argc, char **argv)
     // Read transformation from file
     UniquePtr<Transformation> t(Transformation::New(dofin[i].c_str()));
     // Determine actual type of transformation
-    HomogeneousTransformation   *global     = NULL;
-    RigidTransformation         *rigid      = NULL;
-    SimilarityTransformation    *similarity = NULL;
-    AffineTransformation        *affine     = NULL;
-    FreeFormTransformation3D    *ffd        = NULL;
-    MultiLevelTransformation    *mffd       = NULL;
-    FluidFreeFormTransformation *fluid      = NULL;
+    HomogeneousTransformation   *global     = nullptr;
+    RigidTransformation         *rigid      = nullptr;
+    SimilarityTransformation    *similarity = nullptr;
+    AffineTransformation        *affine     = nullptr;
+    FreeFormTransformation3D    *ffd        = nullptr;
+    MultiLevelTransformation    *mffd       = nullptr;
+    FluidFreeFormTransformation *fluid      = nullptr;
     if (!((fluid      = dynamic_cast<FluidFreeFormTransformation *>(t.get())) ||
           (mffd       = dynamic_cast<MultiLevelTransformation    *>(t.get())) ||
           (ffd        = dynamic_cast<FreeFormTransformation3D    *>(t.get())) ||
