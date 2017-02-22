@@ -204,11 +204,11 @@ int main(int argc, char **argv)
   for (OPTIONAL_POSARGS) dofin.push_back(ARGUMENT);
 
   // Parse options
-  const char *target_name    = NULL;
-  const char *doflist        = NULL;
-  const char *dofdir         = NULL;
-  const char *prefix         = NULL;
-  const char *suffix         = NULL;
+  const char *target_name    = nullptr;
+  const char *doflist        = nullptr;
+  const char *dofdir         = nullptr;
+  const char *prefix         = nullptr;
+  const char *suffix         = nullptr;
   bool        translation    = false;
   bool        rotation       = false;
   bool        scaling        = true;
@@ -325,8 +325,8 @@ int main(int argc, char **argv)
   const int N = static_cast<int>(IsInf(identity_value) ? dofin.size() : dofin.size()+1u);
 
   // Compute actual weights
-  double *w = NULL; // actual weights
-  double  W = .0;   // sum of all weights
+  double *w = nullptr;  // actual weights
+  double  W = .0;       // sum of all weights
 
   if (value.size() > 0) {
     // Add value for implicit identity transformation
@@ -408,6 +408,7 @@ int main(int argc, char **argv)
   // to define the image domain of the average displacement field
   } else {
     if (verbose) cout << "Checking type of input transformations...", cout.flush();
+    mtype = "None";
     for (size_t i = 0; i < dofin.size(); ++i) {
       if (dofin[i] == identity_name) continue;
       UniquePtr<Transformation> t(Transformation::New(dofin[i].c_str()));
@@ -421,7 +422,7 @@ int main(int argc, char **argv)
           type.clear();
           break;
         }
-        if      (mtype.empty())                mtype = mffd->NameOfClass();
+        if (mtype == "None") mtype = mffd->NameOfClass();
         else if (mtype != mffd->NameOfClass()) mtype.clear();
       }
       FreeFormTransformation *ffd = dynamic_cast<FreeFormTransformation *>(p);
@@ -430,8 +431,8 @@ int main(int argc, char **argv)
           type = ffd->NameOfClass();
           attr = ffd->Attributes();
         } else if (type != ffd->NameOfClass() || ffd->Attributes() != attr) {
-          mtype.clear();
-          type .clear();
+          if (mtype != "None") mtype.clear();
+          type.clear();
           break;
         }
       }
@@ -476,7 +477,7 @@ int main(int argc, char **argv)
   }
 
   // Initialize intermediate data structures
-  Matrix              *A = NULL;
+  Matrix              *A = nullptr;
   GenericImage<double> d, avgD;
 
   if (translation || rotation || scaling || shearing) {
@@ -497,13 +498,13 @@ int main(int argc, char **argv)
     // Read transformation from file
     UniquePtr<Transformation> t(Transformation::New(dofin[i].c_str()));
     // Determine actual type of transformation
-    HomogeneousTransformation   *global     = NULL;
-    RigidTransformation         *rigid      = NULL;
-    SimilarityTransformation    *similarity = NULL;
-    AffineTransformation        *affine     = NULL;
-    FreeFormTransformation3D    *ffd        = NULL;
-    MultiLevelTransformation    *mffd       = NULL;
-    FluidFreeFormTransformation *fluid      = NULL;
+    HomogeneousTransformation   *global     = nullptr;
+    RigidTransformation         *rigid      = nullptr;
+    SimilarityTransformation    *similarity = nullptr;
+    AffineTransformation        *affine     = nullptr;
+    FreeFormTransformation3D    *ffd        = nullptr;
+    MultiLevelTransformation    *mffd       = nullptr;
+    FluidFreeFormTransformation *fluid      = nullptr;
     if (!((fluid      = dynamic_cast<FluidFreeFormTransformation *>(t.get())) ||
           (mffd       = dynamic_cast<MultiLevelTransformation    *>(t.get())) ||
           (ffd        = dynamic_cast<FreeFormTransformation3D    *>(t.get())) ||
@@ -548,18 +549,16 @@ int main(int argc, char **argv)
       // Average parameters at control points directly when possible
       double x, y, z;
       if (avgdofs) {
-        for (int k = 0; k < attr._z; ++k) {
-          for (int j = 0; j < attr._y; ++j) {
-            for (int i = 0; i < attr._x; ++i) {
-              // Get control point parameters
-              ffd->Get(i, j, k, x, y, z);
-              // Remove dependency on global transformation
-              // Note: Applies also when the FFD parameters are stationary velocities, see below.
-              d(i, j, k, 0) = invA(0, 0) * x + invA(0, 1) * y + invA(0, 2) * z;
-              d(i, j, k, 1) = invA(1, 0) * x + invA(1, 1) * y + invA(1, 2) * z;
-              d(i, j, k, 2) = invA(2, 0) * x + invA(2, 1) * y + invA(2, 2) * z;
-            }
-          }
+        for (int k = 0; k < attr._z; ++k)
+        for (int j = 0; j < attr._y; ++j)
+        for (int i = 0; i < attr._x; ++i) {
+          // Get control point parameters
+          ffd->Get(i, j, k, x, y, z);
+          // Remove dependency on global transformation
+          // Note: Applies also when the FFD parameters are stationary velocities, see below.
+          d(i, j, k, 0) = invA(0, 0) * x + invA(0, 1) * y + invA(0, 2) * z;
+          d(i, j, k, 1) = invA(1, 0) * x + invA(1, 1) * y + invA(1, 2) * z;
+          d(i, j, k, 2) = invA(2, 0) * x + invA(2, 1) * y + invA(2, 2) * z;
         }
         if (invert) {
           if (type == "BSplineFreeFormTransformationSV") {
@@ -573,21 +572,19 @@ int main(int argc, char **argv)
       } else {
         // Get local displacement field
         Matrix i2w = attr.GetImageToWorldMatrix();
-        for (int k = 0; k < attr._z; ++k) {
-          for (int j = 0; j < attr._y; ++j) {
-            for (int i = 0; i < attr._x; ++i) {
-              // Convert voxel indices to world coordinates
-              x = i2w(0, 0) * i + i2w(0, 1) * j + i2w(0, 2) * k + i2w(0, 3);
-              y = i2w(1, 0) * i + i2w(1, 1) * j + i2w(1, 2) * k + i2w(1, 3);
-              z = i2w(2, 0) * i + i2w(2, 1) * j + i2w(2, 2) * k + i2w(2, 3);
-              // Evaluate (total) local voxel displacement
-              t->LocalDisplacement(x, y, z);
-              // Remove dependency on global transformation
-              d(i, j, k, 0) = invA(0, 0) * x + invA(0, 1) * y + invA(0, 2) * z;
-              d(i, j, k, 1) = invA(1, 0) * x + invA(1, 1) * y + invA(1, 2) * z;
-              d(i, j, k, 2) = invA(2, 0) * x + invA(2, 1) * y + invA(2, 2) * z;
-            }
-          }
+        for (int k = 0; k < attr._z; ++k)
+        for (int j = 0; j < attr._y; ++j)
+        for (int i = 0; i < attr._x; ++i) {
+          // Convert voxel indices to world coordinates
+          x = i2w(0, 0) * i + i2w(0, 1) * j + i2w(0, 2) * k + i2w(0, 3);
+          y = i2w(1, 0) * i + i2w(1, 1) * j + i2w(1, 2) * k + i2w(1, 3);
+          z = i2w(2, 0) * i + i2w(2, 1) * j + i2w(2, 2) * k + i2w(2, 3);
+          // Evaluate (total) local voxel displacement
+          t->LocalDisplacement(x, y, z);
+          // Remove dependency on global transformation
+          d(i, j, k, 0) = invA(0, 0) * x + invA(0, 1) * y + invA(0, 2) * z;
+          d(i, j, k, 1) = invA(1, 0) * x + invA(1, 1) * y + invA(1, 2) * z;
+          d(i, j, k, 2) = invA(2, 0) * x + invA(2, 1) * y + invA(2, 2) * z;
         }
         // Compute stationary velocity field
         if (logspace) {
@@ -671,8 +668,10 @@ int main(int argc, char **argv)
       const Matrix avgAInv = avgA.Inverse();
       Matrix residual(4, 4);
       for (int i = 0; i < N; ++i) {
-        if (w[i] == .0) continue;
-        residual += (avgAInv * A[i]).Log() * w[i];
+        const double weight = (w ? w[i] : 1.);
+        if (weight != .0) {
+          residual += (avgAInv * A[i]).Log() * weight;
+        }
       }
       residual /= W;
       cout << "\n" << indent << "Deviation from barycentric equation   = " << residual.Norm() << endl;
@@ -695,7 +694,7 @@ int main(int argc, char **argv)
 
     // Invert average stationary velocity field
     if (invavg) {
-      if (logspace || type == "BSplineFreeFormTransformationSV") {
+      if (logspace || (avgdofs && type == "BSplineFreeFormTransformationSV")) {
         W *= -1.;
       } else {
         cerr << EXECNAME << ": -inverse[-dofs] option only supported for global transformations, SV FFDs, or when average computed in -log space" << endl;
@@ -723,25 +722,23 @@ int main(int argc, char **argv)
     // avgT(x) = avgA x + avgA sum_i b_i h v(x_i) = avgA x + sum_i b_i h (avgA v(x_i)).
     double x, y, z;
     const Matrix &avgA = globalAvg.GetMatrix();
-    for (int k = 0; k < attr._z; ++k) {
-      for (int j = 0; j < attr._y; ++j) {
-        for (int i = 0; i < attr._x; ++i) {
-          x = avgD(i, j, k, 0), y = avgD(i, j, k, 1), z = avgD(i, j, k, 2);
-          avgD(i, j, k, 0) = avgA(0, 0) * x + avgA(0, 1) * y + avgA(0, 2) * z;
-          avgD(i, j, k, 1) = avgA(1, 0) * x + avgA(1, 1) * y + avgA(1, 2) * z;
-          avgD(i, j, k, 2) = avgA(2, 0) * x + avgA(2, 1) * y + avgA(2, 2) * z;
-        }
-      }
+    for (int k = 0; k < attr._z; ++k)
+    for (int j = 0; j < attr._y; ++j)
+    for (int i = 0; i < attr._x; ++i) {
+      x = avgD(i, j, k, 0), y = avgD(i, j, k, 1), z = avgD(i, j, k, 2);
+      avgD(i, j, k, 0) = avgA(0, 0) * x + avgA(0, 1) * y + avgA(0, 2) * z;
+      avgD(i, j, k, 1) = avgA(1, 0) * x + avgA(1, 1) * y + avgA(1, 2) * z;
+      avgD(i, j, k, 2) = avgA(2, 0) * x + avgA(2, 1) * y + avgA(2, 2) * z;
     }
     // Construct FFD from average deformation
-    FreeFormTransformation *ffd = NULL;
+    UniquePtr<FreeFormTransformation> ffd;
     if (avgdofs) {
       if (type == "LinearFreeFormTransformation3D") {
-        ffd = new LinearFreeFormTransformation3D(avgD, true);
+        ffd.reset(new LinearFreeFormTransformation3D(avgD, true));
       } else if (type == "BSplineFreeFormTransformation3D") {
-        ffd = new BSplineFreeFormTransformation3D(avgD, true);
+        ffd.reset(new BSplineFreeFormTransformation3D(avgD, true));
       } else if (type == "BSplineFreeFormTransformationSV") {
-        ffd = new BSplineFreeFormTransformationSV(avgD, true);
+        ffd.reset(new BSplineFreeFormTransformationSV(avgD, true));
       }
     }
     if (!ffd) {
@@ -749,21 +746,24 @@ int main(int argc, char **argv)
         ConvertToCubicBSplineCoefficients(avgD, 0);
         ConvertToCubicBSplineCoefficients(avgD, 1);
         ConvertToCubicBSplineCoefficients(avgD, 2);
-        ffd = new BSplineFreeFormTransformation3D(avgD, true);
+        ffd.reset(new BSplineFreeFormTransformation3D(avgD, true));
       } else {
-        ffd = new LinearFreeFormTransformation3D(avgD, true);
+        ffd.reset(new LinearFreeFormTransformation3D(avgD, true));
       }
     }
     // Write average non-linear transformation
-    MultiLevelTransformation *mffd = NULL;
+    UniquePtr<MultiLevelTransformation> mffd;
     if (mtype == "MultiLevelStationaryVelocityTransformation") {
-      mffd = new MultiLevelStationaryVelocityTransformation(globalAvg);
-    } else {
-      mffd = new MultiLevelFreeFormTransformation(globalAvg);
+      mffd.reset(new MultiLevelStationaryVelocityTransformation(globalAvg));
+    } else if (mtype != "None" || !globalAvg.IsIdentity()) {
+      mffd.reset(new MultiLevelFreeFormTransformation(globalAvg));
     }
-    mffd->PushLocalTransformation(ffd);
-    mffd->Write(dofout.c_str());
-    delete mffd;
+    if (mffd) {
+      mffd->PushLocalTransformation(ffd.get(), false);
+      mffd->Write(dofout.c_str());
+    } else {
+      ffd->Write(dofout.c_str());
+    }
   }
 
   // Clean up
