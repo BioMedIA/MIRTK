@@ -64,9 +64,11 @@ void PrintHelp(const char *name)
   cout << "  -outside <value>     Outside determinant value. (default: 0)" << endl;
   cout << "  -Tt <value>          Temporal origin of target image. (default: _torigin)" << endl;
   cout << "  -St <value>          Temporal origin of source image. (default: _torigin + _dt)" << endl;
+  cout << "  -ss [fast]           Force use of scaling-and-squaring for SV FFD. (default: SV FFD integration method)" << endl;
   cout << "  -noss                Do not use scaling-and-squaring for SV FFD." << endl;
-  cout << "  -float               Output determinant values as single-precision floating point." << endl;
-  cout << "  -double              Output determinant values as double-precision floating point." << endl;
+  cout << "  -float               Output values as single-precision floating point." << endl;
+  cout << "  -double              Output values as double-precision floating point." << endl;
+  cout << "  -real                Output values as floating point with default precision." << endl;
   cout << "  -threshold <value>   Lower Jacobian determinant threshold used when computing -log. (default: 1e-4)" << endl;
   PrintCommonOptions(cout);
   cout << endl;
@@ -93,7 +95,7 @@ struct JacobianImpl : public VoxelReduction
 {
   GreyImage            *_image;
   BaseImage            *_jacobian;
-  BinaryImage           _mask;
+  BinaryImage          * _mask;
   int                   _nvox;
   const Transformation *_dof;
   double               _t, _t0;
@@ -101,24 +103,25 @@ struct JacobianImpl : public VoxelReduction
   int                  _padding;
   double               _outside;
   int                  _m, _n;
-  bool                 _noss;
+  int                  _noss;
   int                  _dtype;
   double               _threshold;
 
   JacobianImpl()
   :
-    _image   (NULL),
-    _jacobian(NULL),
+    _image   (nullptr),
+    _jacobian(nullptr),
+    _mask    (nullptr),
     _nvox    (0),
-    _dof     (NULL),
-    _t       (numeric_limits<double>::quiet_NaN()),
-    _t0      (numeric_limits<double>::quiet_NaN()),
+    _dof     (nullptr),
+    _t       (NaN),
+    _t0      (NaN),
     _mode    (DefaultJacobian),
     _padding (MIN_GREY),
     _outside (.0),
     _m       (0),
     _n       (0),
-    _noss    (false),
+    _noss    (-1),
     _dtype   (MIRTK_VOXEL_GREY),
     _threshold(.0001)
   {}
@@ -127,6 +130,7 @@ struct JacobianImpl : public VoxelReduction
   :
     _image   (other._image),
     _jacobian(other._jacobian),
+    _mask    (other._mask),
     _nvox    (other._nvox),
     _dof     (other._dof),
     _t       (other._t),
@@ -154,7 +158,9 @@ struct JacobianImpl : public VoxelReduction
 
   double Jacobian(int i, int j, int k, const BinaryPixel *mask)
   {
-    if (!(*mask)) return _outside;
+    if (*mask == 0) {
+      return _outside;
+    }
 
     ++_m;
 
@@ -228,33 +234,42 @@ struct JacobianImpl : public VoxelReduction
 
   void Run()
   {
-    _nvox                = _image->NumberOfSpatialVoxels();
+    _nvox = _image->NumberOfSpatialVoxels();
     ImageAttributes attr = _image->Attributes();
     attr._t = 1, attr._dt = .0;
     // Default arguments
     if (IsNaN(_t0)) _t0 = _image->ImageToTime(0);
     if (IsNaN(_t )) _t  = _t0 + _image->GetTSize();
-    // Compute foreground mask
-    _mask.Initialize(attr);
-    GreyPixel   *i = _image->Data();
-    BinaryPixel *m = _mask.Data();
-    for (int idx = 0; idx < _nvox; ++idx, ++i, ++m) {
-      *m = static_cast<BinaryPixel>((static_cast<double>(*i) > _padding));
-    }
     // Initialize output image
     if (_mode == TotalAndLogJacobian) _jacobian->Initialize(attr, 2);
     else                              _jacobian->Initialize(attr, 1);
     // Use scaling and squaring in case of SV FFD
-    const BSplineFreeFormTransformationSV *svffd = NULL;
-    if (!_noss) svffd = dynamic_cast<const BSplineFreeFormTransformationSV *>(_dof);
-    if (svffd && _mode != GlobalJacobian && (svffd->IntegrationMethod() == FFDIM_SS ||
-                                             svffd->IntegrationMethod() == FFDIM_FastSS)) {
+    const BSplineFreeFormTransformationSV *svffd = nullptr;
+    if (_mode != GlobalJacobian && _noss != 0) {
+      svffd = dynamic_cast<const BSplineFreeFormTransformationSV *>(_dof);
+      if (!svffd) {
+        const MultiLevelTransformation *mffd;
+        mffd = dynamic_cast<const MultiLevelTransformation *>(_dof);
+        if (mffd && mffd->NumberOfLevels() == 1 && mffd->GetGlobalTransformation()->IsIdentity()) {
+          svffd = dynamic_cast<const BSplineFreeFormTransformationSV *>(mffd->GetLocalTransformation(0));
+        }
+      }
+    }
+    if (svffd && (_noss > 0 || svffd->IntegrationMethod() == FFDIM_SS || svffd->IntegrationMethod() == FFDIM_FastSS)) {
+      const FFDIntegrationMethod ffdim = svffd->IntegrationMethod();
+      if (_noss > 0) {
+        if (_noss == 2) {
+          const_cast<BSplineFreeFormTransformationSV *>(svffd)->IntegrationMethod(FFDIM_FastSS);
+        } else {
+          const_cast<BSplineFreeFormTransformationSV *>(svffd)->IntegrationMethod(FFDIM_SS);
+        }
+      }
 #if 0
       // Compute all partial derivatives using scaling and squaring
       if (verbose) cout << "Computing Jac using scaling and squaring" << endl;
       GenericImage<double> d;
       MIRTK_START_TIMING();
-      svffd->ScalingAndSquaring<double>(attr, NULL, &d, NULL, NULL, NULL, svffd->UpperIntegrationLimit(_t, _t0));
+      svffd->ScalingAndSquaring<double>(attr, nullptr, &d, nullptr, nullptr, nullptr, svffd->UpperIntegrationLimit(_t, _t0));
       MIRTK_DEBUG_TIMING(1, "computation of Jac using scaling and squaring");
       // Compute determinants of Jacobian matrices
       if (verbose) cout << "Computing det(Jac)" << endl;
@@ -263,7 +278,7 @@ struct JacobianImpl : public VoxelReduction
       const int yx = 3 * _nvox, yy = 4 * _nvox, yz = 5 * _nvox;
       const int zx = 6 * _nvox, zy = 7 * _nvox, zz = 8 * _nvox;
       for (int idx = 0; idx < _nvox; ++idx) {
-        if (static_cast<bool>(_mask(idx)) == false) continue;
+        if (_mask->Get(idx) == 0) continue;
         double jac = d(xx + idx) * d(yy + idx) * d(zz + idx)
                    + d(xy + idx) * d(yz + idx) * d(zx + idx)
                    + d(xz + idx) * d(yx + idx) * d(zy + idx)
@@ -281,15 +296,16 @@ struct JacobianImpl : public VoxelReduction
       MIRTK_DEBUG_TIMING(1, "computation of det(Jac)");
 #else
       // Compute Jacobian using scaling and squaring
+      const double T = svffd->UpperIntegrationLimit(_t, _t0);
       switch (_mode) {
         case LogJacobian: {
           if (verbose) cout << "Computing log(det(Jac)) using scaling and squaring" << endl;
           GenericImage<double> lj;
           MIRTK_START_TIMING();
-          svffd->ScalingAndSquaring<double>(attr, NULL, NULL, NULL, &lj, NULL, svffd->UpperIntegrationLimit(_t, _t0));
+          svffd->ScalingAndSquaring<double>(attr, nullptr, nullptr, nullptr, &lj, nullptr, T);
           MIRTK_DEBUG_TIMING(1, "computation of log(det(Jac)) using scaling and squaring");
           for (int idx = 0; idx < _nvox; ++idx) {
-            if (_mask(idx)) {
+            if (_mask->Get(idx) != 0) {
               _jacobian->PutAsDouble(idx, 100.0 * lj(idx));
               ++_m;
             }
@@ -299,10 +315,10 @@ struct JacobianImpl : public VoxelReduction
           if (verbose) cout << "Computing log(det(Jac)) using scaling and squaring" << endl;
           GenericImage<double> lj;
           MIRTK_START_TIMING();
-          svffd->ScalingAndSquaring<double>(attr, NULL, NULL, NULL, &lj, NULL, svffd->UpperIntegrationLimit(_t, _t0));
+          svffd->ScalingAndSquaring<double>(attr, nullptr, nullptr, nullptr, &lj, nullptr, T);
           MIRTK_DEBUG_TIMING(1, "computation of log(det(Jac)) using scaling and squaring");
           for (int idx = 0; idx < _nvox; ++idx) {
-            if (_mask(idx)) {
+            if (_mask->Get(idx) != 0) {
               _jacobian->PutAsDouble(idx, 100.0 * fabs(lj(idx)));
               ++_m;
             }
@@ -312,10 +328,10 @@ struct JacobianImpl : public VoxelReduction
           if (verbose) cout << "Computing det(Jac) using scaling and squaring" << endl;
           GenericImage<double> dj, lj;
           MIRTK_START_TIMING();
-          svffd->ScalingAndSquaring<double>(attr, NULL, NULL, &dj, &lj, NULL, svffd->UpperIntegrationLimit(_t, _t0));
+          svffd->ScalingAndSquaring<double>(attr, nullptr, nullptr, &dj, &lj, nullptr, T);
           MIRTK_DEBUG_TIMING(1, "computation of det(Jac) and log using scaling and squaring");
           for (int idx = 0; idx < _nvox; ++idx) {
-            if (_mask(idx)) {
+            if (_mask->Get(idx) != 0) {
               _jacobian->PutAsDouble(idx, 100.0 * dj(idx));
               _jacobian->PutAsDouble(idx + _nvox, 100.0 * lj(idx));
               ++_m, _n += (dj(idx) < .0 ? 1 : 0);
@@ -326,10 +342,10 @@ struct JacobianImpl : public VoxelReduction
           if (verbose) cout << "Computing det(Jac) using scaling and squaring" << endl;
           GenericImage<double> dj;
           MIRTK_START_TIMING();
-          svffd->ScalingAndSquaring<double>(attr, NULL, NULL, &dj, NULL, NULL, svffd->UpperIntegrationLimit(_t, _t0));
+          svffd->ScalingAndSquaring<double>(attr, nullptr, nullptr, &dj, nullptr, nullptr, T);
           MIRTK_DEBUG_TIMING(1, "computation of det(Jac) using scaling and squaring");
           for (int idx = 0; idx < _nvox; ++idx) {
-            if (!_mask(idx)) {
+            if (_mask->Get(idx) != 0) {
               _jacobian->PutAsDouble(idx, 100.0 * dj(idx));
               ++_m, _n += (dj(idx) < .0 ? 1 : 0);
             }
@@ -337,19 +353,20 @@ struct JacobianImpl : public VoxelReduction
         } break;
       }
 #endif
+      const_cast<BSplineFreeFormTransformationSV *>(svffd)->IntegrationMethod(ffdim);
     // Otherwise, evaluate Jacobian for each voxel separately
     } else {
       if (verbose) cout << "Computing Jacobian of non-SV FFD (or -noss option given)" << endl;
-      GreyImage            *iout = NULL;
-      GenericImage<float>  *fout = NULL;
-      GenericImage<double> *dout = NULL;
+      GreyImage            *iout = nullptr;
+      GenericImage<float>  *fout = nullptr;
+      GenericImage<double> *dout = nullptr;
       MIRTK_START_TIMING();
       if ((iout = dynamic_cast<GreyImage *>(_jacobian))) {
-        ParallelForEachVoxel(attr, &_mask, iout, *this);
+        ParallelForEachVoxel(attr, _mask, iout, *this);
       } else if ((fout = dynamic_cast<GenericImage<float> *>(_jacobian))) {
-        ParallelForEachVoxel(attr, &_mask, fout, *this);
+        ParallelForEachVoxel(attr, _mask, fout, *this);
       } else if ((dout = dynamic_cast<GenericImage<double> *>(_jacobian))) {
-        ParallelForEachVoxel(attr, &_mask, dout, *this);
+        ParallelForEachVoxel(attr, _mask, dout, *this);
       } else {
         cerr << "Output image data type must be either GreyPixel, float, or double" << endl;
         exit(1);
@@ -369,8 +386,8 @@ int main(int argc, char **argv)
   REQUIRES_POSARGS(2);
 
   const char *target_name = POSARG(1);
-  const char *output_name = NULL;
-  const char *dofin_name  = NULL;
+  const char *output_name = nullptr;
+  const char *dofin_name  = nullptr;
   if      (NUM_POSARGS == 2) dofin_name = POSARG(2), verbose     = 1;
   else if (NUM_POSARGS == 3) dofin_name = POSARG(3), output_name = POSARG(2);
   else {
@@ -378,53 +395,83 @@ int main(int argc, char **argv)
   }
 
   InitializeIOLibrary();
+  UniquePtr<GreyImage> target(new GreyImage(target_name));
+  UniquePtr<Transformation> dof(Transformation::New(dofin_name));
 
   JacobianImpl impl;
-  impl._image = new GreyImage(target_name);
-  impl._dof   = Transformation::New(dofin_name);
+  impl._image    = target.get();
+  impl._jacobian = target.get();
+  impl._dof      = dof.get();
 
   for (ALL_OPTIONS) {
-    if      (OPTION("-padding"))        impl._padding = atoi(ARGUMENT);
+    if (OPTION("-padding")) {
+      PARSE_ARGUMENT(impl._padding);
+    }
     else if (OPTION("-outside")) {
-      const char *arg = ARGUMENT;
-      if (strcmp(arg, "nan") == 0 || strcmp(arg, "NaN") == 0) {
-        impl._outside = numeric_limits<double>::quiet_NaN();
-      } else {
-        impl._outside = atof(ARGUMENT);
+      PARSE_ARGUMENT(impl._outside);
+    }
+    else if (OPTION("-threshold")) {
+      PARSE_ARGUMENT(impl._threshold);
+    }
+    else if (OPTION("-local"))     impl._mode = LocalJacobian;
+    else if (OPTION("-global"))    impl._mode = GlobalJacobian;
+    else if (OPTION("-total"))     impl._mode = TotalJacobian;
+    else if (OPTION("-log"))       impl._mode = LogJacobian;
+    else if (OPTION("-abslog"))    impl._mode = AbsLogJacobian;
+    else if (OPTION("-total+log")) impl._mode = TotalAndLogJacobian;
+    else if (OPTION("-relative"))  impl._mode = RelativeJacobian;
+    else if (OPTION("-fluid")) ; // ignore deprecated/obsolete option
+    else if (OPTION("-Tt")) {
+      PARSE_ARGUMENT(impl._t0);
+    }
+    else if (OPTION("-St")) {
+      PARSE_ARGUMENT(impl._t);
+    }
+    else if (OPTION("-ss")) {
+      impl._noss = 1;
+      if (HAS_ARGUMENT) {
+        bool ss;
+        const string arg = ARGUMENT;
+        if (ToLower(arg) == "fast") {
+          impl._noss = 2;
+        } else if (FromString(arg, ss)) {
+          impl._noss = (ss ? 1 : 0);
+        } else {
+          FatalError("Invalid -ss option argument: " << arg);
+        }
       }
     }
-    else if (OPTION("-local"))          impl._mode = LocalJacobian;
-    else if (OPTION("-global"))         impl._mode = GlobalJacobian;
-    else if (OPTION("-total"))          impl._mode = TotalJacobian;
-    else if (OPTION("-log"))            impl._mode = LogJacobian;
-    else if (OPTION("-abslog"))         impl._mode = AbsLogJacobian;
-    else if (OPTION("-total+log"))      impl._mode = TotalAndLogJacobian;
-    else if (OPTION("-relative"))       impl._mode = RelativeJacobian;
-    else if (OPTION("-fluid")) ; // ignore deprecated/obsolete option
-    else if (OPTION("-Tt"))             impl._t0    = atof(ARGUMENT);
-    else if (OPTION("-St"))             impl._t     = atof(ARGUMENT);
-    else if (OPTION("-noss"))           impl._noss  = true;
-    else if (OPTION("-threshold"))      impl._threshold = atof(ARGUMENT);
-    else if (OPTION("-float"))          impl._dtype = MIRTK_VOXEL_FLOAT;
-    else if (OPTION("-double"))         impl._dtype = MIRTK_VOXEL_DOUBLE;
+    else if (OPTION("-noss"))   impl._noss  = 0;
+    else if (OPTION("-float"))  impl._dtype = MIRTK_VOXEL_FLOAT;
+    else if (OPTION("-double")) impl._dtype = MIRTK_VOXEL_DOUBLE;
+    else if (OPTION("-real"))   impl._dtype = MIRTK_VOXEL_REAL;
     else HANDLE_COMMON_OR_UNKNOWN_OPTION();
   }
 
-  if      (impl._dtype == MIRTK_VOXEL_FLOAT)  impl._jacobian = new GenericImage<float >();
-  else if (impl._dtype == MIRTK_VOXEL_DOUBLE) impl._jacobian = new GenericImage<double>();
-  else                                        impl._jacobian = impl._image;
+  const int nvox = target->NumberOfSpatialVoxels();
 
+  BinaryImage mask(target->Attributes(), 1);
+  for (int idx = 0; idx < nvox; ++idx) {
+    mask(idx) = (target->GetAsDouble(idx) > impl._padding ? 1 : 0);
+  }
+  impl._mask = &mask;
+
+  UniquePtr<BaseImage> output;
+  if (impl._dtype != target->GetDataType()) {
+    output.reset(BaseImage::New(impl._dtype));
+    impl._jacobian = output.get();
+  }
   impl.Run();
-
-  const int nvox = impl._jacobian->NumberOfVoxels();
+  if (impl._jacobian == impl._image) {
+    output.reset(target.release());
+  }
 
   if (verbose) {
     int    num = 0;
-    double jac, min = .0, max = .0, avg = .0;
-    const BinaryPixel *m = impl._mask.Data();
-    for (int n = 0; n < nvox; ++m, ++n) {
-      if (*m) {
-        jac = impl._jacobian->GetAsDouble(n);
+    double jac, min = inf, max = -inf, avg = 0.;
+    for (int n = 0; n < nvox; ++n) {
+      if (mask(n) != 0) {
+        jac = output->GetAsDouble(n);
         if (jac < min) min = jac;
         if (jac > max) max = jac;
         avg += jac;
@@ -433,9 +480,9 @@ int main(int argc, char **argv)
     }
     min /= 100.0, max /= 100.0, avg /= 100.0;
     if (num > 0) avg /= num;
-    cout << "Minimum Jacobian determinant = " << min << endl;
-    cout << "Maximum Jacobian determinant = " << max << endl;
-    cout << "Average Jacobian determinant = " << avg << endl;
+    cout << "Minimum value = " << min << endl;
+    cout << "Maximum value = " << max << endl;
+    cout << "Average value = " << avg << endl;
     if (impl._n > 0) {
       cout << endl;
       cout << "Number of voxels with negative Jacobian determinant = ";
@@ -445,17 +492,16 @@ int main(int argc, char **argv)
 
   if (impl._dtype == MIRTK_VOXEL_FLOAT) {
     GenericImage<float> *jacobian;
-    jacobian = dynamic_cast<GenericImage<float> *>(impl._jacobian);
+    jacobian = dynamic_cast<GenericImage<float> *>(output.get());
     *jacobian /= 100.0f;
   } else if (impl._dtype == MIRTK_VOXEL_DOUBLE) {
     GenericImage<double> *jacobian;
-    jacobian = dynamic_cast<GenericImage<double> *>(impl._jacobian);
+    jacobian = dynamic_cast<GenericImage<double> *>(output.get());
     *jacobian /= 100.0;
   }
 
-  if (output_name) impl._jacobian->Write(output_name);
-
-  if (impl._jacobian != impl._image) delete impl._jacobian;
-  delete impl._image;
-  delete impl._dof;
+  if (output_name) {
+    output->Write(output_name);
+  }
+  return 0;
 }
