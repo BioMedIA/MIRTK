@@ -242,6 +242,15 @@ struct ImageAttributes
   // ---------------------------------------------------------------------------
   // Output
 
+  /// Image slice area in world space
+  double Area() const;
+
+  /// Image volume in world space
+  double Volume() const;
+
+  /// Amount of space occupied by the image in n-D world space (excluding time dimension)
+  double Space() const;
+
   /// Print attributes
   void Print(ostream &, Indent = 0) const;
 
