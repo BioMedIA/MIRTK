@@ -26,6 +26,7 @@
 #include "mirtk/VoxelFunction.h"
 #include "mirtk/Resampling.h"
 #include "mirtk/GaussianBlurring.h"
+#include "mirtk/GaussianBlurringWithPadding.h"
 #include "mirtk/GradientImageFilter.h"
 #include "mirtk/ConvolutionFunction.h"
 
@@ -225,8 +226,9 @@ int main(int argc, char **argv)
   const char *image_name  = POSARG(1);
   const char *output_name = POSARG(2);
 
-  double       sigma = .0;
-  EdgeOperator op    = GRADIENT;
+  double       sigma   = 0.;
+  RealPixel    padding = NaN;
+  EdgeOperator op      = GRADIENT;
 
   for (ALL_OPTIONS) {
     if      (OPTION("-sigma")) sigma = atof(ARGUMENT);
@@ -235,6 +237,7 @@ int main(int argc, char **argv)
     else if (OPTION("-prewitt"))      op = PREWITT;
     else if (OPTION("-laplace"))      op = LAPLACE;
     else if (OPTION("-differential")) op = DIFFERENTIAL;
+    else if (OPTION("-padding")) PARSE_ARGUMENT(padding);
     else HANDLE_COMMON_OR_UNKNOWN_OPTION();
   }
 
@@ -244,22 +247,65 @@ int main(int argc, char **argv)
 
   // Blur image
   if (sigma > .0) {
-    GaussianBlurring<RealPixel> blur(sigma);
-    blur.Input (&image);
-    blur.Output(&image);
-    blur.Run();
+    if (IsNaN(padding)) {
+      GaussianBlurring<RealPixel> blur(sigma);
+      blur.Input (&image);
+      blur.Output(&image);
+      blur.Run();
+    } else {
+      GaussianBlurringWithPadding<RealPixel> blur(sigma, padding);
+      blur.Input (&image);
+      blur.Output(&image);
+      blur.Run();
+    }
   }
 
   // Convolve image
+  RealImage output(image.Attributes());
   switch (op) {
-    case GRADIENT:     image = ComputeCentralDifferences(image);       break;
-    case SOBEL:        image = ApplySobelOperator(image);              break;
-    case PREWITT:      image = ApplyPrewittOperator(image);            break;
-    case LAPLACE:      image = ApplyLaplaceOperator(image);            break;
-    case DIFFERENTIAL: image = ComputeDifferentialEdgeFunction(image); break;
+    case GRADIENT:     output = ComputeCentralDifferences(image);       break;
+    case SOBEL:        output = ApplySobelOperator(image);              break;
+    case PREWITT:      output = ApplyPrewittOperator(image);            break;
+    case LAPLACE:      output = ApplyLaplaceOperator(image);            break;
+    case DIFFERENTIAL: output = ComputeDifferentialEdgeFunction(image); break;
+  }
+
+  // Discard
+  if (!IsNaN(padding)) {
+    int n = 0;
+    bool outside;
+    const int rl = (image.T() > 1 ? 1 : 0);
+    const int rk = (image.Z() > 1 ? 1 : 0);
+    const int rj = (image.Y() > 1 ? 1 : 0);
+    const int ri = (image.X() > 1 ? 1 : 0);
+    for (int l = 0; l < image.T(); ++l)
+    for (int k = 0; k < image.Z(); ++k)
+    for (int j = 0; j < image.Y(); ++j)
+    for (int i = 0; i < image.X(); ++i) {
+      outside = (image(i, j, k, l) <= padding);
+      if (!outside) {
+        for (int nl = l-rl; nl <= l+rl; ++nl)
+        for (int nk = k-rk; nk <= k+rk; ++nk)
+        for (int nj = j-rj; nj <= j+rj; ++nj)
+        for (int ni = i-ri; ni <= i+ri; ++ni) {
+          if (image.IsInside(ni, nj, nk, nl) && image(ni, nj, nk, nl) <= padding) {
+            outside = true;
+            nl = l + 2 * rl;
+            nk = k + 2 * rk;
+            nj = j + 2 * rj;
+            break;
+          }
+        }
+      }
+      if (outside) {
+        n++;
+        output(i, j, k, l) = 0.;
+      }
+    }
+    cout << "No. of padded outside values = " << n << endl;
   }
 
   // Write edge map
-  image.Write(output_name);
+  output.Write(output_name);
   return 0;
 }
