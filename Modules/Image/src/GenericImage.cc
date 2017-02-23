@@ -1123,39 +1123,39 @@ template <> void GenericImage<double3x3>::PutMinMax(VoxelType, VoxelType)
 // -----------------------------------------------------------------------------
 template <class VoxelType>
 typename GenericImage<VoxelType>::RealType
+GenericImage<VoxelType>::Mean(bool fg) const
+{
+  int num = 0;
+  RealType sum = voxel_cast<RealType >(0);
+  const VoxelType *ptr = this->Data();
+  for (int idx = 0; idx < _NumberOfVoxels; ++idx) {
+    if (!fg || IsForeground(idx)) {
+      sum += voxel_cast<RealType>(*ptr);
+      num += 1;
+    }
+    ++ptr;
+  }
+  return (num > 0 ? sum / num : sum);
+}
+
+template <> typename GenericImage<float3x3 >::RealType GenericImage<float3x3 >::Mean(bool) const
+{
+  cerr << "GenericImage<float3x3>::Mean: Not implemented" << endl;
+  exit(1);
+}
+
+template <> typename GenericImage<double3x3>::RealType GenericImage<double3x3>::Mean(bool) const
+{
+  cerr << "GenericImage<double3x3>::Mean: Not implemented" << endl;
+  exit(1);
+}
+
+// -----------------------------------------------------------------------------
+template <class VoxelType>
+typename GenericImage<VoxelType>::RealType
 GenericImage<VoxelType>::GetAverage(int toggle) const
 {
-  const VoxelType  zero = voxel_cast<VoxelType>(0);
-  RealType         avg  = voxel_cast<RealType >(0);
-  const VoxelType *ptr;
-
-  if (toggle) {
-    int n = 0;
-    ptr = this->Data();
-    for (int i = 0; i < _NumberOfVoxels; i++) {
-      if (IsForeground(i) && (*ptr) > zero) n++;
-      ++ptr;
-    }
-    const RealType norm = voxel_cast<RealType>(1.0 / n);
-    ptr = this->Data();
-    for (int i = 0; i < _NumberOfVoxels; i++) {
-      if (IsForeground(i) && (*ptr) > zero) {
-        avg += norm * voxel_cast<RealType>(*ptr);
-      }
-      ++ptr;
-    }
-  } else {
-    const RealType norm = voxel_cast<RealType>(1.0 / _NumberOfVoxels);
-    ptr = this->Data();
-    for (int i = 0; i < _NumberOfVoxels; i++) {
-      if (IsForeground(i)) {
-        avg += norm * voxel_cast<RealType>(*ptr);
-      }
-      ++ptr;
-    }
-  }
-
-  return avg;
+  return Mean(toggle == 0 ? false : true);
 }
 
 template <> typename GenericImage<float3x3 >::RealType GenericImage<float3x3 >::GetAverage(int) const

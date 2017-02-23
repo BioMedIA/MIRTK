@@ -363,6 +363,29 @@ bool ImageAttributes::EqualInTime(const ImageAttributes &attr) const
 }
 
 // -----------------------------------------------------------------------------
+double ImageAttributes::Area() const
+{
+  return _x * _dx * _y * _dy;
+}
+
+// -----------------------------------------------------------------------------
+double ImageAttributes::Volume() const
+{
+  return _x * _dx * _y * _dy * _z * _dz;
+}
+
+// -----------------------------------------------------------------------------
+double ImageAttributes::Space() const
+{
+  if (static_cast<bool>(*this)) {
+    if (_dz > 0.) return Volume();
+    else          return Area();
+  } else {
+    return 0.;
+  }
+}
+
+// -----------------------------------------------------------------------------
 void ImageAttributes::Print(ostream &os, Indent indent) const
 {
   // Change output stream settings
