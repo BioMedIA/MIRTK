@@ -396,7 +396,13 @@ public:
   /// Linearly rescale intensities
   void PutMinMax(VoxelType, VoxelType);
 
+  /// Mean pixel value
+  ///
+  /// \param[in] fg Calculate mean of foreground only.
+  RealType Mean(bool fg = true) const;
+
   /// Average pixel values get accessor
+  /// \deprecated Use Mean instead.
   RealType GetAverage(int = 1) const;
 
   /// Standard Deviation of the pixels
