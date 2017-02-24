@@ -308,7 +308,6 @@ struct AddVoxelValueToAverage : public VoxelFunction
   AverageImage       *_Average;
   InputImageFunction *_Image;
   double              _Weight;
-  int                 _Label;
   double              _Scale;
   double              _Intercept;
   double              _Min;
@@ -340,19 +339,13 @@ struct AddVoxelValueToAverage : public VoxelFunction
       }
     #endif // HAVE_MIRTK_Transformation
     _Image->Input()->WorldToImage(x, y, z);
-    if (_Label > 0) {
-      if (static_cast<int>(_Image->Evaluate(x, y, z)) == _Label) {
-        *avg += static_cast<T>(_Weight);
-      }
-    } else {
-      double value = _Image->Evaluate(x, y, z);
-      if (!IsNaN(value) && value != _Image->DefaultValue()) {
-        value = _Scale * clamp(value, _Min, _Max) + _Intercept;
-        if (IsNaN(*avg)) {
-          *avg = static_cast<T>(_Weight * value);
-        } else {
-          *avg += static_cast<T>(_Weight * value);
-        }
+    double value = _Image->Evaluate(x, y, z);
+    if (!IsNaN(value) && value != _Image->DefaultValue()) {
+      value = _Scale * clamp(value, _Min, _Max) + _Intercept;
+      if (IsNaN(*avg)) {
+        *avg = static_cast<T>(_Weight * value);
+      } else {
+        *avg += static_cast<T>(_Weight * value);
       }
     }
   }
@@ -370,60 +363,66 @@ bool Add(AverageImage &average, InputImage &image,
          double avg_mean = NaN, double avg_sigma = NaN)
 {
   AddVoxelValueToAverage add;
-  // Determine min/max intensity used to clamp interpolated values
-  const double bg = image.GetBackgroundValueAsDouble();
-  const InputType * const data = image.Data();
-  const int num = image.NumberOfSpatialVoxels();
-  UniquePtr<bool[]> mask = ForegroundMaskArray(&image);
-  Extrema::Calculate(add._Min, add._Max, num, data, mask.get());
-  if (IsNaN(add._Min) || IsNaN(add._Max)) return false;
-  // Compute normalization parameters
   add._Scale = 1.;
   add._Intercept = 0.;
-  if (normalization == Normalization_Mean) {
-    double mean = Mean::Calculate(num, data, mask.get());
-    if (!fequal(mean, 0.)) {
-      add._Scale = 1. / mean;
-    }
-  } else if (normalization == Normalization_Median) {
-    double median = Median::Calculate(num, data, mask.get());
-    if (!fequal(median, 0.)) {
-      add._Scale = 1. / median;
-    }
-  } else if (normalization == Normalization_ZScore) {
-    double mean, sigma;
-    NormalDistribution::Calculate(mean, sigma, num, data, mask.get());
-    if (fequal(sigma, 0.)) return false;
-    add._Scale = 1. / sigma;
-    add._Intercept = - mean / sigma;
-    double zscore_min = (add._Min - mean) / sigma;
-    double zscore_max = (add._Max - mean) / sigma;
-    double output_min = ((IsNaN(bg) || bg <= 0.) ? 0. : bg + .01);
-    double output_max = output_min + (zscore_max - zscore_min);
-    double zscore_mul = (output_max - output_min) / (zscore_max - zscore_min);
-    double zscore_add = output_min - zscore_mul * zscore_min;
-    add._Scale     = zscore_mul * add._Scale;
-    add._Intercept = zscore_mul * add._Intercept + zscore_add;
-  } else if (normalization == Normalization_MeanStDev) {
-    double mean, sigma;
-    NormalDistribution::Calculate(mean, sigma, num, data, mask.get());
-    if (fequal(avg_sigma, 0.) || fequal(sigma, 0.)) return false;
-    add._Scale = avg_sigma / sigma;
-    add._Intercept = avg_mean - add._Scale / sigma;
-  } else if (normalization == Normalization_UnitRange) {
-    double range = add._Max - add._Min;
-    if (fequal(range, 0.)) return false;
-    add._Scale = 1. / (add._Max - add._Min);
-    add._Intercept = - add._Scale * add._Min;
-  }
-  // Mask array no longer needed
-  mask.reset();
   // Set interpolation function
-  if (label > 0) interpolation = Interpolation_NN;
   UniquePtr<InputImageFunction> interp;
   interp.reset(InputImageFunction::New(interpolation, &image));
-  interp->DefaultValue(bg);
   interp->Initialize();
+  // Determine min/max intensity used to clamp interpolated values
+  if (label > 0) {
+    interp->DefaultValue(0.);
+    add._Min = 0.;
+    add._Max = 1.;
+  } else {
+    double bg = NaN;
+    if (image.HasBackgroundValue()) {
+      bg = image.GetBackgroundValueAsDouble();
+    }
+    interp->DefaultValue(bg);
+    const InputType * const data = image.Data();
+    const int num = image.NumberOfSpatialVoxels();
+    UniquePtr<bool[]> mask = ForegroundMaskArray(&image);
+    Extrema::Calculate(add._Min, add._Max, num, data, mask.get());
+    if (IsNaN(add._Min) || IsNaN(add._Max)) return false;
+    // Compute normalization parameters
+    if (normalization == Normalization_Mean) {
+      double mean = Mean::Calculate(num, data, mask.get());
+      if (!fequal(mean, 0.)) {
+        add._Scale = 1. / mean;
+      }
+    } else if (normalization == Normalization_Median) {
+      double median = Median::Calculate(num, data, mask.get());
+      if (!fequal(median, 0.)) {
+        add._Scale = 1. / median;
+      }
+    } else if (normalization == Normalization_ZScore) {
+      double mean, sigma;
+      NormalDistribution::Calculate(mean, sigma, num, data, mask.get());
+      if (fequal(sigma, 0.)) return false;
+      add._Scale = 1. / sigma;
+      add._Intercept = - mean / sigma;
+      double zscore_min = (add._Min - mean) / sigma;
+      double zscore_max = (add._Max - mean) / sigma;
+      double output_min = ((IsNaN(bg) || bg <= 0.) ? 0. : bg + .01);
+      double output_max = output_min + (zscore_max - zscore_min);
+      double zscore_mul = (output_max - output_min) / (zscore_max - zscore_min);
+      double zscore_add = output_min - zscore_mul * zscore_min;
+      add._Scale     = zscore_mul * add._Scale;
+      add._Intercept = zscore_mul * add._Intercept + zscore_add;
+    } else if (normalization == Normalization_MeanStDev) {
+      double mean, sigma;
+      NormalDistribution::Calculate(mean, sigma, num, data, mask.get());
+      if (fequal(avg_sigma, 0.) || fequal(sigma, 0.)) return false;
+      add._Scale = avg_sigma / sigma;
+      add._Intercept = avg_mean - add._Scale / sigma;
+    } else if (normalization == Normalization_UnitRange) {
+      double range = add._Max - add._Min;
+      if (fequal(range, 0.)) return false;
+      add._Scale = 1. / (add._Max - add._Min);
+      add._Intercept = - add._Scale * add._Min;
+    }
+  }
   // Precompute displacement vector field
   #ifdef HAVE_MIRTK_Transformation
     bool cache = false;
@@ -455,7 +454,6 @@ bool Add(AverageImage &average, InputImage &image,
   // Transform, normalize, and add image values
   add._Average = &average;
   add._Weight  = weight;
-  add._Label   = label;
   add._Image   = interp.get();
   ParallelForEachVoxel(average.Attributes(), average, add);
   return true;
@@ -737,7 +735,13 @@ int main(int argc, char **argv)
     else HANDLE_COMMON_OR_UNKNOWN_OPTION();
   }
 
-  if (label > 0 && IsNaN(padding)) padding = .0;
+  if (label > 0 && IsNaN(padding)) {
+    normalization = Normalization_None;
+    if (rescaling == Rescaling_MeanStDev) {
+      rescaling = Rescaling_None;
+    }
+    padding = .0;
+  }
 
   // ---------------------------------------------------------------------------
   // Collect (further) input image meta-data...
@@ -913,12 +917,15 @@ int main(int argc, char **argv)
   // ---------------------------------------------------------------------------
   // Compute average image
   AverageImage average(fov);
-  average = NaN;
-  average.PutBackgroundValueAsDouble(NaN);
+  if (label <= 0) {
+    average = NaN;
+    average.PutBackgroundValueAsDouble(NaN);
+  }
   for (int n = 0; n < nimages; ++n) {
     if (sequence.IsEmpty()) {
       if (verbose) {
-        cout << "Add image " << setw(3) << (n+1) << " out of " << nimages << "... ";
+        cout << "Add " << (label > 0 ? "segmentation" : "image") << " ";
+        cout << setw(3) << (n+1) << " out of " << nimages << "... ";
         cout.flush();
       }
       #ifdef HAVE_MIRTK_Transformation
@@ -937,7 +944,14 @@ int main(int argc, char **argv)
         invert.clear();
       #endif
     }
-    image.PutBackgroundValueAsDouble(padding, true);
+    if (label > 0) {
+      for (int idx = 0; idx < image.NumberOfVoxels(); ++idx) {
+        image(idx) = (image(idx) == label ? 1 : 0);
+      }
+      if (debug) image.Write((string("debug_segment_") + ToString(n + 1) + string(".nii.gz")).c_str());
+    } else {
+      image.PutBackgroundValueAsDouble(padding, !IsNaN(padding));
+    }
 
     bool ok;
     #ifdef HAVE_MIRTK_Transformation
@@ -950,26 +964,30 @@ int main(int argc, char **argv)
       if (verbose) cout << " done" << endl;
     } else {
       if (verbose) cout << " skip" << endl;
-      if (normalization == Normalization_UnitRange || normalization == Normalization_ZScore || normalization == Normalization_MeanStDev) {
-        Warning("Input image " << image_name[n] << " either contains no or constant foreground values!");
-      } else {
-        Warning("Input image " << image_name[n] << " contains no foreground values!");
+      if (label <= 0) {
+        if (normalization == Normalization_UnitRange || normalization == Normalization_ZScore || normalization == Normalization_MeanStDev) {
+          Warning("Input image " << image_name[n] << " either contains no or constant foreground values!");
+        } else {
+          Warning("Input image " << image_name[n] << " contains no foreground values!");
+        }
       }
     }
   }
 
   // ---------------------------------------------------------------------------
   // Replace NaN values by suitable background value
-  AverageImage::VoxelType min_value, max_value;
-  average.GetMinMax(min_value, max_value);
-  AverageImage::VoxelType bg = min_value - 1.;
-  if (bg > 0.) bg = 0.;
-  for (int idx = 0; idx < average.NumberOfVoxels(); ++idx) {
-    if (IsNaN(average(idx))) {
-      average(idx) = bg;
+  if (average.HasBackgroundValue() && IsNaN(average.GetBackgroundValueAsDouble())) {
+    AverageImage::VoxelType min_value, max_value;
+    average.GetMinMax(min_value, max_value);
+    AverageImage::VoxelType bg = min_value - 1.;
+    if (bg > 0.) bg = 0.;
+    for (int idx = 0; idx < average.NumberOfVoxels(); ++idx) {
+      if (IsNaN(average(idx))) {
+        average(idx) = bg;
+      }
     }
+    average.PutBackgroundValueAsDouble(bg);
   }
-  average.PutBackgroundValueAsDouble(bg);
 
   // ---------------------------------------------------------------------------
   // Crop/pad average image
@@ -1019,7 +1037,7 @@ int main(int argc, char **argv)
 
   // ---------------------------------------------------------------------------
   // Replace background value by specified padding value
-  if (!IsNaN(padding)) {
+  if (!IsNaN(padding) && average.HasBackgroundValue() && padding != average.GetBackgroundValueAsDouble()) {
     AverageImage::VoxelType bg;
     bg = voxel_cast<AverageImage::VoxelType>(padding);
     for (int idx = 0; idx < average.NumberOfVoxels(); ++idx) {
@@ -1029,7 +1047,7 @@ int main(int argc, char **argv)
   }
 
   // ---------------------------------------------------------------------------
-  // Rescale to input mean and standard deviation
+  // Rescale average intensities
   if (rescaling != Rescaling_None) {
     double scale = 1., shift = 0.;
     const int num = average.NumberOfSpatialVoxels();
@@ -1050,12 +1068,17 @@ int main(int argc, char **argv)
         cout << "Rescaling average to output range [" << output_min << ", " << output_max << "]...";
         cout.flush();
       }
-      double min_value, max_value;
-      Extrema::Calculate(min_value, max_value, num, average.Data(), mask.get());
-      if (!fequal(max_value, min_value)) {
-        scale = (output_max - output_min) / (max_value - min_value);
+      if (label > 0) {
+        scale = output_max - output_min;
+        shift = output_min;
+      } else {
+        double min_value, max_value;
+        Extrema::Calculate(min_value, max_value, num, average.Data(), mask.get());
+        if (!fequal(max_value, min_value)) {
+          scale = (output_max - output_min) / (max_value - min_value);
+        }
+        shift = output_min - scale * min_value;
       }
-      shift = output_min - scale * min_value;
     }
     double min_value = +inf;
     if (!fequal(scale, 1.) || !fequal(shift, 0.)) {
@@ -1071,17 +1094,20 @@ int main(int argc, char **argv)
     if (verbose) {
       cout << " done" << endl;
     }
-    double bg = average.GetBackgroundValueAsDouble();
-    if (min_value < bg) {
-      bg = min(0., min_value - 1.);
-      AverageImage::VoxelType padding = static_cast<AverageImage::VoxelType>(bg);
-      if (verbose) {
-        cout << "Input -padding value larger than rescaled minimum, pad output with: " << padding << endl;
+    if (average.HasBackgroundValue()) {
+      double bg = average.GetBackgroundValueAsDouble();
+      if (min_value < bg) {
+        bg = min(0., min_value - 1.);
+        if (verbose && !IsNaN(padding)) {
+          cout << "Input -padding value larger than rescaled minimum, pad output with: " << padding << endl;
+        }
+        AverageImage::VoxelType value;
+        value = static_cast<AverageImage::VoxelType>(bg);
+        for (int idx = 0; idx < num; ++idx) {
+          if (!mask[idx]) average(idx) = value;
+        }
+        average.PutBackgroundValueAsDouble(bg);
       }
-      for (int idx = 0; idx < num; ++idx) {
-        if (!mask[idx]) average(idx) = padding;
-      }
-      average.PutBackgroundValueAsDouble(bg);
     }
   }
 
