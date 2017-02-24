@@ -520,17 +520,31 @@ GenericImage<double> ConcatenateWorldDisplacement(const char *dx_name, const cha
 Transformation *ToLinearFFD(const GenericImage<double> &disp,
                             double dx = .0, double dy = .0, double dz = .0)
 {
-  if (dx <= .0) dx = disp.GetXSize();
-  if (dy <= .0) dy = disp.GetYSize();
-  if (dz <= .0) dz = disp.GetZSize();
-
-  double xaxis[3], yaxis[3], zaxis[3];
-  disp.GetOrientation(xaxis, yaxis, zaxis);
   UniquePtr<LinearFreeFormTransformation> ffd;
-  ffd.reset(new LinearFreeFormTransformation3D(0, 0, 0, disp.X() - 1, disp.Y() - 1, disp.Z() - 1,
-                                               dx, dy, dz, xaxis, yaxis, zaxis));
+
+  if (dx <= .0) dx = disp.XSize();
+  if (dy <= .0) dy = disp.YSize();
+  if (dz <= .0) dz = disp.ZSize();
 
   if (fequal(dx, disp.GetXSize()) && fequal(dy, disp.GetYSize()) && fequal(dz, disp.GetZSize())) {
+
+    ffd.reset(new LinearFreeFormTransformation3D(disp, true));
+
+  } else {
+
+    double x1 = 0., y1 = 0., z1 = 0.;
+    double x2 = disp.X() - 1;
+    double y2 = disp.Y() - 1;
+    double z2 = disp.Z() - 1;
+    disp.ImageToWorld(x1, y1, z1);
+    disp.ImageToWorld(x2, y2, z2);
+    double ax[3], ay[3], az[3];
+    disp.GetOrientation(ax, ay, az);
+    ffd.reset(new LinearFreeFormTransformation3D(x1, y1, z1,
+                                                 x2, y2, z2,
+                                                 dx, dy, dz,
+                                                 ax, ay, az));
+
     double x, y, z, v[3];
     GenericLinearInterpolateImageFunction<GenericImage<double> > d;
     d.Input(&disp);
@@ -543,12 +557,6 @@ Transformation *ToLinearFFD(const GenericImage<double> &disp,
       disp.WorldToImage(x, y, z);
       d.Evaluate(v, x, y, z);
       ffd->Put(i, j, k, v[0], v[1], v[2]);
-    }
-  } else {
-    for (int k = 0; k < ffd->Z(); ++k)
-    for (int j = 0; j < ffd->Y(); ++j)
-    for (int i = 0; i < ffd->X(); ++i) {
-      ffd->Put(i, j, k, disp(i, j, k, 0), disp(i, j, k, 1), disp(i, j, k, 2));
     }
   }
 
