@@ -954,12 +954,9 @@ inline double Matrix::InfinityNorm() const
 // -----------------------------------------------------------------------------
 inline double Matrix::Det3x3() const
 {
-  return _matrix[0][0] * _matrix[1][1] * _matrix[2][2]
-       + _matrix[1][0] * _matrix[2][1] * _matrix[0][2]
-       + _matrix[2][0] * _matrix[0][1] * _matrix[1][2]
-       - _matrix[2][0] * _matrix[1][1] * _matrix[0][2]
-       - _matrix[0][0] * _matrix[2][1] * _matrix[1][2]
-       - _matrix[1][0] * _matrix[0][1] * _matrix[2][2];
+  return _matrix[0][0] * (_matrix[1][1] * _matrix[2][2] - _matrix[1][2] * _matrix[2][1])
+       - _matrix[0][1] * (_matrix[1][0] * _matrix[2][2] - _matrix[1][2] * _matrix[2][0])
+       + _matrix[0][2] * (_matrix[1][0] * _matrix[2][1] - _matrix[1][1] * _matrix[2][0]);
 }
 
 // -----------------------------------------------------------------------------
