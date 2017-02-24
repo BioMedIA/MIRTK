@@ -1852,10 +1852,10 @@ bool WriteSTARCCMTable(const char *fname, const ImageAttributes &target, const T
 
   if (IsInf(tmin)) tmin = domain.LatticeToTime(0);
   if (IsInf(tmax)) tmax = domain.LatticeToTime(domain._t - 1);
-  if (dt <= 0.)    dt   = domain._dt;
+  if (dt == 0.)    dt   = domain._dt;
 
   domain._torigin = tmin;
-  domain._t       = ifloor((tmax - tmin) / dt);
+  domain._t       = ifloor(abs((tmax - tmin) / dt));
   domain._dt      = dt;
 
   // Open text file
