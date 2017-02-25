@@ -79,11 +79,11 @@ void PrintHelp(const char *name)
   cout << "      Overlap metric. (default: Dice)\n";
   cout << "  -delimiter, -delim <char>\n";
   cout << "      Delimiter for output of multiple overlap values. (default: ,)\n";
-  cout << "  -one-row-per-source [yes|no]\n";
-  cout << "      Print table with overlap measures for all segments in a row,\n";
+  cout << "  -table <file>\n";
+  cout << "      Write table with overlap measures for all segments in a row,\n";
   cout << "      one row per input source image which is compared to the target\n";
-  cout << "      segmentation. By default, the output table with verbosity 0 is\n";
-  cout << "      the transpose table and printed without table header. (default: no)\n";
+  cout << "      segmentation. By default, the output to STDIN with verbosity 0\n";
+  cout << "      is the transpose table and excludes a table header. (default: none)\n";
   PrintCommonOptions(cout);
   cout << endl;
 }
@@ -149,7 +149,7 @@ int ReadImageListFile(const char *image_list_name, Array<string> &names, const c
   }
   const bool discard_empty = true;
   const bool handle_quotes = true;
-  auto columns = Split(line, delim, 0, discard_empty, handle_quotes);
+  auto columns = Split(Trim(line), delim, 0, discard_empty, handle_quotes);
   if (columns[0].empty()) columns[0] = ".";
   if (!base_dir.empty() && columns[0].front() != PATHSEP) {
     if (columns[0] != ".") base_dir += PATHSEP + columns[0];
@@ -198,6 +198,7 @@ int main(int argc, char **argv)
   --nposarg;
 
   // Parse optional arguments
+  const char    *table_name  = nullptr;
   const char    *image_list  = nullptr;
   const char    *image_delim = nullptr;
   OverlapMetric  metric      = UnknownMetric;
@@ -205,7 +206,6 @@ int main(int argc, char **argv)
   const char    *delim       = ",";
   int            digits      = 2;
   bool           all_labels  = false;
-  bool           row_per_seg = false;
   Array<OrderedSet<GreyPixel> > segments;
 
   verbose = 1; // by default, include textual description of output value
@@ -226,6 +226,7 @@ int main(int argc, char **argv)
       } while (HAS_ARGUMENT);
       segments.push_back(segment);
     }
+    else if (OPTION("-table")) table_name = ARGUMENT;
     else if (OPTION("-images")) image_list = ARGUMENT;
     else if (OPTION("-images-delimiter") || OPTION("-images-delim")) image_delim = ARGUMENT;
     else if (OPTION("-labels")) all_labels = true;
@@ -238,7 +239,6 @@ int main(int argc, char **argv)
     else if (OPTION("-Ry2")) PARSE_ARGUMENT(j2);
     else if (OPTION("-Rz1")) PARSE_ARGUMENT(k1);
     else if (OPTION("-Rz2")) PARSE_ARGUMENT(k2);
-    else HANDLE_BOOLEAN_OPTION("one-row-per-source", row_per_seg);
     else HANDLE_COMMON_OR_UNKNOWN_OPTION();
   }
 
@@ -377,17 +377,20 @@ int main(int argc, char **argv)
     // Default metric
     if (metric == UnknownMetric) metric = Dice;
 
-    if (row_per_seg) {
+    if (table_name) {
+
+      ofstream ofs(table_name);
+      if (!ofs) FatalError("Failed to open output file: " << table_name);
 
       for (size_t roi = 0; roi < segments.size(); ++roi) {
-        if (roi > 0) cout << delim;
+        if (roi > 0) ofs << delim;
         const auto &labels = segments[roi];
         for (auto it = labels.begin(); it != labels.end(); ++it) {
-          if (it != labels.begin()) cout << "+";
-          cout << *it;
+          if (it != labels.begin()) ofs << "+";
+          ofs << *it;
         }
       }
-      cout << "\n";
+      ofs << "\n";
 
       for (size_t n = 0; n < source_name.size(); ++n) {
 
@@ -439,9 +442,10 @@ int main(int argc, char **argv)
               exit(1);
           }
 
-          if (roi > 0) cout << delim;
-          cout << setprecision(digits) << overlap;
+          if (roi > 0) ofs << delim;
+          ofs << setprecision(digits) << overlap;
         }
+        ofs << "\n";
       }
 
     } else {
