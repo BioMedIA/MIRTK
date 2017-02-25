@@ -35,33 +35,55 @@ using namespace mirtk;
 // -----------------------------------------------------------------------------
 void PrintHelp(const char *name)
 {
-  cout << endl;
-  cout << "Usage: " << name << " <target> <source>... [options]" << endl;
-  cout << endl;
-  cout << "Description:" << endl;
-  cout << "  Computes the overlap of either two intensity images (average SI)" << endl;
-  cout << "  or two segmentations (see :option:`-label`). If more than one source image" << endl;
-  cout << "  is given, the overlap between each of these and the target is evaluated." << endl;
-  cout << endl;
-  cout << "Arguments:" << endl;
-  cout << "  target   Target image/segmentation." << endl;
-  cout << "  source   Transformed source image/segmentation." << endl;
-  cout << endl;
-  cout << "Optional arguments:" << endl;
-  cout << "  -Rx1 <int>         Region of interest" << endl;
-  cout << "  -Ry1 <int>         Region of interest" << endl;
-  cout << "  -Rz1 <int>         Region of interest" << endl;
-  cout << "  -Rx2 <int>         Region of interest" << endl;
-  cout << "  -Ry2 <int>         Region of interest" << endl;
-  cout << "  -Rz2 <int>         Region of interest" << endl;
-  cout << "  -Tp <value>        Padding value in target." << endl;
-  cout << "  -label <int>...    Segmentation labels. When more than one specified, the segments are merged." << endl;
-  cout << "                     This option can be given multiple times to evaluate the overlap of more than" << endl;
-  cout << "                     one (merged) segment at once. (default: none)" << endl;
-  cout << "  -labels            All (positive) segmentation labels individually." << endl;
-  cout << "  -precision <int>   Number of significant digits. (default: 2)" << endl;
-  cout << "  -metric <Sensitivity|Specificity|Dice|Jaccard>   Overlap metric. (default: Dice)" << endl;
-  cout << "  -delim <char>      Delimiter for output of multiple overlap values. (default: ,)" << endl;
+  cout << "\n";
+  cout << "Usage: " << name << " <target> [<source>...] [options]\n";
+  cout << "\n";
+  cout << "Description:\n";
+  cout << "  Computes the overlap of either two intensity images (average SI)\n";
+  cout << "  or two segmentations (see :option:`-label`). If more than one source image\n";
+  cout << "  is given, the overlap between each of these and the target is evaluated.\n";
+  cout << "\n";
+  cout << "Arguments:\n";
+  cout << "  target   Target image/segmentation.\n";
+  cout << "  source   Transformed source image/segmentation.\n";
+  cout << "\n";
+  cout << "Optional arguments:\n";
+  cout << "  -images <file>\n";
+  cout << "      Text file with source image file paths.\n";
+  cout << "  -images-delim, -images-delimiter <c>\n";
+  cout << "      Delimiter used in :option:`-images` file.\n";
+  cout << "      (default: ',' for .csv, '\\t' for .tsv, and ' ' otherwise)\n";
+  cout << "  -Rx1 <int>\n";
+  cout << "      Region of interest lower index threshold in x dimension.\n";
+  cout << "  -Ry1 <int>\n";
+  cout << "      Region of interest lower index threshold in y dimension.\n";
+  cout << "  -Rz1 <int>\n";
+  cout << "      Region of interest lower index threshold in z dimension.\n";
+  cout << "  -Rx2 <int>\n";
+  cout << "      Region of interest upper index threshold in x dimension.\n";
+  cout << "  -Ry2 <int>\n";
+  cout << "      Region of interest upper index threshold in y dimension.\n";
+  cout << "  -Rz2 <int>\n";
+  cout << "      Region of interest upper index threshold in z dimension.\n";
+  cout << "  -Tp <value>\n";
+  cout << "      Padding value in target.\n";
+  cout << "  -label <int>...\n";
+  cout << "      Segmentation labels. When more than one specified, the segments are merged.\n";
+  cout << "      This option can be given multiple times to evaluate the overlap of more than\n";
+  cout << "      one (merged) segment at once. (default: none)\n";
+  cout << "  -labels\n";
+  cout << "      All (positive) segmentation labels individually.\n";
+  cout << "  -precision <int>\n";
+  cout << "      Number of significant digits. (default: 2)\n";
+  cout << "  -metric <Sensitivity|Specificity|Dice|Jaccard>\n";
+  cout << "      Overlap metric. (default: Dice)\n";
+  cout << "  -delimiter, -delim <char>\n";
+  cout << "      Delimiter for output of multiple overlap values. (default: ,)\n";
+  cout << "  -table <file>\n";
+  cout << "      Write table with overlap measures for all segments in a row,\n";
+  cout << "      one row per input source image which is compared to the target\n";
+  cout << "      segmentation. By default, the output to STDIN with verbosity 0\n";
+  cout << "      is the transpose table and excludes a table header. (default: none)\n";
   PrintCommonOptions(cout);
   cout << endl;
 }
@@ -102,6 +124,58 @@ ostream &operator <<(ostream &os, const OverlapMetric &metric)
   return os;
 }
 
+// -----------------------------------------------------------------------------
+/// Read image file names from input list file
+int ReadImageListFile(const char *image_list_name, Array<string> &names, const char *delim = ",")
+{
+  if (delim == nullptr) {
+    const string ext = Extension(image_list_name);
+    if      (ext == ".tsv") delim = "\t";
+    else if (ext == ".csv") delim = ",";
+    else delim = " ";
+  }
+
+  string   base_dir = Directory(image_list_name); // Base directory for relative paths
+  ifstream iff(image_list_name);                  // List input file stream
+  string   line;                                  // Input line
+  int      l = 0;                                 // Line number
+
+  names.clear();
+
+  // Read base directory for image files
+  if (!getline(iff, line)) {
+    cerr << "Error: Cannot parse list file " << image_list_name << endl;
+    return 0;
+  }
+  const bool discard_empty = true;
+  const bool handle_quotes = true;
+  auto columns = Split(Trim(line), delim, 0, discard_empty, handle_quotes);
+  if (columns[0].empty()) columns[0] = ".";
+  if (!base_dir.empty() && columns[0].front() != PATHSEP) {
+    if (columns[0] != ".") base_dir += PATHSEP + columns[0];
+  } else {
+    base_dir = columns[0];
+  }
+  l++;
+
+  while (getline(iff, line)) {
+    l++;
+    // Ignore comment lines starting with # character
+    if (line[0] == '#') continue;
+    // Split line at delimiter
+    columns = Split(line, delim, 0, discard_empty, handle_quotes);
+    if (columns.empty()) continue;
+    // Insert columns into output containers
+    if (!base_dir.empty() && columns[0].front() != PATHSEP) {
+      names.push_back(base_dir + PATHSEP + columns[0]);
+    } else {
+      names.push_back(columns[0]);
+    }
+  }
+
+  return static_cast<int>(names.size());
+}
+
 // =============================================================================
 // Main
 // =============================================================================
@@ -110,26 +184,28 @@ ostream &operator <<(ostream &os, const OverlapMetric &metric)
 int main(int argc, char **argv)
 {
   // Check command line
-  REQUIRES_POSARGS(2);
+  REQUIRES_POSARGS(1);
 
   // Parse positional arguments
   const char *target_name = POSARG(1);
-  Array<const char *> source_name;
-  source_name.push_back(POSARG(2));
+  Array<string> source_name;
 
   int nposarg;
-  for (nposarg = 3; nposarg < argc; ++nposarg) {
+  for (nposarg = 2; nposarg < argc; ++nposarg) {
     if (argv[nposarg][0] == '-') break;
     source_name.push_back(argv[nposarg]);
   }
   --nposarg;
 
   // Parse optional arguments
-  OverlapMetric  metric     = UnknownMetric;
-  GreyPixel      padding    = MIN_GREY;
-  const char    *delim      = ",";
-  int            digits     = 2;
-  bool           all_labels = false;
+  const char    *table_name  = nullptr;
+  const char    *image_list  = nullptr;
+  const char    *image_delim = nullptr;
+  OverlapMetric  metric      = UnknownMetric;
+  GreyPixel      padding     = MIN_GREY;
+  const char    *delim       = ",";
+  int            digits      = 2;
+  bool           all_labels  = false;
   Array<OrderedSet<GreyPixel> > segments;
 
   verbose = 1; // by default, include textual description of output value
@@ -150,6 +226,9 @@ int main(int argc, char **argv)
       } while (HAS_ARGUMENT);
       segments.push_back(segment);
     }
+    else if (OPTION("-table")) table_name = ARGUMENT;
+    else if (OPTION("-images")) image_list = ARGUMENT;
+    else if (OPTION("-images-delimiter") || OPTION("-images-delim")) image_delim = ARGUMENT;
     else if (OPTION("-labels")) all_labels = true;
     else if (OPTION("-metric")) PARSE_ARGUMENT(metric);
     else if (OPTION("-precision")) PARSE_ARGUMENT(digits);
@@ -161,6 +240,16 @@ int main(int argc, char **argv)
     else if (OPTION("-Rz1")) PARSE_ARGUMENT(k1);
     else if (OPTION("-Rz2")) PARSE_ARGUMENT(k2);
     else HANDLE_COMMON_OR_UNKNOWN_OPTION();
+  }
+
+  // Read source image file paths from text file
+  if (image_list) {
+    if (ReadImageListFile(image_list, source_name, image_delim) == 0) {
+      Warning("No source image file paths read from file: " << image_list);
+    }
+  }
+  if (source_name.empty()) {
+    FatalError("No source images specified!");
   }
 
   // Read target image
@@ -217,7 +306,7 @@ int main(int argc, char **argv)
       } else if (n > 0) cout << delim;
 
       // Read source image
-      GreyImage source(source_name[n]);
+      GreyImage source(source_name[n].c_str());
       if (source.Attributes() != target_attributes) {
         FatalError("Input images must be sampled on same lattice!");
       }
@@ -288,117 +377,192 @@ int main(int argc, char **argv)
     // Default metric
     if (metric == UnknownMetric) metric = Dice;
 
-    // Pre-load first n source images and extract region of interest
-    GreyImage source(target_attributes);
-    Array<GreyImage> sources(min(size_t(10u), source_name.size()));
-    for (size_t n = 0; n < sources.size(); ++n) {
-      sources[n].Read(source_name[n]);
-      if (sources[n].Attributes() != target_attributes) {
-        FatalError("Input images must all be sampled on same lattice!");
-      }
-      if ((i1 != 0) || (i2 != sources[n].X()) ||
-          (j1 != 0) || (j2 != sources[n].Y()) ||
-          (k1 != 0) || (k2 != sources[n].Z())) {
-        sources[n] = sources[n].GetRegion(i1, j1, k1, i2, j2, k2);
-      }
-    }
+    if (table_name) {
 
-    // Evaluate overlap for each segment
-    for (size_t roi = 0; roi < segments.size(); ++roi) {
-      const auto &labels = segments[roi];
-      if (segments.size() > 1) {
-        if (verbose) {
-          if (roi > 0 && source_name.size() > 1) {
-            cout << "\n";
-          }
-          cout << "Label ";
-          for (auto it = labels.begin(); it != labels.end(); ++it) {
-            if (it != labels.begin()) cout << "+";
-            cout << *it;
-          }
-          if (source_name.size() > 1) {
-            cout << ":\n";
-          } else {
-            cout << ", ";
-          }
-        } else {
-          for (auto it = labels.begin(); it != labels.end(); ++it) {
-            if (it != labels.begin()) cout << "+";
-            cout << *it;
-          }
-          cout << delim;
+      ofstream ofs(table_name);
+      if (!ofs) FatalError("Failed to open output file: " << table_name);
+
+      for (size_t roi = 0; roi < segments.size(); ++roi) {
+        if (roi > 0) ofs << delim;
+        const auto &labels = segments[roi];
+        for (auto it = labels.begin(); it != labels.end(); ++it) {
+          if (it != labels.begin()) ofs << "+";
+          ofs << *it;
         }
       }
+      ofs << "\n";
+
       for (size_t n = 0; n < source_name.size(); ++n) {
 
-        if (verbose) {
-          if (source_name.size() > 1) {
-            if (segments.size() > 1) {
-              cout << "  ";
-            }
-            cout << source_name[n] << ": ";
-          }
-        } else if (n > 0) cout << delim;
-
         // Read source image and extract region of interest
-        if (n < sources.size()) {
-          source = sources[n];
-        } else {
-          source.Read(source_name[n]);
-          if (source.Attributes() != target_attributes) {
-            FatalError("Input images must be sampled on same lattice!");
-          }
-          if ((i1 != 0) || (i2 != source.GetX()) ||
-              (j1 != 0) || (j2 != source.GetY()) ||
-              (k1 != 0) || (k2 != source.GetZ())) {
-            source = source.GetRegion(i1, j1, k1, i2, j2, k2);
-          }
+        GreyImage source(source_name[n].c_str());
+        if (source.Attributes() != target_attributes) {
+          FatalError("Input images must be sampled on same lattice!");
+        }
+        if ((i1 != 0) || (i2 != source.X()) ||
+            (j1 != 0) || (j2 != source.Y()) ||
+            (k1 != 0) || (k2 != source.Z())) {
+          source = source.GetRegion(i1, j1, k1, i2, j2, k2);
         }
 
-        // Determine TP, FP, TN, FN
-        int tp = 0, fp = 0, tn = 0, fn = 0;
-        for (int k = 0; k < target.Z(); ++k) {
-          for (int j = 0; j < target.Y(); ++j) {
-            for (int i = 0; i < target.X(); ++i) {
-              if (labels.find(target(i, j, k)) != labels.end()) {
-                if (labels.find(source(i, j, k)) != labels.end()) ++tp;
-                else                                              ++fn;
-              }
-              else if (labels.find(source(i, j, k)) != labels.end()) ++fp;
-              else                                                   ++tn;
+        // Iterative over segments
+        for (size_t roi = 0; roi < segments.size(); ++roi) {
+          const auto &labels = segments[roi];
+
+          // Determine TP, FP, TN, FN
+          int tp = 0, fp = 0, tn = 0, fn = 0;
+          for (int k = 0; k < target.Z(); ++k)
+          for (int j = 0; j < target.Y(); ++j)
+          for (int i = 0; i < target.X(); ++i) {
+            if (labels.find(target(i, j, k)) != labels.end()) {
+              if (labels.find(source(i, j, k)) != labels.end()) ++tp;
+              else                                              ++fn;
             }
+            else if (labels.find(source(i, j, k)) != labels.end()) ++fp;
+            else                                                   ++tn;
           }
-        }
 
-        // Compute overlap metric
-        double overlap = .0;
-        switch (metric) {
-          case Sensitivity:
-            overlap = double(tp) / double(tp + fn);
-            break;
-          case Specificity:
-            overlap = double(tn) / double(tn + fp);
-            break;
-          case Dice:
-            overlap = 2.0 * double(tp) / double((fp + tp) + (tp + fn));
-            break;
-          case Jaccard:
-            overlap = double(tp) / double(fp + tp + fn);
-            break;
-          default:
-            FatalError(metric << " not implemented");
-            exit(1);
-        }
+          // Compute overlap metric
+          double overlap = .0;
+          switch (metric) {
+            case Sensitivity:
+              overlap = double(tp) / double(tp + fn);
+              break;
+            case Specificity:
+              overlap = double(tn) / double(tn + fp);
+              break;
+            case Dice:
+              overlap = 2.0 * double(tp) / double((fp + tp) + (tp + fn));
+              break;
+            case Jaccard:
+              overlap = double(tp) / double(fp + tp + fn);
+              break;
+            default:
+              FatalError(metric << " not implemented");
+              exit(1);
+          }
 
-        if (verbose) {
-          const int d = (fequal(overlap, 1.0, 1e-6) ? 3 : digits);
-          cout << metric << " = " << setprecision(d) << (100.0 * overlap) << "%\n";
-        } else {
-          cout << setprecision(digits) << overlap;
+          if (roi > 0) ofs << delim;
+          ofs << setprecision(digits) << overlap;
+        }
+        ofs << "\n";
+      }
+
+    } else {
+
+      // Pre-load first n source images and extract region of interest
+      GreyImage source(target_attributes);
+      Array<GreyImage> sources(min(size_t(10u), source_name.size()));
+      for (size_t n = 0; n < sources.size(); ++n) {
+        sources[n].Read(source_name[n].c_str());
+        if (sources[n].Attributes() != target_attributes) {
+          FatalError("Input images must all be sampled on same lattice!");
+        }
+        if ((i1 != 0) || (i2 != sources[n].X()) ||
+            (j1 != 0) || (j2 != sources[n].Y()) ||
+            (k1 != 0) || (k2 != sources[n].Z())) {
+          sources[n] = sources[n].GetRegion(i1, j1, k1, i2, j2, k2);
         }
       }
 
-      if (verbose == 0) cout << "\n";
+      // Evaluate overlap for each segment
+      for (size_t roi = 0; roi < segments.size(); ++roi) {
+        const auto &labels = segments[roi];
+        if (segments.size() > 1) {
+          if (verbose) {
+            if (roi > 0 && source_name.size() > 1) {
+              cout << "\n";
+            }
+            cout << "Label ";
+            for (auto it = labels.begin(); it != labels.end(); ++it) {
+              if (it != labels.begin()) cout << "+";
+              cout << *it;
+            }
+            if (source_name.size() > 1) {
+              cout << ":\n";
+            } else {
+              cout << ", ";
+            }
+          } else {
+            for (auto it = labels.begin(); it != labels.end(); ++it) {
+              if (it != labels.begin()) cout << "+";
+              cout << *it;
+            }
+            cout << delim;
+          }
+        }
+        for (size_t n = 0; n < source_name.size(); ++n) {
+
+          if (verbose) {
+            if (source_name.size() > 1) {
+              if (segments.size() > 1) {
+                cout << "  ";
+              }
+              cout << source_name[n] << ": ";
+            }
+          } else if (n > 0) cout << delim;
+
+          // Read source image and extract region of interest
+          if (n < sources.size()) {
+            source = sources[n];
+          } else {
+            source.Read(source_name[n].c_str());
+            if (source.Attributes() != target_attributes) {
+              FatalError("Input images must be sampled on same lattice!");
+            }
+            if ((i1 != 0) || (i2 != source.GetX()) ||
+                (j1 != 0) || (j2 != source.GetY()) ||
+                (k1 != 0) || (k2 != source.GetZ())) {
+              source = source.GetRegion(i1, j1, k1, i2, j2, k2);
+            }
+          }
+
+          // Determine TP, FP, TN, FN
+          int tp = 0, fp = 0, tn = 0, fn = 0;
+          for (int k = 0; k < target.Z(); ++k) {
+            for (int j = 0; j < target.Y(); ++j) {
+              for (int i = 0; i < target.X(); ++i) {
+                if (labels.find(target(i, j, k)) != labels.end()) {
+                  if (labels.find(source(i, j, k)) != labels.end()) ++tp;
+                  else                                              ++fn;
+                }
+                else if (labels.find(source(i, j, k)) != labels.end()) ++fp;
+                else                                                   ++tn;
+              }
+            }
+          }
+
+          // Compute overlap metric
+          double overlap = .0;
+          switch (metric) {
+            case Sensitivity:
+              overlap = double(tp) / double(tp + fn);
+              break;
+            case Specificity:
+              overlap = double(tn) / double(tn + fp);
+              break;
+            case Dice:
+              overlap = 2.0 * double(tp) / double((fp + tp) + (tp + fn));
+              break;
+            case Jaccard:
+              overlap = double(tp) / double(fp + tp + fn);
+              break;
+            default:
+              FatalError(metric << " not implemented");
+              exit(1);
+          }
+
+          if (verbose) {
+            const int d = (fequal(overlap, 1.0, 1e-6) ? 3 : digits);
+            cout << metric << " = " << setprecision(d) << (100.0 * overlap) << "%\n";
+          } else {
+            cout << setprecision(digits) << overlap;
+          }
+        }
+
+        if (verbose == 0) cout << "\n";
+      }
+
     }
   }
 
