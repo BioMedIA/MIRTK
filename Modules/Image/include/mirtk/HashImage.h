@@ -68,7 +68,8 @@ protected:
   /// Pointer array for access to image data
   ///
   /// \note The image data is stored in a hash map
-  mirtkAttributeMacro(DataMap, Data);
+  mirtkPublicAttributeMacro(DataMap, Data);
+
   /// \note Voxels that their value==DefaultValue are not stored
   mirtkPublicAttributeMacro(VoxelType, DefaultValue);
 
