@@ -176,7 +176,9 @@ void RegisteredImage::Initialize(const ImageAttributes &attr, int t)
   if (_InputImage->HasBackgroundValue()) {
     this->PutBackgroundValueAsDouble(_InputImage->GetBackgroundValueAsDouble());
   } else {
-    this->PutBackgroundValueAsDouble(MIN_GREY);
+    double min, max;
+    _InputImage->GetMinMaxAsDouble(&min, &max);
+    this->PutBackgroundValueAsDouble(min - 1.);
   }
 
   // Pre-compute world coordinates
