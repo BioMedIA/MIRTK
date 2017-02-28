@@ -97,10 +97,7 @@ public:
   explicit HashImage(int, int, int, int, int);
 
   /// Constructor for given image attributes
-  explicit HashImage(const ImageAttributes &);
-
-  /// Constructor for given image attributes
-  explicit HashImage(const ImageAttributes &, int);
+  explicit HashImage(const ImageAttributes &, int = -1);
 
   /// Copy constructor for image
   explicit HashImage(const BaseImage &);

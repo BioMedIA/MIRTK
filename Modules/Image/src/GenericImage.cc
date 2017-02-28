@@ -243,7 +243,10 @@ void GenericImage<VoxelType>::Initialize(const ImageAttributes &a, int n, VoxelT
 {
   // Initialize attributes
   ImageAttributes attr(a);
-  if (n >= 1) attr._t = n, attr._dt = .0; // i.e., vector image with n components
+  if (n >= 1) {
+    attr._t  = n;
+    attr._dt = 0;  // i.e., vector image with n components
+  }
   // Initialize memory
   if (_attr._x != attr._x || _attr._y != attr._y || _attr._z != attr._z || _attr._t != attr._t) {
     PutAttributes(attr);

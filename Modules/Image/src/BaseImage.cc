@@ -66,7 +66,10 @@ BaseImage::BaseImage(const ImageAttributes &attr, int n)
   _bgSet(false)
 {
   _attr = attr;
-  if (n > 1) _attr._t = n, _attr._dt = .0; // i.e., vector image with n components
+  if (n >= 1) {
+    _attr._t  = n;
+    _attr._dt = 0.;  // i.e., vector image with n components
+  }
   PutAttributes(_attr);
 }
 
