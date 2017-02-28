@@ -29,6 +29,7 @@
 #include "mirtk/ImageSimilarity.h"
 #include "mirtk/HistogramImageSimilarity.h"
 #include "mirtk/NearestNeighborInterpolateImageFunction.h"
+#include "mirtk/HomogeneousTransformation.h"
 
 using namespace mirtk;
 
@@ -103,6 +104,8 @@ void PrintHelp(const char *name)
 // Auxiliary functions
 // =============================================================================
 
+typedef RegisteredImage::DisplacementImageType DisplacementField;
+
 // -----------------------------------------------------------------------------
 int DefaultNumberOfBins(const BaseImage *, double min_intensity, double max_intensity)
 {
@@ -138,8 +141,10 @@ int main(int argc, char **argv)
   InterpolationMode interp   = Interpolation_LinearWithPadding;
   const char *mask_name      = nullptr;
   const char *dofin_name     = nullptr;
-  double      target_padding = numeric_limits<double>::quiet_NaN();
-  double      source_padding = numeric_limits<double>::quiet_NaN();
+  const char *table_name     = nullptr;
+  bool        invert         = false;
+  double      target_padding = NaN;
+  double      source_padding = NaN;
   int         target_bins    = 0;
   int         source_bins    = 0;
   bool        parzen_window  = false;
@@ -170,7 +175,7 @@ int main(int argc, char **argv)
     else if (OPTION("-parzen") || OPTION("-parzen-window") || OPTION("-smooth-histogram")) {
       parzen_window = true;
     }
-    else if (OPTION("-metric")) {
+    else if (OPTION("-metric") || OPTION("-measure")) {
       do {
         SimilarityMeasure m;
         PARSE_ARGUMENT(m);
@@ -188,17 +193,23 @@ int main(int argc, char **argv)
         delim.replace(pos, 2, "\t");
       }
     }
-    else if (OPTION("-table")) verbose = -1;
-    else if (OPTION("-csv"))   verbose = -1, delim = ',';
-    else if (OPTION("-tsv"))   verbose = -1, delim = '\t';
+    else if (OPTION("-table")) {
+      verbose = -1;
+      if (HAS_ARGUMENT) {
+        table_name = ARGUMENT;
+      }
+    }
+    else if (OPTION("-csv")) verbose = -1, delim = ',';
+    else if (OPTION("-tsv")) verbose = -1, delim = '\t';
     else if (OPTION("-fullid")) full_path_id = true;
-    else if (OPTION("-noid"))   no_image_id = true;
+    else if (OPTION("-noid")) no_image_id = true;
     else if (OPTION("-Rx1")) PARSE_ARGUMENT(i1);
     else if (OPTION("-Rx2")) PARSE_ARGUMENT(i2);
     else if (OPTION("-Ry1")) PARSE_ARGUMENT(j1);
     else if (OPTION("-Ry2")) PARSE_ARGUMENT(j2);
     else if (OPTION("-Rz1")) PARSE_ARGUMENT(k1);
     else if (OPTION("-Rz2")) PARSE_ARGUMENT(k2);
+    else HANDLE_BOOL_OPTION(invert);
     else HANDLE_COMMON_OR_UNKNOWN_OPTION();
   }
 
@@ -213,6 +224,17 @@ int main(int argc, char **argv)
     metric.push_back(SIM_NMI);
     metric.push_back(SIM_CR_XY);
     metric.push_back(SIM_CR_YX);
+  }
+
+  ofstream fout;
+  ostream *out = &cout;
+  if (table_name) {
+    verbose = -1;
+    fout.open(table_name, ios::out);
+    if (!fout) {
+      FatalError("Failed to open output file: " << table_name);
+    }
+    out = &fout;
   }
 
   int width = 22;
@@ -237,8 +259,11 @@ int main(int argc, char **argv)
   source.InputImage(&source_image);
   source.InterpolationMode(interp);
 
-  target.SelfUpdate(false);
-  source.SelfUpdate(false);
+  // Registered images must be updated each time because ImageSimilarity subclasses
+  // are allowed to change the intensities of the registered images. For example,
+  // the NormalizedIntensityCrossCorrelation normalizes the values to [0, 1].
+  target.SelfUpdate(true);
+  source.SelfUpdate(true);
 
   // Read target image
   if (verbose > 1) cout << "Reading target image from " << target_name << "...", cout.flush();
@@ -249,16 +274,6 @@ int main(int argc, char **argv)
     FatalError("Target image must be a 2D or 3D image!");
   }
   if (verbose > 1) cout << " done" << endl;
-
-  // Read input transformation
-  UniquePtr<Transformation> dofin;
-  if (dofin_name) {
-    if (verbose > 1) cout << "Reading source transformation from " << dofin_name << "...", cout.flush();
-    dofin.reset(Transformation::New(dofin_name));
-    source.Transformation(dofin.get());
-    source.CacheFixedDisplacement(true);
-    if (verbose > 1) cout << " done" << endl;
-  }
 
   // Target region of interest
   if (i2 < 0) i2 = target_image.X();
@@ -284,14 +299,52 @@ int main(int argc, char **argv)
 
   const int nvox = target_region.NumberOfPoints();
 
-  // Initializ (transformed) images
+  // Read input (and evaluate) source transformation
+  // ATTENTION: MUST be done **before** source.Initialize() is called!
+  UniquePtr<Transformation> dofin;
+  UniquePtr<DisplacementField> disp;
+  if (dofin_name) {
+    if (verbose > 1) cout << "Reading source transformation from " << dofin_name << "...", cout.flush();
+    dofin.reset(Transformation::New(dofin_name));
+    source.Transformation(dofin.get());
+    HomogeneousTransformation *lin;
+    lin = dynamic_cast<HomogeneousTransformation *>(dofin.get());
+    if (invert && lin) {
+      lin->Invert();
+    } else if (!lin && (invert || dofin->RequiresCachingOfDisplacements())) {
+      disp.reset(new DisplacementField(target_region, 3));
+      const double t  = source.GetTOrigin();
+      const double t0 = target.GetTOrigin();
+      if (invert) {
+        dofin->InverseDisplacement(*disp, t, t0);
+      } else {
+        dofin->Displacement(*disp, t, t0);
+      }
+      source.ExternalDisplacement(disp.get());
+    }
+    if (verbose > 1) cout << " done" << endl;
+  }
+
+  // Initialize (transformed) images
   if (verbose > 1) cout << "Initializing registered images...", cout.flush();
   target.Initialize(target_region);
   source.Initialize(target_region);
-  target.PutBackgroundValueAsDouble(target_padding);
-  source.PutBackgroundValueAsDouble(source_padding);
+  if (IsNaN(target_padding)) {
+    target.ClearBackgroundValue();
+  } else {
+    target.PutBackgroundValueAsDouble(target_padding);
+  }
+  if (IsNaN(source_padding)) {
+    source.ClearBackgroundValue();
+  } else {
+    source.PutBackgroundValueAsDouble(source_padding);
+  }
   target.Recompute();
   if (verbose > 1) cout << " done" << endl;
+
+  if (debug) {
+    target.Write("debug_target.nii.gz");
+  }
 
   // Target region of interest and image overlap masks
   BinaryImage mask(target_region), overlap(target_region);
@@ -370,13 +423,13 @@ int main(int argc, char **argv)
 
   if (verbose < 0) {
     if (!no_image_id) {
-      cout << "Target" << delim << "Source" << delim;
+      *out << "Target" << delim << "Source" << delim;
     }
     for (size_t i = 0; i < metric.size(); ++i) {
-      if (i > 0) cout << delim;
-      cout << ToString(metric[i]);
+      if (i > 0) *out << delim;
+      *out << ToString(metric[i]);
     }
-    cout << endl;
+    *out << endl;
   }
 
   // Evaluate similarity of (transformed) source image(s)
@@ -403,6 +456,13 @@ int main(int argc, char **argv)
     if (verbose > 1 && source.Transformation()) {
       cout << " done\n" << endl;
     }
+    if (debug) {
+      if (source_name.size() == 1) {
+        source.Write("debug_source.nii.gz");
+      } else {
+        source.Write(("debug_source_" + ToString(n + 1) + ".nii.gz").c_str());
+      }
+    }
 
     // Print image IDs
     const string source_id = (full_path_id ? source_name[n] : FileName(source_name[n]));
@@ -412,9 +472,9 @@ int main(int argc, char **argv)
       ++indent;
     } else if (!no_image_id) {
       if (verbose == 0) cout << "Target = ";
-      cout << target_id << delim;
+      *out << target_id << delim;
       if (verbose == 0) cout << "Source = ";
-      cout << source_id;
+      *out << source_id;
     }
     cout.flush();
 
@@ -427,6 +487,7 @@ int main(int argc, char **argv)
     // Fill joint histogram
     if (use_shared_histogram) {
       double smin, smax;
+      if (n > 0) target.Recompute();
       source_image.GetMinMaxAsDouble(smin, smax);
       if (fequal(smin, smax)) {
         FatalError("Source image has homogeneous intensity = " << smin);
@@ -466,21 +527,44 @@ int main(int argc, char **argv)
 
     // Evaluate similarity measure(s)
     for (size_t i = 0; i < sim.size(); ++i) {
-      cout << delim;
+      if (!no_image_id || i > 0) {
+        *out << delim;
+      }
       if (verbose > 0) {
         cout << indent << ToPrettyString(metric[i], width, ' ', true) << " = ";
       } else if (verbose == 0) {
         cout << sim[i]->Name() << " = ";
       }
       if (verbose > 0) cout.flush();
+      // Initialize similarity measure, possibly changes [min, max] range
       sim[i]->Initialize();
       sim[i]->Update();
-      cout << setprecision(digits) << sim[i]->RawValue();
+      // Evaluate image similarity
+      *out << setprecision(digits) << sim[i]->RawValue();
+      // Reset registered image properties which may be modified by similarity measures
+      target.MinIntensity(NaN);
+      target.MaxIntensity(NaN);
+      source.MinIntensity(NaN);
+      source.MaxIntensity(NaN);
+      if (IsNaN(target_padding)) {
+        target.ClearBackgroundValue();
+      } else {
+        target.PutBackgroundValueAsDouble(target_padding);
+      }
+      if (IsNaN(source_padding)) {
+        source.ClearBackgroundValue();
+      } else {
+        source.PutBackgroundValueAsDouble(source_padding);
+      }
       if (verbose > 0) cout.flush();
     }
 
-    cout << endl;
+    *out << endl;
   }
 
+  // Close output file
+  if (fout.is_open()) {
+    fout.close();
+  }
   return 0;
 }
