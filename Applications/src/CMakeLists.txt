@@ -88,6 +88,10 @@ if (MIRTK_Image_FOUND)
     add_image_command(evaluate-similarity LibTransformation LibRegistration)
   endif ()
 
+  if (Python_FOUND)
+    mirtk_add_executable(average-overlap)
+  endif ()
+
 endif ()
 
 # ----------------------------------------------------------------------------

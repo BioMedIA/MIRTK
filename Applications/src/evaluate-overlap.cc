@@ -75,8 +75,9 @@ void PrintHelp(const char *name)
   cout << "      All (positive) segmentation labels individually.\n";
   cout << "  -precision <int>\n";
   cout << "      Number of significant digits. (default: 2)\n";
-  cout << "  -metric <Sensitivity|Specificity|Dice|Jaccard>\n";
-  cout << "      Overlap metric. (default: Dice)\n";
+  cout << "  -metric <name>\n";
+  cout << "      Segmentation overlap metric (see https://en.wikipedia.org/wiki/Confusion_matrix).\n";
+  cout << "      (default: Dice / F1-score)\n";
   cout << "  -delimiter, -delim <char>\n";
   cout << "      Delimiter for output of multiple overlap values. (default: ,)\n";
   cout << "  -table <file>\n";
@@ -92,19 +93,82 @@ void PrintHelp(const char *name)
 // Auxiliaries
 // =============================================================================
 
-// Implemented (segmentation) overlap metrics
-enum OverlapMetric { UnknownMetric, Sensitivity, Specificity, Dice, Jaccard };
+// Implemented segmentation overlap metrics
+// (https://en.wikipedia.org/wiki/Confusion_matrix)
+enum OverlapMetric {
+  UnknownMetric,
+  TruePositives,
+  TrueNegatives,
+  FalsePositives,
+  FalseNegatives,
+  Sensitivity,
+  Specificity,
+  PositivePredictiveValue,
+  NegativePredictiveValue,
+  FalsePositiveRate,
+  FalseDiscoveryRate,
+  FalseNegativeRate,
+  Accuracy,
+  F1Score,  // same as Dice
+  MatthewsCorrelation,
+  Informedness,
+  Markedness,
+  Dice,
+  Jaccard,
+  // Aliases
+  Recall = Sensitivity,
+  HitRate = Sensitivity,
+  TruePositiveRate = Sensitivity,
+  TrueNegativeRate = Specificity,
+  Precision = PositivePredictiveValue,
+  FallOut = FalsePositiveRate,
+  MissRate = FalseNegativeRate
+};
 
 // -----------------------------------------------------------------------------
 istream &operator >>(istream &is, OverlapMetric &metric)
 {
   string str;
   is >> str;
-  if      (str == "Sensitivity") metric = Sensitivity;
-  else if (str == "Specificity") metric = Specificity;
-  else if (str == "Dice coefficient"   || str == "Dice")    metric = Dice;
-  else if (str == "Jaccard similarity" || str == "Jaccard") metric = Jaccard;
-  else {
+  str = ToLower(str);
+  if (str == "true positives" || str == "truepositives" || str == "tp") {
+    metric = TruePositives;
+  } else if (str == "true negatives" || str == "truenegatives" || str == "tn") {
+    metric = TrueNegatives;
+  } else if (str == "false negatives" || str == "falsenegatives" || str == "fn") {
+    metric = FalseNegatives;
+  } else if (str == "false positives" || str == "falsepositives" || str == "fp") {
+    metric = FalsePositives;
+  } else if (str == "sensitivity") {
+    metric = Sensitivity;
+  } else if (str == "specificity") {
+    metric = Specificity;
+  } else if (str == "ppv" || str == "positivepredictivevalue" || str == "positive predictive value" || str == "precision") {
+    metric = PositivePredictiveValue;
+  } else if (str == "npv" || str == "negativepredictivevalue" || str == "negative predictive value") {
+    metric = NegativePredictiveValue;
+  } else if (str == "fpr" || str == "falsepositiverate" || str == "false positive rate" || str == "fallout" || str == "fall-out" || str == "fall out") {
+    metric = FalsePositiveRate;
+  } else if (str == "fdr" || str == "falsediscoveryrate" || str == "false discovery rate") {
+    metric = FalseDiscoveryRate;
+  } else if (str == "fnr" || str == "falsenegativerate" || str == "falsenegativerate" || str == "missrate" || str == "miss rate") {
+    metric = FalseNegativeRate;
+  } else if (str == "accuracy") {
+    metric = Accuracy;
+  } else if (str == "f1score" || str == "fscore" || str == "f-score" || str == "fmeasure" || str == "f-measure") {
+    metric = F1Score;
+  } else if (str == "matthewscorrelationcoefficient" || str == "matthews correlation coefficient" ||
+             str == "matthewscorrelation" || str == "matthews correlation" || str == "mcc") {
+    metric = MatthewsCorrelation;
+  } else if (str == "bm" || str == "informedness" || str == "bookmakerinformedness" || str == "bookmaker informedness") {
+    metric = Informedness;
+  } else if (str == "mk" || str == "markedness") {
+    metric = Markedness;
+  } else if (str == "dice coefficient" || str == "dicecoefficient" || str == "dice") {
+    metric = Dice;
+  } else if (str == "jaccard similarity" || str == "jacccardsimilarity" || str == "jaccard") {
+    metric = Jaccard;
+  } else {
     metric = UnknownMetric;
     is.setstate(ios::failbit);
   }
@@ -115,13 +179,97 @@ istream &operator >>(istream &is, OverlapMetric &metric)
 ostream &operator <<(ostream &os, const OverlapMetric &metric)
 {
   switch (metric) {
-    case Sensitivity: os << "Sensitivity";        break;
-    case Specificity: os << "Specificity";        break;
-    case Dice:        os << "Dice coefficient";   break;
-    case Jaccard:     os << "Jaccard similarity"; break;
-    default:          os << "Unknown metric";     break;
+    case TruePositives:           os << "True positives"; break;
+    case TrueNegatives:           os << "True negatives"; break;
+    case FalsePositives:          os << "False positives"; break;
+    case FalseNegatives:          os << "False negatives"; break;
+    case Sensitivity:             os << "Sensitivity"; break;
+    case Specificity:             os << "Specificity"; break;
+    case PositivePredictiveValue: os << "Positive predictive value"; break;
+    case NegativePredictiveValue: os << "Negative predictive value"; break;
+    case FalsePositiveRate:       os << "False positive rate"; break;
+    case FalseDiscoveryRate:      os << "False discovery rate"; break;
+    case FalseNegativeRate:       os << "False negative rate"; break;
+    case Accuracy:                os << "Accuracy"; break;
+    case MatthewsCorrelation:     os << "Matthews correlation coefficient"; break;
+    case Informedness:            os << "Bookmaker informedness"; break;
+    case Markedness:              os << "Markedness"; break;
+    case F1Score:                 os << "F1-score"; break;
+    case Dice:                    os << "Dice coefficient"; break;
+    case Jaccard:                 os << "Jaccard similarity"; break;
+    default:                      os << "Unknown metric"; break;
   }
   return os;
+}
+
+// -----------------------------------------------------------------------------
+string Abbreviation(const OverlapMetric &metric)
+{
+  switch (metric) {
+    case TruePositives:           return "TP";
+    case TrueNegatives:           return "TN";
+    case FalsePositives:          return "FP";
+    case FalseNegatives:          return "FN";
+    case Sensitivity:             return "TPR";
+    case Specificity:             return "TNR";
+    case PositivePredictiveValue: return "PPV";
+    case NegativePredictiveValue: return "NPV";
+    case FalsePositiveRate:       return "FPR";
+    case FalseDiscoveryRate:      return "FDR";
+    case FalseNegativeRate:       return "FNR";
+    case Accuracy:                return "ACC";
+    case MatthewsCorrelation:     return "MCC";
+    case Informedness:            return "BM";
+    case Markedness:              return "MK";
+    case Dice:                    return "Dice";
+    case Jaccard:                 return "Jaccard";
+    default:                      return "Unknown";
+  }
+}
+
+// -----------------------------------------------------------------------------
+double Evaluate(OverlapMetric metric, int tp, int fn, int fp, int tn)
+{
+  switch (metric) {
+    case TruePositives:
+      return double(tp);
+    case TrueNegatives:
+      return double(tn);
+    case FalsePositives:
+      return double(fp);
+    case FalseNegatives:
+      return double(fn);
+    case Sensitivity:
+      return double(tp) / double(tp + fn);
+    case Specificity:
+      return double(tn) / double(fp + tn);
+    case PositivePredictiveValue:
+      return double(tp) / double(tp + fp);
+    case NegativePredictiveValue:
+      return double(tn) / double(tn + fn);
+    case FalsePositiveRate:
+      return double(fp) / double(fp + tn);
+    case FalseDiscoveryRate:
+      return double(fp) / double(fp + tp);
+    case FalseNegativeRate:
+      return double(fn) / double(tp + fn);
+    case Accuracy:
+      return double(tp + tn) / double(tp + fn + fp + tn);
+    case Informedness:
+      return double(tp) / double(tp + fn) + double(tn) / double(fp + tn) - 1.;
+    case MatthewsCorrelation: {
+      double denom = sqrt(double(tp + fp) * double(tp + fn) * double(tn + fp) * double(tn + fn));
+      return (double(tp) * double(tn) - double(fp) * double(fn)) / denom;
+    } break;
+    case Markedness:
+      return double(tp) / double(tp + fp) + double(tn) / double(tn + fn) - 1.;
+    case F1Score: case Dice:
+      return double(2 * tp) / double((fp + tp) + (tp + fn));
+    case Jaccard:
+      return double(tp) / double(fp + tp + fn);
+    default:
+      FatalError("Unknown overlap metric: " << metric);
+  }
 }
 
 // -----------------------------------------------------------------------------
@@ -198,19 +346,20 @@ int main(int argc, char **argv)
   --nposarg;
 
   // Parse optional arguments
-  const char    *table_name  = nullptr;
-  const char    *image_list  = nullptr;
-  const char    *image_delim = nullptr;
-  OverlapMetric  metric      = UnknownMetric;
-  GreyPixel      padding     = MIN_GREY;
-  const char    *delim       = ",";
-  int            digits      = 2;
-  bool           all_labels  = false;
+  const char *table_name  = nullptr;
+  const char *image_list  = nullptr;
+  const char *image_delim = nullptr;
+  GreyPixel   padding     = MIN_GREY;
+  const char *delim       = ",";
+  int         digits      = 2;
+  bool        all_labels  = false;
   Array<OrderedSet<GreyPixel> > segments;
+  Array<OverlapMetric>          metrics;
 
   verbose = 1; // by default, include textual description of output value
                // can be disabled by caller using "-v 0" option in order to
                // only append the overlap value (excl. newline) to a file
+               // or even better, use the -table output option
 
   int i1 =  0, j1 =  0, k1 =  0;
   int i2 = -1, j2 = -1, k2 = -1;
@@ -230,7 +379,16 @@ int main(int argc, char **argv)
     else if (OPTION("-images")) image_list = ARGUMENT;
     else if (OPTION("-images-delimiter") || OPTION("-images-delim")) image_delim = ARGUMENT;
     else if (OPTION("-labels")) all_labels = true;
-    else if (OPTION("-metric")) PARSE_ARGUMENT(metric);
+    else if (OPTION("-metric")) {
+      OverlapMetric metric;
+      do {
+        const char *arg = ARGUMENT;
+        if (!FromString(arg, metric) || metric == UnknownMetric) {
+          FatalError("Unknown overlap metric: " << arg);
+        }
+        metrics.push_back(metric);
+      } while (HAS_ARGUMENT);
+    }
     else if (OPTION("-precision")) PARSE_ARGUMENT(digits);
     else if (OPTION("-delim")) delim = ARGUMENT;
     else if (OPTION("-Rx1")) PARSE_ARGUMENT(i1);
@@ -318,22 +476,19 @@ int main(int argc, char **argv)
         source = source.GetRegion(i1, j1, k1, i2, j2, k2);
       }
 
-      // Default metric
-      if (metric != UnknownMetric) {
-        FatalError(metric << " not suitable for intensity images");
-        exit(1);
+      // Default image overlap metric
+      if (!metrics.empty()) {
+        FatalError("Segmentation overlap metrics not suitable for intensity images, use default SI!");
       }
 
       // Determine maximum intensity
       int max = 0;
-      for (int k = 0; k < target.Z(); ++k) {
-        for (int j = 0; j < target.Y(); ++j) {
-          for (int i = 0; i < target.X(); ++i) {
-            if (target(i, j, k) > padding) {
-              if (target(i, j, k) > max) max = target(i, j, k);
-              if (source(i, j, k) > max) max = source(i, j, k);
-            }
-          }
+      for (int k = 0; k < target.Z(); ++k)
+      for (int j = 0; j < target.Y(); ++j)
+      for (int i = 0; i < target.X(); ++i) {
+        if (target(i, j, k) > padding) {
+          if (target(i, j, k) > max) max = target(i, j, k);
+          if (source(i, j, k) > max) max = source(i, j, k);
         }
       }
 
@@ -374,20 +529,49 @@ int main(int argc, char **argv)
   // Segmentation overlap
   } else {
 
-    // Default metric
-    if (metric == UnknownMetric) metric = Dice;
+    // Default segmentation overlap metric
+    if (metrics.empty()) {
+      if (source_name.size() == 1) {
+        metrics.push_back(TruePositives);
+        metrics.push_back(FalseNegatives);
+        metrics.push_back(FalsePositives);
+        metrics.push_back(TrueNegatives);
+        metrics.push_back(Sensitivity);
+        metrics.push_back(Specificity);
+        metrics.push_back(Dice);
+        metrics.push_back(Jaccard);
+      } else {
+        metrics.push_back(Dice);
+      }
+    }
 
     if (table_name) {
 
       ofstream ofs(table_name);
       if (!ofs) FatalError("Failed to open output file: " << table_name);
 
-      for (size_t roi = 0; roi < segments.size(); ++roi) {
-        if (roi > 0) ofs << delim;
-        const auto &labels = segments[roi];
-        for (auto it = labels.begin(); it != labels.end(); ++it) {
-          if (it != labels.begin()) ofs << "+";
-          ofs << *it;
+      if (source_name.size() == 1) {
+        ofs << "Label";
+        for (size_t m = 0; m < metrics.size(); ++m) {
+          ofs << delim << Abbreviation(metrics[m]);
+        }
+      } else {
+        for (size_t roi = 0; roi < segments.size(); ++roi)
+        for (size_t m = 0; m < metrics.size(); ++m) {
+          if (roi > 0 || m > 0) {
+            ofs << delim;
+          }
+          if (metrics.size() > 1) {
+            ofs << Abbreviation(metrics[m]);
+            if (strcmp(delim, " ") != 0) {
+              ofs << ' ';
+            }
+          }
+          const auto &labels = segments[roi];
+          for (auto it = labels.begin(); it != labels.end(); ++it) {
+            if (it != labels.begin()) ofs << "+";
+            ofs << *it;
+          }
         }
       }
       ofs << "\n";
@@ -408,6 +592,12 @@ int main(int argc, char **argv)
         // Iterative over segments
         for (size_t roi = 0; roi < segments.size(); ++roi) {
           const auto &labels = segments[roi];
+          if (source_name.size() == 1) {
+            for (auto it = labels.begin(); it != labels.end(); ++it) {
+              if (it != labels.begin()) ofs << "+";
+              ofs << *it;
+            }
+          }
 
           // Determine TP, FP, TN, FN
           int tp = 0, fp = 0, tn = 0, fn = 0;
@@ -422,30 +612,32 @@ int main(int argc, char **argv)
             else                                                   ++tn;
           }
 
-          // Compute overlap metric
-          double overlap = .0;
-          switch (metric) {
-            case Sensitivity:
-              overlap = double(tp) / double(tp + fn);
-              break;
-            case Specificity:
-              overlap = double(tn) / double(tn + fp);
-              break;
-            case Dice:
-              overlap = 2.0 * double(tp) / double((fp + tp) + (tp + fn));
-              break;
-            case Jaccard:
-              overlap = double(tp) / double(fp + tp + fn);
-              break;
-            default:
-              FatalError(metric << " not implemented");
-              exit(1);
+          // Compute overlap metrics
+          for (size_t m = 0; m < metrics.size(); ++m) {
+            if (source_name.size() == 1 || roi > 0 || m > 0) {
+              ofs << delim;
+            }
+            switch (metrics[m]) {
+              case TruePositives:
+                ofs << tp;
+                break;
+              case TrueNegatives:
+                ofs << tn;
+                break;
+              case FalsePositives:
+                ofs << fp;
+                break;
+              case FalseNegatives:
+                ofs << fn;
+                break;
+              default:
+                ofs << setprecision(digits) << Evaluate(metrics[m], tp, fn, fp, tn);
+            }
           }
 
-          if (roi > 0) ofs << delim;
-          ofs << setprecision(digits) << overlap;
+          if (source_name.size() == 1) ofs << "\n";
         }
-        ofs << "\n";
+        if (source_name.size() > 1) ofs << "\n";
       }
 
     } else {
@@ -470,7 +662,7 @@ int main(int argc, char **argv)
         const auto &labels = segments[roi];
         if (segments.size() > 1) {
           if (verbose) {
-            if (roi > 0 && source_name.size() > 1) {
+            if (roi > 0 && (source_name.size() > 1 || metrics.size() > 1)) {
               cout << "\n";
             }
             cout << "Label ";
@@ -500,7 +692,7 @@ int main(int argc, char **argv)
               }
               cout << source_name[n] << ": ";
             }
-          } else if (n > 0) cout << delim;
+          }
 
           // Read source image and extract region of interest
           if (n < sources.size()) {
@@ -519,45 +711,50 @@ int main(int argc, char **argv)
 
           // Determine TP, FP, TN, FN
           int tp = 0, fp = 0, tn = 0, fn = 0;
-          for (int k = 0; k < target.Z(); ++k) {
-            for (int j = 0; j < target.Y(); ++j) {
-              for (int i = 0; i < target.X(); ++i) {
-                if (labels.find(target(i, j, k)) != labels.end()) {
-                  if (labels.find(source(i, j, k)) != labels.end()) ++tp;
-                  else                                              ++fn;
-                }
-                else if (labels.find(source(i, j, k)) != labels.end()) ++fp;
-                else                                                   ++tn;
+          for (int k = 0; k < target.Z(); ++k)
+          for (int j = 0; j < target.Y(); ++j)
+          for (int i = 0; i < target.X(); ++i) {
+            if (labels.find(target(i, j, k)) != labels.end()) {
+              if (labels.find(source(i, j, k)) != labels.end()) ++tp;
+              else                                              ++fn;
+            }
+            else if (labels.find(source(i, j, k)) != labels.end()) ++fp;
+            else                                                   ++tn;
+          }
+
+          // Compute overlap metrics
+          for (size_t m = 0; m < metrics.size(); ++m) {
+            double overlap = Evaluate(metrics[m], tp, fn, fp, tn);
+            if (verbose) {
+              if (m > 0) {
+                cout << ", ";
+              }
+              if (verbose == 1) {
+                cout << Abbreviation(metrics[m]);
+              } else {
+                cout << metrics[m];
+              }
+              cout << " = ";
+              if (metrics[m] == TruePositives || metrics[m] == FalsePositives ||
+                  metrics[m] == TrueNegatives || metrics[m] == FalseNegatives) {
+                cout << int(overlap);
+              } else {
+                const int d = (fequal(overlap, 1., 1e-6) ? 3 : digits);
+                cout << setprecision(d) << (100. * overlap) << "%";
+              }
+            } else {
+              if (m > 0) {
+                cout << delim;
+              }
+              if (metrics[m] == TruePositives || metrics[m] == FalsePositives ||
+                  metrics[m] == TrueNegatives || metrics[m] == FalseNegatives) {
+                cout << int(overlap);
+              } else {
+                cout << setprecision(digits) << overlap;
               }
             }
           }
-
-          // Compute overlap metric
-          double overlap = .0;
-          switch (metric) {
-            case Sensitivity:
-              overlap = double(tp) / double(tp + fn);
-              break;
-            case Specificity:
-              overlap = double(tn) / double(tn + fp);
-              break;
-            case Dice:
-              overlap = 2.0 * double(tp) / double((fp + tp) + (tp + fn));
-              break;
-            case Jaccard:
-              overlap = double(tp) / double(fp + tp + fn);
-              break;
-            default:
-              FatalError(metric << " not implemented");
-              exit(1);
-          }
-
-          if (verbose) {
-            const int d = (fequal(overlap, 1.0, 1e-6) ? 3 : digits);
-            cout << metric << " = " << setprecision(d) << (100.0 * overlap) << "%\n";
-          } else {
-            cout << setprecision(digits) << overlap;
-          }
+          if (verbose) cout << "\n";
         }
 
         if (verbose == 0) cout << "\n";
