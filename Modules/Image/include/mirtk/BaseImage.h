@@ -132,7 +132,7 @@ protected:
   BaseImage();
 
   /// Constructor
-  BaseImage(const ImageAttributes &, int = 1);
+  BaseImage(const ImageAttributes &, int = -1);
 
   /// Copy constructor
   BaseImage(const BaseImage &);

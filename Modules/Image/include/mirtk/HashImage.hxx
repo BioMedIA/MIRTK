@@ -107,15 +107,6 @@ HashImage<VoxelType>::HashImage(int x, int y, int z, int t, int n)
 
 // -----------------------------------------------------------------------------
 template <class VoxelType>
-HashImage<VoxelType>::HashImage(const ImageAttributes &attr)
-:
-  BaseImage(attr)
-{
-  AllocateImage();
-}
-
-// -----------------------------------------------------------------------------
-template <class VoxelType>
 HashImage<VoxelType>::HashImage(const ImageAttributes &attr, int n)
 :
   BaseImage(attr, n)
@@ -205,7 +196,10 @@ void HashImage<VoxelType>::Initialize(const ImageAttributes &a, int n)
 {
   // Initialize attributes
   ImageAttributes attr(a);
-  if (n >= 1) attr._t = n, attr._dt = .0; // i.e., vector image with n components
+  if (n >= 1) {
+    attr._t  = n;
+    attr._dt = 0.;  // i.e., vector image with n components
+  }
   // Initialize memory
   if (_attr._x != attr._x || _attr._y != attr._y || _attr._z != attr._z || _attr._t != attr._t) {
     PutAttributes(attr);
