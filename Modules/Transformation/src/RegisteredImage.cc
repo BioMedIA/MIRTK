@@ -59,8 +59,8 @@ RegisteredImage::RegisteredImage()
   _CacheFixedDisplacement(false), // by default, only if required by transformation
   _CacheDisplacement     (false), // (c.f. Transformation::RequiresCachingOfDisplacements)
   _SelfUpdate            (true),
-  _MinIntensity          (numeric_limits<double>::quiet_NaN()),
-  _MaxIntensity          (numeric_limits<double>::quiet_NaN()),
+  _MinIntensity          (NaN),
+  _MaxIntensity          (NaN),
   _GradientSigma         (.0),
   _HessianSigma          (.0),
   _PrecomputeDerivatives (false),
@@ -636,8 +636,8 @@ public:
     _InterpolateWithPadding(false),
     _PrecomputedDerivatives(false),
     _PaddingValue          (-1.),
-    _MinIntensity          (numeric_limits<double>::quiet_NaN()),
-    _MaxIntensity          (numeric_limits<double>::quiet_NaN()),
+    _MinIntensity          (NaN),
+    _MaxIntensity          (NaN),
     _RescaleSlope          (1.),
     _RescaleIntercept      (.0),
     _NumberOfVoxels        (0),
