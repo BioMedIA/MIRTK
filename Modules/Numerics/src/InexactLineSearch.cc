@@ -122,14 +122,14 @@ bool InexactLineSearch::Set(const char *name, const char *value)
   // Whether [min, max] step length range is strict
   }
   if (strcmp(name, "Strict step length range")             == 0 ||
-             strcmp(name, "Strict incremental step length range") == 0) {
+      strcmp(name, "Strict incremental step length range") == 0) {
     bool limit_increments;
     if (!FromString(value, limit_increments)) return false;
     _StrictStepLengthRange = limit_increments ? 1 : 0;
     return true;
   }
   if (strcmp(name, "Strict total step length range")       == 0 ||
-             strcmp(name, "Strict accumulated step length range") == 0) {
+      strcmp(name, "Strict accumulated step length range") == 0) {
     bool limit_step;
     if (!FromString(value, limit_step)) return false;
     _StrictStepLengthRange = limit_step ? 2 : 0;
