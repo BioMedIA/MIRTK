@@ -21,12 +21,16 @@
 #define MIRTK_Queue_H
 
 #include <queue>
+#include <deque>
 
 namespace mirtk {
 
 
 template <class T>
 using Queue = std::queue<T>;
+
+template <class T>
+using Deque = std::deque<T>;
 
 
 } // namespace mirtk
