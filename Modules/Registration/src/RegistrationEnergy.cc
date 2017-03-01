@@ -27,6 +27,8 @@
 #include "mirtk/FreeFormTransformation.h"
 #include "mirtk/MultiLevelTransformation.h"
 
+#include "mirtk/DataFidelity.h"
+#include "mirtk/TransformationConstraint.h"
 #include "mirtk/SparsityConstraint.h"
 
 
@@ -151,6 +153,7 @@ RegistrationEnergy::RegistrationEnergy()
 :
   _Transformation    (NULL),
   _NormalizeGradients(false),
+  _ExcludeConstraints(false),
   _Preconditioning   (.0)
 {
   // Bind broadcast method to energy term events
@@ -240,6 +243,24 @@ bool RegistrationEnergy::Empty() const
 }
 
 // -----------------------------------------------------------------------------
+bool RegistrationEnergy::IsActive(int i) const
+{
+  return _Term[i]->Weight() != 0.;
+}
+
+// -----------------------------------------------------------------------------
+bool RegistrationEnergy::IsDataTerm(int i) const
+{
+  return dynamic_cast<const DataFidelity *>(_Term[i]) != nullptr;
+}
+
+// -----------------------------------------------------------------------------
+bool RegistrationEnergy::IsConstraint(int i) const
+{
+  return dynamic_cast<const TransformationConstraint *>(_Term[i]) != nullptr;
+}
+
+// -----------------------------------------------------------------------------
 int RegistrationEnergy::NumberOfTerms() const
 {
   return static_cast<int>(_Term.size());
@@ -250,9 +271,29 @@ int RegistrationEnergy::NumberOfActiveTerms() const
 {
   int nactive = 0;
   for (size_t i = 0; i < _Term.size(); ++i) {
-    if (_Term[i]->Weight() != .0) ++nactive;
+    if (IsActive(i)) ++nactive;
   }
   return nactive;
+}
+
+// -----------------------------------------------------------------------------
+int RegistrationEnergy::NumberOfDataTerms() const
+{
+  int n = 0;
+  for (size_t i = 0; i < _Term.size(); ++i) {
+    if (IsDataTerm(i)) ++n;
+  }
+  return n;
+}
+
+// -----------------------------------------------------------------------------
+int RegistrationEnergy::NumberOfConstraints() const
+{
+  int n = 0;
+  for (size_t i = 0; i < _Term.size(); ++i) {
+    if (IsConstraint(i)) ++n;
+  }
+  return n;
 }
 
 // -----------------------------------------------------------------------------
@@ -300,6 +341,11 @@ bool RegistrationEnergy::Set(const char *name, const char *value)
       strcmp(name, "Maximum length of steps") == 0) {
     return FromString(value, _StepLength) && _StepLength > .0;
   }
+  // Whether to exclude constraints from total energy value
+  if (strcmp(name, "Exclude constraints from energy") == 0 ||
+      strcmp(name, "Exclude constraints from energy value") == 0) {
+    return FromString(value, _ExcludeConstraints);
+  }
   // Energy term parameter
   bool known = false;
   for (size_t i = 0; i < _Term.size(); ++i) {
@@ -315,8 +361,9 @@ ParameterList RegistrationEnergy::Parameter() const
   for (size_t i = 0; i < _Term.size(); ++i) {
     Insert(params, _Term[i]->Parameter());
   }
-  Insert(params, "Normalize energy gradients (experimental)", ToString(_NormalizeGradients));
-  Insert(params, "Energy preconditioning",                    ToString(_Preconditioning));
+  Insert(params, "Normalize energy gradients (experimental)", _NormalizeGradients);
+  Insert(params, "Energy preconditioning", _Preconditioning);
+  Insert(params, "Exclude constraints from energy value", _ExcludeConstraints);
   return params;
 }
 
@@ -361,7 +408,7 @@ void RegistrationEnergy::Update(bool gradient)
   if (_Transformation->Changed() || gradient) {
     MIRTK_START_TIMING();
     for (size_t i = 0; i < _Term.size(); ++i) {
-      if (_Term[i]->Weight() != .0) {
+      if (IsActive(i)) {
         _Term[i]->Update(gradient);
         _Term[i]->ResetValue(); // in case energy term does not do this
       }
@@ -377,7 +424,7 @@ bool RegistrationEnergy::Upgrade()
 {
   bool changed = false;
   for (size_t i = 0; i < _Term.size(); ++i) {
-    if (_Term[i]->Weight() != .0 && _Term[i]->Upgrade()) {
+    if (IsActive(i) && _Term[i]->Upgrade()) {
       _Term[i]->ResetValue();
       changed = true;
     }
@@ -431,7 +478,7 @@ double RegistrationEnergy::Step(double *dx)
 // -----------------------------------------------------------------------------
 double RegistrationEnergy::RawValue(int i)
 {
-  return (_Term[i]->Weight() != .0 ? _Term[i]->RawValue() : .0);
+  return (IsActive(i) ? _Term[i]->RawValue() : .0);
 }
 
 // -----------------------------------------------------------------------------
@@ -441,7 +488,11 @@ double RegistrationEnergy::InitialValue()
 
   double value, sum = .0;
   for (size_t i = 0; i < _Term.size(); ++i) {
-    value = (_Term[i]->Weight() != .0 ? _Term[i]->InitialValue() : .0);
+    if (IsActive(i) && (!_ExcludeConstraints || !IsConstraint(i))) {
+      value = _Term[i]->InitialValue();
+    } else {
+      value = 0.;
+    }
     if (IsNaN(value)) {
       string name = _Term[i]->Name();
       if (name.empty()) name = ToString(i + 1);
@@ -468,7 +519,11 @@ double RegistrationEnergy::Value()
 
   double value, sum = .0;
   for (size_t i = 0; i < _Term.size(); ++i) {
-    value = (_Term[i]->Weight() != .0 ? _Term[i]->Value() : .0);
+    if (IsActive(i) && (!_ExcludeConstraints || !IsConstraint(i))) {
+      value = _Term[i]->Value();
+    } else {
+      value = 0.;
+    }
     if (IsNaN(value)) {
       string name = _Term[i]->Name();
       if (name.empty()) name = ToString(i + 1);
@@ -553,7 +608,7 @@ void RegistrationEnergy::Gradient(double *gradient, double step, bool *sgn_chg)
   // such that it can determine whether or not the sparsity
   // gradient changes the sign of the energy gradient.
   if (_NormalizeGradients) {
-    double w, W = .0;
+    double W = .0;
     for (size_t i = 0; i < _Term.size(); ++i) {
       sparsity = dynamic_cast<SparsityConstraint *>(_Term[i]);
       if (sparsity) continue;
@@ -564,10 +619,10 @@ void RegistrationEnergy::Gradient(double *gradient, double step, bool *sgn_chg)
       exit(1);
     }
     for (size_t i = 0; i < _Term.size(); ++i) {
-      w = _Term[i]->Weight();
-      if (w != .0) {
+      if (IsActive(i)) {
         sparsity = dynamic_cast<SparsityConstraint *>(_Term[i]);
         if (sparsity) continue;
+        const double w = _Term[i]->Weight();
         _Term[i]->Weight(w / W);
         _Term[i]->NormalizedGradient(gradient, step);
         _Term[i]->Weight(w);
@@ -575,7 +630,7 @@ void RegistrationEnergy::Gradient(double *gradient, double step, bool *sgn_chg)
     }
   } else {
     for (size_t i = 0; i < _Term.size(); ++i) {
-      if (_Term[i]->Weight() != .0) {
+      if (IsActive(i)) {
         sparsity = dynamic_cast<SparsityConstraint *>(_Term[i]);
         if (sparsity) continue;
         _Term[i]->Gradient(gradient, step);
@@ -585,7 +640,7 @@ void RegistrationEnergy::Gradient(double *gradient, double step, bool *sgn_chg)
 
   // Add sparsity constraint gradient
   for (size_t i = 0; i < _Term.size(); ++i) {
-    if (_Term[i]->Weight() != .0) {
+    if (IsActive(i)) {
       sparsity = dynamic_cast<SparsityConstraint *>(_Term[i]);
       if (sparsity) {
         sparsity->Gradient(gradient, step, sgn_chg);
@@ -627,7 +682,7 @@ double RegistrationEnergy::GradientNorm(const double *dx) const
 void RegistrationEnergy::GradientStep(const double *dx, double &min, double &max) const
 {
   for (size_t i = 0; i < _Term.size(); ++i) {
-    if (_Term[i]->Weight() != .0) {
+    if (IsActive(i)) {
       _Term[i]->GradientStep(dx, min, max);
     }
   }
@@ -654,7 +709,7 @@ double RegistrationEnergy::Evaluate(double *dx, double step, bool *sgn_chg)
 void RegistrationEnergy::WriteDataSets(const char *prefix, const char *suffix, bool all) const
 {
   for (size_t i = 0; i < _Term.size(); ++i) {
-    if (_Term[i]->Weight() != .0) {
+    if (IsActive(i)) {
       _Term[i]->WriteDataSets(prefix, suffix, all);
     }
   }
@@ -664,7 +719,7 @@ void RegistrationEnergy::WriteDataSets(const char *prefix, const char *suffix, b
 void RegistrationEnergy::WriteGradient(const char *prefix, const char *suffix) const
 {
   for (size_t i = 0; i < _Term.size(); ++i) {
-    if (_Term[i]->Weight() != .0) {
+    if (IsActive(i)) {
       _Term[i]->WriteGradient(prefix, suffix);
     }
   }

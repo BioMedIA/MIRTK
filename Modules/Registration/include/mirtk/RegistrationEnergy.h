@@ -71,6 +71,14 @@ private:
   /// \attention The use of this option is experimental!
   mirtkPublicAttributeMacro(bool, NormalizeGradients);
 
+  /// Exclude values of transformation constraint from total energy value
+  ///
+  /// The gradient of the energy function always includes the gradient
+  /// of the transformation constraint terms which have non-zero weight.
+  /// When this option is enabled, the transformation constraints have
+  /// no direct influence on the stopping criteria.
+  mirtkPublicAttributeMacro(bool, ExcludeConstraints);
+
   /// Energy gradient preconditioning sigma used to supress noise.
   /// A non-positive value disables the preconditioning all together.
   ///
@@ -113,11 +121,26 @@ public:
   /// Whether energy function has no terms
   bool Empty() const;
 
+  /// Whether the n-th energy term has non-zero weight
+  bool IsActive(int) const;
+
+  /// Whether the n-th energy term is a data term
+  bool IsDataTerm(int) const;
+
+  /// Whether the n-th energy term is a penalty term
+  bool IsConstraint(int) const;
+
   /// Number of energy terms
   int NumberOfTerms() const;
 
   /// Number of energy terms with non-zero weight
   int NumberOfActiveTerms() const;
+
+  /// Number of data terms, i.e., with base type DataFidelity
+  int NumberOfDataTerms() const;
+
+  /// Number of penalty terms, i.e., with base type TransformationConstraint
+  int NumberOfConstraints() const;
 
   /// Add energy term and take over ownership of the object
   void Add(EnergyTerm *);
