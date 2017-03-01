@@ -107,6 +107,7 @@ void GenericRegistrationLogger::HandleEvent(Observable *obj, Event event, const 
   // Change/Remember stream output format
   const streamsize w = os.width(0);
   const streamsize p = os.precision(6);
+  const ios::fmtflags io_flags = os.flags();
 
   // Registration filter
   GenericRegistrationFilter *reg = dynamic_cast<GenericRegistrationFilter *>(obj);
@@ -118,7 +119,7 @@ void GenericRegistrationLogger::HandleEvent(Observable *obj, Event event, const 
   // Typed pointers to event data (which of these is valid depends on the type of event)
   const Iteration      *iter = reinterpret_cast<const Iteration      *>(data);
   const LineSearchStep *step = reinterpret_cast<const LineSearchStep *>(data);
-  const char           *msg  = reinterpret_cast<const char               *>(data);
+  const char           *msg  = reinterpret_cast<const char           *>(data);
 
   // Note: endl forces flush of stream buffer! Use \n instead and only flush buffer
   //       at end of this function if _FlushBuffer flag is set.
@@ -126,10 +127,10 @@ void GenericRegistrationLogger::HandleEvent(Observable *obj, Event event, const 
   switch (event) {
 
     // Before GenericRegistrationFilter::Initialize
-    case InitEvent:
+    case InitEvent: {
       if (_Verbosity > 0) os << "\n";
       os << "\nResolution level " << iter->Iter() << "\n\n";
-      break;
+    } break;
 
     // Start of optimization, after GenericRegistrationFilter::Initialize
     case StartEvent: {
@@ -196,12 +197,11 @@ void GenericRegistrationLogger::HandleEvent(Observable *obj, Event event, const 
         if (_Color) os << xreset;
       }
       _NumberOfGradientSteps = 0;
-      break;
-    }
+    } break;
 
     // Next gradient step
     case IterationEvent:
-    case IterationStartEvent:
+    case IterationStartEvent: {
       ++_NumberOfGradientSteps;
       os << "\n";
       if (debug_time || _Verbosity > 0) {
@@ -210,7 +210,7 @@ void GenericRegistrationLogger::HandleEvent(Observable *obj, Event event, const 
         os << " " << setw(3) << _NumberOfGradientSteps << " ";
       }
       if (debug_time) os << "\n";
-      break;
+    } break;
 
     // Start of line search given current gradient direction
     case LineSearchStartEvent: {
@@ -263,8 +263,13 @@ void GenericRegistrationLogger::HandleEvent(Observable *obj, Event event, const 
           }
         }
         for (i = i + 1; i < reg->_Energy.NumberOfTerms(); ++i) {
-          if (reg->_Energy.Term(i)->Weight() != .0) {
-            os << "                            + ";
+          if (reg->_Energy.IsActive(i)) {
+            os << "                             ";
+            if (reg->_Energy.ExcludeConstraints() && reg->_Energy.IsConstraint(i)) {
+              os << " ";
+            } else {
+              os << "+";
+            }
             if (reg->_Energy.Term(i)->DivideByInitialValue()) {
               PrintNormalizedNumber(os, reg->_Energy.Value(i));
               os << " (";
@@ -291,10 +296,17 @@ void GenericRegistrationLogger::HandleEvent(Observable *obj, Event event, const 
         if (_Color) os << xreset;
         nterms = 0;
         for (i = 0; i < reg->_Energy.NumberOfTerms(); ++i) {
-          if (reg->_Energy.Term(i)->Weight() != .0) {
+          if (reg->_Energy.IsActive(i)) {
             if (reg->_Energy.NumberOfActiveTerms() < 5) {
-              if (nterms++ == 0) os << " = ";
-              else               os << " + ";
+              if (nterms++ == 0) {
+                os << " = ";
+              } else {
+                if (reg->_Energy.ExcludeConstraints() && reg->_Energy.IsConstraint(i)) {
+                  os << "   ";
+                } else {
+                  os << " + ";
+                }
+              }
               if (reg->_Energy.Term(i)->DivideByInitialValue()) {
                 PrintNormalizedNumber(os, reg->_Energy.Value(i));
                 os << " (";
@@ -313,8 +325,7 @@ void GenericRegistrationLogger::HandleEvent(Observable *obj, Event event, const 
       }
       _NumberOfIterations = 0;
       _NumberOfSteps      = 0;
-      break;
-    }
+    } break;
 
     case LineSearchIterationStartEvent:
       if (_Verbosity > 0) {
@@ -340,8 +351,7 @@ void GenericRegistrationLogger::HandleEvent(Observable *obj, Event event, const 
       // Note that the Delta convergence criterium on the minimum maximum
       // DoF change can cause the line search to stop immediately
       ++_NumberOfIterations;
-      break;
-    }
+    } break;
 
     case LineSearchIterationEndEvent: {
       if (_Verbosity > 0 && iter->Count() == iter->Total()) {
@@ -349,8 +359,7 @@ void GenericRegistrationLogger::HandleEvent(Observable *obj, Event event, const 
         os << "\n              Maximum number of iterations exceeded\n";
         if (_Color) os << xreset;
       }
-      break;
-    }
+    } break;
 
     // End of line search
     case LineSearchEndEvent: {
@@ -365,22 +374,41 @@ void GenericRegistrationLogger::HandleEvent(Observable *obj, Event event, const 
         if (_Color) os << xboldblack;
         if (_NumberOfSteps > 0) {
           if (_Verbosity > 0) {
-            os << "\n               Step length = ";
+            os << "\n               Step length  = ";
             PrintNumber(os, step->_TotalLength) << " / ";
             PrintNumber(os, step->_Unit)        << "\n";
           }
         } else {
           if (step->_Delta < reg->_Optimizer->Delta()) {
-            os << "\n         Converged (Max. Delta <= " << setprecision(2) << reg->_Optimizer->Delta() << ")\n";
+            os << "\n         Converged (Max. Delta <= " << setprecision(1) << scientific << reg->_Optimizer->Delta() << ")\n";
           } else {
             os << "\n         No further improvement within search range\n";
           }
         }
         if (_Color) os << xreset;
-        os << "\n";
       }
-      break;
-    }
+    } break;
+
+    // End of gradient step
+    case IterationEndEvent: {
+      if (_Verbosity > 0) {
+        if (_Color) os << xboldblack;
+        if (_NumberOfSteps > 0) {
+          os << "               Energy slope = ";
+          PrintNumber(os, reg->_Optimizer->LastValuesSlope()) << "\n";
+        }
+        if (reg->_Optimizer->Converged()) {
+          double epsilon = reg->_Optimizer->Epsilon();
+          double value   = reg->_Optimizer->LastValues().back();
+          if (epsilon < 0.) epsilon = abs(epsilon * value);
+          if (abs(reg->_Optimizer->LastValuesSlope()) < epsilon) {
+            os << "\n        Converged (Avg. Change < " << setprecision(1) << scientific << epsilon << ")\n";
+          }
+        }
+        os << "\n";
+        if (_Color) os << xreset;
+      }
+    } break;
 
     // Energy function modified after convergence and optimization restarted
     case RestartEvent: {
@@ -422,8 +450,7 @@ void GenericRegistrationLogger::HandleEvent(Observable *obj, Event event, const 
           lin->PutMatrix(mat);
         }
       }
-      break;
-    }
+    } break;
 
     // After GenericRegistrationFilter::Finalize which cleans up behind
     case FinishEvent: {
@@ -431,22 +458,19 @@ void GenericRegistrationLogger::HandleEvent(Observable *obj, Event event, const 
       if (_Verbosity > 0) {
         os << "Finished registration at level " << iter->Iter() << "\n";
       }
-      break;
-    }
+    } break;
 
     // Status message broadcasted by registration filter
     case StatusEvent: {
       if (_Color) os << xboldblack;
       os << msg;
       if (_Color) os << xreset;
-      break;
-    }
+    } break;
 
     // Log message broadcasted by registration filter
     case LogEvent: {
       if (_Verbosity > 0) os << msg;
-      break;
-    }
+    } break;
 
     default: break;
   }
@@ -457,6 +481,7 @@ void GenericRegistrationLogger::HandleEvent(Observable *obj, Event event, const 
   // Reset stream output format
   os.width(w);
   os.precision(p);
+  os.flags(io_flags);
 }
 
 

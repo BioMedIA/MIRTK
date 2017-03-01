@@ -257,6 +257,8 @@ double GradientDescent::Run()
 
     // Get initial value of (modified) energy function
     value = _Function->Value();
+    _LastValues.clear();
+    _LastValues.push_back(value);
 
     // Current number of iterations
     const int iter = step.Iter();
@@ -301,8 +303,11 @@ double GradientDescent::Run()
       if (_Epsilon < .0) _LineSearch->Epsilon(abs(_Epsilon * value));
 
       // Check convergence
-      _Converged = (value == _LineSearch->CurrentValue())
-          || Converged(step.Iter(), _LineSearch->CurrentValue(), value, _Gradient);
+      if (_LineSearch->StepLength() > 0.) {
+        _Converged = this->Converged(step.Iter(), value, _Gradient);
+      } else {
+        _Converged = true;
+      }
 
       // Notify observers about end of gradient descent iteration
       Broadcast(IterationEndEvent, &step);

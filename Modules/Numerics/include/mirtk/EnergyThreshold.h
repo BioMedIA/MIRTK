@@ -67,12 +67,11 @@ public:
   /// Test stopping criterion
   ///
   /// \param[in] iter  Current number of iterations.
-  /// \param[in] prev  Objective function value at previous iteration (unused).
-  /// \param[in] value Objective function value at current  iteration (unused).
+  /// \param[in] value Objective function value at current iteration.
   /// \param[in] delta Last change of objective function parameters.
   ///
   /// \returns Whether stopping criterion is fulfilled.
-  virtual bool Fulfilled(int iter, double prev, double value, const double *delta);
+  virtual bool Fulfilled(int iter, double value, const double *delta);
 
   // ---------------------------------------------------------------------------
   // Logging

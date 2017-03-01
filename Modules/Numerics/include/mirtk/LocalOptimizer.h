@@ -24,6 +24,7 @@
 
 #include "mirtk/Math.h"
 #include "mirtk/Array.h"
+#include "mirtk/Queue.h"
 #include "mirtk/OptimizationMethod.h"
 #include "mirtk/ObjectiveFunction.h"
 #include "mirtk/ObjectFactory.h"
@@ -57,6 +58,15 @@ class LocalOptimizer : public Observable
 
   /// Second convergence criterium: Required maximum change of DoFs
   mirtkPublicAttributeMacro(double, Delta);
+
+  /// Last n objective function values
+  mirtkReadOnlyAttributeMacro(Deque<double>, LastValues);
+
+  /// Current slope of curve fit to last n function values
+  mirtkReadOnlyAttributeMacro(double, LastValuesSlope);
+
+  /// Number of last objective function values to store
+  mirtkPublicAttributeMacro(int, NumberOfLastValues);
 
   /// Whether optimization converged within maximum number of steps
   mirtkReadOnlyAttributeMacro(bool, Converged);
@@ -145,19 +155,18 @@ protected:
   /// value after a change of the parameters must be evaluated before this
   /// function is called to be able to provide this value as argument.
   ///
-  /// \note The objective function value may be NaN in case of a non-parametric
+  /// \note The objective function value may be infinite in case of a non-parametric
   ///       deformable surface model. In this case, stopping criteria are based
   ///       only on the current surface geometry or last node displacements.
   ///       Stopping criteria based on the objective function value should
   ///       never be fulfilled in this case and always return \c false.
   ///
   /// \param[in] iter  Current number of iterations.
-  /// \param[in] prev  Objective function value at previous iteration.
-  /// \param[in] value Objective function value at current  iteration.
+  /// \param[in] value Objective function value at current iteration.
   /// \param[in] delta Last change of objective function parameters.
   ///
   /// \returns True when at least one stopping criterion is fulfilled.
-  virtual bool Converged(int iter, double prev, double value, const double *delta);
+  virtual bool Converged(int iter, double value, const double *delta);
 
   // ---------------------------------------------------------------------------
   // Optimization
