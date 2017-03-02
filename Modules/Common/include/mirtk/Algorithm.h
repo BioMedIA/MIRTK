@@ -22,21 +22,25 @@
 
 #include "mirtk/Array.h"
 #include "mirtk/UnorderedSet.h"
+#include "mirtk/Pair.h"
 
 #include <algorithm>
+#include <functional>
 #include <iterator>
 
 
 namespace mirtk {
 
 
+using std::min_element;
+using std::max_element;
+using std::minmax_element;
 using std::find;
 using std::binary_search;
 using std::sort;
 using std::stable_sort;
 using std::partial_sort;
 using std::nth_element;
-using std::transform;
 using std::reverse;
 using std::shuffle;
 using std::set_intersection;
@@ -46,6 +50,48 @@ using std::back_inserter;
 using std::front_inserter;
 using std::inserter;
 
+using std::transform;
+using std::bind1st;
+using std::bind2nd;
+using std::plus;
+using std::minus;
+using std::multiplies;
+using std::divides;
+using std::modulus;
+using std::negate;
+
+
+/// Get minimum array element
+template <class T>
+T MinElement(const Array<T> &values)
+{
+  if (values.empty()) return T(0);
+  return *min_element(values.begin(), values.end());
+}
+
+/// Get maximum array element
+template <class T>
+T MaxElement(const Array<T> &values)
+{
+  if (values.empty()) return T(0);
+  return *max_element(values.begin(), values.end());
+}
+
+/// Get minimum and maximum array element
+template <class T>
+Pair<T, T> MinMaxElement(const Array<T> &values)
+{
+  if (values.empty()) return MakePair(T(0), T(0));
+  auto minmax = minmax_element(values.begin(), values.end());
+  return MakePair(*minmax.first, *minmax.second);
+}
+
+/// Apply unary operation for each array element in-place
+template <class T, class UnaryOperation>
+void Transform(Array<T> &values, UnaryOperation op)
+{
+  transform(values.begin(), values.end(), values.begin(), op);
+}
 
 /// Compare functor used to sort array indices increasing element attribute
 template <class AttributeType>
