@@ -543,7 +543,9 @@ Matrix ImageAttributes::GetWorldToLatticeMatrix() const
 // -----------------------------------------------------------------------------
 void ImageAttributes::PutAffineMatrix(const Matrix &m, bool apply)
 {
-  if (apply) {
+  if (m.IsIdentity()) {
+    _smat.Ident();
+  } else if (apply) {
     // Split transformation into composition of affine 9 DoF transformation
     // without shearing which is applied directly to the image attributes,
     // and a residual shearing transformation stored as additional transformation
