@@ -153,17 +153,19 @@ bool GradientDescent::Set(const char *name, const char *value)
   if (strcmp(name, "Line search strategy") == 0) {
     return FromString(value, _LineSearchStrategy);
   }
-  if (strstr(name, "line search")                      != NULL ||
-      strstr(name, "line iterations")                  != NULL ||
+  if (strstr(name, "line search") != NULL ||
+      strstr(name, "line iterations") != NULL ||
       strcmp(name, "Maximum streak of rejected steps") == 0    ||
-      strcmp(name, "Length of steps")                  == 0    ||
-      strcmp(name, "Minimum length of steps")          == 0    ||
-      strcmp(name, "Maximum length of steps")          == 0    ||
-      strcmp(name, "Strict step length range")         == 0    ||
-      strcmp(name, "Strict total step length range")   == 0    ||
-      strcmp(name, "Step length rise")                 == 0    ||
-      strcmp(name, "Step length drop")                 == 0    ||
-      strcmp(name, "Reuse previous step length")       == 0) {
+      strcmp(name, "Length of steps")  == 0 ||
+      strcmp(name, "Minimum length of steps") == 0 ||
+      strcmp(name, "Maximum length of steps") == 0 ||
+      strcmp(name, "Strict step length range") == 0 ||
+      strcmp(name, "Strict total step length range") == 0 ||
+      strcmp(name, "Strict incremental step length range") == 0 ||
+      strcmp(name, "Strict accumulated step length range") == 0 ||
+      strcmp(name, "Step length rise") == 0 ||
+      strcmp(name, "Step length drop") == 0 ||
+      strcmp(name, "Reuse previous step length") == 0) {
     Insert(_LineSearchParameter, name, value);
     return true;
   }
@@ -210,12 +212,12 @@ void GradientDescent::Initialize()
   // Initialize line search object
   _LineSearch->Function   (Function());
   _LineSearch->Parameter  (_LineSearchParameter);
-  _LineSearch->StepLength (_LineSearch->MaxStepLength());
   _LineSearch->Delta      (_Delta);
   _LineSearch->Epsilon    (max(.0, _Epsilon));
   _LineSearch->Direction  (_Gradient);
   _LineSearch->Revert     (true);
   _LineSearch->AddObserver(_EventDelegate);
+  _LineSearch->Initialize();
   // Check line search parameters
   if (_LineSearch->MaxStepLength() == .0) {
     cerr << this->NameOfClass() << "::Initialize: Line search interval length is zero!" << endl;

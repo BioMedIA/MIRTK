@@ -52,6 +52,8 @@ class InexactLineSearch : public LineSearch
   ///    previously accumulated total step length is being reused.
   /// 1: Incremental steps are strictly limited to [min, max].
   /// 2: Accumulated total step length is strictly limited to [min, max].
+  /// 3: Equivalent to 2, but indicates that both incremental and accumulated
+  ///    step length ranges have been restricted.
   mirtkPublicAttributeMacro(int, StrictStepLengthRange);
 
   /// Whether to refuse any function parameter sign changes

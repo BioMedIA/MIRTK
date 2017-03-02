@@ -1391,7 +1391,7 @@ bool GenericRegistrationFilter::Set(const char *param, const char *value, int le
     // Convert to signed "units"
     if (units != "signed") {
       if (sigma < .0) {
-        cerr << "Value of paramter '" << name << "' with units " << units << " must be positive!" << endl;
+        cerr << "Value of parameter '" << name << "' with units " << units << " must be positive!" << endl;
         return false;
       }
       if (units == "vox") {
@@ -2386,22 +2386,22 @@ void GenericRegistrationFilter::GuessParameter()
   if (!Contains(_Parameter[0], MINSTEP) && !Contains(_Parameter[0], MAXSTEP)) {
     // By default, limit step length to one (target) voxel unit
     const double maxres = max(avgres[0], max(avgres[1], avgres[2]));
-    Insert(_Parameter[0], MINSTEP, ToString(maxres / 100.0));
-    Insert(_Parameter[0], MAXSTEP, ToString(maxres));
+    Insert(_Parameter[0], MINSTEP, maxres / 100.);
+    Insert(_Parameter[0], MAXSTEP, maxres);
   } else if (!Contains(_Parameter[0], MINSTEP)) {
     if (!FromString(Get(_Parameter[0], MAXSTEP).c_str(), value)) {
       cerr << "GenericRegistrationFilter::GuessParameter: Invalid '"
            << MAXSTEP << "' argument: " << Get(_Parameter[0], MAXSTEP) << endl;
       exit(1);
     }
-    Insert(_Parameter[0], MINSTEP, ToString(value / 100.0));
+    Insert(_Parameter[0], MINSTEP, value / 100.);
   } else if (!Contains(_Parameter[0], MAXSTEP)) {
     if (!FromString(Get(_Parameter[0], MINSTEP).c_str(), value)) {
       cerr << "GenericRegistrationFilter::GuessParameter: Invalid '"
            << MINSTEP << "' argument: " << Get(_Parameter[0], MINSTEP) << endl;
       exit(1);
     }
-    Insert(_Parameter[0], MAXSTEP, ToString(value * 100.0));
+    Insert(_Parameter[0], MAXSTEP, value * 100.);
   }
   for (int level = 1; level <= _NumberOfLevels; ++level) {
     if (!Contains(_Parameter[level], MINSTEP) && !Contains(_Parameter[level], MAXSTEP)) {
@@ -2410,14 +2410,13 @@ void GenericRegistrationFilter::GuessParameter()
              << MINSTEP << "' argument: " << Get(_Parameter[level-1], MINSTEP) << endl;
         exit(1);
       }
-      if (level > 1) value *= 2.0;
       Insert(_Parameter[level], MINSTEP, ToString(value));
       if (!FromString(Get(_Parameter[level-1], MAXSTEP).c_str(), value)) {
         cerr << "GenericRegistrationFilter::GuessParameter: Invalid '"
              << MAXSTEP << "' argument: " << Get(_Parameter[level-1], MAXSTEP) << endl;
         exit(1);
       }
-      if (level > 1) value *= 2.0;
+      if (level > 1) value = min(2. * value, 8.);
       Insert(_Parameter[level], MAXSTEP, ToString(value));
     } else if (!Contains(_Parameter[level], MINSTEP)) {
       if (!FromString(Get(_Parameter[level], MAXSTEP).c_str(), value)) {
@@ -2425,14 +2424,14 @@ void GenericRegistrationFilter::GuessParameter()
              << MAXSTEP << "' argument: " << Get(_Parameter[level], MAXSTEP) << endl;
         exit(1);
       }
-      Insert(_Parameter[level], MINSTEP, ToString(value / 100.0));
+      Insert(_Parameter[level], MINSTEP, value / 100.);
     } else if (!Contains(_Parameter[level], MAXSTEP)) {
       if (!FromString(Get(_Parameter[level], MINSTEP).c_str(), value)) {
         cerr << "GenericRegistrationFilter::GuessParameter: Invalid '"
              << MINSTEP << "' argument: " << Get(_Parameter[level], MINSTEP) << endl;
         exit(1);
       }
-      Insert(_Parameter[level], MAXSTEP, ToString(value * 100.0));
+      Insert(_Parameter[level], MAXSTEP, value * 100.);
     }
   }
 }
@@ -4207,12 +4206,12 @@ void GenericRegistrationFilter::InitializeEnergy()
   if (_NormalizeWeights) {
     double W = .0;
     for (int i = 0; i < _Energy.NumberOfTerms(); ++i) {
-      if (dynamic_cast<const DataFidelity *>(_Energy.Term(i))) {
+      if (_Energy.IsDataTerm(i)) {
         W += abs(_Energy.Term(i)->Weight());
       }
     }
     for (int i = 0; i < _Energy.NumberOfTerms(); ++i) {
-      if (dynamic_cast<const DataFidelity *>(_Energy.Term(i))) {
+      if (_Energy.IsDataTerm(i)) {
         _Energy.Term(i)->Weight(_Energy.Term(i)->Weight() / W);
       }
     }

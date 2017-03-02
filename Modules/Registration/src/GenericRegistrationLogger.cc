@@ -220,10 +220,18 @@ void GenericRegistrationLogger::HandleEvent(Observable *obj, Event event, const 
       if (_Verbosity > 0) {
         if (debug_time) os << "\n              ";
         os << "Line search with ";
-        if (step->_Info) os << step->_Info << " ";
+        if (step->_Info && strcmp(step->_Info, "unbound") != 0) {
+          os << step->_Info << " ";
+        }
         os << "step length in [";
         os.unsetf(ios::floatfield);
-        os << setprecision(2) << step->_MinLength << ", " << step->_MaxLength << "]";
+        os << setprecision(2) << step->_MinLength << ", ";
+        if (step->_Info && strcmp(step->_Info, "unbound") == 0) {
+          os << "inf";
+        } else {
+          os << setprecision(2) << step->_MaxLength;
+        }
+        os << "]";
       }
       string name;
       int i, nterms = 0;
@@ -240,7 +248,7 @@ void GenericRegistrationLogger::HandleEvent(Observable *obj, Event event, const 
         PrintNumber(os, step->_Current);
         if (_Color) os << xreset;
         for (i = 0; i < reg->_Energy.NumberOfTerms(); ++i) {
-          if (reg->_Energy.Term(i)->Weight() != .0) {
+          if (reg->_Energy.IsActive(i)) {
             if (nterms > 1) {
               os << " = ";
               if (reg->_Energy.Term(i)->DivideByInitialValue()) {
@@ -264,12 +272,13 @@ void GenericRegistrationLogger::HandleEvent(Observable *obj, Event event, const 
         }
         for (i = i + 1; i < reg->_Energy.NumberOfTerms(); ++i) {
           if (reg->_Energy.IsActive(i)) {
-            os << "                             ";
+            os << "                            ";
             if (reg->_Energy.ExcludeConstraints() && reg->_Energy.IsConstraint(i)) {
               os << " ";
             } else {
               os << "+";
             }
+            os << " ";
             if (reg->_Energy.Term(i)->DivideByInitialValue()) {
               PrintNormalizedNumber(os, reg->_Energy.Value(i));
               os << " (";
@@ -295,30 +304,79 @@ void GenericRegistrationLogger::HandleEvent(Observable *obj, Event event, const 
         PrintNumber(os, step->_Current);
         if (_Color) os << xreset;
         nterms = 0;
-        for (i = 0; i < reg->_Energy.NumberOfTerms(); ++i) {
-          if (reg->_Energy.IsActive(i)) {
-            if (reg->_Energy.NumberOfActiveTerms() < 5) {
-              if (nterms++ == 0) {
-                os << " = ";
-              } else {
-                if (reg->_Energy.ExcludeConstraints() && reg->_Energy.IsConstraint(i)) {
-                  os << "   ";
+        if (reg->_Energy.ExcludeConstraints()) {
+          for (i = 0; i < reg->_Energy.NumberOfTerms(); ++i) {
+            if (reg->_Energy.IsActive(i) && !reg->_Energy.IsConstraint(i)) {
+              if (reg->_Energy.NumberOfActiveTerms() < 5) {
+                if (nterms++ == 0) {
+                  os << " = ";
                 } else {
                   os << " + ";
                 }
-              }
-              if (reg->_Energy.Term(i)->DivideByInitialValue()) {
-                PrintNormalizedNumber(os, reg->_Energy.Value(i));
-                os << " (";
-                PrintNumber(os, reg->_Energy.RawValue(i));
-                os << ")";
+                if (reg->_Energy.Term(i)->DivideByInitialValue()) {
+                  PrintNormalizedNumber(os, reg->_Energy.Value(i));
+                  os << " (";
+                  PrintNumber(os, reg->_Energy.RawValue(i));
+                  os << ")";
+                } else {
+                  os << " ";
+                  PrintNumber(os, reg->_Energy.Value(i));
+                }
               } else {
-                os << " ";
-                PrintNumber(os, reg->_Energy.Value(i));
+                os << "    ";
+                PrintNumber(os, reg->_Energy.RawValue(i));
               }
-            } else {
-              os << "    ";
-              PrintNumber(os, reg->_Energy.RawValue(i));
+            }
+          }
+          for (i = 0; i < reg->_Energy.NumberOfTerms(); ++i) {
+            if (reg->_Energy.IsActive(i) && reg->_Energy.IsConstraint(i)) {
+              if (reg->_Energy.NumberOfActiveTerms() < 5) {
+                if (nterms++ == 0) {
+                  os << " = ";
+                } else {
+                  os << "   ";
+                }
+                if (reg->_Energy.Term(i)->DivideByInitialValue()) {
+                  PrintNormalizedNumber(os, reg->_Energy.Value(i));
+                  os << " (";
+                  PrintNumber(os, reg->_Energy.RawValue(i));
+                  os << ")";
+                } else {
+                  os << " ";
+                  PrintNumber(os, reg->_Energy.Value(i));
+                }
+              } else {
+                os << "    ";
+                PrintNumber(os, reg->_Energy.RawValue(i));
+              }
+            }
+          }
+        } else {
+          for (i = 0; i < reg->_Energy.NumberOfTerms(); ++i) {
+            if (reg->_Energy.IsActive(i)) {
+              if (reg->_Energy.NumberOfActiveTerms() < 5) {
+                if (nterms++ == 0) {
+                  os << " = ";
+                } else {
+                  if (reg->_Energy.ExcludeConstraints() && reg->_Energy.IsConstraint(i)) {
+                    os << "   ";
+                  } else {
+                    os << " + ";
+                  }
+                }
+                if (reg->_Energy.Term(i)->DivideByInitialValue()) {
+                  PrintNormalizedNumber(os, reg->_Energy.Value(i));
+                  os << " (";
+                  PrintNumber(os, reg->_Energy.RawValue(i));
+                  os << ")";
+                } else {
+                  os << " ";
+                  PrintNumber(os, reg->_Energy.Value(i));
+                }
+              } else {
+                os << "    ";
+                PrintNumber(os, reg->_Energy.RawValue(i));
+              }
             }
           }
         }
@@ -340,8 +398,13 @@ void GenericRegistrationLogger::HandleEvent(Observable *obj, Event event, const 
         if (debug_time) os << "\n           ";
         if (_Color) os << (event == AcceptedStepEvent ? xgreen : xbrightred);
         PrintNumber(os, step->_Value ) << "  ";
-        PrintNumber(os, step->_Length) << "  ";
-        PrintNumber(os, step->_Delta );
+        if (step->_Info && strcmp(step->_Info, "incremental") == 0) {
+          PrintNumber(os, step->_Length) << "  ";
+          PrintNumber(os, step->_Delta);
+        } else {
+          PrintNumber(os, step->_TotalLength + step->_Length) << "  ";
+          PrintNumber(os, step->_TotalDelta  + step->_Delta);
+        }
         if (_Color) os << xreset;
         else os << "    " << ((event == AcceptedStepEvent) ? "Accepted" : "Rejected");
         os << "\n";
@@ -374,9 +437,14 @@ void GenericRegistrationLogger::HandleEvent(Observable *obj, Event event, const 
         if (_Color) os << xboldblack;
         if (_NumberOfSteps > 0) {
           if (_Verbosity > 0) {
-            os << "\n               Step length  = ";
-            PrintNumber(os, step->_TotalLength) << " / ";
-            PrintNumber(os, step->_Unit)        << "\n";
+            if (step->_Info && strcmp(step->_Info, "incremental") == 0) {
+              os << "\n               Gradient scale = ";
+              PrintNumber(os, step->_TotalLength) << " / ";
+              PrintNumber(os, step->_Unit) << "\n";
+            } else {
+              os << "\n               Gradient scale = ";
+              PrintNumber(os, step->_TotalLength / step->_Unit) << "\n";
+            }
           }
         } else {
           if (step->_Delta < reg->_Optimizer->Delta()) {
@@ -394,7 +462,7 @@ void GenericRegistrationLogger::HandleEvent(Observable *obj, Event event, const 
       if (_Verbosity > 0) {
         if (_Color) os << xboldblack;
         if (_NumberOfSteps > 0) {
-          os << "               Energy slope = ";
+          os << "               Energy slope   = ";
           PrintNumber(os, reg->_Optimizer->LastValuesSlope()) << "\n";
         }
         if (reg->_Optimizer->Converged()) {

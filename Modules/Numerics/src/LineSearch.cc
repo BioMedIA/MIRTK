@@ -169,5 +169,27 @@ ParameterList LineSearch::Parameter() const
   return params;
 }
 
+// =============================================================================
+// Optimization
+// =============================================================================
+
+// -----------------------------------------------------------------------------
+void LineSearch::Initialize()
+{
+  // Initialize base class
+  LocalOptimizer::Initialize();
+
+  // Check parameters
+  if (_MinStepLength <= 0.) {
+    Throw(ERR_InvalidArgument, __FUNCTION__, "Minimum length of steps must be positive, but is ", _MinStepLength);
+  }
+  if (_MaxStepLength < _MinStepLength) {
+    Throw(ERR_InvalidArgument, __FUNCTION__, "Maximum length of steps must be greater or equal minimum length, but is ", _MaxStepLength);
+  }
+
+  // Set initial step length
+  _StepLength = _MaxStepLength;
+}
+
 
 } // namespace mirtk

@@ -98,12 +98,29 @@ ParameterList AdaptiveLineSearch::Parameter() const
 // =============================================================================
 
 // -----------------------------------------------------------------------------
+void AdaptiveLineSearch::Initialize()
+{
+  // Initialize base class
+  InexactLineSearch::Initialize();
+
+  // Set initial step length
+  if (_StrictStepLengthRange >= 2) {
+    _StepLength = min(_MinStepLength + .5 * (_MaxStepLength - _MinStepLength), .5 * _MaxStepLength);
+  } else {
+    _StepLength = _MaxStepLength;
+  }
+}
+
+// -----------------------------------------------------------------------------
 double AdaptiveLineSearch::Run()
 {
   const double min_length   = _MinStepLength;
   const double max_length   = _MaxStepLength;
-  const bool   strict_range = (min_length == max_length || _StrictStepLengthRange);
-  const bool   strict_total = (_StrictStepLengthRange == 2);
+  const bool   strict_range = (_StrictStepLengthRange != 0 || fequal(_MinStepLength, _MaxStepLength));
+  const bool   strict_total = (_StrictStepLengthRange >= 2);
+  const double rise         = (strict_total ? .5 : _StepLengthRise);
+  const double drop         = (strict_total ? .5 : _StepLengthDrop);
+  // Note: Binary search-like steps in case of strict total step length range
 
   // Number of consecutively rejected steps after at least one accepted step
   int rejected_streak = -1;
@@ -113,24 +130,30 @@ double AdaptiveLineSearch::Run()
 
   // Define "aliases" for event data for prettier code below
   LineSearchStep step;
-  step._Info        = "incremental";
+  step._Info        = (strict_total ? nullptr : (strict_range ? "incremental" : "unbound"));
   step._Direction   = _Direction;
   step._Unit        = _StepLengthUnit;
   step._MinLength   = min_length;
   step._MaxLength   = max_length;
   step._TotalLength = .0;
+  step._TotalDelta  = .0;
   double &value     = step._Value;
   double &current   = step._Current;
   double &alpha     = step._Length;
   double &total     = step._TotalLength;
   double &delta     = step._Delta;
+  double &Delta     = step._TotalDelta;
 
   // Start line search
-  alpha   = max_length;
-  total   = .0;            // accumulated length of accepted steps
+  total   = .0;  // accumulated length of accepted steps
   value   = _CurrentValue;
   current = _CurrentValue;
-  delta   = .0;
+
+  if (strict_total) {
+    alpha = min(min_length + .5 * (max_length - min_length), .5 * max_length);
+  } else {
+    alpha = max_length;
+  }
 
   // Continue search using total step length of previous search
   if (_ReusePreviousStepLength && _StepLength > .0) alpha = _StepLength;
@@ -177,12 +200,13 @@ double AdaptiveLineSearch::Run()
 
         // Accumulate accepted steps
         total += alpha;
+        Delta += delta;
 
         // Increase step length and continue search from new point
         // If the step length range is not strict, keep possibly
         // greater previous step length as it was accepted again
         if (strict_range || alpha < max_length) {
-          alpha = min(alpha * _StepLengthRise, max_length);
+          alpha = min(alpha * rise, max_length);
           if (strict_total && total + alpha > max_length) {
             alpha = max_length - total;
             if (alpha < 1e-12) break;
@@ -213,7 +237,7 @@ double AdaptiveLineSearch::Run()
         // step length limited by the original range as it would have been
         // if previous length had not been reused.
         if (alpha > max_length) alpha = max_length;
-        else alpha = max(alpha * _StepLengthDrop, min_length);
+        else alpha = max(alpha * drop, min_length);
       }
     }
 
