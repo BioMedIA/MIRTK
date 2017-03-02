@@ -438,17 +438,19 @@ void GenericRegistrationLogger::HandleEvent(Observable *obj, Event event, const 
         if (_NumberOfSteps > 0) {
           if (_Verbosity > 0) {
             if (step->_Info && strcmp(step->_Info, "incremental") == 0) {
-              os << "\n               Gradient scale = ";
-              PrintNumber(os, step->_TotalLength) << " / ";
+              os << "\n            Gradient scale = ";
+              PrintNumber(os, step->_TotalLength) << " /";
               PrintNumber(os, step->_Unit) << "\n";
+              os <<   "            Max. delta     = ";
+              PrintNumber(os, step->_TotalDelta) << "\n";
             } else {
-              os << "\n               Gradient scale = ";
+              os << "\n            Gradient scale = ";
               PrintNumber(os, step->_TotalLength / step->_Unit) << "\n";
             }
           }
         } else {
           if (step->_Delta < reg->_Optimizer->Delta()) {
-            os << "\n         Converged (Max. Delta <= " << setprecision(1) << scientific << reg->_Optimizer->Delta() << ")\n";
+            os << "\n         Converged, max. delta <= " << setprecision(1) << scientific << reg->_Optimizer->Delta() << "\n";
           } else {
             os << "\n         No further improvement within search range\n";
           }
@@ -462,7 +464,7 @@ void GenericRegistrationLogger::HandleEvent(Observable *obj, Event event, const 
       if (_Verbosity > 0) {
         if (_Color) os << xboldblack;
         if (_NumberOfSteps > 0) {
-          os << "               Energy slope   = ";
+          os << "            Energy slope   = ";
           PrintNumber(os, reg->_Optimizer->LastValuesSlope()) << "\n";
         }
         if (reg->_Optimizer->Converged()) {
@@ -470,7 +472,7 @@ void GenericRegistrationLogger::HandleEvent(Observable *obj, Event event, const 
           double value   = reg->_Optimizer->LastValues().back();
           if (epsilon < 0.) epsilon = abs(epsilon * value);
           if (abs(reg->_Optimizer->LastValuesSlope()) < epsilon) {
-            os << "\n        Converged (Avg. Change < " << setprecision(1) << scientific << epsilon << ")\n";
+            os << "\n        Converged, energy slope < " << setprecision(1) << scientific << epsilon << "\n";
           }
         }
         os << "\n";
