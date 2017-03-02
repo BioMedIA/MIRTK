@@ -990,6 +990,16 @@ int main(int argc, char **argv)
   // Set input images
   for (int n = 0; n < nimages; ++n) {
     images[n]->PutTOrigin(image_times[n]);
+    #if 1  // TODO: Fix the actual issue so this is not needed!
+      images[n]->PutAffineMatrix(images[n]->GetAffineMatrix(), true);
+      if (!images[n]->GetAffineMatrix().IsIdentity()) {
+        if (verbose > 0) cout << endl;
+        Warning("Input image has shearing component in affine matrix (NIfTI sform)!"
+                "\nThis may potentially result in a suboptimal output transformation!"
+                "\nConsider pre-transforming the image with the given affine transformation."
+                "\nThis issue has yet to be fixed properly within the Registration module.");
+      }
+    #endif
     registration.AddInput(images[n].get());
   }
 
