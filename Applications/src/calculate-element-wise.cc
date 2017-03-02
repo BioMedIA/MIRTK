@@ -340,7 +340,7 @@ int main(int argc, char **argv)
 
   const char *input_name = POSARG(1);
 
-  double *data = nullptr;
+  UniquePtr<double[]> data;
   int datatype = MIRTK_VOXEL_DOUBLE;
   ImageAttributes attr;
 
@@ -965,7 +965,7 @@ int main(int argc, char **argv)
   }
 
   // Initial data mask
-  bool *mask = new bool[n];
+  UniquePtr<bool[]> mask(new bool[n]);
   for (int i = 0; i < n; ++i) {
     if (IsNaN(data[i])) {
       mask[i] = false;
@@ -973,6 +973,12 @@ int main(int argc, char **argv)
       mask[i] = true;
     }
   }
+
+  // Process input data, either transform it or compute statistics from it
+  for (size_t i = 0; i < ops.size(); ++i) {
+    ops[i]->Process(n, data.get(), mask.get());
+  }
+  mask.reset();
 
   // Open output file to append to or use STDOUT if none specified
   ofstream ofs;
@@ -986,9 +992,7 @@ int main(int argc, char **argv)
     }
     ofs.open(append_name, ios_base::app);
     if (!ofs.is_open()) {
-      cerr << "Cannot append to file " << append_name << endl;
-      delete[] mask;
-      exit(1);
+      FatalError("Cannot append to file " << append_name);
     }
   }
   ostream &out = (ofs.is_open() ? ofs : cout);
@@ -1013,10 +1017,6 @@ int main(int argc, char **argv)
     out << endl;
   }
 
-  // Process input data, either transform it or compute statistics from it
-  for (size_t i = 0; i < ops.size(); ++i) ops[i]->Process(n, data, mask);
-  delete[] mask;
-
   // Print image statistics
   if (delimiter) {
     for (size_t i = 0; i < prefix.size(); ++i) {
@@ -1026,7 +1026,7 @@ int main(int argc, char **argv)
     bool first = prefix.empty();
     for (size_t i = 0; i < ops.size(); ++i) {
       Statistic *stat = dynamic_cast<Statistic *>(ops[i].get());
-      if (stat != nullptr && !stat->Hidden()) {
+      if (stat != nullptr && !stat->Hidden() && !stat->Names().empty()) {
         if (!first) out << delimiter;
         else first = false;
         stat->PrintValues(out, digits, delimiter);
