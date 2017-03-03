@@ -467,7 +467,7 @@ int main(int argc, char **argv)
               }
             #endif
           }
-          UniquePtr<Mask> op(new Mask(fname));
+          UniquePtr<Mask> op(new Mask(fname, c));
           if (aname) {
             #if MIRTK_Image_WITH_VTK
               op->ArrayName(aname);
