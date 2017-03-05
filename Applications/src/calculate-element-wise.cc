@@ -276,6 +276,9 @@ void PrintHelp(const char *name)
   cout << "      Print mean intensity of values less than or equal to the n-th percentile. (default: off)\n";
   cout << "  -upper-percentile-mean, -upctavg <n>\n";
   cout << "      Print mean intensity of values greater than or equal to the n-th percentile. (default: off)\n";
+  cout << "  -sum\n";
+  cout << "      Print sum of values. Can be used to count values within a certain range using a thresholding\n";
+  cout << "      followed by :option:`-set` 1 before summing these values. (default: off)\n";
   PrintCommonOptions(cout);
   cout << "\n";
   cout << "Examples:\n";
@@ -941,6 +944,8 @@ int main(int argc, char **argv)
           exit(1);
         }
       } while (HAS_ARGUMENT);
+    } else if (OPTION("-sum")) {
+      ops.push_back(UniquePtr<Op>(new Sum()));
     } else if (OPTION("-delimiter") || OPTION("-delim") || OPTION("-d") || OPTION("-sep")) {
       delimiter = ARGUMENT;
     } else if (OPTION("-precision") || OPTION("-digits")) {

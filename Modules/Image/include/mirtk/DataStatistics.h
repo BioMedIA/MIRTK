@@ -178,6 +178,47 @@ namespace statistic {
 
 
 // -----------------------------------------------------------------------------
+/// Get sum of values
+class Sum : public Statistic
+{
+public:
+
+  Sum(const char *desc = "Sum", const Array<string> *names = nullptr)
+  :
+    Statistic(1, desc, names)
+  {
+    if (!names) _Names[0] = "Sum";
+  }
+
+  template <class T>
+  static double Calculate(int n, const T *data, const bool *mask = nullptr)
+  {
+    double sum = 0.;
+    if (mask) {
+      for (int i = 0; i < n; ++i) {
+        if (mask[i]) {
+          sum += static_cast<double>(data[i]);
+        }
+      }
+    } else {
+      for (int i = 0; i < n; ++i) {
+        sum += static_cast<double>(data[i]);
+      }
+    }
+    return sum;
+  }
+
+  void Evaluate(Array<double> &values, int n, const double *data, const bool *mask = nullptr) const
+  {
+    values.resize(1);
+    values[0] = Calculate(n, data, mask);
+  }
+
+  // Add support for vtkDataArray argument
+  mirtkCalculateVtkDataArray1();
+};
+
+// -----------------------------------------------------------------------------
 /// Get minimum value
 class Min : public Statistic
 {
