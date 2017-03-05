@@ -191,19 +191,17 @@ class ElementWiseBinaryOp : public Op
   /// File path of second dataset
   mirtkPublicAttributeMacro(string, FileName);
 
-#if MIRTK_Image_WITH_VTK
   /// Name of input point/cell data array
   mirtkPublicAttributeMacro(string, ArrayName);
 
   /// Whether input array is cell data
   mirtkPublicAttributeMacro(bool, IsCellData);
-#endif
 
 private:
 
   double *_Data;
   bool   *_Mask;
-  double *_Other;
+  SharedPtr<double> _Other;
 
 protected:
 
@@ -225,7 +223,6 @@ protected:
     _Constant(value), _FileName(fname), _Other(nullptr)
   {}
 
-#if MIRTK_Image_WITH_VTK
   /// Constructor
   ElementWiseBinaryOp(const char *fname, const char *aname, bool cell_data = false)
   :
@@ -237,7 +234,6 @@ protected:
   :
     _Constant(value), _FileName(fname), _ArrayName(aname ? aname : ""), _IsCellData(cell_data), _Other(nullptr)
   {}
-#endif
 
 public:
 
@@ -246,7 +242,7 @@ public:
   {
     double *data = _Data + re.begin();
     if (_Other) {
-      double *other = _Other + re.begin();
+      double *other = _Other.get() + re.begin();
       if (_Mask) {
         bool *mask = _Mask + re.begin();
         for (int i = re.begin(); i != re.end(); ++i) {
@@ -254,8 +250,9 @@ public:
           ++data, ++other, ++mask;
         }
       } else {
-        bool mask = true;
+        bool mask;
         for (int i = re.begin(); i != re.end(); ++i) {
+          mask = true;
           *data = this->Op(*data, *other, mask);
           ++data, ++other;
         }
@@ -268,8 +265,9 @@ public:
           ++data, ++mask;
         }
       } else {
-        bool mask = true;
+        bool mask;
         for (int i = re.begin(); i != re.end(); ++i) {
+          mask = true;
           *data = this->Op(*data, _Constant, mask);
           ++data;
         }
@@ -287,25 +285,21 @@ protected:
   {
     _Data = data;
     _Mask = mask;
-    Deallocate(_Other);
+    _Other.reset();
     if (!_FileName.empty()) {
-      if (n !=
-      #if MIRTK_Image_WITH_VTK
-        Read(_FileName.c_str(), _Other, nullptr, nullptr, nullptr, _ArrayName.c_str(), _IsCellData)
-      #else
-        Read(_FileName.c_str(), _Other)
-      #endif
-      ) {
+      UniquePtr<double[]> other;
+      if (n != Read(_FileName.c_str(), other, nullptr, nullptr, nullptr, _ArrayName.c_str(), _IsCellData)) {
         cerr << "Input file " << _FileName << " has different number of data points!" << endl;
         exit(1);
       }
+      _Other = SharedPtr<double>(other.release(), std::default_delete<double[]>());
     }
   }
 
   /// Finalize processing and release temporary memory
   void Finalize()
   {
-    Deallocate(_Other);
+    _Other.reset();
   }
 };
 

@@ -53,15 +53,16 @@ DataFileType FileType(const char *name)
 }
 
 // -----------------------------------------------------------------------------
-#if MIRTK_Image_WITH_VTK
-int Read(const char *name, double *&data, int *dtype, ImageAttributes *attr,
-         vtkSmartPointer<vtkDataSet> *dataset, const char *scalars_name, bool cell_data)
-#else
-int Read(const char *name, double *&data, int *dtype, ImageAttributes *attr)
-#endif // MIRTK_Image_WITH_VTK
+int Read(const char *name, UniquePtr<double[]> &data, int *dtype, ImageAttributes *attr,
+         #if MIRTK_Image_WITH_VTK
+           vtkSmartPointer<vtkDataSet> *dataset,
+         #else
+           void *,
+         #endif
+         const char *scalars_name, bool cell_data)
 {
   int n = 0;
-  data = nullptr;
+  data.reset();
   if (attr) *attr = ImageAttributes();
 #if MIRTK_Image_WITH_VTK
   if (dataset) *dataset = nullptr;
@@ -116,8 +117,8 @@ int Read(const char *name, double *&data, int *dtype, ImageAttributes *attr)
         cerr << "VTK dataset has empty scalar " << (cell_data ? "cell" : "point") << " data!" << endl;
         exit(1);
       }
-      data = Allocate<double>(n);
-      double *p = data;
+      data.reset(Allocate<double>(n));
+      double *p = data.get();
       for (vtkIdType i = 0; i < scalars->GetNumberOfTuples(); ++i) {
         for (int j = 0; j < scalars->GetNumberOfComponents(); ++j, ++p) {
           *p = scalars->GetComponent(i, j);
@@ -135,8 +136,10 @@ int Read(const char *name, double *&data, int *dtype, ImageAttributes *attr)
       if (attr) *attr = image->Attributes();
       if (dtype) *dtype = image->GetDataType();
       n = image->NumberOfVoxels();
-      data = Allocate<double>(n);
-      for (int i = 0; i < n; ++i) data[i] = image->GetAsDouble(i);
+      data.reset(Allocate<double>(n));
+      for (int i = 0; i < n; ++i) {
+        data[i] = image->GetAsDouble(i);
+      }
     } break;
     default:
       cerr << "Unsupported input data file: " << name << endl;

@@ -76,18 +76,18 @@ public:
     if (data->GetDataType() == VTK_DOUBLE) {
       this->Process(n, reinterpret_cast<double *>(data->GetVoidPointer(0)), mask);
     } else {
-      double *d = new double[n];
-      double *tuple = d;
+      UniquePtr<double[]> _data(new double[n]);
+      double *tuple = _data.get();
       for (vtkIdType i = 0; i < data->GetNumberOfTuples(); ++i) {
         data->GetTuple(i, tuple);
         tuple += data->GetNumberOfComponents();
       }
-      this->Process(n, d, mask);
+      this->Process(n, _data.get(), mask);
+      tuple = _data.get();
       for (vtkIdType i = 0; i < data->GetNumberOfTuples(); ++i) {
         data->SetTuple(i, tuple);
         tuple += data->GetNumberOfComponents();
       }
-      delete[] d;
     }
   }
 #endif
@@ -112,13 +112,17 @@ DataFileType FileType(const char *name);
 
 // -----------------------------------------------------------------------------
 /// Read data sequence from any supported input file type
-#if MIRTK_Image_WITH_VTK
-int Read(const char *name, double *&data, int *dtype = nullptr, ImageAttributes *attr = nullptr,
-         vtkSmartPointer<vtkDataSet> *dataset = nullptr,
-         const char *scalars_name = nullptr, bool cell_data = false);
-#else
-int Read(const char *name, double *&data, int *dtype = nullptr, ImageAttributes *attr = nullptr);
-#endif // MIRTK_Image_WITH_VTK
+int Read(const char *name,
+         UniquePtr<double[]> &data,
+         int *dtype = nullptr,
+         ImageAttributes *attr = nullptr,
+         #if MIRTK_Image_WITH_VTK
+           vtkSmartPointer<vtkDataSet> *dataset = nullptr,
+         #else
+           void * = nullptr,
+         #endif
+         const char *scalars_name = nullptr,
+         bool cell_data = false);
 
 // -----------------------------------------------------------------------------
 /// Write data sequence

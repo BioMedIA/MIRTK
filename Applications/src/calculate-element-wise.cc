@@ -276,6 +276,9 @@ void PrintHelp(const char *name)
   cout << "      Print mean intensity of values less than or equal to the n-th percentile. (default: off)\n";
   cout << "  -upper-percentile-mean, -upctavg <n>\n";
   cout << "      Print mean intensity of values greater than or equal to the n-th percentile. (default: off)\n";
+  cout << "  -sum\n";
+  cout << "      Print sum of values. Can be used to count values within a certain range using a thresholding\n";
+  cout << "      followed by :option:`-set` 1 before summing these values. (default: off)\n";
   PrintCommonOptions(cout);
   cout << "\n";
   cout << "Examples:\n";
@@ -340,7 +343,7 @@ int main(int argc, char **argv)
 
   const char *input_name = POSARG(1);
 
-  double *data = nullptr;
+  UniquePtr<double[]> data;
   int datatype = MIRTK_VOXEL_DOUBLE;
   ImageAttributes attr;
 
@@ -467,7 +470,7 @@ int main(int argc, char **argv)
               }
             #endif
           }
-          UniquePtr<Mask> op(new Mask(fname));
+          UniquePtr<Mask> op(new Mask(fname, c));
           if (aname) {
             #if MIRTK_Image_WITH_VTK
               op->ArrayName(aname);
@@ -941,6 +944,8 @@ int main(int argc, char **argv)
           exit(1);
         }
       } while (HAS_ARGUMENT);
+    } else if (OPTION("-sum")) {
+      ops.push_back(UniquePtr<Op>(new Sum()));
     } else if (OPTION("-delimiter") || OPTION("-delim") || OPTION("-d") || OPTION("-sep")) {
       delimiter = ARGUMENT;
     } else if (OPTION("-precision") || OPTION("-digits")) {
@@ -965,7 +970,7 @@ int main(int argc, char **argv)
   }
 
   // Initial data mask
-  bool *mask = new bool[n];
+  UniquePtr<bool[]> mask(new bool[n]);
   for (int i = 0; i < n; ++i) {
     if (IsNaN(data[i])) {
       mask[i] = false;
@@ -973,6 +978,12 @@ int main(int argc, char **argv)
       mask[i] = true;
     }
   }
+
+  // Process input data, either transform it or compute statistics from it
+  for (size_t i = 0; i < ops.size(); ++i) {
+    ops[i]->Process(n, data.get(), mask.get());
+  }
+  mask.reset();
 
   // Open output file to append to or use STDOUT if none specified
   ofstream ofs;
@@ -986,9 +997,7 @@ int main(int argc, char **argv)
     }
     ofs.open(append_name, ios_base::app);
     if (!ofs.is_open()) {
-      cerr << "Cannot append to file " << append_name << endl;
-      delete[] mask;
-      exit(1);
+      FatalError("Cannot append to file " << append_name);
     }
   }
   ostream &out = (ofs.is_open() ? ofs : cout);
@@ -1013,10 +1022,6 @@ int main(int argc, char **argv)
     out << endl;
   }
 
-  // Process input data, either transform it or compute statistics from it
-  for (size_t i = 0; i < ops.size(); ++i) ops[i]->Process(n, data, mask);
-  delete[] mask;
-
   // Print image statistics
   if (delimiter) {
     for (size_t i = 0; i < prefix.size(); ++i) {
@@ -1026,7 +1031,7 @@ int main(int argc, char **argv)
     bool first = prefix.empty();
     for (size_t i = 0; i < ops.size(); ++i) {
       Statistic *stat = dynamic_cast<Statistic *>(ops[i].get());
-      if (stat != nullptr && !stat->Hidden()) {
+      if (stat != nullptr && !stat->Hidden() && !stat->Names().empty()) {
         if (!first) out << delimiter;
         else first = false;
         stat->PrintValues(out, digits, delimiter);

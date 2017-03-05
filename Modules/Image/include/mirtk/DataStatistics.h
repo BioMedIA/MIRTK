@@ -109,15 +109,14 @@ public:
     if (data->GetDataType() == VTK_DOUBLE) {
       this->Process(n, reinterpret_cast<double *>(data->GetVoidPointer(0)), mask);
     } else {
-      double *d = new double[n];
-      double *tuple = d;
+      UniquePtr<double[]> _data(new double[n]);
+      double *tuple = _data.get();
       for (vtkIdType i = 0; i < data->GetNumberOfTuples(); ++i) {
         data->GetTuple(i, tuple);
         tuple += data->GetNumberOfComponents();
       }
-      this->Process(n, d, mask);
+      this->Process(n, _data.get(), mask);
       // Unlike base class, no need to copy data back to input array
-      delete[] d;
     }
   }
 
@@ -177,6 +176,47 @@ public:
 
 namespace statistic {
 
+
+// -----------------------------------------------------------------------------
+/// Get sum of values
+class Sum : public Statistic
+{
+public:
+
+  Sum(const char *desc = "Sum", const Array<string> *names = nullptr)
+  :
+    Statistic(1, desc, names)
+  {
+    if (!names) _Names[0] = "Sum";
+  }
+
+  template <class T>
+  static double Calculate(int n, const T *data, const bool *mask = nullptr)
+  {
+    double sum = 0.;
+    if (mask) {
+      for (int i = 0; i < n; ++i) {
+        if (mask[i]) {
+          sum += static_cast<double>(data[i]);
+        }
+      }
+    } else {
+      for (int i = 0; i < n; ++i) {
+        sum += static_cast<double>(data[i]);
+      }
+    }
+    return sum;
+  }
+
+  void Evaluate(Array<double> &values, int n, const double *data, const bool *mask = nullptr) const
+  {
+    values.resize(1);
+    values[0] = Calculate(n, data, mask);
+  }
+
+  // Add support for vtkDataArray argument
+  mirtkCalculateVtkDataArray1();
+};
 
 // -----------------------------------------------------------------------------
 /// Get minimum value
