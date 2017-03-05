@@ -50,6 +50,7 @@ if (MIRTK_Image_FOUND)
     mirtk_target_dependencies(${cmd} LibCommon LibNumerics LibImage LibIO ${ARGN})
   endmacro()
 
+  add_image_command(aggregate-images)
   add_image_command(average-images)
   add_image_command(calculate-element-wise)
   add_image_command(calculate-distance-map)
