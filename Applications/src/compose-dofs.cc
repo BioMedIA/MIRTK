@@ -98,7 +98,7 @@ void PushDisplacement(FluidFreeFormTransformation &t1,
 void PushTransformation(FluidFreeFormTransformation &t1,
                         HomogeneousTransformation   *t2,
                         ImageAttributes             &attr,
-                        bool                             last = false)
+                        bool last = false)
 {
   if (t2->IsIdentity()) return;
   if (t1.NumberOfLevels() == 0) {
@@ -163,7 +163,7 @@ void PushTransformation(FluidFreeFormTransformation                &t1,
 void PushTransformation(FluidFreeFormTransformation &t1,
                         FluidFreeFormTransformation *t2,
                         ImageAttributes             &attr,
-                        bool                             last = false)
+                        bool last = false)
 {
   PushTransformation(t1, t2->GetGlobalTransformation(), attr);
   for (int l = 0; l < t2->NumberOfLevels(); ++l) {
@@ -286,7 +286,7 @@ int main(int argc, char **argv)
       cout << "Approximate the composed transformation using a single FFD..." << endl;
     }
 
-    // Use the densest control point lattice in the local transformation stack
+    // Use the most dense control point lattice in the local transformation stack
     ImageAttributes ffd_attr;
     for (int i = 0; i < t.NumberOfLevels(); ++i) {
       const auto &attr = t.GetLocalTransformation(i)->Attributes();
