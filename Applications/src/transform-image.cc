@@ -1,9 +1,9 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2008-2015 Imperial College London
+ * Copyright 2008-2017 Imperial College London
  * Copyright 2008-2013 Daniel Rueckert, Julia Schnabel
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2013-2017 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,12 +26,15 @@
 #include "mirtk/ImageReader.h"
 #include "mirtk/IOConfig.h"
 #include "mirtk/Transformation.h"
+#include "mirtk/MultiLevelTransformation.h"
+#include "mirtk/FluidFreeFormTransformation.h"
 #include "mirtk/HomogeneousTransformation.h"
 #include "mirtk/RigidTransformation.h"
 #include "mirtk/ImageTransformation.h"
 #include "mirtk/InterpolateImageFunction.h"
 #include "mirtk/ResamplingWithPadding.h"
 #include "mirtk/NearestNeighborInterpolateImageFunction.h"
+#include "mirtk/LinearInterpolateImageFunction.h"
 
 using namespace mirtk;
 
@@ -46,23 +49,39 @@ void PrintHelp(const char *name)
   cout << "Usage: " << name << " <source> <output> [options]\n";
   cout << "\n";
   cout << "Description:\n";
-  cout << "  Applies a transformation to an input image. Each voxel center of\n";
-  cout << "  the target image is mapped by the given transformation to the space of\n";
-  cout << "  the source image. The output intensity for the target voxel is the\n";
-  cout << "  source image intensity interpolated at the mapped point and cast to\n";
-  cout << "  the output data type.\n";
+  cout << "  Applies one or more transformations to an input image. Each voxel center\n";
+  cout << "  of the target image is mapped by the composition of the transformations to\n";
+  cout << "  the space of the source image. The output intensity for the target voxel is\n";
+  cout << "  the source image intensity interpolated at the mapped point and cast to\n";
+  cout << "  the output data type. When the input transformation is the identity map,\n";
+  cout << "  this command effectively resamples the input image on the finite discrete\n";
+  cout << "  grid of the :option:`-target` image.\n";
   cout << "\n";
   cout << "Arguments:\n";
   cout << "  source   Source image.\n";
   cout << "  output   Transformed source image.\n";
   cout << "\n";
   cout << "Optional arguments:\n";
-  cout << "  -dofin <file>\n";
-  cout << "      Transformation or 'Id'/'Identity'. (default: Id)\n";
+  cout << "  -dofin <file>...\n";
+  cout << "      Append transformation to composition or 'Id'/'Identity'. (default: Id)\n";
+  cout << "      This option can be given multiple times and/or accepts multiple arguments.\n";
+  cout << "      The transformations are composed from left to right, i.e., when the arguments\n";
+  cout << "      are \"rig.dof aff.dof ffd.dof.gz\", the target image point is first mapped by\n";
+  cout << "      the \"rig.dof\" transformation, then \"aff.dof\", and finally \"ffd.dof.gz\".\n";
+  cout << "  -invdof, -dofin_i <file>...\n";
+  cout << "      Append inverse of given transformation to composition.\n";
   cout << "  -invert [on|off], -noinvert\n";
-  cout << "      Enable/disable inversion of :option:`-dofin` transformation. (default: off)\n";
+  cout << "      Enable/disable inversion of composite transformation. (default: off)\n";
   cout << "  -interpolation, -interp <mode>\n";
-  cout << "      Interpolation mode, e.g., \"NN\". (default: Linear)\n";
+  cout << "      Interpolation mode: (default: Linear)\n";
+  for (int i = 1; i < Interpolation_Last; ++i) {
+    InterpolationMode mode = static_cast<InterpolationMode>(i);
+    if (mode == InterpolationWithoutPadding(mode)) {
+      cout << "      - " << ToString(static_cast<InterpolationMode>(i));
+      if (mode != Interpolation_Default) cout << " [with padding]";
+      cout << "\n";
+    }
+  }
   cout << "  -labels [<n>...|all]\n";
   cout << "      Transform the specified segmentation labels. When no arguments or \"all\" is\n";
   cout << "      given, all input labels are transformed. When :option:`-interpolation` mode\n";
@@ -107,16 +126,6 @@ void PrintHelp(const char *name)
   cout << "      Project transformed points to 2D, i.e., ignore mapped z coordinate. (default: off)\n";
   cout << "  -3d\n";
   cout << "      Alias for :option:`-2d off`.\n";
-  cout << "\n";
-  cout << "Interpolation modes:\n";
-  for (int i = 0; i < Interpolation_Last; ++i) {
-    InterpolationMode mode = static_cast<InterpolationMode>(i);
-    if (mode == InterpolationWithoutPadding(mode)) {
-      cout << "  " << ToString(static_cast<InterpolationMode>(i));
-      if (mode != Interpolation_Default) cout << " [with padding]";
-      cout << "\n";
-    }
-  }
   PrintCommonOptions(cout);
   cout << endl;
 }
@@ -125,16 +134,91 @@ void PrintHelp(const char *name)
 // Auxiliaries
 // ===========================================================================
 
-typedef GenericImage<double> CoordMap;
-typedef HashImage<short> FuzzySeg;
+typedef GenericLinearInterpolateImageFunction<RealImage>  DisplacementField;
+typedef GenericImage<double>  CoordMap;
+typedef HashImage<short>      FuzzySeg;
 
 // ---------------------------------------------------------------------------
-struct ComposeImageToWorldWithDisplacementMap
+void ReplaceSingleMultiLevelTransformations(Array<UniquePtr<Transformation> > &dof)
 {
-  const Matrix   *_ImageToWorld;
-  const CoordMap *_Displacement;
-  const Matrix   *_WorldToImage;
-  CoordMap       *_CompositeMap;
+  MultiLevelTransformation *mffd;
+  for (size_t i = 0; i < dof.size(); ++i) {
+    mffd = dynamic_cast<MultiLevelTransformation *>(dof[i].get());
+    if (mffd) {
+      if (mffd->NumberOfLevels() == 0) {
+        dof[i].reset(new AffineTransformation(*mffd->GetGlobalTransformation()));
+      } else if (mffd->NumberOfLevels() == 1 && mffd->GetGlobalTransformation()->IsIdentity()) {
+        dof[i].reset(mffd->PopLocalTransformation());
+      }
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+int ReduceTransformations(const ImageAttributes &target_attr,
+                          const ImageAttributes &source_attr,
+                          Array<UniquePtr<Transformation> > &dof,
+                          const Array<bool> &inv,
+                          UniquePtr<AffineTransformation> &global,
+                          UniquePtr<ImageTransformationCache> &local)
+{
+  int nsingular = 0;
+  // Reset output pointers
+  global.reset(new AffineTransformation());
+  local.reset();
+  // - Replace MFFD with zero levels by affine transformation
+  // - Replace MFFD with one level and no global transformation by FFD
+  ReplaceSingleMultiLevelTransformations(dof);
+  // - Compose homogeneous pre-transformations
+  int pre_last = -1;
+  for (size_t i = 0; i < dof.size(); ++i) {
+    if (dynamic_cast<HomogeneousTransformation *>(dof[i].get()) == nullptr) break;
+    pre_last = static_cast<int>(i);
+  }
+  if (pre_last >= 0) {
+    auto pre_mat = global->GetMatrix();
+    for (int i = 0; i <= pre_last; ++i) {
+      auto lin = dynamic_cast<HomogeneousTransformation *>(dof[i].get());
+      auto mat = lin->GetMatrix();
+      if (inv[i]) mat.Invert();
+      pre_mat = mat * pre_mat;
+    }
+    global->PutMatrix(pre_mat);
+  }
+  if (pre_last + 1 < static_cast<int>(dof.size())) {
+    // - Extract global transformation from following fluid MFFD
+    FluidFreeFormTransformation *fluid;
+    fluid = dynamic_cast<FluidFreeFormTransformation *>(dof[pre_last + 1].get());
+    if (fluid) {
+      global->PutMatrix(fluid->GetGlobalTransformation()->GetMatrix() * global->GetMatrix());
+      fluid->GetGlobalTransformation()->Reset();
+    }
+    // - Evaluate displacements for remaining composite transformation
+    ImageAttributes attr = target_attr;
+    attr.PutAffineMatrix(global->GetMatrix() * target_attr._smat, true);
+    global.reset();  // included in image to world map
+    local.reset(new ImageTransformationCache(attr));
+    for (int i = pre_last + 1; i < static_cast<int>(dof.size()); ++i) {
+      if (inv[i]) {
+        // FIXME: Need to maintain binary mask to be able to determine unique no.
+        //        of target voxels for which no complete inverse could be found.
+        nsingular += dof[i]->InverseDisplacement(*local, source_attr._torigin, target_attr._torigin);
+      } else {
+        dof[i]->Displacement(*local, source_attr._torigin, target_attr._torigin);
+      }
+    }
+    local->Modified(false);
+  }
+  return nsingular;
+}
+
+// ---------------------------------------------------------------------------
+struct ComposeImageToWorldWithAffineMap
+{
+  const Matrix               *_ImageToWorld;
+  const AffineTransformation *_Transformation;
+  const Matrix               *_WorldToImage;
+  CoordMap                   *_CoordMap;
 
   void operator ()(const blocked_range3d<int> &re) const
   {
@@ -144,42 +228,76 @@ struct ComposeImageToWorldWithDisplacementMap
     for (int i = re.cols ().begin(); i < re.cols ().end(); ++i) {
       u = i, v = j, w = k;
       Transform(*_ImageToWorld, u, v, w, x, y, z);
-      x += _Displacement->Get(i, j, k, 0);
-      y += _Displacement->Get(i, j, k, 1);
-      z += _Displacement->Get(i, j, k, 2);
+      _Transformation->Transform(x, y, z);
       Transform(*_WorldToImage, x, y, z, u, v, w);
-      _CompositeMap->Put(i, j, k, 0, u);
-      _CompositeMap->Put(i, j, k, 1, v);
-      _CompositeMap->Put(i, j, k, 2, w);
+      _CoordMap->Put(i, j, k, 0, u);
+      _CoordMap->Put(i, j, k, 1, v);
+      _CoordMap->Put(i, j, k, 2, w);
+    }
+  }
+};
+
+// ---------------------------------------------------------------------------
+struct ComposeImageToWorldWithDisplacementMap
+{
+  const Matrix            *_ImageToWorld;
+  const DisplacementField *_Displacement;
+  const Matrix            *_WorldToImage;
+  CoordMap                *_CoordMap;
+
+  void operator ()(const blocked_range3d<int> &re) const
+  {
+    double u, v, w, x, y, z, ud, vd, wd, d[3];
+    for (int k = re.pages().begin(); k < re.pages().end(); ++k)
+    for (int j = re.rows ().begin(); j < re.rows ().end(); ++j)
+    for (int i = re.cols ().begin(); i < re.cols ().end(); ++i) {
+      u = i, v = j, w = k;
+      Transform(*_ImageToWorld, u, v, w, x, y, z);
+      ud = x, vd = y, wd = z;
+      _Displacement->WorldToImage(ud, vd, wd);
+      _Displacement->Evaluate(d, ud, vd, wd);
+      x += d[0], y += d[1], z += d[2];
+      Transform(*_WorldToImage, x, y, z, u, v, w);
+      _CoordMap->Put(i, j, k, 0, u);
+      _CoordMap->Put(i, j, k, 1, v);
+      _CoordMap->Put(i, j, k, 2, w);
     }
   }
 };
 
 // ---------------------------------------------------------------------------
 /// Evaluate map of target voxel indices to continuous source voxel indices
-int EvaluateTargetToSourceMap(CoordMap &map, const BaseImage *source,
-                              const Transformation *dof, bool invert = false)
+void EvaluateTargetToSourceMap(CoordMap &map, const BaseImage *source, const AffineTransformation *global)
 {
-  map = 0.;
-  const double t  = source->GetTOrigin();
-  const double t0 = map.GetTOrigin();
-  int nsingular = 0;
-  if (invert) {
-    nsingular = dof->InverseDisplacement(map, t, t0);
-  } else {
-    dof->Displacement(map, t, t0);
-  }
   MIRTK_START_TIMING();
   const Matrix i2w = map.GetImageToWorldMatrix();
   const Matrix w2i = source->GetWorldToImageMatrix();
-  ComposeImageToWorldWithDisplacementMap compose;
-  compose._ImageToWorld = &i2w;
-  compose._Displacement = &map;
-  compose._WorldToImage = &w2i;
-  compose._CompositeMap = &map;
+  ComposeImageToWorldWithAffineMap compose;
+  compose._ImageToWorld   = &i2w;
+  compose._Transformation = global;
+  compose._WorldToImage   = &w2i;
+  compose._CoordMap       = &map;
   parallel_for(blocked_range3d<int>(0, map.Z(), 0, map.Y(), 0, map.X()), compose);
   MIRTK_DEBUG_TIMING(1, "composing maps");
-  return nsingular;
+}
+
+// ---------------------------------------------------------------------------
+/// Evaluate map of target voxel indices to continuous source voxel indices
+void EvaluateTargetToSourceMap(CoordMap &map, const BaseImage *source, const ImageTransformationCache *local)
+{
+  MIRTK_START_TIMING();
+  const Matrix i2w = map.GetImageToWorldMatrix();
+  const Matrix w2i = source->GetWorldToImageMatrix();
+  DisplacementField disp;
+  disp.Input(local);
+  disp.Initialize();
+  ComposeImageToWorldWithDisplacementMap compose;
+  compose._ImageToWorld = &i2w;
+  compose._Displacement = &disp;
+  compose._WorldToImage = &w2i;
+  compose._CoordMap     = &map;
+  parallel_for(blocked_range3d<int>(0, map.Z(), 0, map.Y(), 0, map.X()), compose);
+  MIRTK_DEBUG_TIMING(1, "composing maps");
 }
 
 // ---------------------------------------------------------------------------
@@ -358,9 +476,10 @@ int main(int argc, char **argv)
   const char *output_name = POSARG(2);
 
   // Parse optional arguments
+  Array<const char *> dofin_name;
+  Array<bool>         dofin_invert;
   const char       *srcdof_name   = nullptr;
   bool              srcdof_invert = false;
-  const char       *dofin_name    = nullptr;
   const char       *target_name   = nullptr;
   const char       *tgtdof_name   = nullptr;
   bool              tgtdof_invert = false;
@@ -381,7 +500,12 @@ int main(int argc, char **argv)
 
   for (ALL_OPTIONS) {
     if (OPTION("-dofin") ) {
-      dofin_name = ARGUMENT;
+      dofin_name.push_back(ARGUMENT);
+      dofin_invert.push_back(false);
+    }
+    else if (OPTION("-dofin_i") || OPTION("-invdof")) {
+      dofin_name.push_back(ARGUMENT);
+      dofin_invert.push_back(true);
     }
     else if (OPTION("-target")) {
       target_name = ARGUMENT;
@@ -436,17 +560,22 @@ int main(int argc, char **argv)
       PARSE_ARGUMENT(interpolation);
     }
     else if (OPTION("-labels") || OPTION("-label")) {
-      GreyPixel label;
-      do {
-        string arg = ToLower(ARGUMENT);
-        if (arg == "all") {
-          all_labels = true;
-        } else if (FromString(arg, label)) {
-          labels.insert(label);
-        } else {
-          FatalError("Invalid -labels option argument: " << arg);
-        }
-      } while (HAS_ARGUMENT);
+      if (HAS_ARGUMENT) {
+        all_labels = false;
+        GreyPixel label;
+        do {
+          string arg = ToLower(ARGUMENT);
+          if (arg == "all") {
+            all_labels = true;
+          } else if (FromString(arg, label)) {
+            labels.insert(label);
+          } else {
+            FatalError("Invalid -labels option argument: " << arg);
+          }
+        } while (HAS_ARGUMENT);
+      } else {
+        all_labels = true;
+      }
     }
     else HANDLE_BOOL_OPTION(invert);
     else HANDLE_BOOLEAN_OPTION("2d", twod);
@@ -468,17 +597,25 @@ int main(int argc, char **argv)
   InitializeIOLibrary();
   UniquePtr<BaseImage> output;
 
-  // Instantiate image transformation
+  // Read transformations
   int nsingular = 0;
-  UniquePtr<Transformation> transformation;
-  if (dofin_name == NULL || strcmp(dofin_name, "identity") == 0
-                         || strcmp(dofin_name, "Identity") == 0
-                         || strcmp(dofin_name, "Id")       == 0) {
-    // Create identity transformation
-    transformation.reset(new RigidTransformation());
-  } else {
-    // Read transformation
-    transformation.reset(Transformation::New(dofin_name));
+  if (dofin_name.empty()) {
+    dofin_name.push_back("identity");
+    dofin_invert.push_back(false);
+  } else if (invert) {
+    reverse(dofin_name  .begin(), dofin_name  .end());
+    reverse(dofin_invert.begin(), dofin_invert.end());
+    for (auto &&inv : dofin_invert) inv = !inv;
+  }
+  Array<UniquePtr<Transformation> > dofs(dofin_name.size());
+  for (size_t i = 0; i < dofin_name.size(); ++i) {
+    if (strcmp(dofin_name[i], "identity") == 0 ||
+        strcmp(dofin_name[i], "Identity") == 0 ||
+        strcmp(dofin_name[i], "Id")       == 0) {
+      dofs[i].reset(new RigidTransformation());
+    } else {
+      dofs[i].reset(Transformation::New(dofin_name[i]));
+    }
   }
 
   if (labels.empty() && !all_labels) {
@@ -575,18 +712,41 @@ int main(int argc, char **argv)
       target->PutAffineMatrix(source->GetAffineMatrix(), affdof_apply);
     }
 
-    // Transform source intensity image
-    ImageTransformation imagetransformation;
-    imagetransformation.Input(source.get());
-    imagetransformation.Transformation(transformation.get());
-    imagetransformation.Output(target.get());
-    imagetransformation.TargetPaddingValue(target_padding);
-    imagetransformation.SourcePaddingValue(source_padding);
-    imagetransformation.Interpolator(interpolator.get());
-    imagetransformation.Invert(invert);
-    imagetransformation.TwoD(twod);
-    imagetransformation.Run();
-    nsingular = imagetransformation.NumberOfSingularPoints();
+    if (dofs.size() == 1) {
+
+      // Transform source intensity image
+      ImageTransformation imagetransformation;
+      imagetransformation.Input(source.get());
+      imagetransformation.Transformation(dofs[0].get());
+      imagetransformation.Output(target.get());
+      imagetransformation.TargetPaddingValue(target_padding);
+      imagetransformation.SourcePaddingValue(source_padding);
+      imagetransformation.Interpolator(interpolator.get());
+      imagetransformation.TwoD(twod);
+      imagetransformation.Invert(dofin_invert[0]);
+      imagetransformation.Run();
+      nsingular = imagetransformation.NumberOfSingularPoints();
+
+    } else {
+
+      // Reduce transformation to either one affine transformation or one displacement field
+      // Important: Only one of the pointers may be non-NULL after ReduceTransformations!
+      UniquePtr<AffineTransformation> global;
+      UniquePtr<ImageTransformationCache> local;
+      nsingular = ReduceTransformations(target->Attributes(), source->Attributes(), dofs, dofin_invert, global, local);
+
+      // Transform source intensity image
+      ImageTransformation imagetransformation;
+      imagetransformation.Input(source.get());
+      imagetransformation.Transformation(global.get());
+      imagetransformation.Cache(local.get());
+      imagetransformation.Output(target.get());
+      imagetransformation.TargetPaddingValue(target_padding);
+      imagetransformation.SourcePaddingValue(source_padding);
+      imagetransformation.Interpolator(interpolator.get());
+      imagetransformation.TwoD(twod);
+      imagetransformation.Run();
+    }
 
     output.reset(target.release());
 
@@ -672,16 +832,39 @@ int main(int argc, char **argv)
       }
       output.reset(new GreyImage(attr));
       GenericNearestNeighborInterpolateImageFunction<GreyImage> nn;
-      ImageTransformation imagetransformation;
-      imagetransformation.Input(&source);
-      imagetransformation.Transformation(transformation.get());
-      imagetransformation.Output(output.get());
-      imagetransformation.SourcePaddingValue(source_padding);
-      imagetransformation.Interpolator(&nn);
-      imagetransformation.Invert(invert);
-      imagetransformation.TwoD(twod);
-      imagetransformation.Run();
-      nsingular = imagetransformation.NumberOfSingularPoints();
+
+      if (dofs.size() == 1) {
+
+        ImageTransformation imagetransformation;
+        imagetransformation.Input(&source);
+        imagetransformation.Transformation(dofs.front().get());
+        imagetransformation.Output(output.get());
+        imagetransformation.SourcePaddingValue(source_padding);
+        imagetransformation.Interpolator(&nn);
+        imagetransformation.TwoD(twod);
+        imagetransformation.Transformation(dofs.front().get());
+        imagetransformation.Invert(dofin_invert.front());
+        imagetransformation.Run();
+
+      } else {
+
+        UniquePtr<AffineTransformation> global;
+        UniquePtr<ImageTransformationCache> local;
+        nsingular = ReduceTransformations(attr, source.Attributes(), dofs, dofin_invert, global, local);
+
+        ImageTransformation imagetransformation;
+        imagetransformation.Input(&source);
+        imagetransformation.Transformation(global.get());
+        imagetransformation.Cache(local.get());
+        imagetransformation.Output(output.get());
+        imagetransformation.SourcePaddingValue(source_padding);
+        imagetransformation.Interpolator(&nn);
+        imagetransformation.TwoD(twod);
+        imagetransformation.Run();
+
+        nsingular = imagetransformation.NumberOfSingularPoints();
+
+      }
       if (verbose) cout << " done" << endl;
 
     // Transform source labels individually and obtain transformed
@@ -689,11 +872,24 @@ int main(int argc, char **argv)
     } else {
 
       if (verbose) {
+        cout << "Evaluating input transformation(s)...";
+        cout.flush();
+      }
+      UniquePtr<AffineTransformation> global;
+      UniquePtr<ImageTransformationCache> local;
+      nsingular = ReduceTransformations(attr, source.Attributes(), dofs, dofin_invert, global, local);
+      if (verbose) cout << endl;
+
+      if (verbose) {
         cout << "Evaluating target to source index map...";
         cout.flush();
       }
       CoordMap map(attr, 3);
-      nsingular = EvaluateTargetToSourceMap(map, &source, transformation.get(), invert);
+      if (global) {
+        EvaluateTargetToSourceMap(map, &source, global.get());
+      } else {
+        EvaluateTargetToSourceMap(map, &source, local.get());
+      }
       if (verbose) cout << " done" << endl;
 
       Array<FuzzySeg> probs;
