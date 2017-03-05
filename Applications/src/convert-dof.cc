@@ -520,17 +520,31 @@ GenericImage<double> ConcatenateWorldDisplacement(const char *dx_name, const cha
 Transformation *ToLinearFFD(const GenericImage<double> &disp,
                             double dx = .0, double dy = .0, double dz = .0)
 {
-  if (dx <= .0) dx = disp.GetXSize();
-  if (dy <= .0) dy = disp.GetYSize();
-  if (dz <= .0) dz = disp.GetZSize();
-
-  double xaxis[3], yaxis[3], zaxis[3];
-  disp.GetOrientation(xaxis, yaxis, zaxis);
   UniquePtr<LinearFreeFormTransformation> ffd;
-  ffd.reset(new LinearFreeFormTransformation3D(0, 0, 0, disp.X() - 1, disp.Y() - 1, disp.Z() - 1,
-                                               dx, dy, dz, xaxis, yaxis, zaxis));
+
+  if (dx <= .0) dx = disp.XSize();
+  if (dy <= .0) dy = disp.YSize();
+  if (dz <= .0) dz = disp.ZSize();
 
   if (fequal(dx, disp.GetXSize()) && fequal(dy, disp.GetYSize()) && fequal(dz, disp.GetZSize())) {
+
+    ffd.reset(new LinearFreeFormTransformation3D(disp, true));
+
+  } else {
+
+    double x1 = 0., y1 = 0., z1 = 0.;
+    double x2 = disp.X() - 1;
+    double y2 = disp.Y() - 1;
+    double z2 = disp.Z() - 1;
+    disp.ImageToWorld(x1, y1, z1);
+    disp.ImageToWorld(x2, y2, z2);
+    double ax[3], ay[3], az[3];
+    disp.GetOrientation(ax, ay, az);
+    ffd.reset(new LinearFreeFormTransformation3D(x1, y1, z1,
+                                                 x2, y2, z2,
+                                                 dx, dy, dz,
+                                                 ax, ay, az));
+
     double x, y, z, v[3];
     GenericLinearInterpolateImageFunction<GenericImage<double> > d;
     d.Input(&disp);
@@ -543,12 +557,6 @@ Transformation *ToLinearFFD(const GenericImage<double> &disp,
       disp.WorldToImage(x, y, z);
       d.Evaluate(v, x, y, z);
       ffd->Put(i, j, k, v[0], v[1], v[2]);
-    }
-  } else {
-    for (int k = 0; k < ffd->Z(); ++k)
-    for (int j = 0; j < ffd->Y(); ++j)
-    for (int i = 0; i < ffd->X(); ++i) {
-      ffd->Put(i, j, k, disp(i, j, k, 0), disp(i, j, k, 1), disp(i, j, k, 2));
     }
   }
 
@@ -1849,11 +1857,14 @@ bool WriteSTARCCMTable(const char *fname, const ImageAttributes &target, const T
       return false;
     }
   }
-  if (dt > .0) {
-    const double T = domain.LatticeToTime(domain._t - 1) - domain.LatticeToTime(0);
-    domain._t  = ifloor(T / dt);
-    domain._dt = dt;
-  }
+
+  if (IsInf(tmin)) tmin = domain.LatticeToTime(0);
+  if (IsInf(tmax)) tmax = domain.LatticeToTime(domain._t - 1);
+  if (dt == 0.)    dt   = domain._dt;
+
+  domain._torigin = tmin;
+  domain._t       = ifloor(abs((tmax - tmin) / dt));
+  domain._dt      = dt;
 
   // Open text file
   ofstream table(fname);
@@ -1874,11 +1885,9 @@ bool WriteSTARCCMTable(const char *fname, const ImageAttributes &target, const T
     } else {
       for (int l = 0; l < domain._t; ++l) {
         t = domain.LatticeToTime(l);
-        if (tmin <= t && t <= tmax) {
-          table << delimiter << "DX[t=" << domain.LatticeToTime(l) << "ms]";
-          table << delimiter << "DY[t=" << domain.LatticeToTime(l) << "ms]";
-          table << delimiter << "DZ[t=" << domain.LatticeToTime(l) << "ms]";
-        }
+        table << delimiter << "DX[t=" << t << "ms]";
+        table << delimiter << "DY[t=" << t << "ms]";
+        table << delimiter << "DZ[t=" << t << "ms]";
       }
     }
   } else {
@@ -1889,12 +1898,10 @@ bool WriteSTARCCMTable(const char *fname, const ImageAttributes &target, const T
     } else {
       for (int l = 0, c = 0; l < domain._t; ++l) {
         t = domain.LatticeToTime(l);
-        if (tmin <= t && t <= tmax) {
-          if (++c > 1) table << delimiter;
-          table << "X[t=" << domain.LatticeToTime(l) << "ms]";
-          table << delimiter << "Y[t=" << domain.LatticeToTime(l) << "ms]";
-          table << delimiter << "Z[t=" << domain.LatticeToTime(l) << "ms]";
-        }
+        if (++c > 1) table << delimiter;
+        table << "X[t=" << t << "ms]";
+        table << delimiter << "Y[t=" << t << "ms]";
+        table << delimiter << "Z[t=" << t << "ms]";
       }
     }
   }
@@ -1917,16 +1924,14 @@ bool WriteSTARCCMTable(const char *fname, const ImageAttributes &target, const T
       }
       for (int l = 0, c = 0; l < domain._t; ++l) {
         t = domain.LatticeToTime(l);
-        if (domain._t == 1 || (tmin <= t && t <= tmax)) {
-          if (++c > 1) table << delimiter;
-          dx = points(r)._x, dy = points(r)._y, dz = points(r)._z;
-          if (displacements) {
-            dof->Displacement(dx, dy, dz, t, t0);
-          } else {
-            dof->Transform(dx, dy, dz, t, t0);
-          }
-          table << dx << delimiter << dy << delimiter << dz;
+        if (++c > 1) table << delimiter;
+        dx = points(r)._x, dy = points(r)._y, dz = points(r)._z;
+        if (displacements) {
+          dof->Displacement(dx, dy, dz, t, t0);
+        } else {
+          dof->Transform(dx, dy, dz, t, t0);
         }
+        table << dx << delimiter << dy << delimiter << dz;
       }
       table << "\n";
 
@@ -1942,12 +1947,10 @@ bool WriteSTARCCMTable(const char *fname, const ImageAttributes &target, const T
     Array<RealImage> disp(domain._t);
     for (int l = 0; l < domain._t; ++l) {
       t = domain.LatticeToTime(l);
-      if (domain._t == 1 || (tmin <= t && t <= tmax)) {
-        disp[l].Initialize(domain, 3);
-        disp[l].PutTOrigin(t);
-        if (wc.IsEmpty()) disp[l].ImageToWorld(wc);
-        dof->Displacement(disp[l], t0, &wc);
-      }
+      disp[l].Initialize(domain, 3);
+      disp[l].PutTOrigin(t);
+      if (wc.IsEmpty()) disp[l].ImageToWorld(wc);
+      dof->Displacement(disp[l], t0, &wc);
     }
     if (wc.IsEmpty()) {
       Warning("Invalid time interval [" << tmin << " " << tmax << "]");
@@ -1968,16 +1971,14 @@ bool WriteSTARCCMTable(const char *fname, const ImageAttributes &target, const T
       }
       for (int l = 0, c = 0; l < domain._t; ++l) {
         t = domain.LatticeToTime(l);
-        if (domain._t == 1 || (tmin <= t && t <= tmax)) {
-          if (++c > 1) table << delimiter;
-          dx = *(disp[l].Data() + r           );
-          dy = *(disp[l].Data() + r +     nvox);
-          dz = *(disp[l].Data() + r + 2 * nvox);
-          if (!displacements) {
-            dx += *x, dy += *y, dz += *z;
-          }
-          table << dx << delimiter << dy << delimiter << dz;
+        if (++c > 1) table << delimiter;
+        dx = *(disp[l].Data() + r           );
+        dy = *(disp[l].Data() + r +     nvox);
+        dz = *(disp[l].Data() + r + 2 * nvox);
+        if (!displacements) {
+          dx += *x, dy += *y, dz += *z;
         }
+        table << dx << delimiter << dy << delimiter << dz;
       }
       table << "\n";
 
