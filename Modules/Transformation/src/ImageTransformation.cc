@@ -395,7 +395,7 @@ void ImageTransformation::Initialize()
     cerr << "ImageTransformation::Initialize: Filter has no output" << endl;
     exit(1);
   }
-  if (!_Transformation) {
+  if (!_Transformation && (!_Cache || _Cache->IsEmpty() || _Cache->Modified())) {
     cerr << "ImageTransformation::Initialize: Filter has no transformation" << endl;
     exit(1);
   }
@@ -414,7 +414,7 @@ void ImageTransformation::Initialize()
 
   _NumberOfSingularPoints = 0;
 
-  if (_Transformation->RequiresCachingOfDisplacements() && !_Cache) {
+  if (!_Cache && _Transformation->RequiresCachingOfDisplacements()) {
     _CacheOwner = true;
     _Cache      = new ImageTransformationCache();
     _Cache->Initialize(_Output->Attributes(), 3);

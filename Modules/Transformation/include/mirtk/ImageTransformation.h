@@ -47,6 +47,12 @@ public:
   /// Constructor
   ImageTransformationCache() : _Modified(true) {}
 
+  /// Constructor
+  explicit ImageTransformationCache(const ImageAttributes &attr)
+  :
+    RealImage(attr, 3), _Modified(true)
+  {}
+
   /// Destructor
   virtual ~ImageTransformationCache() {}
 };
