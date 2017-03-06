@@ -80,11 +80,11 @@ void PrintHelp(const char *name)
   cout << "      (default: Dice / F1-score)\n";
   cout << "  -delimiter, -delim <char>\n";
   cout << "      Delimiter for output of multiple overlap values. (default: ,)\n";
-  cout << "  -table <file>\n";
+  cout << "  -table [<file>|stdout|cout]\n";
   cout << "      Write table with overlap measures for all segments in a row,\n";
   cout << "      one row per input source image which is compared to the target\n";
   cout << "      segmentation. By default, the output to STDIN with verbosity 0\n";
-  cout << "      is the transpose table and excludes a table header. (default: none)\n";
+  cout << "      is the transpose table and excludes a table header. (default: off)\n";
   PrintCommonOptions(cout);
   cout << endl;
 }
@@ -375,7 +375,10 @@ int main(int argc, char **argv)
       } while (HAS_ARGUMENT);
       segments.push_back(segment);
     }
-    else if (OPTION("-table")) table_name = ARGUMENT;
+    else if (OPTION("-table")) {
+      if (HAS_ARGUMENT) table_name = ARGUMENT;
+      else table_name = "cout";
+    }
     else if (OPTION("-images")) image_list = ARGUMENT;
     else if (OPTION("-images-delimiter") || OPTION("-images-delim")) image_delim = ARGUMENT;
     else if (OPTION("-labels")) all_labels = true;
@@ -547,34 +550,39 @@ int main(int argc, char **argv)
 
     if (table_name) {
 
-      ofstream ofs(table_name);
-      if (!ofs) FatalError("Failed to open output file: " << table_name);
+      ostream *os = &cout;
+      ofstream ofs;
+
+      if (ToLower(table_name) != "stdout" && ToLower(table_name) != "cout") {
+        ofs.open(table_name);
+        if (!ofs) FatalError("Failed to open output file: " << table_name);
+      }
 
       if (source_name.size() == 1) {
-        ofs << "Label";
+        *os << "Label";
         for (size_t m = 0; m < metrics.size(); ++m) {
-          ofs << delim << Abbreviation(metrics[m]);
+          *os << delim << Abbreviation(metrics[m]);
         }
       } else {
         for (size_t roi = 0; roi < segments.size(); ++roi)
         for (size_t m = 0; m < metrics.size(); ++m) {
           if (roi > 0 || m > 0) {
-            ofs << delim;
+            *os << delim;
           }
           if (metrics.size() > 1) {
-            ofs << Abbreviation(metrics[m]);
+            *os << Abbreviation(metrics[m]);
             if (strcmp(delim, " ") != 0) {
-              ofs << ' ';
+              *os << ' ';
             }
           }
           const auto &labels = segments[roi];
           for (auto it = labels.begin(); it != labels.end(); ++it) {
-            if (it != labels.begin()) ofs << "+";
-            ofs << *it;
+            if (it != labels.begin()) *os << "+";
+            *os << *it;
           }
         }
       }
-      ofs << "\n";
+      *os << "\n";
 
       for (size_t n = 0; n < source_name.size(); ++n) {
 
@@ -594,8 +602,8 @@ int main(int argc, char **argv)
           const auto &labels = segments[roi];
           if (source_name.size() == 1) {
             for (auto it = labels.begin(); it != labels.end(); ++it) {
-              if (it != labels.begin()) ofs << "+";
-              ofs << *it;
+              if (it != labels.begin()) *os << "+";
+              *os << *it;
             }
           }
 
@@ -615,29 +623,29 @@ int main(int argc, char **argv)
           // Compute overlap metrics
           for (size_t m = 0; m < metrics.size(); ++m) {
             if (source_name.size() == 1 || roi > 0 || m > 0) {
-              ofs << delim;
+              *os << delim;
             }
             switch (metrics[m]) {
               case TruePositives:
-                ofs << tp;
+                *os << tp;
                 break;
               case TrueNegatives:
-                ofs << tn;
+                *os << tn;
                 break;
               case FalsePositives:
-                ofs << fp;
+                *os << fp;
                 break;
               case FalseNegatives:
-                ofs << fn;
+                *os << fn;
                 break;
               default:
-                ofs << setprecision(digits) << Evaluate(metrics[m], tp, fn, fp, tn);
+                *os << setprecision(digits) << Evaluate(metrics[m], tp, fn, fp, tn);
             }
           }
 
-          if (source_name.size() == 1) ofs << "\n";
+          if (source_name.size() == 1) *os << "\n";
         }
-        if (source_name.size() > 1) ofs << "\n";
+        if (source_name.size() > 1) *os << "\n";
       }
 
     } else {
@@ -662,7 +670,7 @@ int main(int argc, char **argv)
         const auto &labels = segments[roi];
         if (segments.size() > 1) {
           if (verbose) {
-            if (roi > 0 && (source_name.size() > 1 || metrics.size() > 1)) {
+            if (roi > 0 && source_name.size() > 1) {
               cout << "\n";
             }
             cout << "Label ";
@@ -692,6 +700,8 @@ int main(int argc, char **argv)
               }
               cout << source_name[n] << ": ";
             }
+          } else {
+            if (n > 0) cout << delim;
           }
 
           // Read source image and extract region of interest
@@ -756,7 +766,6 @@ int main(int argc, char **argv)
           }
           if (verbose) cout << "\n";
         }
-
         if (verbose == 0) cout << "\n";
       }
 
