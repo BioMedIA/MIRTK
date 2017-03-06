@@ -150,11 +150,12 @@ void PrintHelp(const char *name)
   cout << "  -[no]shearing              Average shearing    or assume none to be present. (default: on)" << endl;
   cout << "  -[no]deformation           Average deformation or assume none to be present. (default: on)" << endl;
   cout << "  -[no]log                   Whether to average local transformations in log-space." << endl;
-  cout << "                             (default: yes, unless the :option:`-dofs` are averaged directly)" << endl;
+  cout << "                             (default: no, unless the :option:`-dofs` of a SV FFD are averaged directly)" << endl;
   cout << "  -log-euclidean             Compute Log-Euclidean means. (default: off)" << endl;
   cout << "  -bi-invariant              Compute global bi-invariant mean, i.e., exponential barycenter. (default: on)" << endl;
-  cout << "  -dofs                      Average the local transformation parameters directly." << endl;
-  cout << "                             (default: corresponding (dense) displacement fields are averaged)" << endl;
+  cout << "  -[no]dofs                  Average the local transformation parameters directly. When this option is off," << endl;
+  cout << "                             the corresponding (dense) displacement fields are averaged instead." << endl;
+  cout << "                             (default: yes, unless input contains mixed FFD types or common type does not support this)" << endl;
   cout << "  -inverse-dofs              Average inverse input transformations and invert the average again. (default: off)" << endl;
   cout << endl;
   cout << "  -rigid                     Enables averaging of :option:`-translation` and :option:`-rotation` components," << endl;
@@ -216,8 +217,8 @@ int main(int argc, char **argv)
   bool        deformation    = true;
   bool        invert         = false;      // invert input transformations
   bool        invavg         = false;      // invert output transformation
-  int         logspace       = -1;         // i.e., not set explicitly to "true"
-  bool        avgdofs        = false;      // average DoFs directly if possible
+  int         logspace       = -1;         // -1: not set explicitly to "true"
+  int         avgdofs        = -1;         // -1: average DoFs directly if possible
   bool        approxglobal   = true;       // approximate vs. truncate average
                                            // global transformation if #DoFs < 12
   bool        bsplineffd     = false;      // output B-spline FFD when avgdofs == false
@@ -248,15 +249,19 @@ int main(int argc, char **argv)
     else if (OPTION("-noshearing"))    shearing    = false;
     else if (OPTION("-nodeformation")) deformation = false;
     else if (OPTION("-bi-invariant"))  biinvariant = true;
-    else if (OPTION("-log-euclidean")) biinvariant = false, logspace = true;
-    else if (OPTION("-log"))           logspace    = true;
-    else if (OPTION("-nolog"))         logspace    = false;
+    else if (OPTION("-log-euclidean")) biinvariant = false, logspace = 1;
+    else if (OPTION("-log"))           logspace    = 1;
+    else if (OPTION("-nolog"))         logspace    = 0;
     else if (OPTION("-linear"))        bsplineffd  = false;
     else if (OPTION("-cubic"))         bsplineffd  = true;
-    else if (OPTION("-dofs"))          avgdofs     = true;
-    else if (OPTION("-inverse-dofs"))  avgdofs     = true, invert = invavg = true;
+    else if (OPTION("-dofs"))          avgdofs     = 1;
+    else if (OPTION("-nodofs"))        avgdofs     = 0;
+    else if (OPTION("-inverse-dofs"))  avgdofs = 1, invert = invavg = true;
     else if (OPTION("-epsilon"))       PARSE_ARGUMENT(epsilon);
-    else if (OPTION("-gaussian")) { PARSE_ARGUMENT(mean), PARSE_ARGUMENT(sigma); }
+    else if (OPTION("-gaussian")) {
+      PARSE_ARGUMENT(mean);
+      PARSE_ARGUMENT(sigma);
+    }
     else if (OPTION("-rigid"))    { translation = rotation = true;  scaling = shearing = deformation = false; }
     else if (OPTION("-norigid"))  { translation = rotation = false; }
     else if (OPTION("-affine"))   { translation = rotation = scaling = shearing = true;  deformation = false; }
@@ -272,6 +277,12 @@ int main(int argc, char **argv)
   if (sigma < .0) {
     cerr << EXECNAME << ": Gaussian sigma value must be positive" << endl;
     exit(1);
+  }
+  if (target_name) {
+    if (avgdofs == 1) {
+      FatalError("Options -target and -dofs are mutually exclusive!");
+    }
+    avgdofs = 0;
   }
 
   // Parse input text file
@@ -399,14 +410,17 @@ int main(int argc, char **argv)
   string          type;  // common transformation type
   ImageAttributes attr;  // common FFD lattice attributes
 
-  // Average displacement fields sampled in specified target image domain
-  if (!avgdofs && target_name) {
+  // When target image domain specified, always average displacement fields
+  // which were sampled at the voxels of this target image domain
+  if (target_name) {
     UniquePtr<BaseImage> target(BaseImage::New(target_name));
     attr = target->GetImageAttributes();
+  }
   // Otherwise, determine common type of local input transformations
-  // if a mix of transformations is given, use attributes of first FFD
-  // to define the image domain of the average displacement field
-  } else {
+  //
+  // When a mix of transformations is given, use attributes of first FFD
+  // to define the image domain of the average displacement field.
+  if (avgdofs != 0) {
     if (verbose) cout << "Checking type of input transformations...", cout.flush();
     mtype = "None";
     for (size_t i = 0; i < dofin.size(); ++i) {
@@ -438,42 +452,66 @@ int main(int argc, char **argv)
       }
     }
     if (verbose) cout << " done" << endl;
+    if (!attr) {
+      // No input transformation contains a local deformation component
+      deformation = false;
+    }
   }
 
   // Cases in which local transformation parameters are averaged directly and stored
   // using the very same transformation model as given as input which does not require
   // a conversion of the input transformations to dense displacement fields
-  if (avgdofs && deformation) {
-    if (attr.NumberOfLatticePoints() > 0 && // input contains FFDs to be averaged
-        type != "BSplineFreeFormTransformationSV"   &&
-        type != "LinearFreeFormTransformation3D"    &&
-        type != "BSplineFreeFormTransformation3D") {
-      if (verbose) cout << endl;
-      cerr << EXECNAME << ": Cannot average local input transformation parameters directly (-dofs option)." << endl;
-      cerr << endl;
-      cerr << "  Transformations must therefore either all be linear transformations or transformations with local" << endl;
-      cerr << "  component of type \"Linear FFD\", \"B-spline FFD\", or \"SV B-spline FFD\" (see dofprint output)." << endl;
-      exit(1);
-    }
-    if (logspace == 1) {
-      if (type != "BSplineFreeFormTransformationSV") {
-        if (verbose) cout << endl;
-        cerr << EXECNAME << ": Combining options -log and -dofs only possible for SV B-spline FFDs! Use only one of them." << endl;
-        exit(1);
+  if (deformation) {
+    if (avgdofs != 0) {
+      if (type == "BSplineFreeFormTransformationSV") {
+        avgdofs = 1;
+        if (logspace == -1) {
+          logspace = 1;
+        }
+      } else if (type == "LinearFreeFormTransformation3D" || type == "BSplineFreeFormTransformation3D") {
+        if (logspace != 1) {
+          avgdofs  = 1;
+          logspace = 0;
+        }
+      } else {
+        if (avgdofs == 1) {
+          if (verbose) cout << endl;
+          cerr << EXECNAME << ": Cannot average local input transformation parameters directly (-dofs option).\n";
+          cerr << "\n";
+          cerr << "  The -dofs option can only be used when either all input transformations are global\n";
+          cerr << "  rigid or affine transformations without local deformation, or when all input transformations\n";
+          cerr << "  have the same local deformation component type, which must be one of the following:\n";
+          cerr << "  \"Linear FFD\", \"B-spline FFD\", or \"SV B-spline FFD\".\n\n";
+          exit(1);
+        }
+        avgdofs = 0;
       }
-    } else if (logspace == 0) {
-      if (type != "LinearFreeFormTransformation" && type != "BSplineFreeFormTransformation3D") {
-        if (verbose) cout << endl;
-        cerr << EXECNAME << ": Combining options -nolog and -dofs only possible for Linear/B-spline FFDs! Use only one of them." << endl;
-        exit(1);
+    }
+    if (logspace == -1) {
+      logspace = 0;
+    }
+    // Check validity of combination of -[no]log and -[no]dofs options
+    if (avgdofs != 0) {
+      if (logspace != 0) {
+        if (type != "BSplineFreeFormTransformationSV") {
+          if (verbose) cout << endl;
+          cerr << EXECNAME << ": Combining options -log and -dofs only possible for SV B-spline FFDs! Otherwise use only one of them." << endl;
+          exit(1);
+        }
+      } else if (logspace == 0) {
+        if (type != "LinearFreeFormTransformation" && type != "BSplineFreeFormTransformation3D") {
+          if (verbose) cout << endl;
+          cerr << EXECNAME << ": Combining options -nolog and -dofs only possible for Linear/B-spline FFDs! Otherwise use only one of them." << endl;
+          exit(1);
+        }
       }
     }
   }
 
   if (verbose) {
     cout << "Average deformation:   " << ToString(deformation) << endl;
-    cout << "Average DoFs directly: " << ToString(avgdofs) << endl;
-    cout << "Average in log-space:  " << ToString(logspace) << endl;
+    cout << "Average DoFs directly: " << ToString(avgdofs  == 0 ? false : true) << endl;
+    cout << "Average in log-space:  " << ToString(logspace == 0 ? false : true) << endl;
   }
 
   // Initialize intermediate data structures
@@ -536,7 +574,7 @@ int main(int argc, char **argv)
     if (rigid     ) global     = rigid;
     // Get local transformation parameters
     if (deformation && ffd) {
-      if (invert && (!avgdofs || type != "BSplineFreeFormTransformationSV") && (avgdofs || !logspace)) {
+      if (invert && (avgdofs == 0 || type != "BSplineFreeFormTransformationSV") && (avgdofs != 0 || logspace == 0)) {
         cerr << EXECNAME << ": -invert option only supported for rigid/affine transformations" << endl;
         exit(1);
       }
@@ -548,7 +586,7 @@ int main(int argc, char **argv)
       } else invA.Ident();
       // Average parameters at control points directly when possible
       double x, y, z;
-      if (avgdofs) {
+      if (avgdofs != 0) {
         for (int k = 0; k < attr._z; ++k)
         for (int j = 0; j < attr._y; ++j)
         for (int i = 0; i < attr._x; ++i) {
@@ -587,7 +625,7 @@ int main(int argc, char **argv)
           d(i, j, k, 2) = invA(2, 0) * x + invA(2, 1) * y + invA(2, 2) * z;
         }
         // Compute stationary velocity field
-        if (logspace) {
+        if (logspace != 0) {
           DisplacementToVelocityFieldBCH<double> dtov;
           dtov.Input (&d);
           dtov.Output(&d);
@@ -694,7 +732,7 @@ int main(int argc, char **argv)
 
     // Invert average stationary velocity field
     if (invavg) {
-      if (logspace || (avgdofs && type == "BSplineFreeFormTransformationSV")) {
+      if (logspace != 0 || (avgdofs != 0 && type == "BSplineFreeFormTransformationSV")) {
         W *= -1.;
       } else {
         cerr << EXECNAME << ": -inverse[-dofs] option only supported for global transformations, SV FFDs, or when average computed in -log space" << endl;
@@ -705,7 +743,7 @@ int main(int argc, char **argv)
     avgD /= W;
     // Convert velocities back to displacements, unless the output transformation
     // is parameterized by a stationary velocity field
-    if (logspace && !avgdofs) {
+    if (logspace != 0 && avgdofs == 0) {
       VelocityToDisplacementFieldSS<double> vtod;
       vtod.Input (&avgD);
       vtod.Output(&avgD);
@@ -714,7 +752,8 @@ int main(int argc, char **argv)
     // Add dependency on average global transformation such that
     // avgT = avgA (x + avgD) = avgA x + avgA avgD = avgT_global + avgT_local
     //
-    // Note that also in case of avgD being a stationary velocity field (avgdofs == true),
+    // Note that also in case of avgD being a stationary velocity field
+    // (i.e., type == "BSplineFreeFormTransformationSV" && avgdofs != 0),
     // we can pre-multiply it the same way with the global transformation matrix as in
     // case of a displacement field. This can be illustrated by looking at the formula
     // of the family of explicit Runge-Kutta methods for the exponentiation step which
@@ -732,7 +771,7 @@ int main(int argc, char **argv)
     }
     // Construct FFD from average deformation
     UniquePtr<FreeFormTransformation> ffd;
-    if (avgdofs) {
+    if (avgdofs != 0) {
       if (type == "LinearFreeFormTransformation3D") {
         ffd.reset(new LinearFreeFormTransformation3D(avgD, true));
       } else if (type == "BSplineFreeFormTransformation3D") {
