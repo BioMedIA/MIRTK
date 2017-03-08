@@ -2455,6 +2455,7 @@ void GenericRegistrationFilter::Write(const char *fname) const
       PrintParameter(to, it->first, it->second);
     }
   }
+  to.close();
 }
 
 // =============================================================================
