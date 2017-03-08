@@ -221,19 +221,37 @@ inline string ToString(const bool &value, int w, char c, bool left)
 }
 
 /// Write "<name> = <value>" configuration entry to output stream
-template <class TValue>
-inline void PrintParameter(std::ostream &os, const char *name, const TValue &value)
+inline void PrintParameter(std::ostream &os, const char *name, const char *value)
 {
   const std::streamsize w = os.width(40);
-  os << std::left << name << std::setw(0) << " = " << ToString(value) << std::endl;
+  os << std::left << name << std::setw(0) << " = " << value << "\n";
   os.width(w);
 }
 
 /// Write "<name> = <value>" configuration entry to output stream
-template <class TValue>
-inline void PrintParameter(std::ostream &os, const std::string &name, const TValue &value)
+inline void PrintParameter(std::ostream &os, const char *name, const string &value)
 {
-  PrintParameter(os, name.c_str(), value);
+  PrintParameter(os, name, value.c_str());
+}
+
+/// Write "<name> = <value>" configuration entry to output stream
+inline void PrintParameter(std::ostream &os, const string &name, const string &value)
+{
+  PrintParameter(os, name.c_str(), value.c_str());
+}
+
+/// Write "<name> = <value>" configuration entry to output stream
+template <class TValue>
+inline void PrintParameter(std::ostream &os, const char *name, const TValue &value)
+{
+  PrintParameter(os, name, ToString(value));
+}
+
+/// Write "<name> = <value>" configuration entry to output stream
+template <class TValue>
+inline void PrintParameter(std::ostream &os, const string &name, const TValue &value)
+{
+  PrintParameter(os, name, ToString(value));
 }
 
 /// Print single argument to output stream
