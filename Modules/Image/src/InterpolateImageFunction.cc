@@ -284,6 +284,7 @@ mirtkInterpolatorInstantiations(GenericInterpolateImageFunction);
 
 // ND
 template class GenericNearestNeighborInterpolateImageFunction<ByteImage>;
+template class GenericLinearInterpolateImageFunction<ByteImage>;
 mirtkInterpolatorInstantiations(GenericNearestNeighborInterpolateImageFunction);
 mirtkInterpolatorInstantiations(GenericLinearInterpolateImageFunction);
 mirtkInterpolatorInstantiations(GenericBSplineInterpolateImageFunction);
@@ -294,6 +295,7 @@ mirtkInterpolatorInstantiations(GenericGaussianInterpolateImageFunction);
 mirtkInterpolatorInstantiations(GenericSincInterpolateImageFunction);
 
 // 2D
+template class GenericLinearInterpolateImageFunction2D<ByteImage>;
 mirtkInterpolatorInstantiations(GenericLinearInterpolateImageFunction2D);
 mirtkInterpolatorInstantiations(GenericBSplineInterpolateImageFunction2D);
 mirtkInterpolatorInstantiations(GenericCubicBSplineInterpolateImageFunction2D);
@@ -303,6 +305,7 @@ mirtkInterpolatorInstantiations(GenericGaussianInterpolateImageFunction2D);
 mirtkInterpolatorInstantiations(GenericSincInterpolateImageFunction2D);
 
 // 3D
+template class GenericLinearInterpolateImageFunction3D<ByteImage>;
 mirtkInterpolatorInstantiations(GenericLinearInterpolateImageFunction3D);
 mirtkInterpolatorInstantiations(GenericBSplineInterpolateImageFunction3D);
 mirtkInterpolatorInstantiations(GenericCubicBSplineInterpolateImageFunction3D);
@@ -312,6 +315,7 @@ mirtkInterpolatorInstantiations(GenericGaussianInterpolateImageFunction3D);
 mirtkInterpolatorInstantiations(GenericSincInterpolateImageFunction3D);
 
 // 4D
+template class GenericLinearInterpolateImageFunction4D<ByteImage>;
 mirtkInterpolatorInstantiations(GenericLinearInterpolateImageFunction4D);
 mirtkInterpolatorInstantiations(GenericBSplineInterpolateImageFunction4D);
 mirtkInterpolatorInstantiations(GenericCubicBSplineInterpolateImageFunction4D);
