@@ -164,7 +164,6 @@ RegisteredImage::RegisteredImage()
   _SelfUpdate            (true),
   _MinIntensity          (NaN),
   _MaxIntensity          (NaN),
-  _OutsideValue          (NaN),
   _GradientSigma         (0.),
   _HessianSigma          (0.),
   _PrecomputeDerivatives (false),
@@ -197,7 +196,6 @@ RegisteredImage::RegisteredImage(const RegisteredImage &other)
   _SelfUpdate            (other._SelfUpdate),
   _MinIntensity          (other._MinIntensity),
   _MaxIntensity          (other._MaxIntensity),
-  _OutsideValue          (other._OutsideValue),
   _GradientSigma         (other._GradientSigma),
   _HessianSigma          (other._HessianSigma),
   _PrecomputeDerivatives (other._PrecomputeDerivatives),
@@ -230,7 +228,6 @@ RegisteredImage &RegisteredImage::operator =(const RegisteredImage &other)
   _SelfUpdate             = other._SelfUpdate;
   _MinIntensity           = other._MinIntensity;
   _MaxIntensity           = other._MaxIntensity;
-  _OutsideValue           = other._OutsideValue;
   _GradientSigma          = other._GradientSigma;
   _HessianSigma           = other._HessianSigma;
   _PrecomputeDerivatives  = other._PrecomputeDerivatives;
@@ -365,11 +362,9 @@ void RegisteredImage::ComputeInputGradient(double sigma)
   Delete(_InputGradient);
   if (sigma > 0. || _PrecomputeDerivatives) {
     // Background value
-    double bgvalue;
+    double bgvalue = -inf;
     if (_InputImage->HasBackgroundValue()) {
       bgvalue = _InputImage->GetBackgroundValueAsDouble();
-    } else {
-      bgvalue = _OutsideValue;
     }
     // Cast to gradient voxel type
     InputGradientType *image;
@@ -383,13 +378,23 @@ void RegisteredImage::ComputeInputGradient(double sigma)
     // Smooth input image
     if (sigma > 0.) {
       UniquePtr<InputGradientType> blurred(new InputGradientType());
-      typedef GaussianBlurringWithPadding<InputGradientType::VoxelType> GaussianFilter;
-      GaussianFilter blurring(sigma * image->XSize(),
-                              sigma * image->YSize(),
-                              sigma * image->ZSize(), bgvalue);
-      blurring.Input(image);
-      blurring.Output(blurred.get());
-      blurring.Run();
+      if (IsInf(bgvalue)) {
+        typedef GaussianBlurring<InputGradientType::VoxelType> GaussianFilter;
+        GaussianFilter blurring(sigma * image->XSize(),
+                                sigma * image->YSize(),
+                                sigma * image->ZSize());
+        blurring.Input(image);
+        blurring.Output(blurred.get());
+        blurring.Run();
+      } else {
+        typedef GaussianBlurringWithPadding<InputGradientType::VoxelType> GaussianFilter;
+        GaussianFilter blurring(sigma * image->XSize(),
+                                sigma * image->YSize(),
+                                sigma * image->ZSize(), bgvalue);
+        blurring.Input(image);
+        blurring.Output(blurred.get());
+        blurring.Run();
+      }
       temp.reset(blurred.release());
       image = temp.get();
     }
@@ -470,11 +475,9 @@ void RegisteredImage::ComputeInputHessian(double sigma)
   MIRTK_START_TIMING();
   Delete(_InputHessian);
   // Background value
-  double bgvalue;
+  double bgvalue = -inf;
   if (_InputImage->HasBackgroundValue()) {
     bgvalue = _InputImage->GetBackgroundValueAsDouble();
-  } else {
-    bgvalue = _OutsideValue;
   }
   // Cast to gradient voxel type
   InputHessianType *image;
@@ -488,13 +491,23 @@ void RegisteredImage::ComputeInputHessian(double sigma)
   // Smooth input image
   if (sigma > .0) {
     UniquePtr<InputHessianType> blurred(new InputHessianType());
-    typedef GaussianBlurringWithPadding<InputHessianType::VoxelType> GaussianFilter;
-    GaussianFilter blurring(sigma * image->XSize(),
-                            sigma * image->YSize(),
-                            sigma * image->ZSize(), bgvalue);
-    blurring.Input (image);
-    blurring.Output(blurred.get());
-    blurring.Run();
+    if (IsInf(bgvalue)) {
+      typedef GaussianBlurring<InputHessianType::VoxelType> GaussianFilter;
+      GaussianFilter blurring(sigma * image->XSize(),
+                              sigma * image->YSize(),
+                              sigma * image->ZSize());
+      blurring.Input (image);
+      blurring.Output(blurred.get());
+      blurring.Run();
+    } else {
+      typedef GaussianBlurringWithPadding<InputHessianType::VoxelType> GaussianFilter;
+      GaussianFilter blurring(sigma * image->XSize(),
+                              sigma * image->YSize(),
+                              sigma * image->ZSize(), bgvalue);
+      blurring.Input (image);
+      blurring.Output(blurred.get());
+      blurring.Run();
+    }
     temp.reset(blurred.release());
     image = temp.get();
   }
@@ -858,34 +871,36 @@ public:
   /// Initialize interpolators
   void Initialize(RegisteredImage *o)
   {
-    InterpolationMode interp;
-    if (o->InterpolationMode() == Interpolation_Default) {
-      interp = DefaultInterpolationMode();
-    } else {
-      interp = o->InterpolationMode();
-    }
     const BaseImage * const f = o->InputImage();
     const BaseImage * const g = o->InputGradient();
     const BaseImage * const h = o->InputHessian();
     const double f_bg = (f->HasBackgroundValue() ? f->GetBackgroundValueAsDouble() : NaN);
     const double g_bg = (g && g->HasBackgroundValue() ? g->GetBackgroundValueAsDouble() : 0.);
     const double h_bg = (h && h->HasBackgroundValue() ? h->GetBackgroundValueAsDouble() : 0.);
+    InterpolationMode interp = o->InterpolationMode();
+    if (interp == Interpolation_Default) {
+      interp = DefaultInterpolationMode();
+    }
+    if (f->HasBackgroundValue() || f->HasMask()) {
+      _InterpolateWithPadding = (interp != InterpolationWithoutPadding(interp));
+    } else {
+      _InterpolateWithPadding = false;
+    }
     New<IntensityFunction>(_IntensityFunction, f, interp, o->ExtrapolationMode(), f_bg, f_bg);
     New<GradientFunction >(_GradientFunction,  g, interp, Extrapolation_Default,  g_bg, 0.);
     New<HessianFunction  >(_HessianFunction,   h, interp, Extrapolation_Default,  h_bg, 0.);
     f->GetMinMaxAsDouble(_MinIntensity, _MaxIntensity);
     _PrecomputedDerivatives = o->PrecomputeDerivatives();
-    _InterpolateWithPadding = (interp != InterpolationWithoutPadding(interp));
     _NumberOfChannels       = o->T();
     _NumberOfVoxels         = o->X() * o->Y() * o->Z();
     _InputSize              = Vector3D<int>(f->X(), f->Y(), f->Z());
     // Set outside value
-    _OutsideValue = f_bg;
-    if (IsNaN(_OutsideValue)) {
-      _OutsideValue = o->OutsideValue();
-      if (IsNaN(_OutsideValue)) {
-        _OutsideValue = _MinIntensity;
-      }
+    if (o->HasBackgroundValue()) {
+      _OutsideValue = o->GetBackgroundValueAsDouble();
+    } else if (!IsNaN(f_bg)) {
+      _OutsideValue = f_bg;
+    } else {
+      _OutsideValue = _MinIntensity - 1.;
     }
     // Set rescaling parameters
     double omin = o->MinIntensity();
@@ -898,9 +913,9 @@ public:
       _RescaleIntercept = omin - _RescaleSlope * _MinIntensity;
       // Rescale outside value or force it to be within explicitly requested range
       if (_OutsideValue < _MinIntensity && !IsNaN(o->MinIntensity())) {
-        _OutsideValue = omin;
+        _OutsideValue = omin - .01;
       } else if (_OutsideValue > _MaxIntensity && !IsNaN(o->MaxIntensity())) {
-        _OutsideValue = omax;
+        _OutsideValue = omax + .01;
       } else {
         _OutsideValue = _RescaleSlope * _OutsideValue + _RescaleIntercept;
       }
@@ -912,9 +927,7 @@ public:
       _RescaleIntercept = 0.;
     }
     // Set background value of resampled image
-    if (f->HasBackgroundValue()) {
-      o->PutBackgroundValueAsDouble(_OutsideValue);
-    }
+    o->PutBackgroundValueAsDouble(_OutsideValue);
   }
 
   /// Get input image

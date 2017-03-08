@@ -149,15 +149,6 @@ public:
   /// Maximum foreground intensity of warped image or NaN
   mirtkPublicAttributeMacro(double, MaxIntensity);
 
-  /// Intensity value used to pad this image when transformed point is outside
-  /// the foreground of the input image. When NaN (default), the background
-  /// value of the input image is used. When the input image has no background
-  /// value set, the minimum input intensity is used instead.
-  ///
-  /// When this value is set and the input image has no background value set,
-  /// it is used as background value when computing the input derivatives.
-  mirtkPublicAttributeMacro(double, OutsideValue);
-
   /// Standard deviation of Gaussian smoothing kernel applied before
   /// 1st order derivative computations in voxel units
   mirtkPublicAttributeMacro(double, GradientSigma);

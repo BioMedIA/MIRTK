@@ -1,8 +1,8 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2013-2015 Imperial College London
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2013-2017 Imperial College London
+ * Copyright 2013-2017 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -100,7 +100,7 @@ typedef GenericRegistrationFilter::ResampledImageList ResampledImageList;
 typedef GenericRegistrationFilter::VoxelType          VoxelType;
 
 // -----------------------------------------------------------------------------
-// Auxiliary unctions used by Set parameter function
+// Auxiliaries used by Set parameter function
 // -----------------------------------------------------------------------------
 
 // -----------------------------------------------------------------------------
@@ -114,100 +114,173 @@ int ParseValues(const char *str, double *x, double *y, double *z)
 }
 
 // -----------------------------------------------------------------------------
-// Functor types used by InitializePyramid
+// Auxiliaries used by GuessParameter and InitializePyramid
 // -----------------------------------------------------------------------------
 
 // -----------------------------------------------------------------------------
-/// Choose padding/background value if not set
-class InitPadding
+/// Minimum image margin required by Gaussian blurring filter
+Vector3D<int> BackgroundMargin(const ImageAttributes &attr, const Vector3D<double> &res, const Vector3D<double> &sigma)
+{
+  Vector3D<int> margin(0);
+  if (res._x > 0. && sigma._x > 0.) {
+    int wx = GaussianBlurring<double>::KernelSize(sigma._x / res._x);
+    margin._x = iceil(static_cast<double>(wx / 2) * res._x / attr._dx);
+  }
+  if (res._y > 0. && sigma._y > 0.) {
+    auto wy = GaussianBlurring<double>::KernelSize(sigma._y / res._y);
+    margin._y = iceil(static_cast<double>(wy / 2) * res._y / attr._dy);
+  }
+  if (res._z > 0. && sigma._z > 0.) {
+    auto wz = GaussianBlurring<double>::KernelSize(sigma._z / res._z);
+    margin._z = iceil(static_cast<double>(wz / 2) * res._z / attr._dz);
+  }
+  return margin;
+}
+
+// -----------------------------------------------------------------------------
+/// Get foreground image domain with background margin required by Gaussian blurring
+ImageAttributes ForegroundDomain(const BaseImage *image, double padding,
+                                 const Vector3D<double> &res, const Vector3D<double> &sigma,
+                                 bool orthogonal = true)
+{
+  ImageAttributes attr = image->ForegroundDomain(padding, orthogonal);
+  if (sigma > 0.) {
+    const auto margin = BackgroundMargin(attr, res, sigma);
+    attr._x += 2 * margin._x;
+    attr._y += 2 * margin._y;
+    attr._z += 2 * margin._z;
+  }
+  return attr;
+}
+
+// -----------------------------------------------------------------------------
+/// Get foreground image domain with background margin required by Gaussian blurring
+ImageAttributes ForegroundDomain(const BaseImage *image, double padding,
+                                 const Vector3D<double> &res, double sigma,
+                                 bool orthogonal = true)
+{
+  return ForegroundDomain(image, padding, res, Vector3D<double>(sigma), orthogonal);
+}
+
+// -----------------------------------------------------------------------------
+/// Choose default background value if undefined by user
+class SetDefaultBackgroundValue
 {
   const Array<const BaseImage *> &_Input;
-  Array<double>                  &_Padding;
+  Array<double>                  &_Background;
+  double                          _Default;
 
 public:
 
-  InitPadding(const Array<const BaseImage *> &input,
-              Array<double>                  &padding)
+  SetDefaultBackgroundValue(const Array<const BaseImage *> &input,
+                            Array<double>                  &background,
+                            double                          default_bg = NaN)
   :
-    _Input(input), _Padding(padding)
+    _Input(input), _Background(background), _Default(default_bg)
   {}
 
   void operator()(const blocked_range<int> &re) const
   {
     for (int n = re.begin(); n != re.end(); ++n) {
-      if (IsNaN(_Padding[n])) {
-        double min_intensity = _Input[n]->GetAsDouble(0);
-        const int nvox = _Input[n]->NumberOfVoxels();
-        for (int idx = 1; idx < nvox; ++idx) {
-          double value = _Input[n]->GetAsDouble(idx);
-          if (value < min_intensity) min_intensity = value;
+      if (IsNaN(_Background[n])) {
+        if (IsNaN(_Default)) {
+          double min_intensity = _Input[n]->GetAsDouble(0);
+          const int nvox = _Input[n]->NumberOfVoxels();
+          for (int idx = 1; idx < nvox; ++idx) {
+            double value = _Input[n]->GetAsDouble(idx);
+            if (value < min_intensity) min_intensity = value;
+          }
+          _Background[n] = min(min_intensity - 1., 0.);
+        } else {
+          _Background[n] = _Default;
         }
-        _Padding[n] = min(min_intensity, .0) - 1.0;
       }
     }
   }
 };
 
 // -----------------------------------------------------------------------------
-/// Set all intensities below padding/background value to background
-/// without changing the size of the image
+/// Clamp intensities below background without change of image size
 class PadImages
 {
   const Array<const BaseImage *> &_Input;
-  Array<double>                  &_Padding;
+  Array<double>                  &_Background;
   ResampledImageList             &_Image;
 
 public:
 
   PadImages(const Array<const BaseImage *> &input,
-            Array<double>                  &padding,
+            Array<double>                  &background,
             ResampledImageList             &image)
   :
-    _Input(input), _Padding(padding), _Image(image)
+    _Input(input), _Background(background), _Image(image)
   {}
 
   void operator()(const blocked_range<int> &re) const
   {
     for (int n = re.begin(); n != re.end(); ++n) {
       _Image[n] = *_Input[n];
-      _Image[n].PutBackgroundValueAsDouble(_Padding[n], true);
+      _Image[n].PutBackgroundValueAsDouble(_Background[n], true);
     }
   }
 };
 
 // -----------------------------------------------------------------------------
-/// Set all intensities below padding/background value to background
-/// and crop resulting image to minimal lattice surrounding foreground
+/// Clamp intensities below background and crop image
 class CropImages
 {
-  const Array<const BaseImage *> &_Input;
-  Array<double>                  &_Padding;
-  Array<double>                  &_Blurring;
-  ResampledImageList             &_Output;
+  Array<const BaseImage *>  _Input;
+  Array<double>            &_Background;
+  Array<double>            &_Outside;
+  Array<Vector3D<double> > &_Resolution;
+  Array<double>            &_Blurring;
+  ResampledImageList       &_Output;
 
 public:
 
   CropImages(const Array<const BaseImage *> &input,
-             Array<double>                  &padding,
+             Array<double>                  &background,
+             Array<double>                  &outside,
+             Array<Vector3D<double> >       &resolution,
              Array<double>                  &blurring,
              ResampledImageList             &output)
   :
-    _Input(input), _Padding(padding), _Blurring(blurring), _Output(output)
+    _Input(input),
+    _Background(background),
+    _Outside(outside),
+    _Resolution(resolution),
+    _Blurring(blurring),
+    _Output(output)
   {}
+
+  CropImages(const ResampledImageList &input,
+             Array<double>            &background,
+             Array<double>            &outside,
+             Array<Vector3D<double> > &resolution,
+             Array<double>            &blurring,
+             ResampledImageList       &output)
+  :
+    _Input(input.size()),
+    _Background(background),
+    _Outside(outside),
+    _Resolution(resolution),
+    _Blurring(blurring),
+    _Output(output)
+  {
+    for (size_t n = 0; n < input.size(); ++n) {
+      _Input[n] = &input[n];
+    }
+  }
 
   void operator()(const blocked_range<int> &re) const
   {
     for (int n = re.begin(); n != re.end(); ++n) {
       // Determine minimal lattice containing foreground voxels
-      ImageAttributes attr = _Input[n]->ForegroundDomain(_Padding[n], _Blurring[n], false);
-      // Leave some additional margin for filtering operations
-      attr._x += 4, attr._y += 4; // i.e., 2 voxels each side
-      if (attr._dz) attr._z += 4;
+      auto attr = ForegroundDomain(_Input[n], _Background[n], _Resolution[n], _Blurring[n], false);
       // Resample input image on foreground lattice
       // (interpolation not required as voxel centers should still match)
       _Output[n].Initialize(attr, 1);
-      _Output[n].PutBackgroundValueAsDouble(_Padding[n]);
-      ResampledImageType::VoxelType *value = _Output[n].Data();
+      auto *value = _Output[n].Data();
       for (int k2 = 0; k2 < attr._z; ++k2)
       for (int j2 = 0; j2 < attr._y; ++j2)
       for (int i2 = 0; i2 < attr._x; ++i2) {
@@ -216,13 +289,37 @@ public:
         _Input [n]->WorldToImage(x, y, z);
         const int i1 = iround(x), j1 = iround(y), k1 = iround(z);
         if (_Input[n]->IsInside(i1, j1, k1)) {
-          (*value) = _Input[n]->GetAsDouble(i1, j1, k1);
-          if ((*value) < _Padding[n]) (*value) = _Padding[n];
+          *value = _Input[n]->GetAsDouble(i1, j1, k1);
+          if (*value < _Background[n]) *value = _Background[n];
         } else {
-          (*value) = _Padding[n];
+          *value = _Outside[n];
         }
         ++value;
       }
+      _Output[n].PutBackgroundValueAsDouble(_Background[n]);
+    }
+  }
+};
+
+// -----------------------------------------------------------------------------
+/// Rescale foreground intensities to [min, max]
+class Rescale
+{
+  ResampledImageList &_Image;
+  VoxelType           _Min;
+  VoxelType           _Max;
+
+public:
+
+  Rescale(ResampledImageList &image, VoxelType min_value, VoxelType max_value)
+  :
+    _Image(image), _Min(min_value), _Max(max_value)
+  {}
+
+  void operator()(const blocked_range<int> &re) const
+  {
+    for (int n = re.begin(); n != re.end(); ++n) {
+      _Image[n].PutMinMax(_Min, _Max);
     }
   }
 };
@@ -231,26 +328,38 @@ public:
 /// Crop mask to minimum bounding box enclosing foreground
 BinaryImage *CropMask(const BinaryImage *input)
 {
+  bool all_non_zero = true;
+  for (int vox = 0; vox < input->NumberOfVoxels(); ++vox) {
+    if (input->Get(vox) != 0) {
+      all_non_zero = false;
+      break;
+    }
+  }
   // Determine minimal lattice containing foreground voxels
-  ImageAttributes attr = input->ForegroundDomain(.0, .0, false);
-  // Leave some additional margin for filtering operations
-  attr._x += 4, attr._y += 4; // i.e., 2 voxels each side
-  if (attr._dz) attr._z += 4;
+  ImageAttributes attr = input->ForegroundDomain(0., false);
+  if (attr._x > 1 && attr._dx > 0.) attr._x += 4;
+  if (attr._y > 1 && attr._dy > 0.) attr._y += 4;
+  if (attr._z > 1 && attr._dz > 0.) attr._z += 4;
   // Resample input image on foreground lattice
   // (interpolation not required as voxel centers should still match)
   BinaryImage *output = new BinaryImage(attr, 1);
-  BinaryPixel *value  = output->Data();
-  for (int k2 = 0; k2 < attr._z; ++k2)
-  for (int j2 = 0; j2 < attr._y; ++j2)
-  for (int i2 = 0; i2 < attr._x; ++i2) {
-    double x = i2, y = j2, z = k2;
-    output->ImageToWorld(x, y, z);
-    input ->WorldToImage(x, y, z);
-    const int i1 = iround(x), j1 = iround(y), k1 = iround(z);
-    if (input->IsInside(i1, j1, k1)) {
-      (*value) = input->Get(i1, j1, k1);
+  if (all_non_zero) {
+    *output = 1;
+  } else {
+    BinaryPixel *value  = output->Data();
+    for (int k2 = 0; k2 < attr._z; ++k2)
+    for (int j2 = 0; j2 < attr._y; ++j2)
+    for (int i2 = 0; i2 < attr._x; ++i2) {
+      double x = i2, y = j2, z = k2;
+      output->ImageToWorld(x, y, z);
+      input ->WorldToImage(x, y, z);
+      int i1 = iround(x), j1 = iround(y), k1 = iround(z);
+      if (input->IsInside(i1, j1, k1)) {
+        *value = input->Get(i1, j1, k1);
+        if (*value != 0) *value = 1;
+      }
+      ++value;
     }
-    ++value;
   }
   return output;
 }
@@ -288,7 +397,7 @@ public:
 
   BlurImages(Array<ResampledImageList> &image,
              const Array<double>       *sigma,
-             const Array<double>       *padding = NULL)
+             const Array<double>       *padding = nullptr)
   :
     _Image(image), _Sigma(sigma), _Padding(padding)
   {}
@@ -320,15 +429,17 @@ class ResampleImages
 {
   Array<ResampledImageList>      &_Image;
   const Array<Vector3D<double> > *_Resolution;
+  const Array<double>            *_Background;
   const Array<double>            *_Padding;
 
 public:
 
   ResampleImages(Array<ResampledImageList>      &image,
                  const Array<Vector3D<double> >  res[],
-                 const Array<double>            *padding = NULL)
+                 const Array<double>            &background,
+                 const Array<double>            *padding = nullptr)
   :
-    _Image(image), _Resolution(res), _Padding(padding)
+    _Image(image), _Resolution(res), _Background(&background), _Padding(padding)
   {}
 
   void operator()(const blocked_range2d<int> &re) const
@@ -343,6 +454,7 @@ public:
         if (!fequal(res._x, dx, TOL) ||
             !fequal(res._y, dy, TOL) ||
             !fequal(res._z, dz, TOL)) {
+          f.DefaultValue((*_Background)[n]);
           if (_Padding) {
             ResamplingWithPadding<VoxelType> resample(res._x, res._y, res._z, (*_Padding)[n]);
             resample.Interpolator(&f);
@@ -368,26 +480,41 @@ public:
 class DownsampleImages
 {
   Array<ResampledImageList> &_Image;
+  const Array<double>       *_Background;
+  const Array<double>       *_Outside;
   const Array<double>       *_Padding;
+  const Array<double>       *_Blurring;
+  bool                       _CropPad;
   int                        _Level;
 
 public:
 
   DownsampleImages(Array<ResampledImageList> &image, int l,
-                   const Array<double> *padding = NULL)
+                   const Array<double> *background,
+                   const Array<double> *outside  = nullptr,
+                   const Array<double> *padding  = nullptr,
+                   const Array<double> *blurring = nullptr,
+                   bool crop_pad = false)
   :
-    _Image(image), _Padding(padding), _Level(l)
+    _Image(image),
+    _Background(background),
+    _Outside(outside ? outside : background),
+    _Padding(padding),
+    _Blurring(blurring),
+    _CropPad(crop_pad),
+    _Level(l)
   {}
 
   void operator()(const blocked_range<int> &re) const
   {
-    ResampledImageType blurred_image;
     GenericLinearInterpolateImageFunction<ResampledImageType> f;
     for (int n = re.begin(); n != re.end(); ++n) {
+      // Outside padding value
+      f.DefaultValue((*_Outside)[n]);
       // Determine spacing and blurring sigma for this level
-      double dx = (_Image[1][n].X() > 1 ? _Image[1][n].GetXSize() : .0);
-      double dy = (_Image[1][n].Y() > 1 ? _Image[1][n].GetYSize() : .0);
-      double dz = (_Image[1][n].Z() > 1 ? _Image[1][n].GetZSize() : .0);
+      double dx = (_Image[1][n].X() > 1 ? _Image[1][n].XSize() : .0);
+      double dy = (_Image[1][n].Y() > 1 ? _Image[1][n].YSize() : .0);
+      double dz = (_Image[1][n].Z() > 1 ? _Image[1][n].ZSize() : .0);
       Vector3D<double> var(.0);
       for (int l = 2; l <= _Level; ++l) {
         var._x +=  pow(0.7 * dx, 2);
@@ -395,41 +522,77 @@ public:
         var._z +=  pow(0.7 * dz, 2);
         dx *= 2.0, dy *= 2.0, dz *= 2.0;
       }
-      Vector3D<double> sigma(sqrt(var._x), sqrt(var._y), sqrt(var._z));
-      double max_sigma = max(max(sigma._x, sigma._y), sigma._z);
+      const Vector3D<double> sigma(sqrt(var._x), sqrt(var._y), sqrt(var._z));
       // Determine minimal lattice containing foreground voxels
-      ImageAttributes attr = _Image[1][n].ForegroundDomain((*_Padding)[n], max_sigma, false);
+      ImageAttributes attr;
+      if (_CropPad) {
+        const auto res = Vector3D<double>(dx, dy, dz);
+        auto blurring = sigma;
+        if (_Blurring) {
+          blurring._x = max(blurring._x, (*_Blurring)[n]);
+          blurring._y = max(blurring._y, (*_Blurring)[n]);
+          blurring._z = max(blurring._z, (*_Blurring)[n]);
+        }
+        attr = ForegroundDomain(&_Image[1][n], (*_Background)[n], res, blurring, false);
+      } else {
+        attr = _Image[1][n].Attributes();
+      }
       // Calculate number of voxels preserving the image size
       attr._x = (dx ? iceil(attr._x * attr._dx / dx) : 1);
       attr._y = (dy ? iceil(attr._y * attr._dy / dy) : 1);
       attr._z = (dz ? iceil(attr._z * attr._dz / dz) : 1);
-      // Leave some additional margin for finite difference approximations
-      attr._x += 4, attr._y += 4; // i.e., 2 voxels each side
-      if (attr._dz) attr._z += 4;
-      // If padding/background value set, consider foreground only
+      // Ensure lattice can be divided by 2, given that dx = 2^n * attr._dx
+      if (attr._x % 2 != 0) attr._x += 1, attr._xorigin += .5 * attr._dx;
+      if (attr._y % 2 != 0) attr._y += 1, attr._yorigin += .5 * attr._dy;
+      if (attr._z % 2 != 0) attr._z += 1, attr._zorigin += .5 * attr._dz;
+      // If background value set, consider foreground only
       if (_Padding) {
         typedef GaussianBlurringWithPadding<VoxelType> BlurFilter;
         typedef ResamplingWithPadding      <VoxelType> ResampleFilter;
         BlurFilter blurring(sigma._x, sigma._y, sigma._z, (*_Padding)[n]);
         blurring.Input (&_Image[1][n]);
-        blurring.Output(&blurred_image);
+        blurring.Output(&_Image[_Level][n]);
         blurring.Run();
         ResampleFilter resample(attr._x, attr._y, attr._z, dx, dy, dz, (*_Padding)[n]);
         resample.Interpolator(&f);
-        resample.Input (&blurred_image);
+        resample.Input (&_Image[_Level][n]);
         resample.Output(&_Image[_Level][n]);
         resample.Run();
       // Otherwise, downsample using all image intensities
+      } else if (_CropPad) {
+        typedef GaussianBlurring<VoxelType> BlurFilter;
+        typedef Resampling      <VoxelType> ResampleFilter;
+        // Ensure that blurring creates smooth edges all around even when
+        // the image (foreground) is very close to the image boundary
+        int wx = BlurFilter::KernelSize(sigma._x / _Image[1][n].XSize());
+        int wy = BlurFilter::KernelSize(sigma._y / _Image[1][n].YSize());
+        int wz = BlurFilter::KernelSize(sigma._z / _Image[1][n].ZSize());
+        ResampleFilter resize(_Image[1][n].X() + wx,
+                              _Image[1][n].Y() + wy,
+                              _Image[1][n].Z() + wz);
+        resize.Interpolator(&f);
+        resize.Input (&_Image[1][n]);
+        resize.Output(&_Image[_Level][n]);
+        resize.Run();
+        BlurFilter blurring(sigma._x, sigma._y, sigma._z);
+        blurring.Input (&_Image[_Level][n]);
+        blurring.Output(&_Image[_Level][n]);
+        blurring.Run();
+        ResampleFilter resample(attr._x, attr._y, attr._z, dx, dy, dz);
+        resample.Interpolator(&f);
+        resample.Input (&_Image[_Level][n]);
+        resample.Output(&_Image[_Level][n]);
+        resample.Run();
       } else {
         typedef GaussianBlurring<VoxelType> BlurFilter;
         typedef Resampling      <VoxelType> ResampleFilter;
         BlurFilter blurring(sigma._x, sigma._y, sigma._z);
         blurring.Input (&_Image[1][n]);
-        blurring.Output(&blurred_image);
+        blurring.Output(&_Image[_Level][n]);
         blurring.Run();
         ResampleFilter resample(attr._x, attr._y, attr._z, dx, dy, dz);
         resample.Interpolator(&f);
-        resample.Input (&blurred_image);
+        resample.Input (&_Image[_Level][n]);
         resample.Output(&_Image[_Level][n]);
         resample.Run();
       }
@@ -459,22 +622,31 @@ public:
 
   void operator()(const blocked_range<int> &re) const
   {
-    NearestNeighborInterpolateImageFunction interpolator;
+    GenericLinearInterpolateImageFunction<BinaryImage> interpolator;
     interpolator.Input(_Domain);
     interpolator.Initialize();
+    interpolator.DefaultValue(0.);
     for (int l = re.begin(); l != re.end(); ++l) {
       if (_Mask[l] != _Domain) Delete(_Mask[l]);
       _Mask[l] = _Domain;
-      if ((_Domain->X() > 1 && _Resolution[l]._x > .0) ||
-          (_Domain->Y() > 1 && _Resolution[l]._y > .0) ||
-          (_Domain->Z() > 1 && _Resolution[l]._z > .0)) {
-        if (!fequal(_Resolution[l]._x, _VoxelSize._x, TOL) ||
-            !fequal(_Resolution[l]._y, _VoxelSize._y, TOL) ||
-            !fequal(_Resolution[l]._z, _VoxelSize._z, TOL)) {
+      const double dx = _Resolution[l]._x;
+      const double dy = _Resolution[l]._y;
+      const double dz = _Resolution[l]._z;
+      if ((_Domain->X() > 1 && dx > .0) ||
+          (_Domain->Y() > 1 && dy > .0) ||
+          (_Domain->Z() > 1 && dz > .0)) {
+        if (!fequal(dx, _VoxelSize._x, TOL) ||
+            !fequal(dy, _VoxelSize._y, TOL) ||
+            !fequal(dz, _VoxelSize._z, TOL)) {
+          // Allocate output mask
           _Mask[l] = new BinaryImage();
-          Resampling<BinaryPixel> resample(_Resolution[l]._x,
-                                           _Resolution[l]._y,
-                                           _Resolution[l]._z);
+          // Calculate number of voxels preserving the image size
+          int nx = (dx > 0. ? iceil(_Domain->X() * _Domain->XSize() / dx) : 1);
+          int ny = (dy > 0. ? iceil(_Domain->Y() * _Domain->YSize() / dy) : 1);
+          int nz = (dz > 0. ? iceil(_Domain->Z() * _Domain->ZSize() / dz) : 1);
+          // Resample mask using linear interpolation, voxels with interpolated
+          // value < 0.5 are cast to zero and other are cast to 1
+          Resampling<BinaryPixel> resample(nx, ny, nz, dx, dy, dz);
           resample.Input (_Domain);
           resample.Output(_Mask[l]);
           resample.Interpolator(&interpolator);
@@ -518,7 +690,7 @@ public:
     for (int n = re.begin(); n != re.end(); ++n) {
       if (IsSurfaceMesh((*_Input)[n]) &&
           (_MinEdgeLength[_Level][n] > .0 ||
-           _MaxEdgeLength[_Level][n] < numeric_limits<double>::infinity())) {
+           _MaxEdgeLength[_Level][n] < inf)) {
         SurfaceRemeshing remesher;
         remesher.Input(vtkPolyData::SafeDownCast((*_Output)[_Level-1][n]));
         remesher.MinEdgeLength(_MinEdgeLength[_Level][n]);
@@ -702,13 +874,13 @@ void GenericRegistrationFilter::Reset()
   }
   // Invalidate all settings such that GuessParameter knows which have been
   // set by the user and which have not been properly initialized
+  InterpolationMode(Interpolation_Default);
+  ExtrapolationMode(Extrapolation_Default);
   _TransformationModel.clear();
   _NumberOfLevels                      = -1;
   _FinalLevel                          = 1;
   _MultiLevelMode                      = MFFD_Default;
   _MergeGlobalAndLocalTransformation   = false;
-  InterpolationMode(Interpolation_Default);
-  ExtrapolationMode(Extrapolation_Default);
   _PrecomputeDerivatives               = true;
   _SimilarityMeasure                   = SIM_NMI;
   _PointSetDistanceMeasure             = PDM_FRE;
@@ -724,10 +896,9 @@ void GenericRegistrationFilter::Reset()
   _ImageSimilarityInfo.clear();
   _PointSetDistanceInfo.clear();
   _PointSetConstraintInfo.clear();
-  _Padding.clear();
   _Background.clear();
-  _DefaultPadding    = numeric_limits<double>::quiet_NaN(); // i.e., min intensity - 1
-  _DefaultBackground = numeric_limits<double>::quiet_NaN(); // i.e., use padding value
+  _DefaultBackground = NaN;
+  _MaxRescaledIntensity = inf;
   memset(_MinControlPointSpacing, 0, 4 * MAX_NO_RESOLUTIONS * sizeof(double));
   memset(_MaxControlPointSpacing, 0, 4 * MAX_NO_RESOLUTIONS * sizeof(double));
   for (int level = 0; level < MAX_NO_RESOLUTIONS; ++level) {
@@ -1357,7 +1528,7 @@ bool GenericRegistrationFilter::Set(const char *param, const char *value, int le
     if (name.compare(10, 10, " of image ", 10) == 0) {
       if (!FromString(name.substr(20), n) || n < 1) return false;
       if (_Resolution[level].size() < static_cast<size_t>(n)) {
-        _Resolution[level].resize(n, numeric_limits<double>::quiet_NaN());
+        _Resolution[level].resize(n, NaN);
       }
       --n;
     } else {
@@ -1408,7 +1579,7 @@ bool GenericRegistrationFilter::Set(const char *param, const char *value, int le
     if (name.compare(8, 10, " of image ", 10) == 0) {
       if (!FromString(name.substr(18), n) || n < 1) return false;
       if (_Blurring[level].size() < static_cast<size_t>(n)) {
-        _Blurring[level].resize(n, numeric_limits<double>::quiet_NaN());
+        _Blurring[level].resize(n, NaN);
       }
       --n;
     } else {
@@ -1423,24 +1594,24 @@ bool GenericRegistrationFilter::Set(const char *param, const char *value, int le
       int n = 0;
       if (!FromString(name.substr(26), n) || n < 1) return false;
       if (_Background.size() < static_cast<size_t>(n)) {
-        _Background.resize(n, numeric_limits<double>::quiet_NaN());
+        _Background.resize(n, NaN);
       }
       return FromString(value, _Background[n-1]);
     } else {
       return FromString(value, _DefaultBackground);
     }
 
-  // Image padding
+  // Image padding (deprecated option)
   } else if (name.compare(0, 13, "Padding value", 13) == 0) {
     if (name.compare(13, 10, " of image ", 10) == 0) {
       int n = 0;
       if (!FromString(name.substr(23), n) || n < 1) return false;
-      if (_Padding.size() < static_cast<size_t>(n)) {
-        _Padding.resize(n, numeric_limits<double>::quiet_NaN());
+      if (_Background.size() < static_cast<size_t>(n)) {
+        _Background.resize(n, NaN);
       }
-      return FromString(value, _Padding[n-1]);
+      return FromString(value, _Background[n-1]);
     } else {
-      return FromString(value, _DefaultPadding);
+      return FromString(value, _DefaultBackground);
     }
 
   // Image interpolation
@@ -1664,20 +1835,23 @@ bool GenericRegistrationFilter::Set(const char *param, const char *value, int le
     }
     return true;
 
+  } else if (name == "Maximum rescaled intensity") {
+    return FromString(value, _MaxRescaledIntensity);
+
   } else if (name == "Downsample images with padding") {
     return FromString(value, _DownsampleWithPadding);
 
   } else if (name == "Crop/pad images") {
     bool do_crop_pad;
     if (!FromString(value, do_crop_pad)) return false;
-    _CropPadImages = static_cast<int>(do_crop_pad);
+    _CropPadImages = do_crop_pad;
     return true;
 
   } else if (name == "Crop/pad FFD lattice" ||
              name == "Crop/pad lattice") {
     bool do_crop_pad;
     if (!FromString(value, do_crop_pad)) return false;
-    _CropPadFFD = static_cast<int>(do_crop_pad);
+    _CropPadFFD = (do_crop_pad ? 1 : 0);
     return true;
 
   // Sub-module parameter - store for later
@@ -1723,6 +1897,7 @@ ParameterList GenericRegistrationFilter::Parameter(int level) const
     Insert(params, "No. of resolution levels",              _NumberOfLevels);
     Insert(params, "Final level",                           _FinalLevel);
     Insert(params, "Precompute image derivatives",          _PrecomputeDerivatives);
+    Insert(params, "Maximum rescaled intensities",          _MaxRescaledIntensity);
     Insert(params, "Normalize weights of energy terms",     _NormalizeWeights);
     Insert(params, "Downsample images with padding",        _DownsampleWithPadding);
     Insert(params, "Crop/pad images",                       _CropPadImages);
@@ -1740,21 +1915,14 @@ ParameterList GenericRegistrationFilter::Parameter(int level) const
     if (NumberOfImages() > 0) {
       int n = 1;
       double bg = _Background[0];
-      while (n < NumberOfImages() && bg == _Background[n]) ++n;
+      while (n < NumberOfImages() && AreEqualOrNaN(bg, _Background[n])) {
+        ++n;
+      }
       if (n == NumberOfImages()) {
         Insert(params, "Background value", bg);
       } else {
         for (n = 0; n < NumberOfImages(); ++n) {
           Insert(params, string("Background value of image ") + ToString(n + 1), _Background[n]);
-        }
-      }
-      double padding = _Padding[0];
-      while (n < NumberOfImages() && padding == _Padding[n]) ++n;
-      if (n == NumberOfImages()) {
-        Insert(params, "Padding value", padding);
-      } else {
-        for (n = 0; n < NumberOfImages(); ++n) {
-          Insert(params, string("Padding value of image ") + ToString(n + 1), _Padding[n]);
         }
       }
       Insert(params, "Image interpolation", _DefaultInterpolationMode);
@@ -1769,10 +1937,11 @@ ParameterList GenericRegistrationFilter::Parameter(int level) const
           Insert(params, string("Extrapolation of image ") + ToString(n + 1), _ExtrapolationMode[n]);
         }
       }
+      Insert(params, "Use Gaussian image resolution pyramid", _UseGaussianResolutionPyramid != 0 ? true : false);
     }
   }
   // Image pyramid
-  if (NumberOfImages() > 0) {
+  if (level > 0 && NumberOfImages() > 0) {
     int n;
     // Resolution
     n = 1;
@@ -1818,7 +1987,7 @@ ParameterList GenericRegistrationFilter::Parameter(int level) const
       if (!dim[d]) continue;
       if (minds == .0) minds = _MinControlPointSpacing[level][d];
       else if (minds != _MinControlPointSpacing[level][d]) {
-        minds = numeric_limits<double>::quiet_NaN();
+        minds = NaN;
         break;
       }
     }
@@ -1827,7 +1996,7 @@ ParameterList GenericRegistrationFilter::Parameter(int level) const
       if (!dim[d]) continue;
       if (maxds == .0) maxds = _MaxControlPointSpacing[level][d];
       else if (maxds != _MaxControlPointSpacing[level][d]) {
-        maxds = numeric_limits<double>::quiet_NaN();
+        maxds = NaN;
         break;
       }
     }
@@ -2035,39 +2204,14 @@ void GenericRegistrationFilter::GuessParameter()
   // (Re-)parse energy formula (considering available input images)
   this->ParseEnergyFormula();
 
-  // Set default background and padding values
-  // (see also InitializePyramid where these values are finally set if unspecified)
-  _Background.resize(_NumberOfImages, numeric_limits<double>::quiet_NaN());
-  if (!IsNaN(_DefaultBackground)) {
-    for (int n = 0; n < _NumberOfImages; ++n) {
-      if (IsNaN(_Background[n])) _Background[n] = _DefaultBackground;
-    }
-  }
-
-  _Padding.resize(_NumberOfImages, numeric_limits<double>::quiet_NaN());
-  if (!IsNaN(_DefaultPadding)) {
-    for (int n = 0; n < _NumberOfImages; ++n) {
-      if (IsNaN(_Padding[n])) _Padding[n] = _DefaultPadding;
-    }
-  }
-
-  // Set padding/background value to minimum intensity - 1 if not user defined
-  //
-  // The background value is only used for cropping the images to reduce
-  // the computational cost of the registration. For defining the foreground
-  // region to consider during the registration, the padding value is used.
-  // The only exception is the computation of the foreground centroid, which
-  // would otherwise possibly cropped voxels...
+  // Set background values if undefined
+  _Background.resize(_NumberOfImages, NaN);
   if (_NumberOfImages > 0) {
-    InitPadding init_padding(_Input, _Padding);
-    parallel_for(blocked_range<int>(0,  _NumberOfImages), init_padding);
-    for (int n = 0; n < NumberOfImages(); ++n) {
-      if (IsNaN(_Background[n])) _Background[n] = _Padding[n];
-    }
+    SetDefaultBackgroundValue setbg(_Input, _Background, _DefaultBackground);
+    parallel_for(blocked_range<int>(0,  _NumberOfImages), setbg);
   }
 
   // Initialize resolution pyramid
-  const double NaN = numeric_limits<double>::quiet_NaN();
   const int nimages = max(_NumberOfImages, (_Domain ? 1 : 0));
   for (int level = 0; level <= _NumberOfLevels; ++level) {
     if (_Centering[level] == -1) {
@@ -2142,10 +2286,7 @@ void GenericRegistrationFilter::GuessParameter()
                                 _Resolution[level][n]._z);
       if (IsNaN(_Blurring[level][n])) {
         if (IsNaN(_Blurring[0][n])) {
-          if (_UseGaussianResolutionPyramid ||
-              (fequal(_Resolution[level][n]._x, _Input[n]->XSize(), TOL) &&
-               fequal(_Resolution[level][n]._y, _Input[n]->YSize(), TOL) &&
-               fequal(_Resolution[level][n]._z, _Input[n]->ZSize(), TOL))) {
+          if (_UseGaussianResolutionPyramid && level > 1) {
             _Blurring[level][n] = .0;
           } else {
             _Blurring[level][n] = -.5;
@@ -2163,7 +2304,7 @@ void GenericRegistrationFilter::GuessParameter()
   // Compute domain on which transformation is applied
   if (_Domain) {
     if (_CropPadImages) {
-      _RegistrationDomain = _Domain->ForegroundDomain(.0, .0, true);
+      _RegistrationDomain = _Domain->ForegroundDomain(0., true);
     } else {
       _RegistrationDomain = _Domain->Attributes();
     }
@@ -2174,34 +2315,50 @@ void GenericRegistrationFilter::GuessParameter()
     // of both input images which are compared by the similarity measure in case
     // of a symmetric transformation model. Note that the image domain may further
     // be restricted to the minimal bounding region of the foreground only.
-    double sigma;
-    const int l = _NumberOfLevels;
     Array<struct ImageAttributes> attrs;
     for (size_t i = 0; i < _ImageSimilarityInfo.size(); ++i) {
       const int &t = _ImageSimilarityInfo[i]._TargetIndex;
       const int &s = _ImageSimilarityInfo[i]._SourceIndex;
       if (_ImageSimilarityInfo[i].IsSymmetric() || !_ImageSimilarityInfo[i]._TargetTransformation) {
-        sigma = _Blurring[l][t];
-        if (_UseGaussianResolutionPyramid) {
-          sigma = max(sigma, 0.5 * max(max(_Resolution[l][t]._x,
-                                           _Resolution[l][t]._y),
-                                           _Resolution[l][t]._z));
-        }
-        if (_CropPadImages) {
-          attrs.push_back(_Input[i]->ForegroundDomain(_Background[t], sigma, true));
+        if (!IsNaN(_Background[t]) && _CropPadImages) {
+          Vector3D<double> sigma(0.);
+          Vector3D<double> res = _Resolution[0][t];
+          for (int l = 1; l <= _NumberOfLevels; ++l) {
+            res._x = max(res._x, _Resolution[l][t]._x);
+            res._y = max(res._y, _Resolution[l][t]._y);
+            res._z = max(res._z, _Resolution[l][t]._z);
+            sigma._x = max(sigma._x, _Blurring[l][t]);
+            sigma._y = max(sigma._y, _Blurring[l][t]);
+            sigma._z = max(sigma._z, _Blurring[l][t]);
+          }
+          if (_UseGaussianResolutionPyramid) {
+            sigma._x = max(sigma._x, .5 * res._x);
+            sigma._y = max(sigma._y, .5 * res._y);
+            sigma._z = max(sigma._z, .5 * res._z);
+          }
+          attrs.push_back(ForegroundDomain(_Input[t], _Background[t], res, sigma, true));
         } else {
           attrs.push_back(OrthogonalFieldOfView(_Input[t]->Attributes()));
         }
       }
       if (_ImageSimilarityInfo[i].IsSymmetric() || !_ImageSimilarityInfo[i]._SourceTransformation) {
-        sigma = _Blurring[l][s];
-        if (_UseGaussianResolutionPyramid) {
-          sigma = max(sigma, 0.5 * max(max(_Resolution[l][s]._x,
-                                           _Resolution[l][s]._y),
-                                           _Resolution[l][s]._z));
-        }
-        if (_CropPadImages) {
-          attrs.push_back(_Input[s]->ForegroundDomain(_Background[s], sigma, true));
+        if (!IsNaN(_Background[s]) && _CropPadImages) {
+          Vector3D<double> sigma(0.);
+          Vector3D<double> res = _Resolution[0][s];
+          for (int l = 1; l <= _NumberOfLevels; ++l) {
+            res._x = max(res._x, _Resolution[l][s]._x);
+            res._y = max(res._y, _Resolution[l][s]._y);
+            res._z = max(res._z, _Resolution[l][s]._z);
+            sigma._x = max(sigma._x, _Blurring[l][s]);
+            sigma._y = max(sigma._y, _Blurring[l][s]);
+            sigma._z = max(sigma._z, _Blurring[l][s]);
+          }
+          if (_UseGaussianResolutionPyramid) {
+            sigma._x = max(sigma._x, .5 * res._x);
+            sigma._y = max(sigma._y, .5 * res._y);
+            sigma._z = max(sigma._z, .5 * res._z);
+          }
+          attrs.push_back(ForegroundDomain(_Input[s], _Background[s], res, sigma, true));
         } else {
           attrs.push_back(OrthogonalFieldOfView(_Input[s]->Attributes()));
         }
@@ -2405,6 +2562,8 @@ void GenericRegistrationFilter::GuessParameter()
   }
   for (int level = 1; level <= _NumberOfLevels; ++level) {
     if (!Contains(_Parameter[level], MINSTEP) && !Contains(_Parameter[level], MAXSTEP)) {
+      const auto   avgres = this->AverageOutputResolution(level);
+      const double maxres = max(avgres._x, max(avgres._x, avgres._x));
       if (!FromString(Get(_Parameter[level-1], MINSTEP).c_str(), value)) {
         cerr << "GenericRegistrationFilter::GuessParameter: Invalid '"
              << MINSTEP << "' argument: " << Get(_Parameter[level-1], MINSTEP) << endl;
@@ -2416,7 +2575,9 @@ void GenericRegistrationFilter::GuessParameter()
              << MAXSTEP << "' argument: " << Get(_Parameter[level-1], MAXSTEP) << endl;
         exit(1);
       }
-      if (level > 1) value = min(2. * value, 8.);
+      if (level > 1 && (value - maxres) < 1e-3) {
+        value = 2. * value;
+      }
       Insert(_Parameter[level], MAXSTEP, ToString(value));
     } else if (!Contains(_Parameter[level], MINSTEP)) {
       if (!FromString(Get(_Parameter[level], MAXSTEP).c_str(), value)) {
@@ -2588,10 +2749,28 @@ void GenericRegistrationFilter::InitializePyramid()
       _Image[l].resize(NumberOfImages());
     }
 
+    // Use minimum intensity value to pad image unless user specified
+    // a background value above the minimum intensity value. The background
+    // value is not used here such that when user set no background value,
+    // the blurring extends into the extended image margin.
+    //
+    // Note: Outside value always greater or equal background value.
+    Array<double> outside(NumberOfImages());
+    for (int n = 0; n < NumberOfImages(); ++n) {
+      outside[n] = +inf;
+      const int nvox = _Input[n]->NumberOfVoxels();
+      for (int vox = 0; vox < nvox; ++vox) {
+        outside[n] = min(outside[n], _Input[n]->GetAsDouble(vox));
+      }
+      if (IsInf(outside[n]) || outside[n] < _Background[n]) {
+        outside[n] = _Background[n];
+      }
+    }
+
     // Copy/cast foreground of input images
     if (_CropPadImages) {
       Broadcast(LogEvent, "Crop/pad images .........");
-      CropImages crop(_Input, _Background, _Blurring[1], _Image[1]);
+      CropImages crop(_Input, _Background, outside, _Resolution[1], _Blurring[1], _Image[1]);
       parallel_for(images, crop);
     } else {
       Broadcast(LogEvent, "Padding images ..........");
@@ -2602,6 +2781,30 @@ void GenericRegistrationFilter::InitializePyramid()
 
     MIRTK_DEBUG_TIMING(1, (_CropPadImages ? "cropping" : "padding") << " of images");
     MIRTK_RESET_TIMING();
+
+    // Rescale input intensities from [min, max] to [eps, 1] such that image
+    // gradient vectors used in transformation gradient computation have
+    // comparable magnitude. This is only useful for symmetric and inverse
+    // consistent registration energy functions where neither image should
+    // have a stronger influence simply because of different intensity range.
+    //
+    // Note: The background is mapped to 0, hence the use of a small eps.
+    const double _MinRescaledIntensity = 1e-3;
+    if (_MaxRescaledIntensity > _MinRescaledIntensity && !IsInf(_MaxRescaledIntensity)) {
+      Broadcast(LogEvent, "Rescaling images ........");
+      for (int n = 0; n < NumberOfImages(); ++n) {
+        _Image[1][n].ResetBackgroundValueAsDouble(NaN);
+      }
+      Rescale rescale(_Image[1], VoxelType(_MinRescaledIntensity), VoxelType(_MaxRescaledIntensity));
+      parallel_for(images, rescale);
+      for (int n = 0; n < NumberOfImages(); ++n) {
+        _Image[1][n].ResetBackgroundValueAsDouble(0.);
+        _Background[n] = outside[n] = 0.;
+      }
+      Broadcast(LogEvent, " done\n");
+      MIRTK_DEBUG_TIMING(1, "rescaling of images");
+      MIRTK_RESET_TIMING();
+    }
 
     // Resample images to current resolution
     //
@@ -2622,22 +2825,29 @@ void GenericRegistrationFilter::InitializePyramid()
     // the foreground and is faster. However, in particular for low resolutions,
     // the edges of the images downsampled without considering the background
     // are smoother and may therefore better guide the optimization.
-    const Array<double> *padding = _DownsampleWithPadding ? &_Padding : NULL;
+    //
+    // On the other hand, at the finest resolution, sharp foreground boundaries
+    // can result in high gradients which may lead to undesired results. Either
+    // exclude background from gradient computation or smooth before finite
+    // difference compuation (or use derivative of Gaussian filter).
+    const Array<double> *padding = (_DownsampleWithPadding ? &_Background : nullptr);
 
-    // Downsample (blur and resample by factor 2) if Gaussian pyramid is used
+    // Downsample (blur and resample by factor 2) if Gaussian pyramid is used.
     // Otherwise just copy first level to remaining levels which will be
     // blurred and resampled by the following processing steps. Optionally,
     // the images are cropped to minimal foreground size while being copied.
+    // The recursive computation of the Gaussian pyramid is more efficient
+    // than blurring and resampling the input image for each level separately.
     if (_UseGaussianResolutionPyramid && _NumberOfLevels > 1) {
       Broadcast(LogEvent, "Downsample images .......");
       if (debug_time) Broadcast(LogEvent, "\n");
     }
     for (int l = 2; l <= _NumberOfLevels; ++l) {
       if (_UseGaussianResolutionPyramid) {
-        DownsampleImages downsample(_Image, l, padding);
+        DownsampleImages downsample(_Image, l, &_Background, &outside, padding, &_Blurring[l], _CropPadImages);
         parallel_for(level, downsample);
       } else if (_CropPadImages) {
-        CropImages crop(_Input, _Background, _Blurring[l], _Image[l]);
+        CropImages crop(_Image[1], _Background, outside, _Resolution[l], _Blurring[l], _Image[l]);
         parallel_for(level, crop);
       } else {
         CopyImages copy(_Image[1], _Image[l]);
@@ -2649,7 +2859,7 @@ void GenericRegistrationFilter::InitializePyramid()
       Broadcast(LogEvent, " done\n");
     }
 
-    // Blur images (by default only if no Gaussian pyramid is used)
+    // Blur images (by default only if no Gaussian pyramid with implicit blurring is used)
     bool anything_to_blur = false;
     for (int l = 1; l <= _NumberOfLevels;   ++l)
     for (int n = 0; n <   NumberOfImages(); ++n) {
@@ -2668,35 +2878,44 @@ void GenericRegistrationFilter::InitializePyramid()
     if (_UseGaussianResolutionPyramid) {
       for (int l = 1; l <= _NumberOfLevels;   ++l)
       for (int n = 0; n <   NumberOfImages(); ++n) {
-        _Resolution[l][n]._x = _Image[l][n].GetXSize();
-        _Resolution[l][n]._y = _Image[l][n].GetYSize();
-        _Resolution[l][n]._z = _Image[l][n].GetZSize();
+        _Resolution[l][n]._x = _Image[l][n].XSize();
+        _Resolution[l][n]._y = _Image[l][n].YSize();
+        _Resolution[l][n]._z = _Image[l][n].ZSize();
       }
     } else {
       Broadcast(LogEvent, "Resample images .........");
       if (debug_time) Broadcast(LogEvent, "\n");
-      ResampleImages resample(_Image, _Resolution, padding);
+      ResampleImages resample(_Image, _Resolution, outside, padding);
       parallel_for(pyramid, resample);
       if (debug_time) Broadcast(LogEvent, "Resample images .........");
       Broadcast(LogEvent, " done\n");
     }
 
-    // From now on, use padding value as background value
+    // Set background value to be considered by RegisteredImage for
+    // image gradient computation and image interpolation (resampling)
     for (int l = 1; l <= _NumberOfLevels;   ++l)
     for (int n = 0; n <   NumberOfImages(); ++n) {
-      _Image[l][n].PutBackgroundValueAsDouble(_Padding[n]);
+      if (padding) {
+        _Image[l][n].PutBackgroundValueAsDouble((*padding)[n]);
+      } else {
+        _Image[l][n].ClearBackgroundValue();
+      }
     }
   } // if (NumberOfImages() > 0)
 
   // Resample domain mask
-  _Mask.resize(_NumberOfLevels + 1, NULL);
+  _Mask.resize(_NumberOfLevels + 1, nullptr);
   if (_Domain) {
-    _Mask[0] = _Domain;
     if (_CropPadImages) {
       Broadcast(LogEvent, "Cropping mask ...........");
       if (debug_time) Broadcast(LogEvent, "\n");
       _Mask[0] = CropMask(_Domain);
       Broadcast(LogEvent, " done\n");
+    } else {
+      _Mask[0] = new BinaryImage(*_Domain);
+      for (int vox = 0; vox < _Mask[0]->NumberOfVoxels(); ++vox) {
+        if (_Mask[0]->Get(vox) != 0) _Mask[0]->Put(vox, 1);
+      }
     }
     Broadcast(LogEvent, "Resample mask ...........");
     if (debug_time) Broadcast(LogEvent, "\n");
@@ -3782,6 +4001,7 @@ void GenericRegistrationFilter::SetInputOf(RegisteredImage *output, const struct
   output->ExtrapolationMode    (ExtrapolationMode(n));
   output->PrecomputeDerivatives(_PrecomputeDerivatives);
   output->Transformation       (this->OutputTransformation(ti));
+  output->PutBackgroundValueAsDouble(_Background[n]);
 
   // Add/Amend displacement cache entry
   if (output->Transformation() && output->Transformation()->RequiresCachingOfDisplacements()) {

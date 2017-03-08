@@ -1,9 +1,9 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2008-2015 Imperial College London
+ * Copyright 2008-2017 Imperial College London
  * Copyright 2008-2013 Daniel Rueckert, Julia Schnabel
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2013-2017 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,8 +28,6 @@
 
 #include "mirtk/GenericImage.h"
 #include "mirtk/ImageReader.h"
-
-#include "mirtk/GaussianBlurring.h" // GaussianBlurring::KernelSize
 
 #if MIRTK_Image_WITH_VTK
   #include "vtkStructuredPoints.h"
@@ -565,6 +563,20 @@ void BaseImage::ClearMask(bool force)
 }
 
 // -----------------------------------------------------------------------------
+void BaseImage::ResetBackgroundValueAsDouble(double bg)
+{
+  if (this->HasBackgroundValue()) {
+    const int nvox = this->NumberOfVoxels();
+    for (int vox = 0; vox < nvox; ++vox) {
+      if (AreEqualOrNaN(this->GetAsDouble(vox), _bg, 1e-6)) {
+        this->PutAsDouble(vox, bg);
+      }
+    }
+  }
+  this->PutBackgroundValueAsDouble(bg);
+}
+
+// -----------------------------------------------------------------------------
 void BaseImage::BoundingBox(int &i1, int &j1,
                             int &i2, int &j2) const
 {
@@ -699,14 +711,27 @@ int BaseImage::CenterOfForeground(Point &center, double padding) const
 {
   int n = 0;
   center._x = .0, center._y = .0, center._z = .0;
-  for (int k = 0; k < _attr._z; ++k)
-  for (int j = 0; j < _attr._y; ++j)
-  for (int i = 0; i < _attr._x; ++i) {
-    if (this->GetAsDouble(i, j, k) > padding) {
-      center._x += i;
-      center._y += j;
-      center._z += k;
-      ++n;
+  if (IsNaN(padding)) {
+    for (int k = 0; k < _attr._z; ++k)
+    for (int j = 0; j < _attr._y; ++j)
+    for (int i = 0; i < _attr._x; ++i) {
+      if (!IsNaN(this->GetAsDouble(i, j, k))) {
+        center._x += i;
+        center._y += j;
+        center._z += k;
+        ++n;
+      }
+    }
+  } else {
+    for (int k = 0; k < _attr._z; ++k)
+    for (int j = 0; j < _attr._y; ++j)
+    for (int i = 0; i < _attr._x; ++i) {
+      if (this->GetAsDouble(i, j, k) > padding) {
+        center._x += i;
+        center._y += j;
+        center._z += k;
+        ++n;
+      }
     }
   }
   if (n > 0) center /= n;
@@ -718,39 +743,20 @@ int BaseImage::CenterOfForeground(Point &center, double padding) const
 // Auxiliary function for BaseImage::ForegroundDomain overloads
 ImageAttributes BaseImage::ForegroundDomain(int i1, int j1, int k1,
                                             int i2, int j2, int k2,
-                                            double sigma, bool orthogonal) const
+                                            bool orthogonal) const
 {
+  // Copy image attributes
   ImageAttributes attr = Attributes();
+  // Adjust image attributes
   if (attr._z == 1) attr._dz = .0;
   if (attr._t == 1) attr._dt = .0;
   if (i1 <= i2 && j1 <= j2 && k1 <= k2) {
-    // The following adjustment accounts for the blurring of the input image
-    // before the downsampling which smears the foreground into background
-    if (sigma > .0) {
-      const int di = (attr._dx ? GaussianBlurring<double>::KernelSize(sigma / attr._dx) : 0);
-      const int dj = (attr._dy ? GaussianBlurring<double>::KernelSize(sigma / attr._dy) : 0);
-      const int dk = (attr._dz ? GaussianBlurring<double>::KernelSize(sigma / attr._dz) : 0);
-      i1 -= di, i2 += di;
-      j1 -= dj, j2 += dj;
-      k1 -= dk, k2 += dk;
-      if (i1 <        0) i1 = 0;
-      if (j1 <        0) j1 = 0;
-      if (k1 <        0) k1 = 0;
-      if (i2 >= attr._x) i2 = attr._x - 1;
-      if (j2 >= attr._y) j2 = attr._y - 1;
-      if (k2 >= attr._z) k2 = attr._z - 1;
-    }
-    // Convert upper index bounds to margin widths
-    i2 = (attr._x - 1) - i2;
-    j2 = (attr._y - 1) - j2;
-    k2 = (attr._z - 1) - k2;
-    // Adjust image lattice -- Attention: Order matters!
-    attr._xorigin = 0.5 * ((attr._x - 1) + (i1 - i2));
-    attr._yorigin = 0.5 * ((attr._y - 1) + (j1 - j2));
-    attr._zorigin = 0.5 * ((attr._z - 1) + (k1 - k2));
-    attr._x -= i1 + i2;
-    attr._y -= j1 + j2;
-    attr._z -= k1 + k2;
+    attr._x = i2 - i1 + 1;
+    attr._y = j2 - j1 + 1;
+    attr._z = k2 - k1 + 1;
+    attr._xorigin = i1 + .5 * (i2 - i1);
+    attr._yorigin = j1 + .5 * (j2 - j1);
+    attr._zorigin = k1 + .5 * (k2 - k1);
     ImageToWorld(attr._xorigin, attr._yorigin, attr._zorigin);
   }
   // Orthogonalize coordinate system; required in case of input images where
@@ -759,7 +765,7 @@ ImageAttributes BaseImage::ForegroundDomain(int i1, int j1, int k1,
 }
 
 // -----------------------------------------------------------------------------
-ImageAttributes BaseImage::ForegroundDomain(double sigma, bool orthogonal) const
+ImageAttributes BaseImage::ForegroundDomain(bool orthogonal) const
 {
   ImageAttributes attr = Attributes();
   // Determine lower bound along x axis: i1
@@ -822,74 +828,138 @@ ImageAttributes BaseImage::ForegroundDomain(double sigma, bool orthogonal) const
       break;
     }
   }
-  return ForegroundDomain(i1, j1, k1, i2, j2, k2, sigma, orthogonal);
+  return ForegroundDomain(i1, j1, k1, i2, j2, k2, orthogonal);
 }
 
 // -----------------------------------------------------------------------------
-ImageAttributes BaseImage::ForegroundDomain(double padding, double sigma, bool orthogonal) const
+ImageAttributes BaseImage::ForegroundDomain(double padding, bool orthogonal) const
 {
   ImageAttributes attr = Attributes();
-  // Determine lower bound along x axis: i1
+
   int i1 = attr._x;
-  for (int k = 0; k < attr._z; ++k)
-  for (int j = 0; j < attr._y; ++j)
-  for (int i = 0; i < attr._x; ++i) {
-    if (this->GetAsDouble(i, j, k) > padding) {
-      if (i < i1) i1 = i;
-      break;
-    }
-  }
-  // Determine upper bound along x axis: i2
-  int i2 = -1;
-  for (int k = 0; k < attr._z; ++k)
-  for (int j = 0; j < attr._y; ++j)
-  for (int i = attr._x - 1; i >= i1; --i) {
-    if (this->GetAsDouble(i, j, k) > padding) {
-      if (i > i2) i2 = i;
-      break;
-    }
-  }
-  // Determine lower bound along y axis: j1
   int j1 = attr._y;
-  for (int k = 0; k < attr._z; ++k)
-  for (int i = i1; i <= i2; ++i)
-  for (int j = 0; j < attr._y; ++j) {
-    if (this->GetAsDouble(i, j, k) > padding) {
-      if (j < j1) j1 = j;
-      break;
-    }
-  }
-  // Determine upper bound along y axis: j2
-  int j2 = -1;
-  for (int k = 0; k < attr._z; ++k)
-  for (int i = i1; i <= i2; ++i)
-  for (int j = attr._y - 1; j >= j1; --j) {
-    if (this->GetAsDouble(i, j, k) > padding) {
-      if (j > j2) j2 = j;
-      break;
-    }
-  }
-  // Determine lower bound along z axis: k1
   int k1 = attr._z;
-  for (int j = j1; j <= j2; ++j)
-  for (int i = i1; i <= i2; ++i)
-  for (int k = 0; k < attr._z; ++k) {
-    if (this->GetAsDouble(i, j, k) > padding) {
-      if (k < k1) k1 = k;
-      break;
-    }
-  }
-  // Determine upper bound along z axis: k2
+
+  int i2 = -1;
+  int j2 = -1;
   int k2 = -1;
-  for (int j = j1; j <= j2; ++j)
-  for (int i = i1; i <= i2; ++i)
-  for (int k = attr._z - 1; k >= k1; --k) {
-    if (this->GetAsDouble(i, j, k) > padding) {
-      if (k > k2) k2 = k;
-      break;
+
+  if (IsNaN(padding)) {
+
+    // Determine lower bound along x axis: i1
+    for (int k = 0; k < attr._z; ++k)
+    for (int j = 0; j < attr._y; ++j)
+    for (int i = 0; i < attr._x; ++i) {
+      if (!IsNaN(this->GetAsDouble(i, j, k))) {
+        if (i < i1) i1 = i;
+        break;
+      }
     }
+    // Determine upper bound along x axis: i2
+    for (int k = 0; k < attr._z; ++k)
+    for (int j = 0; j < attr._y; ++j)
+    for (int i = attr._x - 1; i >= i1; --i) {
+      if (!IsNaN(this->GetAsDouble(i, j, k))) {
+        if (i > i2) i2 = i;
+        break;
+      }
+    }
+    // Determine lower bound along y axis: j1
+    for (int k = 0; k < attr._z; ++k)
+    for (int i = i1; i <= i2; ++i)
+    for (int j = 0; j < attr._y; ++j) {
+      if (!IsNaN(this->GetAsDouble(i, j, k))) {
+        if (j < j1) j1 = j;
+        break;
+      }
+    }
+    // Determine upper bound along y axis: j2
+    for (int k = 0; k < attr._z; ++k)
+    for (int i = i1; i <= i2; ++i)
+    for (int j = attr._y - 1; j >= j1; --j) {
+      if (!IsNaN(this->GetAsDouble(i, j, k))) {
+        if (j > j2) j2 = j;
+        break;
+      }
+    }
+    // Determine lower bound along z axis: k1
+    for (int j = j1; j <= j2; ++j)
+    for (int i = i1; i <= i2; ++i)
+    for (int k = 0; k < attr._z; ++k) {
+      if (!IsNaN(this->GetAsDouble(i, j, k))) {
+        if (k < k1) k1 = k;
+        break;
+      }
+    }
+    // Determine upper bound along z axis: k2
+    for (int j = j1; j <= j2; ++j)
+    for (int i = i1; i <= i2; ++i)
+    for (int k = attr._z - 1; k >= k1; --k) {
+      if (!IsNaN(this->GetAsDouble(i, j, k))) {
+        if (k > k2) k2 = k;
+        break;
+      }
+    }
+
+  } else {
+
+    // Determine lower bound along x axis: i1
+    for (int k = 0; k < attr._z; ++k)
+    for (int j = 0; j < attr._y; ++j)
+    for (int i = 0; i < attr._x; ++i) {
+      if (this->GetAsDouble(i, j, k) > padding) {
+        if (i < i1) i1 = i;
+        break;
+      }
+    }
+    // Determine upper bound along x axis: i2
+    for (int k = 0; k < attr._z; ++k)
+    for (int j = 0; j < attr._y; ++j)
+    for (int i = attr._x - 1; i >= i1; --i) {
+      if (this->GetAsDouble(i, j, k) > padding) {
+        if (i > i2) i2 = i;
+        break;
+      }
+    }
+    // Determine lower bound along y axis: j1
+    for (int k = 0; k < attr._z; ++k)
+    for (int i = i1; i <= i2; ++i)
+    for (int j = 0; j < attr._y; ++j) {
+      if (this->GetAsDouble(i, j, k) > padding) {
+        if (j < j1) j1 = j;
+        break;
+      }
+    }
+    // Determine upper bound along y axis: j2
+    for (int k = 0; k < attr._z; ++k)
+    for (int i = i1; i <= i2; ++i)
+    for (int j = attr._y - 1; j >= j1; --j) {
+      if (this->GetAsDouble(i, j, k) > padding) {
+        if (j > j2) j2 = j;
+        break;
+      }
+    }
+    // Determine lower bound along z axis: k1
+    for (int j = j1; j <= j2; ++j)
+    for (int i = i1; i <= i2; ++i)
+    for (int k = 0; k < attr._z; ++k) {
+      if (this->GetAsDouble(i, j, k) > padding) {
+        if (k < k1) k1 = k;
+        break;
+      }
+    }
+    // Determine upper bound along z axis: k2
+    for (int j = j1; j <= j2; ++j)
+    for (int i = i1; i <= i2; ++i)
+    for (int k = attr._z - 1; k >= k1; --k) {
+      if (this->GetAsDouble(i, j, k) > padding) {
+        if (k > k2) k2 = k;
+        break;
+      }
+    }
+
   }
-  return ForegroundDomain(i1, j1, k1, i2, j2, k2, sigma, orthogonal);
+  return ForegroundDomain(i1, j1, k1, i2, j2, k2, orthogonal);
 }
 
 // =============================================================================

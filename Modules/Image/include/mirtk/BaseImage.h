@@ -1,9 +1,9 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2008-2015 Imperial College London
+ * Copyright 2008-2017 Imperial College London
  * Copyright 2008-2013 Daniel Rueckert, Julia Schnabel
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2013-2017 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -483,6 +483,13 @@ public:
   /// Get background value
   double GetBackgroundValueAsDouble() const;
 
+  /// Change background value
+  ///
+  /// When a background value has been set before, this function replaces all image
+  /// values equal to this previous background value by the new background value.
+  /// Otherwise, it is equivalent to PutBackgroundValueAsDouble.
+  void ResetBackgroundValueAsDouble(double);
+
   /// Clear background value
   void ClearBackgroundValue();
 
@@ -594,12 +601,13 @@ public:
   ///
   /// \param[out] center  Centroid of image foreground.
   /// \param[in]  padding Padding value. Voxels with a value less or equal are considered background.
+  ///                     When this value is NaN, all non-NaN image values are considered.
   ///
   /// \returns Number of foreground intensities encountered or zero if the image does
   ///          not contain any foreground, in which case the \p center is invalid.
   int CenterOfForeground(Point &center, double padding) const;
 
-  /// Get cropped image foreground  bounding region
+  /// Get cropped image foreground bounding region
   ///
   /// \param[in] i1         Lower voxel index in x direction.
   /// \param[in] j1         Lower voxel index in y direction.
@@ -607,10 +615,6 @@ public:
   /// \param[in] i2         Upper voxel index in x direction.
   /// \param[in] j2         Upper voxel index in y direction.
   /// \param[in] k2         Upper voxel index in z direction.
-  /// \param[in] sigma      Standard deviation of Gaussian blurring filter that will
-  ///                       be applied to the intensity \p image. Used to increase
-  ///                       the extent of the foreground region such that also background
-  ///                       voxels which are averaged with foreground voxels are included.
   /// \param[in] orthogonal Whether to orthogonalize image axes. Useful only in case
   ///                       of input images where a previous affine (12 DoFs) alignment
   ///                       has been applied to the attributes.
@@ -618,34 +622,28 @@ public:
   /// \returns Attributes of foreground region.
   ImageAttributes ForegroundDomain(int i1, int j1, int k1,
                                    int i2, int j2, int k2,
-                                   double sigma, bool orthogonal = true) const;
+                                   bool orthogonal = true) const;
 
   /// Determine minimal axes-aligned foreground bounding region
   ///
-  /// \param[in] sigma      Standard deviation of Gaussian blurring filter that will
-  ///                       be applied to the intensity \p image. Used to increase
-  ///                       the extent of the foreground region such that also background
-  ///                       voxels which are averaged with foreground voxels are included.
   /// \param[in] orthogonal Whether to orthogonalize image axes. Useful only in case
   ///                       of input images where a previous affine (12 DoFs) alignment
   ///                       has been applied to the attributes.
   ///
   /// \returns Attributes of foreground region.
-  ImageAttributes ForegroundDomain(double sigma = .0, bool orthogonal = true) const;
+  ImageAttributes ForegroundDomain(bool orthogonal = true) const;
 
   /// Determine minimal axes-aligned foreground bounding region
   ///
-  /// \param[in] padding    Padding value. Voxels with a value less or equal are considered background.
-  /// \param[in] sigma      Standard deviation of Gaussian blurring filter that will
-  ///                       be applied to the intensity \p image. Used to increase
-  ///                       the extent of the foreground region such that also background
-  ///                       voxels which are averaged with foreground voxels are included.
+  /// \param[in] padding    Padding value. Voxels with a value less or equal the specified
+  ///                       value are considered background. When the padding value is NaN,
+  ///                       all NaN image values are considered background.
   /// \param[in] orthogonal Whether to orthogonalize image axes. Useful only in case
   ///                       of input images where a previous affine (12 DoFs) alignment
   ///                       has been applied to the attributes.
   ///
   /// \returns Attributes of foreground region.
-  ImageAttributes ForegroundDomain(double padding, double sigma = .0, bool orthogonal = true) const;
+  ImageAttributes ForegroundDomain(double padding, bool orthogonal = true) const;
 
   // ---------------------------------------------------------------------------
   // Region-of-interest extraction
@@ -1422,41 +1420,39 @@ inline bool BaseImage::HasBackgroundValue() const
 }
 
 // -----------------------------------------------------------------------------
-inline bool BaseImage::IsForeground(int idx) const
+inline bool BaseImage::IsBackground(int idx) const
 {
   if (_mask) {
     if (_mask->T() != _attr._t) idx = idx % (_attr._x * _attr._y * _attr._z);
-    return _mask->Get(idx) != BinaryPixel(0);
+    return (_mask->Get(idx) == BinaryPixel(0));
   } else if (_bgSet) {
-    const double value = this->GetAsDouble(idx);
-    return !fequal(value, _bg, 1e-6) && (!IsNaN(value) || !IsNaN(_bg));
+    return AreEqualOrNaN(this->GetAsDouble(idx), _bg, 1e-6);
   }
-  return true;
-}
-
-// -----------------------------------------------------------------------------
-inline bool BaseImage::IsForeground(int i, int j, int k, int l) const
-{
-  if (_mask) {
-    if (_mask->T() != _attr._t) l = 0;
-    return _mask->Get(i, j, k, l) != BinaryPixel(0);
-  } else if (_bgSet) {
-    const double value = this->GetAsDouble(i, j, k, l);
-    return !fequal(value, _bg, 1e-6) && (!IsNaN(value) || !IsNaN(_bg));
-  }
-  return true;
-}
-
-// -----------------------------------------------------------------------------
-inline bool BaseImage::IsBackground(int idx) const
-{
-  return !IsForeground(idx);
+  return false;
 }
 
 // -----------------------------------------------------------------------------
 inline bool BaseImage::IsBackground(int i, int j, int k, int l) const
 {
-  return !IsForeground(i, j, k, l);
+  if (_mask) {
+    if (_mask->T() != _attr._t) l = 0;
+    return (_mask->Get(i, j, k, l) == BinaryPixel(0));
+  } else if (_bgSet) {
+    return AreEqualOrNaN(this->GetAsDouble(i, j, k, l), _bg, 1e-6);
+  }
+  return false;
+}
+
+// -----------------------------------------------------------------------------
+inline bool BaseImage::IsForeground(int idx) const
+{
+  return !IsBackground(idx);
+}
+
+// -----------------------------------------------------------------------------
+inline bool BaseImage::IsForeground(int i, int j, int k, int l) const
+{
+  return !IsBackground(i, j, k, l);
 }
 
 // -----------------------------------------------------------------------------
@@ -1571,8 +1567,7 @@ inline bool BaseImage::IsBoundingBoxInsideForeground(int i1, int j1,
     double value;
     for (int j = j1; j != j2; j++) {
       for (int i = i1; i != i2; i++) {
-        value = this->GetAsDouble(i, j);
-        if (value == _bg || (IsNaN(value) && IsNaN(_bg))) return false;
+        if (AreEqualOrNaN(this->GetAsDouble(i, j), _bg, 1e-6)) return false;
       }
     }
   }
@@ -1599,8 +1594,7 @@ inline bool BaseImage::IsBoundingBoxInsideForeground(int i1, int j1, int k1,
     for (int k = k1; k != k2; k++) {
       for (int j = j1; j != j2; j++) {
         for (int i = i1; i != i2; i++) {
-          value = this->GetAsDouble(i, j, k);
-          if (value == _bg || (IsNaN(value) && IsNaN(_bg))) return false;
+          if (AreEqualOrNaN(this->GetAsDouble(i, j, k), _bg, 1e-6)) return false;
         }
       }
     }
@@ -1643,7 +1637,7 @@ inline bool BaseImage::IsBoundingBoxInsideForeground(int i1, int j1, int k1, int
         for (int j = j1; j != j2; j++) {
           for (int i = i1; i != i2; i++) {
             value = this->GetAsDouble(i, j, k, l);
-            if (value == _bg || (IsNaN(value) && IsNaN(_bg))) return false;
+            if (AreEqualOrNaN(this->GetAsDouble(i, j, k, l), _bg, 1e-6)) return false;
           }
         }
       }
