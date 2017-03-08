@@ -59,8 +59,8 @@ struct MultiplyGradientByHessian : public VoxelFunction
     _dzz(image->Offset(RegisteredImage::Dzz))
   {}
 
-  template <class Image, class TVoxel, class TReal>
-  void operator()(const Image &, int, const TVoxel *dI, TReal *g)
+  template <class Image, class TGradient, class TReal>
+  void operator()(const Image &, int, const TGradient *dI, TReal *g)
   {
     if (g[_x] != .0 || g[_y] != .0 || g[_z] != .0) {
       TReal gx = g[_x] * dI[_dxx] + g[_y] * dI[_dyx] + g[_z] * dI[_dzx];
@@ -75,12 +75,12 @@ struct MultiplyGradientByHessian : public VoxelFunction
 class AddOtherPartialDerivatives
 {
 public:
-  const Transformation       *_Transformation;
-  const GenericImage<double> *_NPGradient;
-  const GenericImage<double> *_ImageGradient;
-  const WorldCoordsImage     *_Image2World;
-  double                     *_Output;
-  double                      _Weight;
+  const Transformation                           *_Transformation;
+  const ImageSimilarity::GradientImageType       *_NPGradient;
+  const GenericImage<RegisteredImage::VoxelType> *_ImageGradient;
+  const WorldCoordsImage                         *_Image2World;
+  double                                         *_Output;
+  double                                          _Weight;
 
   double _t;            ///< Time corrresponding to input gradient image (in ms)
   double _t0;           ///< Second time argument for velocity-based transformations
@@ -158,13 +158,13 @@ public:
 
     Matrix dJdp; // Derivative of the Jacobian of transformation (w.r.t. world coordinates) w.r.t DoF
 
-    const double *gx = _NPGradient->Data(i1, j1, k1, 0);
-    const double *gy = _NPGradient->Data(i1, j1, k1, 1);
-    const double *gz = _NPGradient->Data(i1, j1, k1, 2);
+    const auto *gx = _NPGradient->Data(i1, j1, k1, 0);
+    const auto *gy = _NPGradient->Data(i1, j1, k1, 1);
+    const auto *gz = _NPGradient->Data(i1, j1, k1, 2);
 
-    const double *ix = _ImageGradient->Data(i1, j1, k1, 0);
-    const double *iy = _ImageGradient->Data(i1, j1, k1, 1);
-    const double *iz = _ImageGradient->Data(i1, j1, k1, 2);
+    const auto *ix = _ImageGradient->Data(i1, j1, k1, 0);
+    const auto *iy = _ImageGradient->Data(i1, j1, k1, 1);
+    const auto *iz = _ImageGradient->Data(i1, j1, k1, 2);
 
     // s1=1
     const int s2 =  _X - (i2 - i1);
@@ -251,11 +251,11 @@ template <class FreeFormTransformation>
 class AddOtherPartialDerivativesOfFFD
 {
 public:
-  const FreeFormTransformation *_Transformation;
-  const GenericImage<double>   *_NPGradient;
-  const GenericImage<double>   *_ImageGradient;
-  double                       *_Output;
-  double                        _Weight;
+  const FreeFormTransformation                   *_Transformation;
+  const ImageSimilarity::GradientImageType       *_NPGradient;
+  const GenericImage<RegisteredImage::VoxelType> *_ImageGradient;
+  double                                         *_Output;
+  double                                          _Weight;
 
   double _t;            ///< Time corrresponding to input gradient image (in ms)
   double _t0;           ///< Second time argument for velocity-based transformations
@@ -327,18 +327,18 @@ public:
         for (int j = j1; j < j2; ++j)
         for (int i = i1; i < i2; ++i) {
           // Gradient computed by NonParametericGradient
-          gx = _NPGradient->Get(i, j, k, 0);
-          gy = _NPGradient->Get(i, j, k, 1);
-          gz = _NPGradient->Get(i, j, k, 2);
+          gx = _NPGradient->GetAsDouble(i, j, k, 0);
+          gy = _NPGradient->GetAsDouble(i, j, k, 1);
+          gz = _NPGradient->GetAsDouble(i, j, k, 2);
           // Check whether reference point is valid
           if (gx || gy || gz) {
             // Convert voxel to world coordinates
             x = i, y = j, z = k;
             _NPGradient->ImageToWorld(x, y, z);
             // Obtain image gradient values
-            ix = _ImageGradient->Get(i, j, k, 0);
-            iy = _ImageGradient->Get(i, j, k, 1);
-            iz = _ImageGradient->Get(i, j, k, 2);
+            ix = _ImageGradient->GetAsDouble(i, j, k, 0);
+            iy = _ImageGradient->GetAsDouble(i, j, k, 1);
+            iz = _ImageGradient->GetAsDouble(i, j, k, 2);
             // Multiply according to chain rule and add to output gradient
             _Transformation->DeriveJacobianWrtDOF(dJdp, dof, x, y, z, _t, _t0);
             _Output[dof] += _Weight * (ix * (dJdp(0, 0) * gx + dJdp(0, 1) * gy + dJdp(0, 2) * gz) +
@@ -576,8 +576,8 @@ void GradientFieldSimilarity
     T->ParametricGradient(&tmp, gradient, i2w, t0, weight);
 
     // Select transformed gradient of image
-    const GradientImageType &dIdy = (image == Target() ? _TargetTransformedGradient
-                                                       : _SourceTransformedGradient);
+    const GenericImage<RegisteredImage::VoxelType> &dIdy =
+        (image == Target() ? _TargetTransformedGradient : _SourceTransformedGradient);
 
     // Select transformation type
     const FreeFormTransformation           *ffd  = NULL;

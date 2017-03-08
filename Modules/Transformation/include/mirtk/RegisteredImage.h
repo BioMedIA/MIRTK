@@ -1,8 +1,8 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2013-2015 Imperial College London
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2013-2017 Imperial College London
+ * Copyright 2013-2017 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -74,7 +74,7 @@ class RegisteredImage : public GenericImage<double>
 public:
 
   // Do not override other base class overloads
-  using GenericImage<double>::ImageToWorld;
+  using GenericImage<VoxelType>::ImageToWorld;
 
   // ---------------------------------------------------------------------------
   // Types
@@ -84,13 +84,13 @@ public:
   enum Channel { I = 0, Dx, Dy, Dz, Dxx, Dxy, Dxz, Dyx, Dyy, Dyz, Dzx, Dzy, Dzz };
 
   /// Type of untransformed input image
-  typedef GenericImage<double>   InputImageType;
+  typedef GenericImage<VoxelType>   InputImageType;
 
   /// Type of untransformed gradient image
-  typedef GenericImage<double>   GradientImageType;
+  typedef GenericImage<VoxelType>   InputGradientType;
 
   /// Type of untransformed Hessian image
-  typedef GenericImage<double>   HessianImageType;
+  typedef GenericImage<VoxelType>   InputHessianType;
 
   /// Type of cached displacement fields
   typedef GenericImage<double>   DisplacementImageType;
@@ -102,10 +102,10 @@ public:
   mirtkPublicAggregateMacro(InputImageType, InputImage);
 
   /// Untransformed input gradient image
-  mirtkPublicComponentMacro(GradientImageType, InputGradient);
+  mirtkPublicComponentMacro(InputGradientType, InputGradient);
 
   /// Untransformed input Hessian image
-  mirtkPublicComponentMacro(HessianImageType, InputHessian);
+  mirtkPublicComponentMacro(InputHessianType, InputHessian);
 
   /// Current transformation estimate
   mirtkPublicAggregateMacro(const class Transformation, Transformation);
@@ -149,6 +149,15 @@ public:
   /// Maximum foreground intensity of warped image or NaN
   mirtkPublicAttributeMacro(double, MaxIntensity);
 
+  /// Intensity value used to pad this image when transformed point is outside
+  /// the foreground of the input image. When NaN (default), the background
+  /// value of the input image is used. When the input image has no background
+  /// value set, the minimum input intensity is used instead.
+  ///
+  /// When this value is set and the input image has no background value set,
+  /// it is used as background value when computing the input derivatives.
+  mirtkPublicAttributeMacro(double, OutsideValue);
+
   /// Standard deviation of Gaussian smoothing kernel applied before
   /// 1st order derivative computations in voxel units
   mirtkPublicAttributeMacro(double, GradientSigma);
@@ -161,6 +170,14 @@ public:
   /// true:  Compute derivatives of input image and transform these
   /// false: Use derivative of interpolation kernel to evaluate image derivative
   mirtkPublicAttributeMacro(bool, PrecomputeDerivatives);
+
+  /// Maximum gradient magnitude as percentile of all gradient magnitudes
+  ///
+  /// \note Used only when _PrecomputeDerivatives is enabled.
+  mirtkPublicAttributeMacro(int, MaxGradientPercentile);
+
+  /// When positive and not inf, linearly rescale gradient vectors to this maximum magnitude
+  mirtkPublicAttributeMacro(double, MaxGradientMagnitude);
 
 protected:
 

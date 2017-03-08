@@ -67,13 +67,13 @@ class ImageSimilarity : public DataFidelity
 public:
 
   /// Voxel type of registered images
-  typedef RegisteredImage::VoxelType           VoxelType;
-
-  /// Type of similarity gradient image
-  typedef RegisteredImage::GradientImageType   GradientImageType;
+  typedef RegisteredImage::VoxelType   VoxelType;
 
   /// Type of similarity gradient components
-  typedef GradientImageType::VoxelType         GradientType;
+  typedef double   GradientType;
+
+  /// Type of similarity gradient image
+  typedef GenericImage<GradientType>   GradientImageType;
 
   // ---------------------------------------------------------------------------
   // Attributes

@@ -252,8 +252,8 @@ int main(int argc, char **argv)
   InitializeIOLibrary();
 
   // Input and (transformed) image instances
-  GenericImage<double> target_image, source_image;
-  RegisteredImage      target,       source;
+  RegisteredImage::InputImageType target_image, source_image;
+  RegisteredImage target, source;
 
   target.InputImage(&target_image);
   source.InputImage(&source_image);

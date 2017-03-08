@@ -81,9 +81,9 @@ public:
   template <class Image, class TScalar, class TReal>
   void operator ()(const Image &, int, const TScalar *dI, TReal *gradient)
   {
-    (*gradient) *= dI[_dx]; gradient += _NumberOfVoxels;
-    (*gradient) *= dI[_dy]; gradient += _NumberOfVoxels;
-    (*gradient) *= dI[_dz];
+    (*gradient) *= static_cast<TReal>(dI[_dx]); gradient += _NumberOfVoxels;
+    (*gradient) *= static_cast<TReal>(dI[_dy]); gradient += _NumberOfVoxels;
+    (*gradient) *= static_cast<TReal>(dI[_dz]);
   }
 };
 
@@ -123,7 +123,10 @@ public:
   template <class Image, class TReal>
   void operator ()(const Image &, int, TReal *gradient)
   {
-    double norm = pow(gradient[_x], 2) + pow(gradient[_y], 2) + pow(gradient[_z], 2);
+    double gx = static_cast<double>(gradient[_x]);
+    double gy = static_cast<double>(gradient[_y]);
+    double gz = static_cast<double>(gradient[_z]);
+    double norm = gx * gx + gy * gy + gz * gz;
     if (norm > _norm) _norm = norm;
   }
 };
@@ -207,12 +210,15 @@ public:
   template <class Image, class TReal>
   void operator ()(const Image &, int, TReal *gradient)
   {
-    double norm = pow(gradient[_x], 2) + pow(gradient[_y], 2) + pow(gradient[_z], 2);
+    double gx = static_cast<double>(gradient[_x]);
+    double gy = static_cast<double>(gradient[_y]);
+    double gz = static_cast<double>(gradient[_z]);
+    double norm = gx * gx + gy * gy + gz * gz;
     if (norm) {
       norm = sqrt(norm) + _Sigma;
-      gradient[_x] /= norm;
-      gradient[_y] /= norm;
-      gradient[_z] /= norm;
+      gradient[_x] = static_cast<TReal>(gx / norm);
+      gradient[_y] = static_cast<TReal>(gy / norm);
+      gradient[_z] = static_cast<TReal>(gz / norm);
     }
   }
 };
