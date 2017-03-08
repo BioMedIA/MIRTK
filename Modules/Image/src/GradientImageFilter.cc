@@ -1,9 +1,9 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2008-2015 Imperial College London
+ * Copyright 2008-2017 Imperial College London
  * Copyright 2008-2013 Daniel Rueckert, Julia Schnabel
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2013-2017 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -230,7 +230,7 @@ GradientImageFilter<VoxelType>::GradientImageFilter(GradientType type)
   _Type(type),
   _UseVoxelSize(true),
   _UseOrientation(false),
-  _PaddingValue(-numeric_limits<double>::infinity())
+  _PaddingValue(-inf)
 {
 }
 
@@ -243,11 +243,11 @@ template <class VoxelType>
 void GradientImageFilter<VoxelType>::Initialize()
 {
   // Check inputs and outputs
-  if (this->Input() == NULL) {
+  if (this->Input() == nullptr) {
     cerr << this->NameOfClass() << "::Initialize: Filter has no input" << endl;
     exit(1);
   }
-  if (this->Output() == NULL) {
+  if (this->Output() == nullptr) {
     cerr << this->NameOfClass() << "::Initialize: Filter has no output" << endl;
     exit(1);
   }
@@ -265,7 +265,7 @@ void GradientImageFilter<VoxelType>::Initialize()
     this->Buffer(this->Output());
     this->Output(new GenericImage<VoxelType>());
   } else {
-    this->Buffer(NULL);
+    this->Buffer(nullptr);
   }
 
   // Initialize output image
@@ -288,7 +288,7 @@ void GradientImageFilter<VoxelType>::Run()
   Matrix R;
   if (_UseOrientation) R = attr.GetWorldToImageOrientation();
   EvaluateImageGradient<VoxelType> eval(
-    _Type, this->Input(), _PaddingValue, _UseVoxelSize, _UseOrientation ? &R : NULL
+    _Type, this->Input(), _PaddingValue, _UseVoxelSize, _UseOrientation ? &R : nullptr
   );
   ParallelForEachVoxel(attr, this->Output(), eval);
 
@@ -303,7 +303,7 @@ void GradientImageFilter<VoxelType>::Finalize()
     this->Buffer()->CopyFrom(this->Output()->Data());
     delete this->Output();
     this->Output(this->Buffer());
-    this->Buffer(NULL);
+    this->Buffer(nullptr);
   }
 }
 
