@@ -2447,10 +2447,9 @@ void GenericRegistrationFilter::Write(const char *fname) const
   }
   PrintVersion(to, "## Version");
   for (int level = 0; level <= _NumberOfLevels; ++level) {
-    to << endl << "#" << endl << "# Registration parameters";
-    if (level > 0) to << " for resolution level " << level;
-    to << endl << "#" << endl << endl;
-    if (level > 0) PrintParameter(to, "Resolution level", level);
+    to << "\n";
+    if (level == 0) to << "[default]\n";
+    else to << "[level " << level << "]\n";
     ParameterList params = this->Parameter(level);
     for (ParameterConstIterator it = params.begin(); it != params.end(); ++it) {
       PrintParameter(to, it->first, it->second);
