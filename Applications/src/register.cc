@@ -87,6 +87,7 @@ void PrintUsage(const char* name)
   cout << "  -dof_i  <file>          Apply inverse of pre-computed affine transformation instead (cf. -dof).\n";
   cout << "  -mask   <file>          Reference mask which defines the domain within which to evaluate the\n";
   cout << "                          energy function (i.e. data fidelity terms). (default: none)\n";
+  cout << "  -reset-mask [yes|no]    Set value of all :option:`-mask` voxels to active (1). (default: no)\n";
   cout << "  -dofin  <file>          Initial transformation estimate. (default: align centroids)\n";
   cout << "  -par <name> <value>     Specify parameter value directly as command argument.\n";
   cout << "  -parin  <file>          Read parameters from configuration file. If \"stdin\" or \"cin\",\n";
@@ -657,6 +658,7 @@ int main(int argc, char **argv)
   const char *parin_name         = NULL;
   const char *parout_name        = NULL;
   const char *mask_name          = NULL;
+  bool        reset_mask         = false;
   ParameterList params;
 
   enum {
@@ -731,6 +733,7 @@ int main(int argc, char **argv)
     else if (OPTION("-dofin" )) dofin_name      = ARGUMENT;
     else if (OPTION("-dofout")) dofout_name     = ARGUMENT;
     else if (OPTION("-mask"))   mask_name       = ARGUMENT;
+    else HANDLE_BOOLEAN_OPTION("reset-mask", reset_mask);
     else if (OPTION("-nodebug-level-prefix")) {
       debug_output_level_prefix = false;
     }
@@ -1050,6 +1053,7 @@ int main(int argc, char **argv)
   UniquePtr<BinaryImage> mask;
   if (mask_name) {
     mask.reset(new BinaryImage(mask_name));
+    if (reset_mask) *mask = 1;
     registration.Domain(mask.get());
   }
 
