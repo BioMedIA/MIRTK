@@ -160,10 +160,10 @@ int main(int argc, char *argv[])
   double            interpolation_sigma = 1.0; // Interpolation_Gaussian parameter
   double            outside_value       = 0.0; // Extrapolation_Const parameter
   double            isotropic           = .0;
-  double            padding_value       = numeric_limits<double>::quiet_NaN();
-  double            dx                  = image->GetXSize();
-  double            dy                  = image->GetYSize();
-  double            dz                  = image->GetZSize();
+  double            padding_value       = NaN;
+  double            dx                  = image->XSize();
+  double            dy                  = image->YSize();
+  double            dz                  = image->ZSize();
 
   int nx, ny, nz;
   nx = ny = nz = 0;
@@ -202,14 +202,11 @@ int main(int argc, char *argv[])
     }
     else HANDLE_COMMON_OR_UNKNOWN_OPTION();
   }
- 
-  if (!IsNaN(padding_value) && interpolation_mode != Interpolation_Linear) {
-    FatalError("Resampling with -padding always uses linear interpolation!");
-  }
 
   // Create interpolator
   UniquePtr<InterpolateImageFunction> interpolator;
   interpolator.reset(InterpolateImageFunction::New(interpolation_mode, extrapolation_mode, image.get()));
+  interpolator->DefaultValue(outside_value);
 
   // TODO: The actual type of the templated GenericGaussianInterpolateImageFunction's is not known.
   //       Add virtual parameter setters which take string arguments to InterpolateImageFunction.

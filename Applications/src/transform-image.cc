@@ -626,6 +626,9 @@ int main(int argc, char **argv)
     // Instantiate image interpolator
     UniquePtr<InterpolateImageFunction> interpolator;
     interpolator.reset(InterpolateImageFunction::New(interpolation));
+    if (!IsNaN(target_padding)) {
+      interpolator->DefaultValue(target_padding);
+    }
 
     // Initialize output image
     // Note: Always use floating point for intermediate interpolated image values!
@@ -677,6 +680,7 @@ int main(int argc, char **argv)
           ResamplingWithPadding<RealPixel> resampler(dx, dy, dz, target_padding);
           resampler.Input(target.get());
           resampler.Output(target.get());
+          resampler.Interpolator(interpolator.get());
           resampler.Run();
         }
       }
@@ -711,6 +715,8 @@ int main(int argc, char **argv)
     } else if (!target_name && srcdof_name) {
       target->PutAffineMatrix(source->GetAffineMatrix(), affdof_apply);
     }
+
+    interpolator->DefaultValue(source_padding);
 
     if (dofs.size() == 1) {
 

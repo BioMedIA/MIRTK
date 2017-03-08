@@ -97,11 +97,10 @@ void Resampling<VoxelType>::InitializeOutput()
     attr._dx = _XSize;
   } else if (_X > 0) {
     attr._x  = _X;
-    attr._dx = this->_Input->X() * this->_Input->GetXSize() / static_cast<double>(_X);
-  } else if (_XSize > 0) {
-    attr._x  = iround(this->_Input->X() * this->_Input->GetXSize() / this->_XSize);
-    if (attr._x < 1) attr._x  = 1;
-    else             attr._dx = _XSize;
+    attr._dx = this->_Input->X() * this->_Input->XSize() / static_cast<double>(_X);
+  } else if (_XSize > 0 && this->_Input->XSize() > 0. && this->_Input->X() > 1) {
+    attr._x  = iceil(this->_Input->X() * this->_Input->XSize() / this->_XSize);
+    attr._dx = _XSize;
   }
 
   if (_Y > 0 && _YSize > 0) {
@@ -109,11 +108,10 @@ void Resampling<VoxelType>::InitializeOutput()
     attr._dy = _YSize;
   } else if (_Y > 0) {
     attr._y  = _Y;
-    attr._dy = this->_Input->Y() * this->_Input->GetYSize() / static_cast<double>(_Y);
-  } else if (_YSize > 0) {
-    attr._y  = iround(this->_Input->Y() * this->_Input->GetYSize() / this->_YSize);
-    if (attr._y < 1) attr._y  = 1;
-    else             attr._dy = _YSize;
+    attr._dy = this->_Input->Y() * this->_Input->YSize() / static_cast<double>(_Y);
+  } else if (_YSize > 0 && this->_Input->YSize() > 0. && this->_Input->Y() > 1) {
+    attr._y  = iceil(this->_Input->Y() * this->_Input->YSize() / this->_YSize);
+    attr._dy = _YSize;
   }
   
   if (_Z > 0 && _ZSize > 0) {
@@ -121,11 +119,10 @@ void Resampling<VoxelType>::InitializeOutput()
     attr._dz = _ZSize;
   } else if (_Z > 0) {
     attr._z  = _Z;
-    attr._dz = this->_Input->Z() * this->_Input->GetZSize() / static_cast<double>(_Z);
-  } else if (_ZSize > 0) {
-    attr._z  = iround(this->_Input->Z() * this->_Input->GetZSize() / this->_ZSize);
-    if (attr._z < 1) attr._z  = 1;
-    else             attr._dz = _ZSize;
+    attr._dz = this->_Input->Z() * this->_Input->ZSize() / static_cast<double>(_Z);
+  } else if (_ZSize > 0 && this->_Input->ZSize() > 0. && this->_Input->Z() > 1) {
+    attr._z  = iceil(this->_Input->Z() * this->_Input->ZSize() / this->_ZSize);
+    attr._dz = _ZSize;
   }
 
   this->_Output->Initialize(attr);
