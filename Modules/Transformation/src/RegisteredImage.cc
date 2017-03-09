@@ -767,7 +767,7 @@ public:
     }
     if (inside && check_value && _InterpolateWithPadding) {
       double value = _IntensityFunction->EvaluateWithPadding(x, y, z);
-      if (value == _IntensityFunction->DefaultValue()) inside = false;
+      if (IsNaN(value) || AreEqual(value, _IntensityFunction->DefaultValue(), 1e-6)) inside = false;
     }
     if (inside) return 1;
     if (0. <= x && x <= _InputSize._x - 1. &&
@@ -799,8 +799,8 @@ public:
           *o = _IntensityFunction->EvaluateOutside(x, y, z);
         }
       }
-      // Set background to output padding value
-      if (*o == _IntensityFunction->DefaultValue()) {
+      // Set background to outside value
+      if (IsNaN(*o) || AreEqual(*o, _IntensityFunction->DefaultValue(), 1e-6)) {
         *o = _PaddingValue;
         if (_InterpolateWithPadding) return -1;
       // Rescale/clamp foreground to [min, max] range
