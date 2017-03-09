@@ -290,6 +290,19 @@ public:
   /// Whether to allow z coordinate transformation
   mirtkPublicAttributeMacro(bool, RegisterZ);
 
+  /// Enforce Dirichlet boundary condition on FFD transformations
+  ///
+  /// When this option is enabled, the status of control points at the
+  /// boundary of the finite FFD lattice is set to Passive and the parameters
+  /// of these control points set to zero. This is always the case for FFDs
+  /// whose parameters are control point displacements. In case of FFDs
+  /// parameterized by (stationary) velocities, the default extrapolation
+  /// mode is nearest neighbor, however, and a layer of passive CPs with
+  /// constant value is needed if the velocity should be forced to zero
+  /// outside the finite domain on which the velocity field is defined.
+  /// Alternatively, FFD extrapolation mode "Const" can be used.
+  mirtkPublicAttributeMacro(bool, DirichletBoundaryCondition);
+
   /// Mask which defines where to evaluate the energy function
   mirtkPublicAggregateMacro(BinaryImage, Domain);
 

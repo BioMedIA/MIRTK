@@ -713,7 +713,6 @@ public:
 // -----------------------------------------------------------------------------
 class InitializeCPStatus
 {
-  const BinaryImage        *_Mask;
   const ResampledImageList &_Image;
   const Array<bool>        &_IsTargetImage;
   const int                 _NumberOfImages;
@@ -729,10 +728,8 @@ class InitializeCPStatus
 
 public:
 
-  InitializeCPStatus(const BinaryImage        *mask,
-                     const ResampledImageList &image,
+  InitializeCPStatus(const ResampledImageList &image,
                      const Array<bool>        &is_target_image,
-                     const Transformation     *dof,
                      FreeFormTransformation   *ffd,
                      #if MIRTK_Registration_WITH_PointSet
                        const Array<vtkSmartPointer<vtkPointSet> > &pointsets,
@@ -740,7 +737,6 @@ public:
                      #endif // MIRTK_Registration_WITH_PointSet
                      bool regx, bool regy, bool regz)
   :
-    _Mask            (mask),
     _Image           (image),
     _IsTargetImage   (is_target_image),
     _NumberOfImages  (static_cast<int>(image.size())),
@@ -762,58 +758,98 @@ public:
   {
     Transformation::DOFStatus sx, sy, sz;
     double x1, y1, z1, x2, y2, z2;
-    int    fg, ci, cj, ck, cl, i1, j1, k1, l1, i2, j2, k2, l2;
+    int    ci, cj, ck, cl, i1, j1, k1, l1, i2, j2, k2, l2;
+    bool   fg;
 
     for (int cp = re.begin(); cp != re.end(); ++cp) {
-      fg = -1;
+      fg = false;
       // Bounding box of control point
       _FFD->BoundingBox(cp, x1, y1, z1, x2, y2, z2);
-      // Check if control point is in vicinity of foreground mask
-      if (_Mask) {
-        if (fg == -1) fg = 0;
-        if (_FFD->BoundingBox(_Mask, cp, i1, j1, k1, l1, i2, j2, k2, l2)) {
-          for (int l = l1; l <= l2; ++l)
-          for (int k = k1; k <= k2; ++k)
-          for (int j = j1; j <= j2; ++j)
-          for (int i = i1; i <= i2; ++i) {
-            if (_Mask->Get(i, j, k, l)) {
-              fg = 1;
-              j = j2, k = k2, l = l2; // Break out of all loops
-              break;
-            }
-          }
-        }
-      }
       // Check if any non-padded input image voxel is influenced by control point
-      for (int n = 0; fg != 1 && n < _NumberOfImages; ++n) {
+      for (int n = 0; n < _NumberOfImages; ++n) {
         if (_IsTargetImage[n]) {
-          if (fg == -1) fg = 0;
           if (_FFD->BoundingBox(&_Image[n], cp, i1, j1, k1, l1, i2, j2, k2, l2)) {
             for (int l = l1; l <= l2; ++l)
             for (int k = k1; k <= k2; ++k)
             for (int j = j1; j <= j2; ++j)
             for (int i = i1; i <= i2; ++i) {
               if (_Image[n].IsForeground(i, j, k, l)) {
-                fg = 1;
-                j = j2, k = k2, l = l2; // Break out of all loops
+                fg = true;
+                j = j2, k = k2, l = l2, n = _NumberOfImages; // Break out of all loops
                 break;
               }
             }
           }
         }
       }
-      // Check if any point is influenced by control point
+      // Otherwise, check if any point is influenced by control point
       #if MIRTK_Registration_WITH_PointSet
-        for (int n = 0; fg != 1 && n < _NumberOfPointSets; ++n) {
+        for (int n = 0; !fg && n < _NumberOfPointSets; ++n) {
           if (_IsMovingPointSet[n]) {
             double b[6];
             _PointSetInput[n]->GetBounds(b);
             fg = (x1 <= b[1] && x2 >= b[0] &&
                   y1 <= b[3] && y2 >= b[2] &&
-                  z1 <= b[5] && z2 >= b[4]) ? 1 : 0;
+                  z1 <= b[5] && z2 >= b[4]);
           }
         }
       #endif // MIRTK_Registration_WITH_PointSet
+      // Set status of unused DoFs to passive
+      _FFD->IndexToLattice(cp, ci, cj, ck, cl);
+      if (fg) {
+        _FFD->GetStatus(ci, cj, ck, cl, sx, sy, sz);
+        if (!_RegisterX) sx = Passive;
+        if (!_RegisterY) sy = Passive;
+        if (!_RegisterZ) sz = Passive;
+      } else {
+        sx = sy = sz = Passive;
+      }
+      _FFD->PutStatus(ci, cj, ck, cl, sx, sy, sz);
+    }
+  }
+};
+
+
+// -----------------------------------------------------------------------------
+class InitializeCPStatusGivenDomainMask
+{
+  const BinaryImage        *_Mask;
+  FreeFormTransformation   *_FFD;
+  bool _RegisterX, _RegisterY, _RegisterZ;
+
+public:
+
+  InitializeCPStatusGivenDomainMask(const BinaryImage      *mask,
+                                    FreeFormTransformation *ffd,
+                                    bool regx, bool regy, bool regz)
+  :
+    _Mask(mask), _FFD(ffd), _RegisterX(regx), _RegisterY(regy), _RegisterZ(regz)
+  {}
+
+  void operator()(const blocked_range<int> &re) const
+  {
+    Transformation::DOFStatus sx, sy, sz;
+    double x1, y1, z1, x2, y2, z2;
+    int    ci, cj, ck, cl, i1, j1, k1, l1, i2, j2, k2, l2;
+    bool   fg;
+
+    for (int cp = re.begin(); cp != re.end(); ++cp) {
+      // Bounding box of control point
+      _FFD->BoundingBox(cp, x1, y1, z1, x2, y2, z2);
+      // Check if control point is in vicinity of domain mask
+      fg = false;
+      if (_FFD->BoundingBox(_Mask, cp, i1, j1, k1, l1, i2, j2, k2, l2)) {
+        for (int l = l1; l <= l2; ++l)
+        for (int k = k1; k <= k2; ++k)
+        for (int j = j1; j <= j2; ++j)
+        for (int i = i1; i <= i2; ++i) {
+          if (_Mask->Get(i, j, k, l)) {
+            fg = true;
+            j = j2, k = k2, l = l2; // Break out of all loops
+            break;
+          }
+        }
+      }
       // Set status of unused DoFs to passive
       _FFD->IndexToLattice(cp, ci, cj, ck, cl);
       if (fg) {
@@ -881,6 +917,7 @@ void GenericRegistrationFilter::Reset()
   _FinalLevel                          = 1;
   _MultiLevelMode                      = MFFD_Default;
   _MergeGlobalAndLocalTransformation   = false;
+  _DirichletBoundaryCondition          = false;
   _PrecomputeDerivatives               = true;
   _SimilarityMeasure                   = SIM_NMI;
   _PointSetDistanceMeasure             = PDM_FRE;
@@ -1709,6 +1746,9 @@ bool GenericRegistrationFilter::Set(const char *param, const char *value, int le
              name == "Merge global and local transformations") {
     return FromString(value, _MergeGlobalAndLocalTransformation);
 
+  } else if (name == "Dirichlet boundary condition") {
+    return FromString(value, _DirichletBoundaryCondition);
+
   // FFD control point spacing
   } else if (name.compare(0, 21, "Control point spacing")         == 0 ||
              name.compare(0, 29, "Minimum control point spacing") == 0 ||
@@ -1842,10 +1882,7 @@ bool GenericRegistrationFilter::Set(const char *param, const char *value, int le
     return FromString(value, _DownsampleWithPadding);
 
   } else if (name == "Crop/pad images") {
-    bool do_crop_pad;
-    if (!FromString(value, do_crop_pad)) return false;
-    _CropPadImages = do_crop_pad;
-    return true;
+    return FromString(value, _CropPadImages);
 
   } else if (name == "Crop/pad FFD lattice" ||
              name == "Crop/pad lattice") {
@@ -1893,6 +1930,7 @@ ParameterList GenericRegistrationFilter::Parameter(int level) const
     Insert(params, "Transformation model",                  model);
     Insert(params, "Multi-level transformation",            _MultiLevelMode);
     Insert(params, "Merge global and local transformation", _MergeGlobalAndLocalTransformation);
+    Insert(params, "Dirichlet boundary condition", _DirichletBoundaryCondition);
     Insert(params, "Optimization method",                   _OptimizationMethod);
     Insert(params, "No. of resolution levels",              _NumberOfLevels);
     Insert(params, "Final level",                           _FinalLevel);
@@ -1902,7 +1940,7 @@ ParameterList GenericRegistrationFilter::Parameter(int level) const
     Insert(params, "Downsample images with padding",        _DownsampleWithPadding);
     Insert(params, "Crop/pad images",                       _CropPadImages);
     if (_CropPadFFD != -1) {
-      Insert(params, "Crop/pad FFD lattice", _CropPadFFD != 0 ? true : false);
+      Insert(params, "Crop/pad lattice", _CropPadFFD != 0 ? true : false);
     }
     Insert(params, "Adaptive surface remeshing", _AdaptiveRemeshing);
     if (!_EnergyFormula.empty()) Insert(params, "Energy function", _EnergyFormula);
@@ -2506,7 +2544,7 @@ void GenericRegistrationFilter::GuessParameter()
   // By default, crop/pad FFD lattice only if domain not explicitly specified
   // and none of the transformation models is parameterised by velocities
   if (_CropPadFFD == -1) {
-    _CropPadFFD = (_Domain == nullptr && !IsDiffeo(_TransformationModel));
+    _CropPadFFD = (_Domain == nullptr && !IsDiffeo(_TransformationModel) ? 1 : 0);
   }
 
   // Optimization parameters
@@ -3001,59 +3039,68 @@ void GenericRegistrationFilter::InitializeStatus(HomogeneousTransformation *lin)
 void GenericRegistrationFilter::InitializeStatus(FreeFormTransformation *ffd)
 {
   const bool diffeo = IsDiffeo(_CurrentModel);
+
   if (_CropPadFFD || !diffeo) {
+    if (_Mask[_CurrentLevel]) {
 
-    // Determine target data sets
-    Array<bool> is_target_image(NumberOfImages());
-    for (int n = 0; n < NumberOfImages(); ++n) {
-      is_target_image[n] = !IsMovingImage(n);
-    }
-    #if MIRTK_Registration_WITH_PointSet
-      Array<bool> is_moving_pointset(NumberOfPointSets());
-      for (int n = 0; n < NumberOfPointSets(); ++n) {
-        is_moving_pointset[n] = IsMovingPointSet(n);
-      }
-    #endif // MIRTK_Registration_WITH_PointSet
+      // Initialize status of control points
+      InitializeCPStatusGivenDomainMask init_status(_Mask[_CurrentLevel], ffd,
+                                                    _RegisterX, _RegisterY, _RegisterZ);
+      blocked_range<int> cps(0, ffd->NumberOfCPs());
+      parallel_for(cps, init_status);
 
-    // In case of fluid multi-level transformation, apply the global transformation
-    // to the target images because the FFDs are defined on this transformed lattice
-    Matrix             *smat = NULL;
-    ResampledImageType *image;
-    const FluidFreeFormTransformation *fluid;
-    if ((fluid = dynamic_cast<const FluidFreeFormTransformation *>(_Transformation))) {
-      smat = new Matrix[NumberOfImages()];
+    } else {
+
+      // Determine target data sets
+      Array<bool> is_target_image(NumberOfImages());
       for (int n = 0; n < NumberOfImages(); ++n) {
-        if (is_target_image[n]) {
-          image   = const_cast<ResampledImageType *>(&_Image[_CurrentLevel][n]);
-          smat[n] = image->GetAffineMatrix();
-          image->PutAffineMatrix(fluid->GetGlobalTransformation()->GetMatrix());
+        is_target_image[n] = !IsMovingImage(n);
+      }
+      #if MIRTK_Registration_WITH_PointSet
+        Array<bool> is_moving_pointset(NumberOfPointSets());
+        for (int n = 0; n < NumberOfPointSets(); ++n) {
+          is_moving_pointset[n] = IsMovingPointSet(n);
+        }
+      #endif // MIRTK_Registration_WITH_PointSet
+
+      // In case of fluid multi-level transformation, apply the global transformation
+      // to the target images because the FFDs are defined on this transformed lattice
+      UniquePtr<Matrix[]> smat;
+      ResampledImageType *image;
+      const FluidFreeFormTransformation *fluid;
+      if ((fluid = dynamic_cast<const FluidFreeFormTransformation *>(_Transformation))) {
+        smat.reset(new Matrix[NumberOfImages()]);
+        for (int n = 0; n < NumberOfImages(); ++n) {
+          if (is_target_image[n]) {
+            image   = const_cast<ResampledImageType *>(&_Image[_CurrentLevel][n]);
+            smat[n] = image->GetAffineMatrix();
+            image->PutAffineMatrix(fluid->GetGlobalTransformation()->GetMatrix());
+          }
         }
       }
-    }
 
-    // Initialize status of control points
-    InitializeCPStatus init_status(_Mask [_CurrentLevel],
-                                   _Image[_CurrentLevel], is_target_image,
-                                   _Transformation, ffd,
-                                   #if MIRTK_Registration_WITH_PointSet
-                                     _PointSet[_CurrentLevel], is_moving_pointset,
-                                   #endif // MIRTK_Registration_WITH_PointSet
-                                   _RegisterX, _RegisterY, _RegisterZ);
-    blocked_range<int> cps(0, ffd->NumberOfCPs());
-    parallel_for(cps, init_status);
+      // Initialize status of control points
+      InitializeCPStatus init_status(_Image[_CurrentLevel], is_target_image, ffd,
+                                     #if MIRTK_Registration_WITH_PointSet
+                                       _PointSet[_CurrentLevel], is_moving_pointset,
+                                     #endif // MIRTK_Registration_WITH_PointSet
+                                     _RegisterX, _RegisterY, _RegisterZ);
+      blocked_range<int> cps(0, ffd->NumberOfCPs());
+      parallel_for(cps, init_status);
 
-    // Restore affine transformation matrices of input images
-    if (smat) {
-      for (int n = 0; n < NumberOfImages(); ++n) {
-        if (is_target_image[n]) {
-          image = const_cast<ResampledImageType *>(&_Image[_CurrentLevel][n]);
-          image->PutAffineMatrix(smat[n]);
+      // Restore affine transformation matrices of input images
+      if (smat) {
+        for (int n = 0; n < NumberOfImages(); ++n) {
+          if (is_target_image[n]) {
+            image = const_cast<ResampledImageType *>(&_Image[_CurrentLevel][n]);
+            image->PutAffineMatrix(smat[n]);
+          }
         }
       }
-      delete[] smat;
+
     }
 
-    // Discard passive DoFs to reduce memory/disk use
+    // Discard passive DoFs to reduce memory/disk use and speed up computations
     if (_CropPadFFD) {
       const int margin = (diffeo ? 2 : 1) * ffd->KernelSize();
       ffd->CropPadPassiveCPs(margin, margin, margin, 0, true);
@@ -3063,15 +3110,36 @@ void GenericRegistrationFilter::InitializeStatus(FreeFormTransformation *ffd)
   // In case of a transformation parameterized by a (stationary) velocity
   // field, all control points are active as each of them may influence a
   // trajectory that starts (and ends) within the foreground image region.
-  if (IsDiffeo(_CurrentModel)) {
+  if (diffeo) {
     Transformation::DOFStatus sx, sy, sz;
-    int                       ci, cj, ck, cl;
-    for (int cp = 0; cp < ffd->NumberOfCPs(); ++cp) {
+    for (int cl = 0; cl < ffd->T(); ++cl)
+    for (int ck = 0; ck < ffd->Z(); ++ck)
+    for (int cj = 0; cj < ffd->Y(); ++cj)
+    for (int ci = 0; ci < ffd->X(); ++ci) {
       sx = _RegisterX ? Active : Passive;
       sy = _RegisterY ? Active : Passive;
       sz = _RegisterZ ? Active : Passive;
-      ffd->IndexToLattice(cp, ci, cj, ck, cl);
       ffd->PutStatus(ci, cj, ck, cl, sx, sy, sz);
+    }
+  }
+
+  // Enforce Dirichlet boundary condition by setting parameters at FFD boundary
+  // to zero and forcing the CPs to be passive such that they are not modified
+  //
+  // Note: Condition not applied in temporal dimension as we usually only
+  //       have at most one extra volume of CPs outside the period of the
+  //       FFD time domain. Moreover, extrapolation could be periodic in time.
+  if (_DirichletBoundaryCondition) {
+    const int border_width = ffd->KernelRadius();
+    for (int cl = 0; cl < ffd->T(); ++cl) {
+      for (int m = 0; m < border_width; ++m) {
+        for (int ck = m; ck < ffd->Z(); ck += ffd->Z() - m - 1)
+        for (int cj = m; cj < ffd->Y(); cj += ffd->Y() - m - 1)
+        for (int ci = m; ci < ffd->X(); ci += ffd->X() - m - 1) {
+          ffd->Put(ci, cj, ck, cl, 0., 0., 0.);
+          ffd->PutStatus(ci, cj, ck, cl, Passive, Passive, Passive);
+        }
+      }
     }
   }
 }
@@ -3287,10 +3355,10 @@ void GenericRegistrationFilter::InitializeTransformation()
 
   // Extend domain to add a layer of (active) control points at the boundary
   if (_CropPadImages) {
-    const double margin = (IsDiffeo(_CurrentModel) ? 2. : 1.) * ffd->KernelRadius();
-    if (domain._x > 1) domain._dx += margin * mirtk::max(min_ds[0], max_ds[0]) / (domain._x - 1);
-    if (domain._y > 1) domain._dy += margin * mirtk::max(min_ds[1], max_ds[1]) / (domain._y - 1);
-    if (domain._z > 1) domain._dz += margin * mirtk::max(min_ds[2], max_ds[2]) / (domain._z - 1);
+    const double margin = (!_CropPadFFD && IsDiffeo(_CurrentModel) ? 2. : 1.) * ffd->KernelRadius();
+    if (domain._x > 1) domain._dx += margin * max(min_ds[0], max_ds[0]) / (domain._x - 1);
+    if (domain._y > 1) domain._dy += margin * max(min_ds[1], max_ds[1]) / (domain._y - 1);
+    if (domain._z > 1) domain._dz += margin * max(min_ds[2], max_ds[2]) / (domain._z - 1);
   }
   // Add layer of (active) control points at the outermost time points
   // of a 4D FFD if it is not extended periodically by the extrapolator
