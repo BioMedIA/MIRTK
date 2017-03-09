@@ -556,6 +556,7 @@ int main(int argc, char **argv)
       if (ToLower(table_name) != "stdout" && ToLower(table_name) != "cout") {
         ofs.open(table_name);
         if (!ofs) FatalError("Failed to open output file: " << table_name);
+        os = &ofs;
       }
 
       if (source_name.size() == 1) {
