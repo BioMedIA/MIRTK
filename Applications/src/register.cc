@@ -1081,26 +1081,21 @@ int main(int argc, char **argv)
     registration.Write(parout_name);
   }
 
+  const clock_t start_cpu_time = clock();
 #ifdef HAVE_TBB
-  tbb::tick_count start_time = tbb::tick_count::now();
-#else
-  clock_t start_time = clock();
+  tbb::tick_count start_wall_time = tbb::tick_count::now();
 #endif
 
   registration.Run();
 
   if (verbose) {
-    double elapsed_time;
-#ifdef HAVE_TBB
-    elapsed_time = (tbb::tick_count::now() - start_time).seconds();
-#else
-    elapsed_time = static_cast<double>(clock() - start_time)
-                 / static_cast<double>(CLOCKS_PER_SEC);
-#endif
-    int m = ifloor(elapsed_time / 60.0);
-    int s = iround(elapsed_time - m * 60);
-    if (s == 60) m += 1, s = 0;
-    cout << "\nFinished in " << m << " min " << s << " sec" << endl;
+    cout << "\n";
+    double sec = static_cast<double>(clock() - start_cpu_time) / static_cast<double>(CLOCKS_PER_SEC);
+    #ifdef HAVE_TBB
+      cout << "CPU time is " << ElapsedTimeToString(sec, TIME_IN_SECONDS, TIME_FORMAT_H_MIN_SEC, 2) << "\n";
+      sec = (tbb::tick_count::now() - start_wall_time).seconds();
+    #endif
+    cout << "Finished in " << ElapsedTimeToString(sec, TIME_IN_SECONDS, TIME_FORMAT_H_MIN_SEC, 2) << endl;
   }
 
   // Write final transformation
