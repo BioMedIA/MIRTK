@@ -617,16 +617,21 @@ protected:
   /// Constructor
   TruncatedForegroundConvolution1D(const BaseImage *image, const TKernel *kernel, int size, bool norm = true)
   :
-    _Kernel(kernel), _Size(size), _Radius((size - 1) / 2), _Normalize(norm),
-    _Background(image->GetBackgroundValueAsDouble())
-  {}
+    _Kernel(kernel), _Size(size), _Radius((size - 1) / 2), _Normalize(norm)
+  {
+    if (image->HasBackgroundValue()) {
+      _Background = image->GetBackgroundValueAsDouble();
+    } else {
+      _Background = NaN;
+    }
+  }
 
   // ---------------------------------------------------------------------------
   /// Apply kernel initially at center voxel
   template <class T>
   bool ConvolveCenterVoxel(const T *in, double &acc, double &sum) const
   {
-    if (*in == _Background) {
+    if (AreEqualOrNaN(static_cast<double>(*in), _Background, 1e-6)) {
       acc = _Background;
       sum = .0;
       return false;
@@ -648,7 +653,7 @@ protected:
       i  += di;
       in -= s;
       // Stop if outside image/foreground
-      if (i < 0 || i >= n || *in == _Background) break;
+      if (i < 0 || i >= n || AreEqualOrNaN(static_cast<double>(*in), _Background, 1e-6)) break;
       // Multiply with kernel weight
       acc += static_cast<double>(_Kernel[k]) * static_cast<double>(*in);
       sum += static_cast<double>(_Kernel[k]);
@@ -666,7 +671,7 @@ protected:
       i  += di;
       in += s;
       // Stop if outside image/foreground
-      if (i < 0 || i >= n || *in == _Background) break;
+      if (i < 0 || i >= n || AreEqualOrNaN(static_cast<double>(*in), _Background, 1e-6)) break;
       // Multiply with kernel weight
       acc += static_cast<double>(_Kernel[k]) * static_cast<double>(*in);
       sum += static_cast<double>(_Kernel[k]);
@@ -890,14 +895,20 @@ protected:
   :
     _Kernel(kernel), _Size(size), _Radius((size - 1) / 2), _Norm(norm),
     _Background(image->GetBackgroundValueAsDouble())
-  {}
+  {
+    if (image->HasBackgroundValue()) {
+      _Background = image->GetBackgroundValueAsDouble();
+    } else {
+      _Background = NaN;
+    }
+  }
 
   // ---------------------------------------------------------------------------
   /// Apply kernel initially at center voxel
   template <class T>
   bool ConvolveCenterVoxel(const T *in, double &acc) const
   {
-    if (*in == _Background) {
+    if (AreEqualOrNaN(static_cast<double>(*in), _Background, 1e-6)) {
       acc = _Background / _Norm;
       return false;
     } else {
@@ -917,7 +928,7 @@ protected:
       i  += di;
       in -= s;
       // Reverse if outside image/foreground
-      if (i < 0 || i >= n || *in == _Background) {
+      if (i < 0 || i >= n || AreEqualOrNaN(static_cast<double>(*in), _Background, 1e-6)) {
         di  = -di;
         s   = -s;
         i  += di;
@@ -939,7 +950,7 @@ protected:
       i  += di;
       in += s;
       // Reverse if outside image/foreground
-      if (i < 0 || i >= n || *in == _Background) {
+      if (i < 0 || i >= n || AreEqualOrNaN(static_cast<double>(*in), _Background, 1e-6)) {
         di  = -di;
         s   = -s;
         i  += di;
@@ -1114,16 +1125,21 @@ protected:
   /// Constructor
   ExtendedForegroundConvolution1D(const BaseImage *image, const TKernel *kernel, int size, double norm = 1.0)
   :
-    _Kernel(kernel), _Size(size), _Radius((size - 1) / 2), _Norm(norm),
-    _Background(image->GetBackgroundValueAsDouble())
-  {}
+    _Kernel(kernel), _Size(size), _Radius((size - 1) / 2), _Norm(norm)
+  {
+    if (image->HasBackgroundValue()) {
+      _Background = image->GetBackgroundValueAsDouble();
+    } else {
+      _Background = NaN;
+    }
+  }
 
   // ---------------------------------------------------------------------------
   /// Apply kernel initially at center voxel
   template <class T>
   bool ConvolveCenterVoxel(const T *in, double &acc) const
   {
-    if (*in == _Background) {
+    if (AreEqualOrNaN(static_cast<double>(*in), _Background, 1e-6)) {
       acc = _Background / _Norm;
       return false;
     } else {
@@ -1141,7 +1157,7 @@ protected:
     for (int k = _Radius + 1; k < _Size; ++k) {
       i  -= di;
       in -= s;
-      if (i < 0 || *in == _Background) {
+      if (i < 0 || AreEqualOrNaN(static_cast<double>(*in), _Background, 1e-6)) {
         i  += di;
         in += s;
         di = s = 0;
@@ -1160,7 +1176,7 @@ protected:
     for (int k = _Radius - 1; k >= 0; --k) {
       i  += di;
       in += s;
-      if (n <= i || *in == _Background) {
+      if (n <= i || AreEqualOrNaN(static_cast<double>(*in), _Background, 1e-6)) {
         i  -= di;
         in -= s;
         di = s = 0;
