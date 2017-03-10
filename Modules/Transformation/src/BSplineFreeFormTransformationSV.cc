@@ -1516,7 +1516,9 @@ void BSplineFreeFormTransformationSV
     //   ==> v_{i+1} = log(exp(tau * v_{i+1})) / tau
     w /= T;
     // Add weighted gradient to total energy gradient
-    for (int dof = 0; dof < this->NumberOfDOFs(); ++dof) out[dof] += w * grd[dof];
+    for (int dof = 0; dof < this->NumberOfDOFs(); ++dof) {
+      if (_Status[dof] == Active) out[dof] += w * grd[dof];
+    }
     MIRTK_DEBUG_TIMING(2, "parametric gradient computation (BCH)");
 
   // ---------------------------------------------------------------------------
@@ -1538,17 +1540,16 @@ void BSplineFreeFormTransformationSV
     dv.Initialize();
 
     // Multiply input derivatives w.r.t. T by the derivative of T w.r.t. v
-    GenericImage<double> *tmp = new GenericImage<double>(in->Attributes());
-    MultiplyApproximateDerivatives mul(&dv, tmp);
+    UniquePtr<GenericImage<double> > tmp(new GenericImage<double>(in->Attributes()));
+    MultiplyApproximateDerivatives mul(&dv, tmp.get());
     if (wc) {
-      ParallelForEachVoxel(in->Attributes(), wc, in, tmp, mul);
+      ParallelForEachVoxel(in->Attributes(), wc, in, tmp.get(), mul);
     } else {
-      ParallelForEachVoxel(in->Attributes(),     in, tmp, mul);
+      ParallelForEachVoxel(in->Attributes(),     in, tmp.get(), mul);
     }
 
     // Multiply resulting vectors by derivative of v w.r.t. the DoFs
-    BSplineFreeFormTransformation3D::ParametricGradient(tmp, out, i2w, wc, t0, w);
-    delete tmp;
+    BSplineFreeFormTransformation3D::ParametricGradient(tmp.get(), out, i2w, wc, t0, w);
     MIRTK_DEBUG_TIMING(2, "parametric gradient computation (FastSS)");
 
   } else if (_IntegrationMethod == FFDIM_SS) {
@@ -1623,16 +1624,16 @@ void BSplineFreeFormTransformationSV
     dv.Initialize();
  
     // Multiply input derivatives w.r.t. T by the derivative of T w.r.t. v
+    UniquePtr<Vector3D<double>[]> res(new Vector3D<double>[pos.Size()]);
     MultiplyPointWiseDerivatives mul;
     mul._PointSet     = &pos;
     mul._Input        = in;
     mul._JacobianDOFs = &dv;
-    mul._Output       = new Vector3D<double>[pos.Size()];
+    mul._Output       = res.get();
     parallel_for(blocked_range<int>(0, pos.Size()), mul);
 
     // Multiply resulting vectors by derivative of v w.r.t. the DoFs
     BSplineFreeFormTransformation3D::ParametricGradient(pos, mul._Output, out, t, t0, w);
-    delete[] mul._Output;
 
     MIRTK_DEBUG_TIMING(2, "point-wise parametric gradient computation (" << ToString(_IntegrationMethod) << ")");
 
