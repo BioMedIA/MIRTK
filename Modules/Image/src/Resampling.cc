@@ -75,9 +75,8 @@ void Resampling<VoxelType>::Initialize()
   ImageToImage<VoxelType>::Initialize(false);
 
   // Set up interpolator
-  if (_Interpolator == NULL) {
-    cerr << "Resampling::Initialize: No interpolator found!" << endl;
-    exit(1);
+  if (_Interpolator == nullptr) {
+    Throw(ERR_InvalidArgument, __FUNCTION__, "Interpolator must be set");
   }
   _Interpolator->Input(this->_Input);
   _Interpolator->Initialize();
