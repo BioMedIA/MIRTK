@@ -203,6 +203,16 @@ void GaussianBlurring<VoxelType>::Finalize()
   // Finalize base class
   ImageToImage<VoxelType>::Finalize();
 
+  // Copy background information
+  if (this->Input() != this->Output()) {
+    if (this->Input()->HasBackgroundValue()) {
+      this->Output()->PutBackgroundValueAsDouble(this->Input()->GetBackgroundValueAsDouble());
+    }
+    if (this->Input()->HasMask()) {
+      this->Output()->PutMask(new BinaryImage(*this->Input()->GetMask()), true);
+    }
+  }
+
   // Free convolution kernel
   Delete(_Kernel);
 }
