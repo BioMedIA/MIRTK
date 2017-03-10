@@ -57,6 +57,15 @@ public:
   virtual void Initialize(bool = false);
 
   // ---------------------------------------------------------------------------
+  // Linear interpolation weights
+
+  /// Returns truncated integral part of floating point
+  ///
+  /// \param[in]  x Floating point number.
+  /// \param[out] w Linear interpolation weights for closest lattice nodes.
+  static int ComputeWeights(double, Real[2]);
+
+  // ---------------------------------------------------------------------------
   // Domain checks
 
   /// Returns interval of discrete image indices whose values are needed for

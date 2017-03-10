@@ -210,8 +210,8 @@ GenericBSplineInterpolateImageFunction<TImage>
     }
   }
 
-  if (bgw > fgw) {
-    val  = voxel_cast<RealType>(this->DefaultValue());
+  if (bgw > fgw || AreEqual(bgw, fgw, 1e-3)) {
+    val = voxel_cast<RealType>(this->DefaultValue());
   }
   return voxel_cast<VoxelType>(val);
 }
@@ -278,8 +278,8 @@ typename TCoefficient::VoxelType GenericBSplineInterpolateImageFunction<TImage>
     }
   }
 
-  if (bgw > fgw) {
-    val  = voxel_cast<RealType>(this->DefaultValue());
+  if (bgw > fgw || AreEqual(bgw, fgw, 1e-3)) {
+    val = voxel_cast<RealType>(this->DefaultValue());
   }
   return voxel_cast<VoxelType>(val);
 }
@@ -364,8 +364,8 @@ GenericBSplineInterpolateImageFunction<TImage>
     }
   }
 
-  if (bgw > fgw) {
-    val  = voxel_cast<RealType>(this->DefaultValue());
+  if (bgw > fgw || AreEqual(bgw, fgw, 1e-3)) {
+    val = voxel_cast<RealType>(this->DefaultValue());
   }
   return voxel_cast<VoxelType>(val);
 }
@@ -437,8 +437,8 @@ typename TCoefficient::VoxelType GenericBSplineInterpolateImageFunction<TImage>
     }
   }
 
-  if (bgw > fgw) {
-    val  = voxel_cast<RealType>(this->DefaultValue());
+  if (bgw > fgw || AreEqual(bgw, fgw, 1e-3)) {
+    val = voxel_cast<RealType>(this->DefaultValue());
   }
   return voxel_cast<typename TCoefficient::VoxelType>(val);
 }
@@ -520,8 +520,8 @@ GenericBSplineInterpolateImageFunction<TImage>
     }
   }
 
-  if (bgw > fgw) {
-    val  = voxel_cast<RealType>(this->DefaultValue());
+  if (bgw > fgw || AreEqual(bgw, fgw, 1e-3)) {
+    val = voxel_cast<RealType>(this->DefaultValue());
   }
   return voxel_cast<VoxelType>(val);
 }
@@ -596,8 +596,8 @@ typename TCoefficient::VoxelType GenericBSplineInterpolateImageFunction<TImage>
     }
   }
 
-  if (bgw > fgw) {
-    val  = voxel_cast<RealType>(this->DefaultValue());
+  if (bgw > fgw || AreEqual(bgw, fgw, 1e-3)) {
+    val = voxel_cast<RealType>(this->DefaultValue());
   }
   return voxel_cast<VoxelType>(val);
 }
