@@ -3645,7 +3645,6 @@ void GenericRegistrationFilter::InitializeOutput()
   _Transformation->Verify();
 
   // Memorize (all) used (non-DoF) transformation settings for -parout file
-  ParameterList params = _Transformation->Parameter();
   Insert(_Parameter[_CurrentLevel], _Transformation->Parameter());
 
   MIRTK_DEBUG_TIMING(3, "initialization of output");
