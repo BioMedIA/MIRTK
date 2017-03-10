@@ -1,9 +1,9 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2008-2015 Imperial College London
+ * Copyright 2008-2017 Imperial College London
  * Copyright 2008-2013 Daniel Rueckert, Julia Schnabel
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2013-2017 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -87,12 +87,12 @@ void GaussianBlurringWithPadding<VoxelType>::Run()
   GenericImage<VoxelType> *output = this->Output();
 
   const ImageAttributes &attr = input->Attributes();
-  const int N = ((attr._dt == .0) ? attr._t : 1);
+  const int N = (AreEqual(attr._dt, 0.) ? attr._t : 1);
 
   // Blur along x axis
-  if (this->_SigmaX != .0 && input->X() > 1) {
+  if (!AreEqual(this->_SigmaX, 0.) && input->X() > 1) {
     if (output == this->Input()) output = new GenericImage<VoxelType>(attr);
-    this->InitializeKernel(this->_SigmaX / input->GetXSize());
+    this->InitializeKernel(this->_SigmaX / input->XSize());
     typedef ConvolutionFunction::ConvolveTruncatedForegroundInX<RealPixel> Conv;
     for (int n = 0; n < N; ++n) {
       Conv conv(input, _PaddingValue, this->_Kernel->Data(), this->_Kernel->X(), true, n);
@@ -102,9 +102,9 @@ void GaussianBlurringWithPadding<VoxelType>::Run()
   }
 
   // Blur along y axis
-  if (this->_SigmaY != .0 && input->Y() > 1) {
+  if (!AreEqual(this->_SigmaY, 0.) && input->Y() > 1) {
     if (output == this->Input()) output = new GenericImage<VoxelType>(attr);
-    this->InitializeKernel(this->_SigmaY / input->GetYSize());
+    this->InitializeKernel(this->_SigmaY / input->YSize());
     typedef ConvolutionFunction::ConvolveTruncatedForegroundInY<RealPixel> Conv;
     for (int n = 0; n < N; ++n) {
       Conv conv(input, _PaddingValue, this->_Kernel->Data(), this->_Kernel->X(), true, n);
@@ -114,9 +114,9 @@ void GaussianBlurringWithPadding<VoxelType>::Run()
   }
 
   // Blur along z axis
-  if (this->_SigmaZ != .0 && input->Z() > 1) {
+  if (!AreEqual(this->_SigmaZ, 0.) && input->Z() > 1) {
     if (output == this->Input()) output = new GenericImage<VoxelType>(attr);
-    this->InitializeKernel(this->_SigmaZ / input->GetZSize());
+    this->InitializeKernel(this->_SigmaZ / input->ZSize());
     typedef ConvolutionFunction::ConvolveTruncatedForegroundInZ<RealPixel> Conv;
     for (int n = 0; n < N; ++n) {
       Conv conv(input, _PaddingValue, this->_Kernel->Data(), this->_Kernel->X(), true, n);
@@ -126,9 +126,9 @@ void GaussianBlurringWithPadding<VoxelType>::Run()
   }
 
   // Blur along t axis
-  if (this->_SigmaT != .0 && input->T() > 1) {
+  if (!AreEqual(this->_SigmaT, 0.) && input->T() > 1) {
     if (output == this->Input()) output = new GenericImage<VoxelType>(attr);
-    this->InitializeKernel(this->_SigmaT / input->GetTSize());
+    this->InitializeKernel(this->_SigmaT / input->TSize());
     typedef ConvolutionFunction::ConvolveTruncatedForegroundInT<RealPixel> Conv;
     Conv conv(input, _PaddingValue, this->_Kernel->Data(), this->_Kernel->X(), true);
     ParallelForEachVoxel(attr, input, output, conv);
@@ -142,7 +142,7 @@ void GaussianBlurringWithPadding<VoxelType>::Run()
       if (output != this->Input()) Delete(output);
     } else {
       this->Output()->CopyFrom(input->Data());
-      if (input != this->Input ()) Delete(input);
+      if (input != this->Input()) Delete(input);
     }
   }
 
