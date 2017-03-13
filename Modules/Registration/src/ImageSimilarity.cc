@@ -284,7 +284,7 @@ ImageSimilarity::ImageSimilarity(const char *name, double weight)
   DataFidelity(name, weight),
   _Target(new RegisteredImage()), _TargetOwner(true),
   _Source(new RegisteredImage()), _SourceOwner(true),
-  _Foreground              (FG_Target),
+  _Foreground              (FG_Overlap),
   _Mask                    (nullptr),
   _GradientWrtTarget       (nullptr),
   _GradientWrtSource       (nullptr),
