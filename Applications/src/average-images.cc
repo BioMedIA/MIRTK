@@ -1,8 +1,8 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2013-2015 Imperial College London
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2013-2017 Imperial College London
+ * Copyright 2013-2017 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -108,6 +108,9 @@ void PrintHelp(const char* name)
   cout << "  -padding <value>\n";
   cout << "      Input padding and output background value. No input padding if not specified.\n";
   cout << "      Output background value zero by default or minimum average intensity minus 1. (default: 0)\n";
+  cout << "  -threshold <value>\n";
+  cout << "      Replace average value by :option:`-padding` value when cumulative normalized weight\n";
+  cout << "      is below the specified threshold in [0, 1). (default: 0)\n";
   cout << "  -normalize, -normalization <mode>\n";
   cout << "      Input intensity normalization:\n";
   cout << "      - ``none``:    Use input intensities unmodified. (default)\n";
@@ -147,6 +150,7 @@ typedef GenericInterpolateImageFunction<InputImage> InputImageFunction;
 
 // Type of average image
 typedef GenericImage<float>  AverageImage;
+typedef GenericImage<float>  WeightImage;
 
 // Type of intensity image normalization
 enum NormalizationMode
@@ -306,6 +310,7 @@ UniquePtr<bool[]> ForegroundMaskArray(const BaseImage *image)
 struct AddVoxelValueToAverage : public VoxelFunction
 {
   AverageImage       *_Average;
+  WeightImage        *_Norm;
   InputImageFunction *_Image;
   double              _Weight;
   double              _Scale;
@@ -347,12 +352,15 @@ struct AddVoxelValueToAverage : public VoxelFunction
       } else {
         *avg += static_cast<T>(_Weight * value);
       }
+      if (_Norm) {
+        _Norm->PutAsDouble(i, j, k, _Norm->GetAsDouble(i, j, k) + _Weight);
+      }
     }
   }
 };
 
 // -----------------------------------------------------------------------------
-bool Add(AverageImage &average, InputImage &image,
+bool Add(AverageImage &average, WeightImage *norm, InputImage &image,
          #ifdef HAVE_MIRTK_Transformation
            const Array<UniquePtr<Transformation> > &dof,
            const Array<bool>                       &inv,
@@ -363,6 +371,7 @@ bool Add(AverageImage &average, InputImage &image,
          double avg_mean = NaN, double avg_sigma = NaN)
 {
   AddVoxelValueToAverage add;
+  add._Norm = norm;
   add._Scale = 1.;
   add._Intercept = 0.;
   // Set interpolation function
@@ -629,6 +638,7 @@ int main(int argc, char **argv)
   InterpolationMode  interpolation    = Interpolation_Linear;
   NormalizationMode  normalization    = Normalization_None;
   RescalingMode      rescaling        = Rescaling_None;
+  double             min_norm         = 0.;
   double             output_min       = -inf;
   double             output_max       = +inf;
   bool               invert_dofs      = false;
@@ -665,6 +675,9 @@ int main(int argc, char **argv)
         if (HAS_ARGUMENT) PARSE_ARGUMENT(dz);
         else              dz = .0;
       }
+    }
+    else if (OPTION("-threshold")) {
+      PARSE_ARGUMENT(min_norm);
     }
     else if (OPTION("-normalization") || OPTION("-normalize")) {
       if (HAS_ARGUMENT) {
@@ -917,6 +930,10 @@ int main(int argc, char **argv)
   // ---------------------------------------------------------------------------
   // Compute average image
   AverageImage average(fov);
+  UniquePtr<WeightImage> norm;
+  if (min_norm > 0.f) {
+    norm.reset(new WeightImage(fov));
+  }
   if (label <= 0) {
     average = NaN;
     average.PutBackgroundValueAsDouble(NaN);
@@ -955,10 +972,10 @@ int main(int argc, char **argv)
 
     bool ok;
     #ifdef HAVE_MIRTK_Transformation
-      ok = Add(average, image, dofs, invert, image_weight[n], label, interpolation, normalization, avg_mean, avg_sigma);
+      ok = Add(average, norm.get(), image, dofs, invert, image_weight[n], label, interpolation, normalization, avg_mean, avg_sigma);
       dofs.clear(), invert.clear();
     #else
-      ok = Add(average, image, image_weight[n], label, interpolation, normalization, avg_mean, avg_sigma);
+      ok = Add(average, norm.get(), image, image_weight[n], label, interpolation, normalization, avg_mean, avg_sigma);
     #endif
     if (ok) {
       if (verbose) cout << " done" << endl;
@@ -987,6 +1004,17 @@ int main(int argc, char **argv)
       }
     }
     average.PutBackgroundValueAsDouble(bg);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Apply norm threshold
+  if (norm) {
+    const auto bg = (average.HasBackgroundValue() ? average.GetBackgroundValueAsDouble() : 0.);
+    for (int idx = 0; idx < average.NumberOfVoxels(); ++idx) {
+      if (norm->GetAsDouble(idx) < min_norm) {
+        average(idx) = bg;
+      }
+    }
   }
 
   // ---------------------------------------------------------------------------
