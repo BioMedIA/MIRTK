@@ -117,7 +117,7 @@ if __name__ == '__main__':
                         help="List of CSV files written by evaluate-overlap -table option.")
     parser.add_argument('--micro', '-micro', action='store_true',
                         help="Compute micro-average of each measure instead of a macro-average.")
-    parser.add_argument('--measure', '-measure', '--metric', '-metric', dest='measure', nargs='+', default=[], action='append',
+    parser.add_argument('--measure', '-measure', '--metric', '-metric', dest='measure', nargs='+', default=[],
                         help="Overlap measure(s) to include in output, all by default.")
     parser.add_argument('--segment', '-segment', dest='segments', nargs='+', default=[], metavar='NAME LABEL...', action=ParseSegmentOptionArguments,
                         help="Average the overlap measures for the specified labels, LABEL must be integer or range '5..10'.")
