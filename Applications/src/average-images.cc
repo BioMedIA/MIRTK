@@ -543,6 +543,8 @@ public:
       if (f.IsInsideForeground(i, j, k+1)) outvalue += f(i, j, k+1) * _NeighborWeight.z;
       else                                 outvalue += invalue      * _NeighborWeight.z;
       *out = voxel_cast<AverageImage::VoxelType>(outvalue - invalue * _CenterWeight);
+    } else {
+      *out = voxel_cast<AverageImage::VoxelType>(0);
     }
   }
 };
