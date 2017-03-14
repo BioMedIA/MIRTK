@@ -634,7 +634,7 @@ int main(int argc, char **argv)
   const char        *image_list_name  = nullptr;
   const char        *image_list_delim = nullptr;
   string             reference_name;
-  double             padding          = numeric_limits<double>::quiet_NaN();
+  double             padding          = NaN;
   InterpolationMode  interpolation    = Interpolation_Linear;
   NormalizationMode  normalization    = Normalization_None;
   RescalingMode      rescaling        = Rescaling_None;
@@ -1036,28 +1036,35 @@ int main(int argc, char **argv)
       cout << "Sharpening average image using Laplacian operator...";
       cout.flush();
     }
+    typedef AverageImage::VoxelType Real;
     const int num = average.NumberOfSpatialVoxels();
     UniquePtr<bool[]> mask = ForegroundMaskArray(&average);
-    typedef AverageImage::VoxelType Real;
     AverageImage laplace = ApplyLaplaceOperator(average);
-    Real mean = Mean::Calculate(num, average.Data(), mask.get());
-    Real min_value, max_value;
-    average.GetMinMax(min_value, max_value);
-    laplace.PutMinMax(min_value, max_value);
+    Real mean = static_cast<Real>(Mean::Calculate(num, average.Data(), mask.get()));
     if (debug) {
       average.Write("debug_average_intensity.nii.gz");
       laplace.Write("debug_average_laplacian.nii.gz");
     }
+    double min_average, max_average, min_laplace, max_laplace;
+    Extrema::Calculate(min_average, max_average, num, average.Data(), mask.get());
+    Extrema::Calculate(min_laplace, max_laplace, num, laplace.Data(), mask.get());
+    Real scale = 1., intercept = 0.;
+    if (min_average < max_average && min_laplace < max_laplace) {
+      scale = static_cast<Real>((max_average - min_average) / (max_laplace - min_laplace));
+      intercept = static_cast<Real>(min_average - scale * min_laplace);
+    }
     for (int idx = 0; idx < num; ++idx) {
-      if (mask[idx]) average(idx) -= laplace(idx);
+      if (mask[idx]) {
+        average(idx) -= scale * laplace(idx) + intercept;
+      }
     }
     if (debug) {
       average.Write("debug_average_sharpened.nii.gz");
     }
-    Real shift = mean - Mean::Calculate(num, average.Data(), mask.get());
+    Real shift = mean - static_cast<Real>(Mean::Calculate(num, average.Data(), mask.get()));
     for (int idx = 0; idx < num; ++idx) {
       if (mask[idx]) {
-        average(idx) = clamp(average(idx) + shift, min_value, max_value);
+        average(idx) = clamp(average(idx) + shift, min_average, max_average);
       }
     }
     if (verbose) cout << " done" << endl;
