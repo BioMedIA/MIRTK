@@ -1,8 +1,8 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2013-2015 Imperial College London
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2013-2017 Imperial College London
+ * Copyright 2013-2017 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -81,9 +81,9 @@ public:
   template <class Image, class TScalar, class TReal>
   void operator ()(const Image &, int, const TScalar *dI, TReal *gradient)
   {
-    (*gradient) *= dI[_dx]; gradient += _NumberOfVoxels;
-    (*gradient) *= dI[_dy]; gradient += _NumberOfVoxels;
-    (*gradient) *= dI[_dz];
+    (*gradient) *= static_cast<TReal>(dI[_dx]); gradient += _NumberOfVoxels;
+    (*gradient) *= static_cast<TReal>(dI[_dy]); gradient += _NumberOfVoxels;
+    (*gradient) *= static_cast<TReal>(dI[_dz]);
   }
 };
 
@@ -123,7 +123,10 @@ public:
   template <class Image, class TReal>
   void operator ()(const Image &, int, TReal *gradient)
   {
-    double norm = pow(gradient[_x], 2) + pow(gradient[_y], 2) + pow(gradient[_z], 2);
+    double gx = static_cast<double>(gradient[_x]);
+    double gy = static_cast<double>(gradient[_y]);
+    double gz = static_cast<double>(gradient[_z]);
+    double norm = gx * gx + gy * gy + gz * gz;
     if (norm > _norm) _norm = norm;
   }
 };
@@ -207,12 +210,15 @@ public:
   template <class Image, class TReal>
   void operator ()(const Image &, int, TReal *gradient)
   {
-    double norm = pow(gradient[_x], 2) + pow(gradient[_y], 2) + pow(gradient[_z], 2);
+    double gx = static_cast<double>(gradient[_x]);
+    double gy = static_cast<double>(gradient[_y]);
+    double gz = static_cast<double>(gradient[_z]);
+    double norm = gx * gx + gy * gy + gz * gz;
     if (norm) {
       norm = sqrt(norm) + _Sigma;
-      gradient[_x] /= norm;
-      gradient[_y] /= norm;
-      gradient[_z] /= norm;
+      gradient[_x] = static_cast<TReal>(gx / norm);
+      gradient[_y] = static_cast<TReal>(gy / norm);
+      gradient[_z] = static_cast<TReal>(gz / norm);
     }
   }
 };
@@ -278,6 +284,7 @@ ImageSimilarity::ImageSimilarity(const char *name, double weight)
   DataFidelity(name, weight),
   _Target(new RegisteredImage()), _TargetOwner(true),
   _Source(new RegisteredImage()), _SourceOwner(true),
+  _Foreground              (FG_Overlap),
   _Mask                    (nullptr),
   _GradientWrtTarget       (nullptr),
   _GradientWrtSource       (nullptr),
@@ -313,11 +320,15 @@ void ImageSimilarity::CopyAttributes(const ImageSimilarity &other)
   Delete(_GradientWrtSource);
   Deallocate(_Gradient);
 
+  _Domain                   = other._Domain;
+  _Foreground               = other._Foreground;
   _Mask                     = other._Mask;
   _NumberOfVoxels           = other._NumberOfVoxels;
   _UseApproximateGradient   = other._UseApproximateGradient;
   _VoxelWisePreconditioning = other._VoxelWisePreconditioning;
   _NodeBasedPreconditioning = other._NodeBasedPreconditioning;
+  _SkipTargetInitialization = other._SkipTargetInitialization;
+  _SkipSourceInitialization = other._SkipSourceInitialization;
   _InitialUpdate            = other._InitialUpdate;
 }
 
@@ -368,6 +379,7 @@ void ImageSimilarity::InitializeInput(const ImageAttributes &domain)
     _Source->Initialize(domain, _Source->Transformation() ? 4 : 1);
   }
   _Domain = domain;
+  _Domain._t = 1;
 }
 
 // -----------------------------------------------------------------------------
@@ -409,6 +421,9 @@ void ImageSimilarity::Initialize()
 // -----------------------------------------------------------------------------
 bool ImageSimilarity::SetWithoutPrefix(const char *param, const char *value)
 {
+  if (strcmp(param, "Foreground") == 0 || strcmp(param, "Foreground region")) {
+    return FromString(value, _Foreground);
+  }
   if (strcmp(param, "Approximate gradient") == 0) {
     return FromString(value, _UseApproximateGradient);
   }
@@ -444,6 +459,7 @@ bool ImageSimilarity::SetWithoutPrefix(const char *param, const char *value)
 ParameterList ImageSimilarity::Parameter() const
 {
   ParameterList params = DataFidelity::Parameter();
+  InsertWithPrefix(params, "Foreground region",            _Foreground);
   InsertWithPrefix(params, "Approximate gradient",         _UseApproximateGradient);
   InsertWithPrefix(params, "Preconditioning (voxel-wise)", _VoxelWisePreconditioning);
   InsertWithPrefix(params, "Preconditioning (node-based)", _NodeBasedPreconditioning);

@@ -65,9 +65,9 @@ TEST(RegisteredImage, IdentityTransformation)
 TEST(RegisteredImage, GlobalAndLocalTransformation)
 {
   // Allocate images
-  ImageAttributes      attr(64, 64, 32);
-  GenericImage<double> image(attr);
-  RegisteredImage      source;
+  ImageAttributes attr(64, 64, 32);
+  RegisteredImage::InputImageType image(attr);
+  RegisteredImage source;
   // Initialize untransformed source image such that voxels can be distinguished
   fill_test_image(image);
   // Prepare global transformation which translates image one voxel in y

@@ -1,8 +1,9 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2008-2015 Imperial College London
+ * Copyright 2008-2017 Imperial College London
  * Copyright 2008-2015 Daniel Rueckert, Julia Schnabel
+ * Copyright 2017      Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,6 +23,7 @@
 #include "mirtk/Math.h"
 #include "mirtk/Parallel.h"
 #include "mirtk/Profiling.h"
+#include "mirtk/InterpolateImageFunction.h"
 
 
 namespace mirtk {
@@ -35,162 +37,34 @@ namespace mirtk {
 template <class VoxelType>
 class MultiThreadedResamplingWithPadding
 {
-  /// Pointer to image transformation class
-  ResamplingWithPadding<VoxelType> *_Filter;
+  /// Input image interpolator
+  const InterpolateImageFunction *_Input;
 
-  /// Background padding value
-  double _PaddingValue;
+  /// Output image
+  BaseImage *_Output;
 
-  /// Time frame to transform
-  int _t;
+  /// Time frame to resample
+  double _t;
 
 public:
 
-  MultiThreadedResamplingWithPadding(ResamplingWithPadding<VoxelType> *filter, int t)
+  MultiThreadedResamplingWithPadding(const InterpolateImageFunction *input, BaseImage *output, int t)
   :
-    _Filter(filter),
-    _PaddingValue(filter->PaddingValue()),
+    _Input(input),
+    _Output(output),
     _t(t)
   {}
 
   void operator ()(const blocked_range<int> &r) const
   {
-    int    u, v, w, pad;
-    double val, sum, w1, w2, w3, w4, w5, w6, w7, w8, dx, dy, dz, x, y, z;
-
-    const GenericImage<VoxelType> *input  = _Filter->Input();
-    GenericImage<VoxelType>       *output = _Filter->Output();
-
-    // TODO: Use InterpolateImageFunction::GetWithPadding instead
-
-    int l = _t;
-    for (int k = r.begin(); k != r.end();    ++k)
-    for (int j = 0;         j < output->Y(); ++j)
-    for (int i = 0;         i < output->X(); ++i) {
-      x = i, y = j, z = k;
-      output->ImageToWorld(x, y, z);
-      input ->WorldToImage(x, y, z);
-
-      // Calculate integer fraction of points
-      u = ifloor(x);
-      v = ifloor(y);
-      w = ifloor(z);
-
-      // Calculate floating point fraction of points
-      dx = x - u;
-      dy = y - v;
-      dz = z - w;
-
-      // Calculate weights for trilinear interpolation
-      w1 = (1 - dx) * (1 - dy) * (1 - dz);
-      w2 = (1 - dx) * (1 - dy) * dz;
-      w3 = (1 - dx) * dy * (1 - dz);
-      w4 = (1 - dx) * dy * dz;
-      w5 = dx * (1 - dy) * (1 - dz);
-      w6 = dx * (1 - dy) * dz;
-      w7 = dx * dy * (1 - dz);
-      w8 = dx * dy * dz;
-
-      // Calculate trilinear interpolation, ignoring padded values
-      val = 0;
-      pad = 8;
-      sum = 0;
-      if ((u >= 0) && (u < input->X()) &&
-          (v >= 0) && (v < input->Y()) &&
-          (w >= 0) && (w < input->Z())) {
-        if (input->Get(u, v, w, l) != _PaddingValue) {
-          pad--;
-          val += input->Get(u, v, w, l) * w1;
-          sum += w1;
-        }
-      } else {
-        pad--;
-      }
-      if ((u   >= 0) && (u   < input->X()) &&
-          (v   >= 0) && (v   < input->Y()) &&
-          (w+1 >= 0) && (w+1 < input->Z())) {
-        if (input->Get(u, v, w+1, l) != _PaddingValue) {
-          pad--;
-          val += input->Get(u, v, w+1, l) * w2;
-          sum += w2;
-        }
-      } else {
-        pad--;
-      }
-      if ((u   >= 0) && (u   < input->X()) &&
-          (v+1 >= 0) && (v+1 < input->Y()) &&
-          (w   >= 0) && (w   < input->Z())) {
-        if (input->Get(u, v+1, w, l) != _PaddingValue) {
-          pad--;
-          val += input->Get(u, v+1, w, l) * w3;
-          sum += w3;
-        }
-      } else {
-        pad--;
-      }
-      if ((u   >= 0) && (u   < input->X()) &&
-          (v+1 >= 0) && (v+1 < input->Y()) &&
-          (w+1 >= 0) && (w+1 < input->Z())) {
-        if (input->Get(u, v+1, w+1, l) != _PaddingValue) {
-          pad--;
-          val += input->Get(u, v+1, w+1, l) * w4;
-          sum += w4;
-        }
-      } else {
-        pad--;
-      }
-      if ((u+1 >= 0) && (u+1 < input->X()) &&
-          (v   >= 0) && (v   < input->Y()) &&
-          (w   >= 0) && (w   < input->Z())) {
-        if (input->Get(u+1, v, w, l) != _PaddingValue) {
-          pad--;
-          val += input->Get(u+1, v, w, l) * w5;
-          sum += w5;
-        }
-      } else {
-        pad--;
-      }
-      if ((u+1 >= 0) && (u+1 < input->X()) &&
-          (v   >= 0) && (v   < input->Y()) &&
-          (w+1 >= 0) && (w+1 < input->Z())) {
-        if (input->Get(u+1, v, w+1, l) != _PaddingValue) {
-          pad--;
-          val += input->Get(u+1, v, w+1, l) * w6;
-          sum += w6;
-        }
-      } else {
-        pad--;
-      }
-      if ((u+1 >= 0) && (u+1 < input->X()) &&
-          (v+1 >= 0) && (v+1 < input->Y()) &&
-          (w   >= 0) && (w   < input->Z())) {
-        if (input->Get(u+1, v+1, w, l) != _PaddingValue) {
-          pad--;
-          val += input->Get(u+1, v+1, w, l) * w7;
-          sum += w7;
-        }
-      } else {
-        pad--;
-      }
-      if ((u+1 >= 0) && (u+1 < input->X()) &&
-          (v+1 >= 0) && (v+1 < input->Y()) &&
-          (w+1 >= 0) && (w+1 < input->Z())) {
-        if (input->Get(u+1, v+1, w+1, l) != _PaddingValue) {
-          pad--;
-          val += input->Get(u+1, v+1, w+1, l) * w8;
-          sum += w8;
-        }
-      } else {
-        pad--;
-      }
-      if (pad < 4) {
-        if (sum > 0) {
-          output->PutAsDouble(i, j, k, l, val / sum);
-        } else {
-          output->PutAsDouble(i, j, k, l, _PaddingValue);
-        }
-      } else {
-        output->PutAsDouble(i, j, k, l, _PaddingValue);
+    double x, y, z;
+    for (int k = r.begin(); k != r.end(); ++k) {
+      for (int j = 0; j < _Output->Y(); ++j)
+      for (int i = 0; i < _Output->X(); ++i) {
+        x = i, y = j, z = k;
+        _Output->ImageToWorld(x, y, z);
+        _Input ->WorldToImage(x, y, z);
+        _Output->PutAsDouble(i, j, k, _Input->EvaluateWithPadding(x, y, z, _t));
       }
     }
   }
@@ -239,8 +113,7 @@ template <class VoxelType>
 void ResamplingWithPadding<VoxelType>::Initialize()
 {
   // Initialize base class
-  // Not Resampling::Initialize which requires _Interpolator to be set!
-  ImageToImage<VoxelType>::Initialize();
+  Resampling<VoxelType>::Initialize();
 
   // Initialize output image
   this->InitializeOutput();
@@ -254,10 +127,16 @@ void ResamplingWithPadding<VoxelType>::Run()
 
   this->Initialize();
 
+  ImageType input(this->_Input->Attributes(), const_cast<VoxelType *>(this->_Input->Data()));
+  input.PutBackgroundValueAsDouble(static_cast<double>(_PaddingValue), true);
+  this->_Interpolator->Input(&input);
+
   for (int l = 0; l < this->_Output->T(); ++l) {
-    MultiThreadedResamplingWithPadding<VoxelType> body(this, l);
+    MultiThreadedResamplingWithPadding<VoxelType> body(this->_Interpolator, this->_Output, l);
     parallel_for(blocked_range<int>(0, this->_Output->Z(), 1), body);
   }
+
+  this->_Interpolator->Input(this->_Input);
 
   this->Finalize();
 

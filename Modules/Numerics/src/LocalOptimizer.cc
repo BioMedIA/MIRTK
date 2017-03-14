@@ -55,6 +55,36 @@ LocalOptimizer *LocalOptimizer::New(enum OptimizationMethod type, ObjectiveFunct
 }
 
 // =============================================================================
+// Line fitting
+// =============================================================================
+
+// -----------------------------------------------------------------------------
+/// Compute slope of least squares fit of line to last n objective function values
+///
+/// \see https://www.che.udel.edu/pdf/FittingData.pdf
+/// \see https://en.wikipedia.org/wiki/1_%2B_2_%2B_3_%2B_4_%2B_%E2%8B%AF
+/// \see https://proofwiki.org/wiki/Sum_of_Sequence_of_Squares
+double SlopeOfLeastSquaresFit(const Deque<double> &values)
+{
+  // sum_x1 divided by n as a slight modified to reduce no. of operations,
+  // i.e., the other terms are divided by n as well by dropping one factor n
+  const int n = static_cast<int>(values.size());
+  if (n <  2) return NaN;
+  if (n == 2) return values.back() - values.front();
+  double sum_x1 = double(n + 1) / 2.;                     // sum of x / n
+  double sum_x2 = n * double(n + 1) * (2. * n + 1) / 6.;  // sum of x^2
+  double sum_y1 = 0.;
+  double sum_xy = 0.;
+  double x = 1.;
+  for (auto y : values) {
+    sum_y1 += y;
+    sum_xy += x * y;
+    x += 1.;
+  }
+  return (sum_xy - sum_x1 * sum_y1) / (sum_x2 - n * sum_x1 * sum_x1);
+}
+
+// =============================================================================
 // Construction/Destruction
 // =============================================================================
 
@@ -65,6 +95,7 @@ LocalOptimizer::LocalOptimizer(ObjectiveFunction *f)
   _NumberOfSteps(100),
   _Epsilon(1e-4),
   _Delta(1e-12),
+  _NumberOfLastValues(2),
   _Converged(false)
 {
 }
@@ -72,11 +103,13 @@ LocalOptimizer::LocalOptimizer(ObjectiveFunction *f)
 // -----------------------------------------------------------------------------
 void LocalOptimizer::CopyAttributes(const LocalOptimizer &other)
 {
-  _Function      = other._Function;
-  _NumberOfSteps = other._NumberOfSteps;
-  _Epsilon       = other._Epsilon;
-  _Delta         = other._Delta;
-  _Converged     = other._Converged;
+  _Function           = other._Function;
+  _NumberOfSteps      = other._NumberOfSteps;
+  _Epsilon            = other._Epsilon;
+  _Delta              = other._Delta;
+  _LastValues         = other._LastValues;
+  _NumberOfLastValues = other._NumberOfLastValues;
+  _Converged          = other._Converged;
 
   ClearStoppingCriteria();
   for (int i = 0; i < other.NumberOfStoppingCriteria(); ++i) {
@@ -119,6 +152,14 @@ void LocalOptimizer::Initialize()
   if (_Function->NumberOfDOFs() <= 0) {
     cerr << this->NameOfClass() << "::Initialize: Objective function has no free parameters (DoFs)" << endl;
     exit(1);
+  }
+
+  // Initialize container for last objective function values
+  _LastValues.clear();
+  _LastValuesSlope = NaN;
+  if (_NumberOfLastValues < 2) {
+    // Need at least the previous and current function value for _Epsilon stopping criterion
+    _NumberOfLastValues = 2;
   }
 
   // Initialize stopping criteria
@@ -185,7 +226,7 @@ void LocalOptimizer::ClearStoppingCriteria()
 }
 
 // -----------------------------------------------------------------------------
-bool LocalOptimizer::Converged(int iter, double prev, double value, const double *dx)
+bool LocalOptimizer::Converged(int iter, double value, const double *dx)
 {
   // Detect numerical problem of objective function implementation
   if (IsNaN(value)) {
@@ -193,10 +234,26 @@ bool LocalOptimizer::Converged(int iter, double prev, double value, const double
     exit(1);
   }
 
-  // Check convergence towards local extremum of objective function
-  if (!IsInf(prev)) {
-    if (IsInf(value) || abs(prev - value) <= _Epsilon) return true;
+  // Update history of last n function values
+  double prev = NaN;
+  if (!_LastValues.empty()) {
+    prev = _LastValues.back();
   }
+  _LastValues.push_back(value);
+  if (_LastValues.size() > static_cast<size_t>(_NumberOfLastValues)) {
+    _LastValues.pop_front();
+  }
+
+  // Objective function value changed from < inf to inf although the value may either
+  // only be always inf in case of a deformable surface model, or always < inf otherwise.
+  if (!IsNaN(prev) && !IsInf(prev) && IsInf(value)) {
+    return true;
+  }
+
+  // Check convergence towards local extremum of objective function
+  const double epsilon = (_Epsilon < 0. ? abs(_Epsilon * value) : _Epsilon);
+  _LastValuesSlope = SlopeOfLeastSquaresFit(_LastValues);
+  if (abs(_LastValuesSlope) < epsilon) return true;
 
   // Check minimum change requirement
   if (_Function->GradientNorm(dx) <= _Delta) return true;
@@ -204,7 +261,7 @@ bool LocalOptimizer::Converged(int iter, double prev, double value, const double
   // Test other stopping criteria
   const int ncriteria = static_cast<int>(_StoppingCriteria.size());
   for (int n = 0; n < ncriteria; ++n) {
-    if (StoppingCriterion(n)->Fulfilled(iter, prev, value, dx)) return true;
+    if (StoppingCriterion(n)->Fulfilled(iter, value, dx)) return true;
   }
   return false;
 }
@@ -232,6 +289,10 @@ bool LocalOptimizer::Set(const char *name, const char *value)
   if (strcmp(name, "Delta") == 0) {
     return FromString(value, _Delta) && _Delta >= .0;
   }
+  if (strcmp(name, "No. of last function values") == 0 ||
+      strcmp(name, "No. of past function values") == 0) {
+    return FromString(value, _NumberOfLastValues);
+  }
   return false;
 }
 
@@ -242,6 +303,7 @@ ParameterList LocalOptimizer::Parameter() const
   Insert(params, "Maximum no. of iterations", _NumberOfSteps);
   Insert(params, "Epsilon", _Epsilon);
   Insert(params, "Delta", _Delta);
+  Insert(params, "No. of last function values", _NumberOfLastValues);
   return params;
 }
 

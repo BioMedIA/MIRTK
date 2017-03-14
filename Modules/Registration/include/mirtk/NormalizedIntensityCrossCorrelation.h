@@ -42,9 +42,9 @@ class NormalizedIntensityCrossCorrelation : public ImageSimilarity
   // Types
 public:
 
-  typedef voxel_info<VoxelType>::RealType   RealType;
-  typedef GenericImage<RealType>            RealImage;
-  typedef GenericImage<RealPixel>           KernelImage;
+  typedef GradientImageType::VoxelType   RealType;
+  typedef GenericImage<RealType>         RealImage;
+  typedef GenericImage<RealType>         KernelImage;
 
   /// Enumeration of local window size units
   enum Units { UNITS_Default, UNITS_MM, UNITS_Voxel };
@@ -112,7 +112,7 @@ private:
   // Construction/Destruction
 
   /// Create 1D Gaussian kernel with given standard deviation
-  static RealImage *CreateGaussianKernel(double);
+  static KernelImage *CreateGaussianKernel(double);
 
   /// Reset local window kernel
   virtual void ClearKernel();

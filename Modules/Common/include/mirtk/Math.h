@@ -112,9 +112,25 @@ MIRTKCU_API inline bool IsInf(double x)
 
 // -----------------------------------------------------------------------------
 /// Determine equality of two floating point numbers
-MIRTKCU_API inline bool fequal(double a, double b, double tol = 1e-12)
+MIRTKCU_API inline bool AreEqual(double a, double b, double tol = 1e-12)
 {
   return abs(a - b) < tol;
+}
+
+// -----------------------------------------------------------------------------
+/// Determine equality of two floating point numbers including check if both are NaN
+MIRTKCU_API inline bool AreEqualOrNaN(double a, double b, double tol = 1e-12)
+{
+  if (IsNaN(a)) return IsNaN(b);
+  if (IsNaN(b)) return IsNaN(a);
+  return AreEqual(a, b, tol);
+}
+
+// -----------------------------------------------------------------------------
+/// \deprecated Use AreEqual instead.
+MIRTKCU_API inline bool fequal(double a, double b, double tol = 1e-12)
+{
+  return AreEqual(a, b, tol);
 }
 
 // -----------------------------------------------------------------------------

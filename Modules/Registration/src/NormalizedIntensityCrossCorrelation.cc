@@ -156,23 +156,23 @@ struct MultiplyIntensities : VoxelFunction
     _MaskA(maskA), _MaskB(maskB)
   {}
 
-  template <class TImage, class T>
-  void operator ()(const TImage &, int idx, const T *a, const T *b, T *c)
+  template <class TImage, class TVoxel, class TReal>
+  void operator ()(const TImage &, int idx, const TVoxel *a, const TVoxel *b, TReal *c)
   {
     if (_MaskA->IsForeground(idx) && _MaskB->IsForeground(idx)) {
-      (*c) = (*a) * (*b);
+      (*c) = static_cast<TReal>(*a) * static_cast<TReal>(*b);
     } else {
-      (*c) = -0.01;
+      (*c) = TReal(-.01);
     }
   }
 
-  template <class T>
-  void operator ()(int i, int j, int k, int, const T *a, const T *b, T *c)
+  template <class TVoxel, class TReal>
+  void operator ()(int i, int j, int k, int, const TVoxel *a, const TVoxel *b, TReal *c)
   {
     if (_MaskA->IsForeground(i, j, k) && _MaskB->IsForeground(i, j, k)) {
-      (*c) = (*a) * (*b);
+      (*c) = static_cast<TReal>(*a) * static_cast<TReal>(*b);
     } else {
-      (*c) = -0.01;
+      (*c) = TReal(-.01);
     }
   }
 };
@@ -188,23 +188,23 @@ struct SubtractProduct : VoxelFunction
     _MaskA(maskA), _MaskB(maskB)
   {}
 
-  template <class TImage, class T>
-  void operator ()(const TImage &, int idx, const T *a, const T *b, T *c)
+  template <class TImage, class TVoxel, class TReal>
+  void operator ()(const TImage &, int idx, const TVoxel *a, const TVoxel *b, TReal *c)
   {
     if (_MaskA->IsForeground(idx) && _MaskB->IsForeground(idx)) {
-      (*c) -= (*a) * (*b);
+      (*c) -= static_cast<TReal>(*a) * static_cast<TReal>(*b);
     } else {
-      (*c) = numeric_limits<T>::quiet_NaN();
+      (*c) = numeric_limits<TReal>::quiet_NaN();
     }
   }
 
-  template <class T>
-  void operator ()(int i, int j, int k, int, const T *a, const T *b, T *c)
+  template <class TVoxel, class TReal>
+  void operator ()(int i, int j, int k, int, const TVoxel *a, const TVoxel *b, TReal *c)
   {
     if (_MaskA->IsForeground(i, j, k) && _MaskB->IsForeground(i, j, k)) {
       (*c) -= (*a) * (*b);
     } else {
-      (*c) = numeric_limits<T>::quiet_NaN();
+      (*c) = numeric_limits<TReal>::quiet_NaN();
     }
   }
 };
@@ -212,18 +212,18 @@ struct SubtractProduct : VoxelFunction
 // -----------------------------------------------------------------------------
 struct GenerateLNCCImage : public VoxelFunction
 {
-  template <class TImage, class T>
-  void operator()(const TImage &, int idx, const T *a, const T *b, const T *c, T *cc) const
+  template <class TImage, class TReal>
+  void operator()(const TImage &, int, const TReal *a, const TReal *b, const TReal *c, TReal *cc) const
   {
     if (IsNaN(*a)) {
-      (*cc) = -0.01; // i.e., background
+      (*cc) = TReal(-.01); // i.e., background
     } else {
       if (*b >= .01 && *c >= .01) {
-        (*cc) = min(1.0, abs(*a) / ((*b) * (*c)));
+        (*cc) = min(TReal(1), abs(*a) / ((*b) * (*c)));
       } else if (*b < .01 && *c < .01) {
-        (*cc) = 1.0; // i.e., both regions (approx.) constant-valued
+        (*cc) = TReal(1); // i.e., both regions (approx.) constant-valued
       } else {
-        (*cc) = .0;  // i.e., one region (approx.) constant-valued
+        (*cc) = TReal(0);  // i.e., one region (approx.) constant-valued
       }
     }
   }
@@ -265,7 +265,7 @@ struct EvaluateLNCC : public VoxelReduction
   {
     if (!IsNaN(*a)) {
       if (*b >= .01 && *c >= .01) {
-        _Sum += min(1.0, abs(*a) / ((*b) * (*c)));
+        _Sum += min(1., static_cast<double>(abs(*a) / ((*b) * (*c))));
       } else if (*b < .01 && *c < .01) {
         _Sum += 1.0; // i.e., both regions (approx.) constant-valued
       }
@@ -285,12 +285,12 @@ private:
 // -----------------------------------------------------------------------------
 struct EvaluateLNCCGradient : public VoxelFunction
 {
-  template <class TImage, class T>
-  void operator()(const TImage &, int idx, const T *a, const T *b, const T *c, const T *s, const T *t, T *g1, T *g2, T *g3)
+  template <class TImage, class TReal>
+  void operator()(const TImage &, int, const TReal *a, const TReal *b, const TReal *c, const TReal *s, const TReal *t, TReal *g1, TReal *g2, TReal *g3)
   {
     if (!IsNaN(*a) && *b >= .01 && *c >= .01) {
-      const T bc   = (*b) * (*c);
-      const T bbbc = (*b) * (*b) * bc;
+      const TReal bc   = (*b) * (*c);
+      const TReal bbbc = (*b) * (*b) * bc;
       (*g1) = 1.0 / bc;
       (*g2) = (*a) / bbbc;
       (*g3) = ((*a) * (*s)) / bbbc - (*t) / bc;
@@ -304,8 +304,8 @@ struct EvaluateLNCCGradient : public VoxelFunction
     }
   }
 
-  template <class TImage, class T1, class T2>
-  void operator()(const TImage &, int, const T1 *tgt, const T1 *src, const T2 *g1, const T2 *g2, const T2 *g3, T2 *g)
+  template <class TImage, class TVoxel, class TReal, class TGradient>
+  void operator()(const TImage &, int, const TVoxel *tgt, const TVoxel *src, const TReal *g1, const TReal *g2, const TReal *g3, TGradient *g)
   {
     (*g) = (*g1) * (*tgt) - (*g2) * (*src) + (*g3);
   }
@@ -316,7 +316,7 @@ struct EvaluateLNCCGradient : public VoxelFunction
 // -----------------------------------------------------------------------------
 
 // -----------------------------------------------------------------------------
-template <class VoxelType>
+template <class VoxelType, class RealType = VoxelType>
 struct UpdateBoxWindowLNCC : public VoxelFunction
 {
   NormalizedIntensityCrossCorrelation *_This;
@@ -329,20 +329,20 @@ struct UpdateBoxWindowLNCC : public VoxelFunction
 
   // ---------------------------------------------------------------------------
   static void Calculate(int cnt, double sums, double sumt, double sumss, double sumts, double sumtt,
-                        VoxelType *a, VoxelType *b, VoxelType *c, VoxelType *s, VoxelType *t)
+                        RealType *a, RealType *b, RealType *c, RealType *s, RealType *t)
   {
     const double ms = sums / cnt;
     const double mt = sumt / cnt;
-    *a = voxel_cast<VoxelType>(sumts - ms * sumt - mt * sums + cnt * ms * mt); // <T, S>
-    *b = voxel_cast<VoxelType>(sumss -       2.0 * ms * sums + cnt * ms * ms); // <S, S>
-    *c = voxel_cast<VoxelType>(sumtt -       2.0 * mt * sumt + cnt * mt * mt); // <T, T>
+    *a = voxel_cast<RealType>(sumts - ms * sumt - mt * sums + cnt * ms * mt); // <T, S>
+    *b = voxel_cast<RealType>(sumss -       2.0 * ms * sums + cnt * ms * ms); // <S, S>
+    *c = voxel_cast<RealType>(sumtt -       2.0 * mt * sumt + cnt * mt * mt); // <T, T>
     *s = ms;
     *t = mt;
   }
 
   // ---------------------------------------------------------------------------
   void operator()(int i, int j, int k, int, const VoxelType *tgt, const VoxelType *src,
-                  VoxelType *a, VoxelType *b, VoxelType *c, VoxelType *s, VoxelType *t)
+                  RealType *a, RealType *b, RealType *c, RealType *s, RealType *t)
   {
     int    cnt  =  0;
     double sumt = .0, sums = .0, sumss = .0, sumts = .0, sumtt = .0, vt, vs;
@@ -367,8 +367,8 @@ struct UpdateBoxWindowLNCC : public VoxelFunction
       for (int nj = j1; nj <= j2; ++nj)
       for (int ni = i1; ni <= i2; ++ni) {
         if (_This->IsForeground(ni, nj, nk)) {
-          vt = _This->Target()->Get(ni, nj, nk);
-          vs = _This->Source()->Get(ni, nj, nk);
+          vt = _This->Target()->GetAsDouble(ni, nj, nk);
+          vs = _This->Source()->GetAsDouble(ni, nj, nk);
           sums  += vs;
           sumt  += vt;
           sumss += vs * vs;
@@ -381,10 +381,10 @@ struct UpdateBoxWindowLNCC : public VoxelFunction
 
     if (cnt) {
       Calculate(cnt, sums, sumt, sumss, sumts, sumtt, a, b, c, s, t);
-      *s = voxel_cast<VoxelType>(*src) - (*s);
-      *t = voxel_cast<VoxelType>(*tgt) - (*t);
+      *s = voxel_cast<RealType>(*src) - (*s);
+      *t = voxel_cast<RealType>(*tgt) - (*t);
     } else {
-      *a = *b = *c = *s = *t = voxel_cast<VoxelType>(.0);
+      *a = *b = *c = *s = *t = voxel_cast<RealType>(0);
     }
   }
 };
@@ -414,8 +414,8 @@ struct EvaluateBoxWindowLNCC : public VoxelReduction
     return cc;
   }
 
-  template <class TImage, class T>
-  void operator()(const TImage &, int, const T *a, const T *b, const T *c)
+  template <class TImage, class TReal>
+  void operator()(const TImage &, int, const TReal *a, const TReal *b, const TReal *c)
   {
     double cc = Calculate(*a, *b, *c);
     if (!IsNaN(cc)) {
@@ -424,8 +424,8 @@ struct EvaluateBoxWindowLNCC : public VoxelReduction
     }
   }
 
-  template <class T>
-  void operator()(int, int, int, int, const T *a, const T *b, const T *c)
+  template <class TReal>
+  void operator()(int, int, int, int, const TReal *a, const TReal *b, const TReal *c)
   {
     double cc = Calculate(*a, *b, *c);
     if (!IsNaN(cc)) {
@@ -434,8 +434,8 @@ struct EvaluateBoxWindowLNCC : public VoxelReduction
     }
   }
 
-  template <class TImage, class T>
-  void operator()(const TImage &, int, const T *a, const T *b, const T *c, double *cc)
+  template <class TImage, class TReal>
+  void operator()(const TImage &, int, const TReal *a, const TReal *b, const TReal *c, double *cc)
   {
     (*cc) = Calculate(*a, *b, *c);
     if (!IsNaN(*cc)) {
@@ -446,8 +446,8 @@ struct EvaluateBoxWindowLNCC : public VoxelReduction
     }
   }
 
-  template <class T>
-  void operator()(int, int, int, int, const T *a, const T *b, const T *c, double *cc)
+  template <class TReal>
+  void operator()(int, int, int, int, const TReal *a, const TReal *b, const TReal *c, double *cc)
   {
     (*cc) = Calculate(*a, *b, *c);
     if (!IsNaN(*cc)) {
@@ -484,20 +484,20 @@ struct EvaluateNCCGradient : public VoxelFunction
     return g;
   }
 
-  template <class TImage, class T>
-  void operator()(const TImage &, int, const T *s, const T *t, T *g)
+  template <class TImage, class TReal, class TGradient>
+  void operator()(const TImage &, int, const TReal *s, const TReal *t, TGradient *g)
   {
-    (*g) = Calculate(_A, _B, _C, (*s) - _S, (*t) - _T);
+    (*g) = static_cast<TGradient>(Calculate(_A, _B, _C, static_cast<double>(*s) - _S, static_cast<double>(*t) - _T));
   }
 };
 
 // -----------------------------------------------------------------------------
 struct EvaluateBoxWindowLNCCGradient : public VoxelFunction
 {
-  template <class TImage, class T>
-  void operator()(const TImage &, int, const T *a, const T *b, const T *c, const T *s, const T *t, T *g)
+  template <class TImage, class TReal, class TGradient>
+  void operator()(const TImage &, int, const TReal *a, const TReal *b, const TReal *c, const TReal *s, const TReal *t, TGradient *g)
   {
-    (*g) = EvaluateNCCGradient::Calculate(*a, *b, *c, *s, *t);
+    (*g) = static_cast<TGradient>(EvaluateNCCGradient::Calculate(*a, *b, *c, *s, *t));
   }
 };
 
@@ -586,14 +586,14 @@ NormalizedIntensityCrossCorrelation
 :
   ImageSimilarity(other),
   _KernelType(other._KernelType),
-  _KernelX(other._KernelX ? new RealImage(*other._KernelX) : NULL),
-  _KernelY(other._KernelY ? new RealImage(*other._KernelY) : NULL),
-  _KernelZ(other._KernelZ ? new RealImage(*other._KernelZ) : NULL),
-  _A      (other._A       ? new RealImage(*other._A      ) : NULL),
-  _B      (other._B       ? new RealImage(*other._B      ) : NULL),
-  _C      (other._C       ? new RealImage(*other._C      ) : NULL),
-  _S      (other._S       ? new RealImage(*other._S      ) : NULL),
-  _T      (other._T       ? new RealImage(*other._T      ) : NULL),
+  _KernelX(other._KernelX ? new KernelImage(*other._KernelX) : NULL),
+  _KernelY(other._KernelY ? new KernelImage(*other._KernelY) : NULL),
+  _KernelZ(other._KernelZ ? new KernelImage(*other._KernelZ) : NULL),
+  _A(other._A ? new RealImage(*other._A) : NULL),
+  _B(other._B ? new RealImage(*other._B) : NULL),
+  _C(other._C ? new RealImage(*other._C) : NULL),
+  _S(other._S ? new RealImage(*other._S) : NULL),
+  _T(other._T ? new RealImage(*other._T) : NULL),
   _NeighborhoodSize  (other._NeighborhoodSize),
   _NeighborhoodRadius(other._NeighborhoodRadius)
 {
@@ -835,7 +835,7 @@ void NormalizedIntensityCrossCorrelation::ClearKernel()
 }
 
 // -----------------------------------------------------------------------------
-NormalizedIntensityCrossCorrelation::RealImage *
+NormalizedIntensityCrossCorrelation::KernelImage *
 NormalizedIntensityCrossCorrelation::CreateGaussianKernel(double sigma)
 {
   // Ignore sign of standard deviation parameter (negative --> voxel units)
@@ -845,11 +845,11 @@ NormalizedIntensityCrossCorrelation::CreateGaussianKernel(double sigma)
   ScalarGaussian func(sigma, 1, 1, 0, 0, 0);
 
   // Create filter kernel for 1D Gaussian function
-  const int  size   = 2 * static_cast<int>(3.0 * sigma) + 1;
-  RealImage *kernel = new RealImage(size, 1, 1);
+  const int    size   = 2 * static_cast<int>(3.0 * sigma) + 1;
+  KernelImage *kernel = new KernelImage(size, 1, 1);
 
   // Sample scalar function at discrete kernel positions
-  ScalarFunctionToImage<RealType> sampler;
+  ScalarFunctionToImage<KernelImage::VoxelType> sampler;
   sampler.Input (&func);
   sampler.Output(kernel);
   sampler.Run();
@@ -862,16 +862,16 @@ void NormalizedIntensityCrossCorrelation
 ::ComputeWeightedAverage(const blocked_range3d<int> &region, RealImage *image)
 {
   // Average along x axis
-  ConvolveTruncatedForegroundInX<RealType> convX(image, _KernelX->Data(), _KernelX->X());
+  ConvolveTruncatedForegroundInX<KernelImage::VoxelType> convX(image, _KernelX->Data(), _KernelX->X());
   ParallelForEachVoxel(region, image, &_Temp, convX);
 
   // Average along y axis
-  ConvolveTruncatedForegroundInY<RealType> convY(image, _KernelY->Data(), _KernelY->X());
+  ConvolveTruncatedForegroundInY<KernelImage::VoxelType> convY(image, _KernelY->Data(), _KernelY->X());
   ParallelForEachVoxel(region, &_Temp, image, convY);
 
   // Average along z axis
   if (_KernelZ) {
-    ConvolveTruncatedForegroundInZ<RealType> convZ(image, _KernelZ->Data(), _KernelZ->X());
+    ConvolveTruncatedForegroundInZ<KernelImage::VoxelType> convZ(image, _KernelZ->Data(), _KernelZ->X());
     ParallelForEachVoxel(region, image, &_Temp, convZ);
     ParallelForEachVoxel(BinaryVoxelFunction::Copy(), region, &_Temp, image);
   }
@@ -1028,7 +1028,7 @@ void NormalizedIntensityCrossCorrelation::Update(bool gradient)
   } else if (_KernelType == BoxWindow) {
 
     // Compute dot products
-    UpdateBoxWindowLNCC<RealType> update(this);
+    UpdateBoxWindowLNCC<VoxelType, RealType> update(this);
     ParallelForEachVoxel(domain, _Target, _Source, _A, _B, _C, _S, _T, update);
     // Evaluate LNCC value
     EvaluateBoxWindowLNCC cc;
@@ -1051,7 +1051,7 @@ void NormalizedIntensityCrossCorrelation::Update(bool gradient)
     _A->PutBackgroundValueAsDouble(-0.01);
     ComputeWeightedAverage(domain, _A);
     ParallelForEachVoxel(SubtractProduct(_Target, _Source), domain, _T, _S, _A);
-    _A->PutBackgroundValueAsDouble(numeric_limits<double>::quiet_NaN());
+    _A->PutBackgroundValueAsDouble(NaN);
     // Evaluate LNCC value
     EvaluateLNCC cc;
     ParallelForEachVoxel(domain, _A, _B, _C, cc);
@@ -1091,7 +1091,7 @@ void NormalizedIntensityCrossCorrelation::Exclude(const blocked_range3d<int> &re
     _A->PutBackgroundValueAsDouble(-0.01);
     ComputeWeightedAverage(region, _A);
     ParallelForEachVoxel(SubtractProduct(_Target, _Source), region, _T, _S, _A);
-    _A->PutBackgroundValueAsDouble(numeric_limits<double>::quiet_NaN());
+    _A->PutBackgroundValueAsDouble(NaN);
     #endif
     // Subtract LNCC values for specified region
     EvaluateLNCC cc;
@@ -1111,7 +1111,7 @@ void NormalizedIntensityCrossCorrelation::Include(const blocked_range3d<int> &re
   } else if (_KernelType == BoxWindow) {
 
     // Compute dot products
-    UpdateBoxWindowLNCC<RealType> update(this);
+    UpdateBoxWindowLNCC<VoxelType, RealType> update(this);
     ParallelForEachVoxel(region, _Target, _Source, _A, _B, _C, _S, _T, update);
     // Add LNCC values for specified region
     EvaluateBoxWindowLNCC cc;
@@ -1141,7 +1141,7 @@ void NormalizedIntensityCrossCorrelation::Include(const blocked_range3d<int> &re
     _A->PutBackgroundValueAsDouble(-0.01);
     ComputeWeightedAverage(region, _A);
     ParallelForEachVoxel(SubtractProduct(_Target, _Source), region, _T, _S, _A);
-    _A->PutBackgroundValueAsDouble(numeric_limits<double>::quiet_NaN());
+    _A->PutBackgroundValueAsDouble(NaN);
     // Restore margin of intermediate images
     #if FAST_EXCLUDE
     PutMargin(_A, region, region_plus_margin, marginA);
@@ -1208,21 +1208,17 @@ bool NormalizedIntensityCrossCorrelation
   // Evaluate gradient of LNCC w.r.t S similar to NiftyReg
   } else {
 
-    RealImage *g1 = new RealImage(image->Attributes());
-    RealImage *g2 = new RealImage(image->Attributes());
-    RealImage *g3 = new RealImage(image->Attributes());
+    RealImage g1(image->Attributes());
+    RealImage g2(image->Attributes());
+    RealImage g3(image->Attributes());
 
     EvaluateLNCCGradient eval;
-    ParallelForEachVoxel(_A, B, C, S, T, g1, g2, g3, eval);
+    ParallelForEachVoxel(_A, B, C, S, T, &g1, &g2, &g3, eval);
     blocked_range3d<int> domain(0, _Domain._z, 0, _Domain._y, 0, _Domain._x);
-    ComputeWeightedAverage(domain, g1);
-    ComputeWeightedAverage(domain, g2);
-    ComputeWeightedAverage(domain, g3);
-    ParallelForEachVoxel(tgt, src, g1, g2, g3, gradient, eval);
-
-    Delete(g1);
-    Delete(g2);
-    Delete(g3);
+    ComputeWeightedAverage(domain, &g1);
+    ComputeWeightedAverage(domain, &g2);
+    ComputeWeightedAverage(domain, &g3);
+    ParallelForEachVoxel(tgt, src, &g1, &g2, &g3, gradient, eval);
 
   }
 

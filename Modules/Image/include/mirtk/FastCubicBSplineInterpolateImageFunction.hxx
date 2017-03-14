@@ -220,8 +220,8 @@ GenericFastCubicBSplineInterpolateImageFunction<TImage>
     }
   }
 
-  if (bgw > fgw) {
-    val  = voxel_cast<RealType>(this->DefaultValue());
+  if (bgw > fgw || AreEqual(bgw, fgw, 1e-3)) {
+    val = voxel_cast<RealType>(this->DefaultValue());
   }
   return voxel_cast<VoxelType>(val);
 }
@@ -297,8 +297,8 @@ GenericFastCubicBSplineInterpolateImageFunction<TImage>
     }
   }
 
-  if (bgw > fgw) {
-    val  = voxel_cast<RealType>(this->DefaultValue());
+  if (bgw > fgw || AreEqual(bgw, fgw, 1e-3)) {
+    val = voxel_cast<RealType>(this->DefaultValue());
   }
   return voxel_cast<VoxelType>(val);
 }
@@ -393,8 +393,8 @@ GenericFastCubicBSplineInterpolateImageFunction<TImage>
     }
   }
 
-  if (bgw > fgw) {
-    val  = voxel_cast<RealType>(this->DefaultValue());
+  if (bgw > fgw || AreEqual(bgw, fgw, 1e-3)) {
+    val = voxel_cast<RealType>(this->DefaultValue());
   }
   return voxel_cast<VoxelType>(val);
 }
@@ -484,8 +484,8 @@ GenericFastCubicBSplineInterpolateImageFunction<TImage>
     }
   }
 
-  if (bgw > fgw) {
-    val  = voxel_cast<RealType>(this->DefaultValue());
+  if (bgw > fgw || AreEqual(bgw, fgw, 1e-3)) {
+    val = voxel_cast<RealType>(this->DefaultValue());
   }
   return voxel_cast<VoxelType>(val);
 }
@@ -584,8 +584,8 @@ GenericFastCubicBSplineInterpolateImageFunction<TImage>
     }
   }
 
-  if (bgw > fgw) {
-    val  = voxel_cast<RealType>(this->DefaultValue());
+  if (bgw > fgw || AreEqual(bgw, fgw, 1e-3)) {
+    val = voxel_cast<RealType>(this->DefaultValue());
   }
   return voxel_cast<VoxelType>(val);
 }
@@ -682,8 +682,8 @@ GenericFastCubicBSplineInterpolateImageFunction<TImage>
     }
   }
 
-  if (bgw > fgw) {
-    val  = voxel_cast<RealType>(this->DefaultValue());
+  if (bgw > fgw || AreEqual(bgw, fgw, 1e-3)) {
+    val = voxel_cast<RealType>(this->DefaultValue());
   }
   return voxel_cast<VoxelType>(val);
 }

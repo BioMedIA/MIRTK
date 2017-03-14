@@ -1,9 +1,9 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2008-2015 Imperial College London
+ * Copyright 2008-2017 Imperial College London
  * Copyright 2008-2013 Daniel Rueckert, Julia Schnabel
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2013-2017 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -131,12 +131,12 @@ void GaussianBlurring<VoxelType>::Run()
   GenericImage<VoxelType> *output = this->Output();
 
   const ImageAttributes &attr = input->Attributes();
-  const int N = ((attr._dt == .0) ? attr._t : 1);
+  const int N = (AreEqual(attr._dt, 0.) ? attr._t : 1);
 
   // Blur along x axis
-  if (_SigmaX != .0 && input->X() > 1) {
+  if (!AreEqual(_SigmaX, 0.) && input->X() > 1) {
     if (output == this->Input()) output = new GenericImage<VoxelType>(attr);
-    this->InitializeKernel(_SigmaX / input->GetXSize());
+    this->InitializeKernel(_SigmaX / input->XSize());
     for (int n = 0; n < N; ++n) {
       using ConvolutionFunction::ConvolveInX;
       ConvolveInX<RealPixel> conv(input, _Kernel->Data(), _Kernel->X(), true, n);
@@ -146,9 +146,9 @@ void GaussianBlurring<VoxelType>::Run()
   }
 
   // Blur along y axis
-  if (_SigmaY != .0 && input->Y() > 1) {
+  if (!AreEqual(_SigmaY, 0.) && input->Y() > 1) {
     if (output == this->Input()) output = new GenericImage<VoxelType>(attr);
-    this->InitializeKernel(_SigmaY / input->GetYSize());
+    this->InitializeKernel(_SigmaY / input->YSize());
     for (int n = 0; n < N; ++n) {
       using ConvolutionFunction::ConvolveInY;
       ConvolveInY<RealPixel> conv(input, _Kernel->Data(), _Kernel->X(), true, n);
@@ -158,9 +158,9 @@ void GaussianBlurring<VoxelType>::Run()
   }
 
   // Blur along z axis
-  if (_SigmaZ != .0 && input->Z() > 1) {
+  if (!AreEqual(_SigmaZ, 0.) && input->Z() > 1) {
     if (output == this->Input()) output = new GenericImage<VoxelType>(attr);
-    this->InitializeKernel(_SigmaZ / input->GetZSize());
+    this->InitializeKernel(_SigmaZ / input->ZSize());
     for (int n = 0; n < N; ++n) {
       using ConvolutionFunction::ConvolveInZ;
       ConvolveInZ<RealPixel> conv(input, _Kernel->Data(), _Kernel->X(), true, n);
@@ -170,9 +170,9 @@ void GaussianBlurring<VoxelType>::Run()
   }
 
   // Blur along t axis
-  if (_SigmaT != .0 && input->T() > 1) {
+  if (!AreEqual(_SigmaT, 0.) && input->T() > 1) {
     if (output == this->Input()) output = new GenericImage<VoxelType>(attr);
-    this->InitializeKernel(_SigmaT / input->GetTSize());
+    this->InitializeKernel(_SigmaT / input->TSize());
     using ConvolutionFunction::ConvolveInT;
     ConvolveInT<RealPixel> conv(input, _Kernel->Data(), _Kernel->X(), true);
     ParallelForEachVoxel(attr, input, output, conv);
@@ -186,7 +186,7 @@ void GaussianBlurring<VoxelType>::Run()
       if (output != this->Input()) Delete(output);
     } else {
       this->Output()->CopyFrom(input->Data());
-      if (input != this->Input ()) Delete(input);
+      if (input != this->Input()) Delete(input);
     }
   }
 
@@ -202,6 +202,16 @@ void GaussianBlurring<VoxelType>::Finalize()
 {
   // Finalize base class
   ImageToImage<VoxelType>::Finalize();
+
+  // Copy background information
+  if (this->Input() != this->Output()) {
+    if (this->Input()->HasBackgroundValue()) {
+      this->Output()->PutBackgroundValueAsDouble(this->Input()->GetBackgroundValueAsDouble());
+    }
+    if (this->Input()->HasMask()) {
+      this->Output()->PutMask(new BinaryImage(*this->Input()->GetMask()), true);
+    }
+  }
 
   // Free convolution kernel
   Delete(_Kernel);

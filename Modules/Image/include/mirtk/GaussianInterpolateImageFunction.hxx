@@ -162,8 +162,8 @@ GenericGaussianInterpolateImageFunction<TImage>
     }
   }
 
-  if (nrm) val /= nrm;
-  else     val  = voxel_cast<RealType>(this->DefaultValue());
+  if (nrm > 1e-3) val /= nrm;
+  else val = voxel_cast<RealType>(this->DefaultValue());
 
   return voxel_cast<VoxelType>(val);
 }
@@ -206,10 +206,10 @@ GenericGaussianInterpolateImageFunction<TImage>
     }
   }
 
-  if (fgw > bgw) val /= fgw;
-  else           val  = voxel_cast<RealType>(this->DefaultValue());
-
-  return voxel_cast<VoxelType>(val);
+  if (bgw > fgw || AreEqual(bgw, fgw, 1e-3)) {
+    return voxel_cast<VoxelType>(this->DefaultValue());
+  }
+  return voxel_cast<VoxelType>(val / fgw);
 }
 
 // -----------------------------------------------------------------------------
@@ -244,8 +244,8 @@ GenericGaussianInterpolateImageFunction<TImage>
     }
   }
 
-  if (nrm) val /= nrm;
-  else     val  = voxel_cast<RealType>(this->DefaultValue());
+  if (nrm > 1e-3) val /= nrm;
+  else val = voxel_cast<RealType>(this->DefaultValue());
 
   return voxel_cast<VoxelType>(val);
 }
@@ -286,10 +286,10 @@ GenericGaussianInterpolateImageFunction<TImage>
     }
   }
 
-  if (fgw > bgw) val /= fgw;
-  else           val  = voxel_cast<RealType>(this->DefaultValue());
-
-  return voxel_cast<VoxelType>(val);
+  if (bgw > fgw || AreEqual(bgw, fgw, 1e-3)) {
+    return voxel_cast<VoxelType>(this->DefaultValue());
+  }
+  return voxel_cast<VoxelType>(val / fgw);
 }
 
 // -----------------------------------------------------------------------------
@@ -334,8 +334,8 @@ GenericGaussianInterpolateImageFunction<TImage>
     }
   }
 
-  if (nrm) val /= nrm;
-  else     val  = voxel_cast<RealType>(this->DefaultValue());
+  if (nrm > 1e-3) val /= nrm;
+  else val = voxel_cast<RealType>(this->DefaultValue());
 
   return voxel_cast<VoxelType>(val);
 }
@@ -380,10 +380,10 @@ GenericGaussianInterpolateImageFunction<TImage>
     }
   }
 
-  if (fgw > bgw) val /= fgw;
-  else           val  = voxel_cast<RealType>(this->DefaultValue());
-
-  return voxel_cast<VoxelType>(val);
+  if (bgw > fgw || AreEqual(bgw, fgw, 1e-3)) {
+    return voxel_cast<VoxelType>(this->DefaultValue());
+  }
+  return voxel_cast<VoxelType>(val / fgw);
 }
 
 // -----------------------------------------------------------------------------
@@ -421,8 +421,8 @@ GenericGaussianInterpolateImageFunction<TImage>
     }
   }
 
-  if (nrm) val /= nrm;
-  else     val  = voxel_cast<RealType>(this->DefaultValue());
+  if (nrm > 1e-3) val /= nrm;
+  else val = voxel_cast<RealType>(this->DefaultValue());
 
   return voxel_cast<VoxelType>(val);
 }
@@ -466,10 +466,10 @@ GenericGaussianInterpolateImageFunction<TImage>
     }
   }
 
-  if (fgw > bgw) val /= fgw;
-  else           val  = voxel_cast<RealType>(this->DefaultValue());
-
-  return voxel_cast<VoxelType>(val);
+  if (bgw > fgw || AreEqual(bgw, fgw, 1e-3)) {
+    return voxel_cast<VoxelType>(this->DefaultValue());
+  }
+  return voxel_cast<VoxelType>(val / fgw);
 }
 
 // -----------------------------------------------------------------------------
@@ -514,8 +514,8 @@ GenericGaussianInterpolateImageFunction<TImage>
     }
   }
 
-  if (nrm) val /= nrm;
-  else     val  = voxel_cast<RealType>(this->DefaultValue());
+  if (nrm > 1e-3) val /= nrm;
+  else val = voxel_cast<RealType>(this->DefaultValue());
 
   return voxel_cast<VoxelType>(val);
 }
@@ -558,10 +558,10 @@ GenericGaussianInterpolateImageFunction<TImage>
     }
   }
 
-  if (fgw > bgw) val /= fgw;
-  else           val  = voxel_cast<RealType>(this->DefaultValue());
-
-  return voxel_cast<VoxelType>(val);
+  if (bgw > fgw || AreEqual(bgw, fgw, 1e-3)) {
+    return voxel_cast<VoxelType>(this->DefaultValue());
+  }
+  return voxel_cast<VoxelType>(val / fgw);
 }
 
 // -----------------------------------------------------------------------------
@@ -602,8 +602,8 @@ GenericGaussianInterpolateImageFunction<TImage>
     }
   }
 
-  if (nrm) val /= nrm;
-  else     val  = voxel_cast<RealType>(this->DefaultValue());
+  if (nrm > 1e-3) val /= nrm;
+  else val = voxel_cast<RealType>(this->DefaultValue());
 
   return voxel_cast<VoxelType>(val);
 }
@@ -650,10 +650,10 @@ GenericGaussianInterpolateImageFunction<TImage>
     }
   }
 
-  if (fgw > bgw) val /= fgw;
-  else           val  = voxel_cast<RealType>(this->DefaultValue());
-
-  return voxel_cast<VoxelType>(val);
+  if (bgw > fgw || AreEqual(bgw, fgw, 1e-3)) {
+    return voxel_cast<VoxelType>(this->DefaultValue());
+  }
+  return voxel_cast<VoxelType>(val / fgw);
 }
 
 // -----------------------------------------------------------------------------

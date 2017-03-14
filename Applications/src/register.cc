@@ -87,6 +87,7 @@ void PrintUsage(const char* name)
   cout << "  -dof_i  <file>          Apply inverse of pre-computed affine transformation instead (cf. -dof).\n";
   cout << "  -mask   <file>          Reference mask which defines the domain within which to evaluate the\n";
   cout << "                          energy function (i.e. data fidelity terms). (default: none)\n";
+  cout << "  -reset-mask [yes|no]    Set value of all :option:`-mask` voxels to active (1). (default: no)\n";
   cout << "  -dofin  <file>          Initial transformation estimate. (default: align centroids)\n";
   cout << "  -par <name> <value>     Specify parameter value directly as command argument.\n";
   cout << "  -parin  <file>          Read parameters from configuration file. If \"stdin\" or \"cin\",\n";
@@ -657,6 +658,7 @@ int main(int argc, char **argv)
   const char *parin_name         = NULL;
   const char *parout_name        = NULL;
   const char *mask_name          = NULL;
+  bool        reset_mask         = false;
   ParameterList params;
 
   enum {
@@ -731,6 +733,7 @@ int main(int argc, char **argv)
     else if (OPTION("-dofin" )) dofin_name      = ARGUMENT;
     else if (OPTION("-dofout")) dofout_name     = ARGUMENT;
     else if (OPTION("-mask"))   mask_name       = ARGUMENT;
+    else HANDLE_BOOLEAN_OPTION("reset-mask", reset_mask);
     else if (OPTION("-nodebug-level-prefix")) {
       debug_output_level_prefix = false;
     }
@@ -987,6 +990,16 @@ int main(int argc, char **argv)
   // Set input images
   for (int n = 0; n < nimages; ++n) {
     images[n]->PutTOrigin(image_times[n]);
+    #if 1  // TODO: Fix the actual issue so this is not needed!
+      images[n]->PutAffineMatrix(images[n]->GetAffineMatrix(), true);
+      if (!images[n]->GetAffineMatrix().IsIdentity()) {
+        if (verbose > 0) cout << endl;
+        Warning("Input image has shearing component in affine matrix (NIfTI sform)!"
+                "\nThis may potentially result in a suboptimal output transformation!"
+                "\nConsider pre-transforming the image with the given affine transformation."
+                "\nThis issue has yet to be fixed properly within the Registration module.");
+      }
+    #endif
     registration.AddInput(images[n].get());
   }
 
@@ -1050,6 +1063,7 @@ int main(int argc, char **argv)
   UniquePtr<BinaryImage> mask;
   if (mask_name) {
     mask.reset(new BinaryImage(mask_name));
+    if (reset_mask) *mask = 1;
     registration.Domain(mask.get());
   }
 
@@ -1081,26 +1095,21 @@ int main(int argc, char **argv)
     registration.Write(parout_name);
   }
 
+  const clock_t start_cpu_time = clock();
 #ifdef HAVE_TBB
-  tbb::tick_count start_time = tbb::tick_count::now();
-#else
-  clock_t start_time = clock();
+  tbb::tick_count start_wall_time = tbb::tick_count::now();
 #endif
 
   registration.Run();
 
   if (verbose) {
-    double elapsed_time;
-#ifdef HAVE_TBB
-    elapsed_time = (tbb::tick_count::now() - start_time).seconds();
-#else
-    elapsed_time = static_cast<double>(clock() - start_time)
-                 / static_cast<double>(CLOCKS_PER_SEC);
-#endif
-    int m = ifloor(elapsed_time / 60.0);
-    int s = iround(elapsed_time - m * 60);
-    if (s == 60) m += 1, s = 0;
-    cout << "\nFinished in " << m << " min " << s << " sec" << endl;
+    cout << "\n";
+    double sec = static_cast<double>(clock() - start_cpu_time) / static_cast<double>(CLOCKS_PER_SEC);
+    #ifdef HAVE_TBB
+      cout << "CPU time is " << ElapsedTimeToString(sec, TIME_IN_SECONDS, TIME_FORMAT_H_MIN_SEC, 2) << "\n";
+      sec = (tbb::tick_count::now() - start_wall_time).seconds();
+    #endif
+    cout << "Finished in " << ElapsedTimeToString(sec, TIME_IN_SECONDS, TIME_FORMAT_H_MIN_SEC, 2) << endl;
   }
 
   // Write final transformation

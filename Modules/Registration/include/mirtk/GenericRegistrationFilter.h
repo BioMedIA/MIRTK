@@ -1,8 +1,8 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2013-2015 Imperial College London
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2013-2017 Imperial College London
+ * Copyright 2013-2017 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -82,16 +82,16 @@ class GenericRegistrationFilter : public RegistrationFilter
 public:
 
   /// Type of resolution pyramid images
-  typedef RegisteredImage::InputImageType         ResampledImageType;
+  typedef RegisteredImage::InputImageType   ResampledImageType;
 
   /// List type storing images for one resolution pyramid level
-  typedef Array<ResampledImageType>               ResampledImageList;
+  typedef Array<ResampledImageType>   ResampledImageList;
 
   /// Scalar type of resolution pyramid images
-  typedef ResampledImageType::VoxelType           VoxelType;
+  typedef ResampledImageType::VoxelType   VoxelType;
 
   /// Type of cached displacement field
-  typedef GenericImage<double>                    DisplacementImageType;
+  typedef RegisteredImage::DisplacementImageType   DisplacementImageType;
 
   /// Structure storing information about transformation instance
   struct TransformationInfo
@@ -238,11 +238,27 @@ public:
   /// Transformation model
   mirtkPublicAttributeMacro(Array<enum TransformationModel>, TransformationModel);
 
-  ///< Default image interpolation mode
+  /// Default image interpolation mode
   mirtkPublicAttributeMacro(enum InterpolationMode, DefaultInterpolationMode);
 
-  ///< Default image extrapolation mode
+  /// Default image extrapolation mode
   mirtkPublicAttributeMacro(enum ExtrapolationMode, DefaultExtrapolationMode);
+
+  /// Rescale input image intensities from [imin, imax] to [0, omax]
+  ///
+  /// Here [imin, imax] is the intensity range of the respective input image
+  /// excluding the background (if specified) and omax is the maximum intensity
+  /// of the rescaled intensities. This maximum value influences the relative
+  /// weighting of image similarity gradient vs. the gradient of constraint terms
+  /// such as the bending energy.
+  ///
+  /// This normalization ensures that the magnitude of image derivatives used
+  /// for energy gradient computation have comparable magnitude in order to
+  /// prevent one image to have stronger influence than another. This is more
+  /// important for symmetric, inverse consistent, or multi-modal settings.
+  ///
+  /// By default, this parameter is set to inf and no rescaling is done.
+  mirtkPublicAttributeMacro(double, MaxRescaledIntensity);
 
   /// Whether to precompute image derivatives or compute them on the fly
   mirtkPublicAttributeMacro(bool, PrecomputeDerivatives);
@@ -273,6 +289,19 @@ public:
 
   /// Whether to allow z coordinate transformation
   mirtkPublicAttributeMacro(bool, RegisterZ);
+
+  /// Enforce Dirichlet boundary condition on FFD transformations
+  ///
+  /// When this option is enabled, the status of control points at the
+  /// boundary of the finite FFD lattice is set to Passive and the parameters
+  /// of these control points set to zero. This is always the case for FFDs
+  /// whose parameters are control point displacements. In case of FFDs
+  /// parameterized by (stationary) velocities, the default extrapolation
+  /// mode is nearest neighbor, however, and a layer of passive CPs with
+  /// constant value is needed if the velocity should be forced to zero
+  /// outside the finite domain on which the velocity field is defined.
+  /// Alternatively, FFD extrapolation mode "Const" can be used.
+  mirtkPublicAttributeMacro(bool, DirichletBoundaryCondition);
 
   /// Mask which defines where to evaluate the energy function
   mirtkPublicAggregateMacro(BinaryImage, Domain);
@@ -315,11 +344,9 @@ protected:
   Array<double>              _MinEdgeLength[MAX_NO_RESOLUTIONS]; ///< Minimum edge length in mm
   Array<double>              _MaxEdgeLength[MAX_NO_RESOLUTIONS]; ///< Maximum edge length in mm
   int                        _UseGaussianResolutionPyramid;   ///< Whether resolution levels correspond to a Gaussian pyramid
-  Array<double>              _Blurring  [MAX_NO_RESOLUTIONS]; ///< Image blurring value
+  Array<double>              _Blurring[MAX_NO_RESOLUTIONS];   ///< Image blurring value
   double                     _DefaultBackground;              ///< Default background value
   Array<double>              _Background;                     ///< Image background value
-  double                     _DefaultPadding;                 ///< Default padding value
-  Array<double>              _Padding;                        ///< Image padding value
   bool                       _DownsampleWithPadding;          ///< Whether to take background into account
                                                               ///< during initialization of the image pyramid
   bool                       _CropPadImages;                  ///< Whether to crop/pad input images

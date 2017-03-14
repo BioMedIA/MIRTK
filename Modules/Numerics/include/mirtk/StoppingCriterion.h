@@ -87,19 +87,18 @@ public:
   /// value after a change of the parameters must be evaluated before this
   /// function is called to be able to provide this value as argument.
   ///
-  /// \note The objective function value may be NaN in case of a non-parametric
+  /// \note The objective function value may be infinite in case of a non-parametric
   ///       deformable surface model. In this case, stopping criteria are based
   ///       only on the current surface geometry or last node displacements.
   ///       Stopping criteria based on the objective function value should
   ///       never be fulfilled in this case and always return \c false.
   ///
   /// \param[in] iter  Current number of iterations.
-  /// \param[in] prev  Objective function value at previous iteration.
-  /// \param[in] value Objective function value at current  iteration.
+  /// \param[in] value Objective function value at current iteration.
   /// \param[in] delta Last change of objective function parameters.
   ///
   /// \returns Whether stopping criterion is fulfilled.
-  virtual bool Fulfilled(int iter, double prev, double value, const double *delta) = 0;
+  virtual bool Fulfilled(int iter, double value, const double *delta) = 0;
 
   // ---------------------------------------------------------------------------
   // Logging

@@ -44,11 +44,11 @@ class GradientFieldSimilarity : public ImageSimilarity
 
   /// Transformed gradient of the target image
   /// Used only if the target image is being transformed
-  mirtkAttributeMacro(GradientImageType, TargetTransformedGradient);
+  mirtkAttributeMacro(GenericImage<RegisteredImage::VoxelType>, TargetTransformedGradient);
 
   /// Transformed gradient of the source image
   /// Used only if the source image is being transformed
-  mirtkAttributeMacro(GradientImageType, SourceTransformedGradient);
+  mirtkAttributeMacro(GenericImage<RegisteredImage::VoxelType>, SourceTransformedGradient);
 
   // ---------------------------------------------------------------------------
   // Construction/Destruction

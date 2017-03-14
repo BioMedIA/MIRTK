@@ -1,8 +1,9 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2008-2015 Imperial College London
+ * Copyright 2008-2017 Imperial College London
  * Copyright 2008-2015 Daniel Rueckert, Julia Schnabel
+ * Copyright 2017 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,11 +31,9 @@ namespace mirtk {
  * Class for resampling of padded images
  *
  * This class defines and implements the resampling of images with arbitrary
- * voxel dimensions.  The new image intensity of the voxels is calculated by
- * interpolation of the old image intensities.  Only linear interpolation is
- * currently supported. If more than 50% of the voxels used for interpolation
- * have intensities smaller or equal to the padding value, the resampled
- * voxel will be filled with the padding value.
+ * voxel dimensions. The new image intensity of the voxels is calculated by
+ * interpolation of the old image intensities, using
+ * InterpolateImageFunction::EvaluateWithPadding.
  */
 template <class TVoxel>
 class ResamplingWithPadding : public Resampling<TVoxel>

@@ -1,8 +1,8 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2013-2015 Imperial College London
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2013-2017 Imperial College London
+ * Copyright 2013-2017 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,6 +33,7 @@
 #include "mirtk/ImageGradientFunction.h"
 #include "mirtk/FluidFreeFormTransformation.h"
 #include "mirtk/Vector3D.h"
+#include "mirtk/DataStatistics.h"
 
 #include "mirtk/LinearInterpolateImageFunction.hxx"  // incl. inline definitions
 #include "mirtk/FastLinearImageGradientFunction.hxx" // incl. inline definitions
@@ -41,29 +42,133 @@
 namespace mirtk {
 
 
+// =============================================================================
+// Auxiliaries
+// =============================================================================
+
+// -----------------------------------------------------------------------------
+/// Voxel function used to compute squared magnitude of image gradient vectors
+class CalculateSquaredGradientMagnitude : public VoxelFunction
+{
+  Array<double> *_SquaredMagnitude;
+  const bool    *_Mask;
+
+  const int _x = 0;
+  int _y, _z;
+
+public:
+
+  CalculateSquaredGradientMagnitude(const BaseImage *gradient, Array<double> *mag2, const bool *mask = nullptr)
+  :
+    _SquaredMagnitude(mag2), _Mask(mask),
+    _y(gradient->NumberOfSpatialVoxels()), _z(_y + _y)
+  {}
+
+  template <class TImage, class T>
+  void operator ()(const TImage&, int vox, const T *g) const
+  {
+    if (_Mask && !_Mask[vox]) {
+      (*_SquaredMagnitude)[vox] = 0.;
+    } else {
+      const double gx = static_cast<double>(g[_x]);
+      const double gy = static_cast<double>(g[_y]);
+      const double gz = static_cast<double>(g[_z]);
+      (*_SquaredMagnitude)[vox] = gx * gx + gy * gy + gz * gz;
+    }
+  }
+};
+
+// -----------------------------------------------------------------------------
+/// Voxel function used to clamp magnitude of image gradient vectors
+class ClampSquaredGradientMagnitude : public VoxelFunction
+{
+  Array<double> *_SquaredMagnitude;
+  double         _SquaredThreshold;
+
+  const int _x = 0;
+  int _y, _z;
+
+public:
+
+  ClampSquaredGradientMagnitude(const BaseImage *gradient, Array<double> *mag2, double thres2)
+  :
+    _SquaredMagnitude(mag2), _SquaredThreshold(thres2),
+    _y(gradient->NumberOfSpatialVoxels()), _z(_y + _y)
+  {}
+
+  template <class TImage, class T>
+  void operator ()(const TImage&, int vox, T *g) const
+  {
+    double &mag2 = (*_SquaredMagnitude)[vox];
+    if (mag2 > _SquaredThreshold) {
+      const double scale = sqrt(_SquaredThreshold / mag2);
+      g[_x] = static_cast<T>(scale * static_cast<double>(g[_x]));
+      g[_y] = static_cast<T>(scale * static_cast<double>(g[_y]));
+      g[_z] = static_cast<T>(scale * static_cast<double>(g[_z]));
+      mag2 = _SquaredThreshold;
+    }
+  }
+};
+
+// -----------------------------------------------------------------------------
+/// Voxel function used to rescale magnitude of image gradient vectors
+class RescaleSquaredGradientMagnitude : public VoxelFunction
+{
+  const Array<double> *_SquaredMagnitude;
+  double               _Scale;
+
+  const int _x = 0;
+  int _y, _z;
+
+public:
+
+  RescaleSquaredGradientMagnitude(const BaseImage *gradient, const Array<double> *mag2, double thres2)
+  :
+    _SquaredMagnitude(mag2),
+    _y(gradient->NumberOfSpatialVoxels()), _z(_y + _y)
+  {
+    double max2 = data::statistic::Max::Calculate(static_cast<int>(mag2->size()), mag2->data());
+    _Scale = sqrt(thres2 / max2);
+  }
+
+  template <class TImage, class T>
+  void operator ()(const TImage&, int vox, T *g) const
+  {
+    g[_x] = static_cast<T>(_Scale * static_cast<double>(g[_x]));
+    g[_y] = static_cast<T>(_Scale * static_cast<double>(g[_y]));
+    g[_z] = static_cast<T>(_Scale * static_cast<double>(g[_z]));
+  }
+};
+
+// =============================================================================
+// Registered image
+// =============================================================================
+
 // -----------------------------------------------------------------------------
 RegisteredImage::RegisteredImage()
 :
-  _InputImage            (NULL),
-  _InputGradient         (NULL),
-  _InputHessian          (NULL),
-  _Transformation        (NULL),
+  _InputImage            (nullptr),
+  _InputGradient         (nullptr),
+  _InputHessian          (nullptr),
+  _Transformation        (nullptr),
   _InterpolationMode     (Interpolation_Default),
   _ExtrapolationMode     (Extrapolation_Default),
-  _WorldCoordinates      (NULL),
-  _ImageToWorld          (NULL),
-  _ExternalDisplacement  (NULL),
-  _FixedDisplacement     (NULL),
-  _Displacement          (NULL),
+  _WorldCoordinates      (nullptr),
+  _ImageToWorld          (nullptr),
+  _ExternalDisplacement  (nullptr),
+  _FixedDisplacement     (nullptr),
+  _Displacement          (nullptr),
   _CacheWorldCoordinates (true),  // FIXME: MUST be true to also cache anything else...
   _CacheFixedDisplacement(false), // by default, only if required by transformation
   _CacheDisplacement     (false), // (c.f. Transformation::RequiresCachingOfDisplacements)
   _SelfUpdate            (true),
   _MinIntensity          (NaN),
   _MaxIntensity          (NaN),
-  _GradientSigma         (.0),
-  _HessianSigma          (.0),
+  _GradientSigma         (0.),
+  _HessianSigma          (0.),
   _PrecomputeDerivatives (false),
+  _MaxGradientPercentile (0),
+  _MaxGradientMagnitude  (0.),
   _NumberOfActiveLevels  (0),
   _NumberOfPassiveLevels (0)
 {
@@ -73,18 +178,18 @@ RegisteredImage::RegisteredImage()
 // -----------------------------------------------------------------------------
 RegisteredImage::RegisteredImage(const RegisteredImage &other)
 :
-  GenericImage<double>(other),
+  GenericImage<VoxelType>(other),
   _InputImage            (other._InputImage),
-  _InputGradient         (other._InputGradient  ? new GradientImageType(*other._InputGradient)  : NULL),
-  _InputHessian          (other._InputHessian   ? new GradientImageType(*other._InputHessian)   : NULL),
+  _InputGradient         (other._InputGradient ? new InputGradientType(*other._InputGradient) : nullptr),
+  _InputHessian          (other._InputHessian ? new InputHessianType(*other._InputHessian) : nullptr),
   _Transformation        (other._Transformation),
   _InterpolationMode     (other._InterpolationMode),
   _ExtrapolationMode     (other._ExtrapolationMode),
   _WorldCoordinates      (other._WorldCoordinates),
-  _ImageToWorld          (other._ImageToWorld      ? new WorldCoordsImage (*other._ImageToWorld)      : NULL),
+  _ImageToWorld          (other._ImageToWorld ? new WorldCoordsImage (*other._ImageToWorld) : nullptr),
   _ExternalDisplacement  (other._ExternalDisplacement),
-  _FixedDisplacement     (other._FixedDisplacement ? new DisplacementImageType(*other._FixedDisplacement) : NULL),
-  _Displacement          (other._Displacement      ? new DisplacementImageType(*other._Displacement)      : NULL),
+  _FixedDisplacement     (other._FixedDisplacement ? new DisplacementImageType(*other._FixedDisplacement) : nullptr),
+  _Displacement          (other._Displacement ? new DisplacementImageType(*other._Displacement) : nullptr),
   _CacheWorldCoordinates (other._CacheWorldCoordinates),
   _CacheFixedDisplacement(other._CacheFixedDisplacement),
   _CacheDisplacement     (other._CacheDisplacement),
@@ -94,6 +199,8 @@ RegisteredImage::RegisteredImage(const RegisteredImage &other)
   _GradientSigma         (other._GradientSigma),
   _HessianSigma          (other._HessianSigma),
   _PrecomputeDerivatives (other._PrecomputeDerivatives),
+  _MaxGradientPercentile (other._MaxGradientPercentile),
+  _MaxGradientMagnitude  (other._MaxGradientMagnitude),
   _NumberOfActiveLevels  (other._NumberOfActiveLevels),
   _NumberOfPassiveLevels (other._NumberOfPassiveLevels)
 {
@@ -103,18 +210,18 @@ RegisteredImage::RegisteredImage(const RegisteredImage &other)
 // -----------------------------------------------------------------------------
 RegisteredImage &RegisteredImage::operator =(const RegisteredImage &other)
 {
-  GenericImage<double>::operator =(other);
+  GenericImage<VoxelType>::operator =(other);
   _InputImage             = other._InputImage;
-  _InputGradient          = other._InputGradient  ? new GradientImageType(*other._InputGradient)  : NULL;
-  _InputHessian           = other._InputHessian   ? new GradientImageType(*other._InputHessian)   : NULL;
+  _InputGradient          = other._InputGradient ? new InputGradientType(*other._InputGradient) : nullptr;
+  _InputHessian           = other._InputHessian ? new InputHessianType(*other._InputHessian) : nullptr;
   _Transformation         = other._Transformation;
   _InterpolationMode      = other._InterpolationMode;
   _ExtrapolationMode      = other._ExtrapolationMode;
   _WorldCoordinates       = other._WorldCoordinates;
-  _ImageToWorld           = other._ImageToWorld      ? new WorldCoordsImage (*other._ImageToWorld)      : NULL;
+  _ImageToWorld           = other._ImageToWorld ? new WorldCoordsImage(*other._ImageToWorld) : nullptr;
   _ExternalDisplacement   = other._ExternalDisplacement;
-  _FixedDisplacement      = other._FixedDisplacement ? new DisplacementImageType(*other._FixedDisplacement) : NULL;
-  _Displacement           = other._Displacement      ? new DisplacementImageType(*other._Displacement)      : NULL;
+  _FixedDisplacement      = other._FixedDisplacement ? new DisplacementImageType(*other._FixedDisplacement) : nullptr;
+  _Displacement           = other._Displacement ? new DisplacementImageType(*other._Displacement) : nullptr;
   _CacheWorldCoordinates  = other._CacheWorldCoordinates;
   _CacheFixedDisplacement = other._CacheFixedDisplacement;
   _CacheDisplacement      = other._CacheDisplacement;
@@ -124,6 +231,8 @@ RegisteredImage &RegisteredImage::operator =(const RegisteredImage &other)
   _GradientSigma          = other._GradientSigma;
   _HessianSigma           = other._HessianSigma;
   _PrecomputeDerivatives  = other._PrecomputeDerivatives;
+  _MaxGradientPercentile  = other._MaxGradientPercentile;
+  _MaxGradientMagnitude   = other._MaxGradientMagnitude;
   _NumberOfActiveLevels   = other._NumberOfActiveLevels;
   _NumberOfPassiveLevels  = other._NumberOfPassiveLevels;
   memcpy(_Offset, other._Offset, 13 * sizeof(int));
@@ -136,9 +245,10 @@ RegisteredImage::~RegisteredImage()
   if (_ImageToWorld != _WorldCoordinates) delete _ImageToWorld;
   delete _FixedDisplacement;
   delete _Displacement;
-  if (_InputGradient != _InputImage) delete _InputGradient;
+  if ((void *)_InputGradient != (void *)_InputImage) delete _InputGradient;
   delete _InputHessian;
 }
+
 // =============================================================================
 // Initialization
 // =============================================================================
@@ -156,30 +266,18 @@ void RegisteredImage::Initialize(const ImageAttributes &attr, int t)
 
   // Check if input image is set
   if (!_InputImage) {
-    cerr << "RegisteredImage::Initialize: Missing input image" << endl;
-    exit(1);
+    Throw(ERR_InvalidArgument, __FUNCTION__, "Missing input image");
   }
 
   // Initialize base class
   if (attr._t > 1) {
-    cerr << "RegisteredImage::Initialize: Split multi-channel image/temporal sequence up into separate 2D/3D images" << endl;
-    exit(1);
+    Throw(ERR_InvalidArgument, __FUNCTION__, "Split multi-channel image/temporal sequence up into separate 2D/3D images");
   }
   if (t == 0) t = 1;
   if (t != 1 && t != 4 && t != 10 && t != 13) {
-    cerr << "RegisteredImage::Initialize: Number of registered image channels must be either 1, 4, 10 or 13" << endl;
-    exit(1);
+    Throw(ERR_InvalidArgument, __FUNCTION__, "Number of registered image channels must be either 1, 4, 10 or 13");
   }
-  GenericImage<double>::Initialize(attr, t);
-
-  // Set background value/foreground mask
-  if (_InputImage->HasBackgroundValue()) {
-    this->PutBackgroundValueAsDouble(_InputImage->GetBackgroundValueAsDouble());
-  } else {
-    double min, max;
-    _InputImage->GetMinMaxAsDouble(&min, &max);
-    this->PutBackgroundValueAsDouble(min - 1.);
-  }
+  GenericImage<VoxelType>::Initialize(attr, t);
 
   // Pre-compute world coordinates
   if (_WorldCoordinates) {
@@ -196,7 +294,7 @@ void RegisteredImage::Initialize(const ImageAttributes &attr, int t)
 
   // Determine number of active (changing) and passive (fixed) levels
   bool cache_fixed = !_ExternalDisplacement && _CacheFixedDisplacement;
-  const MultiLevelTransformation *mffd = NULL;
+  const MultiLevelTransformation *mffd = nullptr;
   if ((mffd = dynamic_cast<const MultiLevelTransformation *>(_Transformation))) {
     _NumberOfPassiveLevels = 0;
     for (int l = 0; l < mffd->NumberOfLevels(); ++l) {
@@ -261,55 +359,112 @@ void RegisteredImage::Initialize(const ImageAttributes &attr, int t)
 void RegisteredImage::ComputeInputGradient(double sigma)
 {
   MIRTK_START_TIMING();
-  // Smooth input image
-  InputImageType *blurred_image = _InputImage;
-  if (sigma > .0) {
-    blurred_image = new InputImageType;
-    if (this->HasBackgroundValue()) {
-      blurred_image->PutBackgroundValueAsDouble(this->GetBackgroundValueAsDouble());
-      GaussianBlurringWithPadding<double> blurring(sigma * _InputImage->GetXSize(),
-                                                   sigma * _InputImage->GetYSize(),
-                                                   sigma * _InputImage->GetZSize(),
-                                                   this->GetBackgroundValueAsDouble());
-      blurring.Input (_InputImage);
-      blurring.Output(blurred_image);
-      blurring.Run();
+  Delete(_InputGradient);
+  if (sigma > 0. || _PrecomputeDerivatives) {
+    // Background value
+    double bgvalue = -inf;
+    if (_InputImage->HasBackgroundValue()) {
+      bgvalue = _InputImage->GetBackgroundValueAsDouble();
+    }
+    // Cast to gradient voxel type
+    InputGradientType *image;
+    UniquePtr<InputGradientType> temp;
+    if (typeid(InputGradientType) != typeid(InputImageType)) {
+      temp.reset(new InputGradientType(*_InputImage));
+      image = temp.get();
     } else {
-      GaussianBlurring<double> blurring(sigma * _InputImage->GetXSize(),
-                                        sigma * _InputImage->GetYSize(),
-                                        sigma * _InputImage->GetZSize());
-      blurring.Input (_InputImage);
-      blurring.Output(blurred_image);
-      blurring.Run();
+      image = reinterpret_cast<InputGradientType *>(_InputImage);
     }
-  }
-  if (_PrecomputeDerivatives) {
-    // Compute image gradient using finite differences
-    typedef GradientImageFilter<GradientImageType::VoxelType> FilterType;
-    FilterType filter(FilterType::GRADIENT_VECTOR);
-    filter.Input (blurred_image);
-    filter.Output(_InputGradient ? _InputGradient : new GradientImageType);
-    // Note that even though the original IRTK nreg2 implementation did divide
-    // the image gradient initially by the voxel size, the similarity gradient
-    // was reoriented then by ImageRegistration2::EvaluateGradient using the
-    // upper 3x3 image to world matrix. This effectively multiplied by the voxel
-    // size again which is equivalent to only reorienting the image gradient
-    // computed w.r.t. the voxel coordinates, i.e., leaving the magnitude of the
-    // gradient in voxel units rather than world units (i.e., mm's).
-    filter.UseVoxelSize  (true);
-    filter.UseOrientation(true);
-    if (this->HasBackgroundValue()) {
-      filter.PaddingValue(this->GetBackgroundValueAsDouble());
+    // Smooth input image
+    if (sigma > 0.) {
+      UniquePtr<InputGradientType> blurred(new InputGradientType());
+      if (IsInf(bgvalue)) {
+        typedef GaussianBlurring<InputGradientType::VoxelType> GaussianFilter;
+        GaussianFilter blurring(sigma * image->XSize(),
+                                sigma * image->YSize(),
+                                sigma * image->ZSize());
+        blurring.Input(image);
+        blurring.Output(blurred.get());
+        blurring.Run();
+      } else {
+        typedef GaussianBlurringWithPadding<InputGradientType::VoxelType> GaussianFilter;
+        GaussianFilter blurring(sigma * image->XSize(),
+                                sigma * image->YSize(),
+                                sigma * image->ZSize(), bgvalue);
+        blurring.Input(image);
+        blurring.Output(blurred.get());
+        blurring.Run();
+      }
+      temp.reset(blurred.release());
+      image = temp.get();
     }
-    filter.Run();
-    _InputGradient = filter.Output();
-    _InputGradient->PutTSize(.0);
-    _InputGradient->PutBackgroundValueAsDouble(.0);
-    if (blurred_image != _InputImage) delete blurred_image;
-    MIRTK_DEBUG_TIMING(5, "computation of 1st order image derivatives");
+    if (_PrecomputeDerivatives) {
+      UniquePtr<InputGradientType> gradient(new InputGradientType());
+      // Compute image gradient using finite differences
+      typedef GradientImageFilter<InputGradientType::VoxelType> GradientFilterType;
+      GradientFilterType filter(GradientFilterType::GRADIENT_VECTOR);
+      filter.Input(image);
+      filter.Output(gradient.get());
+      // Note that even though the original IRTK nreg2 implementation did divide
+      // the image gradient initially by the voxel size, the similarity gradient
+      // was reoriented then by ImageRegistration2::EvaluateGradient using the
+      // upper 3x3 image to world matrix. This effectively multiplied by the voxel
+      // size again which is equivalent to only reorienting the image gradient
+      // computed w.r.t. the voxel coordinates, i.e., leaving the magnitude of the
+      // gradient in voxel units rather than world units (i.e., mm's).
+      filter.UseVoxelSize(true);
+      filter.UseOrientation(true);
+      filter.PaddingValue(bgvalue);
+      filter.Run();
+      gradient->PutTSize(0.);
+      gradient->PutBackgroundValueAsDouble(0.);
+      MIRTK_DEBUG_TIMING(5, "computation of 1st order image derivatives");
+      if (_MaxGradientPercentile > 0 || (_MaxGradientMagnitude > 0. && !IsInf(_MaxGradientMagnitude))) {
+        const int nvox = gradient->NumberOfSpatialVoxels();
+        // Initialize foreground mask
+        UniquePtr<bool[]> mask(new bool[nvox]);
+        for (int vox = 0; vox < nvox; ++vox) {
+          mask[vox] = image->IsForeground(vox);
+        }
+        // Compute gradient magnitude
+        Array<double> mag2(nvox);
+        CalculateSquaredGradientMagnitude eval_mag2(gradient.get(), &mag2, mask.get());
+        ParallelForEachVoxel(gradient.get(), eval_mag2);
+        if (_MaxGradientPercentile > 0) {
+          MIRTK_START_TIMING();
+          // Compute percentile threshold
+          using data::statistic::Percentile;
+          double thres2 = Percentile::Calculate(_MaxGradientPercentile, nvox, mag2.data(), mask.get());
+          // Clamp gradient magnitude
+          ClampSquaredGradientMagnitude clamp_mag2(gradient.get(), &mag2, thres2);
+          ParallelForEachVoxel(gradient.get(), clamp_mag2);
+          MIRTK_DEBUG_TIMING(5, "clamping of 1st order image derivatives");
+        }
+        // Rescale to specified maximum magnitude
+        if (_MaxGradientMagnitude > 0. && !IsInf(_MaxGradientMagnitude)) {
+          MIRTK_START_TIMING();
+          RescaleSquaredGradientMagnitude rescale(gradient.get(), &mag2, _MaxGradientMagnitude);
+          ParallelForEachVoxel(gradient.get(), rescale);
+          MIRTK_DEBUG_TIMING(5, "rescaling of 1st order image derivatives");
+        }
+      }
+      _InputGradient = gradient.release();
+    } else {
+      temp.release();
+      _InputGradient = image;
+      if (_InputImage->HasBackgroundValue()) {
+        _InputGradient->PutBackgroundValueAsDouble(_InputImage->GetBackgroundValueAsDouble());
+      }
+    }
   } else {
-    delete _InputGradient;
-    _InputGradient = blurred_image;
+    if (typeid(InputGradientType) != typeid(InputImageType)) {
+      _InputGradient = new InputGradientType(*_InputImage);
+      if (_InputImage->HasBackgroundValue()) {
+        _InputGradient->PutBackgroundValueAsDouble(_InputImage->GetBackgroundValueAsDouble());
+      }
+    } else {
+      _InputGradient = reinterpret_cast<InputGradientType *>(_InputImage);
+    }
     MIRTK_DEBUG_TIMING(5, "low-pass filtering of image for 1st order derivatives");
   }
 }
@@ -318,43 +473,57 @@ void RegisteredImage::ComputeInputGradient(double sigma)
 void RegisteredImage::ComputeInputHessian(double sigma)
 {
   MIRTK_START_TIMING();
+  Delete(_InputHessian);
+  // Background value
+  double bgvalue = -inf;
+  if (_InputImage->HasBackgroundValue()) {
+    bgvalue = _InputImage->GetBackgroundValueAsDouble();
+  }
+  // Cast to gradient voxel type
+  InputHessianType *image;
+  UniquePtr<InputHessianType> temp;
+  if (typeid(InputHessianType) != typeid(InputImageType)) {
+    temp.reset(new InputHessianType(*_InputImage));
+    image = temp.get();
+  } else {
+    image = reinterpret_cast<InputHessianType *>(_InputImage);
+  }
   // Smooth input image
-  InputImageType *blurred_image = _InputImage;
   if (sigma > .0) {
-    blurred_image = new InputImageType;
-    if (this->HasBackgroundValue()) {
-      blurred_image->PutBackgroundValueAsDouble(this->GetBackgroundValueAsDouble());
-      GaussianBlurringWithPadding<double> blurring(sigma * _InputImage->GetXSize(),
-                                                   sigma * _InputImage->GetYSize(),
-                                                   sigma * _InputImage->GetZSize(),
-                                                   this->GetBackgroundValueAsDouble());
-      blurring.Input (_InputImage);
-      blurring.Output(blurred_image);
+    UniquePtr<InputHessianType> blurred(new InputHessianType());
+    if (IsInf(bgvalue)) {
+      typedef GaussianBlurring<InputHessianType::VoxelType> GaussianFilter;
+      GaussianFilter blurring(sigma * image->XSize(),
+                              sigma * image->YSize(),
+                              sigma * image->ZSize());
+      blurring.Input (image);
+      blurring.Output(blurred.get());
       blurring.Run();
     } else {
-      GaussianBlurring<double> blurring(sigma * _InputImage->GetXSize(),
-                                        sigma * _InputImage->GetYSize(),
-                                        sigma * _InputImage->GetZSize());
-      blurring.Input (_InputImage);
-      blurring.Output(blurred_image);
+      typedef GaussianBlurringWithPadding<InputHessianType::VoxelType> GaussianFilter;
+      GaussianFilter blurring(sigma * image->XSize(),
+                              sigma * image->YSize(),
+                              sigma * image->ZSize(), bgvalue);
+      blurring.Input (image);
+      blurring.Output(blurred.get());
       blurring.Run();
     }
+    temp.reset(blurred.release());
+    image = temp.get();
   }
   // Compute 2nd order image derivatives using finite differences
-  typedef HessianImageFilter<HessianImageType::VoxelType> FilterType;
-  FilterType filter(FilterType::HESSIAN_MATRIX);
-  filter.Input(blurred_image);
-  filter.Output(_InputHessian ? _InputHessian : new HessianImageType);
+  UniquePtr<InputHessianType> hessian(new InputHessianType());
+  typedef HessianImageFilter<InputHessianType::VoxelType> HessianFilterType;
+  HessianFilterType filter(HessianFilterType::HESSIAN_MATRIX);
+  filter.Input(image);
+  filter.Output(hessian.get());
   filter.UseVoxelSize  (true);
   filter.UseOrientation(true);
-  if (this->HasBackgroundValue()) {
-    filter.PaddingValue(this->GetBackgroundValueAsDouble());
-  }
+  filter.PaddingValue(bgvalue);
   filter.Run();
-  _InputHessian = filter.Output();
-  _InputHessian->PutTSize(.0);
-  _InputHessian->PutBackgroundValueAsDouble(.0);
-  if (blurred_image != _InputImage) delete blurred_image;
+  hessian->PutTSize(.0);
+  hessian->PutBackgroundValueAsDouble(.0);
+  _InputHessian = hessian.get();
   MIRTK_DEBUG_TIMING(5, "computation of 2nd order image derivatives");
 }
 
@@ -367,6 +536,7 @@ void RegisteredImage::ComputeInputHessian(double sigma)
 struct Transformer
 {
   typedef WorldCoordsImage::VoxelType CoordType;
+  typedef RegisteredImage::DisplacementImageType::VoxelType DisplacementType;
 
   /// Constructor
   Transformer()
@@ -407,11 +577,11 @@ struct Transformer
   }
 
   /// Transform output voxel using pre-computed world coordinates and displacements
-  void operator ()(double &x, double &y, double &z, const CoordType *wc, const double *dx)
+  void operator ()(double &x, double &y, double &z, const CoordType *wc, const DisplacementType *dx)
   {
-    x = wc[_x] + dx[_x];
-    y = wc[_y] + dx[_y];
-    z = wc[_z] + dx[_z];
+    x = static_cast<double>(wc[_x]) + static_cast<double>(dx[_x]);
+    y = static_cast<double>(wc[_y]) + static_cast<double>(dx[_y]);
+    z = static_cast<double>(wc[_z]) + static_cast<double>(dx[_z]);
     _Input->WorldToImage(x, y, z);
   }
 
@@ -437,10 +607,9 @@ struct DefaultTransformer : public Transformer
 
   /// As this transformer is only used when no fixed transformation is cached,
   /// this overloaded operator should never be invoked
-  void operator ()(double &, double &, double &, const CoordType *, const double *, const double *)
+  void operator ()(double &, double &, double &, const CoordType *, const DisplacementType *, const DisplacementType *)
   {
-    cerr << "RegisteredImage::DefaultTransformer used even though _FixedDisplacement assumed to be NULL ?!?" << endl;
-    exit(1);
+    mirtk::Throw(ERR_LogicError, "RegisteredImage::DefaultTransformer", "Transformer used even though _FixedDisplacement assumed to be nullptr?!");
   }
 };
 
@@ -451,11 +620,11 @@ struct AdditiveTransformer : public Transformer
   using Transformer::operator();
 
   /// Transform output voxel using pre-computed world coordinates and displacements
-  void operator ()(double &x, double &y, double &z, const CoordType *wc, const double *d1, const double *d2)
+  void operator ()(double &x, double &y, double &z, const CoordType *wc, const DisplacementType *d1, const DisplacementType *d2)
   {
-    x = wc[_x] + d1[_x] + d2[_x];
-    y = wc[_y] + d1[_y] + d2[_y];
-    z = wc[_z] + d1[_z] + d2[_z];
+    x = static_cast<double>(wc[_x]) + static_cast<double>(d1[_x]) + static_cast<double>(d2[_x]);
+    y = static_cast<double>(wc[_y]) + static_cast<double>(d1[_y]) + static_cast<double>(d2[_y]);
+    z = static_cast<double>(wc[_z]) + static_cast<double>(d1[_z]) + static_cast<double>(d2[_z]);
     _Input->WorldToImage(x, y, z);
   }
 };
@@ -471,11 +640,11 @@ struct FluidTransformer : public Transformer
   /// Because fluid composition of displacement fields would require interpolation,
   /// let Transformation::Displacement handle the fluid composition already when
   /// computing the second displacement field.
-  void operator ()(double &x, double &y, double &z, const CoordType *wc, const double *, const double *dx)
+  void operator ()(double &x, double &y, double &z, const CoordType *wc, const DisplacementType *, const DisplacementType *dx)
   {
-    x = wc[_x] + dx[_x];
-    y = wc[_y] + dx[_y];
-    z = wc[_z] + dx[_z];
+    x = static_cast<double>(wc[_x]) + static_cast<double>(dx[_x]);
+    y = static_cast<double>(wc[_y]) + static_cast<double>(dx[_y]);
+    z = static_cast<double>(wc[_z]) + static_cast<double>(dx[_z]);
     _Input->WorldToImage(x, y, z);
   }
 };
@@ -505,17 +674,16 @@ struct FixedTransformer : public Transformer
   }
 
   /// Transform output voxel using pre-computed world coordinates and displacements
-  void operator ()(double &x, double &y, double &z, const CoordType *wc, const double *dx)
+  void operator ()(double &x, double &y, double &z, const CoordType *wc, const DisplacementType *dx)
   {
     Transformer::operator()(x, y, z, wc, dx);
   }
 
   /// As this transformer is only used when no transformation is set,
   /// this overloaded operator should never be invoked
-  void operator ()(double &, double &, double &, const CoordType *, const double *, const double *)
+  void operator ()(double &, double &, double &, const CoordType *, const DisplacementType *, const DisplacementType *)
   {
-    cerr << "RegisteredImage::FixedTransformer(..., d1, d2) used even though _Transformation assumed to be NULL ?!?" << endl;
-    exit(1);
+    Throw(ERR_LogicError, "RegisteredImage::FixedTransformer(..., d1, d2)", "Transformer used even though _Transformation assumed to be nullptr?!");
   }
 };
 
@@ -607,9 +775,10 @@ class Interpolator : public Object
 
 public:
 
-  typedef TIntensityFunction  IntensityFunction;
-  typedef TGradientFunction   GradientFunction;
-  typedef THessianFunction    HessianFunction;
+  typedef TIntensityFunction           IntensityFunction;
+  typedef TGradientFunction            GradientFunction;
+  typedef THessianFunction             HessianFunction;
+  typedef RegisteredImage::VoxelType   VoxelType;
 
 protected:
 
@@ -618,7 +787,7 @@ protected:
   HessianFunction   *_HessianFunction;
   bool               _InterpolateWithPadding;
   bool               _PrecomputedDerivatives;
-  double             _PaddingValue;
+  double             _OutsideValue;
   double             _MinIntensity;
   double             _MaxIntensity;
   double             _RescaleSlope;
@@ -637,11 +806,11 @@ public:
     _HessianFunction       (nullptr),
     _InterpolateWithPadding(false),
     _PrecomputedDerivatives(false),
-    _PaddingValue          (-1.),
+    _OutsideValue          (0.),
     _MinIntensity          (NaN),
     _MaxIntensity          (NaN),
     _RescaleSlope          (1.),
-    _RescaleIntercept      (.0),
+    _RescaleIntercept      (0.),
     _NumberOfVoxels        (0),
     _NumberOfChannels      (0)
   {
@@ -656,7 +825,7 @@ public:
     _HessianFunction       (nullptr),
     _InterpolateWithPadding(other._InterpolateWithPadding),
     _PrecomputedDerivatives(other._PrecomputedDerivatives),
-    _PaddingValue          (other._PaddingValue),
+    _OutsideValue          (other._OutsideValue),
     _MinIntensity          (other._MinIntensity),
     _MaxIntensity          (other._MaxIntensity),
     _RescaleSlope          (other._RescaleSlope),
@@ -667,7 +836,7 @@ public:
   {
     if (other._IntensityFunction) {
       const BaseImage *f = other._IntensityFunction->Input();
-      const double f_bg = (f->HasBackgroundValue() ? f->GetBackgroundValueAsDouble() : MIN_GREY);
+      const double f_bg = (f->HasBackgroundValue() ? f->GetBackgroundValueAsDouble() : NaN);
       New<IntensityFunction>(_IntensityFunction, f,
                              other._IntensityFunction->InterpolationMode(),
                              other._IntensityFunction->ExtrapolationMode(),
@@ -675,19 +844,19 @@ public:
     }
     if (other._GradientFunction) {
       const BaseImage *g = other._GradientFunction->Input();
-      const double g_bg = (g->HasBackgroundValue() ? g->GetBackgroundValueAsDouble() : .0);
+      const double g_bg = (g->HasBackgroundValue() ? g->GetBackgroundValueAsDouble() : 0.);
       New<GradientFunction>(_GradientFunction, g,
                             other._GradientFunction->InterpolationMode(),
                             other._GradientFunction->ExtrapolationMode(),
-                            g_bg, .0);
+                            g_bg, 0.);
     }
     if (other._HessianFunction) {
       const BaseImage *h = other._HessianFunction->Input();
-      const double h_bg = (h->HasBackgroundValue() ? h->GetBackgroundValueAsDouble() : .0);
+      const double h_bg = (h->HasBackgroundValue() ? h->GetBackgroundValueAsDouble() : 0.);
       New<HessianFunction>(_HessianFunction, h,
                            other._HessianFunction->InterpolationMode(),
                            other._HessianFunction->ExtrapolationMode(),
-                           h_bg, .0);
+                           h_bg, 0.);
     }
   }
 
@@ -702,44 +871,63 @@ public:
   /// Initialize interpolators
   void Initialize(RegisteredImage *o)
   {
-    InterpolationMode interp;
-    if (o->InterpolationMode() == Interpolation_Default) {
-      interp = DefaultInterpolationMode();
-    } else {
-      interp = o->InterpolationMode();
-    }
-    _PrecomputedDerivatives = o->PrecomputeDerivatives();
-    _InterpolateWithPadding = (interp != InterpolationWithoutPadding(interp));
-    if (o->HasBackgroundValue()) _PaddingValue = o->GetBackgroundValueAsDouble();
-    _NumberOfVoxels   = o->X() * o->Y() * o->Z();
-    _NumberOfChannels = o->T();
     const BaseImage * const f = o->InputImage();
     const BaseImage * const g = o->InputGradient();
     const BaseImage * const h = o->InputHessian();
-    const double f_bg = (f->HasBackgroundValue() ? f->GetBackgroundValueAsDouble() : MIN_GREY);
-    const double g_bg = (g && g->HasBackgroundValue() ? g->GetBackgroundValueAsDouble() : .0);
-    const double h_bg = (h && h->HasBackgroundValue() ? h->GetBackgroundValueAsDouble() : .0);
+    const double f_bg = (f->HasBackgroundValue() ? f->GetBackgroundValueAsDouble() : NaN);
+    const double g_bg = (g && g->HasBackgroundValue() ? g->GetBackgroundValueAsDouble() : 0.);
+    const double h_bg = (h && h->HasBackgroundValue() ? h->GetBackgroundValueAsDouble() : 0.);
+    InterpolationMode interp = o->InterpolationMode();
+    if (interp == Interpolation_Default) {
+      interp = DefaultInterpolationMode();
+    }
+    if (f->HasBackgroundValue() || f->HasMask()) {
+      _InterpolateWithPadding = (interp != InterpolationWithoutPadding(interp));
+    } else {
+      _InterpolateWithPadding = false;
+    }
     New<IntensityFunction>(_IntensityFunction, f, interp, o->ExtrapolationMode(), f_bg, f_bg);
-    New<GradientFunction >(_GradientFunction,  g, interp, Extrapolation_Default,  g_bg, .0);
-    New<HessianFunction  >(_HessianFunction,   h, interp, Extrapolation_Default,  h_bg, .0);
+    New<GradientFunction >(_GradientFunction,  g, interp, Extrapolation_Default,  g_bg, 0.);
+    New<HessianFunction  >(_HessianFunction,   h, interp, Extrapolation_Default,  h_bg, 0.);
     f->GetMinMaxAsDouble(_MinIntensity, _MaxIntensity);
+    _PrecomputedDerivatives = o->PrecomputeDerivatives();
+    _NumberOfChannels       = o->T();
+    _NumberOfVoxels         = o->X() * o->Y() * o->Z();
+    _InputSize              = Vector3D<int>(f->X(), f->Y(), f->Z());
+    // Set outside value
+    if (o->HasBackgroundValue()) {
+      _OutsideValue = o->GetBackgroundValueAsDouble();
+    } else if (!IsNaN(f_bg)) {
+      _OutsideValue = f_bg;
+    } else {
+      _OutsideValue = _MinIntensity - 1.;
+    }
+    // Set rescaling parameters
     double omin = o->MinIntensity();
     double omax = o->MaxIntensity();
     if (!IsNaN(omin) || !IsNaN(omax)) {
+      // Compute linear rescaling parameters of resampled intensities
       if (IsNaN(omin)) omin = _MinIntensity;
       if (IsNaN(omax)) omax = _MaxIntensity;
       _RescaleSlope     = (omax - omin) / (_MaxIntensity - _MinIntensity);
       _RescaleIntercept = omin - _RescaleSlope * _MinIntensity;
-      _MinIntensity     = omin;
-      _MaxIntensity     = omax;
-    } else {
-      _RescaleSlope     = 1.0;
-      _RescaleIntercept = 0.0;
-      if (f->HasBackgroundValue() && _MinIntensity > f->GetBackgroundValueAsDouble()) {
-        _MinIntensity = f->GetBackgroundValueAsDouble();
+      // Rescale outside value or force it to be within explicitly requested range
+      if (_OutsideValue < _MinIntensity && !IsNaN(o->MinIntensity())) {
+        _OutsideValue = omin - .01;
+      } else if (_OutsideValue > _MaxIntensity && !IsNaN(o->MaxIntensity())) {
+        _OutsideValue = omax + .01;
+      } else {
+        _OutsideValue = _RescaleSlope * _OutsideValue + _RescaleIntercept;
       }
+      // Change min/max values **after** outside value is set
+      _MinIntensity = omin;
+      _MaxIntensity = omax;
+    } else {
+      _RescaleSlope     = 1.;
+      _RescaleIntercept = 0.;
     }
-    _InputSize = Vector3D<int>(f->X(), f->Y(), f->Z());
+    // Set background value of resampled image
+    o->PutBackgroundValueAsDouble(_OutsideValue);
   }
 
   /// Get input image
@@ -767,7 +955,7 @@ public:
     }
     if (inside && check_value && _InterpolateWithPadding) {
       double value = _IntensityFunction->EvaluateWithPadding(x, y, z);
-      if (value == _IntensityFunction->DefaultValue()) inside = false;
+      if (IsNaN(value) || AreEqual(value, _IntensityFunction->DefaultValue(), 1e-6)) inside = false;
     }
     if (inside) return 1;
     if (0. <= x && x <= _InputSize._x - 1. &&
@@ -779,103 +967,129 @@ public:
   /// Interpolate input intensity function
   ///
   /// \return The interpolation mode, i.e., result of inside/outside domain check.
-  int Intensity(double x, double y, double z, double *o) const
+  int Intensity(double x, double y, double z, VoxelType *o) const
   {
+    double value;
     // Check if location is inside image domain
     int mode = Mode(x, y, z, false);
     if (mode != -1) {
       // Either interpolate using the input padding value to exclude background
       if (_InterpolateWithPadding) {
         if (mode == 1) {
-          *o = _IntensityFunction->EvaluateWithPaddingInside(x, y, z);
+          value = _IntensityFunction->EvaluateWithPaddingInside(x, y, z);
         } else {
-          *o = _IntensityFunction->EvaluateWithPaddingOutside(x, y, z);
+          value = _IntensityFunction->EvaluateWithPaddingOutside(x, y, z);
         }
       // or simply ignore the input background value as done by nreg2
       } else {
         if (mode == 1) {
-          *o = _IntensityFunction->EvaluateInside(x, y, z);
+          value = _IntensityFunction->EvaluateInside(x, y, z);
         } else {
-          *o = _IntensityFunction->EvaluateOutside(x, y, z);
+          value = _IntensityFunction->EvaluateOutside(x, y, z);
         }
       }
-      // Set background to output padding value
-      if (*o == _IntensityFunction->DefaultValue()) {
-        *o = _PaddingValue;
-        if (_InterpolateWithPadding) return -1;
+      // Set background to outside value
+      if (IsNaN(value) || AreEqual(value, _IntensityFunction->DefaultValue(), 1e-6)) {
+        value = _OutsideValue;
+        if (_InterpolateWithPadding) mode = -1;
       // Rescale/clamp foreground to [min, max] range
       } else {
-        *o = (*o) * _RescaleSlope + _RescaleIntercept;
-        if      (*o < _MinIntensity) *o = _MinIntensity;
-        else if (*o > _MaxIntensity) *o = _MaxIntensity;
+        value = value * _RescaleSlope + _RescaleIntercept;
+        if      (value < _MinIntensity) value = _MinIntensity;
+        else if (value > _MaxIntensity) value = _MaxIntensity;
       }
     // Otherwise, set output intensity to outside value
     } else {
-      *o = _PaddingValue;
+      value = _OutsideValue;
     }
+    *o = static_cast<VoxelType>(value);
     // Pass inside/outside check result on to derivative interpolation
     // functions such that these boundary checks are only done once.
     // This requires the same interpolation mode for all channels.
     return mode;
   }
 
+private:
+
   /// Interpolate 1st order derivatives of input intensity function
-  void Gradient(double x, double y, double z, double *o, int mode = 0) const
+  void EvaluateGradient(double x, double y, double z, double *o, int mode = 0, int stride = 1) const
   {
-    o += _NumberOfVoxels;
     switch (mode) {
       // Inside
       case 1:
         if (_InterpolateWithPadding) {
-          _GradientFunction->EvaluateWithPaddingInside(o, x, y, z, _NumberOfVoxels);
+          _GradientFunction->EvaluateWithPaddingInside(o, x, y, z, stride);
         } else {
-          _GradientFunction->EvaluateInside(o, x, y, z, _NumberOfVoxels);
+          _GradientFunction->EvaluateInside(o, x, y, z, stride);
         }
         break;
       // Boundary
       case 0:
         if (_PrecomputedDerivatives) {
           if (_InterpolateWithPadding) {
-            _GradientFunction->EvaluateWithPaddingOutside(o, x, y, z, _NumberOfVoxels);
+            _GradientFunction->EvaluateWithPaddingOutside(o, x, y, z, stride);
           } else {
-            _GradientFunction->EvaluateOutside(o, x, y, z, _NumberOfVoxels);
+            _GradientFunction->EvaluateOutside(o, x, y, z, stride);
           }
           break;
         } // otherwise continue with Outside case
       // Outside
       default: {
-        for (int c = 1; c <= 3; ++c, o += _NumberOfVoxels) *o = .0;
+        for (int c = 1; c <= 3; ++c, o += stride) *o = 0.;
       } break;
     }
   }
 
   /// Interpolate 2nd order derivatives of input intensity function
-  void Hessian(double x, double y, double z, double *o, int mode = 0) const
+  void EvaluateHessian(double x, double y, double z, double *o, int mode = 0, int stride = 1) const
   {
-    o += 4 * _NumberOfVoxels;
     switch (mode) {
       // Inside
       case 1:
         if (_InterpolateWithPadding) {
-          _HessianFunction->EvaluateWithPaddingInside(o, x, y, z, _NumberOfVoxels);
+          _HessianFunction->EvaluateWithPaddingInside(o, x, y, z, stride);
         } else {
-          _HessianFunction->EvaluateInside(o, x, y, z, _NumberOfVoxels);
+          _HessianFunction->EvaluateInside(o, x, y, z, stride);
         }
         break;
       // Boundary
       case 0:
         if (_PrecomputedDerivatives) {
           if (_InterpolateWithPadding) {
-            _HessianFunction->EvaluateWithPaddingOutside(o, x, y, z, _NumberOfVoxels);
+            _HessianFunction->EvaluateWithPaddingOutside(o, x, y, z, stride);
           } else {
-            _HessianFunction->EvaluateOutside(o, x, y, z, _NumberOfVoxels);
+            _HessianFunction->EvaluateOutside(o, x, y, z, stride);
           }
           break;
         } // otherwise continue with Outside case
       // Outside
       default: {
-        for (int c = 4; c < _NumberOfChannels; ++c, o += _NumberOfVoxels) *o = .0;
+        for (int c = 4; c < _NumberOfChannels; ++c, o += stride) *o = 0.;
       } break;
+    }
+  }
+
+public:
+
+  /// Interpolate 2nd order derivatives of input intensity function
+  void Gradient(double x, double y, double z, VoxelType *o, int mode = 0) const
+  {
+    double gradient[3];
+    EvaluateGradient(x, y, z, gradient, mode);
+    o += _NumberOfVoxels;
+    for (int c = 0; c < 3; ++c, o += _NumberOfVoxels) {
+      *o = static_cast<VoxelType>(gradient[c]);
+    }
+  }
+
+  /// Interpolate 2nd order derivatives of input intensity function
+  void Hessian(double x, double y, double z, VoxelType *o, int mode = 0) const
+  {
+    double hessian[9];
+    EvaluateHessian(x, y, z, hessian, mode);
+    o += 4 * _NumberOfVoxels;
+    for (int c = 4; c < _NumberOfChannels; ++c, o += _NumberOfVoxels) {
+      *o = static_cast<VoxelType>(hessian[c - 4]);
     }
   }
 };
@@ -886,6 +1100,7 @@ template <class IntensityFunction, class GradientFunction, class HessianFunction
 struct IntensityInterpolator
 {
   typedef Interpolator<IntensityFunction, GradientFunction, HessianFunction> Evaluator;
+  typedef typename Evaluator::VoxelType VoxelType;
 
   const Evaluator *_Evaluate;
   IntensityInterpolator(const Evaluator *eval = nullptr)
@@ -893,7 +1108,7 @@ struct IntensityInterpolator
     _Evaluate(eval)
   {}
 
-  void operator()(double x, double y, double z, double *o)
+  void operator()(double x, double y, double z, VoxelType *o)
   {
     _Evaluate->Intensity(x, y, z, o);
   }
@@ -905,6 +1120,7 @@ template <class IntensityFunction, class GradientFunction, class HessianFunction
 struct GradientInterpolator
 {
   typedef Interpolator<IntensityFunction, GradientFunction, HessianFunction> Evaluator;
+  typedef typename Evaluator::VoxelType VoxelType;
 
   const Evaluator *_Evaluate;
   GradientInterpolator(const Evaluator *eval = nullptr)
@@ -912,7 +1128,7 @@ struct GradientInterpolator
     _Evaluate(eval)
   {}
 
-  void operator()(double x, double y, double z, double *o)
+  void operator()(double x, double y, double z, VoxelType *o)
   {
     int mode = _Evaluate->Mode(x, y, z);
     _Evaluate->Gradient(x, y, z, o, mode);
@@ -925,6 +1141,7 @@ template <class IntensityFunction, class GradientFunction, class HessianFunction
 struct HessianInterpolator
 {
   typedef Interpolator<IntensityFunction, GradientFunction, HessianFunction> Evaluator;
+  typedef typename Evaluator::VoxelType VoxelType;
 
   const Evaluator *_Evaluate;
   HessianInterpolator(const Evaluator *eval = nullptr)
@@ -932,7 +1149,7 @@ struct HessianInterpolator
     _Evaluate(eval)
   {}
 
-  void operator()(double x, double y, double z, double *o)
+  void operator()(double x, double y, double z, VoxelType *o)
   {
     int mode = _Evaluate->Mode(x, y, z);
     _Evaluate->Hessian(x, y, z, o, mode);
@@ -945,6 +1162,7 @@ template <class IntensityFunction, class GradientFunction, class HessianFunction
 struct IntensityAndGradientInterpolator
 {
   typedef Interpolator<IntensityFunction, GradientFunction, HessianFunction> Evaluator;
+  typedef typename Evaluator::VoxelType VoxelType;
 
   const Evaluator *_Evaluate;
   IntensityAndGradientInterpolator(const Evaluator *eval = nullptr)
@@ -952,7 +1170,7 @@ struct IntensityAndGradientInterpolator
     _Evaluate(eval)
   {}
 
-  void operator()(double x, double y, double z, double *o)
+  void operator()(double x, double y, double z, VoxelType *o)
   {
     int mode = _Evaluate->Intensity(x, y, z, o);
     _Evaluate->Gradient(x, y, z, o, mode);
@@ -965,6 +1183,7 @@ template <class IntensityFunction, class GradientFunction, class HessianFunction
 struct IntensityAndHessianInterpolator
 {
   typedef Interpolator<IntensityFunction, GradientFunction, HessianFunction> Evaluator;
+  typedef typename Evaluator::VoxelType VoxelType;
 
   const Evaluator *_Evaluate;
   IntensityAndHessianInterpolator(const Evaluator *eval = nullptr)
@@ -972,7 +1191,7 @@ struct IntensityAndHessianInterpolator
     _Evaluate(eval)
   {}
 
-  void operator()(double x, double y, double z, double *o)
+  void operator()(double x, double y, double z, VoxelType *o)
   {
     int mode = _Evaluate->Intensity(x, y, z, o);
     _Evaluate->Hessian(x, y, z, o, mode);
@@ -985,6 +1204,7 @@ template <class IntensityFunction, class GradientFunction, class HessianFunction
 struct GradientAndHessianInterpolator
 {
   typedef Interpolator<IntensityFunction, GradientFunction, HessianFunction> Evaluator;
+  typedef typename Evaluator::VoxelType VoxelType;
 
   const Evaluator *_Evaluate;
   GradientAndHessianInterpolator(const Evaluator *eval = nullptr)
@@ -992,7 +1212,7 @@ struct GradientAndHessianInterpolator
     _Evaluate(eval)
   {}
 
-  void operator()(double x, double y, double z, double *o)
+  void operator()(double x, double y, double z, VoxelType *o)
   {
     int mode = _Evaluate->Mode(x, y, z);
     _Evaluate->Gradient(x, y, z, o, mode);
@@ -1006,6 +1226,7 @@ template <class IntensityFunction, class GradientFunction, class HessianFunction
 struct IntensityAndGradientAndHessianInterpolator
 {
   typedef Interpolator<IntensityFunction, GradientFunction, HessianFunction> Evaluator;
+  typedef typename Evaluator::VoxelType VoxelType;
 
   const Evaluator *_Evaluate;
   IntensityAndGradientAndHessianInterpolator(const Evaluator *eval = nullptr)
@@ -1013,7 +1234,7 @@ struct IntensityAndGradientAndHessianInterpolator
     _Evaluate(eval)
   {}
 
-  void operator()(double x, double y, double z, double *o)
+  void operator()(double x, double y, double z, VoxelType *o)
   {
     int mode = _Evaluate->Intensity(x, y, z, o);
     _Evaluate->Gradient(x, y, z, o, mode);
@@ -1028,8 +1249,10 @@ struct UpdateVoxelFunction : public VoxelFunction
 {
 private:
 
-  typedef typename Transformer::CoordType  CoordType;
-  typedef typename Interpolator::Evaluator Evaluator;
+  typedef typename Transformer::CoordType          CoordType;
+  typedef typename Transformer::DisplacementType   DisplacementType;
+  typedef typename Interpolator::Evaluator         Evaluator;
+  typedef typename Evaluator::VoxelType            VoxelType;
 
   Transformer  _Transform;
   Interpolator _Interpolate;
@@ -1045,7 +1268,7 @@ public:
   }
 
   /// Resample input without pre-computed maps
-  void operator ()(int i, int j, int k, int, double *o)
+  void operator ()(int i, int j, int k, int, VoxelType *o)
   {
     double x = i, y = j, z = k;
     _Transform  (x, y, z);
@@ -1053,7 +1276,7 @@ public:
   }
 
   /// Resample input using pre-computed world coordinates
-  void operator ()(int i, int j, int k, int, const CoordType *wc, double *o)
+  void operator ()(int i, int j, int k, int, const CoordType *wc, VoxelType *o)
   {
     double x = i, y = j, z = k;
     _Transform  (x, y, z, wc);
@@ -1061,7 +1284,7 @@ public:
   }
 
   /// Resample input using pre-computed world coordinates and displacements
-  void operator ()(int i, int j, int k, int, const CoordType *wc, const double *dx, double *o)
+  void operator ()(int i, int j, int k, int, const CoordType *wc, const DisplacementType *dx, VoxelType *o)
   {
     double x = i, y = j, z = k;
     _Transform  (x, y, z, wc, dx);
@@ -1069,7 +1292,7 @@ public:
   }
 
   /// Resample input using pre-computed world coordinates and additive displacements
-  void operator ()(int i, int j, int k, int, const CoordType *wc, const double *d1, const double *d2, double *o)
+  void operator ()(int i, int j, int k, int, const CoordType *wc, const DisplacementType *d1, const DisplacementType *d2, VoxelType *o)
   {
     double x = i, y = j, z = k;
     _Transform  (x, y, z, wc, d1, d2);
@@ -1146,8 +1369,7 @@ void RegisteredImage::Update2(const blocked_range3d<int> &region,
       if (hessian) {
         _update_using(HessianInterpolator);
       } else {
-        cerr << "RegisteredImage::Update: At least one output channel should be updated" << endl;
-        exit(1);
+        Throw(ERR_InvalidArgument, __FUNCTION__, "At least one output channel should be updated");
       }
     }
   }
@@ -1173,8 +1395,8 @@ void RegisteredImage::Update1(const blocked_range3d<int> &region,
       // Auxiliary macro -- undefined again at the end of this body
       #define _update_using(InterpolatorType)                                  \
         Update2<Transformer, InterpolatorType<InputImageType>,                 \
-                             InterpolatorType<GradientImageType>,              \
-                             InterpolatorType<HessianImageType> >              \
+                             InterpolatorType<InputGradientType>,              \
+                             InterpolatorType<InputHessianType> >              \
             (region, intensity, gradient, hessian)
       if (this->GetZ() == 1) {
         _update_using(GenericLinearInterpolateImageFunction2D);
@@ -1194,14 +1416,13 @@ void RegisteredImage::Update1(const blocked_range3d<int> &region,
     // TODO: Use also some HessianInterpolatorType
     #define _update_using(InterpolatorType, GradientInterpolatorType)          \
       Update2<Transformer, InterpolatorType<InputImageType>,                   \
-                           GradientInterpolatorType<InputImageType>,           \
-                           InterpolatorType<HessianImageType> >                \
+                           GradientInterpolatorType<InputGradientType>,        \
+                           InterpolatorType<InputHessianType> >                \
           (region, intensity, gradient, hessian)
     // Instantiate image functions for commonly used interpolation methods
     // to allow the compiler to generate optimized code for these
     if (interp == Interpolation_Linear) {
-
-      if (this->GetZ() == 1) {
+      if (this->Z() == 1) {
         _update_using(GenericLinearInterpolateImageFunction2D,
                       GenericLinearImageGradientFunction2D);
       } else {
@@ -1209,7 +1430,7 @@ void RegisteredImage::Update1(const blocked_range3d<int> &region,
                       GenericLinearImageGradientFunction3D);
       }
     } else if (interp == Interpolation_FastLinear) {
-      if (this->GetZ() == 1) {
+      if (this->Z() == 1) {
         _update_using(GenericLinearInterpolateImageFunction2D,
                       GenericFastLinearImageGradientFunction2D);
       } else {
@@ -1363,11 +1584,10 @@ void RegisteredImage::Update(const blocked_range3d<int> &region,
         if (!IsNaN(_MinIntensity) || !IsNaN(_MaxIntensity)) {
           const int nvox = NumberOfVoxels();
           if (nvox > 0) {
-            InputImageType::VoxelType *iptr = _InputImage->Data();
-            InputImageType::VoxelType  imin;
-            InputImageType::VoxelType  imax;
-            imin = voxel_limits<InputImageType::VoxelType>::max();
-            imax = voxel_limits<InputImageType::VoxelType>::min();
+            typedef InputImageType::VoxelType InputVoxelType;
+            InputVoxelType *iptr = _InputImage->Data();
+            InputVoxelType  imin = voxel_limits<InputVoxelType>::max();
+            InputVoxelType  imax = voxel_limits<InputVoxelType>::min();
             for (int idx = 0; idx < nvox; ++idx, ++iptr) {
               if (_InputImage->IsForeground(idx)) {
                 if (*iptr < imin) imin = *iptr;
@@ -1450,7 +1670,7 @@ void RegisteredImage::Update(const blocked_range3d<int>  &region,
 
   // Replace displacement fields by user arguments
   _Displacement      = const_cast<DisplacementImageType *>(disp);
-  _FixedDisplacement = NULL;
+  _FixedDisplacement = nullptr;
 
   // Interpolate within specified region using fixed transfomer
   Update1<FixedTransformer>(region, intensity, gradient, hessian);

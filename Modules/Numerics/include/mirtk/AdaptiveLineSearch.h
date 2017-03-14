@@ -78,6 +78,9 @@ public:
   // ---------------------------------------------------------------------------
   // Optimization
 
+  /// Initialize optimization
+  virtual void Initialize();
+
   /// Make optimal step along search direction
   virtual double Run();
 

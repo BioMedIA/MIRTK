@@ -94,7 +94,7 @@ inline double Evaluate(const DistanceFunction &dist, const double p[3], double o
     x = clamp(x, xmin, xmax);
     y = clamp(y, ymin, ymax);
     z = clamp(z, zmin, zmax);
-    d = max(0., dist.GetInside(x, y, z));
+    d = max(0., static_cast<double>(dist.GetInside(x, y, z)));
     dist.ImageToWorld(x, y, z);
     x -= p[0], y -= p[1], z -= p[2];
     d += sqrt(x*x + y*y + z*z);
@@ -111,7 +111,9 @@ inline void Evaluate(const DistanceGradient &gradient, const double p[3], double
   if (gradient.IsInside(x, y, z)) {
     DistanceGradient::GradientType v = gradient.GetInside(x, y, z);
     if (normalize) v.Normalize();
-    g[0] = v._x, g[1] = v._y, g[2] = v._z;
+    g[0] = static_cast<double>(v._x);
+    g[1] = static_cast<double>(v._y);
+    g[2] = static_cast<double>(v._z);
   } else {
     g[0] = g[1] = g[2] = .0;
   }
@@ -941,7 +943,7 @@ DistanceImage Evaluate(double maxh, const DistanceImage &dmap,
     output.ImageToWorld(p[0], p[1], p[2]);
     d.Evaluate(p, dirs, minh, maxh, distance, offset, tol);
     for (int l = 0; l < output.T(); ++l) {
-      output(i, j, k, l) = d.Get(l);
+      output(i, j, k, l) = static_cast<DistanceImage::VoxelType>(d.Get(l));
     }
   }
 

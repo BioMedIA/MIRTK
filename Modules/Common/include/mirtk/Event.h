@@ -153,12 +153,14 @@ struct LineSearchStep
   double      _MaxLength;   ///< Maximum allowed step length
   double      _Unit;        ///< Step length unit
   double      _Delta;       ///< Maximum change of parameters (DoFs)
+  double      _TotalDelta;  ///< Accumulated change of parameters (DoFs)
 
   LineSearchStep()
   :
     _Info(NULL), _Direction(NULL),
     _Current(.0), _Value(.0), _Length(.0), _TotalLength(.0),
-    _MinLength(.0), _MaxLength(.0), _Unit(.0), _Delta(.0)
+    _MinLength(.0), _MaxLength(.0), _Unit(.0),
+    _Delta(.0), _TotalDelta(.0)
   {}
 };
 

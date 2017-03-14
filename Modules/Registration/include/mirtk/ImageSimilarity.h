@@ -1,8 +1,8 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2013-2015 Imperial College London
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2013-2017 Imperial College London
+ * Copyright 2013-2017 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -67,13 +67,26 @@ class ImageSimilarity : public DataFidelity
 public:
 
   /// Voxel type of registered images
-  typedef RegisteredImage::VoxelType           VoxelType;
-
-  /// Type of similarity gradient image
-  typedef RegisteredImage::GradientImageType   GradientImageType;
+  typedef RegisteredImage::VoxelType   VoxelType;
 
   /// Type of similarity gradient components
-  typedef GradientImageType::VoxelType         GradientType;
+  typedef double   GradientType;
+
+  /// Type of similarity gradient image
+  typedef GenericImage<GradientType>   GradientImageType;
+
+  /// Enumeration of available set operations to define region within which
+  /// to evaluate the image similarity given the two foreground regions of
+  /// the two co-registered input images. The resulting foreground region
+  /// is further intersected with the specified binary mask. When no mask
+  /// is given, a mask with constant value 1 is assumed.
+  enum ForegroundRegion
+  {
+    FG_Mask,     ///< Evaluate similarity for all voxels in image domain
+    FG_Target,   ///< Evaluate similarity for foreground of untransformed image
+    FG_Overlap,  ///< Evaluate similarity for intersection of foreground regions
+    FG_Union     ///< Evaluate similarity for union of foreground regions
+  };
 
   // ---------------------------------------------------------------------------
   // Attributes
@@ -84,11 +97,19 @@ public:
   /// (Transformed) Source image
   mirtkLooseComponentMacro(RegisteredImage, Source);
 
-  /// Domain on which to evaluate similarity
+  /// Finite regular domain on which to resample images and evaluate similarity
   mirtkPublicAttributeMacro(ImageAttributes, Domain);
 
+  /// Set operation used to define common foreground region of co-registered images
+  mirtkPublicAttributeMacro(ForegroundRegion, Foreground);
+
   /// Mask which defines arbitrary domain on which the similarity is evaluated
-  mirtkPublicAggregateMacro(BinaryImage,     Mask);
+  ///
+  /// Intensities outside the mask (i.e., mask value is zero) are excluded from
+  /// the similarity comparison. The foreground domain of the registered image
+  /// is the intersection of the domain defined by non-zero mask entries with
+  /// the foreground domain used when no mask is set.
+  mirtkPublicAggregateMacro(BinaryImage, Mask);
 
   /// Memory for (non-parametric) similarity gradient w.r.t target transformation
   mirtkComponentMacro(GradientImageType, GradientWrtTarget);
@@ -415,52 +436,69 @@ public:
 // Inline definitions
 ////////////////////////////////////////////////////////////////////////////////
 
+// ----------------------------------------------------------------------------
+template <>
+inline string ToString(const ImageSimilarity::ForegroundRegion &value, int w, char c, bool left)
+{
+  const char *str;
+  switch (value) {
+    case ImageSimilarity::FG_Mask:    str = "Mask"; break;
+    case ImageSimilarity::FG_Target:  str = "Target"; break;
+    case ImageSimilarity::FG_Overlap: str = "Overlap"; break;
+    case ImageSimilarity::FG_Union:   str = "Union"; break;
+    default:                          str = "Unknown"; break;
+  }
+  return ToString(str, w, c, left);
+}
+
+// ----------------------------------------------------------------------------
+template <>
+inline bool FromString(const char *str, ImageSimilarity::ForegroundRegion &value)
+{
+  string lstr = ToLower(str);
+  if (lstr == "mask" || lstr == "including background" || lstr == "incl. background") {
+    value = ImageSimilarity::FG_Mask;
+  } else if (lstr == "target" || lstr == "target foreground" || lstr == "excluding target background" || lstr == "excl. target background") {
+    value = ImageSimilarity::FG_Target;
+  } else if (lstr == "overlap" || lstr == "intersection" || lstr == "excluding background" || lstr == "excl. background") {
+    value = ImageSimilarity::FG_Overlap;
+  } else if (lstr == "union") {
+    value = ImageSimilarity::FG_Union;
+  } else {
+    return false;
+  }
+  return true;
+}
+
 // -----------------------------------------------------------------------------
 inline bool ImageSimilarity::IsForeground(int idx) const
 {
-  // Never evaluate similarity outside explicitly specified domain
-  if (_Mask && !_Mask->Get(idx)) return false;
-  // If both images are transformed (symmetric registration)...
-  if (_Target->Transformation() && _Source->Transformation()) {
-    // ... evaluate within union of foreground regions
-    return _Target->IsForeground(idx) || _Source->IsForeground(idx);
-  // If second image is transformed...
-  } else if (_Source->Transformation()) {
-    // ... try to match masked region of transformed image if given
-    if (_Source->HasMask()) return _Source->IsForeground(idx);
-    // ... otherwise evaluate similarity for each untransformed voxel,
-    //     but consider that similarity gradient is anyway zero for voxels
-    //     that are mapped outside the transformed image foreground
-    return _Source->IsForeground(idx) && _Target->IsForeground(idx);
-  // If first image is transformed same as above with reversed order though
-  } else {
-    if (_Target->HasMask()) return _Target->IsForeground(idx);
-    return _Target->IsForeground(idx) && _Source->IsForeground(idx);
+  if (_Mask && !_Mask->Get(idx)) {
+    // Never evaluate similarity outside explicitly specified domain
+    return false;
   }
+  switch (_Foreground) {
+    case FG_Mask:
+      return true;
+    case FG_Target:
+      if ((_Source->Transformation() == nullptr) != (_Target->Transformation() == nullptr)) {
+        // Either both or none of the images is being tranformed
+        return _Source->IsForeground(idx) || _Target->IsForeground(idx);
+      }
+      // Only one of the image is being transformed
+      if (_Target->Transformation()) return _Source->IsForeground(idx);
+      else                           return _Target->IsForeground(idx);
+    case FG_Overlap:
+      return _Source->IsForeground(idx) && _Target->IsForeground(idx);
+    case FG_Union:
+      return _Source->IsForeground(idx) || _Target->IsForeground(idx);
+  };
 }
 
 // -----------------------------------------------------------------------------
 inline bool ImageSimilarity::IsForeground(int i, int j, int k) const
 {
-  // Never evaluate similarity outside explicitly specified domain
-  if (_Mask && !_Mask->Get(i, j, k)) return false;
-  // If both images are transformed (symmetric registration)...
-  if (_Target->Transformation() && _Source->Transformation()) {
-    // ... evaluate within union of foreground regions
-    return _Target->IsForeground(i, j, k) || _Source->IsForeground(i, j, k);
-  // If second image is transformed...
-  } else if (_Source->Transformation()) {
-    // ... try to match masked region of transformed image if given
-    if (_Source->HasMask()) return _Source->IsForeground(i, j, k);
-    // ... otherwise evaluate similarity for each untransformed voxel,
-    //     but consider that similarity gradient is anyway zero for voxels
-    //     that are mapped outside the transformed image foreground
-    return _Source->IsForeground(i, j, k) && _Target->IsForeground(i, j, k);
-  // If first image is transformed same as above with reversed order though
-  } else {
-    if (_Target->HasMask()) return _Target->IsForeground(i, j, k);
-    return _Target->IsForeground(i, j, k) && _Source->IsForeground(i, j, k);
-  }
+  return IsForeground(_Domain.LatticeToIndex(i, j, k));
 }
 
 

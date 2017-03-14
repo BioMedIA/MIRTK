@@ -77,7 +77,7 @@ EnergyThreshold::~EnergyThreshold()
 // =============================================================================
 
 // -----------------------------------------------------------------------------
-bool EnergyThreshold::Fulfilled(int, double, double value, const double *)
+bool EnergyThreshold::Fulfilled(int, double value, const double *)
 {
   return value <= _Threshold;
 }

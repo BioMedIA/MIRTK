@@ -117,6 +117,9 @@ public:
   // ---------------------------------------------------------------------------
   // Optimization
 
+  /// Initialize optimization
+  virtual void Initialize();
+
   /// Make optimal step along search direction
   /// \returns New value of objective function or previous if no step successful
   virtual double Run() = 0;

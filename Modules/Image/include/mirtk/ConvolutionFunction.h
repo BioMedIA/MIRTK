@@ -32,6 +32,13 @@ namespace mirtk {
 namespace ConvolutionFunction {
 
 
+/// Tolerance used for floating point comparisons
+inline double Epsilon()
+{
+  return 1e-6;
+}
+
+
 // =============================================================================
 // Boundary conditions for image domain
 // =============================================================================
@@ -112,7 +119,7 @@ struct ConvolveInX : public VoxelFunction
       ++i, ++in, --n;
     }
     // Output result of convolution
-    if (_Normalize && sum != .0) acc /= sum;
+    if (_Normalize && !AreEqual(sum, 0., Epsilon())) acc /= sum;
     *out = static_cast<T2>(acc);
   }
 };
@@ -154,7 +161,7 @@ struct ConvolveInY : public VoxelFunction
       ++j, in += _X, --n;
     }
     // Output result of convolution
-    if (_Normalize && sum != .0) acc /= sum;
+    if (_Normalize && !AreEqual(sum, 0., Epsilon())) acc /= sum;
     *out = static_cast<T2>(acc);
   }
 };
@@ -196,7 +203,7 @@ struct ConvolveInZ : public VoxelFunction
       ++k, in += _XY, --n;
     }
     // Output result of convolution
-    if (_Normalize && sum != .0) acc /= sum;
+    if (_Normalize && !AreEqual(sum, 0., Epsilon())) acc /= sum;
     *out = static_cast<T2>(acc);
   }
 };
@@ -235,7 +242,7 @@ struct ConvolveInT : public VoxelFunction
       ++l, in += _XYZ, --n;
     }
     // Output result of convolution
-    if (_Normalize && sum != .0) acc /= sum;
+    if (_Normalize && !AreEqual(sum, 0., Epsilon())) acc /= sum;
     *out = static_cast<T2>(acc);
   }
 };
@@ -283,7 +290,7 @@ struct ConvolveForegroundInX : public VoxelFunction
       ++i, ++in, --n;
     }
     // Output result of convolution
-    if (_Normalize && sum != .0) acc /= sum;
+    if (_Normalize && !AreEqual(sum, 0., Epsilon())) acc /= sum;
     *out = static_cast<T2>(acc);
   }
 };
@@ -328,7 +335,7 @@ struct ConvolveForegroundInY : public VoxelFunction
       ++j, in += _X, --n;
     }
     // Output result of convolution
-    if (_Normalize && sum != .0) acc /= sum;
+    if (_Normalize && !AreEqual(sum, 0., Epsilon())) acc /= sum;
     *out = static_cast<T2>(acc);
   }
 };
@@ -373,7 +380,7 @@ struct ConvolveForegroundInZ : public VoxelFunction
       ++k, in += _XY, --n;
     }
     // Output result of convolution
-    if (_Normalize && sum != .0) acc /= sum;
+    if (_Normalize && !AreEqual(sum, 0., Epsilon())) acc /= sum;
     *out = static_cast<T2>(acc);
   }
 };
@@ -415,7 +422,7 @@ struct ConvolveForegroundInT : public VoxelFunction
       ++l, in += _XYZ, --n;
     }
     // Output result of convolution
-    if (_Normalize && sum != .0) acc /= sum;
+    if (_Normalize && !AreEqual(sum, 0., Epsilon())) acc /= sum;
     *out = static_cast<T2>(acc);
   }
 };
@@ -465,7 +472,7 @@ struct ConvolveWeightedImageInX : public VoxelFunction
       ++i, ++in, ++win, --n;
     }
     // Output result of convolution
-    acc = (sum > .0 ? acc / sum : .0);
+    acc = (sum > Epsilon() ? acc / sum : 0.);
     *out = static_cast<T3>(acc);
   }
 };
@@ -511,7 +518,7 @@ struct ConvolveWeightedImageInY : public VoxelFunction
       ++j, in += _X, win += _X, --n;
     }
     // Output result of convolution
-    acc = (sum > .0 ? acc / sum : .0);
+    acc = (sum > Epsilon() ? acc / sum : 0.);
     *out = static_cast<T3>(acc);
   }
 };
@@ -557,7 +564,7 @@ struct ConvolveWeightedImageInZ : public VoxelFunction
       ++k, in += _XY, win += _XY, --n;
     }
     // Output result of convolution
-    acc = (sum > .0 ? acc / sum : .0);
+    acc = (sum > Epsilon() ? acc / sum : 0.);
     *out = static_cast<T3>(acc);
   }
 };
@@ -597,7 +604,7 @@ struct ConvolveWeightedImageInT : public VoxelFunction
       ++l, in += _XYZ, win += _XYZ, --n;
     }
     // Output result of convolution
-    acc = (sum > .0 ? acc / sum : .0);
+    acc = (sum > Epsilon() ? acc / sum : 0.);
     *out = static_cast<T3>(acc);
   }
 };
@@ -617,16 +624,21 @@ protected:
   /// Constructor
   TruncatedForegroundConvolution1D(const BaseImage *image, const TKernel *kernel, int size, bool norm = true)
   :
-    _Kernel(kernel), _Size(size), _Radius((size - 1) / 2), _Normalize(norm),
-    _Background(image->GetBackgroundValueAsDouble())
-  {}
+    _Kernel(kernel), _Size(size), _Radius((size - 1) / 2), _Normalize(norm)
+  {
+    if (image->HasBackgroundValue()) {
+      _Background = image->GetBackgroundValueAsDouble();
+    } else {
+      _Background = NaN;
+    }
+  }
 
   // ---------------------------------------------------------------------------
   /// Apply kernel initially at center voxel
   template <class T>
   bool ConvolveCenterVoxel(const T *in, double &acc, double &sum) const
   {
-    if (*in == _Background) {
+    if (AreEqualOrNaN(static_cast<double>(*in), _Background, Epsilon())) {
       acc = _Background;
       sum = .0;
       return false;
@@ -648,7 +660,7 @@ protected:
       i  += di;
       in -= s;
       // Stop if outside image/foreground
-      if (i < 0 || i >= n || *in == _Background) break;
+      if (i < 0 || i >= n || AreEqualOrNaN(static_cast<double>(*in), _Background, Epsilon())) break;
       // Multiply with kernel weight
       acc += static_cast<double>(_Kernel[k]) * static_cast<double>(*in);
       sum += static_cast<double>(_Kernel[k]);
@@ -666,7 +678,7 @@ protected:
       i  += di;
       in += s;
       // Stop if outside image/foreground
-      if (i < 0 || i >= n || *in == _Background) break;
+      if (i < 0 || i >= n || AreEqualOrNaN(static_cast<double>(*in), _Background, Epsilon())) break;
       // Multiply with kernel weight
       acc += static_cast<double>(_Kernel[k]) * static_cast<double>(*in);
       sum += static_cast<double>(_Kernel[k]);
@@ -677,7 +689,7 @@ protected:
   template <class T>
   void Put(T *out, double acc, double sum) const
   {
-    if (_Normalize && sum != .0) acc /= sum;
+    if (_Normalize && !AreEqual(sum, 0., Epsilon())) acc /= sum;
     (*out) = static_cast<T>(acc);
   }
 
@@ -701,21 +713,21 @@ struct ConvolveTruncatedForegroundInX : public TruncatedForegroundConvolution1D<
   ConvolveTruncatedForegroundInX(const BaseImage *image, const TKernel *kernel, int size, bool norm = true, int l = 0)
   :
     TruncatedForegroundConvolution1D<TKernel>(image, kernel, size, norm),
-    _Offset(l * image->NumberOfSpatialVoxels()), _X(image->GetX())
+    _Offset(l * image->NumberOfSpatialVoxels()), _X(image->X())
   {}
 
   ConvolveTruncatedForegroundInX(const BaseImage *image, double bg, const TKernel *kernel, int size, bool norm = true, int l = 0)
   :
     TruncatedForegroundConvolution1D<TKernel>(image, kernel, size, norm),
-    _Offset(l * image->NumberOfSpatialVoxels()), _X(image->GetX())
+    _Offset(l * image->NumberOfSpatialVoxels()), _X(image->X())
   {
     this->_Background = bg;
   }
 
   ConvolveTruncatedForegroundInX(const BaseImage *image, const GenericImage<TKernel> *kernel, bool norm = true, int l = 0)
   :
-    TruncatedForegroundConvolution1D<TKernel>(image, kernel->GetPointerToVoxels(), kernel->GetNumberOfVoxels(), norm),
-    _Offset(l * image->NumberOfSpatialVoxels()), _X(image->GetX())
+    TruncatedForegroundConvolution1D<TKernel>(image, kernel->Data(), kernel->NumberOfVoxels(), norm),
+    _Offset(l * image->NumberOfSpatialVoxels()), _X(image->X())
   {}
 
   template <class T1, class T2>
@@ -743,26 +755,26 @@ struct ConvolveTruncatedForegroundInY : public TruncatedForegroundConvolution1D<
   :
     TruncatedForegroundConvolution1D<TKernel>(image, kernel, size, norm),
     _Offset(l * image->NumberOfSpatialVoxels()),
-    _X(image->GetX()),
-    _Y(image->GetY())
+    _X(image->X()),
+    _Y(image->Y())
   {}
 
   ConvolveTruncatedForegroundInY(const BaseImage *image, double bg, const TKernel *kernel, int size, bool norm = true, int l = 0)
   :
     TruncatedForegroundConvolution1D<TKernel>(image, kernel, size, norm),
     _Offset(l * image->NumberOfSpatialVoxels()),
-    _X(image->GetX()),
-    _Y(image->GetY())
+    _X(image->X()),
+    _Y(image->Y())
   {
     this->_Background = bg;
   }
 
   ConvolveTruncatedForegroundInY(const BaseImage *image, const GenericImage<TKernel> *kernel, bool norm = true, int l = 0)
   :
-    TruncatedForegroundConvolution1D<TKernel>(image, kernel->GetPointerToVoxels(), kernel->GetNumberOfVoxels(), norm),
+    TruncatedForegroundConvolution1D<TKernel>(image, kernel->Data(), kernel->NumberOfVoxels(), norm),
     _Offset(l * image->NumberOfSpatialVoxels()),
-    _X(image->GetX()),
-    _Y(image->GetY())
+    _X(image->X()),
+    _Y(image->Y())
   {}
 
   template <class T1, class T2>
@@ -791,26 +803,26 @@ struct ConvolveTruncatedForegroundInZ : public TruncatedForegroundConvolution1D<
   :
     TruncatedForegroundConvolution1D<TKernel>(image, kernel, size, norm),
     _Offset(l * image->NumberOfSpatialVoxels()),
-    _XY(image->GetX() * image->GetY()),
-    _Z (image->GetZ())
+    _XY(image->X() * image->Y()),
+    _Z (image->Z())
   {}
 
   ConvolveTruncatedForegroundInZ(const BaseImage *image, double bg, const TKernel *kernel, int size, bool norm = true, int l = 0)
   :
     TruncatedForegroundConvolution1D<TKernel>(image, kernel, size, norm),
     _Offset(l * image->NumberOfSpatialVoxels()),
-    _XY(image->GetX() * image->GetY()),
-    _Z (image->GetZ())
+    _XY(image->X() * image->Y()),
+    _Z (image->Z())
   {
     this->_Background = bg;
   }
 
   ConvolveTruncatedForegroundInZ(const BaseImage *image, const GenericImage<TKernel> *kernel, bool norm = true, int l = 0)
   :
-    TruncatedForegroundConvolution1D<TKernel>(image, kernel->GetPointerToVoxels(), kernel->GetNumberOfVoxels(), norm),
+    TruncatedForegroundConvolution1D<TKernel>(image, kernel->Data(), kernel->NumberOfVoxels(), norm),
     _Offset(l * image->NumberOfSpatialVoxels()),
-    _XY(image->GetX() * image->GetY()),
-    _Z (image->GetZ())
+    _XY(image->X() * image->Y()),
+    _Z (image->Z())
   {}
 
   template <class T1, class T2>
@@ -838,24 +850,24 @@ struct ConvolveTruncatedForegroundInT : public TruncatedForegroundConvolution1D<
   ConvolveTruncatedForegroundInT(const BaseImage *image, const TKernel *kernel, int size, bool norm = true)
   :
     TruncatedForegroundConvolution1D<TKernel>(image, kernel, size, norm),
-    _XYZ(image->GetX() * image->GetY() * image->GetZ()),
-    _T  (image->GetT())
+    _XYZ(image->X() * image->Y() * image->Z()),
+    _T  (image->T())
   {}
 
   ConvolveTruncatedForegroundInT(const BaseImage *image, double bg, const TKernel *kernel, int size, bool norm = true)
   :
     TruncatedForegroundConvolution1D<TKernel>(image, kernel, size, norm),
-    _XYZ(image->GetX() * image->GetY() * image->GetZ()),
-    _T  (image->GetT())
+    _XYZ(image->X() * image->Y() * image->Z()),
+    _T  (image->T())
   {
     this->_Background = bg;
   }
 
   ConvolveTruncatedForegroundInT(const BaseImage *image, const GenericImage<TKernel> *kernel, bool norm = true)
   :
-    TruncatedForegroundConvolution1D<TKernel>(image, kernel->GetPointerToVoxels(), kernel->GetNumberOfVoxels(), norm),
-    _XYZ(image->GetX() * image->GetY() * image->GetZ()),
-    _T  (image->GetT())
+    TruncatedForegroundConvolution1D<TKernel>(image, kernel->Data(), kernel->NumberOfVoxels(), norm),
+    _XYZ(image->X() * image->Y() * image->Z()),
+    _T  (image->T())
   {}
 
   template <class T1, class T2>
@@ -888,16 +900,21 @@ protected:
   /// Constructor
   MirroredForegroundConvolution1D(const BaseImage *image, const TKernel *kernel, int size, double norm = 1.0)
   :
-    _Kernel(kernel), _Size(size), _Radius((size - 1) / 2), _Norm(norm),
-    _Background(image->GetBackgroundValueAsDouble())
-  {}
+    _Kernel(kernel), _Size(size), _Radius((size - 1) / 2), _Norm(norm)
+  {
+    if (image->HasBackgroundValue()) {
+      _Background = image->GetBackgroundValueAsDouble();
+    } else {
+      _Background = NaN;
+    }
+  }
 
   // ---------------------------------------------------------------------------
   /// Apply kernel initially at center voxel
   template <class T>
   bool ConvolveCenterVoxel(const T *in, double &acc) const
   {
-    if (*in == _Background) {
+    if (AreEqualOrNaN(static_cast<double>(*in), _Background, Epsilon())) {
       acc = _Background / _Norm;
       return false;
     } else {
@@ -917,7 +934,7 @@ protected:
       i  += di;
       in -= s;
       // Reverse if outside image/foreground
-      if (i < 0 || i >= n || *in == _Background) {
+      if (i < 0 || i >= n || AreEqualOrNaN(static_cast<double>(*in), _Background, Epsilon())) {
         di  = -di;
         s   = -s;
         i  += di;
@@ -939,7 +956,7 @@ protected:
       i  += di;
       in += s;
       // Reverse if outside image/foreground
-      if (i < 0 || i >= n || *in == _Background) {
+      if (i < 0 || i >= n || AreEqualOrNaN(static_cast<double>(*in), _Background, Epsilon())) {
         di  = -di;
         s   = -s;
         i  += di;
@@ -975,12 +992,12 @@ template <class TKernel = double>
 struct ConvolveMirroredForegroundInX : public MirroredForegroundConvolution1D<TKernel>
 {
   ConvolveMirroredForegroundInX(const BaseImage *image, const TKernel *kernel, int size, double norm = 1.0)
-    : MirroredForegroundConvolution1D<TKernel>(image, kernel, size, norm), _X(image->GetX()) {}
+    : MirroredForegroundConvolution1D<TKernel>(image, kernel, size, norm), _X(image->X()) {}
 
   ConvolveMirroredForegroundInX(const BaseImage *image, const GenericImage<TKernel> *kernel, double norm = 1.0)
   :
-    MirroredForegroundConvolution1D<TKernel>(image, kernel->GetPointerToVoxels(), kernel->GetNumberOfVoxels(), norm),
-    _X(image->GetX())
+    MirroredForegroundConvolution1D<TKernel>(image, kernel->Data(), kernel->NumberOfVoxels(), norm),
+    _X(image->X())
   {}
 
   template <class T1, class T2>
@@ -1005,15 +1022,15 @@ struct ConvolveMirroredForegroundInY : public MirroredForegroundConvolution1D<TK
   ConvolveMirroredForegroundInY(const BaseImage *image, const TKernel *kernel, int size, double norm = 1.0)
   :
     MirroredForegroundConvolution1D<TKernel>(image, kernel, size, norm),
-    _X(image->GetX()),
-    _Y(image->GetY())
+    _X(image->X()),
+    _Y(image->Y())
   {}
 
   ConvolveMirroredForegroundInY(const BaseImage *image, const GenericImage<TKernel> *kernel, double norm = 1.0)
   :
-    MirroredForegroundConvolution1D<TKernel>(image, kernel->GetPointerToVoxels(), kernel->GetNumberOfVoxels(), norm),
-    _X(image->GetX()),
-    _Y(image->GetY())
+    MirroredForegroundConvolution1D<TKernel>(image, kernel->Data(), kernel->NumberOfVoxels(), norm),
+    _X(image->X()),
+    _Y(image->Y())
   {}
 
   template <class T1, class T2>
@@ -1039,15 +1056,15 @@ struct ConvolveMirroredForegroundInZ : public MirroredForegroundConvolution1D<TK
   ConvolveMirroredForegroundInZ(const BaseImage *image, const TKernel *kernel, int size, double norm = 1.0)
   :
     MirroredForegroundConvolution1D<TKernel>(image, kernel, size, norm),
-    _XY(image->GetX() * image->GetY()),
-    _Z (image->GetZ())
+    _XY(image->X() * image->Y()),
+    _Z (image->Z())
   {}
 
   ConvolveMirroredForegroundInZ(const BaseImage *image, const GenericImage<TKernel> *kernel, double norm = 1.0)
   :
-    MirroredForegroundConvolution1D<TKernel>(image, kernel->GetPointerToVoxels(), kernel->GetNumberOfVoxels(), norm),
-    _XY(image->GetX() * image->GetY()),
-    _Z (image->GetZ())
+    MirroredForegroundConvolution1D<TKernel>(image, kernel->Data(), kernel->NumberOfVoxels(), norm),
+    _XY(image->X() * image->Y()),
+    _Z (image->Z())
   {}
 
   template <class T1, class T2>
@@ -1073,15 +1090,15 @@ struct ConvolveMirroredForegroundInT : public MirroredForegroundConvolution1D<TK
   ConvolveMirroredForegroundInT(const BaseImage *image, const TKernel *kernel, int size, double norm = 1.0)
   :
     MirroredForegroundConvolution1D<TKernel>(image, kernel, size, norm),
-    _XYZ(image->GetX() * image->GetY() * image->GetZ()),
-    _T  (image->GetT())
+    _XYZ(image->X() * image->Y() * image->Z()),
+    _T  (image->T())
   {}
 
   ConvolveMirroredForegroundInT(const BaseImage *image, const GenericImage<TKernel> *kernel, double norm = 1.0)
   :
-    MirroredForegroundConvolution1D<TKernel>(image, kernel->GetPointerToVoxels(), kernel->GetNumberOfVoxels(), norm),
-    _XYZ(image->GetX() * image->GetY() * image->GetZ()),
-    _T  (image->GetT())
+    MirroredForegroundConvolution1D<TKernel>(image, kernel->Data(), kernel->NumberOfVoxels(), norm),
+    _XYZ(image->X() * image->Y() * image->Z()),
+    _T  (image->T())
   {}
 
   template <class T1, class T2>
@@ -1114,16 +1131,21 @@ protected:
   /// Constructor
   ExtendedForegroundConvolution1D(const BaseImage *image, const TKernel *kernel, int size, double norm = 1.0)
   :
-    _Kernel(kernel), _Size(size), _Radius((size - 1) / 2), _Norm(norm),
-    _Background(image->GetBackgroundValueAsDouble())
-  {}
+    _Kernel(kernel), _Size(size), _Radius((size - 1) / 2), _Norm(norm)
+  {
+    if (image->HasBackgroundValue()) {
+      _Background = image->GetBackgroundValueAsDouble();
+    } else {
+      _Background = NaN;
+    }
+  }
 
   // ---------------------------------------------------------------------------
   /// Apply kernel initially at center voxel
   template <class T>
   bool ConvolveCenterVoxel(const T *in, double &acc) const
   {
-    if (*in == _Background) {
+    if (AreEqualOrNaN(static_cast<double>(*in), _Background, Epsilon())) {
       acc = _Background / _Norm;
       return false;
     } else {
@@ -1141,7 +1163,7 @@ protected:
     for (int k = _Radius + 1; k < _Size; ++k) {
       i  -= di;
       in -= s;
-      if (i < 0 || *in == _Background) {
+      if (i < 0 || AreEqualOrNaN(static_cast<double>(*in), _Background, Epsilon())) {
         i  += di;
         in += s;
         di = s = 0;
@@ -1160,7 +1182,7 @@ protected:
     for (int k = _Radius - 1; k >= 0; --k) {
       i  += di;
       in += s;
-      if (n <= i || *in == _Background) {
+      if (n <= i || AreEqualOrNaN(static_cast<double>(*in), _Background, Epsilon())) {
         i  -= di;
         in -= s;
         di = s = 0;
@@ -1195,12 +1217,12 @@ template <class TKernel = double>
 struct ConvolveExtendedForegroundInX : public ExtendedForegroundConvolution1D<TKernel>
 {
   ConvolveExtendedForegroundInX(const BaseImage *image, const TKernel *kernel, int size, double norm = 1.0)
-    : ExtendedForegroundConvolution1D<TKernel>(image, kernel, size, norm), _X(image->GetX()) {}
+    : ExtendedForegroundConvolution1D<TKernel>(image, kernel, size, norm), _X(image->X()) {}
 
   ConvolveExtendedForegroundInX(const BaseImage *image, const GenericImage<TKernel> *kernel, double norm = 1.0)
   :
-    ExtendedForegroundConvolution1D<TKernel>(image, kernel->GetPointerToVoxels(), kernel->GetNumberOfVoxels(), norm),
-    _X(image->GetX())
+    ExtendedForegroundConvolution1D<TKernel>(image, kernel->Data(), kernel->NumberOfVoxels(), norm),
+    _X(image->X())
   {}
 
   template <class T1, class T2>
@@ -1225,15 +1247,15 @@ struct ConvolveExtendedForegroundInY : public ExtendedForegroundConvolution1D<TK
   ConvolveExtendedForegroundInY(const BaseImage *image, const TKernel *kernel, int size, double norm = 1.0)
   :
     ExtendedForegroundConvolution1D<TKernel>(image, kernel, size, norm),
-    _X(image->GetX()),
-    _Y(image->GetY())
+    _X(image->X()),
+    _Y(image->Y())
   {}
 
   ConvolveExtendedForegroundInY(const BaseImage *image, const GenericImage<TKernel> *kernel, double norm = 1.0)
   :
-    ExtendedForegroundConvolution1D<TKernel>(image, kernel->GetPointerToVoxels(), kernel->GetNumberOfVoxels(), norm),
-    _X(image->GetX()),
-    _Y(image->GetY())
+    ExtendedForegroundConvolution1D<TKernel>(image, kernel->Data(), kernel->NumberOfVoxels(), norm),
+    _X(image->X()),
+    _Y(image->Y())
   {}
 
   template <class T1, class T2>
@@ -1259,15 +1281,15 @@ struct ConvolveExtendedForegroundInZ : public ExtendedForegroundConvolution1D<TK
   ConvolveExtendedForegroundInZ(const BaseImage *image, const TKernel *kernel, int size, double norm = 1.0)
   :
     ExtendedForegroundConvolution1D<TKernel>(image, kernel, size, norm),
-    _XY(image->GetX() * image->GetY()),
-    _Z (image->GetZ())
+    _XY(image->X() * image->Y()),
+    _Z (image->Z())
   {}
 
   ConvolveExtendedForegroundInZ(const BaseImage *image, const GenericImage<TKernel> *kernel, double norm = 1.0)
   :
-    ExtendedForegroundConvolution1D<TKernel>(image, kernel->GetPointerToVoxels(), kernel->GetNumberOfVoxels(), norm),
-    _XY(image->GetX() * image->GetY()),
-    _Z (image->GetZ())
+    ExtendedForegroundConvolution1D<TKernel>(image, kernel->Data(), kernel->NumberOfVoxels(), norm),
+    _XY(image->X() * image->Y()),
+    _Z (image->Z())
   {}
 
   template <class T1, class T2>
@@ -1293,15 +1315,15 @@ struct ConvolveExtendedForegroundInT : public ExtendedForegroundConvolution1D<TK
   ConvolveExtendedForegroundInT(const BaseImage *image, const TKernel *kernel, int size, double norm = 1.0)
   :
     ExtendedForegroundConvolution1D<TKernel>(image, kernel, size, norm),
-    _XYZ(image->GetX() * image->GetY() * image->GetZ()),
-    _T  (image->GetT())
+    _XYZ(image->X() * image->Y() * image->Z()),
+    _T  (image->T())
   {}
 
   ConvolveExtendedForegroundInT(const BaseImage *image, const GenericImage<TKernel> *kernel, double norm = 1.0)
   :
-    ExtendedForegroundConvolution1D<TKernel>(image, kernel->GetPointerToVoxels(), kernel->GetNumberOfVoxels(), norm),
-    _XYZ(image->GetX() * image->GetY() * image->GetZ()),
-    _T  (image->GetT())
+    ExtendedForegroundConvolution1D<TKernel>(image, kernel->Data(), kernel->NumberOfVoxels(), norm),
+    _XYZ(image->X() * image->Y() * image->Z()),
+    _T  (image->T())
   {}
 
   template <class T1, class T2>
@@ -1331,20 +1353,20 @@ struct DownsampleConvolvedMirroredForegroundInX : public ConvolveMirroredForegro
   DownsampleConvolvedMirroredForegroundInX(const GenericImage<TVoxel> *image, int m, const TKernel *kernel, int size, double norm = 1.0)
   :
     ConvolveMirroredForegroundInX<TKernel>(image, kernel, size, norm),
-    _Input(image), _Offset((image->GetX() % m + 1) / 2), _Factor(m)
+    _Input(image), _Offset((image->X() % m + 1) / 2), _Factor(m)
   {}
 
   DownsampleConvolvedMirroredForegroundInX(const GenericImage<TVoxel> *image, int m, const GenericImage<TKernel> *kernel, double norm = 1.0)
   :
-    ConvolveMirroredForegroundInX<TKernel>(image, kernel->GetPointerToVoxels(), kernel->GetNumberOfVoxels(), norm),
-    _Input(image), _Offset((image->GetX() % m + 1) / 2), _Factor(m)
+    ConvolveMirroredForegroundInX<TKernel>(image, kernel->Data(), kernel->NumberOfVoxels(), norm),
+    _Input(image), _Offset((image->X() % m + 1) / 2), _Factor(m)
   {}
 
   template <class T>
   void operator ()(int i, int j, int k, int l, T *out) const
   {
     i = _Offset + i * _Factor;
-    ConvolveMirroredForegroundInX<TKernel>::operator ()(i, j, k, l, _Input->GetPointerToVoxels(i, j, k, l), out);
+    ConvolveMirroredForegroundInX<TKernel>::operator ()(i, j, k, l, _Input->Data(i, j, k, l), out);
   }
 
   const GenericImage<TVoxel> *_Input;  ///< Image to downsample
@@ -1360,20 +1382,20 @@ struct DownsampleConvolvedMirroredForegroundInY : public ConvolveMirroredForegro
   DownsampleConvolvedMirroredForegroundInY(const GenericImage<TVoxel> *image, int m, const TKernel *kernel, int size, double norm = 1.0)
   :
     ConvolveMirroredForegroundInY<TKernel>(image, kernel, size, norm),
-    _Input(image), _Offset((image->GetY() % m + 1) / 2), _Factor(m)
+    _Input(image), _Offset((image->Y() % m + 1) / 2), _Factor(m)
   {}
 
   DownsampleConvolvedMirroredForegroundInY(const GenericImage<TVoxel> *image, int m, const GenericImage<TKernel> *kernel, double norm = 1.0)
   :
-    ConvolveMirroredForegroundInY<TKernel>(image, kernel->GetPointerToVoxels(), kernel->GetNumberOfVoxels(), norm),
-    _Input(image), _Offset((image->GetY() % m + 1) / 2), _Factor(m)
+    ConvolveMirroredForegroundInY<TKernel>(image, kernel->Data(), kernel->NumberOfVoxels(), norm),
+    _Input(image), _Offset((image->Y() % m + 1) / 2), _Factor(m)
   {}
 
   template <class T>
   void operator ()(int i, int j, int k, int l, T *out) const
   {
     j = _Offset + j * _Factor;
-    ConvolveMirroredForegroundInY<TKernel>::operator ()(i, j, k, l, _Input->GetPointerToVoxels(i, j, k, l), out);
+    ConvolveMirroredForegroundInY<TKernel>::operator ()(i, j, k, l, _Input->Data(i, j, k, l), out);
   }
 
   const GenericImage<TVoxel> *_Input;  ///< Image to downsample
@@ -1389,20 +1411,20 @@ struct DownsampleConvolvedMirroredForegroundInZ : public ConvolveMirroredForegro
   DownsampleConvolvedMirroredForegroundInZ(const GenericImage<TVoxel> *image, int m, const TKernel *kernel, int size, double norm = 1.0)
   :
     ConvolveMirroredForegroundInZ<TKernel>(image, kernel, size, norm),
-    _Input(image), _Offset((image->GetZ() % m + 1) / 2), _Factor(m)
+    _Input(image), _Offset((image->Z() % m + 1) / 2), _Factor(m)
   {}
 
   DownsampleConvolvedMirroredForegroundInZ(const GenericImage<TVoxel> *image, int m, const GenericImage<TKernel> *kernel, double norm = 1.0)
   :
-    ConvolveMirroredForegroundInZ<TKernel>(image, kernel->GetPointerToVoxels(), kernel->GetNumberOfVoxels(), norm),
-    _Input(image), _Offset((image->GetZ() % m + 1) / 2), _Factor(m)
+    ConvolveMirroredForegroundInZ<TKernel>(image, kernel->Data(), kernel->NumberOfVoxels(), norm),
+    _Input(image), _Offset((image->Z() % m + 1) / 2), _Factor(m)
   {}
 
   template <class T>
   void operator ()(int i, int j, int k, int l, T *out) const
   {
     k = _Offset + k * _Factor;
-    ConvolveMirroredForegroundInZ<TKernel>::operator ()(i, j, k, l, _Input->GetPointerToVoxels(i, j, k, l), out);
+    ConvolveMirroredForegroundInZ<TKernel>::operator ()(i, j, k, l, _Input->Data(i, j, k, l), out);
   }
 
   const GenericImage<TVoxel> *_Input;  ///< Image to downsample
@@ -1422,20 +1444,20 @@ struct DownsampleConvolvedExtendedForegroundInX : public ConvolveExtendedForegro
   DownsampleConvolvedExtendedForegroundInX(const GenericImage<TVoxel> *image, int m, const TKernel *kernel, int size, double norm = 1.0)
   :
     ConvolveExtendedForegroundInX<TKernel>(image, kernel, size, norm),
-    _Input(image), _Offset((image->GetX() % m + 1) / 2), _Factor(m)
+    _Input(image), _Offset((image->X() % m + 1) / 2), _Factor(m)
   {}
 
   DownsampleConvolvedExtendedForegroundInX(const GenericImage<TVoxel> *image, int m, const GenericImage<TKernel> *kernel, double norm = 1.0)
   :
-    ConvolveExtendedForegroundInX<TKernel>(image, kernel->GetPointerToVoxels(), kernel->GetNumberOfVoxels(), norm),
-    _Input(image), _Offset((image->GetX() % m + 1) / 2), _Factor(m)
+    ConvolveExtendedForegroundInX<TKernel>(image, kernel->Data(), kernel->NumberOfVoxels(), norm),
+    _Input(image), _Offset((image->X() % m + 1) / 2), _Factor(m)
   {}
 
   template <class T>
   void operator ()(int i, int j, int k, int l, T *out) const
   {
     i = _Offset + i * _Factor;
-    ConvolveExtendedForegroundInX<TKernel>::operator ()(i, j, k, l, _Input->GetPointerToVoxels(i, j, k, l), out);
+    ConvolveExtendedForegroundInX<TKernel>::operator ()(i, j, k, l, _Input->Data(i, j, k, l), out);
   }
 
   const GenericImage<TVoxel> *_Input;  ///< Image to downsample
@@ -1451,20 +1473,20 @@ struct DownsampleConvolvedExtendedForegroundInY : public ConvolveExtendedForegro
   DownsampleConvolvedExtendedForegroundInY(const GenericImage<TVoxel> *image, int m, const TKernel *kernel, int size, double norm = 1.0)
   :
     ConvolveExtendedForegroundInY<TKernel>(image, kernel, size, norm),
-    _Input(image), _Offset((image->GetY() % m + 1) / 2), _Factor(m)
+    _Input(image), _Offset((image->Y() % m + 1) / 2), _Factor(m)
   {}
 
   DownsampleConvolvedExtendedForegroundInY(const GenericImage<TVoxel> *image, int m, const GenericImage<TKernel> *kernel, double norm = 1.0)
   :
-    ConvolveExtendedForegroundInY<TKernel>(image, kernel->GetPointerToVoxels(), kernel->GetNumberOfVoxels(), norm),
-    _Input(image), _Offset((image->GetY() % m + 1) / 2), _Factor(m)
+    ConvolveExtendedForegroundInY<TKernel>(image, kernel->Data(), kernel->NumberOfVoxels(), norm),
+    _Input(image), _Offset((image->Y() % m + 1) / 2), _Factor(m)
   {}
 
   template <class T>
   void operator ()(int i, int j, int k, int l, T *out) const
   {
     j = _Offset + j * _Factor;
-    ConvolveExtendedForegroundInY<TKernel>::operator ()(i, j, k, l, _Input->GetPointerToVoxels(i, j, k, l), out);
+    ConvolveExtendedForegroundInY<TKernel>::operator ()(i, j, k, l, _Input->Data(i, j, k, l), out);
   }
 
   const GenericImage<TVoxel> *_Input;  ///< Image to downsample
@@ -1480,20 +1502,20 @@ struct DownsampleConvolvedExtendedForegroundInZ : public ConvolveExtendedForegro
   DownsampleConvolvedExtendedForegroundInZ(const GenericImage<TVoxel> *image, int m, const TKernel *kernel, int size, double norm = 1.0)
   :
     ConvolveExtendedForegroundInZ<TKernel>(image, kernel, size, norm),
-    _Input(image), _Offset((image->GetZ() % m + 1) / 2), _Factor(m)
+    _Input(image), _Offset((image->Z() % m + 1) / 2), _Factor(m)
   {}
 
   DownsampleConvolvedExtendedForegroundInZ(const GenericImage<TVoxel> *image, int m, const GenericImage<TKernel> *kernel, double norm = 1.0)
   :
-    ConvolveExtendedForegroundInZ<TKernel>(image, kernel->GetPointerToVoxels(), kernel->GetNumberOfVoxels(), norm),
-    _Input(image), _Offset((image->GetZ() % m) / 2), _Factor(m)
+    ConvolveExtendedForegroundInZ<TKernel>(image, kernel->Data(), kernel->NumberOfVoxels(), norm),
+    _Input(image), _Offset((image->Z() % m) / 2), _Factor(m)
   {}
 
   template <class T>
   void operator ()(int i, int j, int k, int l, T *out) const
   {
     k = _Offset + k * _Factor;
-    ConvolveExtendedForegroundInZ<TKernel>::operator ()(i, j, k, l, _Input->GetPointerToVoxels(i, j, k, l), out);
+    ConvolveExtendedForegroundInZ<TKernel>::operator ()(i, j, k, l, _Input->Data(i, j, k, l), out);
   }
 
   const GenericImage<TVoxel> *_Input;  ///< Image to downsample

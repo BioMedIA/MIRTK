@@ -83,8 +83,8 @@ public:
     _Cnt += rhs._Cnt;
   }
 
-  template <class T>
-  void operator()(int i, int j, int k, int, const T *dF, const T *dM)
+  template <class TGradient>
+  void operator ()(int i, int j, int k, int, const TGradient *dF, const TGradient *dM)
   {
 
     if (_Similarity->IsForeground(i, j, k)) {
@@ -132,8 +132,8 @@ public:
     _z         (2 * _y)
   {}
 
-  template <class T>
-  void operator()(int i, int j, int k, int, const T *dF, const T *dM, T *g)
+  template <class TGradient, class TReal>
+  void operator ()(int i, int j, int k, int, const TGradient *dF, const TGradient *dM, TReal *g)
   {
     if (_Similarity->IsForeground(i, j, k)) {
       const int    power = _Similarity->Power();

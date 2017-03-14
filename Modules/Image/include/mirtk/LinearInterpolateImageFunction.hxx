@@ -77,15 +77,27 @@ void GenericLinearInterpolateImageFunction<TImage>::Initialize(bool coeff)
   const int toffset[2] = {0, this->Input()->X() * this->Input()->Y() * this->Input()->Z()};
 
   int idx = 0;
-  for (int d = 0; d <= 1; ++d) {
-    for (int c = 0; c <= 1; ++c) {
-      for (int b = 0; b <= 1; ++b) {
-        for (int a = 0; a <= 1; ++a) {
-          _Offset[idx++] = xoffset[a] + yoffset[b] + zoffset[c] + toffset[d];
-        }
-      }
-    }
+  for (int d = 0; d <= 1; ++d)
+  for (int c = 0; c <= 1; ++c)
+  for (int b = 0; b <= 1; ++b)
+  for (int a = 0; a <= 1; ++a, ++idx) {
+    _Offset[idx] = xoffset[a] + yoffset[b] + zoffset[c] + toffset[d];
   }
+}
+
+// =============================================================================
+// Interpolation weights
+// =============================================================================
+
+// -----------------------------------------------------------------------------
+template <class TImage>
+inline int GenericLinearInterpolateImageFunction<TImage>
+::ComputeWeights(double x, Real w[2])
+{
+  const int i = ifloor(x);
+  w[1] = static_cast<Real>(x) - static_cast<Real>(i);
+  w[0] = static_cast<Real>(1) - w[1];
+  return i;
 }
 
 // =============================================================================
@@ -110,23 +122,20 @@ inline typename GenericLinearInterpolateImageFunction<TImage>::VoxelType
 GenericLinearInterpolateImageFunction<TImage>
 ::Get2D(double x, double y, double z, double t) const
 {
-  const int i = static_cast<int>(floor(x));
-  const int j = static_cast<int>(floor(y));
-  const int k = static_cast<int>(round(z));
-  const int l = static_cast<int>(round(t));
-
+  const int k = iround(z);
+  const int l = iround(t);
   if (k < 0 || k >= this->Input()->Z() ||
       l < 0 || l >= this->Input()->T()) {
     return voxel_cast<VoxelType>(this->DefaultValue());
   }
 
   Real wx[2], wy[2];
-  wx[1] = Real(x - i); wx[0] = Real(1) - wx[1];
-  wy[1] = Real(y - j); wy[0] = Real(1) - wy[1];
+  const int i = ComputeWeights(x, wx);
+  const int j = ComputeWeights(y, wy);
 
   RealType val = voxel_cast<RealType>(0);
-  Real     nrm(0), w;
-  
+  Real nrm(0), w;
+
   int ia, jb;
   for (int b = 0; b <= 1; ++b) {
     jb = j + b;
@@ -134,16 +143,16 @@ GenericLinearInterpolateImageFunction<TImage>
       for (int a = 0; a <= 1; ++a) {
         ia = i + a;
         if (0 <= ia && ia < this->Input()->X()) {
-          w    = wx[a] * wy[b];
-          val += w * this->Input()->Get(ia, jb, k, l);
+          w = wx[a] * wy[b];
+          val += w * voxel_cast<RealType>(this->Input()->Get(ia, jb, k, l));
           nrm += w;
         }
       }
     }
   }
 
-  if (nrm) val /= nrm;
-  else     val  = voxel_cast<RealType>(this->DefaultValue());
+  if (nrm > Real(1e-3)) val /= nrm;
+  else val = voxel_cast<RealType>(this->DefaultValue());
 
   return voxel_cast<VoxelType>(val);
 }
@@ -154,22 +163,19 @@ inline typename GenericLinearInterpolateImageFunction<TImage>::VoxelType
 GenericLinearInterpolateImageFunction<TImage>
 ::GetWithPadding2D(double x, double y, double z, double t) const
 {
-  const int i = static_cast<int>(floor(x));
-  const int j = static_cast<int>(floor(y));
-  const int k = static_cast<int>(round(z));
-  const int l = static_cast<int>(round(t));
-
+  const int k = iround(z);
+  const int l = iround(t);
   if (k < 0 || k >= this->Input()->Z() ||
       l < 0 || l >= this->Input()->T()) {
     return voxel_cast<VoxelType>(this->DefaultValue());
   }
 
   Real wx[2], wy[2];
-  wx[1] = Real(x - i); wx[0] = Real(1) - wx[1];
-  wy[1] = Real(y - j); wy[0] = Real(1) - wy[1];
+  const int i = ComputeWeights(x, wx);
+  const int j = ComputeWeights(y, wy);
 
   RealType val = voxel_cast<RealType>(0);
-  Real     fgw(0), bgw(0), w;
+  Real fgw(0), w;
 
   int ia, jb;
   for (int b = 0; b <= 1; ++b) {
@@ -178,16 +184,14 @@ GenericLinearInterpolateImageFunction<TImage>
       ia = i + a;
       w  = wx[a] * wy[b];
       if (this->Input()->IsInsideForeground(ia, jb, k, l)) {
-        val += w * this->Input()->Get(ia, jb, k, l);
+        val += w * voxel_cast<RealType>(this->Input()->Get(ia, jb, k, l));
         fgw += w;
-      } else {
-        bgw += w;
       }
     }
   }
 
-  if (fgw > bgw) val /= fgw;
-  else           val  = voxel_cast<RealType>(this->DefaultValue());
+  if (ifloor(fgw * 1.e3) > 500) val /= fgw;
+  else val = voxel_cast<RealType>(this->DefaultValue());
 
   return voxel_cast<VoxelType>(val);
 }
@@ -198,22 +202,22 @@ inline typename TOtherImage::VoxelType
 GenericLinearInterpolateImageFunction<TImage>
 ::Get2D(const TOtherImage *input, double x, double y, double z, double t) const
 {
-  const int i = static_cast<int>(floor(x));
-  const int j = static_cast<int>(floor(y));
-  const int k = static_cast<int>(round(z));
-  const int l = static_cast<int>(round(t));
-  const int I = i + 1;
-  const int J = j + 1;
+  typedef typename TOtherImage::VoxelType VoxelType;
+  typedef typename TOtherImage::RealType  RealType;
 
-  const Real A = Real(x - i);
-  const Real B = Real(y - j);
-  const Real a = Real(1) - A;
-  const Real b = Real(1) - B;
+  Real wx[2], wy[2];
+  const int i = ComputeWeights(x, wx), I = i + 1;
+  const int j = ComputeWeights(y, wy), J = j + 1;
+  const int k = iround(z);
+  const int l = iround(t);
 
-  typename TOtherImage::RealType val;
-  val = (b * (a * input->Get(i, j, k, l) + A * input->Get(I, j, k, l))  +
-         B * (a * input->Get(i, J, k, l) + A * input->Get(I, J, k, l)));
-  return voxel_cast<typename TOtherImage::VoxelType>(val);
+  const auto v00 = voxel_cast<RealType>(input->Get(i, j, k, l));
+  const auto v01 = voxel_cast<RealType>(input->Get(I, j, k, l));
+  const auto v10 = voxel_cast<RealType>(input->Get(i, J, k, l));
+  const auto v11 = voxel_cast<RealType>(input->Get(I, J, k, l));
+
+  return voxel_cast<VoxelType>(wy[0] * (wx[0] * v00 + wx[1] * v01)  +
+                               wy[1] * (wx[0] * v10 + wx[1] * v11));
 }
 
 // -----------------------------------------------------------------------------
@@ -225,22 +229,19 @@ GenericLinearInterpolateImageFunction<TImage>
   typedef typename TOtherImage::VoxelType VoxelType;
   typedef typename TOtherImage::RealType  RealType;
 
-  const int i = static_cast<int>(floor(x));
-  const int j = static_cast<int>(floor(y));
-  const int k = static_cast<int>(round(z));
-  const int l = static_cast<int>(round(t));
-
+  const int k = iround(z);
+  const int l = iround(t);
   if (k < 0 || k >= input->Z() ||
       l < 0 || l >= input->T()) {
     return voxel_cast<VoxelType>(this->DefaultValue());
   }
 
   Real wx[2], wy[2];
-  wx[1] = Real(x - i); wx[0] = Real(1) - wx[1];
-  wy[1] = Real(y - j); wy[0] = Real(1) - wy[1];
+  const int i = ComputeWeights(x, wx);
+  const int j = ComputeWeights(y, wy);
 
   RealType val = voxel_cast<RealType>(0);
-  Real     fgw(0), bgw(0), w;
+  Real fgw(0), w;
 
   int ia, jb;
   for (int b = 0; b <= 1; ++b) {
@@ -249,16 +250,14 @@ GenericLinearInterpolateImageFunction<TImage>
       ia = i + a;
       w  = wx[a] * wy[b];
       if (input->IsForeground(ia, jb, k, l)) {
-        val += w * input->Get(ia, jb, k, l);
+        val += w * voxel_cast<RealType>(input->Get(ia, jb, k, l));
         fgw += w;
-      } else {
-        bgw += w;
       }
     }
   }
 
-  if (fgw > bgw) val /= fgw;
-  else           val  = voxel_cast<RealType>(this->DefaultValue());
+  if (ifloor(fgw * 1.e3) > 500) val /= fgw;
+  else val = voxel_cast<RealType>(this->DefaultValue());
 
   return voxel_cast<VoxelType>(val);
 }
@@ -269,22 +268,18 @@ inline typename GenericLinearInterpolateImageFunction<TImage>::VoxelType
 GenericLinearInterpolateImageFunction<TImage>
 ::Get3D(double x, double y, double z, double t) const
 {
-  const int i = static_cast<int>(floor(x));
-  const int j = static_cast<int>(floor(y));
-  const int k = static_cast<int>(floor(z));
-  const int l = static_cast<int>(round(t));
-
+  const int l = iround(t);
   if (l < 0 || l >= this->Input()->T()) {
     return voxel_cast<VoxelType>(this->DefaultValue());
   }
 
   Real wx[2], wy[2], wz[2];
-  wx[1] = Real(x - i); wx[0] = Real(1) - wx[1];
-  wy[1] = Real(y - j); wy[0] = Real(1) - wy[1];
-  wz[1] = Real(z - k); wz[0] = Real(1) - wz[1];
+  const int i = ComputeWeights(x, wx);
+  const int j = ComputeWeights(y, wy);
+  const int k = ComputeWeights(z, wz);
 
   RealType val = voxel_cast<RealType>(0);
-  Real     nrm(0), w;
+  Real nrm(0), w;
 
   int ia, jb, kc;
   for (int c = 0; c <= 1; ++c) {
@@ -297,7 +292,7 @@ GenericLinearInterpolateImageFunction<TImage>
             ia = i + a;
             if (0 <= ia && ia < this->Input()->X()) {
               w    = wx[a] * wy[b] * wz[c];
-              val += w * this->Input()->Get(ia, jb, kc, l);
+              val += w * voxel_cast<RealType>(this->Input()->Get(ia, jb, kc, l));
               nrm += w;
             }
           }
@@ -306,8 +301,8 @@ GenericLinearInterpolateImageFunction<TImage>
     }
   }
 
-  if (nrm) val /= nrm;
-  else     val  = voxel_cast<RealType>(this->DefaultValue());
+  if (nrm > Real(1e-3)) val /= nrm;
+  else val = voxel_cast<RealType>(this->DefaultValue());
 
   return voxel_cast<VoxelType>(val);
 }
@@ -318,22 +313,18 @@ inline typename GenericLinearInterpolateImageFunction<TImage>::VoxelType
 GenericLinearInterpolateImageFunction<TImage>
 ::GetWithPadding3D(double x, double y, double z, double t) const
 {
-  const int i = static_cast<int>(floor(x));
-  const int j = static_cast<int>(floor(y));
-  const int k = static_cast<int>(floor(z));
-  const int l = static_cast<int>(round(t));
-
+  const int l = iround(t);
   if (l < 0 || l >= this->Input()->T()) {
     return voxel_cast<VoxelType>(this->DefaultValue());
   }
 
   Real wx[2], wy[2], wz[2];
-  wx[1] = Real(x - i); wx[0] = Real(1) - wx[1];
-  wy[1] = Real(y - j); wy[0] = Real(1) - wy[1];
-  wz[1] = Real(z - k); wz[0] = Real(1) - wz[1];
+  const int i = ComputeWeights(x, wx);
+  const int j = ComputeWeights(y, wy);
+  const int k = ComputeWeights(z, wz);
 
   RealType val = voxel_cast<RealType>(0);
-  Real     fgw(0), bgw(0), w;
+  Real fgw(0), w;
 
   int ia, jb, kc;
   for (int c = 0; c <= 1; ++c) {
@@ -344,17 +335,15 @@ GenericLinearInterpolateImageFunction<TImage>
         ia = i + a;
         w  = wx[a] * wy[b] * wz[c];
         if (this->Input()->IsInsideForeground(ia, jb, kc, l)) {
-          val += w * this->Input()->Get(ia, jb, kc, l);
+          val += w * voxel_cast<RealType>(this->Input()->Get(ia, jb, kc, l));
           fgw += w;
-        } else {
-          bgw += w;
         }
       }
     }
   }
 
-  if (fgw > bgw) val /= fgw;
-  else           val  = voxel_cast<RealType>(this->DefaultValue());
+  if (ifloor(fgw * 1.e3) > 500) val /= fgw;
+  else val = voxel_cast<RealType>(this->DefaultValue());
 
   return voxel_cast<VoxelType>(val);
 }
@@ -365,27 +354,28 @@ inline typename TOtherImage::VoxelType
 GenericLinearInterpolateImageFunction<TImage>
 ::Get3D(const TOtherImage *input, double x, double y, double z, double t) const
 {
-  const int i = static_cast<int>(floor(x));
-  const int j = static_cast<int>(floor(y));
-  const int k = static_cast<int>(floor(z));
-  const int l = static_cast<int>(round(t));
-  const int I = i + 1;
-  const int J = j + 1;
-  const int K = k + 1;
+  typedef typename TOtherImage::VoxelType VoxelType;
+  typedef typename TOtherImage::RealType  RealType;
 
-  const Real A = Real(x - i);
-  const Real B = Real(y - j);
-  const Real C = Real(z - k);
-  const Real a = Real(1) - A;
-  const Real b = Real(1) - B;
-  const Real c = Real(1) - C;
+  Real wx[2], wy[2], wz[2];
+  const int i = ComputeWeights(x, wx), I = i + 1;
+  const int j = ComputeWeights(y, wy), J = j + 1;
+  const int k = ComputeWeights(z, wz), K = k + 1;
+  const int l = iround(t);
 
-  typename TOtherImage::RealType val;
-  val = (c * (b * (a * input->Get(i, j, k, l) + A * input->Get(I, j, k, l))  +
-              B * (a * input->Get(i, J, k, l) + A * input->Get(I, J, k, l))) +
-         C * (b * (a * input->Get(i, j, K, l) + A * input->Get(I, j, K, l))  +
-              B * (a * input->Get(i, J, K, l) + A * input->Get(I, J, K, l))));
-  return voxel_cast<typename TOtherImage::VoxelType>(val);
+  const auto v000 = voxel_cast<RealType>(input->Get(i, j, k, l));
+  const auto v001 = voxel_cast<RealType>(input->Get(I, j, k, l));
+  const auto v010 = voxel_cast<RealType>(input->Get(i, J, k, l));
+  const auto v011 = voxel_cast<RealType>(input->Get(I, J, k, l));
+  const auto v100 = voxel_cast<RealType>(input->Get(i, j, K, l));
+  const auto v101 = voxel_cast<RealType>(input->Get(I, j, K, l));
+  const auto v110 = voxel_cast<RealType>(input->Get(i, J, K, l));
+  const auto v111 = voxel_cast<RealType>(input->Get(I, J, K, l));
+
+  return voxel_cast<VoxelType>(wz[0] * (wy[0] * (wx[0] * v000 + wx[1] * v001)  +
+                                        wy[1] * (wx[0] * v010 + wx[1] * v011)) +
+                               wz[1] * (wy[0] * (wx[0] * v100 + wx[1] * v101)  +
+                                        wy[1] * (wx[0] * v110 + wx[1] * v111)));
 }
 
 // -----------------------------------------------------------------------------
@@ -397,22 +387,18 @@ GenericLinearInterpolateImageFunction<TImage>
   typedef typename TOtherImage::VoxelType VoxelType;
   typedef typename TOtherImage::RealType  RealType;
 
-  const int i = static_cast<int>(floor(x));
-  const int j = static_cast<int>(floor(y));
-  const int k = static_cast<int>(floor(z));
-  const int l = static_cast<int>(round(t));
-
+  const int l = iround(t);
   if (l < 0 || l >= input->T()) {
     return voxel_cast<VoxelType>(this->DefaultValue());
   }
 
   Real wx[2], wy[2], wz[2];
-  wx[1] = Real(x - i); wx[0] = Real(1) - wx[1];
-  wy[1] = Real(y - j); wy[0] = Real(1) - wy[1];
-  wz[1] = Real(z - k); wz[0] = Real(1) - wz[1];
+  const int i = ComputeWeights(x, wx);
+  const int j = ComputeWeights(y, wy);
+  const int k = ComputeWeights(z, wz);
 
   RealType val = voxel_cast<RealType>(0);
-  Real     fgw(0), bgw(0), wyz, w;
+  Real fgw(0), wyz, w;
 
   int ia, jb, kc;
   for (int c = 0; c <= 1; ++c) {
@@ -424,17 +410,15 @@ GenericLinearInterpolateImageFunction<TImage>
         ia = i + a;
         w  = wx[a] * wyz;
         if (input->IsForeground(ia, jb, kc, l)) {
-          val += w * input->Get(ia, jb, kc, l);
+          val += w * static_cast<RealType>(input->Get(ia, jb, kc, l));
           fgw += w;
-        } else {
-          bgw += w;
         }
       }
     }
   }
 
-  if (fgw > bgw) val /= fgw;
-  else           val  = voxel_cast<RealType>(this->DefaultValue());
+  if (ifloor(fgw * 1.e3) > 500) val /= fgw;
+  else val = voxel_cast<RealType>(this->DefaultValue());
 
   return voxel_cast<VoxelType>(val);
 }
@@ -445,19 +429,14 @@ inline typename GenericLinearInterpolateImageFunction<TImage>::VoxelType
 GenericLinearInterpolateImageFunction<TImage>
 ::Get4D(double x, double y, double z, double t) const
 {
-  const int i = static_cast<int>(floor(x));
-  const int j = static_cast<int>(floor(y));
-  const int k = static_cast<int>(floor(z));
-  const int l = static_cast<int>(floor(t));
-
   Real wx[2], wy[2], wz[2], wt[2];
-  wx[1] = Real(x - i); wx[0] = Real(1) - wx[1];
-  wy[1] = Real(y - j); wy[0] = Real(1) - wy[1];
-  wz[1] = Real(z - k); wz[0] = Real(1) - wz[1];
-  wt[1] = Real(t - l); wt[0] = Real(1) - wt[1];
+  const int i = ComputeWeights(x, wx);
+  const int j = ComputeWeights(y, wy);
+  const int k = ComputeWeights(z, wz);
+  const int l = ComputeWeights(t, wt);
 
   RealType val = voxel_cast<RealType>(0);
-  Real     nrm(0), w;
+  Real nrm(0), w;
 
   int ia, jb, kc, ld;
   for (int d = 0; d <= 1; ++d) {
@@ -472,8 +451,8 @@ GenericLinearInterpolateImageFunction<TImage>
               for (int a = 0; a <= 1; ++a) {
                 ia = i + a;
                 if (0 <= ia && ia < this->Input()->X()) {
-                  w    = wx[a] * wy[b] * wz[c] * wt[d];
-                  val += w * this->Input()->Get(ia, jb, kc, ld);
+                  w = wx[a] * wy[b] * wz[c] * wt[d];
+                  val += w * voxel_cast<RealType>(this->Input()->Get(ia, jb, kc, ld));
                   nrm += w;
                 }
               }
@@ -484,8 +463,8 @@ GenericLinearInterpolateImageFunction<TImage>
     }
   }
 
-  if (nrm) val /= nrm;
-  else     val  = voxel_cast<RealType>(this->DefaultValue());
+  if (nrm > Real(1e-3)) val /= nrm;
+  else val = voxel_cast<RealType>(this->DefaultValue());
 
   return voxel_cast<VoxelType>(val);
 }
@@ -496,19 +475,14 @@ inline typename GenericLinearInterpolateImageFunction<TImage>::VoxelType
 GenericLinearInterpolateImageFunction<TImage>
 ::GetWithPadding4D(double x, double y, double z, double t) const
 {
-  const int i = static_cast<int>(floor(x));
-  const int j = static_cast<int>(floor(y));
-  const int k = static_cast<int>(floor(z));
-  const int l = static_cast<int>(floor(t));
-
   Real wx[2], wy[2], wz[2], wt[2];
-  wx[1] = Real(x - i); wx[0] = Real(1) - wx[1];
-  wy[1] = Real(y - j); wy[0] = Real(1) - wy[1];
-  wz[1] = Real(z - k); wz[0] = Real(1) - wz[1];
-  wt[1] = Real(t - l); wt[0] = Real(1) - wt[1];
+  const int i = ComputeWeights(x, wx);
+  const int j = ComputeWeights(y, wy);
+  const int k = ComputeWeights(z, wz);
+  const int l = ComputeWeights(t, wt);
 
   RealType val = voxel_cast<RealType>(0);
-  Real     fgw(0), bgw(0), w;
+  Real fgw(0), w;
 
   int ia, jb, kc, ld;
   for (int d = 0; d <= 1; ++d) {
@@ -521,18 +495,16 @@ GenericLinearInterpolateImageFunction<TImage>
           ia = i + a;
           w  = wx[a] * wy[b] * wz[c] * wt[d];
           if (this->Input()->IsInsideForeground(ia, jb, kc, ld)) {
-            val += w * this->Input()->Get(ia, jb, kc, ld);
+            val += w * voxel_cast<RealType>(this->Input()->Get(ia, jb, kc, ld));
             fgw += w;
-          } else {
-            bgw += w;
           }
         }
       }
     }
   }
 
-  if (fgw > bgw) val /= fgw;
-  else           val  = voxel_cast<RealType>(this->DefaultValue());
+  if (ifloor(fgw * 1.e3) > 500) val /= fgw;
+  else val = voxel_cast<RealType>(this->DefaultValue());
 
   return voxel_cast<VoxelType>(val);
 }
@@ -543,34 +515,40 @@ inline typename TOtherImage::VoxelType
 GenericLinearInterpolateImageFunction<TImage>
 ::Get4D(const TOtherImage *input, double x, double y, double z, double t) const
 {
-  const int i = static_cast<int>(floor(x));
-  const int j = static_cast<int>(floor(y));
-  const int k = static_cast<int>(floor(z));
-  const int l = static_cast<int>(floor(t));
-  const int I = i + 1;
-  const int J = j + 1;
-  const int K = k + 1;
-  const int L = l + 1;
+  typedef typename TOtherImage::VoxelType VoxelType;
+  typedef typename TOtherImage::RealType  RealType;
 
-  const Real A = Real(x - i);
-  const Real B = Real(y - j);
-  const Real C = Real(z - k);
-  const Real D = Real(t - l);
-  const Real a = Real(1) - A;
-  const Real b = Real(1) - B;
-  const Real c = Real(1) - C;
-  const Real d = Real(1) - D;
+  Real wx[2], wy[2], wz[2], wt[2];
+  const int i = ComputeWeights(x, wx), I = i + 1;
+  const int j = ComputeWeights(y, wy), J = j + 1;
+  const int k = ComputeWeights(z, wz), K = k + 1;
+  const int l = ComputeWeights(t, wt), L = l + 1;
 
-  typename TOtherImage::RealType val;
-  val = (d * (c * (b * (a * input->Get(i, j, k, l) + A * input->Get(I, j, k, l))   +
-                   B * (a * input->Get(i, J, k, l) + A * input->Get(I, J, k, l)))  +
-              C * (b * (a * input->Get(i, j, K, l) + A * input->Get(I, j, K, l))   +
-                   B * (a * input->Get(i, J, K, l) + A * input->Get(I, J, K, l)))) +
-         D * (c * (b * (a * input->Get(i, j, k, L) + A * input->Get(I, j, k, L))   +
-                   B * (a * input->Get(i, J, k, L) + A * input->Get(I, J, k, L)))  +
-              C * (b * (a * input->Get(i, j, K, L) + A * input->Get(I, j, K, L))   +
-                   B * (a * input->Get(i, J, K, L) + A * input->Get(I, J, K, L)))));
-  return voxel_cast<typename TOtherImage::VoxelType>(val);
+  const auto v0000 = voxel_cast<RealType>(input->Get(i, j, k, l));
+  const auto v0001 = voxel_cast<RealType>(input->Get(I, j, k, l));
+  const auto v0010 = voxel_cast<RealType>(input->Get(i, J, k, l));
+  const auto v0011 = voxel_cast<RealType>(input->Get(I, J, k, l));
+  const auto v0100 = voxel_cast<RealType>(input->Get(i, j, K, l));
+  const auto v0101 = voxel_cast<RealType>(input->Get(I, j, K, l));
+  const auto v0110 = voxel_cast<RealType>(input->Get(i, J, K, l));
+  const auto v0111 = voxel_cast<RealType>(input->Get(I, J, K, l));
+  const auto v1000 = voxel_cast<RealType>(input->Get(i, j, k, L));
+  const auto v1001 = voxel_cast<RealType>(input->Get(I, j, k, L));
+  const auto v1010 = voxel_cast<RealType>(input->Get(i, J, k, L));
+  const auto v1011 = voxel_cast<RealType>(input->Get(I, J, k, L));
+  const auto v1100 = voxel_cast<RealType>(input->Get(i, j, K, L));
+  const auto v1101 = voxel_cast<RealType>(input->Get(I, j, K, L));
+  const auto v1110 = voxel_cast<RealType>(input->Get(i, J, K, L));
+  const auto v1111 = voxel_cast<RealType>(input->Get(I, J, K, L));
+
+  return voxel_cast<VoxelType>(wt[0] * (wz[0] * (wy[0] * (wx[0] * v0000 + wx[1] * v0001)   +
+                                                 wy[1] * (wx[0] * v0010 + wx[1] * v0011))  +
+                                        wz[1] * (wy[0] * (wx[0] * v0100 + wx[1] * v0101)   +
+                                                 wy[1] * (wx[0] * v0110 + wx[1] * v0111))) +
+                               wt[1] * (wz[0] * (wy[0] * (wx[0] * v1000 + wx[1] * v1001)   +
+                                                 wy[1] * (wx[0] * v1010 + wx[1] * v1011))  +
+                                        wz[1] * (wy[0] * (wx[0] * v1100 + wx[1] * v1101)   +
+                                                 wy[1] * (wx[0] * v1110 + wx[1] * v1111))));
 }
 
 // -----------------------------------------------------------------------------
@@ -582,19 +560,14 @@ GenericLinearInterpolateImageFunction<TImage>
   typedef typename TOtherImage::VoxelType VoxelType;
   typedef typename TOtherImage::RealType  RealType;
 
-  const int i = static_cast<int>(floor(x));
-  const int j = static_cast<int>(floor(y));
-  const int k = static_cast<int>(floor(z));
-  const int l = static_cast<int>(floor(t));
-
   Real wx[2], wy[2], wz[2], wt[2];
-  wx[1] = Real(x - i); wx[0] = Real(1) - wx[1];
-  wy[1] = Real(y - j); wy[0] = Real(1) - wy[1];
-  wz[1] = Real(z - k); wz[0] = Real(1) - wz[1];
-  wt[1] = Real(t - l); wt[0] = Real(1) - wt[1];
+  const int i = ComputeWeights(x, wx);
+  const int j = ComputeWeights(y, wy);
+  const int k = ComputeWeights(z, wz);
+  const int l = ComputeWeights(t, wt);
 
   RealType val = voxel_cast<RealType>(0);
-  Real     fgw(0), bgw(0), wzt, wyzt, w;
+  Real fgw(0), wzt, wyzt, w;
 
   int ia, jb, kc, ld;
   for (int d = 0; d <= 1; ++d) {
@@ -603,24 +576,22 @@ GenericLinearInterpolateImageFunction<TImage>
       kc  = k + c;
       wzt = wz[c] * wt[d];
       for (int b = 0; b <= 1; ++b) {
-        jb  = j + b;
+        jb   = j + b;
         wyzt = wy[b] * wzt;
         for (int a = 0; a <= 1; ++a) {
           ia = i + a;
           w  = wx[a] * wyzt;
           if (input->IsForeground(ia, jb, kc, ld)) {
-            val += w * input->Get(ia, jb, kc, ld);
+            val += w * voxel_cast<RealType>(input->Get(ia, jb, kc, ld));
             fgw += w;
-          } else {
-            bgw += w;
           }
         }
       }
     }
   }
 
-  if (fgw > bgw) val /= fgw;
-  else           val  = voxel_cast<RealType>(this->DefaultValue());
+  if (ifloor(fgw * 1.e3) > 500) val /= fgw;
+  else val = voxel_cast<RealType>(this->DefaultValue());
 
   return voxel_cast<VoxelType>(val);
 }
@@ -683,20 +654,21 @@ inline typename GenericLinearInterpolateImageFunction<TImage>::VoxelType
 GenericLinearInterpolateImageFunction<TImage>
 ::GetInside2D(double x, double y, double z, double t) const
 {
-  const int i = static_cast<int>(x);
-  const int j = static_cast<int>(y);
-  const int k = static_cast<int>(round(z));
-  const int l = static_cast<int>(round(t));
+  Real wx[2], wy[2];
+  const int i = ComputeWeights(x, wx);
+  const int j = ComputeWeights(y, wy);
+  const int k = iround(z);
+  const int l = iround(t);
 
-  const Real A = Real(x - i);
-  const Real B = Real(y - j);
-  const Real a = Real(1) - A;
-  const Real b = Real(1) - B;
+  auto img = reinterpret_cast<const VoxelType *>(this->Input()->GetDataPointer(i, j, k, l));
 
-  const VoxelType *img;
-  img = reinterpret_cast<const VoxelType *>(this->Input()->GetDataPointer(i, j, k, l));
-  return voxel_cast<VoxelType>(b * (a * img[_Offset[0]] + A * img[_Offset[1]]) +
-                               B * (a * img[_Offset[2]] + A * img[_Offset[3]]));
+  const auto v00 = voxel_cast<RealType>(img[_Offset[0]]);
+  const auto v01 = voxel_cast<RealType>(img[_Offset[1]]);
+  const auto v10 = voxel_cast<RealType>(img[_Offset[2]]);
+  const auto v11 = voxel_cast<RealType>(img[_Offset[3]]);
+
+  return voxel_cast<VoxelType>(wy[0] * (wx[0] * v00 + wx[1] * v01)  +
+                               wy[1] * (wx[0] * v10 + wx[1] * v11));
 }
 
 // -----------------------------------------------------------------------------
@@ -705,24 +677,27 @@ inline typename GenericLinearInterpolateImageFunction<TImage>::VoxelType
 GenericLinearInterpolateImageFunction<TImage>
 ::GetInside3D(double x, double y, double z, double t) const
 {
-  const int i = static_cast<int>(x);
-  const int j = static_cast<int>(y);
-  const int k = static_cast<int>(z);
-  const int l = static_cast<int>(round(t));
+  Real wx[2], wy[2], wz[2];
+  const int i = ComputeWeights(x, wx);
+  const int j = ComputeWeights(y, wy);
+  const int k = ComputeWeights(z, wz);
+  const int l = iround(t);
 
-  const Real A = Real(x - i);
-  const Real B = Real(y - j);
-  const Real C = Real(z - k);
-  const Real a = Real(1) - A;
-  const Real b = Real(1) - B;
-  const Real c = Real(1) - C;
+  auto img = reinterpret_cast<const VoxelType *>(this->Input()->GetDataPointer(i, j, k, l));
 
-  const VoxelType *img;
-  img = reinterpret_cast<const VoxelType *>(this->Input()->GetDataPointer(i, j, k, l));
-  return voxel_cast<VoxelType>(c * (b * (a * img[_Offset[0]] + A * img[_Offset[1]])  +
-                                    B * (a * img[_Offset[2]] + A * img[_Offset[3]])) +
-                               C * (b * (a * img[_Offset[4]] + A * img[_Offset[5]])  +
-                                    B * (a * img[_Offset[6]] + A * img[_Offset[7]])));
+  const auto v000 = voxel_cast<RealType>(img[_Offset[0]]);
+  const auto v001 = voxel_cast<RealType>(img[_Offset[1]]);
+  const auto v010 = voxel_cast<RealType>(img[_Offset[2]]);
+  const auto v011 = voxel_cast<RealType>(img[_Offset[3]]);
+  const auto v100 = voxel_cast<RealType>(img[_Offset[4]]);
+  const auto v101 = voxel_cast<RealType>(img[_Offset[5]]);
+  const auto v110 = voxel_cast<RealType>(img[_Offset[6]]);
+  const auto v111 = voxel_cast<RealType>(img[_Offset[7]]);
+
+  return voxel_cast<VoxelType>(wz[0] * (wy[0] * (wx[0] * v000 + wx[1] * v001)  +
+                                        wy[1] * (wx[0] * v010 + wx[1] * v011)) +
+                               wz[1] * (wy[0] * (wx[0] * v100 + wx[1] * v101)  +
+                                        wy[1] * (wx[0] * v110 + wx[1] * v111)));
 }
 
 // -----------------------------------------------------------------------------
@@ -731,30 +706,39 @@ inline typename GenericLinearInterpolateImageFunction<TImage>::VoxelType
 GenericLinearInterpolateImageFunction<TImage>
 ::GetInside4D(double x, double y, double z, double t) const
 {
-  const int i = static_cast<int>(x);
-  const int j = static_cast<int>(y);
-  const int k = static_cast<int>(z);
-  const int l = static_cast<int>(t);
+  Real wx[2], wy[2], wz[2], wt[2];
+  const int i = ComputeWeights(x, wx);
+  const int j = ComputeWeights(y, wy);
+  const int k = ComputeWeights(z, wz);
+  const int l = ComputeWeights(t, wt);
 
-  const Real A = Real(x - i);
-  const Real B = Real(y - j);
-  const Real C = Real(z - k);
-  const Real D = Real(t - l);
-  const Real a = Real(1) - A;
-  const Real b = Real(1) - B;
-  const Real c = Real(1) - C;
-  const Real d = Real(1) - D;
+  auto img = reinterpret_cast<const VoxelType *>(this->Input()->GetDataPointer(i, j, k, l));
 
-  const VoxelType *img;
-  img = reinterpret_cast<const VoxelType *>(this->Input()->GetDataPointer(i, j, k, l));
-  return voxel_cast<VoxelType>(d * (c * (b * (a * img[_Offset[ 0]] + A * img[_Offset[ 1]])   +
-                                         B * (a * img[_Offset[ 2]] + A * img[_Offset[ 3]]))  +
-                                    C * (b * (a * img[_Offset[ 4]] + A * img[_Offset[ 5]])   +
-                                         B * (a * img[_Offset[ 6]] + A * img[_Offset[ 7]]))) +
-                               D * (c * (b * (a * img[_Offset[ 8]] + A * img[_Offset[ 9]])   +
-                                         B * (a * img[_Offset[10]] + A * img[_Offset[11]]))  +
-                                    C * (b * (a * img[_Offset[12]] + A * img[_Offset[13]])   +
-                                         B * (a * img[_Offset[14]] + A * img[_Offset[15]]))));
+  const auto v0000 = voxel_cast<RealType>(img[_Offset[ 0]]);
+  const auto v0001 = voxel_cast<RealType>(img[_Offset[ 1]]);
+  const auto v0010 = voxel_cast<RealType>(img[_Offset[ 2]]);
+  const auto v0011 = voxel_cast<RealType>(img[_Offset[ 3]]);
+  const auto v0100 = voxel_cast<RealType>(img[_Offset[ 4]]);
+  const auto v0101 = voxel_cast<RealType>(img[_Offset[ 5]]);
+  const auto v0110 = voxel_cast<RealType>(img[_Offset[ 6]]);
+  const auto v0111 = voxel_cast<RealType>(img[_Offset[ 7]]);
+  const auto v1000 = voxel_cast<RealType>(img[_Offset[ 8]]);
+  const auto v1001 = voxel_cast<RealType>(img[_Offset[ 9]]);
+  const auto v1010 = voxel_cast<RealType>(img[_Offset[10]]);
+  const auto v1011 = voxel_cast<RealType>(img[_Offset[11]]);
+  const auto v1100 = voxel_cast<RealType>(img[_Offset[12]]);
+  const auto v1101 = voxel_cast<RealType>(img[_Offset[13]]);
+  const auto v1110 = voxel_cast<RealType>(img[_Offset[14]]);
+  const auto v1111 = voxel_cast<RealType>(img[_Offset[15]]);
+
+  return voxel_cast<VoxelType>(wt[0] * (wz[0] * (wy[0] * (wx[0] * v0000 + wx[1] * v0001)   +
+                                                 wy[1] * (wx[0] * v0010 + wx[1] * v0011))  +
+                                        wz[1] * (wy[0] * (wx[0] * v0100 + wx[1] * v0101)   +
+                                                 wy[1] * (wx[0] * v0110 + wx[1] * v0111))) +
+                               wt[1] * (wz[0] * (wy[0] * (wx[0] * v1000 + wx[1] * v1001)   +
+                                                 wy[1] * (wx[0] * v1010 + wx[1] * v1011))  +
+                                        wz[1] * (wy[0] * (wx[0] * v1100 + wx[1] * v1101)   +
+                                                 wy[1] * (wx[0] * v1110 + wx[1] * v1111))));
 }
 
 // -----------------------------------------------------------------------------

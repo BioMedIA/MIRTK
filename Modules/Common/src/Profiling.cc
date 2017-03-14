@@ -21,6 +21,7 @@
 
 #include "mirtk/Options.h"
 #include "mirtk/Stream.h"
+#include "mirtk/Math.h"
 
 
 namespace mirtk {
@@ -114,11 +115,62 @@ void PrintElapsedTime(const char *section, double t, TimeUnit unit)
     }
     unit = debug_time_unit;
   }
-  if      (unit == TIME_IN_MILLISECONDS) snprintf(unit_buffer, 6, "msecs");
-  else if (unit == TIME_IN_SECONDS)      snprintf(unit_buffer, 6, "secs");
+  if      (unit == TIME_IN_MILLISECONDS) snprintf(unit_buffer, 6, "msec");
+  else if (unit == TIME_IN_SECONDS)      snprintf(unit_buffer, 6, "sec");
   else                                   snprintf(unit_buffer, 6, "undef");
   printf("Time for %-*s %10.3f %s\n", section_width, section_buffer, t, unit_buffer);
   fflush(stdout);
+}
+
+// -----------------------------------------------------------------------------
+string ElapsedTimeToString(double t, TimeUnit unit, TimeFormat fmt, int w, char c, bool left)
+{
+  string str;
+  if (fmt == TIME_FORMAT_UNITS) {
+    if (unit == TIME_IN_DEFAULT_UNIT) {
+      if (debug_time_unit == TIME_IN_MILLISECONDS) {
+        if (unit == TIME_IN_SECONDS)      t *= 1.e+3;
+      } else if (debug_time_unit == TIME_IN_SECONDS) {
+        if (unit == TIME_IN_MILLISECONDS) t *= 1.e-3;
+      }
+      unit = debug_time_unit;
+    }
+    str = ToString(t, w, c, left);
+    if      (unit == TIME_IN_MILLISECONDS) str += " msec";
+    else if (unit == TIME_IN_SECONDS)      str += " sec";
+    else                                   str += " undef";
+  } else {
+    int h, m, s;
+    if (unit == TIME_IN_DEFAULT_UNIT) unit = debug_time_unit;
+    if (unit == TIME_IN_MILLISECONDS) t *= 1.e-3;
+    s = iround(t);
+    m = s / 60;
+    s = s % 60;
+    if (fmt == TIME_FORMAT_MIN_SEC) {
+      str  = ToString(m, w, c, left);
+      str += " min ";
+      str += ToString(s, w, c, left);
+      str += " sec";
+    } else {
+      h = m / 60;
+      m = m % 60;
+      if (fmt == TIME_FORMAT_H_MIN_SEC) {
+        str  = ToString(h, w, c, left);
+        str += " h ";
+        str += ToString(m, w, c, left);
+        str += " min ";
+        str += ToString(s, w, c, left);
+        str += " sec";
+      } else {
+        str  = ToString(h, 2, '0');
+        str += ":";
+        str += ToString(m, 2, '0');
+        str += ":";
+        str += ToString(s, 2, '0');
+      }
+    }
+  }
+  return str;
 }
 
 

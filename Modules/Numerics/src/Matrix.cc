@@ -939,7 +939,7 @@ bool Matrix::IsIdentity() const
 
   for (int c = 0; c < _cols; ++c)
   for (int r = 0; r < _rows; ++r) {
-    if (_matrix[c][r] != static_cast<double>(r == c)) return false;
+    if (!AreEqual(_matrix[c][r], r == c ? 1. : 0., 1e-6)) return false;
   }
 
   return true;
@@ -957,7 +957,7 @@ bool Matrix::IsSymmetric() const
   if (_rows == 0 || _cols == 0 || _rows != _cols) return false;
   for (int c = 0; c < _cols; ++c)
   for (int r = 0; r < _rows; ++r) {
-    if (!fequal(_matrix[c][r], _matrix[r][c], 1e-6)) return false;
+    if (!AreEqual(_matrix[c][r], _matrix[r][c], 1e-6)) return false;
   }
   return true;
 }
@@ -971,7 +971,7 @@ bool Matrix::IsDiagonalizable() const
   Matrix AAT = (*this) * AT;
   for (int c = 0; c < _cols; ++c)
   for (int r = 0; r < _rows; ++r) {
-    if (!fequal(AAT(r, c), ATA(r, c), 1e-6)) return false;
+    if (!AreEqual(AAT(r, c), ATA(r, c), 1e-6)) return false;
   }
   return true;
 }

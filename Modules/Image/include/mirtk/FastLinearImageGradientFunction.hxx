@@ -123,8 +123,8 @@ GenericFastLinearImageGradientFunction<TImage>
     }
   }
 
-  if (nrm) val /= nrm;
-  else     val  = this->DefaultValue();
+  if (nrm > 1e-3) val /= nrm;
+  else val = this->DefaultValue();
 
   return val;
 }
@@ -288,8 +288,8 @@ GenericFastLinearImageGradientFunction<TImage>
     }
   }
 
-  if (nrm) val /= nrm;
-  else     val  = this->DefaultValue();
+  if (nrm > 1e-3) val /= nrm;
+  else val = this->DefaultValue();
 
   return val;
 }
@@ -468,8 +468,8 @@ GenericFastLinearImageGradientFunction<TImage>
     }
   }
 
-  if (nrm) val /= nrm;
-  else     val  = this->DefaultValue();
+  if (nrm > 1e-3) val /= nrm;
+  else val = this->DefaultValue();
 
   return val;
 }

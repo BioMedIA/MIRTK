@@ -23,6 +23,7 @@
 #include "mirtk/Parallel.h"
 #include "mirtk/Profiling.h"
 #include "mirtk/InterpolateImageFunction.h"
+#include "mirtk/NearestNeighborInterpolateImageFunction.h"
 
 
 namespace mirtk {
@@ -75,9 +76,8 @@ void Resampling<VoxelType>::Initialize()
   ImageToImage<VoxelType>::Initialize(false);
 
   // Set up interpolator
-  if (_Interpolator == NULL) {
-    cerr << "Resampling::Initialize: No interpolator found!" << endl;
-    exit(1);
+  if (_Interpolator == nullptr) {
+    Throw(ERR_InvalidArgument, __FUNCTION__, "Interpolator must be set");
   }
   _Interpolator->Input(this->_Input);
   _Interpolator->Initialize();
@@ -97,11 +97,10 @@ void Resampling<VoxelType>::InitializeOutput()
     attr._dx = _XSize;
   } else if (_X > 0) {
     attr._x  = _X;
-    attr._dx = this->_Input->X() * this->_Input->GetXSize() / static_cast<double>(_X);
-  } else if (_XSize > 0) {
-    attr._x  = iround(this->_Input->X() * this->_Input->GetXSize() / this->_XSize);
-    if (attr._x < 1) attr._x  = 1;
-    else             attr._dx = _XSize;
+    attr._dx = this->_Input->X() * this->_Input->XSize() / static_cast<double>(_X);
+  } else if (_XSize > 0 && this->_Input->XSize() > 0. && this->_Input->X() > 1) {
+    attr._x  = iceil(this->_Input->X() * this->_Input->XSize() / _XSize);
+    attr._dx = _XSize;
   }
 
   if (_Y > 0 && _YSize > 0) {
@@ -109,11 +108,10 @@ void Resampling<VoxelType>::InitializeOutput()
     attr._dy = _YSize;
   } else if (_Y > 0) {
     attr._y  = _Y;
-    attr._dy = this->_Input->Y() * this->_Input->GetYSize() / static_cast<double>(_Y);
-  } else if (_YSize > 0) {
-    attr._y  = iround(this->_Input->Y() * this->_Input->GetYSize() / this->_YSize);
-    if (attr._y < 1) attr._y  = 1;
-    else             attr._dy = _YSize;
+    attr._dy = this->_Input->Y() * this->_Input->YSize() / static_cast<double>(_Y);
+  } else if (_YSize > 0 && this->_Input->YSize() > 0. && this->_Input->Y() > 1) {
+    attr._y  = iceil(this->_Input->Y() * this->_Input->YSize() / _YSize);
+    attr._dy = _YSize;
   }
   
   if (_Z > 0 && _ZSize > 0) {
@@ -121,14 +119,34 @@ void Resampling<VoxelType>::InitializeOutput()
     attr._dz = _ZSize;
   } else if (_Z > 0) {
     attr._z  = _Z;
-    attr._dz = this->_Input->Z() * this->_Input->GetZSize() / static_cast<double>(_Z);
-  } else if (_ZSize > 0) {
-    attr._z  = iround(this->_Input->Z() * this->_Input->GetZSize() / this->_ZSize);
-    if (attr._z < 1) attr._z  = 1;
-    else             attr._dz = _ZSize;
+    attr._dz = this->_Input->Z() * this->_Input->ZSize() / static_cast<double>(_Z);
+  } else if (_ZSize > 0 && this->_Input->ZSize() > 0. && this->_Input->Z() > 1) {
+    attr._z  = iceil(this->_Input->Z() * this->_Input->ZSize() / _ZSize);
+    attr._dz = _ZSize;
   }
 
   this->_Output->Initialize(attr);
+  if (this->_Input->HasBackgroundValue()) {
+    this->_Output->PutBackgroundValueAsDouble(this->_Input->GetBackgroundValueAsDouble());
+  }
+  if (this->_Input->HasMask()) {
+    const BinaryImage *other = this->_Input->GetMask();
+    UniquePtr<BinaryImage> mask(new BinaryImage(attr, other->T()));
+    GenericNearestNeighborExtrapolateImageFunction<BinaryImage> nn;
+    nn.Input(other);
+    nn.Initialize();
+    double x, y, z;
+    for (int l = 0; l < mask->T(); ++l)
+    for (int k = 0; k < mask->Z(); ++k)
+    for (int j = 0; j < mask->Y(); ++j)
+    for (int i = 0; i < mask->X(); ++i) {
+      x = i, y = j, z = k;
+      mask->ImageToWorld(x, y, z);
+      other->WorldToImage(x, y, z);
+      mask->PutAsDouble(i, j, k, l, nn.Evaluate(x, y, z, l));
+    }
+    this->_Output->PutMask(mask.release(), true);
+  }
 }
 
 // ---------------------------------------------------------------------------

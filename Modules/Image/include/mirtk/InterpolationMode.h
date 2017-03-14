@@ -55,96 +55,6 @@ enum InterpolationMode {
 };
 
 // ----------------------------------------------------------------------------
-template <>
-inline string ToString(const InterpolationMode &m, int w, char c, bool left)
-{
-  const char *str;
-  switch(m) {
-    case Interpolation_Default:                     str = "Default"; break;
-    case Interpolation_NN:                          str = "NN"; break;
-    case Interpolation_Linear:                      str = "Linear"; break;
-    case Interpolation_FastLinear:                  str = "Fast linear"; break;
-    case Interpolation_BSpline:                     str = "BSpline"; break;
-    case Interpolation_CSpline:                     str = "CSpline"; break;
-    case Interpolation_CubicBSpline:                str = "Cubic BSpline"; break;
-    case Interpolation_FastCubicBSpline:            str = "Fast cubic BSpline"; break;
-    case Interpolation_SBased:                      str = "SBased"; break;
-    case Interpolation_Sinc:                        str = "Sinc"; break;
-    case Interpolation_Gaussian:                    str = "Gaussian"; break;
-    case Interpolation_NNWithPadding:               str = "NN with padding"; break;
-    case Interpolation_LinearWithPadding:           str = "Linear with padding"; break;
-    case Interpolation_FastLinearWithPadding:       str = "Fast linear with padding"; break;
-    case Interpolation_BSplineWithPadding:          str = "BSpline with padding"; break;
-    case Interpolation_CubicBSplineWithPadding:     str = "Cubic BSpline with padding"; break;
-    case Interpolation_FastCubicBSplineWithPadding: str = "Fast cubic BSpline with padding"; break;
-    case Interpolation_CSplineWithPadding:          str = "CSpline with padding"; break;
-    case Interpolation_SBasedWithPadding:           str = "SBased with padding"; break;
-    case Interpolation_SincWithPadding:             str = "Sinc with padding"; break;
-    case Interpolation_GaussianWithPadding:         str = "Gaussian with padding"; break;
-    default:                                        str = "Unknown"; break;
-  }
-  return ToString(str, w, c, left);
-}
-
-// ----------------------------------------------------------------------------
-template <>
-inline bool FromString(const char *str, InterpolationMode &m)
-{
-  const string lstr = ToLower(str);
-  if      (lstr == "default") m = Interpolation_Default;
-  else if (lstr == "nn") m = Interpolation_NN;
-  else if (lstr == "linear") m = Interpolation_Linear;
-  else if (lstr == "fast linear") m = Interpolation_FastLinear;
-  else if (lstr == "bspline") m = Interpolation_BSpline;
-  else if (lstr == "b-spline") m = Interpolation_BSpline;
-  else if (lstr == "cspline") m = Interpolation_CSpline;
-  else if (lstr == "c-spline") m = Interpolation_CSpline;
-  else if (lstr == "cubic bspline") m = Interpolation_CubicBSpline;
-  else if (lstr == "cubic b-spline") m = Interpolation_CubicBSpline;
-  else if (lstr == "fast cubic bspline") m = Interpolation_FastCubicBSpline;
-  else if (lstr == "fast cubic b-spline") m = Interpolation_FastCubicBSpline;
-  else if (lstr == "sbased") m = Interpolation_SBased;
-  else if (lstr == "shapebased") m = Interpolation_SBased;
-  else if (lstr == "shape-based") m = Interpolation_SBased;
-  else if (lstr == "sinc") m = Interpolation_Sinc;
-  else if (lstr == "gaussian") m = Interpolation_Gaussian;
-  else if (lstr == "nn with padding") m = Interpolation_NNWithPadding;
-  else if (lstr == "nn (with padding)") m = Interpolation_NNWithPadding;
-  else if (lstr == "linear with padding") m = Interpolation_LinearWithPadding;
-  else if (lstr == "linear (with padding)") m = Interpolation_LinearWithPadding;
-  else if (lstr == "fast linear with padding") m = Interpolation_FastLinearWithPadding;
-  else if (lstr == "fast linear (with padding)") m = Interpolation_FastLinearWithPadding;
-  else if (lstr == "bspline with padding") m = Interpolation_BSplineWithPadding;
-  else if (lstr == "b-spline with padding") m = Interpolation_BSplineWithPadding;
-  else if (lstr == "bspline (with padding)") m = Interpolation_BSplineWithPadding;
-  else if (lstr == "b-spline (with padding)") m = Interpolation_BSplineWithPadding;
-  else if (lstr == "cubic bspline with padding") m = Interpolation_CubicBSplineWithPadding;
-  else if (lstr == "cubic b-spline with padding") m = Interpolation_CubicBSplineWithPadding;
-  else if (lstr == "cubic bspline (with padding)") m = Interpolation_CubicBSplineWithPadding;
-  else if (lstr == "cubic b-spline (with padding)") m = Interpolation_CubicBSplineWithPadding;
-  else if (lstr == "fast cubic bspline with padding") m = Interpolation_FastCubicBSplineWithPadding;
-  else if (lstr == "fast cubic b-spline with padding") m = Interpolation_FastCubicBSplineWithPadding;
-  else if (lstr == "fast cubic bspline (with padding)") m = Interpolation_FastCubicBSplineWithPadding;
-  else if (lstr == "fast cubic b-spline (with padding)") m = Interpolation_FastCubicBSplineWithPadding;
-  else if (lstr == "cspline with padding") m = Interpolation_CSplineWithPadding;
-  else if (lstr == "c-spline with padding") m = Interpolation_CSplineWithPadding;
-  else if (lstr == "cspline (with padding)") m = Interpolation_CSplineWithPadding;
-  else if (lstr == "c-spline (with padding)") m = Interpolation_CSplineWithPadding;
-  else if (lstr == "sbased with padding") m = Interpolation_SBasedWithPadding;
-  else if (lstr == "shapebased with padding") m = Interpolation_SBasedWithPadding;
-  else if (lstr == "shape-based with padding") m = Interpolation_SBasedWithPadding;
-  else if (lstr == "sbased (with padding)") m = Interpolation_SBasedWithPadding;
-  else if (lstr == "shapebased (with padding)") m = Interpolation_SBasedWithPadding;
-  else if (lstr == "shape-based (with padding)") m = Interpolation_SBasedWithPadding;
-  else if (lstr == "sinc with padding") m = Interpolation_SincWithPadding;
-  else if (lstr == "sinc (with padding)") m = Interpolation_SincWithPadding;
-  else if (lstr == "gaussian with padding") m = Interpolation_GaussianWithPadding;
-  else if (lstr == "gaussian (with padding)") m = Interpolation_GaussianWithPadding;
-  else return false;
-  return true;
-}
-
-// ----------------------------------------------------------------------------
 /// Get default interpolation mode
 inline InterpolationMode DefaultInterpolationMode()
 {
@@ -187,6 +97,79 @@ inline InterpolationMode InterpolationWithoutPadding(InterpolationMode m)
     case Interpolation_GaussianWithPadding:         return Interpolation_Gaussian;
     default:                                        return m;
   }
+}
+
+// ----------------------------------------------------------------------------
+template <>
+inline string ToString(const InterpolationMode &m, int w, char c, bool left)
+{
+  string str;
+  const auto mode = InterpolationWithoutPadding(m);
+  switch(mode) {
+    case Interpolation_Default:          str = "Default"; break;
+    case Interpolation_NN:               str = "NN"; break;
+    case Interpolation_Linear:           str = "Linear"; break;
+    case Interpolation_FastLinear:       str = "Fast linear"; break;
+    case Interpolation_BSpline:          str = "BSpline"; break;
+    case Interpolation_CSpline:          str = "CSpline"; break;
+    case Interpolation_CubicBSpline:     str = "Cubic BSpline"; break;
+    case Interpolation_FastCubicBSpline: str = "Fast cubic BSpline"; break;
+    case Interpolation_SBased:           str = "SBased"; break;
+    case Interpolation_Sinc:             str = "Sinc"; break;
+    case Interpolation_Gaussian:         str = "Gaussian"; break;
+    default:                             str = "Unknown"; break;
+  }
+  if (mode != m) str += " with padding";
+  return ToString(str, w, c, left);
+}
+
+// ----------------------------------------------------------------------------
+template <>
+inline bool FromString(const char *str, InterpolationMode &m)
+{
+  string lstr = ToLower(str);
+  bool with_padding = false;
+  auto pos = lstr.find(" (with padding)");
+  if (pos != string::npos) {
+    lstr.erase(pos, 15);
+    with_padding = true;
+  } else {
+    pos = lstr.find(" with padding");
+    if (pos != string::npos) {
+      lstr.erase(pos, 13);
+      with_padding = true;
+    } else {
+      pos = lstr.find(" (without padding)");
+      if (pos != string::npos) {
+        lstr.erase(pos, 18);
+      } else {
+        pos = lstr.find(" without padding");
+        if (pos != string::npos) lstr.erase(pos, 16);
+      }
+    }
+  }
+  if      (lstr == "default") m = Interpolation_Default;
+  else if (lstr == "nn") m = Interpolation_NN;
+  else if (lstr == "linear") m = Interpolation_Linear;
+  else if (lstr == "fast linear") m = Interpolation_FastLinear;
+  else if (lstr == "bspline") m = Interpolation_BSpline;
+  else if (lstr == "b-spline") m = Interpolation_BSpline;
+  else if (lstr == "cspline") m = Interpolation_CSpline;
+  else if (lstr == "c-spline") m = Interpolation_CSpline;
+  else if (lstr == "cubic bspline") m = Interpolation_CubicBSpline;
+  else if (lstr == "cubic b-spline") m = Interpolation_CubicBSpline;
+  else if (lstr == "fast cubic bspline") m = Interpolation_FastCubicBSpline;
+  else if (lstr == "fast cubic b-spline") m = Interpolation_FastCubicBSpline;
+  else if (lstr == "sbased") m = Interpolation_SBased;
+  else if (lstr == "shapebased") m = Interpolation_SBased;
+  else if (lstr == "shape-based") m = Interpolation_SBased;
+  else if (lstr == "sinc") m = Interpolation_Sinc;
+  else if (lstr == "gaussian") m = Interpolation_Gaussian;
+  else return false;
+  if (with_padding) {
+    m = InterpolationWithPadding(m);
+  }
+  return true;
 }
 
 

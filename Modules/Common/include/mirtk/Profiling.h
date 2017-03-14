@@ -23,6 +23,7 @@
 #include "mirtk/CommonExport.h"
 
 #include "mirtk/Stream.h"
+#include "mirtk/String.h"
 
 #include <ctime>
 #ifdef HAVE_TBB
@@ -43,7 +44,20 @@ namespace mirtk {
 
 
 // -----------------------------------------------------------------------------
-enum TimeUnit {TIME_IN_DEFAULT_UNIT, TIME_IN_MILLISECONDS, TIME_IN_SECONDS};
+enum TimeUnit
+{
+  TIME_IN_DEFAULT_UNIT,
+  TIME_IN_MILLISECONDS,
+  TIME_IN_SECONDS
+};
+
+enum TimeFormat
+{
+  TIME_FORMAT_UNITS,       ///< Print elapsed time using time units
+  TIME_FORMAT_HHMMSS,      ///< Print elapsed time with format "HH:MM:SS"
+  TIME_FORMAT_H_MIN_SEC,   ///< Print elapsed time with format "[H h] [M min] [S sec]"
+  TIME_FORMAT_MIN_SEC      ///< Print elapsed time with format "[M min] [S sec]"
+};
 
 // =============================================================================
 // Global profiling options
@@ -78,9 +92,20 @@ void PrintProfilingOptions(ostream &);
 // CPU Profiling
 // =============================================================================
 
-// -----------------------------------------------------------------------------
-/// Print elapsed time for given section
+/// Print elapsed time for profiled section
 void PrintElapsedTime(const char *, double, TimeUnit = TIME_IN_SECONDS);
+
+/// Convert elapsed time given in the specified units to string of given format
+///
+/// \param[in] t      Elapsed time in specified \p units.
+/// \param[in] units  Units of time measurement.
+/// \param[in] fmt    Time string format.
+/// \param[in] w      Width of time field when \p fmt is not TIME_FORMAT_HHMMSS.
+/// \param[in] c      Character used to fill time field.
+/// \param[in] left   Whether to print time value left justified.
+string ElapsedTimeToString(double t, TimeUnit units = TIME_IN_SECONDS,
+                           TimeFormat fmt = TIME_FORMAT_HHMMSS,
+                           int w = 0, char c = ' ', bool left = false);
 
 // -----------------------------------------------------------------------------
 /// Start measurement of execution time of current code block
