@@ -1062,9 +1062,11 @@ int main(int argc, char **argv)
       average.Write("debug_average_sharpened.nii.gz");
     }
     Real shift = mean - static_cast<Real>(Mean::Calculate(num, average.Data(), mask.get()));
+    Real min_value = static_cast<Real>(min_average);
+    Real max_value = static_cast<Real>(max_average);
     for (int idx = 0; idx < num; ++idx) {
       if (mask[idx]) {
-        average(idx) = clamp(average(idx) + shift, min_average, max_average);
+        average(idx) = clamp(average(idx) + shift, min_value, max_value);
       }
     }
     if (verbose) cout << " done" << endl;
