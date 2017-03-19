@@ -166,8 +166,8 @@ void PushTransformation(FluidFreeFormTransformation &t1,
                         bool last = false)
 {
   PushTransformation(t1, t2->GetGlobalTransformation(), attr);
-  for (int l = 0; l < t2->NumberOfLevels(); ++l) {
-    PushTransformation(t1, t2->RemoveLocalTransformation(l), attr);
+  while (t2->NumberOfLevels() > 0) {
+    PushTransformation(t1, t2->RemoveLocalTransformation(0), attr);
   }
   if (last) {
     AffineTransformation *post = t1.GetAffineTransformation();
