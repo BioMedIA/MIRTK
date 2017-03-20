@@ -1228,8 +1228,14 @@ Matrix LogEuclideanMean(int n, const Matrix *matrices, const double *weights)
   }
 
   Matrix sumLogs(matrices[0].Rows(), matrices[0].Cols());
-  for (int i = 0; i < n; ++i) {
-    sumLogs += matrices[i].Log() * weights[i];
+  if (weights) {
+    for (int i = 0; i < n; ++i) {
+      sumLogs += matrices[i].Log() * weights[i];
+    }
+  } else {
+    for (int i = 0; i < n; ++i) {
+      sumLogs += matrices[i].Log();
+    }
   }
   sumLogs /= totalWeight;
 
@@ -1237,11 +1243,11 @@ Matrix LogEuclideanMean(int n, const Matrix *matrices, const double *weights)
 }
 
 // -----------------------------------------------------------------------------
-Matrix BiInvariantMean(int               n,
+Matrix BiInvariantMean(int           n,
                        const Matrix *matrices,
-                       const double     *weights,
-                       int               niter,
-                       double            tolerance,
+                       const double *weights,
+                       int           niter,
+                       double        tolerance,
                        const Matrix *mu0)
 {
   mirtkAssert(n > 0, "at least one matrix must be given");
