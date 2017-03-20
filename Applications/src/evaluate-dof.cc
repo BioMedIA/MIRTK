@@ -23,7 +23,8 @@
 #include "mirtk/IOConfig.h"
 #include "mirtk/GenericImage.h"
 #include "mirtk/Transformation.h"
-#include "mirtk/FreeFormTransformation3D.h"
+#include "mirtk/AffineTransformation.h"
+#include "mirtk/FreeFormTransformation.h"
 
 
 using namespace mirtk;
@@ -36,36 +37,53 @@ using namespace mirtk;
 // -----------------------------------------------------------------------------
 void PrintHelp(const char *name)
 {
-  cout << endl;
+  cout << "\n";
   cout << "Usage: " << name << " [<dof>...] [options]" << endl;
-  cout << endl;
+  cout << "\n";
   cout << "Description:" << endl;
-  cout << "  Calculates registration transformation quality measures such as the voxel-wise" << endl;
-  cout << "  cumulative or mean inverse-consistency error (CICE/MICE) for pairs of forward" << endl;
-  cout << "  transformation from target to source and backward transformation from source" << endl;
-  cout << "  to target image. Another voxel-wise measure that can be computed using this" << endl;
-  cout << "  program are the cumulative or mean transitivity error (CTE/MTE) given three" << endl;
-  cout << "  transformations, from target (A) to B, from B to C, and from C to A again." << endl;
-  cout << endl;
-  cout << "Arguments:" << endl;
-  cout << "  <dof>   File path of input transformation. Depending on the evaluation measure," << endl;
-  cout << "          multiple consecutive transformation are processed in tuples of fixed" << endl;
-  cout << "          size and an error measure is computed for each such tuple of transformations." << endl;
-  cout << "          In the default case of 1-tuples, each transformation is evaluated separately." << endl;
-  cout << "          For other evaluation measures which are based on more than just one transformation" << endl;
-  cout << "          see the list of optional arguments below." << endl;
-  cout << endl;
-  cout << "Optional arguments:" << endl;
-  cout << "  -dofs <file>           Text file with (additional) input transformation paths. (default: none)" << endl;
-  cout << "  -output <file>         Name of voxel-wise output error map. (default: none)" << endl;
-  cout << "  -target <file>         Target image. (default: FFD lattice)" << endl;
-  cout << "  -mask <file>           Target region-of-interest mask. (default: none)" << endl;
-  cout << "  -padding <value>       Target background value, unused if -mask specified. (default: none)" << endl;
-  cout << "  -cumulative            Whether to compute the cumulative error. (default: mean)" << endl;
-  cout << "  -inverse-consistency   Request evaluation of inverse-consistency error for each" << endl;
-  cout << "                         pair of input transformations when applied in the given order." << endl;
-  cout << "  -transitivity          Request evaluation of transitivity error for each triple" << endl;
-  cout << "                         of input transformations when applied in the given order." << endl;
+  cout << "  Calculates registration transformation quality measures such as the voxel-wise\n";
+  cout << "  cumulative or mean inverse-consistency error (CICE/MICE) for pairs of forward\n";
+  cout << "  transformation from target to source and backward transformation from source\n";
+  cout << "  to target image. Another voxel-wise measure that can be computed using this\n";
+  cout << "  program are the cumulative or mean transitivity error (CTE/MTE) given three\n";
+  cout << "  transformations, from target (A) to B, from B to C, and from C to A again.\n";
+  cout << "\n";
+  cout << "  This tool can further be used to evaluate the deviation of N affine transformations\n";
+  cout << "  which map a template to each one of N images from the barycenter corresponding\n";
+  cout << "  to the identity transformation. A larger deviation indicates a stronger bias of\n";
+  cout << "  the template towards a subset of the images and/or unbalanced registration errors.\n";
+  cout << "\n";
+  cout << "Arguments:\n";
+  cout << "  <dof>   File path of input transformation. Depending on the evaluation measure,\n";
+  cout << "          multiple consecutive transformations are processed in tuples of fixed\n";
+  cout << "          size and an error measure is computed for each such tuple of transformations.\n";
+  cout << "          In the default case of 1-tuples, each transformation is evaluated separately.\n";
+  cout << "          For other evaluation measures which are based on more than just one transformation\n";
+  cout << "          see the list of optional arguments below.\n";
+  cout << "\n";
+  cout << "Optional arguments:\n";
+  cout << "  -dofs <file>\n";
+  cout << "      Text file with (additional) input transformation paths. (default: none)\n";
+  cout << "  -output <file>\n";
+  cout << "      Name of voxel-wise output error map. (default: none)\n";
+  cout << "  -target <file>\n";
+  cout << "      Target image. (default: FFD lattice)\n";
+  cout << "  -mask <file>\n";
+  cout << "      Target region-of-interest mask. (default: none)\n";
+  cout << "  -padding <value>\n";
+  cout << "      Target background value, unused if -mask specified. (default: none)\n";
+  cout << "  -cumulative\n";
+  cout << "      Whether to compute the cumulative error. (default: mean)\n";
+  cout << "  -inverse-consistency\n";
+  cout << "      Request evaluation of inverse-consistency error for each\n";
+  cout << "      pair of input transformations when applied in the given order.\n";
+  cout << "  -transitivity\n";
+  cout << "      Request evaluation of transitivity error for each triple\n";
+  cout << "      of input transformations when applied in the given order.\n";
+  cout << "  -barycentricity\n";
+  cout << "      Evaluate norm of the average log map of all input transformations.\n";
+  cout << "      When the transformations map each image to the common barycenter,\n";
+  cout << "      the reported value should be (close to) zero.\n";
   PrintStandardOptions(cout);
   cout << endl;
 }
@@ -80,7 +98,8 @@ enum Metric
 {
   None,
   InverseConsistency,
-  Transitivity
+  Transitivity,
+  Barycentricity
 };
 
 // =============================================================================
@@ -171,66 +190,79 @@ int main(int argc, char **argv)
     else if (OPTION("-cice")) { metric = InverseConsistency; cumulative = true;  }
     else if (OPTION("-mte"))  { metric = Transitivity;       cumulative = false; }
     else if (OPTION("-cte"))  { metric = Transitivity;       cumulative = true;  }
+    else if (OPTION("-barycentric-equation")) metric = Barycentricity;
     else HANDLE_COMMON_OR_UNKNOWN_OPTION();
   }
 
-  if (list_name) read_list_file(list_name, dofin_name);
+  if (list_name) {
+    read_list_file(list_name, dofin_name);
+  }
   if (dofin_name.empty()) {
     PrintHelp(EXECNAME);
     exit(1);
   }
-
   if (metric == None) {
-    cerr << "Evaluation of a single transformations not implemented, only -inverse-consistency or -transivity error can be evaluated" << endl;
-    exit(1);
+    metric = Barycentricity;
   }
 
-  Array<SharedPtr<Transformation> > dofs;
-  if      (metric == InverseConsistency) dofs.resize(2);
-  else if (metric == Transitivity)       dofs.resize(3);
-  else                                   dofs.resize(1);
+  if (metric == Barycentricity) {
 
-  if (dofin_name.size() % dofs.size() != 0) {
-    cerr << "Invalid number of input transformations. Require " << dofs.size() << "-tuples for the evaluation!" << endl;
-    exit(1);
-  }
+    Matrix residual(4, 4);
+    AffineTransformation dof;
+    for (auto fname : dofin_name) {
+      dof.Read(fname.c_str());
+      residual += dof.GetMatrix().Log();
+    }
+    residual /= dofin_name.size();
+    cout << residual.Norm() << endl;
 
-  // Read first transformation
-  SharedPtr<Transformation> dof(Transformation::New(dofin_name[0].c_str()));
+  } else {
 
-  // Read target, foreground mask, and/or determine attributes for voxel-wise metrics
-  GreyImage        target;
-  BinaryImage      mask;
-  ImageAttributes  attr;
-  WorldCoordsImage i2w;
+    // Shared pointers for input tuples
+    Array<SharedPtr<Transformation> > dofs;
+    if      (metric == InverseConsistency) dofs.resize(2);
+    else if (metric == Transitivity)       dofs.resize(3);
+    else                                   dofs.resize(1);
 
-  if (mask_name) {
-    InitializeIOLibrary();
-    mask.Read(mask_name);
-    attr = mask.Attributes();
-  }
-  if (target_name) {
-    InitializeIOLibrary();
-    target.Read(target_name);
-    if (!IsInf(padding_value)) target.PutBackgroundValueAsDouble(padding_value, true);
-    attr = target.Attributes();
-  }
-  if (!attr) {
-    FreeFormTransformation3D *ffd = dynamic_cast<FreeFormTransformation3D *>(dof.get());
-    if (!ffd) {
-      cerr << "First input transformation is no 3D FFD. Either -target or -mask image is required!" << endl;
+    if (dofin_name.size() % dofs.size() != 0) {
+      cerr << "Invalid number of input transformations. Require " << dofs.size() << "-tuples for the evaluation!" << endl;
       exit(1);
     }
-    attr = ffd->Attributes();
-  }
 
-  if (!mask.IsEmpty() && !mask.Attributes().EqualInSpace(attr)) {
-    cerr << "Mask and target image must have identical spatial attributs!" << endl;
-    exit(1);
-  }
+    // Read first transformation
+    SharedPtr<Transformation> dof(Transformation::New(dofin_name[0].c_str()));
 
-  // Pre-compute world coordinates of reference voxels
-  {
+    // Read target, foreground mask, and/or determine attributes for voxel-wise metrics
+    GreyImage        target;
+    BinaryImage      mask;
+    ImageAttributes  attr;
+    WorldCoordsImage i2w;
+
+    if (mask_name) {
+      InitializeIOLibrary();
+      mask.Read(mask_name);
+      attr = mask.Attributes();
+    }
+    if (target_name) {
+      InitializeIOLibrary();
+      target.Read(target_name);
+      if (!IsInf(padding_value)) target.PutBackgroundValueAsDouble(padding_value, true);
+      attr = target.Attributes();
+    }
+    if (!attr) {
+      FreeFormTransformation *ffd = dynamic_cast<FreeFormTransformation *>(dof.get());
+      if (!ffd) {
+        cerr << "First input transformation is no 3D FFD. Either -target or -mask image is required!" << endl;
+        exit(1);
+      }
+      attr = ffd->Attributes();
+    }
+    if (!mask.IsEmpty() && !mask.Attributes().EqualInSpace(attr)) {
+      cerr << "Mask and target image must have identical spatial attributs!" << endl;
+      exit(1);
+    }
+
+    // Pre-compute world coordinates of reference voxels
     if (verbose) cout << "Pre-computing world coordinates of input points" << endl;
     i2w.Initialize(attr, 3);
     double *x = i2w.Data(0, 0, 0, 0);
@@ -243,51 +275,52 @@ int main(int argc, char **argv)
       i2w.ImageToWorld(*x, *y, *z);
       ++x, ++y, ++z;
     }
-  }
 
-  // Compute inverse-consistency error for each pair of transformations
-  GenericImage<float> output(attr);
-  const int nvox = output.NumberOfVoxels();
-  int ntuple = 0;
-  int ntotal = static_cast<int>(dofin_name.size() / dofs.size());
+    // Compute inverse-consistency error for each pair of transformations
+    GenericImage<float> output(attr);
+    const int nvox = output.NumberOfVoxels();
+    int ntuple = 0;
+    int ntotal = static_cast<int>(dofin_name.size() / dofs.size());
 
-  size_t i, j;
-  double x2, y2, z2, d;
-  for (i = 0; i < dofin_name.size(); i += dofs.size()) {
-    ++ntuple;
-    if (verbose) {
-      const char *suffix = "th";
-      if      (ntuple == 1) suffix = "st";
-      else if (ntuple == 2) suffix = "nd";
-      else if (ntuple == 3) suffix = "rd";
-      cout << "Performing evaluation of " << ntuple << suffix << " " << dofs.size() << "-tuple" << " out of " << ntotal << endl;
-    }
-    for (j = 0; j < dofs.size(); ++j) {
-      if (i == 0 && j == 0) dofs[j] = dof;
-      else dofs[j].reset(Transformation::New(dofin_name[i + j].c_str()));
-    }
-    const double *x1 = i2w.Data(0, 0, 0, 0);
-    const double *y1 = i2w.Data(0, 0, 0, 1);
-    const double *z1 = i2w.Data(0, 0, 0, 2);
-    float *err = output.Data();
-    for (int n = 0; n < nvox; ++n) {
-      if ((target.IsEmpty() || target.IsForeground(n)) && (mask.IsEmpty() || mask.Get(n))) {
-        x2 = x1[n], y2 = y1[n], z2 = z1[n];
-        for (j = 0; j < dofs.size(); ++j) dofs[j]->Transform(x2, y2, z2);
-        x2 -= x1[n], y2 -= y1[n], z2 -= z1[n];
-        d = x2 * x2 + y2 * y2 + z2 * z2;
-        err[n] += static_cast<float>(squared ? d : sqrt(d));
+    size_t i, j;
+    double x2, y2, z2, d;
+    for (i = 0; i < dofin_name.size(); i += dofs.size()) {
+      ++ntuple;
+      if (verbose) {
+        const char *suffix = "th";
+        if      (ntuple == 1) suffix = "st";
+        else if (ntuple == 2) suffix = "nd";
+        else if (ntuple == 3) suffix = "rd";
+        cout << "Performing evaluation of " << ntuple << suffix << " " << dofs.size() << "-tuple" << " out of " << ntotal << endl;
+      }
+      for (j = 0; j < dofs.size(); ++j) {
+        if (i == 0 && j == 0) dofs[j] = dof;
+        else dofs[j].reset(Transformation::New(dofin_name[i + j].c_str()));
+      }
+      const double *x1 = i2w.Data(0, 0, 0, 0);
+      const double *y1 = i2w.Data(0, 0, 0, 1);
+      const double *z1 = i2w.Data(0, 0, 0, 2);
+      float *err = output.Data();
+      for (int n = 0; n < nvox; ++n) {
+        if ((target.IsEmpty() || target.IsForeground(n)) && (mask.IsEmpty() || mask.Get(n))) {
+          x2 = x1[n], y2 = y1[n], z2 = z1[n];
+          for (j = 0; j < dofs.size(); ++j) dofs[j]->Transform(x2, y2, z2);
+          x2 -= x1[n], y2 -= y1[n], z2 -= z1[n];
+          d = x2 * x2 + y2 * y2 + z2 * z2;
+          err[n] += static_cast<float>(squared ? d : sqrt(d));
+        }
       }
     }
-  }
 
-  // Calculate mean inverse-consistency error
-  if (!cumulative && ntuple > 0) output /= ntuple;
+    // Calculate mean inverse-consistency error
+    if (!cumulative && ntuple > 0) output /= ntuple;
 
-  // Write voxel-wise error map
-  if (output_name) {
-    InitializeIOLibrary();
-    output.Write(output_name);
+    // Write voxel-wise error map
+    if (output_name) {
+      InitializeIOLibrary();
+      output.Write(output_name);
+    }
+
   }
 
   return 0;
