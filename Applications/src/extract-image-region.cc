@@ -67,6 +67,7 @@ void PrintHelp(const char *name)
   cout << "  -ref <image>             Extract region specified by discrete reference image domain." << endl;
   cout << "  -margin <int>            Add fixed-width margin to union of image regions. (default: 0)" << endl;
   cout << "  -scale <float>           Scale resulting region by specified factor. (default: 1)" << endl;
+  cout << "  -crop [<value>]          Crop background with intensity below or equal specified value. (default: 0)" << endl;
   cout << "  -pad [<value>]           Pad output image by the specified value. (default: 0)" << endl;
   PrintStandardOptions(cout);
   cout << endl;
@@ -265,9 +266,24 @@ int main(int argc, char **argv)
       if (HAS_ARGUMENT) zscale = ToScaleFactor(ARGUMENT);
       if (HAS_ARGUMENT) tscale = ToScaleFactor(ARGUMENT);
     }
+    else if (OPTION("-crop")) {
+      double bg = padding_value;
+      if (HAS_ARGUMENT) PARSE_ARGUMENT(bg);
+      auto bbox = in->ForegroundDomain(bg, false);
+      Point p(bbox._xorigin, bbox._yorigin, bbox._zorigin);
+      in->WorldToImage(p);
+      Point p1 = p - Point(bbox._x / 2, bbox._y / 2, bbox._z / 2);
+      Point p2 = p + Point(bbox._x / 2, bbox._y / 2, bbox._z / 2);
+      x1 = MinIndex(x1, ifloor(p1._x));
+      x2 = MaxIndex(x2, iceil (p2._x));
+      y1 = MinIndex(y1, ifloor(p1._y));
+      y2 = MaxIndex(y2, iceil (p2._y));
+      z1 = MinIndex(z1, ifloor(p1._z));
+      z2 = MaxIndex(z2, iceil (p2._z));
+    }
     else if (OPTION("-pad")) {
       pad = true;
-      if (HAS_ARGUMENT) padding_value = atof(ARGUMENT);
+      if (HAS_ARGUMENT) PARSE_ARGUMENT(padding_value);
     }
     else if (OPTION("-nopad")) pad = false;
     else HANDLE_COMMON_OR_UNKNOWN_OPTION();
