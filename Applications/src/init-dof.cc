@@ -78,6 +78,7 @@ void PrintHelp(const char *name)
   cout << endl;
   cout << "Output options:" << endl;
   cout << "  -rigid         Output rigid transformation." << endl;
+  cout << "  -similarity    Output similarity transformation." << endl;
   cout << "  -affine        Output affine transformation." << endl;
   cout << "  -affine-mffd   Output affine transformation as global component of MFFD." << endl;
   cout << "  -mffd          Output multi-level free-form deformation (MFFD)." << endl;
@@ -276,6 +277,7 @@ int main(int argc, char **argv)
   double      sx             = .0;    // Control point spacing in x = voxel size by default
   double      sy             = .0;    // Control point spacing in y = voxel size by default
   double      sz             = .0;    // Control point spacing in z = voxel size by default
+  bool        similarity     = false; // Isotropic scaling
   bool        multilevel     = false; // Create multi-level FFD
   bool        nonrigid       = false; // Create non-rigid transformation
   bool        diffeomorphic  = false; // B-spline FFD or affine transformation by default
@@ -289,6 +291,13 @@ int main(int argc, char **argv)
       dof.AllowTranslations(true);
       dof.AllowRotations(true);
       dof.AllowScaling(false);
+      dof.AllowShearing(false);
+    }
+    else if (OPTION("-similarity")) {
+      similarity = true;
+      dof.AllowTranslations(true);
+      dof.AllowRotations(true);
+      dof.AllowScaling(true);
       dof.AllowShearing(false);
     }
     else if (OPTION("-affine") || OPTION("-affine-mffd")) {
@@ -494,6 +503,9 @@ int main(int argc, char **argv)
     // Reset passive parameters
     AffineTransformation copy(dof);
     dof.CopyFrom(&copy);
+    if (similarity) {
+      dof.PutScale((dof.GetScaleX() + dof.GetScaleY() + dof.GetScaleZ()) / 3.0);
+    }
 
     // Write affine transformation as global transformation of MFFD
     if (multilevel) {
@@ -777,6 +789,10 @@ int main(int argc, char **argv)
       // Minimize mean squared error of approximation
       double rms = dof.ApproximateAsNew(x, y, z, dx, dy, dz, n);
       if (verbose) cout << "RMS error of approximation is " << rms << "\n" << endl;
+
+      if (similarity) {
+        dof.PutScale((dof.GetScaleX() + dof.GetScaleY() + dof.GetScaleZ()) / 3.0);
+      }
 
       // Write transformation
       if (multilevel) {
