@@ -190,7 +190,7 @@ int main(int argc, char **argv)
     else if (OPTION("-cice")) { metric = InverseConsistency; cumulative = true;  }
     else if (OPTION("-mte"))  { metric = Transitivity;       cumulative = false; }
     else if (OPTION("-cte"))  { metric = Transitivity;       cumulative = true;  }
-    else if (OPTION("-barycentric-equation")) metric = Barycentricity;
+    else if (OPTION("-barycentricity")) metric = Barycentricity;
     else HANDLE_COMMON_OR_UNKNOWN_OPTION();
   }
 
