@@ -338,7 +338,7 @@ void MultiLevelStationaryVelocityTransformation
   DOFValue * const grd = reinterpret_cast<DOFValue *>(d.Data());
   svffd->BSplineFreeFormTransformation3D::ParametricGradient(in, grd, i2w, wc, .0, 1.0);
   // Convert displacement gradient to velocity update
-  svffd->EvaluateBCHFormula(svffd->NumberOfBCHTerms(), d, tau, v, d, true);
+  svffd->EvaluateBCHFormula(svffd->NumberOfBCHTerms(), d, tau, v, 1., d, true);
   // Adjust weight as update field is computed for tau * v, i.e.,
   //   exp(tau * v_{i+1}) = exp(tau v_i) o exp(\delta u)
   //   ==> v_{i+1} = log(exp(tau * v_{i+1})) / tau
