@@ -373,7 +373,7 @@ void BSplineFreeFormTransformationSV
         ParallelForEachVoxel(SVFFDEvaluateLieBracket(this, tau, v, l1), lattice, l2);
         ConvertToCubicBSplineCoefficients(l2);
         if (nterms >= 5) {
-          // - [[v, w], w]
+          // - [w, [w, v]] = [[v, w], w]
           l3.Initialize(lattice, 3);
           ParallelForEachVoxel(SVFFDEvaluateLieBracket(this, l1, w), lattice, l3);
           ConvertToCubicBSplineCoefficients(l3);
@@ -627,29 +627,18 @@ double BSplineFreeFormTransformationSV
     return 0.;
   }
 
-  double error = numeric_limits<double>::infinity();
-  if (niter < 1) return error;
-
-  for (int iter = 0; iter < niter && error > max_error; ++iter) {
-
+  double error = inf;
+  if (niter >= 0) {
     // Compute velocities at control points using log map of affine matrix
     if (lin) {
       EvaluateGlobalSVFFD logA(logm(lin->GetMatrix()), &_CPImage);
       ParallelForEachVoxel(_CPImage.Attributes(), &_CPImage, logA);
     // Evaluate velocities of other SV FFD at control points of this SV FFD
     } else {
-      Vector *v = _CPImage.GetPointerToVoxels();
-      for (int k = 0; k < _z; ++k)
-      for (int j = 0; j < _y; ++j)
-      for (int i = 0; i < _x; ++i, ++v) {
-        v->_x = i, v->_y = j, v->_z = k;
-        svffd->Evaluate(v->_x, v->_y, v->_z);
-      }
+      ParallelForEachVoxel(EvaluateBSplineSVFFD(svffd, &_CPImage), _attr, _CPImage);
     }
-
     // Convert velocities to B-spline coefficients
     ConvertToSplineCoefficients(3, _CPImage);
-
     // Evaluate approximation error
     error = EvaluateRMSError(domain, dof);
   }
@@ -861,6 +850,64 @@ void BSplineFreeFormTransformationSV
 }
 
 // -----------------------------------------------------------------------------
+void BSplineFreeFormTransformationSV
+::InterpolateVelocities(const double *vx, const double *vy, const double *vz)
+{
+  BSplineFreeFormTransformation3D::Interpolate(vx, vy, vz);
+}
+
+// -----------------------------------------------------------------------------
+double BSplineFreeFormTransformationSV
+::ApproximateVelocitiesAsNew(GenericImage<double> &v)
+{
+  double error = 0.;
+
+  auto * const vx = v.Data(0, 0, 0, 0);
+  auto * const vy = v.Data(0, 0, 0, 1);
+  auto * const vz = v.Data(0, 0, 0, 2);
+
+  if (_attr.EqualInSpace(v.Attributes())) {
+
+    BSplineFreeFormTransformation3D::Interpolate(vx, vy, vz);
+
+  } else {
+
+    // Compute world coordinates of lattice points
+    const int no = v.NumberOfSpatialVoxels();
+    double *x = Allocate<double>(no);
+    double *y = Allocate<double>(no);
+    double *z = Allocate<double>(no);
+    double *t = Allocate<double>(no);
+    v.Attributes().LatticeToWorld(x, y, z, t);
+
+    // Approximate velocities
+    BSplineFreeFormTransformation3D::ApproximateDOFs(x, y, z, t, vx, vy, vz, no);
+
+    // Evaluate error of approximation
+    GenericImage<double> u(v.Attributes(), 3);
+    this->Velocity(u);
+    for (int k = 0; k < v.Z(); ++k)
+    for (int j = 0; j < v.Y(); ++j)
+    for (int i = 0; i < v.X(); ++i) {
+      const int idx = v.VoxelToIndex(i, j, k);
+      vx[idx] -= u(i, j, k, 0);
+      vy[idx] -= u(i, j, k, 1);
+      vz[idx] -= u(i, j, k, 2);
+      error += pow(vx[idx], 2) + pow(vy[idx], 2) + pow(vz[idx], 2);
+    }
+    error = sqrt(error / no);
+
+    // Free memory
+    Deallocate(x);
+    Deallocate(y);
+    Deallocate(z);
+    Deallocate(t);
+  }
+
+  return error;
+}
+
+// -----------------------------------------------------------------------------
 void BSplineFreeFormTransformationSV::CombineWith(const Transformation *dof)
 {
   // Convert transformation into SV FFD
@@ -874,7 +921,7 @@ void BSplineFreeFormTransformationSV::CombineWith(const Transformation *dof)
     svffd = tmp;
   }
   // Compute coefficients of composite SV FFD using BCH formula
-  EvaluateBCHFormula(4, _CPImage, _CPImage, svffd->_CPImage);
+  EvaluateBCHFormula(_NumberOfBCHTerms, _CPImage, _CPImage, svffd->_CPImage);
   // Delete temporary SV FFD
   if (svffd != dof) delete svffd;
 }

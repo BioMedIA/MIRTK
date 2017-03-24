@@ -179,6 +179,16 @@ public:
   /// resulting transformation interpolates these displacements.
   virtual void Interpolate(const double *, const double *, const double *);
 
+  /// Interpolates velocities: This function takes a set of velocites defined at
+  /// the control points and interpolates these velocities.
+  virtual void InterpolateVelocities(const double *, const double *, const double *);
+
+  /// Approximate velocities: This function takes a velocity field and initializes
+  /// the cubic B-spline coefficients of this transformation such that the spline
+  /// function approximates the given velocity field. Returns the approximation error
+  /// of the velocity spline function.
+  virtual double ApproximateVelocitiesAsNew(GenericImage<double> &);
+
   /// Combine transformations: This function takes a transformation and finds
   /// a stationary velocity field which, when exponentiated, approximates the
   /// composition of this and the given transformation.
@@ -323,6 +333,12 @@ public:
 
   /// Transforms a single point using the inverse of the local transformation only
   virtual bool LocalInverse(double &, double &, double &, double = 0, double = -1) const;
+
+  /// Get stationary velocity field
+  void Velocity(GenericImage<float> &) const;
+
+  /// Get stationary velocity field
+  void Velocity(GenericImage<double> &) const;
 
   /// Calculates the displacement vectors for a whole image domain
   ///
@@ -599,7 +615,7 @@ public:
     out[_y] = static_cast<T>(y);
     out[_z] = static_cast<T>(z);
   }
-  
+
 private:
   const BSplineFreeFormTransformationSV *_Input;  ///< Input transformation
   BaseImage                             *_Output; ///< Output image
@@ -713,6 +729,26 @@ inline void BSplineFreeFormTransformationSV
 {
   if (_z == 1) EvaluateJacobianDOFs(jac, x, y);
   else         EvaluateJacobianDOFs(jac, x, y, z);
+}
+
+// -----------------------------------------------------------------------------
+inline void BSplineFreeFormTransformationSV::Velocity(GenericImage<float> &v) const
+{
+  if (v.T() != 3) {
+    Throw(ERR_InvalidArgument, __FUNCTION__, "Output image must have 3 channels!");
+  }
+  v.PutTSize(0.);
+  ParallelForEachVoxel(EvaluateBSplineSVFFD3D(this, &v), v.Attributes(), v);
+}
+
+// -----------------------------------------------------------------------------
+inline void BSplineFreeFormTransformationSV::Velocity(GenericImage<double> &v) const
+{
+  if (v.T() != 3) {
+    Throw(ERR_InvalidArgument, __FUNCTION__, "Output image must have 3 channels!");
+  }
+  v.PutTSize(0.);
+  ParallelForEachVoxel(EvaluateBSplineSVFFD3D(this, &v), v.Attributes(), v);
 }
 
 // =============================================================================
