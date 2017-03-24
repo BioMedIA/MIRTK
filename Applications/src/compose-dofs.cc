@@ -1,9 +1,9 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2008-2015 Imperial College London
+ * Copyright 2008-2017 Imperial College London
  * Copyright 2008-2013 Daniel Rueckert, Julia Schnabel
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2013-2017 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -189,17 +189,57 @@ int main(int argc, char **argv)
 
   ImageAttributes attr;
   FluidFreeFormTransformation t;
-  bool translation = true;
-  bool rotation    = true;
-  bool scaling     = true;
-  bool shearing    = true;
-  bool approximate = false;
+  bool translation    = true;
+  bool rotation       = true;
+  bool scaling        = true;
+  bool shearing       = true;
+  bool approximate    = false;
+  int  no_bch_terms   = -1;
+  bool lie_derivative = true;
+  double dx = 0., dy = 0., dz = 0.;
 
   for (ALL_OPTIONS) {
     if (OPTION("-target")) {
       InitializeIOLibrary();
       GreyImage target(ARGUMENT);
       attr = target.Attributes();
+    }
+    else if (OPTION("-bch")) {
+      approximate = true;
+      no_bch_terms = 4;
+      if (HAS_ARGUMENT) {
+        PARSE_ARGUMENT(no_bch_terms);
+        if (HAS_ARGUMENT) PARSE_ARGUMENT(lie_derivative);
+      }
+    }
+    else if (OPTION("-nobch")) {
+      no_bch_terms = 0;
+    }
+    else if (OPTION("-rigid")) {
+      bool bval = true;
+      if (HAS_ARGUMENT) PARSE_ARGUMENT(bval);
+      rotation = translation = bval;
+    }
+    else if (OPTION("-norigid")) {
+      rotation = translation = false;
+    }
+    else if (OPTION("-affine") || OPTION("-global")) {
+      bool bval = true;
+      if (HAS_ARGUMENT) PARSE_ARGUMENT(bval);
+      rotation = translation = scaling = shearing = bval;
+    }
+    else if (OPTION("-noaffine") || OPTION("-noglobal")) {
+      rotation = translation = scaling = shearing = false;
+    }
+    else if (OPTION("-spacing")) {
+      PARSE_ARGUMENT(dx);
+      if (HAS_ARGUMENT) {
+        PARSE_ARGUMENT(dy);
+        if (HAS_ARGUMENT) PARSE_ARGUMENT(dz);
+        else dz = 0.;
+      } else {
+        dy = dz = dx;
+      }
     }
     else HANDLE_BOOL_OPTION(translation);
     else HANDLE_BOOL_OPTION(rotation);
@@ -277,35 +317,100 @@ int main(int argc, char **argv)
     }
   }
   if (verbose) {
-    cout << "Compose remaining transformations... done" << endl;
+    cout << "Compose remaining transformations... done\n" << endl;
   }
 
   // Approximate the composed transformation using a single free-form deformation
-  if (approximate && (t.NumberOfLevels() > 0)) {
-    if (verbose) {
-      cout << "Approximate the composed transformation using a single FFD..." << endl;
-    }
+  if (approximate && t.NumberOfLevels() > 1) {
+    double rms_error;
 
     // Use the most dense control point lattice in the local transformation stack
-    ImageAttributes ffd_attr;
-    for (int i = 0; i < t.NumberOfLevels(); ++i) {
-      const auto &attr = t.GetLocalTransformation(i)->Attributes();
-      if (attr.NumberOfLatticePoints() > ffd_attr.NumberOfLatticePoints()) {
-        ffd_attr = attr;
+    ImageAttributes domain = attr;
+    if (!domain) {
+      for (int i = 0; i < t.NumberOfLevels(); ++i) {
+        const auto &ffd_attr = t.GetLocalTransformation(i)->Attributes();
+        if (ffd_attr.NumberOfLatticePoints() > domain.NumberOfLatticePoints()) {
+          domain = ffd_attr;
+        }
       }
     }
+    domain._t  = 1;
+    domain._dt = 0.;
 
-    // Approximate
-    typedef BSplineFreeFormTransformation3D OutputType;
-    UniquePtr<OutputType> ffd(new OutputType(ffd_attr));
-    double rms_error = ffd->ApproximateAsNew(&t);
-    if (verbose) {
-      cout << "  RMS error = " << rms_error << endl;
+    // Reset global transformation
+    const auto global = t.GetGlobalTransformation()->GetMatrix();
+    t.GetGlobalTransformation()->Reset();
+
+    // Determine if only SV FFDs are being composed and use BCH formula (if not -nobch option given)
+    bool common_type_is_svffd = true;
+    for (int i = 0; i < t.NumberOfLevels(); ++i) {
+      if (t.GetLocalTransformation(i)->TypeOfClass() != TRANSFORMATION_BSPLINE_FFD_SV) {
+        common_type_is_svffd = false;
+        break;
+      }
+    }
+    if (common_type_is_svffd && no_bch_terms < 0) {
+      no_bch_terms = 4;
+    } else if (!common_type_is_svffd && no_bch_terms > 0) {
+      FatalError("Cannot use Baker-Campbell-Hausdorff (BCH) formula for non-SV FFD transformations");
     }
 
-    // Set the output transformation
+    // Approximate composite transformation by single (SV) FFD
+    UniquePtr<FreeFormTransformation3D> ffd;
+
+    if (no_bch_terms > 0) {
+
+      if (verbose) {
+        cout << "Approximate composed SV FFD using Baker-Campbell-Hausdorff (BCH) formula...";
+        cout.flush();
+      }
+      UniquePtr<BSplineFreeFormTransformationSV> svffd;
+      auto * const first = dynamic_cast<const BSplineFreeFormTransformationSV *>(t.GetLocalTransformation(0));
+      if (attr) {
+        svffd.reset(new BSplineFreeFormTransformationSV());
+        svffd->Initialize(domain, dx, dy, dz, first);
+      } else {
+        svffd.reset(new BSplineFreeFormTransformationSV(*first));
+      }
+      svffd->NumberOfBCHTerms(no_bch_terms);
+      svffd->LieDerivative(lie_derivative);
+      for (int i = 1; i < t.NumberOfLevels(); ++i) {
+        svffd->CombineWith(t.GetLocalTransformation(i));
+      }
+      rms_error = svffd->EvaluateRMSError(domain, &t);
+      ffd.reset(svffd.release());
+
+    } else {
+
+      if (verbose) {
+        cout << "Approximate composed transformation using a single FFD...";
+        cout.flush();
+      }
+      ffd.reset(new BSplineFreeFormTransformation3D(domain, dx, dy, dz));
+      rms_error = ffd->ApproximateAsNew(domain, &t);
+
+    }
+
+    // Set new composite global and local transformations
     t.Clear();
-    t.PushLocalTransformation(ffd.release());    
+    t.GetGlobalTransformation()->PutMatrix(global);
+    t.PushLocalTransformation(ffd.release());
+
+    // Report approximation error
+    if (verbose) {
+      cout << " done";
+      if (verbose > 1) {
+        cout << ": RMSE = " << rms_error;
+      }
+      cout << endl;
+    }
+  }
+
+  // Merge global and (first) local transformation
+  if (t.NumberOfLevels() > 0 && !translation && !rotation && !scaling && !shearing) {
+    if (verbose) cout << "Merging global into first local transformation...";
+    t.MergeGlobalIntoLocalDisplacement();
+    if (verbose) cout << " done" << endl;
   }
 
   // Write composite transformation
@@ -334,8 +439,11 @@ int main(int argc, char **argv)
     }
     aff.Write(output_name);
     if (verbose) aff.Print(2);
+  } else if (t.NumberOfLevels() == 1 && !translation && !rotation && !scaling && !shearing) {
+    t.GetLocalTransformation(0)->Write(output_name);
+    if (verbose > 2) t.GetLocalTransformation(0)->Print(2);
   } else {
     t.Write(output_name);
-    if (verbose) t.Print(2);
+    if (verbose > 2) t.Print(2);
   }
 }
