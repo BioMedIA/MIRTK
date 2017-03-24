@@ -110,7 +110,8 @@ def _call(argv, verbose=0, execfunc=subprocess.call):
         for arg in argv:
             if ' ' in arg: arg = '"' + arg + '"'
             args.append(arg)
-        print(' '.join(args))
+        print('> ' + ' '.join(args) + '\n')
+    sys.stdout.flush()
     return execfunc(argv)
 
 # ----------------------------------------------------------------------------
