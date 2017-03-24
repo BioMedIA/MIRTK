@@ -106,6 +106,11 @@ enum EnergyMeasure
     EM_MinDetJac,               ///< Constrain minimum Jacobian determinant
 
   CM_End,
+
+  // ---------------------------------------------------------------------------
+  // Others
+  EM_MeanSquaredDisplacementError,  ///< Mean squared deviation from given deformation
+
   // ---------------------------------------------------------------------------
   // Add new enumeration values above
   EM_Last ///< Number of enumeration values + 1
@@ -175,6 +180,10 @@ inline string ToString(const EnergyMeasure &value, int w, char c, bool left)
     case EM_L2Norm:               str = "L2"; break;
     case EM_SqLogDetJac:          str = "SqLogDetJac"; break;
     case EM_MinDetJac:            str = "MinDetJac"; break;
+
+    // -------------------------------------------------------------------------
+    // Others
+    case EM_MeanSquaredDisplacementError: str = "MSDE"; break;
 
     // ---------------------------------------------------------------------------
     // Unknown/invalid enumeration value
@@ -246,6 +255,10 @@ inline string ToPrettyString(const EnergyMeasure &value, int w = 0, char c = ' '
     case EM_L2Norm:               str = "l2 norm"; break;
     case EM_SqLogDetJac:          str = "Squared logarithm of Jacobian determinant"; break;
     case EM_MinDetJac:            str = "Minimum Jacobian determinant"; break;
+
+    // -------------------------------------------------------------------------
+    // Others
+    case EM_MeanSquaredDisplacementError: str = "Mean squared displacement error"; break;
 
     // ---------------------------------------------------------------------------
     // Unknown/invalid enumeration value

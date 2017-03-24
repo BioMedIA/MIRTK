@@ -660,7 +660,8 @@ double FreeFormTransformation::ApproximateAsNew(const Transformation *t, int nit
 double FreeFormTransformation
 ::ApproximateAsNew(const ImageAttributes &domain, double *dx, double *dy, double *dz, int niter, double max_error)
 {
-  if ((_dt && domain == _attr) || (!_dt && domain.EqualInSpace(_attr))) {
+  bool ignore_time = (AreEqual(domain._dt, 0.) || domain._t == 1) && (AreEqual(_dt, 0.) || _t == 1);
+  if ((!ignore_time && domain == _attr) || (ignore_time && domain.EqualInSpace(_attr))) {
     this->Interpolate(dx, dy, dz);
     return .0; // No approximation error at lattice/control points
   }
