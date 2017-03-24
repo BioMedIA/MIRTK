@@ -37,24 +37,46 @@ using namespace mirtk;
 // Print help screen
 void PrintHelp(const char *name)
 {
-  cout << endl;
-  cout << "Usage: " << name << " <T1> <T2>... <T> [-target <image>]" << endl;
-  cout << endl;
-  cout << "Description:" << endl;
-  cout << "  Computes the composition T of the given input transformations such that" << endl;
-  cout << endl;
-  cout << "  .. math::" << endl;
-  cout << endl;
-  cout << "     T(x) = Tn o ... o T2 o T1(x)" << endl;
-  cout << endl;
-  cout << "Optional arguments:" << endl;
-  cout << "  -target <image>    Target image on which images will be resampled using" << endl;
-  cout << "                     the composed transformation." << endl;
-  cout << "  -[no]rotation      Whether to allow rotation    when composite transformation is affine. (default: on)" << endl;
-  cout << "  -[no]translation   Whether to allow translation when composite transformation is affine. (default: on)" << endl;
-  cout << "  -[no]scaling       Whether to allow scaling     when composite transformation is affine. (default: on)" << endl;
-  cout << "  -[no]shearing      Whether to allow shearing    when composite transformation is affine. (default: on)" << endl;
-  cout << "  -approximate       Approximate the composed transformation using a single FFD. (default: off)" << endl;
+  cout << "\n";
+  cout << "Usage: " << name << " <T1> <T2>... <T> [-target <image>]\n";
+  cout << "\n";
+  cout << "Description:\n";
+  cout << "  Computes the composition T of the given input transformations such that\n";
+  cout << "\n";
+  cout << "  .. math::\n";
+  cout << "\n";
+  cout << "     T(x) = Tn o ... o T2 o T1(x)\n";
+  cout << "\n";
+  cout << "Optional arguments:\n";
+  cout << "  -target <image>\n";
+  cout << "      Target image on which images will be resampled using the composed transformation.\n";
+  cout << "      The finite grid of the target image is used to determine an appropriate domain\n";
+  cout << "      on which to approximate the displacement field of the composite transformation\n";
+  cout << "      when :option:`-approximate` is given.\n";
+  cout << "  -[no]rotation\n";
+  cout << "      Whether to allow rotation    when composite transformation is affine. (default: on)\n";
+  cout << "  -[no]translation\n";
+  cout << "      Whether to allow translation when composite transformation is affine. (default: on)\n";
+  cout << "  -[no]scaling\n";
+  cout << "      Whether to allow scaling when composite transformation is affine. (default: on)\n";
+  cout << "  -[no]shearing\n";
+  cout << "      Whether to allow shearing when composite transformation is affine. (default: on)\n";
+  cout << "  -approximate\n";
+  cout << "      Approximate the composed transformation using a single FFD. (default: off)\n";
+  cout << "  -bch [<n> [yes|no [e1...]]]\n";
+  cout << "      Use Baker-Campbell-Hausdorff (BCH) formula to approximate composition of SV FFDs.\n";
+  cout << "      All input transformations must be of type cubic B-spline SV FFD. Arguments\n";
+  cout << "      are optional. The first argument is the number of BCH terms to use. The minimum\n";
+  cout << "      is 2 terms, i.e., the sum of left and right velocity fields. The second argument\n";
+  cout << "      is a boolean flag indicating whether or not the Lie brackets should be computed\n";
+  cout << "      using the Jacobian of the vector fields (yes) or if it should be approximated\n";
+  cout << "      as the difference of the compositions in either order. The remaining optional\n";
+  cout << "      arguments are scaling factors of each stationary input velocity field in the\n";
+  cout << "      same order as the SV FFDs are given as positional arguments. When omitted, the\n";
+  cout << "      \"Cross-sectional time interval\" of the SV FFD is used.\n";
+  cout << "  -nobch\n";
+  cout << "      Do not use BCH formula to compose SV FFDs. Instead, evaluate composite displacements\n";
+  cout << "      and approximate these even when all input transformations are of type SV FFD.\n";
   PrintStandardOptions(cout);
   cout << endl;
 }
@@ -196,6 +218,7 @@ int main(int argc, char **argv)
   bool approximate    = false;
   int  no_bch_terms   = -1;
   bool lie_derivative = true;
+  Array<double> svffd_exponent;
   double dx = 0., dy = 0., dz = 0.;
 
   for (ALL_OPTIONS) {
@@ -209,7 +232,17 @@ int main(int argc, char **argv)
       no_bch_terms = 4;
       if (HAS_ARGUMENT) {
         PARSE_ARGUMENT(no_bch_terms);
-        if (HAS_ARGUMENT) PARSE_ARGUMENT(lie_derivative);
+        if (HAS_ARGUMENT) {
+          PARSE_ARGUMENT(lie_derivative);
+          while (HAS_ARGUMENT) {
+            double e;
+            PARSE_ARGUMENT(e);
+            svffd_exponent.push_back(e);
+            if (svffd_exponent.size() > static_cast<size_t>(N)) {
+              FatalError("Too many time interval arguments for option -bch!");
+            }
+          }
+        }
       }
     }
     else if (OPTION("-nobch")) {
@@ -365,7 +398,7 @@ int main(int argc, char **argv)
         cout.flush();
       }
       UniquePtr<BSplineFreeFormTransformationSV> svffd;
-      auto * const first = dynamic_cast<const BSplineFreeFormTransformationSV *>(t.GetLocalTransformation(0));
+      auto *first = dynamic_cast<BSplineFreeFormTransformationSV *>(t.GetLocalTransformation(0));
       if (attr) {
         svffd.reset(new BSplineFreeFormTransformationSV());
         svffd->Initialize(domain, dx, dy, dz, first);
@@ -374,9 +407,23 @@ int main(int argc, char **argv)
       }
       svffd->NumberOfBCHTerms(no_bch_terms);
       svffd->LieDerivative(lie_derivative);
-      for (int i = 1; i < t.NumberOfLevels(); ++i) {
-        svffd->CombineWith(t.GetLocalTransformation(i));
+      const double original_interval = svffd->T();
+      if (!svffd_exponent.empty()) {
+        svffd->T(svffd->T() * svffd_exponent[0]);
       }
+      svffd->ScaleVelocities(1. / svffd->T());
+      svffd->T(1.);
+      for (int i = 1; i < t.NumberOfLevels(); ++i) {
+        auto *next = dynamic_cast<BSplineFreeFormTransformationSV *>(t.GetLocalTransformation(i));
+        const double original_interval = next->T();
+        if (static_cast<size_t>(i) < svffd_exponent.size()) {
+          next->T(next->T() * svffd_exponent[i]);
+        }
+        svffd->CombineWith(next);
+        next->T(original_interval);
+      }
+      svffd->ScaleVelocities(1. / original_interval);
+      svffd->T(original_interval);
       rms_error = svffd->EvaluateRMSError(domain, &t);
       ffd.reset(svffd.release());
 
