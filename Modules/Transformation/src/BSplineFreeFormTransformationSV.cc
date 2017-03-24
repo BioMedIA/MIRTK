@@ -222,6 +222,7 @@ private:
   const BSplineFreeFormTransformationSV *_FFD;
 
   double                      _tau; ///< Scaling of left/first vector field
+  double                      _eta; ///< Scaling of right/second vector field
   const GenericImage<Vector> &_v;   ///< Left/First vector field
   const GenericImage<Vector> &_w;   ///< Right/Second vector field
 
@@ -233,7 +234,7 @@ public:
                           const GenericImage<Vector>            &v,
                           const GenericImage<Vector>            &w)
   :
-    _FFD(ffd), _tau(1.0), _v(v), _w(w)
+    _FFD(ffd), _tau(1.0), _eta(1.0), _v(v), _w(w)
   {}
 
   // ---------------------------------------------------------------------------
@@ -241,9 +242,10 @@ public:
   SVFFDEvaluateLieBracket(const BSplineFreeFormTransformationSV *ffd,
                           double                                 tau,
                           const GenericImage<Vector>            &v,
+                          double                                 eta,
                           const GenericImage<Vector>            &w)
   :
-    _FFD(ffd), _tau(tau), _v(v), _w(w)
+    _FFD(ffd), _tau(tau), _eta(eta), _v(v), _w(w)
   {}
 
   // ---------------------------------------------------------------------------
@@ -341,19 +343,22 @@ public:
     Matrix jac(3, 3);
     Vector     vel;
     // u = J_w * v
-    Jacobian(jac,  1.0, _w, i, j, k);
+    Jacobian(jac, _eta, _w, i, j, k);
     Evaluate(vel, _tau, _v, i, j, k);
     *u  = MatrixProduct(jac, vel);
     // u = J_w * v - J_v * w
     Jacobian(jac, _tau, _v, i, j, k);
-    Evaluate(vel,  1.0, _w, i, j, k);
+    Evaluate(vel, _eta, _w, i, j, k);
     *u -= MatrixProduct(jac, vel);
   }
 };
 
 // -----------------------------------------------------------------------------
 void BSplineFreeFormTransformationSV
-::EvaluateBCHFormula(int nterms, CPImage &u, double tau, const CPImage &v, const CPImage &w, bool minus_v) const
+::EvaluateBCHFormula(int nterms, CPImage &u,
+                     double tau, const CPImage &v,
+                     double eta, const CPImage &w,
+                     bool minus_v) const
 {
   MIRTK_START_TIMING();
   GenericImage<Vector> l1, l2, l3, l4;
@@ -365,22 +370,22 @@ void BSplineFreeFormTransformationSV
     if (nterms >= 3) {
       // - [v, w]
       l1.Initialize(lattice, 3);
-      ParallelForEachVoxel(SVFFDEvaluateLieBracket(this, tau, v, w), lattice, l1);
+      ParallelForEachVoxel(SVFFDEvaluateLieBracket(this, tau, v, eta, w), lattice, l1);
       ConvertToCubicBSplineCoefficients(l1);
       if (nterms >= 4) {
         // - [v, [v, w]]
         l2.Initialize(lattice, 3);
-        ParallelForEachVoxel(SVFFDEvaluateLieBracket(this, tau, v, l1), lattice, l2);
+        ParallelForEachVoxel(SVFFDEvaluateLieBracket(this, tau, v, 1., l1), lattice, l2);
         ConvertToCubicBSplineCoefficients(l2);
         if (nterms >= 5) {
           // - [w, [w, v]] = [[v, w], w]
           l3.Initialize(lattice, 3);
-          ParallelForEachVoxel(SVFFDEvaluateLieBracket(this, l1, w), lattice, l3);
+          ParallelForEachVoxel(SVFFDEvaluateLieBracket(this, 1., l1, eta, w), lattice, l3);
           ConvertToCubicBSplineCoefficients(l3);
           if (nterms >= 6) {
             // - [[v, [v, w]], w]
             l4.Initialize(lattice, 3);
-            ParallelForEachVoxel(SVFFDEvaluateLieBracket(this, l2, w), lattice, l4);
+            ParallelForEachVoxel(SVFFDEvaluateLieBracket(this, 1., l2, eta, w), lattice, l4);
             ConvertToCubicBSplineCoefficients(l4);
             // - [[w, [v, w]], v] == [[v, [v, w]], w]
           }
@@ -395,33 +400,29 @@ void BSplineFreeFormTransformationSV
       lb.Extrapolation(Extrapolation_NN);
       lb.ComputeInterpolationCoefficients(false);
       // - [v, w]
-      lb.Input  (0, &v);
-      lb.Input  (1, &w);
-      lb.Output (&l1);
-      lb.Scaling(0, tau);
+      lb.Input(0, &v), lb.Scaling(0, tau);
+      lb.Input(1, &w), lb.Scaling(1, eta);
+      lb.Output(&l1);
       lb.Run();
-      lb.Scaling(0, 1.0);
       ConvertToCubicBSplineCoefficients(l1);
       if (nterms >= 4) {
         // - [v, [v, w]]
-        lb.Input  (0, &v);
-        lb.Input  (1, &l1);
-        lb.Output (&l2);
-        lb.Scaling(0, tau);
+        lb.Input(0, &v ), lb.Scaling(0, tau);
+        lb.Input(1, &l1), lb.Scaling(1, 1.0);
+        lb.Output(&l2);
         lb.Run();
-        lb.Scaling(0, 1.0);
         ConvertToCubicBSplineCoefficients(l2);
         if (nterms >= 5) {
           // - [[v, w], w]
-          lb.Input (0, &l1);
-          lb.Input (1, &w);
-          lb.Output(&l3);
+          lb.Input(0, &l1), lb.Scaling(0, 1.0);
+          lb.Input(1, &w ), lb.Scaling(1, eta);
           lb.Run();
+          lb.Output(&l3);
           ConvertToCubicBSplineCoefficients(l3);
           if (nterms >= 6) {
             // - [[v, [v, w]], w]
-            lb.Input (0, &l2);
-            lb.Input (1, &w);
+            lb.Input(0, &l2), lb.Scaling(0, 1.0);
+            lb.Input(1, &w ), lb.Scaling(1, eta);
             lb.Output(&l4);
             lb.Run();
             ConvertToCubicBSplineCoefficients(l4);
@@ -433,8 +434,8 @@ void BSplineFreeFormTransformationSV
   }
 
   // Evaluate BCH formula given all pre-computed terms and their respective weights
-  const double weight1[] = {0.0, 1.0, 1.0/2.0, 1.0/12.0, 1.0/12.0, 1.0/48.0, 1.0/48.0};
-  const double weight2[] = {1.0, 1.0, 1.0/2.0, 1.0/12.0, 1.0/12.0, 1.0/48.0, 1.0/48.0};
+  const double weight1[] = {0.0, eta, 1.0/2.0, 1.0/12.0, 1.0/12.0, 1.0/48.0, 1.0/48.0};
+  const double weight2[] = {tau, eta, 1.0/2.0, 1.0/12.0, 1.0/12.0, 1.0/48.0, 1.0/48.0};
 
   NaryVoxelFunction::VoxelWiseWeightedSum bch;
   if (minus_v) bch._Weight = weight1;
@@ -453,13 +454,6 @@ void BSplineFreeFormTransformationSV
       exit(1);
   };
   MIRTK_DEBUG_TIMING(3, "evaluation of BCH formula");
-}
-
-// -----------------------------------------------------------------------------
-void BSplineFreeFormTransformationSV
-::EvaluateBCHFormula(int nterms, CPImage &u, const CPImage &v, const CPImage &w, bool minus_v) const
-{
-  EvaluateBCHFormula(nterms, u, 1.0, v, w, minus_v);
 }
 
 // =============================================================================
@@ -921,15 +915,28 @@ void BSplineFreeFormTransformationSV::CombineWith(const Transformation *dof)
     svffd = tmp;
   }
   // Compute coefficients of composite SV FFD using BCH formula
-  EvaluateBCHFormula(_NumberOfBCHTerms, _CPImage, _CPImage, svffd->_CPImage);
+  this->CombineWith(svffd);
   // Delete temporary SV FFD
   if (svffd != dof) delete svffd;
 }
 
 // -----------------------------------------------------------------------------
+void BSplineFreeFormTransformationSV::CombineWith(const BSplineFreeFormTransformationSV *svffd)
+{
+  EvaluateBCHFormula(_NumberOfBCHTerms, _CPImage, _T, _CPImage, svffd->T(), svffd->_CPImage);
+  if (_T < 0.) this->Invert();
+}
+
+// -----------------------------------------------------------------------------
+void BSplineFreeFormTransformationSV::ScaleVelocities(double e)
+{
+  _CPImage *= e;
+}
+
+// -----------------------------------------------------------------------------
 void BSplineFreeFormTransformationSV::Invert()
 {
-  _CPImage *= -1.0;
+  this->ScaleVelocities(-1.);
 }
 
 // =============================================================================
@@ -1557,7 +1564,7 @@ void BSplineFreeFormTransformationSV
     if (vin != in) delete vin;
     // Approximate velocity spline coefficients of composite transformation
     // using Baker-Campbell-Hausdorff (BCH) formula and subtract current coefficients
-    EvaluateBCHFormula(_NumberOfBCHTerms, u, T, _CPImage, u, true);
+    EvaluateBCHFormula(_NumberOfBCHTerms, u, T, _CPImage, 1., u, true);
     // Adjust weight as update field is computed for tau * v, i.e.,
     //   exp(tau * v_{i+1}) = exp(tau v_i) o exp(\delta u)
     //   ==> v_{i+1} = log(exp(tau * v_{i+1})) / tau

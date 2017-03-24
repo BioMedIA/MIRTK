@@ -194,6 +194,11 @@ public:
   /// composition of this and the given transformation.
   virtual void CombineWith(const Transformation *);
 
+  /// Combine transformations: This function takes a transformation and finds
+  /// a stationary velocity field which, when exponentiated, approximates the
+  /// composition of this and the given transformation.
+  virtual void CombineWith(const BSplineFreeFormTransformationSV *);
+
   /// Invert this transformation
   virtual void Invert();
 
@@ -261,6 +266,11 @@ protected:
   double StepLengthForIntervalLength(double) const;
 
 public:
+
+  /// Scale velocities
+  ///
+  /// Alternatively, change integration inveral _T.
+  void ScaleVelocities(double);
 
   /// Upper integration limit used given the temporal origin of both target
   /// and source images. If both images have the same temporal origin, the value
@@ -413,15 +423,10 @@ public:
 
 protected:
 
-  /// Evaluates the BCH formula s.t. u = log(exp(tau * v) o exp(w))
+  /// Evaluates the BCH formula s.t. u = log(exp(tau * v) o exp(eta * w))
   /// \sa Bossa, M., Hernandez, M., & Olmos, S. Contributions to 3D diffeomorphic
   ///     atlas estimation: application to brain images. MICCAI 2007, 10(Pt 1), 667–74.
-  void EvaluateBCHFormula(int, CPImage &, double, const CPImage &, const CPImage &, bool = false) const;
-
-  /// Evaluates the BCH formula s.t. u = log(exp(v) o exp(w))
-  /// \sa Bossa, M., Hernandez, M., & Olmos, S. Contributions to 3D diffeomorphic
-  ///     atlas estimation: application to brain images. MICCAI 2007, 10(Pt 1), 667–74.
-  void EvaluateBCHFormula(int, CPImage &, const CPImage &, const CPImage &, bool = false) const;
+  void EvaluateBCHFormula(int, CPImage &, double, const CPImage &, double, const CPImage &, bool = false) const;
 
   /// Applies the chain rule to convert spatial non-parametric gradient
   /// to a gradient w.r.t the parameters of this transformation given the
