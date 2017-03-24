@@ -48,11 +48,11 @@ void PrintHelp(const char* name)
   cout << "\n";
 #ifdef HAVE_MIRTK_Transformation
   cout << "Usage: " << name << " <output> -images <images.lst> [options]\n";
-  cout << "       " << name << " <output> -image <image1> [-dof <dof1>...] -image <image2> [-dof <dof2>...]... [options]\n";
+  cout << "       " << name << " <output> -image <image1> [<w1>] [-dof <dof1>...] -image <image2> [<w2>] [-dof <dof2>...]... [options]\n";
   cout << "       " << name << " <output> <image1> [<dof1>...] <image2> [<dof2>...]... [options]\n";
 #else
   cout << "Usage: " << name << " <output> -images <images.lst> [options]\n";
-  cout << "       " << name << " <output> -image <image1> -image <image2> ... [options]\n";
+  cout << "       " << name << " <output> -image <image1> [<w1>] -image <image2> [<w2>]... [options]\n";
   cout << "       " << name << " <output> <image1> <image2>... [options]\n";
 #endif
   cout << "       " << name << " <output> <sequence> [options]\n";
@@ -72,7 +72,7 @@ void PrintHelp(const char* name)
   cout << "      Voxel-wise average image.\n";
   cout << "\n";
   cout << "Input options:\n";
-  cout << "  -image <file>\n";
+  cout << "  -image <file> [<w>]\n";
   cout << "      A single input image.\n";
   cout << "  -images <file>\n";
   cout << "      Text file with N lines containing the file name of each input image,\n";
@@ -621,16 +621,17 @@ int main(int argc, char **argv)
       #endif // HAVE_MIRTK_Transformation
     } else {
       image_name.push_back(argv[nposarg]);
+      ++nposarg;
+      double w;
+      if (nposarg < argc && FromString(argv[nposarg], w)) {
+        image_weight.resize(image_name.size(), 1.);
+        image_weight.back() = w;
+      } else {
+        --nposarg;
+      }
     }
   }
   --nposarg;
-
-  nimages = static_cast<int>(image_name.size());
-  image_weight.resize(nimages, 1.0);
-  #ifdef HAVE_MIRTK_Transformation
-    imdof_name  .resize(nimages);
-    imdof_invert.resize(nimages);
-  #endif // HAVE_MIRTK_Transformation
 
   // Parse arguments
   const char        *image_list_name  = nullptr;
@@ -653,6 +654,11 @@ int main(int argc, char **argv)
   for (ARGUMENTS_AFTER(nposarg)) {
     if (OPTION("-images")) {
       image_list_name = ARGUMENT;
+    }
+    else if (OPTION("-image")) {
+      image_name.push_back(ARGUMENT);
+      image_weight.push_back(1.);
+      if (HAS_ARGUMENT) PARSE_ARGUMENT(image_weight.back());
     }
     else if (OPTION("-delim") || OPTION("-delimiter")) {
       image_list_delim = ARGUMENT;
@@ -749,6 +755,13 @@ int main(int argc, char **argv)
     }
     else HANDLE_COMMON_OR_UNKNOWN_OPTION();
   }
+
+  nimages = static_cast<int>(image_name.size());
+  image_weight.resize(nimages, 1.);
+  #ifdef HAVE_MIRTK_Transformation
+    imdof_name  .resize(nimages);
+    imdof_invert.resize(nimages);
+  #endif // HAVE_MIRTK_Transformation
 
   if (label > 0 && IsNaN(padding)) {
     normalization = Normalization_None;
