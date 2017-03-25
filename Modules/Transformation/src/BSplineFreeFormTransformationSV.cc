@@ -416,8 +416,8 @@ void BSplineFreeFormTransformationSV
           // - [[v, w], w]
           lb.Input(0, &l1), lb.Scaling(0, 1.0);
           lb.Input(1, &w ), lb.Scaling(1, eta);
-          lb.Run();
           lb.Output(&l3);
+          lb.Run();
           ConvertToCubicBSplineCoefficients(l3);
           if (nterms >= 6) {
             // - [[v, [v, w]], w]
