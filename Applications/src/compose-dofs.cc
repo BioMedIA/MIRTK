@@ -399,31 +399,30 @@ int main(int argc, char **argv)
       }
       UniquePtr<BSplineFreeFormTransformationSV> svffd;
       auto *first = dynamic_cast<BSplineFreeFormTransformationSV *>(t.GetLocalTransformation(0));
+      if (!svffd_exponent.empty()) {
+        first->T(first->T() * svffd_exponent[0]);
+        first->ScaleVelocities(1. / first->T());
+        first->T(1.);
+      }
       if (attr) {
         svffd.reset(new BSplineFreeFormTransformationSV());
         svffd->Initialize(domain, dx, dy, dz, first);
       } else {
         svffd.reset(new BSplineFreeFormTransformationSV(*first));
       }
+      const auto orig_lie_derivative = svffd->LieDerivative();
+      const auto orig_no_bch_terms = svffd->NumberOfBCHTerms();
       svffd->NumberOfBCHTerms(no_bch_terms);
       svffd->LieDerivative(lie_derivative);
-      const double original_interval = svffd->T();
-      if (!svffd_exponent.empty()) {
-        svffd->T(svffd->T() * svffd_exponent[0]);
-      }
-      svffd->ScaleVelocities(1. / svffd->T());
-      svffd->T(1.);
       for (int i = 1; i < t.NumberOfLevels(); ++i) {
         auto *next = dynamic_cast<BSplineFreeFormTransformationSV *>(t.GetLocalTransformation(i));
-        const double original_interval = next->T();
         if (static_cast<size_t>(i) < svffd_exponent.size()) {
           next->T(next->T() * svffd_exponent[i]);
         }
         svffd->CombineWith(next);
-        next->T(original_interval);
       }
-      svffd->ScaleVelocities(1. / original_interval);
-      svffd->T(original_interval);
+      svffd->NumberOfBCHTerms(orig_no_bch_terms);
+      svffd->LieDerivative(orig_lie_derivative);
       rms_error = svffd->EvaluateRMSError(domain, &t);
       ffd.reset(svffd.release());
 
