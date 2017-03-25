@@ -421,6 +421,7 @@ void ImageSimilarity::Initialize()
 // -----------------------------------------------------------------------------
 bool ImageSimilarity::SetWithoutPrefix(const char *param, const char *value)
 {
+
   if (strcmp(param, "Foreground") == 0 || strcmp(param, "Foreground region")) {
     return FromString(value, _Foreground);
   }
@@ -436,7 +437,9 @@ bool ImageSimilarity::SetWithoutPrefix(const char *param, const char *value)
   }
   if (strcmp(param, "Blurring of 1st order image derivatives") == 0 ||
       strcmp(param, "Blurring of image jacobian") == 0 ||
-      strcmp(param, "Blurring of image gradient") == 0) {
+      strcmp(param, "Blurring of image gradient") == 0 ||
+      strcmp(param, "Source gradient blurring") == 0 ||
+      strcmp(param, "Source jacobian blurring") == 0) {
     double sigma;
     if (!FromString(value, sigma)) return false;
     _Target->GradientSigma(sigma);
@@ -444,11 +447,27 @@ bool ImageSimilarity::SetWithoutPrefix(const char *param, const char *value)
     return true;
   }
   if (strcmp(param, "Blurring of 2nd order image derivatives") == 0 ||
-      strcmp(param, "Blurring of image hessian") == 0) {
+      strcmp(param, "Blurring of image hessian") == 0 ||
+      strcmp(param, "Source hessian blurring") == 0) {
     double sigma;
     if (!FromString(value, sigma)) return false;
     _Target->HessianSigma(sigma);
     _Source->HessianSigma(sigma);
+    return true;
+  }
+  if (strcmp(param, "Source gradient threshold") == 0) {
+    int pct;
+    string str;
+    if (ValueUnits(value, &str, "%") != "%" || !FromString(str, pct)) return false;
+    _Target->MaxGradientPercentile(pct);
+    _Source->MaxGradientPercentile(pct);
+    return true;
+  }
+  if (strcmp(param, "Source gradient maximum") == 0) {
+    double norm;
+    if (!FromString(value, norm)) return false;
+    _Target->MaxGradientMagnitude(norm);
+    _Source->MaxGradientMagnitude(norm);
     return true;
   }
 
