@@ -254,7 +254,7 @@ string StandardUnits(const string &str)
     units = "abs";
   } else if (units == "relative") {
     units = "rel";
-  } else if (units == "percentage") {
+  } else if (units == "percentage" || units == "percentile" || units == "pct") {
     units = "%";
   } else if (units == "gauss" || units == "gaussian" || units == "sd" || units == "stddev" || units == "stdev") {
     units = "sigma";
