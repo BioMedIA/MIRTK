@@ -158,7 +158,7 @@ public:
   using FreeFormTransformation4D::JacobianDOFs;
 
   /// Calculates the Jacobian of the local transformation w.r.t world coordinates
-  virtual void LocalJacobian(Matrix &, double, double, double, double, double = -1) const;
+  virtual void LocalJacobian(Matrix &, double, double, double, double, double = NaN) const;
 
   /// Calculates the Jacobian of the transformation w.r.t the transformation parameters
   virtual void JacobianDOFs(double [3], int, int, int, int, double, double, double, double) const;
@@ -182,7 +182,7 @@ public:
 
   /// Approximates the gradient of the bending energy on the control point
   /// lattice w.r.t the transformation parameters and adds it with the given weight
-  virtual void BendingEnergyGradient(double *, double = -1, bool = false, bool = true) const;
+  virtual void BendingEnergyGradient(double *, double = NaN, bool = false, bool = true) const;
 
   // ---------------------------------------------------------------------------
   // I/O

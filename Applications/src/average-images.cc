@@ -445,7 +445,7 @@ bool Add(AverageImage &average, WeightImage *norm, InputImage &image,
     }
     if (cache) {
       const double t  = average.GetTOrigin();
-      const double t0 = -1.;
+      const double t0 = NaN;
       disp.Initialize(average.Attributes(), 3);
       // Note: Input transformation is from image to average!
       for (int n = ndofs - 1; n >= 0; --n) {

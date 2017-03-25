@@ -332,37 +332,37 @@ public:
   virtual bool RequiresCachingOfDisplacements() const;
 
   /// Transforms a single point using the global transformation component only
-  virtual void GlobalTransform(double &, double &, double &, double = 0, double = -1) const = 0;
+  virtual void GlobalTransform(double &, double &, double &, double = 0, double = NaN) const = 0;
 
   /// Transforms a single point using the local transformation component only
-  virtual void LocalTransform(double &, double &, double &, double = 0, double = -1) const = 0;
+  virtual void LocalTransform(double &, double &, double &, double = 0, double = NaN) const = 0;
 
   /// Transforms a single point
-  virtual void Transform(double &, double &, double &, double = 0, double = -1) const = 0;
+  virtual void Transform(double &, double &, double &, double = 0, double = NaN) const = 0;
 
   /// Transforms a single point
-  virtual void Transform(Point &, double = 0, double = -1) const;
+  virtual void Transform(Point &, double = 0, double = NaN) const;
 
   /// Transforms a set of points
-  virtual void Transform(PointSet &, double = 0, double = -1) const;
+  virtual void Transform(PointSet &, double = 0, double = NaN) const;
 
   /// Transforms a set of points
-  virtual void Transform(int, double *, double *, double *, double = 0, double = -1) const;
+  virtual void Transform(int, double *, double *, double *, double = 0, double = NaN) const;
 
   /// Transforms a set of points
-  virtual void Transform(int, double *, double *, double *, const double *, double = -1) const;
+  virtual void Transform(int, double *, double *, double *, const double *, double = NaN) const;
 
   /// Transforms world coordinates of image voxels
-  virtual void Transform(WorldCoordsImage &, double = -1) const;
+  virtual void Transform(WorldCoordsImage &, double = NaN) const;
 
   /// Calculates the displacement of a single point using the global transformation component only
-  virtual void GlobalDisplacement(double &, double &, double &, double = 0, double = -1) const;
+  virtual void GlobalDisplacement(double &, double &, double &, double = 0, double = NaN) const;
 
   /// Calculates the displacement of a single point using the local transformation component only
-  virtual void LocalDisplacement(double &, double &, double &, double = 0, double = -1) const;
+  virtual void LocalDisplacement(double &, double &, double &, double = 0, double = NaN) const;
 
   /// Calculates the displacement of a single point
-  virtual void Displacement(double &, double &, double &, double = 0, double = -1) const;
+  virtual void Displacement(double &, double &, double &, double = 0, double = NaN) const;
 
   /// Calculates the displacement at specified lattice points
   ///
@@ -374,10 +374,10 @@ public:
   virtual void Displacement(const ImageAttributes &, double *, double *, double *) const;
 
   /// Calculates the displacement vectors for a whole image domain
-  virtual void Displacement(GenericImage<double> &, double = -1, const WorldCoordsImage * = NULL) const;
+  virtual void Displacement(GenericImage<double> &, double = NaN, const WorldCoordsImage * = NULL) const;
 
   /// Calculates the displacement vectors for a whole image domain
-  virtual void Displacement(GenericImage<float> &, double = -1, const WorldCoordsImage * = NULL) const;
+  virtual void Displacement(GenericImage<float> &, double = NaN, const WorldCoordsImage * = NULL) const;
 
   /// Calculates the displacement vectors for a whole image domain
   ///
@@ -411,34 +411,34 @@ public:
   /// \param[in]     i2w Pre-computed world coordinates.
   virtual void DisplacementAfterDOFChange(int dof, double dv,
                                           GenericImage<double> &dx,
-                                          double t, double t0 = -1,
+                                          double t, double t0 = NaN,
                                           const WorldCoordsImage *i2w = NULL) const;
 
   /// Transforms a single point using the inverse of the global transformation only
-  virtual void GlobalInverse(double &, double &, double &, double = 0, double = -1) const;
+  virtual void GlobalInverse(double &, double &, double &, double = 0, double = NaN) const;
 
   /// Transforms a single point using the inverse of the local transformation only
-  virtual bool LocalInverse(double &, double &, double &, double = 0, double = -1) const;
+  virtual bool LocalInverse(double &, double &, double &, double = 0, double = NaN) const;
 
   /// Transforms a single point using the inverse of the transformation
-  virtual bool Inverse(double &, double &, double &, double = 0, double = -1) const;
+  virtual bool Inverse(double &, double &, double &, double = 0, double = NaN) const;
 
   /// Transforms a single point using the inverse of the transformation
-  virtual bool Inverse(Point &, double = 0, double = -1) const;
+  virtual bool Inverse(Point &, double = 0, double = NaN) const;
 
   /// Transforms a set of points using the inverse of the transformation
   ///
   /// \returns Number of points at which transformation is non-invertible.
-  virtual int Inverse(PointSet &, double = 0, double = -1) const;
+  virtual int Inverse(PointSet &, double = 0, double = NaN) const;
 
   /// Calculates the displacement of a single point using the inverse of the global transformation only
-  virtual void GlobalInverseDisplacement(double &, double &, double &, double = 0, double = -1) const;
+  virtual void GlobalInverseDisplacement(double &, double &, double &, double = 0, double = NaN) const;
 
   /// Calculates the displacement of a single point using the inverse of the local transformation only
-  virtual bool LocalInverseDisplacement(double &, double &, double &, double = 0, double = -1) const;
+  virtual bool LocalInverseDisplacement(double &, double &, double &, double = 0, double = NaN) const;
 
   /// Calculates the displacement of a single point using the inverse of the transformation
-  virtual bool InverseDisplacement(double &, double &, double &, double = 0, double = -1) const;
+  virtual bool InverseDisplacement(double &, double &, double &, double = 0, double = NaN) const;
 
   /// Calculates the inverse displacement at specified lattice points
   ///
@@ -454,12 +454,12 @@ public:
   /// Calculates the inverse displacement vectors for a whole image domain
   ///
   /// \returns Number of points at which transformation is non-invertible.
-  virtual int InverseDisplacement(GenericImage<double> &, double = -1, const WorldCoordsImage * = NULL) const;
+  virtual int InverseDisplacement(GenericImage<double> &, double = NaN, const WorldCoordsImage * = NULL) const;
 
   /// Calculates the inverse displacement vectors for a whole image domain
   ///
   /// \returns Number of points at which transformation is non-invertible.
-  virtual int InverseDisplacement(GenericImage<float> &, double = -1, const WorldCoordsImage * = NULL) const;
+  virtual int InverseDisplacement(GenericImage<float> &, double = NaN, const WorldCoordsImage * = NULL) const;
 
   /// Calculates the inverse displacement vectors for a whole image domain
   ///
@@ -487,37 +487,37 @@ public:
   // Derivatives
 
   /// Calculates the Jacobian of the global transformation w.r.t world coordinates
-  virtual void GlobalJacobian(Matrix &, double, double, double, double = 0, double = -1) const;
+  virtual void GlobalJacobian(Matrix &, double, double, double, double = 0, double = NaN) const;
 
   /// Calculates the Jacobian of the local transformation w.r.t world coordinates
-  virtual void LocalJacobian(Matrix &, double, double, double, double = 0, double = -1) const;
+  virtual void LocalJacobian(Matrix &, double, double, double, double = 0, double = NaN) const;
 
   /// Calculates the Jacobian of the transformation w.r.t world coordinates
-  virtual void Jacobian(Matrix &, double, double, double, double = 0, double = -1) const;
+  virtual void Jacobian(Matrix &, double, double, double, double = 0, double = NaN) const;
 
   /// Calculates the determinant of the Jacobian of the global transformation w.r.t world coordinates
-  virtual double GlobalJacobian(double, double, double, double = 0, double = -1) const;
+  virtual double GlobalJacobian(double, double, double, double = 0, double = NaN) const;
 
   /// Calculates the determinant of the Jacobian of the local transformation w.r.t world coordinates
-  virtual double LocalJacobian(double, double, double, double = 0, double = -1) const;
+  virtual double LocalJacobian(double, double, double, double = 0, double = NaN) const;
 
   /// Calculates the determinant of the Jacobian of the transformation w.r.t world coordinates
-  virtual double Jacobian(double, double, double, double = 0, double = -1) const;
+  virtual double Jacobian(double, double, double, double = 0, double = NaN) const;
 
   /// Calculates the Hessian for each component of the global transformation w.r.t world coordinates
-  virtual void GlobalHessian(Matrix [3], double, double, double, double = 0, double = -1) const;
+  virtual void GlobalHessian(Matrix [3], double, double, double, double = 0, double = NaN) const;
 
   /// Calculates the Hessian for each component of the local transformation w.r.t world coordinates
-  virtual void LocalHessian(Matrix [3], double, double, double, double = 0, double = -1) const;
+  virtual void LocalHessian(Matrix [3], double, double, double, double = 0, double = NaN) const;
 
   /// Calculates the Hessian for each component of the transformation w.r.t world coordinates
-  virtual void Hessian(Matrix [3], double, double, double, double = 0, double = -1) const;
+  virtual void Hessian(Matrix [3], double, double, double, double = 0, double = NaN) const;
 
   /// Calculates the Jacobian of the transformation w.r.t a transformation parameter
-  virtual void JacobianDOFs(double [3], int, double, double, double, double = 0, double = -1) const;
+  virtual void JacobianDOFs(double [3], int, double, double, double, double = 0, double = NaN) const;
 
   /// Calculates the derivative of the Jacobian of the transformation (w.r.t. world coordinates) w.r.t. a transformation parameter
-  virtual void DeriveJacobianWrtDOF(Matrix &, int, double, double, double, double = 0, double = -1) const;
+  virtual void DeriveJacobianWrtDOF(Matrix &, int, double, double, double, double = 0, double = NaN) const;
 
   /// Applies the chain rule to convert spatial non-parametric gradient
   /// to a gradient w.r.t the parameters of this transformation.
@@ -537,18 +537,18 @@ public:
   virtual void ParametricGradient(const GenericImage<double> *, double *,
                                   const WorldCoordsImage *,
                                   const WorldCoordsImage *,
-                                  double = -1, double = 1) const;
+                                  double = NaN, double = 1) const;
 
   /// Applies the chain rule to convert spatial non-parametric gradient
   /// to a gradient w.r.t the parameters of this transformation.
   void ParametricGradient(const GenericImage<double> *, double *,
                           const WorldCoordsImage *,
-                          double = -1, double = 1) const;
+                          double = NaN, double = 1) const;
 
   /// Applies the chain rule to convert spatial non-parametric gradient
   /// to a gradient w.r.t the parameters of this transformation.
   void ParametricGradient(const GenericImage<double> *, double *,
-                          double = -1, double = 1) const;
+                          double = NaN, double = 1) const;
 
   /// Applies the chain rule to convert spatial non-parametric gradient
   /// to a gradient w.r.t the parameters of this transformation.
@@ -571,7 +571,7 @@ public:
   /// Applies the chain rule to convert point-wise non-parametric gradient
   /// to a gradient w.r.t the parameters of this transformation.
   virtual void ParametricGradient(const PointSet &, const Vector3D<double> *,
-                                  double *, double = 0, double = -1, double = 1) const;
+                                  double *, double = 0, double = NaN, double = 1) const;
 
   // ---------------------------------------------------------------------------
   // I/O

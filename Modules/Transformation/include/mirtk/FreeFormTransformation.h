@@ -593,16 +593,16 @@ public:
   using Transformation::Inverse;
 
   /// Transforms a single point using the global transformation component only
-  virtual void GlobalTransform(double &, double &, double &, double = 0, double = -1) const;
+  virtual void GlobalTransform(double &, double &, double &, double = 0, double = NaN) const;
 
   /// Transforms a single point
-  virtual void Transform(double &, double &, double &, double = 0, double = -1) const;
+  virtual void Transform(double &, double &, double &, double = 0, double = NaN) const;
 
   /// Transforms a single point using the inverse of the global transformation only
-  virtual void GlobalInverse(double &, double &, double &, double = 0, double = -1) const;
+  virtual void GlobalInverse(double &, double &, double &, double = 0, double = NaN) const;
 
   /// Transforms a single point using the inverse of the transformation
-  virtual bool Inverse(double &, double &, double &, double = 0, double = -1) const;
+  virtual bool Inverse(double &, double &, double &, double = 0, double = NaN) const;
 
   // ---------------------------------------------------------------------------
   // Derivatives
@@ -640,25 +640,25 @@ public:
   void HessianToWorld(Matrix [3]) const;
 
   /// Calculates the Jacobian of the transformation w.r.t either control point displacements or velocities
-  virtual void FFDJacobianWorld(Matrix &, double, double, double, double = 0, double = -1) const;
+  virtual void FFDJacobianWorld(Matrix &, double, double, double, double = 0, double = NaN) const;
 
   /// Calculates the Jacobian of the global transformation w.r.t world coordinates
-  virtual void GlobalJacobian(Matrix &, double, double, double, double = 0, double = -1) const;
+  virtual void GlobalJacobian(Matrix &, double, double, double, double = 0, double = NaN) const;
 
   /// Calculates the Jacobian of the transformation w.r.t world coordinates
-  virtual void Jacobian(Matrix &, double, double, double, double = 0, double = -1) const;
+  virtual void Jacobian(Matrix &, double, double, double, double = 0, double = NaN) const;
 
   /// Calculates the Hessian for each component of the global transformation w.r.t world coordinates
-  virtual void GlobalHessian(Matrix [3], double, double, double, double = 0, double = -1) const;
+  virtual void GlobalHessian(Matrix [3], double, double, double, double = 0, double = NaN) const;
 
   /// Calculates the Hessian for each component of the transformation w.r.t world coordinates
-  virtual void Hessian(Matrix [3], double, double, double, double = 0, double = -1) const;
+  virtual void Hessian(Matrix [3], double, double, double, double = 0, double = NaN) const;
 
   /// Calculates the Jacobian of the transformation w.r.t the transformation parameters of a control point
-  virtual void JacobianDOFs(Matrix &, int, double, double, double, double = 0, double = -1) const;
+  virtual void JacobianDOFs(Matrix &, int, double, double, double, double = 0, double = NaN) const;
 
   /// Calculates the Jacobian of the transformation w.r.t the transformation parameters
-  virtual void JacobianDOFs(TransformationJacobian &, double, double, double, double = 0, double = -1) const;
+  virtual void JacobianDOFs(TransformationJacobian &, double, double, double, double = 0, double = NaN) const;
 
   /// Applies the chain rule to convert spatial non-parametric gradient
   /// to a gradient w.r.t the parameters of this transformation.
@@ -678,12 +678,12 @@ public:
   virtual void ParametricGradient(const GenericImage<double> *, double *,
                                   const WorldCoordsImage *,
                                   const WorldCoordsImage *,
-                                  double = -1, double = 1) const;
+                                  double = NaN, double = 1) const;
 
   /// Applies the chain rule to convert point-wise non-parametric gradient
   /// to a gradient w.r.t the parameters of this transformation.
   virtual void ParametricGradient(const PointSet &, const Vector3D<double> *,
-                                  double *, double = 0, double = -1, double = 1) const;
+                                  double *, double = 0, double = NaN, double = 1) const;
 
   // ---------------------------------------------------------------------------
   // Properties
@@ -692,13 +692,13 @@ public:
   static double Bending3D(const Matrix [3]);
 
   /// Calculates the bending of the transformation
-  virtual double BendingEnergy(double, double, double, double = 0, double = -1, bool = true) const;
+  virtual double BendingEnergy(double, double, double, double = 0, double = NaN, bool = true) const;
 
   /// Approximates the bending energy on the control point lattice
   virtual double BendingEnergy(bool = false, bool = true) const;
 
   /// Approximates the bending energy on the specified discrete domain
-  virtual double BendingEnergy(const ImageAttributes &attr, double = -1, bool = true) const;
+  virtual double BendingEnergy(const ImageAttributes &attr, double = NaN, bool = true) const;
 
   /// Approximates the gradient of the bending energy on the control point
   /// lattice w.r.t the transformation parameters and adds it with the given weight

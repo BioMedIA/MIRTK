@@ -212,7 +212,7 @@ public:
   // Point transformation
 
   /// Transforms a single point using the local transformation component only
-  virtual void LocalTransform(double &, double &, double &, double, double = -1) const;
+  virtual void LocalTransform(double &, double &, double &, double, double = NaN) const;
 
   // ---------------------------------------------------------------------------
   // Derivatives
@@ -222,26 +222,26 @@ public:
   using FreeFormTransformation4D::ParametricGradient;
 
   /// Calculates the Jacobian of the local transformation w.r.t world coordinates
-  virtual void LocalJacobian(Matrix &, double, double, double, double, double = -1) const;
+  virtual void LocalJacobian(Matrix &, double, double, double, double, double = NaN) const;
 
   /// Calculates the Hessian for each component of the local transformation w.r.t world coordinates
-  virtual void LocalHessian(Matrix [3], double, double, double, double, double = -1) const;
+  virtual void LocalHessian(Matrix [3], double, double, double, double, double = NaN) const;
 
   /// Calculates the Jacobian of the transformation w.r.t the transformation parameters
-  virtual void JacobianDOFs(Matrix &, int, int, int, int, double, double, double, double, double = -1) const;
+  virtual void JacobianDOFs(Matrix &, int, int, int, int, double, double, double, double, double = NaN) const;
 
   /// Calculates the Jacobian of the transformation w.r.t the transformation parameters
-  virtual void JacobianDOFs(double [3], int, int, int, int, double, double, double, double, double = -1) const;
+  virtual void JacobianDOFs(double [3], int, int, int, int, double, double, double, double, double = NaN) const;
 
   /// Calculates the Jacobian of the transformation w.r.t the transformation parameters
-  virtual void JacobianDOFs(TransformationJacobian &, double, double, double, double, double = -1) const;
+  virtual void JacobianDOFs(TransformationJacobian &, double, double, double, double, double = NaN) const;
 
   /// Applies the chain rule to convert spatial non-parametric gradient
   /// to a gradient w.r.t the parameters of this transformation
   virtual void ParametricGradient(const GenericImage<double> *, double *,
                                   const WorldCoordsImage *,
                                   const WorldCoordsImage *,
-                                  double = -1, double = 1.0) const;
+                                  double = NaN, double = 1.0) const;
 
   // ---------------------------------------------------------------------------
   // Properties
@@ -251,13 +251,13 @@ public:
   virtual int KernelSize() const;
 
   /// Calculates the bending of the transformation
-  virtual double BendingEnergy(double, double, double, double = 0, double = -1, bool = true) const;
+  virtual double BendingEnergy(double, double, double, double = 0, double = NaN, bool = true) const;
 
   /// Approximates the bending energy on the control point lattice
   virtual double BendingEnergy(bool = false, bool = true) const;
 
   /// Approximates the bending energy on the specified discrete domain
-  virtual double BendingEnergy(const ImageAttributes &, double = -1, bool = true) const;
+  virtual double BendingEnergy(const ImageAttributes &, double = NaN, bool = true) const;
 
   /// Approximates the gradient of the bending energy on the control point
   /// lattice w.r.t the transformation parameters and adds it with the given weight

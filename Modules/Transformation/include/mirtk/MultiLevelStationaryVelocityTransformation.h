@@ -203,10 +203,10 @@ public:
 
 
   /// Transforms a single point
-  virtual void Transform(int, int, double &, double &, double &, double = 0, double = 1) const;
+  virtual void Transform(int, int, double &, double &, double &, double = 0, double = NaN) const;
 
   /// Transforms a single point using the inverse of the transformation
-  virtual bool Inverse(int, int, double &, double &, double &, double = 0, double = 1) const;
+  virtual bool Inverse(int, int, double &, double &, double &, double = 0, double = NaN) const;
 
   /// Calculates the displacement vectors for a whole image domain
   ///
@@ -215,7 +215,7 @@ public:
   ///            added to the current displacements. Therefore, set the input
   ///            displacements to zero if only interested in the displacements of
   ///            this transformation at the voxel positions.
-  virtual void Displacement(int, int, GenericImage<double> &, double, double = 1, const WorldCoordsImage * = NULL) const;
+  virtual void Displacement(int, int, GenericImage<double> &, double, double = NaN, const WorldCoordsImage * = NULL) const;
 
   /// Calculates the displacement vectors for a whole image domain
   ///
@@ -224,7 +224,7 @@ public:
   ///            added to the current displacements. Therefore, set the input
   ///            displacements to zero if only interested in the displacements of
   ///            this transformation at the voxel positions.
-  virtual void Displacement(int, int, GenericImage<float> &, double, double = 1, const WorldCoordsImage * = NULL) const;
+  virtual void Displacement(int, int, GenericImage<float> &, double, double = NaN, const WorldCoordsImage * = NULL) const;
 
   /// Calculates the inverse displacement vectors for a whole image domain
   ///
@@ -235,7 +235,7 @@ public:
   ///            this transformation at the voxel positions.
   ///
   /// \returns Always zero.
-  virtual int InverseDisplacement(int, int, GenericImage<double> &, double, double = 1, const WorldCoordsImage * = NULL) const;
+  virtual int InverseDisplacement(int, int, GenericImage<double> &, double, double = NaN, const WorldCoordsImage * = NULL) const;
 
   /// Calculates the inverse displacement vectors for a whole image domain
   ///
@@ -246,7 +246,7 @@ public:
   ///            this transformation at the voxel positions.
   ///
   /// \returns Always zero.
-  virtual int InverseDisplacement(int, int, GenericImage<float> &, double, double = 1, const WorldCoordsImage * = NULL) const;
+  virtual int InverseDisplacement(int, int, GenericImage<float> &, double, double = NaN, const WorldCoordsImage * = NULL) const;
 
   // ---------------------------------------------------------------------------
   // Derivatives
@@ -268,7 +268,7 @@ public:
   virtual void ParametricGradient(const GenericImage<double> *, double *,
                                   const WorldCoordsImage *,
                                   const WorldCoordsImage *,
-                                  double = 1, double = 1) const;
+                                  double = NaN, double = 1) const;
 
   // ---------------------------------------------------------------------------
   // I/O
