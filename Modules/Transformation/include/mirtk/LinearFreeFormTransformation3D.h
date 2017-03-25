@@ -135,10 +135,10 @@ public:
   // Point transformation
 
   /// Transforms a single point using the local transformation only
-  virtual void LocalTransform(double &, double &, double &, double = 0, double = -1) const;
+  virtual void LocalTransform(double &, double &, double &, double = 0, double = NaN) const;
 
   /// Transforms a single point using the inverse of the local transformation only
-  virtual bool LocalInverse(double &, double &, double &, double = 0, double = -1) const;
+  virtual bool LocalInverse(double &, double &, double &, double = 0, double = NaN) const;
 
   // ---------------------------------------------------------------------------
   // Derivatives
@@ -146,7 +146,7 @@ public:
   using FreeFormTransformation3D::JacobianDOFs;
 
   /// Calculates the Jacobian of the local transformation w.r.t world coordinates
-  virtual void LocalJacobian(Matrix &, double, double, double, double = 0, double = -1) const;
+  virtual void LocalJacobian(Matrix &, double, double, double, double = 0, double = NaN) const;
 
   /// Calculates the Jacobian of the transformation w.r.t the transformation parameters
   virtual void JacobianDOFs(double [3], int, int, int, double, double, double) const;

@@ -240,7 +240,7 @@ public:
   // Point transformation
 
   /// Transforms a single point using the local transformation component only
-  virtual void LocalTransform(double &, double &, double &, double = 0, double = -1) const;
+  virtual void LocalTransform(double &, double &, double &, double = 0, double = NaN) const;
 
   /// Whether this transformation implements a more efficient update of a given
   /// displacement field given the desired change of a transformation parameter
@@ -267,13 +267,13 @@ public:
   using FreeFormTransformation3D::JacobianDOFs;
 
   /// Calculates the Jacobian of the transformation w.r.t either control point displacements or velocities
-  virtual void FFDJacobianWorld(Matrix &, double, double, double, double = 0, double = -1) const;
+  virtual void FFDJacobianWorld(Matrix &, double, double, double, double = 0, double = NaN) const;
 
   /// Calculates the Jacobian of the local transformation w.r.t world coordinates
-  virtual void LocalJacobian(Matrix &, double, double, double, double = 0, double = -1) const;
+  virtual void LocalJacobian(Matrix &, double, double, double, double = 0, double = NaN) const;
 
   /// Calculates the Hessian for each component of the local transformation w.r.t world coordinates
-  virtual void LocalHessian(Matrix [3], double, double, double, double = 0, double = -1) const;
+  virtual void LocalHessian(Matrix [3], double, double, double, double = 0, double = NaN) const;
 
   /// Calculates the Jacobian of the transformation w.r.t. the parameters of a control point
   virtual void JacobianDOFs(double [3], int, int, int, double, double, double) const;
@@ -282,7 +282,7 @@ public:
   virtual void JacobianDetDerivative(Matrix *, int, int, int) const;
 
   /// Calculates the derivative of the Jacobian of the transformation (w.r.t. world coordinates) w.r.t. a transformation parameter
-  virtual void DeriveJacobianWrtDOF(Matrix &, int, double, double, double, double = 0, double = -1) const;
+  virtual void DeriveJacobianWrtDOF(Matrix &, int, double, double, double, double = 0, double = NaN) const;
 
   // ---------------------------------------------------------------------------
   // Properties
@@ -291,13 +291,13 @@ public:
   virtual int KernelSize() const;
 
   /// Calculates the bending energy of the transformation
-  virtual double BendingEnergy(double, double, double, double = 0, double = -1, bool = true) const;
+  virtual double BendingEnergy(double, double, double, double = 0, double = NaN, bool = true) const;
 
   /// Approximates the bending energy on the control point lattice
   virtual double BendingEnergy(bool = false, bool = true) const;
 
   /// Approximates the bending energy on the specified discrete domain
-  virtual double BendingEnergy(const ImageAttributes &, double = -1, bool = true) const;
+  virtual double BendingEnergy(const ImageAttributes &, double = NaN, bool = true) const;
 
   /// Approximates and adds the gradient of the bending energy on the control point
   /// lattice w.r.t the transformation parameters using the given weight

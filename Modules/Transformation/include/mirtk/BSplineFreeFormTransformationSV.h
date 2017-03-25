@@ -339,10 +339,10 @@ public:
   virtual bool RequiresCachingOfDisplacements() const;
 
   /// Transforms a single point using the local transformation component only
-  virtual void LocalTransform(double &, double &, double &, double = 0, double = -1) const;
+  virtual void LocalTransform(double &, double &, double &, double = 0, double = NaN) const;
 
   /// Transforms a single point using the inverse of the local transformation only
-  virtual bool LocalInverse(double &, double &, double &, double = 0, double = -1) const;
+  virtual bool LocalInverse(double &, double &, double &, double = 0, double = NaN) const;
 
   /// Get stationary velocity field
   void Velocity(GenericImage<float> &) const;
@@ -357,7 +357,7 @@ public:
   ///            added to the current displacements. Therefore, set the input
   ///            displacements to zero if only interested in the displacements of
   ///            this transformation at the voxel positions.
-  virtual void Displacement(GenericImage<double> &, double, double = -1,
+  virtual void Displacement(GenericImage<double> &, double, double = NaN,
                             const WorldCoordsImage * = NULL) const;
   
   /// Calculates the displacement vectors for a whole image domain
@@ -367,7 +367,7 @@ public:
   ///            added to the current displacements. Therefore, set the input
   ///            displacements to zero if only interested in the displacements of
   ///            this transformation at the voxel positions.
-  virtual void Displacement(GenericImage<float> &, double, double = -1,
+  virtual void Displacement(GenericImage<float> &, double, double = NaN,
                             const WorldCoordsImage * = NULL) const;
 
   /// Calculates the inverse displacement vectors for a whole image domain
@@ -379,7 +379,7 @@ public:
   ///            this transformation at the voxel positions.
   ///
   /// \returns Always zero.
-  virtual int InverseDisplacement(GenericImage<double> &, double, double = -1,
+  virtual int InverseDisplacement(GenericImage<double> &, double, double = NaN,
                                   const WorldCoordsImage * = NULL) const;
 
   /// Calculates the inverse displacement vectors for a whole image domain
@@ -391,7 +391,7 @@ public:
   ///            this transformation at the voxel positions.
   ///
   /// \returns Always zero.
-  virtual int InverseDisplacement(GenericImage<float> &, double, double = -1,
+  virtual int InverseDisplacement(GenericImage<float> &, double, double = NaN,
                                   const WorldCoordsImage * = NULL) const;
 
   // ---------------------------------------------------------------------------
@@ -401,13 +401,13 @@ public:
   using BSplineFreeFormTransformation3D::ParametricGradient;
 
   /// Calculates the Jacobian of the local transformation w.r.t world coordinates
-  virtual void LocalJacobian(Matrix &, double, double, double, double = 0, double = -1) const;
+  virtual void LocalJacobian(Matrix &, double, double, double, double = 0, double = NaN) const;
 
   /// Calculates the Hessian for each component of the local transformation w.r.t world coordinates
-  virtual void LocalHessian(Matrix [3], double, double, double, double = 0, double = -1) const;
+  virtual void LocalHessian(Matrix [3], double, double, double, double = 0, double = NaN) const;
 
   /// Calculates the Jacobian of the transformation w.r.t a control point
-  virtual void JacobianDOFs(Matrix &, int, double, double, double, double = 0, double = -1) const;
+  virtual void JacobianDOFs(Matrix &, int, double, double, double, double = 0, double = NaN) const;
 
   /// Calculates the Jacobian of the transformation w.r.t a transformation parameters
   ///
@@ -416,10 +416,10 @@ public:
   ///            w.r.t. the specified transformation parameter (not control point).
   ///            This is in accordance to the Transformation::JacobianDOFs
   ///            definition, which is violated, however, by most other FFDs.
-  virtual void JacobianDOFs(double [3], int, double, double, double, double = 0, double = -1) const;
+  virtual void JacobianDOFs(double [3], int, double, double, double, double = 0, double = NaN) const;
 
   /// Calculates the Jacobian of the transformation w.r.t the transformation parameters
-  virtual void JacobianDOFs(TransformationJacobian &, double, double, double, double = 0, double = -1) const;
+  virtual void JacobianDOFs(TransformationJacobian &, double, double, double, double = 0, double = NaN) const;
 
 protected:
 
@@ -770,7 +770,7 @@ inline bool BSplineFreeFormTransformationSV::RequiresCachingOfDisplacements() co
 inline double BSplineFreeFormTransformationSV::UpperIntegrationLimit(double t, double t0) const
 {
   double T = t - t0;
-  return T ? T : _T; // if zero, return cross-sectional interval _T instead
+  return !IsNaN(T) && !AreEqual(T, 0.) ? T : _T; // if zero/NaN, return cross-sectional interval _T instead
 }
 
 // -----------------------------------------------------------------------------

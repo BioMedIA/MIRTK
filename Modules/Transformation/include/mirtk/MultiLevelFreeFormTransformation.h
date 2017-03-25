@@ -166,10 +166,10 @@ public:
   using MultiLevelTransformation::InverseDisplacement;
 
   /// Transforms a single point using the local transformation component only
-  virtual void LocalTransform(int, int, double &, double &, double &, double = 0, double = -1) const;
+  virtual void LocalTransform(int, int, double &, double &, double &, double = 0, double = NaN) const;
 
   /// Transforms a single point
-  virtual void Transform(int, int, double &, double &, double &, double = 0, double = -1) const;
+  virtual void Transform(int, int, double &, double &, double &, double = 0, double = NaN) const;
 
   /// Calculates the displacement vectors for a whole image domain
   ///
@@ -178,7 +178,7 @@ public:
   ///            added to the current displacements. Therefore, set the input
   ///            displacements to zero if only interested in the displacements of
   ///            this transformation at the voxel positions.
-  virtual void Displacement(int, int, GenericImage<double> &, double, double = -1, const WorldCoordsImage * = NULL) const;
+  virtual void Displacement(int, int, GenericImage<double> &, double, double = NaN, const WorldCoordsImage * = NULL) const;
 
   /// Calculates the displacement vectors for a whole image domain
   ///
@@ -187,7 +187,7 @@ public:
   ///            added to the current displacements. Therefore, set the input
   ///            displacements to zero if only interested in the displacements of
   ///            this transformation at the voxel positions.
-  virtual void Displacement(int, int, GenericImage<float> &, double, double = -1, const WorldCoordsImage * = NULL) const;
+  virtual void Displacement(int, int, GenericImage<float> &, double, double = NaN, const WorldCoordsImage * = NULL) const;
 
   /// Whether this transformation implements a more efficient update of a given
   /// displacement field given the desired change of a transformation parameter
@@ -215,7 +215,7 @@ public:
   ///            this transformation at the voxel positions.
   ///
   /// \returns Number of points for which transformation is non-invertible.
-  virtual int InverseDisplacement(int, int, GenericImage<double> &, double, double = -1, const WorldCoordsImage * = NULL) const;
+  virtual int InverseDisplacement(int, int, GenericImage<double> &, double, double = NaN, const WorldCoordsImage * = NULL) const;
 
   /// Calculates the inverse displacement vectors for a whole image domain
   ///
@@ -226,7 +226,7 @@ public:
   ///            this transformation at the voxel positions.
   ///
   /// \returns Number of points for which transformation is non-invertible.
-  virtual int InverseDisplacement(int, int, GenericImage<float> &, double, double = -1, const WorldCoordsImage * = NULL) const;
+  virtual int InverseDisplacement(int, int, GenericImage<float> &, double, double = NaN, const WorldCoordsImage * = NULL) const;
 
   // ---------------------------------------------------------------------------
   // Derivatives
@@ -239,13 +239,13 @@ public:
   using MultiLevelTransformation::DeriveJacobianWrtDOF;
 
   /// Calculates the Jacobian of the transformation w.r.t world coordinates
-  virtual void Jacobian(int, int, Matrix &, double, double, double, double = 0, double = -1) const;
+  virtual void Jacobian(int, int, Matrix &, double, double, double, double = 0, double = NaN) const;
 
   /// Calculates the Hessian for each component of the transformation w.r.t world coordinates
-  virtual void Hessian(int, int, Matrix [3], double, double, double, double = 0, double = -1) const;
+  virtual void Hessian(int, int, Matrix [3], double, double, double, double = 0, double = NaN) const;
 
   /// Calculates the derivative of the Jacobian of the transformation (w.r.t. world coordinates) w.r.t. a transformation parameter
-  virtual void DeriveJacobianWrtDOF(Matrix &, int, double, double, double, double = 0, double = -1) const;
+  virtual void DeriveJacobianWrtDOF(Matrix &, int, double, double, double, double = 0, double = NaN) const;
 
   /// Applies the chain rule to convert spatial non-parametric gradient
   /// to a gradient w.r.t the parameters of this transformation.
@@ -265,12 +265,12 @@ public:
   virtual void ParametricGradient(const GenericImage<double> *, double *,
                                   const WorldCoordsImage * = NULL,
                                   const WorldCoordsImage * = NULL,
-                                  double = -1, double = 1) const;
+                                  double = NaN, double = 1) const;
 
   /// Applies the chain rule to convert point-wise non-parametric gradient
   /// to a gradient w.r.t the parameters of this transformation.
   virtual void ParametricGradient(const PointSet &, const Vector3D<double> *,
-                                  double *, double = 0, double = -1, double = 1) const;
+                                  double *, double = 0, double = NaN, double = 1) const;
 
   // ---------------------------------------------------------------------------
   // I/O

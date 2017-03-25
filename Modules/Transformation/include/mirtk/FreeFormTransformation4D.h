@@ -66,16 +66,16 @@ public:
 
   /// Calculates the Jacobian of the transformation w.r.t a control point
   virtual void JacobianDOFs(Matrix &, int, int, int, int,
-                            double, double, double, double, double = -1) const;
+                            double, double, double, double, double = NaN) const;
 
   /// Calculates the Jacobian of the transformation w.r.t a control point
-  virtual void JacobianDOFs(Matrix &, int, double, double, double, double, double = -1) const;
+  virtual void JacobianDOFs(Matrix &, int, double, double, double, double, double = NaN) const;
 
   /// Calculates the Jacobian of the transformation w.r.t a control point
-  virtual void JacobianDOFs(double [3], int, int, int, int, double, double, double, double, double = -1) const;
+  virtual void JacobianDOFs(double [3], int, int, int, int, double, double, double, double, double = NaN) const;
 
   /// Calculates the Jacobian of the transformation w.r.t a transformation parameter
-  virtual void JacobianDOFs(double [3], int, double, double, double, double, double = -1) const;
+  virtual void JacobianDOFs(double [3], int, double, double, double, double, double = NaN) const;
 
   /// Applies the chain rule to convert spatial non-parametric gradient
   /// to a gradient w.r.t the parameters of this transformation
@@ -89,7 +89,7 @@ public:
   virtual void ParametricGradient(const GenericImage<double> *, double *,
                                   const WorldCoordsImage *,
                                   const WorldCoordsImage *,
-                                  double = -1, double = 1) const;
+                                  double = NaN, double = 1) const;
 
   // ---------------------------------------------------------------------------
   // I/O
