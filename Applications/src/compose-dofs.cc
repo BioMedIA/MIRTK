@@ -63,17 +63,19 @@ void PrintHelp(const char *name)
   cout << "      Whether to allow shearing when composite transformation is affine. (default: on)\n";
   cout << "  -approximate\n";
   cout << "      Approximate the composed transformation using a single FFD. (default: off)\n";
-  cout << "  -bch [<n> [yes|no [e1...]]]\n";
+  cout << "  -scale <s1> [s2...]\n";
+  cout << "      Scaling factors for each input (SV) FFD in the same order as the positional\n";
+  cout << "      input file name arguments. These factors can only be applied to single FFDs,\n";
+  cout << "      and are mainly useful for velocity based transformations. For rigid, similarity,\n";
+  cout << "      or affine transformations, use -1 to invert the input transformation. (default: 1)\n";
+  cout << "  -bch [<n> [yes|no]]\n";
   cout << "      Use Baker-Campbell-Hausdorff (BCH) formula to approximate composition of SV FFDs.\n";
   cout << "      All input transformations must be of type cubic B-spline SV FFD. Arguments\n";
   cout << "      are optional. The first argument is the number of BCH terms to use. The minimum\n";
   cout << "      is 2 terms, i.e., the sum of left and right velocity fields. The second argument\n";
   cout << "      is a boolean flag indicating whether or not the Lie brackets should be computed\n";
   cout << "      using the Jacobian of the vector fields (yes) or if it should be approximated\n";
-  cout << "      as the difference of the compositions in either order. The remaining optional\n";
-  cout << "      arguments are scaling factors of each stationary input velocity field in the\n";
-  cout << "      same order as the SV FFDs are given as positional arguments. When omitted, the\n";
-  cout << "      \"Cross-sectional time interval\" of the SV FFD is used.\n";
+  cout << "      as the difference of the compositions in either order. (default: 6 yes)\n";
   cout << "  -nobch\n";
   cout << "      Do not use BCH formula to compose SV FFDs. Instead, evaluate composite displacements\n";
   cout << "      and approximate these even when all input transformations are of type SV FFD.\n";
@@ -218,7 +220,7 @@ int main(int argc, char **argv)
   bool approximate    = false;
   int  no_bch_terms   = -1;
   bool lie_derivative = true;
-  Array<double> svffd_exponent;
+  Array<double> scales;
   double dx = 0., dy = 0., dz = 0.;
 
   for (ALL_OPTIONS) {
@@ -227,6 +229,19 @@ int main(int argc, char **argv)
       GreyImage target(ARGUMENT);
       attr = target.Attributes();
     }
+    else if (OPTION("-scale")) {
+      do {
+        double s;
+        PARSE_ARGUMENT(s);
+        if (AreEqual(s, 0.) || IsNaN(s) || IsInf(s)) {
+          FatalError("Scaling factor must be neither zero, +/- inf, or NaN!");
+        }
+        scales.push_back(s);
+        if (scales.size() > static_cast<size_t>(N)) {
+          FatalError("Too many arguments for option -scale!");
+        }
+      } while (HAS_ARGUMENT);
+    }
     else if (OPTION("-bch")) {
       approximate = true;
       no_bch_terms = 4;
@@ -234,14 +249,6 @@ int main(int argc, char **argv)
         PARSE_ARGUMENT(no_bch_terms);
         if (HAS_ARGUMENT) {
           PARSE_ARGUMENT(lie_derivative);
-          while (HAS_ARGUMENT) {
-            double e;
-            PARSE_ARGUMENT(e);
-            svffd_exponent.push_back(e);
-            if (svffd_exponent.size() > static_cast<size_t>(N)) {
-              FatalError("Too many time interval arguments for option -bch!");
-            }
-          }
         }
       }
     }
@@ -326,6 +333,23 @@ int main(int argc, char **argv)
     svmffd = dynamic_cast<MultiLevelStationaryVelocityTransformation *>(dof.get());
     fluid  = dynamic_cast<FluidFreeFormTransformation                *>(dof.get());
 
+    if (n <= static_cast<int>(scales.size()) && !AreEqual(scales[n - 1], 1.)) {
+      if (aff) {
+        if (AreEqual(scales[n - 1], -1.)) {
+          aff->Invert();
+        } else {
+          FatalError("Cannot -scale affine transformation, use '-1' to invert it!");
+        }
+      } else if (ffd) {
+        const double scale = scales[n - 1];
+        for (int i = 0; i < ffd->NumberOfDOFs(); ++i) {
+          ffd->Put(i, scale * ffd->Get(i));
+        }
+      } else {
+        FatalError("Cannot -scale non-FFD transformation! Option mainly used for SV FFDs.");
+      }
+    }
+
     // Compose current composite transformation with n-th transformation
     const bool last = (n == N);
     if      (aff   ) PushTransformation(t, aff,    attr, last);
@@ -399,11 +423,6 @@ int main(int argc, char **argv)
       }
       UniquePtr<BSplineFreeFormTransformationSV> svffd;
       auto *first = dynamic_cast<BSplineFreeFormTransformationSV *>(t.GetLocalTransformation(0));
-      if (!svffd_exponent.empty()) {
-        first->T(first->T() * svffd_exponent[0]);
-        first->ScaleVelocities(1. / first->T());
-        first->T(1.);
-      }
       if (attr) {
         svffd.reset(new BSplineFreeFormTransformationSV());
         svffd->Initialize(domain, dx, dy, dz, first);
@@ -416,9 +435,6 @@ int main(int argc, char **argv)
       svffd->LieDerivative(lie_derivative);
       for (int i = 1; i < t.NumberOfLevels(); ++i) {
         auto *next = dynamic_cast<BSplineFreeFormTransformationSV *>(t.GetLocalTransformation(i));
-        if (static_cast<size_t>(i) < svffd_exponent.size()) {
-          next->T(next->T() * svffd_exponent[i]);
-        }
         svffd->CombineWith(next);
       }
       svffd->NumberOfBCHTerms(orig_no_bch_terms);
