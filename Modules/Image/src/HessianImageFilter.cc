@@ -153,12 +153,21 @@ void HessianImageFilter<VoxelType>::Run()
         }
 
         if (_UseVoxelSize) {
-          dxx /= (input->GetXSize() * input->GetXSize());
-          dxy /= (input->GetXSize() * input->GetYSize());
-          dxz /= (input->GetXSize() * input->GetZSize());
-          dyy /= (input->GetYSize() * input->GetYSize());
-          dyz /= (input->GetYSize() * input->GetZSize());
-          dzz /= (input->GetZSize() * input->GetZSize());
+          if (input->XSize() > 0.) {
+            dxx /= (input->XSize() * input->XSize());
+            dxy /= input->XSize();
+            dxz /= input->XSize();
+          }
+          if (input->YSize() > 0.) {
+            dxy /= input->YSize();
+            dyy /= (input->YSize() * input->YSize());
+            dyz /= input->YSize();
+          }
+          if (input->ZSize() > 0.) {
+            dxz /= input->ZSize();
+            dyz /= input->ZSize();
+            dzz /= (input->ZSize() * input->ZSize());
+          }
         }
         if (_UseOrientation) {
           // Using numerator-layout for matrix calculus.
