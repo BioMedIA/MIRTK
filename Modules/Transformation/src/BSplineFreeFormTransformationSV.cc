@@ -168,7 +168,13 @@ BSplineFreeFormTransformationSV
 // -----------------------------------------------------------------------------
 void BSplineFreeFormTransformationSV::Initialize(const ImageAttributes &attr)
 {
-  BSplineFreeFormTransformation3D::Initialize(attr);
+  ImageAttributes domain = attr;
+  domain._t = 1; // SV FFD can be used to register time series, but not regular FFD
+  BSplineFreeFormTransformation3D::Initialize(domain);
+  if (attr._t > 0 && !AreEqual(attr._dt, 0.)) {
+    _TimeUnit = attr._dt;
+    _T = attr._t * attr._dt;
+  }
   if (_MaxScaledVelocity < .0) _MaxScaledVelocity = DefaultMaximumScaledVelocity(_dx, _dy, _dz);
   Delete(_JacobianDOFs);
   _JacobianDOFsIntervalLength = .0;
@@ -176,8 +182,8 @@ void BSplineFreeFormTransformationSV::Initialize(const ImageAttributes &attr)
 
 // -----------------------------------------------------------------------------
 void BSplineFreeFormTransformationSV::Initialize(const ImageAttributes &attr,
-                                                     double dx, double dy, double dz,
-                                                     const Transformation *dof)
+                                                 double dx, double dy, double dz,
+                                                 const Transformation *dof)
 {
   // Initialize free-form deformation (for extended image grid)
   //
