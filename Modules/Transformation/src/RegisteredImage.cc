@@ -523,7 +523,7 @@ void RegisteredImage::ComputeInputHessian(double sigma)
   filter.Run();
   hessian->PutTSize(.0);
   hessian->PutBackgroundValueAsDouble(.0);
-  _InputHessian = hessian.get();
+  _InputHessian = hessian.release();
   MIRTK_DEBUG_TIMING(5, "computation of 2nd order image derivatives");
 }
 
