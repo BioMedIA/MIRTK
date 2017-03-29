@@ -59,7 +59,7 @@ public:
   virtual const char *NameOfClass() const = 0;
 
   /// Destructor
-  virtual ~Object() = default;
+  virtual ~Object();
 
   /// Set parameter value from string
   ///
@@ -117,6 +117,11 @@ protected:
 // =============================================================================
 // Inline definitions
 // =============================================================================
+
+// -----------------------------------------------------------------------------
+inline Object::~Object()
+{
+}
 
 // -----------------------------------------------------------------------------
 inline const char *Object::NameOfType()
