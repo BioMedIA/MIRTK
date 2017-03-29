@@ -39,6 +39,7 @@ set(HEADERS
   IntensityCrossCorrelation.h
   JointImageEntropy.h
   LabelConsistency.h
+  MeanSquaredDisplacementError.h
   MutualImageInformation.h
   NormalizedGradientFieldSimilarity.h
   NormalizedIntensityCrossCorrelation.h
@@ -66,6 +67,7 @@ set(SOURCES
   IntensityCrossCorrelation.cc
   JointImageEntropy.cc
   LabelConsistency.cc
+  MeanSquaredDisplacementError.cc
   MutualImageInformation.cc
   NormalizedGradientFieldSimilarity.cc
   NormalizedIntensityCrossCorrelation.cc

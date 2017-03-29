@@ -52,6 +52,7 @@
 
 #include "mirtk/ImageSimilarity.h"
 #include "mirtk/TransformationConstraint.h"
+#include "mirtk/MeanSquaredDisplacementError.h"
 
 #if MIRTK_Registration_WITH_PointSet
 #  include "mirtk/RegisteredPointSet.h"
@@ -913,6 +914,8 @@ void GenericRegistrationFilter::Reset()
   InterpolationMode(Interpolation_Default);
   ExtrapolationMode(Extrapolation_Default);
   _TransformationModel.clear();
+  _TargetTransformationErrorWeight     = 0.;
+  _TargetTransformationErrorName       = "MSDE";
   _NumberOfLevels                      = -1;
   _FinalLevel                          = 1;
   _MultiLevelMode                      = MFFD_Default;
@@ -2122,11 +2125,35 @@ Vector3D<double> GenericRegistrationFilter::AverageOutputResolution(int level) c
       res = _Resolution[level][0];
       num = 1;
     } else {
-      double d = 1.0;
-      if (level > 0) d *= pow(2.0, level - 1);
-      if (_RegistrationDomain._x > 1) res._x = d;
-      if (_RegistrationDomain._y > 1) res._y = d;
-      if (_RegistrationDomain._z > 1) res._z = d;
+      const FreeFormTransformation *ffd = nullptr;
+      if (_TargetTransformation) {
+        if (!IsLinear(_TransformationModel)) {
+          res._x = _MinControlPointSpacing[level][0];
+          res._y = _MinControlPointSpacing[level][1];
+          res._z = _MinControlPointSpacing[level][2];
+        } else {
+          const MultiLevelTransformation *mffd;
+          mffd = dynamic_cast<const MultiLevelTransformation *>(_TargetTransformation);
+          if (mffd) {
+            if (mffd->NumberOfLevels() > 0) {
+              ffd = mffd->GetLocalTransformation(-1);
+            }
+          } else {
+            ffd = dynamic_cast<const FreeFormTransformation *>(_TargetTransformation);
+          }
+        }
+      }
+      if (ffd) {
+        res._x = ffd->GetXSpacing();
+        res._y = ffd->GetYSpacing();
+        res._z = ffd->GetZSpacing();
+      } else {
+        double d = 1.0;
+        if (level > 0) d *= pow(2.0, level - 1);
+        if (_RegistrationDomain._x > 1) res._x = d;
+        if (_RegistrationDomain._y > 1) res._y = d;
+        if (_RegistrationDomain._z > 1) res._z = d;
+      }
       num = 1;
     }
   }
@@ -2185,6 +2212,7 @@ void GenericRegistrationFilter::ParseEnergyFormula(int nimages, int npsets, int 
                  " + 0 JAC[Jacobian penalty]"
                  " + 0 Sparsity";
     }
+    formula += " + 0 MSDE[Displacement error](T)";
   }
 
   // Parse registration energy function
@@ -2198,7 +2226,7 @@ void GenericRegistrationFilter::GuessParameter()
   const int _NumberOfImages    = NumberOfImages();
   const int _NumberOfPointSets = NumberOfPointSets();
 
-  if (_NumberOfImages == 0 && _NumberOfPointSets == 0) {
+  if (_NumberOfImages == 0 && _NumberOfPointSets == 0 && _TargetTransformation == nullptr) {
     cerr << "GenericRegistrationFilter::GuessParameter: Filter has no input data" << endl;
     exit(1);
   }
@@ -2438,7 +2466,24 @@ void GenericRegistrationFilter::GuessParameter()
         attrs.erase(pos);
       }
     }
-    if (attrs.size() == 0) {
+    if (attrs.empty()) {
+      if (_TargetTransformation) {
+        const FreeFormTransformation *ffd = nullptr;
+        const MultiLevelTransformation *mffd;
+        mffd = dynamic_cast<const MultiLevelTransformation *>(_TargetTransformation);
+        if (mffd) {
+          if (mffd->NumberOfLevels() > 0) {
+            ffd = mffd->GetLocalTransformation(-1);
+          }
+        } else {
+          ffd = dynamic_cast<const FreeFormTransformation *>(_TargetTransformation);
+        }
+        if (ffd) {
+          attrs.push_back(ffd->Attributes());
+        }
+      }
+    }
+    if (attrs.empty()) {
       cerr << "GenericRegistrationFilter::GuessParameter:";
       cerr << " Cannot determine domain of target input data!";
       cerr << " Is there any input given? If yes, try providing a mask image.";
@@ -4370,6 +4415,15 @@ void GenericRegistrationFilter::AddPenaltyTerm()
     constraint->Domain(attr);
     // Add constraint term to energy function
     _Energy.Add(constraint);
+  }
+  if (_TargetTransformationErrorWeight > 0.) {
+    UniquePtr<MeanSquaredDisplacementError> msde;
+    msde.reset(new MeanSquaredDisplacementError());
+    msde->Name  (_TargetTransformationErrorName);
+    msde->Weight(_TargetTransformationErrorWeight);
+    msde->Domain(attr);
+    msde->TargetTransformation(_TargetTransformation);
+    _Energy.Add(msde.release());
   }
 }
 

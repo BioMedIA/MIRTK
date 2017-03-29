@@ -500,8 +500,8 @@ protected:
     // Note: Name may be valid for more than just one type of energy term.
     //       Therefore, do not use "else if" below. Instead, decide which
     //       type of term it is later on when examining the term arguments.
-    enum              { SIM,   PDM,   PCM,   CM    };
-    bool term_is_[] = { false, false, false, false };
+    enum              { SIM,   PDM,   PCM,   CM   , MSDE  };
+    bool term_is_[] = { false, false, false, false, false };
 
     SimilarityMeasure       similarity = _Filter->_SimilarityMeasure;
     PointSetDistanceMeasure pdm        = _Filter->_PointSetDistanceMeasure;
@@ -509,13 +509,14 @@ protected:
 
     // InternalForceTerm enum only available when MIRTK_HAVE_Deformable
     // Hence, use EnergyMeasure enumeration of Common module instead
-    EnergyMeasure pcm;
-    term_is_[PCM] = (FromString(name.c_str(), pcm) && IFT_Begin < pcm && pcm < IFT_End);
-
-    term_is_[SIM] = ((name == "SIM") || FromString(name.c_str(), similarity));
-    term_is_[PDM] = ((name == "PDM") || FromString(name.c_str(), pdm));
-    term_is_[CM ] = (                   FromString(name.c_str(), constraint));
-    if (!term_is_[SIM] && !term_is_[PDM] && !term_is_[PCM] && !term_is_[CM]) {
+    EnergyMeasure measure;
+    FromString(name.c_str(), measure);
+    term_is_[PCM ] = (IFT_Begin < measure && measure < IFT_End);
+    term_is_[SIM ] = ((name == "SIM") || FromString(name.c_str(), similarity));
+    term_is_[PDM ] = ((name == "PDM") || FromString(name.c_str(), pdm));
+    term_is_[CM  ] = (                   FromString(name.c_str(), constraint));
+    term_is_[MSDE] = (measure == EM_MeanSquaredDisplacementError);
+    if (!term_is_[SIM] && !term_is_[PDM] && !term_is_[PCM] && !term_is_[CM] && !term_is_[MSDE]) {
       cout << endl;
       cerr << "Unknown energy term: " << name << endl;
       exit(1);
@@ -585,7 +586,7 @@ protected:
         if (token._Name == "T") {
           token = NextToken(in);
           if (token == RP) {
-            if (!term_is_[CM]) {
+            if (!term_is_[CM] && !term_is_[MSDE]) {
               cout << endl;
               cerr << "Transformation identifier cannot be only argument of energy term \"" << name << "\"," << endl;
               cerr << "which is not a (known) transformation constraint (i.e., regularization term)." << endl;
@@ -609,11 +610,12 @@ protected:
               exit(1);
             }
             token = NextToken(in);
-            term_is_[CM] = false;
+            term_is_[CM  ] = false;
+            term_is_[MSDE] = false;
           }
         }
         // ---------------------------------------------------------------------
-        if (term_is_[CM] && token == RP) {
+        if ((term_is_[CM] || term_is_[MSDE]) && token == RP) {
           // Term must be a transformation constraint
           term_is_[SIM] = false;
           term_is_[PDM] = false;
@@ -627,8 +629,9 @@ protected:
             cerr << "which is not a (known) pairwise image similarity term." << endl;
             exit(1);
           }
-          term_is_[PDM] = false;
-          term_is_[CM] = false;
+          term_is_[PDM]  = false;
+          term_is_[CM]   = false;
+          term_is_[MSDE] = false;
           // Composition with transformation from left not valid
           if (target_transformation) {
             cout << endl;
@@ -697,9 +700,6 @@ protected:
           source_is_image = true;
         // ---------------------------------------------------------------------
         } else if (!(target_index = InputIndex(in, token, name, POLYDATA, npsets)).empty()) {
-          // Term cannot be image similarity or transformation constraint
-          term_is_[SIM] = false;
-          term_is_[CM]  = false;
           // Term must be a point set distance or constraint
           if (!term_is_[PDM] && !term_is_[PCM]) {
             cout << endl;
@@ -707,6 +707,10 @@ protected:
             cerr << "which is neither a (known) pairwise point set distance or internal force term." << endl;
             exit(1);
           }
+          // Term cannot be image similarity or transformation constraint
+          term_is_[SIM]  = false;
+          term_is_[CM]   = false;
+          term_is_[MSDE] = false;
           // Target data set argument
           if (token == CIRC) {
             cout << endl;
@@ -810,7 +814,7 @@ protected:
             if (term_is_[SIM]) cerr << " or ";
             cerr << "point set";
           }
-          if (term_is_[CM]) {
+          if (term_is_[CM] || term_is_[MSDE]) {
             if (term_is_[SIM] || term_is_[PDM] || term_is_[PCM]) cerr << " or ";
             cerr << "transformation";
           }
@@ -826,7 +830,7 @@ protected:
       token = NextToken(in);
     }
     if (target_index.empty() && source_index.empty()) {
-      if (!term_is_[CM]) {
+      if (!term_is_[CM] && !term_is_[MSDE]) {
         cout << endl;
         cerr << "Expected ";
         if (term_is_[SIM]) cerr << "image";
@@ -845,7 +849,7 @@ protected:
     // Add energy term structure with parsed information
     if (term_is_[SIM]) {
 
-      if (term_is_[PDM] || term_is_[PCM] || term_is_[CM]) {
+      if (term_is_[PDM] || term_is_[PCM] || term_is_[CM] || term_is_[MSDE]) {
         cout << endl;
         cerr << "Ambiguous energy term: " << name << endl;
         exit(1);
@@ -902,9 +906,11 @@ protected:
         }
       }
 
-    } else if (term_is_[PDM]) {
+    }
 
-      if (term_is_[SIM] || term_is_[PCM] || term_is_[CM]) {
+    if (term_is_[PDM]) {
+
+      if (term_is_[SIM] || term_is_[PCM] || term_is_[CM] || term_is_[MSDE]) {
         cout << endl;
         cerr << "Ambiguous energy term: " << name << endl;
         exit(1);
@@ -961,9 +967,11 @@ protected:
         }
       }
 
-    } else if (term_is_[PCM]) {
+    }
 
-      if (term_is_[SIM] || term_is_[PDM] || term_is_[CM]) {
+    if (term_is_[PCM]) {
+
+      if (term_is_[SIM] || term_is_[PDM] || term_is_[CM] || term_is_[MSDE]) {
         cout << endl;
         cerr << "Ambiguous energy term: " << name << endl;
         exit(1);
@@ -986,7 +994,7 @@ protected:
             size_t s = (source_index.size() == 1 ? 0 : t);
             PointSetConstraintInfo info;
             info._Weight               = weight;
-            info._Measure              = pcm;
+            info._Measure              = measure;
             info._PointSetIndex        = target_index[t];
             info._Transformation       = target_transformation;
             if (source_is_image) {
@@ -1009,7 +1017,7 @@ protected:
           for (size_t s = 0; s < source_index.size(); ++s) {
             PointSetConstraintInfo info;
             info._Weight               = weight;
-            info._Measure              = pcm;
+            info._Measure              = measure;
             info._PointSetIndex        = target_index[0];
             info._Transformation       = target_transformation;
             if (source_is_image) {
@@ -1028,7 +1036,7 @@ protected:
         for (size_t t = 0; t < target_index.size(); ++t) {
           PointSetConstraintInfo info;
           info._Weight           = weight;
-          info._Measure          = pcm;
+          info._Measure          = measure;
           info._PointSetIndex    = target_index[t];
           info._Transformation   = target_transformation;
           info._RefPointSetIndex = -1;
@@ -1039,9 +1047,11 @@ protected:
         }
       }
 
-    } else if (term_is_[CM]) {
+    }
 
-      if (term_is_[SIM] || term_is_[PDM] || term_is_[PCM]) {
+    if (term_is_[CM]) {
+
+      if (term_is_[SIM] || term_is_[PDM] || term_is_[PCM] || term_is_[MSDE]) {
         cout << endl;
         cerr << "Ambiguous energy term: " << name << endl;
         exit(1);
@@ -1053,9 +1063,24 @@ protected:
       info._Name    = name;
       _Filter->_ConstraintInfo.push_back(info);
 
-    } else {
+    }
+
+    if (term_is_[MSDE]) {
+
+      if (term_is_[SIM] || term_is_[PDM] || term_is_[PCM] || term_is_[CM]) {
+        cout << endl;
+        cerr << "Ambiguous energy term: " << name << endl;
+        exit(1);
+      }
+
+      _Filter->TargetTransformationErrorName(name);
+      _Filter->TargetTransformationErrorWeight(weight);
+
+    }
+
+    if (!term_is_[SIM] && !term_is_[PDM] && !term_is_[PCM] && !term_is_[CM] && !term_is_[MSDE]) {
       cout << endl;
-      cerr << "Unknown energy term: " << name << endl;
+      cerr << "Unknown enery term: " << name << endl;
       exit(1);
     }
   }

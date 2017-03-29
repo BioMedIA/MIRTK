@@ -38,6 +38,7 @@
 #include "mirtk/RigidTransformation.h"
 #include "mirtk/SimilarityTransformation.h"
 #include "mirtk/AffineTransformation.h"
+#include "mirtk/LinearFreeFormTransformation3D.h"
 
 #if MIRTK_Registration_WITH_PointSet
 #  include "mirtk/PointSetIO.h"
@@ -655,6 +656,7 @@ int main(int argc, char **argv)
   const char *pset_list_name     = NULL;
   const char *dofin_name         = NULL;
   const char *dofout_name        = NULL;
+  const char *tgtdof_name        = NULL;
   const char *parin_name         = NULL;
   const char *parout_name        = NULL;
   const char *mask_name          = NULL;
@@ -732,6 +734,7 @@ int main(int argc, char **argv)
     else if (OPTION("-dofins")) dofin_list_name = ARGUMENT;
     else if (OPTION("-dofin" )) dofin_name      = ARGUMENT;
     else if (OPTION("-dofout")) dofout_name     = ARGUMENT;
+    else if (OPTION("-disp"))   tgtdof_name     = ARGUMENT;
     else if (OPTION("-mask"))   mask_name       = ARGUMENT;
     else HANDLE_BOOLEAN_OPTION("reset-mask", reset_mask);
     else if (OPTION("-nodebug-level-prefix")) {
@@ -1050,12 +1053,34 @@ int main(int argc, char **argv)
 #endif // MIRTK_Registration_WITH_PointSet
 
   // ---------------------------------------------------------------------------
+  // Read target transformation
+  UniquePtr<Transformation> tgtdof;
+  if (tgtdof_name) {
+    if (IsIdentity(tgtdof_name)) {
+      tgtdof.reset(new RigidTransformation());
+    } else {
+      if (Transformation::CheckHeader(tgtdof_name)) {
+        tgtdof.reset(Transformation::New(tgtdof_name));
+      } else {
+        GenericImage<double> disp(tgtdof_name);
+        if (disp.T() != 3) {
+          FatalError("Input -disp image must have 3 components/channels!");
+        }
+        tgtdof.reset(new LinearFreeFormTransformation3D(disp));
+      }
+    }
+    registration.TargetTransformation(tgtdof.get());
+  }
+
+  // ---------------------------------------------------------------------------
   // Read initial transformation
   UniquePtr<Transformation> dofin;
   if (dofin_name) {
     if (IsIdentity(dofin_name)) dofin.reset(new RigidTransformation());
     else                        dofin.reset(Transformation::New(dofin_name));
     registration.InitialGuess(dofin.get());
+  } else {
+    registration.InitialGuess(tgtdof.get());
   }
 
   // ---------------------------------------------------------------------------

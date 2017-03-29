@@ -178,8 +178,10 @@ void RegistrationEnergy::Initialize()
 
   // Initialize energy terms
   for (size_t i = 0; i < _Term.size(); ++i) {
-    _Term[i]->Transformation(_Transformation);
-    _Term[i]->Initialize();
+    if (IsActive(i)) {
+      _Term[i]->Transformation(_Transformation);
+      _Term[i]->Initialize();
+    }
   }
 
   // Adjust weight of sparsity constraint
@@ -245,7 +247,7 @@ bool RegistrationEnergy::Empty() const
 // -----------------------------------------------------------------------------
 bool RegistrationEnergy::IsActive(int i) const
 {
-  return _Term[i]->Weight() != 0.;
+  return !AreEqual(_Term[i]->Weight(), 0.);
 }
 
 // -----------------------------------------------------------------------------

@@ -278,6 +278,15 @@ public:
   /// Initial guess of optimal transformation
   mirtkPublicAggregateMacro(const Transformation, InitialGuess);
 
+  /// Target transformation to be approximated by output transformation
+  mirtkPublicAggregateMacro(const Transformation, TargetTransformation);
+
+  /// Name of target transformation MSDE term
+  mirtkPublicAttributeMacro(string, TargetTransformationErrorName);
+
+  /// Weight of target transformation MSDE term
+  mirtkPublicAttributeMacro(double, TargetTransformationErrorWeight);
+
   /// Whether to merge initial global transformation into (local) transformation
   mirtkPublicAttributeMacro(bool, MergeGlobalAndLocalTransformation);
 
