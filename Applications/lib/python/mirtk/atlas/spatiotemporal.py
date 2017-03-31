@@ -79,6 +79,8 @@ class SpatioTemporalAtlas(object):
         self.precision = int(regression.get('precision', 2))
         # Registration parameters
         registration = cfg.get("registration")
+        self.num_bch_terms = 3  # composition should be symmetric, e.g., 2, 3, or 5 terms
+        self.residual_svffds = registration.get("residual_svffds", True)
         self.age_specific_svffds = registration.get("age_specific_svffds", True)
         self.age_specific_imgdof = registration.get("age_specific_imgdof", True)
         self.reg_config = self._path(registration, "config", os.path.join(cfgdir, "register.cfg"))
@@ -308,7 +310,7 @@ class SpatioTemporalAtlas(object):
                 dof = dof1
             elif create:
                 makedirs(os.path.dirname(dof))
-                self._run("compose-dofs", args=[dof1, dof2, dof], opts={"bch": (6, True), "global": False})
+                self._run("compose-dofs", args=[dof1, dof2, dof], opts={"bch": self.num_bch_terms, "global": False})
         return dof
 
     def svffds(self, step=-1, force=False, create=True, queue=None):
@@ -396,7 +398,7 @@ class SpatioTemporalAtlas(object):
             step = self.step
         t1 = self.normtime(t1)
         t2 = self.normtime(t2)
-        if t1 == t2:
+        if t1 == t2 or not self.residual_svffds:
             return "identity"
         dof = os.path.join(self.subdir(step), "dof", "growth", "{0}.dof.gz".format(self.timename(t1, t2)))
         if step < 1:
@@ -410,7 +412,7 @@ class SpatioTemporalAtlas(object):
             if dofs[1] == "identity":
                 del dofs[1]
             makedirs(os.path.dirname(dof))
-            self._run("compose-dofs", args=dofs + [dof], opts={"scale": -1., "bch": (6, True), "global": False})
+            self._run("compose-dofs", args=dofs + [dof], opts={"scale": -1., "bch": self.num_bch_terms, "global": False})
         return dof
 
     def compose(self, step=-1, ages=[], allpairs=False, force=False, create=True, queue=None):
@@ -452,7 +454,8 @@ class SpatioTemporalAtlas(object):
                     growth = self.growth(self.age(imgid), t, step=step - 1, force=force, create=create and not batch)
                     if growth != "identity":
                         dofs.append(growth)
-                dofs.append(self.avgdof(t, step=step, force=force, create=create and not batch))
+                if self.residual_svffds:
+                    dofs.append(self.avgdof(t, step=step, force=force, create=create and not batch))
                 if decomposed:
                     dof = dofs
                 elif create:
@@ -569,9 +572,10 @@ class SpatioTemporalAtlas(object):
             if queue[1]:
                 self.wait(result[-1], interval=60, verbose=5)
             # Compute all required average deformations
-            result = self.avgdofs(step=step, force=force, queue=queue[0])
-            if queue[0]:
-                self.wait(result[-1], interval=60, verbose=2)
+            if self.residual_svffds:
+                result = self.avgdofs(step=step, force=force, queue=queue[0])
+                if queue[0]:
+                    self.wait(result[-1], interval=60, verbose=2)
             # Compute all required longitudinal deformations
             if self.age_specific_svffds or self.age_specific_imgdof:
                 result = self.compose(step=step, force=force, queue=queue[0])
