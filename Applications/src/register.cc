@@ -742,7 +742,9 @@ int main(int argc, char **argv)
     }
     // Parameter
     else if (OPTION("-par")) {
-      Insert(params, ARGUMENT, ARGUMENT);
+      const char *param = ARGUMENT;
+      const char *value = ARGUMENT;
+      Insert(params, param, value);
     }
     else if (OPTION("-parin" )) {
       parin_name = ARGUMENT;
