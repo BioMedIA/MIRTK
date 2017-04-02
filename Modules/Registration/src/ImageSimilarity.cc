@@ -421,8 +421,7 @@ void ImageSimilarity::Initialize()
 // -----------------------------------------------------------------------------
 bool ImageSimilarity::SetWithoutPrefix(const char *param, const char *value)
 {
-
-  if (strcmp(param, "Foreground") == 0 || strcmp(param, "Foreground region")) {
+  if (strcmp(param, "Foreground") == 0 || strcmp(param, "Foreground region") == 0) {
     return FromString(value, _Foreground);
   }
   if (strcmp(param, "Approximate gradient") == 0) {
@@ -470,7 +469,6 @@ bool ImageSimilarity::SetWithoutPrefix(const char *param, const char *value)
     _Source->MaxGradientMagnitude(norm);
     return true;
   }
-
   return DataFidelity::SetWithoutPrefix(param, value);
 }
 
