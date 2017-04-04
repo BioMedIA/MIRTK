@@ -296,10 +296,6 @@ public:
               //       or one edge of the first triangle intersects an edge of
               //       the second triangle.
             }
-            // TODO: Re-implement using own function of mirtk::Triangle,
-            //       re-using already computed normals and b values.
-            //       Also to not use this "private" function of the
-            //       vtkIntersectionPolyDataFilter.
             else if (Triangle::TriangleTriangleIntersection(tri1[0], tri1[1], tri1[2],
                                                             tri2[0], tri2[1], tri2[2],
                                                             coplanar, p1, p2)) {
@@ -399,8 +395,7 @@ public:
   /// Find collision and self-intersections
   static void Run(SurfaceCollisions  *filter,
                   IntersectionsArray *intersections,
-                  CollisionsArray    *collisions,
-                  bool                fast = false)
+                  CollisionsArray    *collisions)
   {
     vtkDataArray *radius = filter->GetRadiusArray();
     vtkSmartPointer<vtkAbstractPointLocator> locator;
