@@ -84,6 +84,7 @@ class SpatioTemporalAtlas(object):
         self.age_specific_svffds = registration.get("age_specific_svffds", True)
         self.age_specific_imgdof = registration.get("age_specific_imgdof", True)
         self.reg_config = self._path(registration, "config", os.path.join(cfgdir, "register.cfg"))
+        self.reg_wsim = registration.get("wsim", [.125, .25, .5, 1.])
         # Other workflow execution settings
         self.verbose = verbose
         self.threads = threads
@@ -97,7 +98,12 @@ class SpatioTemporalAtlas(object):
         else:
             threads = self.threads
             if "verbose" not in opts:
-                opts["verbose"] = self.verbose - 2
+                if isinstance(opts, list):
+                    opts.append(("verbose", self.verbose - 2))
+                else:
+                    opts["verbose"] = self.verbose - 2
+            if self.verbose > 1:
+                sys.stdout.write("\n\n")
         mirtk.run(command, args=args, opts=opts, verbose=self.verbose - 1, threads=threads)
 
     def _submit(self, name, script, tasks=-1, opts={}, step=-1, queue=None):
@@ -291,12 +297,14 @@ class SpatioTemporalAtlas(object):
                     if affdof != "identity":
                         args.extend(["-dof", affdof])
                     args.extend(["-image", self.avgimg(t, step=step - 1, create=not batch)])
-                    opts = {
-                        "parin": self.reg_config,
-                        "mask": self.refimg,
-                        "dofin": "identity",
-                        "dofout": dof
-                    }
+                    opts = [
+                        ("parin", self.reg_config),
+                        ("mask", self.refimg),
+                        ("dofin", "identity"),
+                        ("dofout", dof)
+                    ]
+                    if 0 < step and step <= len(self.reg_wsim):
+                        opts.append(("par", "Image similarity weight", self.reg_wsim[step - 1]))
                     makedirs(os.path.dirname(dof))
                     self._run("register", args=args, opts=opts)
         else:
