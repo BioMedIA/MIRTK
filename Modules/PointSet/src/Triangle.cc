@@ -230,7 +230,9 @@ bool Triangle
                                        const_cast<double *>(c2),
                                        coplanar, p1, p2) != 0;
   #else
-    double surfaceid[2], tol = 0.;
+    // Tolerance value must not be close to zero
+    // See https://gitlab.kitware.com/vtk/vtk/issues/17012
+    double surfaceid[2], tol = 1e-6;
     return vtkIntersectionPolyDataFilter
         ::TriangleTriangleIntersection(const_cast<double *>(a1),
                                        const_cast<double *>(b1),
