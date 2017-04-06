@@ -61,6 +61,7 @@
 
 // I/O
 #include "mirtk/Indent.h"
+#include "mirtk/Stream.h"
 #include "mirtk/Cfstream.h"
 
 // Testing
