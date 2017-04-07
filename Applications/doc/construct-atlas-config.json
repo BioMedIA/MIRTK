@@ -1,0 +1,79 @@
+{
+    "paths": {
+        "topdir": "..",
+        "agecsv": "config/ages.csv",
+        "imgcsv": "config/subjects.csv",
+        "outdir": "atlas",
+        "tmpdir": "cache"
+    },
+    "images": {
+        "t1w": {
+            "prefix": "images/t1w/",
+            "suffix": ".nii.gz",
+            "interp": "linear",
+            "bkgrnd": 0
+        },
+        "t2w": {
+            "prefix": "images/t2w/",
+            "suffix": ".nii.gz",
+            "interp": "linear",
+            "bkgrnd": 0
+        },
+        "tissues": {
+            "prefix": "labels/tissues/",
+            "suffix": ".nii.gz",
+            "labels": "1..9",
+            "interp": "nn"
+        },
+        "structures": {
+            "prefix": "labels/structures/",
+            "suffix": ".nii.gz",
+            "labels": "1..87",
+            "interp": "nn"
+        },
+        "ref": "global/avg/t2w.nii.gz"
+    },
+    "registration": {
+        "affine": {
+            "prefix": "global/dof/",
+            "suffix": ".dof.gz"
+        },
+        "config": [
+            {
+                "model": "SVFFD",
+                "energy": "sym",
+                "channels": ["t2w", "tissues=3"],
+                "measures": ["NMI", "SSD"],
+                "window": "7 vox",
+                "levels": 4,
+                "resolution": 0.5,
+                "blurring": {"tissues": 1},
+                "spacing": 2.5,
+                "bending": 1e-2,
+                "jacobian": 1e-6
+            },
+            {
+                "bending": 1e-3,
+                "jacobian": 1e-6
+            }
+        ],
+        "growth": {
+            "enabled": true,
+            "exclavg": false,
+            "bchterms": 3
+        }
+    },
+    "regression": {
+        "means": [36, 37, 38, 39, 40, 41, 42, 43, 44],
+        "sigma": [1.64, 1.31, 1.0, 0.77, 0.64, 0.73, 0.86, 1.18, 1.5],
+        "epsilon": 0.01,
+        "precision": 2
+    },
+    "condor": {
+        "requirements": [
+            "Arch == \"X86_64\"",
+            "OpSysShortName == \"Ubuntu\"",
+            "OpSysMajorVer >= 14"
+        ]
+    }
+}
