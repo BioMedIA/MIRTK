@@ -20,11 +20,11 @@ from datetime import datetime
 class SpatioTemporalAtlas(object):
     """Spatio-temporal image and deformation atlas
 
-    Configuration entries such as file and directory paths, atlas time
+    Configuration entries such as file and directory paths, final atlas time
     points (means) and corresponding temporal kernel width/standard deviation
-    (sigma) must be given as dictionary, usually read from JSON file.
+    (sigma) are read from a JSON configuration file.
 
-    The `construct` function performs the atlas construction steps.
+    The `construct` function performs the group-wise atlas construction.
     Template images for each atlas time point specified in the configuration
     are written to the configured `outdir`. At intermediate steps, an average
     image is created for each time point associated with an image in the
@@ -42,31 +42,36 @@ class SpatioTemporalAtlas(object):
         path = paths.get(name, default)
         return os.path.normpath(os.path.join(self.topdir, path)) if path else None
 
-    def __init__(self, config, step=-1, verbose=1, threads=0):
+    def __init__(self, config, root=None, step=-1, verbose=1, threads=0):
         """Load spatio-temporal atlas configuration."""
         self.step = step
-        self.config = os.path.abspath(config)
-        with open(self.config, "rt") as f:
-            cfg = json.load(f)
+        if isinstance(config, str):
+            config = os.path.abspath(config)
+            with open(config, "rt") as f:
+                self.config = json.load(f)
+            self.root = os.path.dirname(config)
+        else:
+            self.config = config
+            if root:
+                self.root = os.path.abspath(root)
+            else:
+                self.root = os.getcwd()
         # Paths of image file and output of prior global normalization step
-        paths = cfg.get("paths", {})
-        cfgdir = os.path.dirname(self.config)
-        self.topdir = os.path.normpath(os.path.join(cfgdir, paths.get("topdir", ".")))
-        self.agecsv = self._path(paths, "agecsv", os.path.join(cfgdir, "ages.csv"))
-        self.imgcsv = self._path(paths, "imgcsv", os.path.join(cfgdir, "subjects.csv"))
+        paths = self.config.get("paths", {})
+        images = self.config.get("images", {})
+        self.topdir = os.path.normpath(os.path.join(self.root, paths.get("topdir", ".")))
+        self.agecsv = self._path(paths, "agecsv", os.path.join(self.topdir, "config", "ages.csv"))
+        self.imgcsv = self._path(paths, "imgcsv", os.path.join(self.topdir, "config", "subjects.csv"))
         self.imgage = read_ages(self.agecsv)
         self.imgids = read_imgids(self.imgcsv)
-        self.imgdir = self._path(paths, "imgdir", "images")
-        self.imgpre = paths.get("imgpre", "")
-        self.imgsuf = paths.get("imgsuf", ".nii.gz")
-        self.affdir = self._path(paths, "affdir", None)
-        self.affpre = paths.get("affpre", "")
-        self.affsuf = paths.get("affsuf", ".dof")
         self.tmpdir = self._path(paths, "tmpdir", "cache")
         self.outdir = self._path(paths, "outdir", os.path.join(self.topdir, "templates"))
-        self.refimg = self._path(paths, "refimg", os.path.join(self.outdir, "linavg.nii.gz"))
+        self.refimg = self._path(images, "ref", os.path.join(self.topdir, "global", "average.nii.gz"))
+        self.channel = "t2w"
+        if len(self.config["images"]) == 1:
+            self.channel = self.config["images"].keys()[0]
         # Parameters of temporal kernel regressions
-        regression = cfg.get("regression", {})
+        regression = self.config.get("regression", {})
         self.means = [float(t) for t in regression['means']]
         self.sigma = regression.get("sigma", 1.)
         if isinstance(self.sigma, (tuple, list)):
@@ -78,21 +83,27 @@ class SpatioTemporalAtlas(object):
         self.epsilon = float(regression.get("epsilon", .001))
         self.precision = int(regression.get('precision', 2))
         # Registration parameters
-        registration = cfg.get("registration")
-        self.num_bch_terms = 3  # composition should be symmetric, e.g., 2, 3, or 5 terms
-        self.residual_svffds = registration.get("residual_svffds", True)
-        self.age_specific_svffds = registration.get("age_specific_svffds", True)
-        self.age_specific_imgdof = registration.get("age_specific_imgdof", True)
-        self.reg_config = self._path(registration, "config", os.path.join(cfgdir, "register.cfg"))
-        self.reg_wsim = registration.get("wsim", [.125, .25, .5, 1.])
+        regcfg = self.config.get("registration", {})
+        growth = regcfg.get("growth", {})
+        self.num_bch_terms = growth.get("bchterms", 3)  # composition should be symmetric, e.g., 2, 3, or 5 terms
+        self.age_specific_imgdof = growth.get("enabled", True)
+        if self.age_specific_imgdof:
+            self.age_specific_regdof = not growth.get("exclavg", False)
+        else:
+            self.age_specific_regdof = False
         # Other workflow execution settings
         self.verbose = verbose
         self.threads = threads
-        self.condor = cfg.get("condor", {})
+        # Discard images not required for any final time point
+        imgids = set()
+        for t in self.means:
+            imgids |= set(self.weights(mean=t).keys())
+        self.imgids = list(imgids)
+        self.imgids.sort()
 
     def _run(self, command, args=[], opts={}):
         """Execute MIRTK command."""
-        if command in ("edit-dofs"):
+        if command in ("edit-dofs", "em-hard-segmentation"):
             # These commands do not support the -threads option (yet)
             threads = 0
         else:
@@ -118,14 +129,15 @@ class SpatioTemporalAtlas(object):
         source += 'sys.path.insert(0, "{0}")\n'.format(os.path.dirname(os.path.dirname(mirtk.__file__)))
         source += 'sys.path.insert(0, "{0}")\n'.format(os.path.dirname(__file__))
         source += 'from {0} import SpatioTemporalAtlas\n'.format(os.path.splitext(os.path.basename(__file__))[0])
-        source += 'atlas = SpatioTemporalAtlas("{config}", step={step}, threads={threads}, verbose=3)\n'
+        source += 'atlas = SpatioTemporalAtlas(root="{root}", config={config}, step={step}, threads={threads}, verbose=3)\n'
         if tasks > 0:
             source += 'taskid = int(sys.argv[1])\n'
             source += 'if taskid < 0: sys.stderr.write("Invalid task ID\\n")\n'
         source += script
         source += 'else: sys.stderr.write("Invalid task ID\\n")\n'
         opts.update({
-            "config": self.config,
+            "root": self.root,
+            "config": repr(self.config),
             "step": step,
             "threads": self.threads
         })
@@ -136,7 +148,7 @@ class SpatioTemporalAtlas(object):
             else:
                 log = os.path.join(self.subdir(step), "log", name + "_$(Cluster).log")
             jobid = cbatch(name=jobname, script=source, tasks=tasks, opts=opts, log=log,
-                           requirements=self.condor.get("requirements", []), verbose=0)
+                           requirements=self.config.get("condor", {}).get("requirements", []), verbose=0)
         else:
             if tasks > 0:
                 log = os.path.join(self.subdir(step), "log", name + "_%A.%a.log")
@@ -202,7 +214,10 @@ class SpatioTemporalAtlas(object):
         else:
             t2 = self.normtime(t2)
         if t1 == t2:
-            return "t{0:05.{1}f}".format(self.normtime(t1), self.precision)
+            w = 2
+            if self.precision > 0:
+                w += self.precision + 1
+            return "t{0:0{1}.{2}f}".format(self.normtime(t1), w, self.precision)
         return "{0:s}-{1:s}".format(self.timename(t1), self.timename(t2), self.precision)
 
     def age(self, imgid):
@@ -222,7 +237,7 @@ class SpatioTemporalAtlas(object):
         if i == len(self.sigma) - 1:
             return self.sigma[i]
         else:
-            alpha = t - self.means[i]
+            alpha = (t - self.means[i]) / (self.means[i + 1] - self.means[i])
             return (1. - alpha) * self.sigma[i] + alpha * self.sigma[i + 1]
 
     def weight(self, t, mean, sigma=0, normalize=True, epsilon=None):
@@ -265,24 +280,186 @@ class SpatioTemporalAtlas(object):
             path = os.path.join(path, "i{0:02d}".format(step))
         return path
 
-    def image(self, imgid):
-        """Get absolute path of individual image from which atlas is constructed."""
-        return os.path.join(self.imgdir, self.imgpre + imgid + self.imgsuf)
-    
+    def splitchannel(self, channel=None):
+        """Split channel specification into name and label specification."""
+        if not channel:
+            channel = self.channel
+        if "=" in channel:
+            channel, label = channel.split("=")
+            try:
+                l = int(label)
+                label = l
+            except ValueError:
+                label = label.split(",")
+        else:
+            label = 0
+        return (channel, label)
+
+    def image(self, imgid, channel=None, label=0, force=False, create=True):
+        """Get absolute path of requested input image."""
+        if not channel:
+            channel = self.channel
+        cfg = self.config["images"][channel]
+        prefix = cfg["prefix"].replace("/", os.path.sep)
+        suffix = cfg.get("suffix", ".nii.gz")
+        img = os.path.normpath(os.path.join(self.topdir, prefix + imgid + suffix))
+        if label:
+            if isinstance(label, (tuple, list)):
+                lblstr = ','.join([str(l).strip() for l in label])
+            else:
+                lblstr = str(label).strip()
+            lblstr = lblstr.replace("..", "-")
+            msk = os.path.join(self.topdir, "masks", "{}_{}".format(channel, lblstr), imgid + ".nii.gz")
+            if create and (force or not os.path.exists(msk)):
+                makedirs(os.path.dirname(msk))
+                if not isinstance(label, list):
+                    label = [label]
+                self._run("calculate-element-wise", args=[img, "-label"] + label + ["-set", 1, "-pad", 0, "-out", msk, "binary"])
+            img = msk
+        return img
 
     def affdof(self, imgid):
         """Get absolute path of affine transformation of global normalization."""
-        if self.affdir:
-            return os.path.join(self.affdir, self.affpre + imgid + self.affsuf)
-        else:
+        cfg = self.config.get("registration", {}).get("affine", None)
+        if cfg is None:
             return "identity"
+        prefix = cfg["prefix"].replace("/", os.path.sep)
+        suffix = cfg.get("suffix", ".dof")
+        return os.path.normpath(os.path.join(self.topdir, prefix + imgid + suffix))
 
-    def svffd(self, imgid, t=None, step=-1, path=None, force=False, create=True, batch=False):
-        """Register atlas to specified image and return path of SV FFD file."""
+    def regcfg(self, step=-1, force=False, create=True):
+        """Write registration configuration file and return path."""
+        if step < 0:
+            step = self.step
+        parin = os.path.join(self.subdir(step), "config", "register.cfg")
+        if create and (force or not os.path.exists(parin)):
+            configs = self.config.get("registration", {}).get("config", {})
+            if not isinstance(configs, list):
+                configs = [configs]
+            cfg = {}
+            for i in range(step if step > 0 else len(configs)):
+                cfg.update(configs[i])
+            images = self.config["images"]
+            channels = cfg.get("channels", ["t2w"])
+            if not isinstance(channels, list):
+                channels = [channels]
+            if len(channels) == 0:
+                raise ValueError("Empty list of images/channels specified for registration!")
+            params = ["[default]"]
+            # transformation model
+            model = cfg.get("model", "SVFFD")
+            mffd, model = model.split(":") if ":" in model else "None", model
+            params.append("Transformation model = {}".format(model))
+            params.append("Multi-level transformation = {}".format(mffd))
+            # energy function
+            energy = cfg.get("energy", "sym" if "svffd" in model.lower() else "asym")
+            if energy.lower() in ("asym", "asymmetric"):
+                sim_term_type = 0
+            elif energy.lower() in ("ic", "inverseconsistent", "inverse-consistent"):
+                sim_term_type = 1
+            elif energy.lower() in ("sym", "symmetric"):
+                sim_term_type = 2
+            else:
+                sim_term_type = -1
+            if sim_term_type < 0:
+                formula = energy
+            else:
+                formula = ""
+                measures = cfg.get("measures", [])
+                if not isinstance(measures, list):
+                    measures = [measures]
+                if len(measures) < 0:
+                    measures = ["NMI"]
+                for c in range(len(channels)):
+                    target = 2 * c + 1
+                    source = 2 * c + 2
+                    measure = measures[c] if c < len(measures) else measures[-1]
+                    if sim_term_type == 2:
+                        term = "{sim}[{channel} sim](I({tgt}) o T^-0.5, I({src}) o T^0.5)"
+                    elif sim_term_type == 1:
+                        term = "{sim}[{channel} fwd-sim](I({tgt}) o T^-1, I({src})) + {sim}[{channel} bwd-sim](I({tgt}), I({src}) o T)"
+                    else:
+                        term = "{sim}[{channel} sim](I({tgt}), I({src}) o T)"
+                    if c > 0:
+                        formula += " + "
+                    formula += term.format(sim=measure, channel=channels[c].capitalize().replace("=", " "), tgt=target, src=source)
+            if "bending" in cfg:
+                formula += " + 0 BE[Bending energy](T)"
+            if "jacobian" in cfg:
+                formula += " + 0 JAC[Jacobian penalty](T)"
+            params.append("Energy function = " + formula)
+            params.append("No. of bins = {}".format(cfg.get("bins", 64)))
+            params.append("Local window size [box] = {}".format(cfg.get("window", "5 vox")))
+            params.append("No. of last function values = 10")
+            # resolution pyramid
+            spacings = cfg.get("spacing", [])
+            if not isinstance(spacings, list):
+                spacings = [spacings]
+            resolutions = cfg.get("resolution", [])
+            if not isinstance(resolutions, list):
+                resolutions = [resolutions]
+            blurring = cfg.get("blurring", {})
+            if isinstance(blurring, list):
+                blurring = {channels[0].split("=")[0]: blurring}
+            be_weights = cfg.get("bending", [0])
+            if not isinstance(be_weights, list):
+                be_weights = [be_weights]
+            lj_weights = cfg.get("jacobian", [0])
+            if not isinstance(lj_weights, list):
+                lj_weights = [lj_weights]
+            levels = cfg.get("levels", 0)
+            if levels <= 0:
+                levels = len(resolutions) if isinstance(resolutions, list) else 4
+            resolution = 0.
+            spacing = 0.
+            params.append("No. of resolution levels = {0}".format(levels))
+            params.append("Image interpolation mode = Linear with padding")
+            params.append("Downsample images with padding = Yes")
+            params.append("Image similarity foreground = Overlap")
+            params.append("Strict step length range = No")
+            params.append("Maximum streak of rejected steps = 2")
+            for level in range(1, levels + 1):
+                params.append("")
+                params.append("[level {}]".format(level))
+                resolution = float(resolutions[level - 1]) if level <= len(resolutions) else 2. * resolution
+                if resolution > 0.:
+                    params.append("Resolution [mm] = {}".format(resolution))
+                for c in range(len(channels)):
+                    target = 2 * c + 1
+                    source = 2 * c + 2
+                    image = images[self.splitchannel(channels[c])[0]]
+                    bkgrnd = float(image.get("bkgrnd", -1))
+                    params.append("Background value of image {0} = {1}".format(target, bkgrnd))
+                    bkgrnd = -1. if "labels" in image else 0.
+                    params.append("Background value of image {0} = {1}".format(source, bkgrnd))
+                for c in range(len(channels)):
+                    target = 2 * c + 1
+                    source = 2 * c + 2
+                    sigmas = blurring.get(self.splitchannel(channels[c])[0], [])
+                    if not isinstance(sigmas, list):
+                        sigmas = [sigmas]
+                    if len(sigmas) > 0:
+                        sigma = float(sigmas[level - 1] if level <= len(sigmas) else sigmas[-1])
+                        params.append("Blurring of image {0} [vox] = {1}".format(target, sigma))
+                spacing = float(spacings[level - 1]) if level <= len(spacings) else 2. * spacing
+                if spacing > 0.:
+                    params.append("Control point spacing = {0}".format(spacing))
+                be_weight = float(be_weights[level - 1] if level <= len(be_weights) else be_weights[-1])
+                params.append("Bending energy weight = {0}".format(be_weight))
+                lj_weight = float(lj_weights[level - 1] if level <= len(lj_weights) else lj_weights[-1])
+                params.append("Jacobian penalty weight = {0}".format(lj_weight))
+            # write -parin file for "register" command
+            makedirs(os.path.dirname(parin))
+            with open(parin, "wt") as f:
+                f.write("\n".join(params) + "\n")
+        return parin
+
+    def regdof(self, imgid, t=None, step=-1, path=None, force=False, create=True, batch=False):
+        """Register atlas to specified image and return path of transformation file."""
         if step < 0:
             step = self.step
         age = self.age(imgid)
-        if t is None or not self.age_specific_svffds:
+        if t is None or not self.age_specific_regdof:
             t = age
         if not path:
             path = os.path.join(self.subdir(step), "dof", "deformation", self.timename(t), "{0}.dof.gz".format(imgid))
@@ -292,23 +469,39 @@ class SpatioTemporalAtlas(object):
                 if step < 1:
                     dof = "identity"
                 elif create:
-                    args = ["-image", self.image(imgid)]
+                    configs = self.config.get("registration", {}).get("config", {})
+                    if not isinstance(configs, list):
+                        configs = [configs]
+                    cfg = {}
+                    for i in range(step if step > 0 else len(configs)):
+                        cfg.update(configs[i])
+                    args = []
                     affdof = self.affdof(imgid)
-                    if affdof != "identity":
-                        args.extend(["-dof", affdof])
-                    args.extend(["-image", self.avgimg(t, step=step - 1, create=not batch)])
-                    opts = [
-                        ("parin", self.reg_config),
-                        ("mask", self.refimg),
-                        ("dofin", "identity"),
-                        ("dofout", dof)
-                    ]
-                    if 0 < step and step <= len(self.reg_wsim):
-                        opts.append(("par", "Image similarity weight", self.reg_wsim[step - 1]))
+                    if affdof == "identity":
+                        affdof = None
+                    channels = cfg.get("channels", self.channel)
+                    if not isinstance(channels, list):
+                        channels = [channels]
+                    if len(channels) == 0:
+                        raise ValueError("Empty list of images/channels specified for registration!")
+                    for channel in channels:
+                        channel, label = self.splitchannel(channel)
+                        args.append("-image")
+                        args.append(self.image(imgid, channel=channel, label=label))
+                        if affdof:
+                            args.append("-dof")
+                            args.append(affdof)
+                        args.append("-image")
+                        args.append(self.avgimg(t, channel=channel, label=label, step=step - 1, create=not batch))
                     makedirs(os.path.dirname(dof))
-                    self._run("register", args=args, opts=opts)
+                    self._run("register", args=args, opts={
+                        "parin": self.regcfg(step=step, force=force, create=not batch),
+                        "mask": self.refimg,
+                        "dofin": "identity",
+                        "dofout": dof
+                    })
         else:
-            dof1 = self.svffd(imgid, t=age, step=step, force=force, create=create and not batch)
+            dof1 = self.regdof(imgid, t=age, step=step, force=force, create=create and not batch)
             dof2 = self.growth(age, t, step=step - 1, force=force, create=create and not batch)
             if dof1 == "identity" and dof2 == "identity":
                 dof = "identity"
@@ -321,7 +514,7 @@ class SpatioTemporalAtlas(object):
                 self._run("compose-dofs", args=[dof1, dof2, dof], opts={"bch": self.num_bch_terms, "global": False})
         return dof
 
-    def svffds(self, step=-1, force=False, create=True, queue=None):
+    def regdofs(self, step=-1, force=False, create=True, queue=None):
         """Register all images to their age-specific template."""
         if step < 0:
             step = self.step
@@ -330,13 +523,14 @@ class SpatioTemporalAtlas(object):
         tasks = 0
         dofs = {}
         for imgid in self.imgids:
-            dof = self.svffd(imgid, step=step, force=force, create=create and not queue)
+            dof = self.regdof(imgid, step=step, force=force, create=create and not queue)
             if dof != "identity" and queue and (force or not os.path.exists(dof)):
                 remove_or_makedirs(dof)
-                script += 'elif taskid == {taskid}: atlas.svffd("{imgid}", batch=True)\n'.format(taskid=tasks, imgid=imgid)
+                script += 'elif taskid == {taskid}: atlas.regdof("{imgid}", batch=True)\n'.format(taskid=tasks, imgid=imgid)
                 tasks += 1
             dofs[imgid] = dof
         if create and queue:
+            self.regcfg(step=step, force=force)  # create -parin file if missing
             return (dofs, self._submit("register".format(step), script=script, tasks=tasks, step=step, queue=queue))
         return dofs
 
@@ -348,17 +542,17 @@ class SpatioTemporalAtlas(object):
         all_dofs_are_identity = True
         for imgid in self.imgids:
             if imgid in weights:
-                if not self.age_specific_svffds or t == self.age(imgid):
-                    dof = self.svffd(imgid, t=t, step=step, force=force, create=create and not batch)
+                if not self.age_specific_regdof or t == self.age(imgid):
+                    dof = self.regdof(imgid, t=t, step=step, force=force, create=create and not batch)
                 else:
-                    dof = self.svffd(imgid, t=t, step=step, force=force, create=create, batch=batch)
+                    dof = self.regdof(imgid, t=t, step=step, force=force, create=create, batch=batch)
                 dofs.append((dof, weights[imgid]))
                 if dof != "identity":
                     all_dofs_are_identity = False
         if all_dofs_are_identity:
             table = "identity"
         elif len(dofs) > 0:
-            table = os.path.join(self.subdir(step), "etc", "{}-dofs.tsv".format(self.timename(t)))
+            table = os.path.join(self.subdir(step), "config", "{}-dofs.tsv".format(self.timename(t)))
             if create and (force or not os.path.exists(table)):
                 makedirs(os.path.dirname(table))
                 with open(table, "wt") as f:
@@ -406,7 +600,7 @@ class SpatioTemporalAtlas(object):
             step = self.step
         t1 = self.normtime(t1)
         t2 = self.normtime(t2)
-        if t1 == t2 or not self.residual_svffds:
+        if t1 == t2:
             return "identity"
         dof = os.path.join(self.subdir(step), "dof", "growth", "{0}.dof.gz".format(self.timename(t1, t2)))
         if step < 1:
@@ -456,14 +650,13 @@ class SpatioTemporalAtlas(object):
             if decomposed or (create and (force or not os.path.exists(dof))):
                 dofs = [
                     self.affdof(imgid),
-                    self.svffd(imgid, t, step=step, force=force, create=create and not batch)
+                    self.regdof(imgid, step=step, force=force, create=create and not batch)
                 ]
-                if not self.age_specific_svffds and self.age_specific_imgdof:
+                if self.age_specific_imgdof:
                     growth = self.growth(self.age(imgid), t, step=step - 1, force=force, create=create and not batch)
                     if growth != "identity":
                         dofs.append(growth)
-                if self.residual_svffds:
-                    dofs.append(self.avgdof(t, step=step, force=force, create=create and not batch))
+                dofs.append(self.avgdof(t, step=step, force=force, create=create and not batch))
                 if decomposed:
                     dof = dofs
                 elif create:
@@ -475,70 +668,204 @@ class SpatioTemporalAtlas(object):
                 dof = [dof] + ['identity'] * 2
         return dof
 
-    def imgtable(self, t, step=-1, decomposed=False, force=False, create=True, batch=False):
-        """Compute average and composite transformations to deform each image to the specified time point."""
-        table = os.path.join(self.subdir(step), "etc", "{}-imgs.tsv".format(self.timename(t)))
+    def defimg(self, imgid, t, channel=None, path=None, step=-1, force=False, create=True, batch=False):
+        """Transform sample image to atlas space at given time point."""
+        if not channel:
+            channel = self.channel
+        if not path:
+            path = os.path.join(self.subdir(step), channel, self.timename(t), imgid + ".nii.gz")
+        if create and (force or not os.path.exists(path)):
+            cfg = self.config["images"][channel]
+            img = self.image(imgid, channel=channel)
+            opts = {
+                "interp": cfg.get("interp", "linear"),
+                "target": self.refimg,
+                "dofin": self.imgdof(imgid=imgid, t=t, step=step, force=force, create=not batch),
+                "invert": True
+            }
+            if "bkgrnd" in cfg:
+                opts["source-padding"] = cfg["bkgrnd"]
+            if "labels" in cfg:
+                opts["labels"] = "all"
+            makedirs(os.path.dirname(path))
+            self._run("transform-image", args=[img, path], opts=opts)
+        return path
+
+    def defimgs(self, ages=[], channels=[], step=-1, force=False, create=True, queue=None):
+        """Transform all images to discrete set of atlas time points."""
+        if step < 0:
+            step = self.step
+        if not channels:
+            configs = self.config.get("registration", {}).get("config", {})
+            if not isinstance(configs, list):
+                configs = [configs]
+            cfg = {}
+            for i in range(step if step > 0 else len(configs)):
+                cfg.update(configs[i])
+            channels = cfg.get("channels", self.channel)
+            if not isinstance(channels, list):
+                channels = [channels]
+        if ages:
+            self.info("Deform images to discrete time points", step=step)
+            if not isinstance(ages, (tuple, list)):
+                ages = [ages]
+            ages = [self.normtime(t) for t in ages]
+        else:
+            self.info("Deform images to observed time points", step=step)
+            ages = self.ages()
+        script = ""
+        tasks = 0
+        imgs = {}       
+        for t in ages:
+            imgs[t] = {}
+            for channel in channels:
+                imgs[t][channel] = []     
+        for t in ages:
+            for channel in channels:
+                weights = self.weights(t)
+                if len(weights) == 0:
+                    raise Exception("No image has non-zero weight for t={}".format(t))
+                for imgid in self.imgids:
+                    if imgid in weights:
+                        img = self.defimg(imgid=imgid, t=t, channel=channel, step=step, force=force, create=create and not queue)
+                        if queue and (force or not os.path.exists(img)):
+                            remove_or_makedirs(img)
+                            script += 'elif taskid == {taskid}: atlas.defimg(imgid="{imgid}", t={t}, channel="{channel}", path="{path}", batch=True)\n'.format(
+                                taskid=tasks, t=t, imgid=imgid, channel=channel, path=img
+                            )
+                            tasks += 1
+                        imgs[t][channel].append(img)
+        if create and queue:
+            return (imgs, self._submit("defimgs", script=script, tasks=tasks, step=step, queue=queue))
+        return imgs
+
+    def imgtable(self, t, channel=None, step=-1, force=False, create=True, batch=False):
+        """Write image table with weights for average-images, and deform images to given time point."""
+        t = self.normtime(t)
+        if not channel:
+            channel = self.channel
+        image = self.config["images"][channel]
+        table = os.path.join(self.subdir(step), "config", "{t}-{channel}.tsv".format(t=self.timename(t), channel=channel))
         if create and (force or not os.path.exists(table)):
             weights = self.weights(t)
+            if len(weights) == 0:
+                raise Exception("No image has non-zero weight for t={}".format(t))
             makedirs(os.path.dirname(table))
             with open(table, "wt") as f:
                 f.write(self.topdir)
                 f.write("\n")
                 for imgid in self.imgids:
                     if imgid in weights:
-                        f.write(os.path.relpath(self.image(imgid), self.topdir))
-                        dofs = self.imgdof(imgid, t, step=step, decomposed=True, force=force, create=not batch)
-                        if isinstance(dofs, str):
-                            dofs = [dofs]
-                        for dof in dofs:
-                            if dof and dof != "identity":
-                                f.write("\t" + os.path.relpath(dof, self.topdir))
+                        img = self.defimg(t=t, imgid=imgid, channel=channel, step=step, force=force, create=not batch)
+                        f.write(os.path.relpath(img, self.topdir))
                         f.write("\t{0}\n".format(weights[imgid]))
         return table
 
-    def avgimg(self, t, path=None, step=-1, decomposed=False, force=False, create=True, batch=False):
+    def avgimg(self, t, channel=None, label=0, path=None, step=-1, force=False, create=True, batch=False):
         """Create average image for a given time point."""
+        if not channel:
+            channel = self.channel
+        cfg = self.config["images"][channel]
         if not path:
-            path = os.path.join(self.subdir(step), "img", "{0}.nii.gz".format(self.timename(t)))
+            path = os.path.join(self.subdir(step), channel, self.timename(t))
+            if label:
+                if isinstance(label, (tuple, list)):
+                    lblstr = ','.join([str(l).strip() for l in label])
+                else:
+                    lblstr = str(label).strip()
+                lblstr = lblstr.replace("..", "-")
+                path = os.path.join(path, "prob_{0}.nii.gz".format(lblstr))
+            elif "labels" in cfg:
+                path = os.path.join(path, "labels.nii.gz")
+            else:
+                path = os.path.join(path, "mean.nii.gz")
         if create and (force or not os.path.exists(path)):
-            table = self.imgtable(t, step=step, decomposed=decomposed, force=force, batch=batch)
             makedirs(os.path.dirname(path))
-            self._run("average-images", args=[path], opts={
-                "images": table,
-                "padding": 0,
-                "threshold": .5,
-                "reference": self.refimg,
-                "normalization": "zscore",
-                "rescaling": (0, 100),
-                "sharpen": True,
-                "dtype": "uchar"
-            })
+            if "labels" in cfg and not label:
+                labels = parselabels(cfg["labels"])
+                args = [self.avgimg(t, channel=channel, label=label, step=step, force=force, batch=batch) for label in labels]
+                self._run("em-hard-segmentation", args=[len(args)] + args + [path])
+            else:
+                table = self.imgtable(t, step=step, channel=channel, force=force, batch=batch)
+                opts = {
+                    "images": table,
+                    "reference": self.refimg,
+                    "rescaling": (0, 100),
+                    "dtype": "uchar"
+                }
+                if "bkgrnd" in cfg:
+                    opts["padding"] = float(cfg["bkgrnd"])
+                if "labels" in cfg:
+                    opts["label"] = label
+                else:
+                    opts["threshold"] = .5
+                    opts["normalization"] = "zscore"
+                    opts["sharpen"] = True
+                self._run("average-images", args=[path], opts=opts)
         return path
 
-    def avgimgs(self, step=-1, ages=[], outdir=None, decomposed=False, force=False, create=True, queue=None):
+    def avgimgs(self, step=-1, ages=[], channels=[], labels={}, outdir=None, force=False, create=True, queue=None):
         """Create all average images required for (parallel) atlas construction."""
         if step < 0:
             step = self.step
         if ages:
-            self.info("Create template for each specified time point", step=step)
+            self.info("Average images at discrete time points", step=step)
+            ages = [self.normtime(t) for t in ages]
         else:
-            self.info("Create template for each represented time point", step=step)
+            self.info("Average images at observed time points", step=step)
             ages = self.ages()
+        if not channels:
+            configs = self.config.get("registration", {}).get("config", {})
+            if not isinstance(configs, list):
+                configs = [configs]
+            cfg = {}
+            for i in range(step if step > 0 else len(configs)):
+                cfg.update(configs[i])
+            channels = cfg.get("channels", self.channel)
+            if not isinstance(channels, list):
+                channels = [channels]
+        if not isinstance(labels, dict):
+            dlabels = {}
+            for channel in channels:
+                dlabels[channel] = labels
+            labels = dlabels
         script = ""
         tasks = 0
-        imgs = {}            
+        imgs = {}
         for t in ages:
-            if outdir:
-                img = os.path.join(outdir, self.timename(t) + ".nii.gz")
-            else:
-                img = None
-            img = self.avgimg(t, path=img, step=step, decomposed=decomposed, force=force, create=create and not queue)
-            if queue and (force or not os.path.exists(img)):
-                script += 'elif taskid == {taskid}: atlas.avgimg({t}, path="{path}", decomposed={decomposed}, batch=True)\n'.format(
-                    taskid=tasks, t=t, path=img, decomposed=decomposed
-                )
-                tasks += 1
-            imgs[t] = img
+            imgs[t] = {}
+            for channel in channels:
+                imgs[t][channel] = []
+        for t in ages:
+            for channel in channels:
+                isseg = ("labels" in self.config["images"][channel])
+                if isseg:
+                    clabels = labels.get(channel, [0])
+                else:
+                    clabels = [0]
+                for label in clabels:
+                    if outdir:
+                        if isseg:
+                            if label:
+                                if isinstance(label, (tuple, list)):
+                                    lblstr = ','.join([str(l).strip() for l in label])
+                                else:
+                                    lblstr = str(label).strip()
+                                lblstr = lblstr.replace("..", "-")
+                                img = os.path.join(outdir, "pbmaps", channel, self.timename(t), "prob_" + lblstr + ".nii.gz")
+                            else:
+                                img = os.path.joint(outdir, "labels", channel, self.timename(t) + ".nii.gz")
+                        else:
+                            img = os.path.join(outdir, "templates", channel, self.timename(t) + ".nii.gz")
+                    else:
+                        img = None
+                    img = self.avgimg(t, channel=channel, label=label, path=img, step=step, force=force, create=create and not queue)
+                    if queue and (force or not os.path.exists(img)):
+                        script += 'elif taskid == {taskid}: atlas.avgimg(t={t}, channel="{channel}", label={label}, path="{path}", batch=True)\n'.format(
+                            taskid=tasks, t=t, channel=channel, label=repr(label), path=img
+                        )
+                        tasks += 1
+                    imgs[t][channel].append(img)
         if create and queue:
             return (imgs, self._submit("avgimgs", script=script, tasks=tasks, step=step, queue=queue))
         return imgs
@@ -564,41 +891,46 @@ class SpatioTemporalAtlas(object):
         if start < 0:
             raise ValueError("Atlas to be constructed must have step index >= 0!")
         self.info("Performing {0} iterations starting with step {1}".format(niter, start))
-        self.info("Average age-dependent deformations: {}".format(self.age_specific_svffds))
         self.info("Age-dependent image deformations:   {}".format(self.age_specific_imgdof))
+        self.info("Average age-dependent deformations: {}".format(self.age_specific_regdof))
         if not queue:
             queue = (None, None)
         elif not isinstance(queue, (list, tuple)):
             queue = (queue, queue)  # queues for (short, long) running jobs
         for step in range(start + 1, start + niter + 1):
-            # Create template images using the current/initial transformations
-            result = self.avgimgs(step=step - 1, decomposed=True, force=force, queue=queue[0])
+            # Deform images to atlas space
+            result = self.defimgs(step=step - 1, force=force, queue=queue[0])
+            if queue[0]:
+                self.wait(result[-1], interval=30, verbose=1)
+            # Average images in atlas space
+            result = self.avgimgs(step=step - 1, force=force, queue=queue[0])
             if queue[0]:
                 self.wait(result[-1], interval=60, verbose=2)
             # Register all images to the current template images
-            result = self.svffds(step=step, force=force, queue=queue[1])
+            result = self.regdofs(step=step, force=force, queue=queue[1])
             if queue[1]:
                 self.wait(result[-1], interval=60, verbose=5)
             # Compute all required average deformations
-            if self.residual_svffds:
-                result = self.avgdofs(step=step, force=force, queue=queue[0])
-                if queue[0]:
-                    self.wait(result[-1], interval=60, verbose=2)
+            result = self.avgdofs(step=step, force=force, queue=queue[0])
+            if queue[0]:
+                self.wait(result[-1], interval=60, verbose=2)
             # Compute all required longitudinal deformations
-            if self.age_specific_svffds or self.age_specific_imgdof:
+            if self.age_specific_regdof or self.age_specific_imgdof:
                 result = self.compose(step=step, force=force, queue=queue[0])
                 if queue[0]:
                     self.wait(result[-1], interval=30, verbose=1)
         # Write final template images to specified directory
         if not outdir:
             outdir = self.outdir
-        self.info("Creating final mean shape and intensity templates")
-        result = self.avgimgs(outdir=outdir, ages=self.means, step=start + niter,
-                              decomposed=True, force=force, queue=queue[0])
+        self.step = start + niter
+        self.info("Creating final mean shape templates")
+        result = self.defimgs(ages=self.means, force=force, queue=queue[0])
+        if queue[0]:
+            self.wait(result[-1], interval=30, verbose=1)
+        result = self.avgimgs(ages=self.means, force=force, queue=queue[0], outdir=outdir)
         if queue[0]:
             self.wait(result[-1], interval=60, verbose=2)
         self.info("Finished atlas construction!")
-        self.step = start + niter
 
     def template(self, i):
         """Get absolute path of i-th template image."""
@@ -692,7 +1024,7 @@ class SpatioTemporalAtlas(object):
                             if dof != "identity":
                                 args.extend(["-dof", dof])
             if create:
-                self._run("average-images", args=args, opts={"reference": self.refimg, "dtype": "uchar", "padding": 0})
+                self._run("average-images", args=args, opts={"reference": self.refimg, "dtype": "uchar", "padding": self.bgvalue})
         return path
 
     def view(self, i=None):
@@ -1148,3 +1480,22 @@ def remove_or_makedirs(path):
         os.remove(path)
     else:
         makedirs(os.path.dirname(path))
+
+
+# ----------------------------------------------------------------------------
+def parselabels(labels):
+    """Parse labels specification."""
+    values = []
+    if isinstance(labels, str) and "," in labels:
+        labels = labels.split(",")
+    if isinstance(labels, (tuple, list)):
+        for label in labels:
+            values.extend(parselabels(label))
+    else:
+        m = re.match("([0-9]+)..([0-9]+)", labels)
+        if m:
+            values.extend(range(int(m.group(1)), int(m.group(2)) + 1))
+        else:
+            values.append(int(labels))
+    return values
+

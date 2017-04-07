@@ -1,6 +1,8 @@
 #!/usr/bin/python
 
 import os
+import sys
+import json
 import argparse
 
 from mirtk.atlas.spatiotemporal import SpatioTemporalAtlas
@@ -12,16 +14,42 @@ if __name__ == '__main__':
         To construct a spatio-temporal atlas, images of subjects at different ages spread over
         the atlas time range are required.""")
     parser.add_argument("config", help="JSON file with atlas configuration.")
+    parser.add_argument("-a", "--ages", "--means", dest="means", type=float, nargs="+",
+                        help="Discrete time points for which to construct atlas.")
+    parser.add_argument("-s", "--sigma", dest="sigma", type=float, default=1., nargs="+",
+                        help="Standard deviation of temporal kernel(s).")
+    parser.add_argument("-o", "--output", "--outdir", dest="outdir",
+                        help="Output directory of final atlas.")
+    parser.add_argument("-w", "--workdir", "--tmpdir", dest="tmpdir",
+                        help="Working directory for intermediate files.")
+    parser.add_argument("-e", "--energy", type=str,
+                        help="Energy function of image registration (e.g., 'asym', sym', 'ic').")
+    parser.add_argument("-c", "--channels", nargs="+", type=str,
+                        help="Images to use for multi-channel registration.")
+    parser.add_argument("-m", "--measures", nargs="+", type=str,
+                        help="Image (dis-)similarity measure to use for each channel.")
+    parser.add_argument("-b", "--bending", nargs="+", type=float,
+                        help="Bending energy weight for each step.")
+    parser.add_argument("--bins", default=64, type=int,
+                        help="No. of bins to use for histogram-based measures.")
+    parser.add_argument("--window", default=5, type=int,
+                        help="Local window size for NCC measure in voxels.")
+    parser.add_argument("-j", "--jacobian", nargs="+", type=float,
+                        help="Jacobian penalty weight for each step.")
+    parser.add_argument("--bch-terms", dest="bchterms", default=3, type=int,
+                        help="No. of BCH terms to use for composition of SV FFDs.")
+    parser.add_argument("-g", "--growth", default=True, type=bool,
+                        help="Whether to joinedly estimate mean shape and change.")
     parser.add_argument("-i", "--start", dest="start", default=0, type=int,
                         help="Continue construction after the specified step.")
     parser.add_argument("-n", "--steps", dest="steps", default=10, type=int,
                         help="Number of steps of iterative atlas construction/refinement.")
-    parser.add_argument("-t", "--threads", default=8, type=int,
-                        help="Maximum number of CPU cores/threads to use.")
     parser.add_argument("-q", "--queue", default=None,
                         help="Name of batch system queue. Use 'condor' for HTCondor. Otherwise, the argument is assumed to be the name of a SLURM partition.")
     parser.add_argument("--short-queue", default=None,
                         help="Name of batch system queue to use for short running jobs (about 1-30 min).")
+    parser.add_argument("-t", "--threads", default=8, type=int,
+                        help="Maximum number of CPU cores/threads to use.")
     parser.add_argument("-v", "--verbose", default=1, type=int,
                         help="Verbosity level of output messages: 0) no output, 1) report progress, 2) print command arguments.")
     #parser.add_argument("--debug", default=2, type=int,
@@ -29,5 +57,64 @@ if __name__ == '__main__':
     args = parser.parse_args()
     if not args.short_queue:
         args.short_queue = args.queue
-    atlas = SpatioTemporalAtlas(args.config, threads=args.threads, verbose=args.verbose)
+    args.config = os.path.abspath(args.config)
+    root = os.path.dirname(args.config)
+    with open(args.config, "rt") as f:
+        config = json.load(f)
+    # paths
+    if "paths" not in config:
+        config["paths"] = {
+            "topdir": os.getcwd()
+        }
+    if args.outdir:
+        config["paths"]["outdir"] = os.path.abspath(args.outdir)
+    if args.tmpdir:
+        config["paths"]["tmpdir"] = os.path.abspath(args.tmpdir)
+    # registration parameters
+    if "registration" not in config:
+        config["registration"] = {"config": [{}], "growth": {}}
+    elif "config" not in config["registration"]:
+        config["registration"]["config"] = [{}]
+    elif not isinstance(config["registration"]["config"], list):
+        config["registration"]["config"] = [config["registration"]["config"]]
+    regcfg = config["registration"]["config"]
+    for cfg in regcfg:
+        if args.energy:
+            cfg["energy"] = args.energy
+        if args.channels:
+            cfg["channels"] = args.channels
+        if args.measures:
+            cfg["measures"] = args.measures
+        if args.bins:
+            cfg["bins"] = args.bins
+        if args.window:
+            cfg["window"] = args.window
+    if args.bending:
+        for i in range(max(len(regcfg), len(args.bending))):
+            if i >= len(regcfg):
+                regcfg.append({})
+            regcfg[i]["bending"] = args.bending[i] if i < len(args.bending) else args.bending[-1]
+    if args.jacobian:
+        for i in range(max(len(regcfg), len(args.jacobian))):
+            if i >= len(regcfg):
+                regcfg.append({})
+            regcfg[i]["jacobian"] = args.jacobian[i] if i < len(args.jacobian) else args.jacobian[-1]
+    # longitudinal growth modeling
+    if "growth" not in config["registration"]:
+        config["registration"]["growth"] = {}
+    if args.bchterms:
+        config["registration"]["growth"]["bchterms"] = args.bchterms
+    if args.growth:
+        config["registration"]["growth"]["enabled"] = args.growth
+    # regression kernels
+    if "regression" not in config:
+        config["regression"] = {}
+    if args.means:
+        config["regression"]["means"] = args.means
+        config["regression"]["sigma"] = args.sigma
+    if args.verbose > 3:
+        json.dump(config, sys.stdout, indent=4, separators=(',', ': '))
+        sys.stdout.write("\n")
+        sys.stdout.flush()
+    atlas = SpatioTemporalAtlas(config=config, root=root, threads=args.threads, verbose=args.verbose)
     atlas.construct(start=args.start, niter=args.steps - args.start, queue=[args.short_queue, args.queue])
