@@ -622,6 +622,9 @@ int main(int argc, char **argv)
 
     // Read source image
     UniquePtr<BaseImage> source(BaseImage::New(input_name));
+    if (dtype == MIRTK_VOXEL_UNKNOWN) {
+      dtype = static_cast<ImageDataType>(source->GetDataType());
+    }
 
     // Instantiate image interpolator
     UniquePtr<InterpolateImageFunction> interpolator;
