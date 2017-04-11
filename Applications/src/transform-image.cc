@@ -66,10 +66,14 @@ void PrintHelp(const char *name)
   cout << "      Append transformation to composition or 'Id'/'Identity'. (default: Id)\n";
   cout << "      This option can be given multiple times and/or accepts multiple arguments.\n";
   cout << "      The transformations are composed from left to right, i.e., when the arguments\n";
-  cout << "      are \"rig.dof aff.dof ffd.dof.gz\", the target image point is first mapped by\n";
-  cout << "      the \"rig.dof\" transformation, then \"aff.dof\", and finally \"ffd.dof.gz\".\n";
+  cout << "      are \"ffd.dof.gz aff.dof rig.dof\", the target image point is first mapped by\n";
+  cout << "      the \"ffd.dof.gz\" transformation, then \"aff.dof\", and finally \"rig.dof\".\n";
   cout << "  -invdof, -dofin_i <file>...\n";
-  cout << "      Append inverse of given transformation to composition.\n";
+  cout << "      Append inverse of given transformations to composition.\n";
+  cout << "      When multiple arguments are given, the composite transformation\n";
+  cout << "      is inverted, i.e., the order is reversed and each transformation\n";
+  cout << "      inverted separately. If the order should not be reversed, use\n";
+  cout << "      option -invdof/-dofin_i before each argument.\n";
   cout << "  -invert [on|off], -noinvert\n";
   cout << "      Enable/disable inversion of composite transformation. (default: off)\n";
   cout << "  -interpolation, -interp <mode>\n";
@@ -499,13 +503,21 @@ int main(int argc, char **argv)
   bool   twod           = false;
 
   for (ALL_OPTIONS) {
-    if (OPTION("-dofin") ) {
-      dofin_name.push_back(ARGUMENT);
-      dofin_invert.push_back(false);
+    if (OPTION("-dofin")) {
+      do {
+        dofin_name.push_back(ARGUMENT);
+        dofin_invert.push_back(false);
+      } while (HAS_ARGUMENT);
     }
     else if (OPTION("-dofin_i") || OPTION("-invdof")) {
-      dofin_name.push_back(ARGUMENT);
-      dofin_invert.push_back(true);
+      Array<const char *> names;
+      do {
+        names.push_back(ARGUMENT);
+      } while (HAS_ARGUMENT);
+      for (auto it = names.rbegin(); it != names.rend(); ++it) {
+        dofin_name.push_back(*it);
+        dofin_invert.push_back(true);
+      }
     }
     else if (OPTION("-target")) {
       target_name = ARGUMENT;
@@ -562,17 +574,36 @@ int main(int argc, char **argv)
     else if (OPTION("-labels") || OPTION("-label")) {
       if (HAS_ARGUMENT) {
         all_labels = false;
-        GreyPixel label;
+        GreyPixel a, b;
         do {
-          string arg = ToLower(ARGUMENT);
-          if (arg == "all") {
-            all_labels = true;
-          } else if (FromString(arg, label)) {
-            labels.insert(label);
+          const char * const arg = ARGUMENT;
+          const Array<string> parts = Split(ToLower(arg), "..");
+          if (parts.size() == 1) {
+            if (parts[0] == "all") {
+              all_labels = true;
+              continue;
+            }
+            else if (!FromString(parts[0], a)) {
+              a = -1;
+            }
+            b = a;
+          } else if (parts.size() == 2) {
+            if (!FromString(parts[0], a) || !FromString(parts[1], b)) {
+              a = b = -1;
+            }
           } else {
-            FatalError("Invalid -labels option argument: " << arg);
+            a = b = -1;
+          }
+          if (a == -1 || b == -1) {
+            FatalError("Invalid -labels argument: " << arg);
+          }
+          for (GreyPixel l = a; l <= b; ++l) {
+            labels.insert(l);
           }
         } while (HAS_ARGUMENT);
+        if (all_labels) {
+          labels.clear();
+        }
       } else {
         all_labels = true;
       }
