@@ -57,6 +57,7 @@ void PrintHelp(const char* name)
   cout << "      - ``entropy-index``, ``ge``: Generalized entropy index (GE), see also :option:`-alpha`.\"\n";
   cout << "      - ``entropy``: Shannon entropy, see also :option:`-bins` and :option:`-parzen`.\n";
   cout << "      - ``mode``, ``majority``: Smallest modal value, can also be used for majority voting of labels.\n";
+  cout << "      - ``label-consistency``, ``overlap``: Mean Dice overlap of all pairs of labels.\n";
   cout << "  <image>\n";
   cout << "      File names of at least two input images.\n";
   cout << "  -output <file>\n";
@@ -120,7 +121,8 @@ enum AggregationMode
   AM_Theil,           ///< Theil coefficient, i.e., GE(1)
   AM_EntropyIndex,    ///< Generalized entropy index (GE)
   AM_Entropy,         ///< Shannon entropy
-  AM_Mode             ///< Modal value (can also be used for segmentation labels)
+  AM_Mode,            ///< Modal value (can also be used for segmentation labels)
+  AM_LabelConsistency ///< Label consistency / mean of all pairwise "overlaps"
 };
 
 // Type of functions used to aggregate set of values
@@ -151,6 +153,8 @@ bool FromString(const char *str, AggregationMode &value)
     value = AM_Entropy;
   } else if (lstr == "mode" || lstr == "majority") {
     value = AM_Mode;
+  } else if (lstr == "label-consistency" || lstr == "overlap") {
+    value = AM_LabelConsistency;
   } else {
     return false;
   }
@@ -606,6 +610,21 @@ int main(int argc, char **argv)
         double mode = hist.Mode();
         return static_cast<OutputType>(IsNaN(mode) ? 0. : mode);
       };
+    } break;
+
+    case AM_LabelConsistency: {
+      eval._Function = [](const InputArray &values) -> OutputType {
+        const auto n = static_cast<int>(values.size());
+        int m = 0;
+        for (int i = 0; i < n; ++i)
+        for (int j = i + 1; j < n; ++j) {
+          if (static_cast<int>(values[i]) == static_cast<int>(values[j])) {
+            ++m;
+          }
+        }
+        return static_cast<OutputType>(2. * m / double(n * (n - 1)));
+      };
+
     } break;
 
     default:
