@@ -124,7 +124,18 @@ void PrintHelp(const char *name)
   cout << "         models of the brain using nonrigid registration, IEEE TMI, 22(8), 1014–25 (2003)" << endl;
   cout << endl;
   cout << "Input options:" << endl;
-  cout << "  -target <file>             Common reference image space of input transformations." << endl;
+  cout << "  -type <name>               Common type/class name of input transformations." << endl;
+  cout << "                             If not specified or when :option:`-target` is not used, the input" << endl;
+  cout << "                             transformations may need to be opened and read twice from disk." << endl;
+  cout << "                             Use this option when all input transformations have the same known" << endl;
+  cout << "                             type to avoid the extra I/O. Not needed when -nodofs option given." << endl;
+  cout << "  -target <file>|common      Either file name of reference image or (M)FFD transformation." << endl;
+  cout << "                             When all input (M)FFDs have the same type and attributes, \"common\""<< endl;
+  cout << "                             can be specified to use the attributes of the first input FFD. When" << endl;
+  cout << "                             used together with the :option:`-type`, this avoids reading all input" << endl;
+  cout << "                             transformations twice, where during the first pass it is determined" << endl;
+  cout << "                             whether and which type all input transformations have in common and on" << endl;
+  cout << "                             what discrete lattice to possibly average the parameters directly." << endl;
   cout << "                             If not specified and local transformations are to be averaged," << endl;
   cout << "                             the attributes of the first local transformation are used." << endl;
   cout << "  -dofnames <file>           Text file listing input transformations and associated values." << endl;
@@ -149,6 +160,7 @@ void PrintHelp(const char *name)
   cout << "  -[no]scaling               Average scaling     or assume none to be present. (default: on)" << endl;
   cout << "  -[no]shearing              Average shearing    or assume none to be present. (default: on)" << endl;
   cout << "  -[no]deformation           Average deformation or assume none to be present. (default: on)" << endl;
+  cout << "  -[no]local                 Alias for :option:`-deformation`." << endl;
   cout << "  -[no]log                   Whether to average local transformations in log-space." << endl;
   cout << "                             (default: no, unless the :option:`-dofs` of a SV FFD are averaged directly)" << endl;
   cout << "  -log-euclidean             Compute Log-Euclidean means. (default: off)" << endl;
@@ -161,11 +173,12 @@ void PrintHelp(const char *name)
   cout << "  -rigid                     Enables averaging of :option:`-translation` and :option:`-rotation` components," << endl;
   cout << "                             and disables averaging of :option:`-scaling`, :option:`-shearing`, and :option:`-deformation`." << endl;
   cout << "  -norigid                   Disables averaging of :option:`-translation` and :option:`-rotation` components." << endl;
-  cout << "  -affine                    Enables averaging of :option:`-translation`, :option:`-rotation`," << endl;
+  cout << "  -affine, -global           Enables averaging of :option:`-translation`, :option:`-rotation`," << endl;
   cout << "                             :option:`-scaling`, and :option:`-shearing`, components and disables output of" << endl;
   cout << "                             average :option:`-deformation`." << endl;
   cout << "  -noaffine                  Disables averaging of :option:`-rotation`, :option:`-translation`," << endl;
   cout << "                             :option:`-scaling`, and :option:`-shearing` components." << endl;
+  cout << "  -noglobal                  Same as :option:`-noaffine`, but also forces output of non-MFFD." << endl;
   cout << "  -all                       Enables averaging of :option:`-rotation`, :option:`-translation`," << endl;
   cout << "                             :option:`-scaling`, :option:`-shearing`, and :option:`-deformation`." << endl;
   cout << endl;
@@ -219,9 +232,11 @@ int main(int argc, char **argv)
   bool        invavg         = false;      // invert output transformation
   int         logspace       = -1;         // -1: not set explicitly to "true"
   int         avgdofs        = -1;         // -1: average DoFs directly if possible
+  string      mtype;                       // mulit-level transformation type
+  string      type;                        // common transformation type
   bool        approxglobal   = true;       // approximate vs. truncate average
                                            // global transformation if #DoFs < 12
-  bool        bsplineffd     = false;      // output B-spline FFD when avgdofs == false
+  bool        bsplineffd     = false;      // output B-spline FFD when avgdofs == 0
   bool        biinvariant    = true;       // bi-invariant mean if possible
   const char *identity_name  = "identity"; // name of (input) transformation which is to be replaced by identity
   double      identity_value = inf;        // i.e., no implicit identity transformation added by default
@@ -231,46 +246,116 @@ int main(int argc, char **argv)
   int         frechet_iter   = 20;
 
   for (ALL_OPTIONS) {
-    if      (OPTION("-target"))        target_name = ARGUMENT;
-    else if (OPTION("-dofnames"))      doflist     = ARGUMENT;
-    else if (OPTION("-dofdir"))        dofdir      = ARGUMENT;
-    else if (OPTION("-prefix"))        prefix      = ARGUMENT;
-    else if (OPTION("-suffix"))        suffix      = ARGUMENT;
-    else if (OPTION("-invert"))        invert      = true;
-    else if (OPTION("-inverse"))       invavg      = true;
-    else if (OPTION("-translation"))   translation = true;
-    else if (OPTION("-rotation"))      rotation    = true;
-    else if (OPTION("-scaling"))       scaling     = true;
-    else if (OPTION("-shearing"))      shearing    = true;
-    else if (OPTION("-deformation"))   deformation = true;
-    else if (OPTION("-notranslation")) translation = false;
-    else if (OPTION("-norotation"))    rotation    = false;
-    else if (OPTION("-noscaling"))     scaling     = false;
-    else if (OPTION("-noshearing"))    shearing    = false;
-    else if (OPTION("-nodeformation")) deformation = false;
-    else if (OPTION("-bi-invariant"))  biinvariant = true;
-    else if (OPTION("-log-euclidean")) biinvariant = false, logspace = 1;
-    else if (OPTION("-log"))           logspace    = 1;
-    else if (OPTION("-nolog"))         logspace    = 0;
-    else if (OPTION("-linear"))        bsplineffd  = false;
-    else if (OPTION("-cubic"))         bsplineffd  = true;
-    else if (OPTION("-dofs"))          avgdofs     = 1;
-    else if (OPTION("-nodofs"))        avgdofs     = 0;
-    else if (OPTION("-inverse-dofs"))  avgdofs = 1, invert = invavg = true;
-    else if (OPTION("-epsilon"))       PARSE_ARGUMENT(epsilon);
+    if (OPTION("-target")) {
+      target_name = ARGUMENT;
+    }
+    else if (OPTION("-type")) {
+      type = ARGUMENT;
+      string ltype = ToLower(type);
+      if      (ltype == "svffd") type = BSplineFreeFormTransformationSV::NameOfType();
+      else if (ltype == "ffd")   type = BSplineFreeFormTransformation3D::NameOfType();
+    }
+    else if (OPTION("-dofnames")) doflist = ARGUMENT;
+    else if (OPTION("-dofdir"))   dofdir  = ARGUMENT;
+    else if (OPTION("-prefix"))   prefix  = ARGUMENT;
+    else if (OPTION("-suffix"))   suffix  = ARGUMENT;
+    else if (OPTION("-bi-invariant")) {
+      biinvariant = true;
+    }
+    else if (OPTION("-log-euclidean")) {
+      biinvariant = false, logspace = 1;
+    }
+    else if (OPTION("-log")) {
+      bool flag = true;
+      if (HAS_ARGUMENT) PARSE_ARGUMENT(flag);
+      logspace = (flag ? 1 : 0);
+    }
+    else if (OPTION("-nolog")) {
+      logspace = 0;
+    }
+    else if (OPTION("-linear")) {
+      bsplineffd = false;
+    }
+    else if (OPTION("-cubic")) {
+      bsplineffd = true;
+    }
+    else if (OPTION("-dofs")) {
+      bool flag = true;
+      if (HAS_ARGUMENT) PARSE_ARGUMENT(flag);
+      avgdofs = (flag ? 1 : 0);
+    }
+    else if (OPTION("-nodofs")) {
+      avgdofs = 0;
+    }
+    else if (OPTION("-inverse-dofs")) {
+      avgdofs = 1;
+      invert = invavg = true;
+    }
+    else if (OPTION("-epsilon")) {
+      PARSE_ARGUMENT(epsilon);
+    }
     else if (OPTION("-gaussian")) {
       PARSE_ARGUMENT(mean);
       PARSE_ARGUMENT(sigma);
     }
-    else if (OPTION("-rigid"))    { translation = rotation = true;  scaling = shearing = deformation = false; }
-    else if (OPTION("-norigid"))  { translation = rotation = false; }
-    else if (OPTION("-affine"))   { translation = rotation = scaling = shearing = true;  deformation = false; }
-    else if (OPTION("-noaffine")) { translation = rotation = scaling = shearing = false; }
-    else if (OPTION("-all"))      { translation = rotation = scaling = shearing = deformation = true; }
-    else if (OPTION("-add-identity"))             { identity_value = NaN; }
-    else if (OPTION("-add-identity-with-weight")) { PARSE_ARGUMENT(identity_value); }
-    else if (OPTION("-add-identity-for-dofname")) { identity_name  = ARGUMENT; }
-    else if (OPTION("-max-frechet-iterations")) PARSE_ARGUMENT(frechet_iter);
+    else if (OPTION("-rigid")) {
+      bool flag = true;
+      if (HAS_ARGUMENT) PARSE_ARGUMENT(flag);
+      translation = rotation = flag;
+      if (flag) {
+        scaling = shearing = deformation = false;
+      }
+    }
+    else if (OPTION("-norigid")) {
+      translation = rotation = false;
+    }
+    else if (OPTION("-affine") || OPTION("-global")) {
+      bool flag = true;
+      if (HAS_ARGUMENT) PARSE_ARGUMENT(flag);
+      translation = rotation = scaling = shearing = flag;
+      if (flag) {
+        deformation = false;
+      }
+      if (strcmp(OPTNAME, "-global") == 0) {
+        mtype = "None";
+      } else {
+        mtype.clear();
+      }
+    }
+    else if (OPTION("-noaffine")) {
+      translation = rotation = scaling = shearing = false;
+    }
+    else if (OPTION("-noglobal")) {
+      translation = rotation = scaling = shearing = false;
+      mtype = "None";
+    }
+    else if (OPTION("-all")) {
+      bool flag = true;
+      if (HAS_ARGUMENT) PARSE_ARGUMENT(flag);
+      if (flag) {
+        translation = rotation = scaling = shearing = deformation = true;
+      }
+    }
+    else if (OPTION("-add-identity")) {
+      identity_value = NaN;
+    }
+    else if (OPTION("-add-identity-with-weight")) {
+      PARSE_ARGUMENT(identity_value);
+    }
+    else if (OPTION("-add-identity-for-dofname")) {
+      identity_name  = ARGUMENT;
+    }
+    else if (OPTION("-max-frechet-iterations")) {
+      PARSE_ARGUMENT(frechet_iter);
+    }
+    else HANDLE_BOOL_OPTION(translation);
+    else HANDLE_BOOL_OPTION(rotation);
+    else HANDLE_BOOL_OPTION(scaling);
+    else HANDLE_BOOL_OPTION(shearing);
+    else HANDLE_BOOL_OPTION(deformation);
+    else HANDLE_BOOLEAN_OPTION("local", deformation);
+    else HANDLE_BOOLEAN_OPTION("invert", invert);
+    else HANDLE_BOOLEAN_OPTION("inverse", invavg);
     else HANDLE_COMMON_OR_UNKNOWN_OPTION();
   }
 
@@ -278,7 +363,7 @@ int main(int argc, char **argv)
     cerr << EXECNAME << ": Gaussian sigma value must be positive" << endl;
     exit(1);
   }
-  if (target_name) {
+  if (target_name && strcmp(target_name, "common") != 0) {
     if (avgdofs == 1) {
       FatalError("Options -target and -dofs are mutually exclusive!");
     }
@@ -406,52 +491,73 @@ int main(int argc, char **argv)
   }
 
   // (Common) type and attributes of local input/output transformations
-  string          mtype; // mulit-level transformation type
-  string          type;  // common transformation type
   ImageAttributes attr;  // common FFD lattice attributes
 
   // When target image domain specified, always average displacement fields
   // which were sampled at the voxels of this target image domain
   if (target_name) {
-    UniquePtr<BaseImage> target(BaseImage::New(target_name));
-    attr = target->GetImageAttributes();
+    if (strcmp(target_name, "common") == 0) {
+      for (size_t i = 0; i < dofin.size(); ++i) {
+        if (dofin[i] == identity_name) continue;
+        UniquePtr<Transformation> t(Transformation::New(dofin[i].c_str()));
+        auto ffd = dynamic_cast<FreeFormTransformation *>(t.get());
+        auto mffd = dynamic_cast<MultiLevelTransformation *>(t.get());
+        if (mffd && mffd->NumberOfLevels() > 0) ffd = mffd->GetLocalTransformation(-1);
+        if (ffd) {
+          attr = ffd->Attributes();
+          break;
+        }
+      }
+    } else if (Transformation::CheckHeader(target_name)) {
+      UniquePtr<Transformation> t(Transformation::New(target_name));
+      auto ffd = dynamic_cast<FreeFormTransformation *>(t.get());
+      auto mffd = dynamic_cast<MultiLevelTransformation *>(t.get());
+      if (mffd && mffd->NumberOfLevels() > 0) ffd = mffd->GetLocalTransformation(-1);
+      if (ffd) attr = ffd->Attributes();
+      else FatalError("Specified -target file must be an image file or FFD!");
+    } else {
+      UniquePtr<BaseImage> target(BaseImage::New(target_name));
+      attr = target->GetImageAttributes();
+    }
   }
   // Otherwise, determine common type of local input transformations
   //
   // When a mix of transformations is given, use attributes of first FFD
   // to define the image domain of the average displacement field.
   if (avgdofs != 0) {
-    if (verbose) cout << "Checking type of input transformations...", cout.flush();
-    mtype = "None";
-    for (size_t i = 0; i < dofin.size(); ++i) {
-      if (dofin[i] == identity_name) continue;
-      UniquePtr<Transformation> t(Transformation::New(dofin[i].c_str()));
-      Transformation           *p    = t.get();
-      MultiLevelTransformation *mffd = dynamic_cast<MultiLevelTransformation *>(t.get());
-      if (mffd) {
-        if      (mffd->NumberOfLevels() == 0) p = mffd->GetGlobalTransformation();
-        else if (mffd->NumberOfLevels() == 1) p = mffd->GetLocalTransformation(0);
-        else {
-          attr = mffd->GetLocalTransformation(-1)->Attributes();
-          type.clear();
-          break;
+    if (type.empty() || !attr) {
+      mtype = "None";
+      if (verbose) cout << "Checking type and attributes of input transformations...", cout.flush();
+      for (size_t i = 0; i < dofin.size(); ++i) {
+        if (dofin[i] == identity_name) continue;
+        UniquePtr<Transformation> t(Transformation::New(dofin[i].c_str()));
+        Transformation           *p    = t.get();
+        MultiLevelTransformation *mffd = dynamic_cast<MultiLevelTransformation *>(t.get());
+        if (mffd) {
+          if      (mffd->NumberOfLevels() == 0) p = mffd->GetGlobalTransformation();
+          else if (mffd->NumberOfLevels() == 1) p = mffd->GetLocalTransformation(0);
+          else {
+            attr = mffd->GetLocalTransformation(-1)->Attributes();
+            type.clear();
+            break;
+          }
+          if (mtype == "None") mtype = mffd->NameOfClass();
+          else if (mtype != mffd->NameOfClass()) mtype.clear();
         }
-        if (mtype == "None") mtype = mffd->NameOfClass();
-        else if (mtype != mffd->NameOfClass()) mtype.clear();
-      }
-      FreeFormTransformation *ffd = dynamic_cast<FreeFormTransformation *>(p);
-      if (ffd) {
-        if (type.empty()) {
-          type = ffd->NameOfClass();
-          attr = ffd->Attributes();
-        } else if (type != ffd->NameOfClass() || ffd->Attributes() != attr) {
-          if (mtype != "None") mtype.clear();
-          type.clear();
-          break;
+        FreeFormTransformation *ffd = dynamic_cast<FreeFormTransformation *>(p);
+        if (ffd) {
+          if (type.empty()) {
+            type = ffd->NameOfClass();
+            attr = ffd->Attributes();
+          } else if (type != ffd->NameOfClass() || ffd->Attributes() != attr) {
+            if (mtype != "None") mtype.clear();
+            type.clear();
+            break;
+          }
         }
       }
+      if (verbose) cout << " done" << endl;
     }
-    if (verbose) cout << " done" << endl;
     if (!attr) {
       // No input transformation contains a local deformation component
       deformation = false;
@@ -463,12 +569,13 @@ int main(int argc, char **argv)
   // a conversion of the input transformations to dense displacement fields
   if (deformation) {
     if (avgdofs != 0) {
-      if (type == "BSplineFreeFormTransformationSV") {
+      if (type == BSplineFreeFormTransformationSV::NameOfType()) {
         avgdofs = 1;
         if (logspace == -1) {
           logspace = 1;
         }
-      } else if (type == "LinearFreeFormTransformation3D" || type == "BSplineFreeFormTransformation3D") {
+      } else if (type == LinearFreeFormTransformation3D::NameOfType() ||
+                 type == BSplineFreeFormTransformation3D::NameOfType()) {
         if (logspace != 1) {
           avgdofs  = 1;
           logspace = 0;
@@ -493,13 +600,14 @@ int main(int argc, char **argv)
     // Check validity of combination of -[no]log and -[no]dofs options
     if (avgdofs != 0) {
       if (logspace != 0) {
-        if (type != "BSplineFreeFormTransformationSV") {
+        if (type != BSplineFreeFormTransformationSV::NameOfType()) {
           if (verbose) cout << endl;
           cerr << EXECNAME << ": Combining options -log and -dofs only possible for SV B-spline FFDs! Otherwise use only one of them." << endl;
           exit(1);
         }
       } else if (logspace == 0) {
-        if (type != "LinearFreeFormTransformation" && type != "BSplineFreeFormTransformation3D") {
+        if (type != LinearFreeFormTransformation3D::NameOfType() &&
+            type != BSplineFreeFormTransformation3D::NameOfType()) {
           if (verbose) cout << endl;
           cerr << EXECNAME << ": Combining options -nolog and -dofs only possible for Linear/B-spline FFDs! Otherwise use only one of them." << endl;
           exit(1);
@@ -507,11 +615,13 @@ int main(int argc, char **argv)
       }
     }
   }
-
   if (verbose) {
-    cout << "Average deformation:   " << ToString(deformation) << endl;
-    cout << "Average DoFs directly: " << ToString(avgdofs  == 0 ? false : true) << endl;
-    cout << "Average in log-space:  " << ToString(logspace == 0 ? false : true) << endl;
+    if (verbose > 1) cout << endl;
+    cout << "Multi-level transformation: " << (mtype.empty() ? "Misc" : mtype.c_str()) << endl;
+    cout << "Type of transformations:    " << (type.empty() ? "Misc" : type.c_str()) << endl;
+    cout << "Average deformation:        " << ToString(deformation) << endl;
+    cout << "Average DoFs directly:      " << ToString(avgdofs  == 0 ? false : true) << endl;
+    cout << "Average in log-space:       " << ToString(logspace == 0 ? false : true) << endl;
   }
 
   // Initialize intermediate data structures
@@ -574,7 +684,7 @@ int main(int argc, char **argv)
     if (rigid     ) global     = rigid;
     // Get local transformation parameters
     if (deformation && ffd) {
-      if (invert && (avgdofs == 0 || type != "BSplineFreeFormTransformationSV") && (avgdofs != 0 || logspace == 0)) {
+      if (invert && (avgdofs == 0 || type != BSplineFreeFormTransformationSV::NameOfType()) && (avgdofs != 0 || logspace == 0)) {
         cerr << EXECNAME << ": -invert option only supported for rigid/affine transformations" << endl;
         exit(1);
       }
@@ -599,7 +709,7 @@ int main(int argc, char **argv)
           d(i, j, k, 2) = invA(2, 0) * x + invA(2, 1) * y + invA(2, 2) * z;
         }
         if (invert) {
-          if (type == "BSplineFreeFormTransformationSV") {
+          if (type == BSplineFreeFormTransformationSV::NameOfType()) {
             d *= -1.;
           } else {
             cerr << EXECNAME << ": -invert option only supported for affine transformation and SV FFD" << endl;
@@ -732,7 +842,7 @@ int main(int argc, char **argv)
 
     // Invert average stationary velocity field
     if (invavg) {
-      if (logspace != 0 || (avgdofs != 0 && type == "BSplineFreeFormTransformationSV")) {
+      if (logspace != 0 || (avgdofs != 0 && type == BSplineFreeFormTransformationSV::NameOfType())) {
         W *= -1.;
       } else {
         cerr << EXECNAME << ": -inverse[-dofs] option only supported for global transformations, SV FFDs, or when average computed in -log space" << endl;
@@ -753,7 +863,7 @@ int main(int argc, char **argv)
     // avgT = avgA (x + avgD) = avgA x + avgA avgD = avgT_global + avgT_local
     //
     // Note that also in case of avgD being a stationary velocity field
-    // (i.e., type == "BSplineFreeFormTransformationSV" && avgdofs != 0),
+    // (i.e., type == BSplineFreeFormTransformationSV::NameOfType() && avgdofs != 0),
     // we can pre-multiply it the same way with the global transformation matrix as in
     // case of a displacement field. This can be illustrated by looking at the formula
     // of the family of explicit Runge-Kutta methods for the exponentiation step which
@@ -772,11 +882,11 @@ int main(int argc, char **argv)
     // Construct FFD from average deformation
     UniquePtr<FreeFormTransformation> ffd;
     if (avgdofs != 0) {
-      if (type == "LinearFreeFormTransformation3D") {
+      if (type == LinearFreeFormTransformation3D::NameOfType()) {
         ffd.reset(new LinearFreeFormTransformation3D(avgD, true));
-      } else if (type == "BSplineFreeFormTransformation3D") {
+      } else if (type == BSplineFreeFormTransformation3D::NameOfType()) {
         ffd.reset(new BSplineFreeFormTransformation3D(avgD, true));
-      } else if (type == "BSplineFreeFormTransformationSV") {
+      } else if (type == BSplineFreeFormTransformationSV::NameOfType()) {
         ffd.reset(new BSplineFreeFormTransformationSV(avgD, true));
       }
     }
@@ -792,7 +902,7 @@ int main(int argc, char **argv)
     }
     // Write average non-linear transformation
     UniquePtr<MultiLevelTransformation> mffd;
-    if (mtype == "MultiLevelStationaryVelocityTransformation") {
+    if (mtype == MultiLevelStationaryVelocityTransformation::NameOfType()) {
       mffd.reset(new MultiLevelStationaryVelocityTransformation(globalAvg));
     } else if (mtype != "None" || !globalAvg.IsIdentity()) {
       mffd.reset(new MultiLevelFreeFormTransformation(globalAvg));
