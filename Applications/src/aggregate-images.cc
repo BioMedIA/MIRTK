@@ -383,6 +383,7 @@ int main(int argc, char **argv)
     FatalError("Invalid aggregation mode: " << POSARG(1));
   }
 
+  const char        *mask_name     = nullptr;
   const char        *output_name   = nullptr;
   ImageDataType      dtype         = MIRTK_VOXEL_UNKNOWN;
   NormalizationMode  normalization = Normalization_None;
@@ -394,6 +395,7 @@ int main(int argc, char **argv)
 
   for (ALL_OPTIONS) {
     if (OPTION("-output")) output_name = ARGUMENT;
+    else if (OPTION("-mask")) mask_name = ARGUMENT;
     else if (OPTION("-dtype") || OPTION("-datatype")) {
       PARSE_ARGUMENT(dtype);
     }
@@ -523,6 +525,15 @@ int main(int argc, char **argv)
           }
         }
       }
+    }
+  }
+  if (mask_name) {
+    BinaryImage mask(mask_name);
+    if (mask.Attributes() != output.Attributes()) {
+      FatalError("Mask has different attributes!");
+    }
+    for (int vox = 0; vox < nvox; ++vox) {
+      if (mask(vox) == BinaryPixel(0)) output(vox) = bg;
     }
   }
   output.PutBackgroundValueAsDouble(bg);
