@@ -1,9 +1,9 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2008-2015 Imperial College London
+ * Copyright 2008-2017 Imperial College London
  * Copyright 2008-2013 Daniel Rueckert, Julia Schnabel
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2013-2017 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,10 +21,131 @@
 #include "mirtk/FluidFreeFormTransformation.h"
 
 #include "mirtk/Memory.h"
+#include "mirtk/HomogeneousTransformation.h"
+#include "mirtk/LinearFreeFormTransformation3D.h"
+#include "mirtk/MultiLevelFreeFormTransformation.h"
+#include "mirtk/MultiLevelStationaryVelocityTransformation.h"
 
 
 namespace mirtk {
 
+
+// =============================================================================
+// Auxiliaries
+// =============================================================================
+
+namespace FluidFreeFormTransformationUtils {
+
+
+// -----------------------------------------------------------------------------
+/// Compose current composite transformation with any displacement field
+void PushDisplacement(FluidFreeFormTransformation *t1,
+                      const Transformation        *t2,
+                      ImageAttributes             *attr)
+{
+  ImageAttributes grid;
+  if (attr == nullptr) attr = &grid;
+  if (!(*attr)) {
+    if (t1->NumberOfLevels() == 0) {
+      auto mffd = dynamic_cast<const MultiLevelTransformation *>(t2);
+      if (mffd && mffd->NumberOfLevels() > 0) {
+        *attr = mffd->GetLocalTransformation(-1)->Attributes();
+      } else {
+        // Note: As long as no local transformation was encountered before,
+        //       no global transformation or single-level FFD has to be
+        //       approximated by a displacement field. This error should
+        //       thus never be encountered...
+        Throw(ERR_LogicError, __FUNCTION__, "Cannot push general displacement field onto empty stack!");
+      }
+    } else {
+      *attr = t1->GetLocalTransformation(-1)->Attributes();
+    }
+  }
+  GenericImage<double> disp(*attr, 3);
+  if (!t1->GetAffineTransformation()->IsIdentity()) {
+    t1->GetAffineTransformation()->Displacement(disp);
+    t1->PushLocalTransformation(new LinearFreeFormTransformation3D(disp));
+    attr->PutAffineMatrix(t1->GetAffineTransformation()->GetMatrix(), true);
+    t1->GetAffineTransformation()->Reset();
+    disp.Initialize(*attr, 3);
+  }
+  t2->Displacement(disp);
+  t1->PushLocalTransformation(new LinearFreeFormTransformation3D(disp));
+}
+
+// -----------------------------------------------------------------------------
+/// Compose current composite transformation with rigid/affine transformation
+void PushTransformation(FluidFreeFormTransformation     *t1,
+                        const HomogeneousTransformation *t2,
+                        ImageAttributes                 *attr)
+{
+  if (!t2->IsIdentity()) {
+    // Compose with current global transformation if no local deformation present
+    if (t1->NumberOfLevels() == 0) {
+      HomogeneousTransformation *global = t1->GetGlobalTransformation();
+      global->PutMatrix(t2->GetMatrix() * global->GetMatrix());
+    // Otherwise compose with affine post-deformation transformation
+    } else {
+      AffineTransformation *post = t1->GetAffineTransformation();
+      post->PutMatrix(post->GetMatrix() * t2->GetMatrix());
+    }
+    // Transform target image attributes by affine transformation such that
+    // attributes of consecutively approximated displacement fields overlap
+    // with the thus far transformed image grid
+    if (attr) attr->PutAffineMatrix(t2->GetMatrix(), true);
+  }
+}
+
+// -----------------------------------------------------------------------------
+/// Compose current composite transformation with single-level FFD
+void PushTransformation(FluidFreeFormTransformation  *t1,
+                        const FreeFormTransformation *t2,
+                        ImageAttributes              *attr)
+{
+  if (!t1->GetAffineTransformation()->IsIdentity()) {
+    PushDisplacement(t1, t1->GetAffineTransformation(), attr);
+    t1->GetAffineTransformation()->Reset();
+  }
+  t1->PushLocalTransformation(reinterpret_cast<FreeFormTransformation *>(Transformation::New(t2)));
+}
+
+// -----------------------------------------------------------------------------
+/// Compose current composite transformation with multi-level FFD
+void PushTransformation(FluidFreeFormTransformation    *t1,
+                        const MultiLevelTransformation *t2,
+                        ImageAttributes                *attr)
+{
+  if (t2->NumberOfLevels() == 0) {
+    PushTransformation(t1, t2->GetGlobalTransformation(), attr);
+  } else if (t2->NumberOfLevels() == 1) {
+    if (t2->GetGlobalTransformation()->IsIdentity()) {
+      PushTransformation(t1, t2->GetLocalTransformation(0), attr);
+    } else {
+      UniquePtr<MultiLevelTransformation> copy;
+      copy.reset(reinterpret_cast<MultiLevelTransformation *>(Transformation::New(t2)));
+      copy->MergeGlobalIntoLocalDisplacement();
+      PushTransformation(t1, copy->GetLocalTransformation(0), attr);
+    }
+  } else {
+    PushDisplacement(t1, t2, attr);
+  }
+}
+
+// -----------------------------------------------------------------------------
+/// Compose current composite transformation with another composite transformation
+void PushTransformation(FluidFreeFormTransformation       *t1,
+                        const FluidFreeFormTransformation *t2,
+                        ImageAttributes                   *attr)
+{
+  PushTransformation(t1, t2->GetGlobalTransformation(), attr);
+  for (int l = 0; l < t2->NumberOfLevels(); ++l) {
+    PushTransformation(t1, t2->GetLocalTransformation(l), attr);
+  }
+  PushTransformation(t1, t2->GetAffineTransformation(), attr);
+}
+
+
+} // namespace FluidFreeFormTransformationUtils
 
 // =============================================================================
 // Construction/Destruction
@@ -69,6 +190,22 @@ FluidFreeFormTransformation::~FluidFreeFormTransformation()
 void FluidFreeFormTransformation::CheckTransformation(FreeFormTransformation *transformation) const
 {
   MultiLevelTransformation::CheckTransformation(transformation);
+}
+
+// -----------------------------------------------------------------------------
+void FluidFreeFormTransformation::PushTransformation(const Transformation *dof, ImageAttributes *attr)
+{
+  ImageAttributes _attr;
+  ImageAttributes *grid = (attr != nullptr ? attr : &_attr);
+  auto aff    = dynamic_cast<const HomogeneousTransformation   *>(dof);
+  auto ffd    = dynamic_cast<const FreeFormTransformation      *>(dof);
+  auto mffd   = dynamic_cast<const MultiLevelTransformation    *>(dof);
+  auto fluid  = dynamic_cast<const FluidFreeFormTransformation *>(dof);
+  if      (fluid) FluidFreeFormTransformationUtils::PushTransformation(this, fluid, grid);
+  else if (mffd)  FluidFreeFormTransformationUtils::PushTransformation(this, mffd,  grid);
+  else if (ffd)   FluidFreeFormTransformationUtils::PushTransformation(this, ffd,   grid);
+  else if (aff)   FluidFreeFormTransformationUtils::PushTransformation(this, aff,   grid);
+  else            FluidFreeFormTransformationUtils::PushDisplacement  (this, dof,   grid);
 }
 
 // -----------------------------------------------------------------------------
