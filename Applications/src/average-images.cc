@@ -129,8 +129,9 @@ void PrintHelp(const char* name)
   cout << "      Crop/pad average image and ensure a margin of <n> voxels at each boundary. (default: -1/off)\n";
   cout << "  -interpolation, -interp <mode>\n";
   cout << "      Interpolation mode, e.g., NN, Linear, BSpline, Cubic, Sinc. (default: Linear)\n";
-  cout << "  -label <value>\n";
-  cout << "      Segmentation label of which to create an average probability map.\n";
+  cout << "  -label, -labels <value>|<from>..<to>...\n";
+  cout << "      Segmentation label(s) of which to create an average probability map.\n";
+  cout << "      When multiple labels are given, the corresponding segments are merged.\n";
   cout << "  -datatype, -dtype, -type char|uchar|short|float|double\n";
   cout << "      Data type of output image. The intermediate average image always has floating point data type.\n";
   cout << "      When this option is given, this average is cast to the respective output type before writing\n";
@@ -144,7 +145,7 @@ void PrintHelp(const char* name)
 // =============================================================================
 
 // Type of input images
-typedef RealPixel                                   InputType;
+typedef float                                       InputType;
 typedef GenericImage<InputType>                     InputImage;
 typedef GenericInterpolateImageFunction<InputImage> InputImageFunction;
 
@@ -365,7 +366,7 @@ bool Add(AverageImage &average, WeightImage *norm, InputImage &image,
            const Array<UniquePtr<Transformation> > &dof,
            const Array<bool>                       &inv,
          #endif // HAVE_MIRTK_Transformation
-         double weight, int label,
+         double weight, bool isseg,
          InterpolationMode interpolation = Interpolation_Linear,
          NormalizationMode normalization = Normalization_None,
          double avg_mean = NaN, double avg_sigma = NaN)
@@ -379,7 +380,7 @@ bool Add(AverageImage &average, WeightImage *norm, InputImage &image,
   interp.reset(InputImageFunction::New(interpolation, &image));
   interp->Initialize();
   // Determine min/max intensity used to clamp interpolated values
-  if (label > 0) {
+  if (isseg) {
     interp->DefaultValue(0.);
     add._Min = 0.;
     add._Max = 1.;
@@ -645,11 +646,11 @@ int main(int argc, char **argv)
   double             output_min       = -inf;
   double             output_max       = +inf;
   bool               invert_dofs      = false;
-  int                label            = -1;
   ImageDataType      dtype            = MIRTK_VOXEL_FLOAT;
   int                margin           = -1;
   bool               sharpen          = false;
   double             dx = .0, dy = .0, dz = .0;
+  OrderedSet<GreyPixel> labels;
 
   for (ARGUMENTS_AFTER(nposarg)) {
     if (OPTION("-images")) {
@@ -744,15 +745,45 @@ int main(int argc, char **argv)
         rescaling = Rescaling_MeanStDev;
       }
     }
-    else HANDLE_BOOL_OPTION(sharpen);
-    else HANDLE_BOOLEAN_OPTION("invert", invert_dofs);
-    else if (OPTION("-padding")) PARSE_ARGUMENT(padding);
-    else if (OPTION("-margin")) PARSE_ARGUMENT(margin);
-    else if (OPTION("-label")) PARSE_ARGUMENT(label);
-    else if (OPTION("-interpolation") || OPTION("-interp")) PARSE_ARGUMENT(interpolation);
+    else if (OPTION("-padding")) {
+      PARSE_ARGUMENT(padding);
+    }
+    else if (OPTION("-margin")) {
+      PARSE_ARGUMENT(margin);
+    }
+    else if (OPTION("-label") || OPTION("-labels")) {
+      GreyPixel a, b;
+      do {
+        const char * const arg = ARGUMENT;
+        const Array<string> parts = Split(ToLower(arg), "..");
+        if (parts.size() == 1) {
+          if (!FromString(parts[0], a)) {
+            a = -1;
+          }
+          b = a;
+        } else if (parts.size() == 2) {
+          if (!FromString(parts[0], a) || !FromString(parts[1], b)) {
+            a = b = -1;
+          }
+        } else {
+          a = b = -1;
+        }
+        if (a == -1 || b == -1) {
+          FatalError("Invalid -label argument: " << arg);
+        }
+        for (GreyPixel l = a; l <= b; ++l) {
+          labels.insert(l);
+        }
+      } while (HAS_ARGUMENT);
+    }
+    else if (OPTION("-interpolation") || OPTION("-interp")) {
+      PARSE_ARGUMENT(interpolation);
+    }
     else if (OPTION("-datatype") || OPTION("-dtype") || OPTION("-type")) {
       PARSE_ARGUMENT(dtype);
     }
+    else HANDLE_BOOL_OPTION(sharpen);
+    else HANDLE_BOOLEAN_OPTION("invert", invert_dofs);
     else HANDLE_COMMON_OR_UNKNOWN_OPTION();
   }
 
@@ -763,7 +794,7 @@ int main(int argc, char **argv)
     imdof_invert.resize(nimages);
   #endif // HAVE_MIRTK_Transformation
 
-  if (label > 0 && IsNaN(padding)) {
+  if (!labels.empty() && IsNaN(padding)) {
     normalization = Normalization_None;
     if (rescaling == Rescaling_MeanStDev) {
       rescaling = Rescaling_None;
@@ -949,14 +980,14 @@ int main(int argc, char **argv)
   if (min_norm > 0.f) {
     norm.reset(new WeightImage(fov));
   }
-  if (label <= 0) {
+  if (labels.empty()) {
     average = NaN;
     average.PutBackgroundValueAsDouble(NaN);
   }
   for (int n = 0; n < nimages; ++n) {
     if (sequence.IsEmpty()) {
       if (verbose) {
-        cout << "Add " << (label > 0 ? "segmentation" : "image") << " ";
+        cout << "Add " << (labels.empty() ? "image" : "segmentation") << " ";
         cout << setw(3) << (n+1) << " out of " << nimages << "... ";
         cout.flush();
       }
@@ -976,27 +1007,27 @@ int main(int argc, char **argv)
         invert.clear();
       #endif
     }
-    if (label > 0) {
+    if (labels.empty()) {
+      image.PutBackgroundValueAsDouble(padding, !IsNaN(padding));
+    } else {
       for (int idx = 0; idx < image.NumberOfVoxels(); ++idx) {
-        image(idx) = (image(idx) == label ? 1 : 0);
+        image(idx) = (labels.find(static_cast<GreyPixel>(image(idx))) == labels.end() ? 0. : 1.);
       }
       if (debug) image.Write((string("debug_segment_") + ToString(n + 1) + string(".nii.gz")).c_str());
-    } else {
-      image.PutBackgroundValueAsDouble(padding, !IsNaN(padding));
     }
 
     bool ok;
     #ifdef HAVE_MIRTK_Transformation
-      ok = Add(average, norm.get(), image, dofs, invert, image_weight[n], label, interpolation, normalization, avg_mean, avg_sigma);
+      ok = Add(average, norm.get(), image, dofs, invert, image_weight[n], !labels.empty(), interpolation, normalization, avg_mean, avg_sigma);
       dofs.clear(), invert.clear();
     #else
-      ok = Add(average, norm.get(), image, image_weight[n], label, interpolation, normalization, avg_mean, avg_sigma);
+      ok = Add(average, norm.get(), image, image_weight[n], !labels.empty(), interpolation, normalization, avg_mean, avg_sigma);
     #endif
     if (ok) {
       if (verbose) cout << " done" << endl;
     } else {
       if (verbose) cout << " skip" << endl;
-      if (label <= 0) {
+      if (labels.empty()) {
         if (normalization == Normalization_UnitRange || normalization == Normalization_ZScore || normalization == Normalization_MeanStDev) {
           Warning("Input image " << image_name[n] << " either contains no or constant foreground values!");
         } else {
@@ -1120,7 +1151,7 @@ int main(int argc, char **argv)
         cout << "Rescaling average to output range [" << output_min << ", " << output_max << "]...";
         cout.flush();
       }
-      if (label > 0) {
+      if (!labels.empty()) {
         scale = output_max - output_min;
         shift = output_min;
       } else {
