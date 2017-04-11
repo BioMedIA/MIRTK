@@ -1,9 +1,9 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2008-2015 Imperial College London
+ * Copyright 2008-2017 Imperial College London
  * Copyright 2008-2013 Daniel Rueckert, Julia Schnabel
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2013-2017 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -72,6 +72,9 @@ public:
 
   // ---------------------------------------------------------------------------
   // Levels
+
+  /// Compose current transformation with another
+  virtual void PushTransformation(const Transformation *, ImageAttributes *attr = nullptr);
 
   /// Combine local transformations on stack
   virtual void CombineLocalTransformation();

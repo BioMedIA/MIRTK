@@ -22,7 +22,6 @@
 #include "mirtk/Options.h"
 
 #include "mirtk/IOConfig.h"
-#include "mirtk/GenericImage.h"
 #include "mirtk/Transformations.h"
 
 
@@ -81,124 +80,6 @@ void PrintHelp(const char *name)
   cout << "      and approximate these even when all input transformations are of type SV FFD.\n";
   PrintStandardOptions(cout);
   cout << endl;
-}
-
-// =============================================================================
-// Auxiliaries
-// =============================================================================
-
-// -----------------------------------------------------------------------------
-/// Compose current composite transformation with any displacement field
-void PushDisplacement(FluidFreeFormTransformation &t1,
-                      Transformation              *t2,
-                      ImageAttributes             &attr)
-{
-  if (!attr) {
-    if (t1.NumberOfLevels() == 0) {
-      MultiLevelTransformation *mffd;
-      mffd = dynamic_cast<MultiLevelTransformation *>(t2);
-      if (mffd && mffd->NumberOfLevels() > 0) {
-        attr = mffd->GetLocalTransformation(-1)->Attributes();
-      } else {
-        // Note: As long as no local transformation was encountered before,
-        //       no global transformation or single-level FFD has to be
-        //       approximated by a displacement field. This error should
-        //       thus never be encountered...
-        cerr << "Internal error: Specify -target image to circumvent it" << endl;
-        cerr << "                and please consider reporting the issue" << endl;
-        exit(1);
-      }
-    } else {
-      attr = t1.GetLocalTransformation(-1)->Attributes();
-    }
-  }
-  GenericImage<double> disp(attr, 3);
-  t2->Displacement(disp);
-  t1.PushLocalTransformation(new LinearFreeFormTransformation3D(disp));
-}
-
-// -----------------------------------------------------------------------------
-/// Compose current composite transformation with rigid/affine transformation
-void PushTransformation(FluidFreeFormTransformation &t1,
-                        HomogeneousTransformation   *t2,
-                        ImageAttributes             &attr,
-                        bool last = false)
-{
-  if (t2->IsIdentity()) return;
-  if (t1.NumberOfLevels() == 0) {
-    HomogeneousTransformation *global = t1.GetGlobalTransformation();
-    global->PutMatrix(t2->GetMatrix() * global->GetMatrix());
-  } else {
-    if (last) {
-      AffineTransformation *post = t1.GetAffineTransformation();
-      post->PutMatrix(post->GetMatrix() * t2->GetMatrix());
-    } else {
-      PushDisplacement(t1, t2, attr);
-    }
-  }
-}
-
-// -----------------------------------------------------------------------------
-/// Compose current composite transformation with single-level FFD
-void PushTransformation(FluidFreeFormTransformation &t1,
-                        FreeFormTransformation      *t2,
-                        ImageAttributes             &attr,
-                        bool = false)
-{
-  t1.PushLocalTransformation(t2);
-}
-
-// -----------------------------------------------------------------------------
-/// Compose current composite transformation with multi-level FFD
-void PushTransformation(FluidFreeFormTransformation      &t1,
-                        MultiLevelFreeFormTransformation *t2,
-                        ImageAttributes                  &attr,
-                        bool = false)
-{
-  if (t2->NumberOfLevels() == 0) {
-    PushTransformation(t1, t2->GetGlobalTransformation(), attr);
-  } else if (t2->NumberOfLevels() == 1) {
-    t2->MergeGlobalIntoLocalDisplacement();
-    t1.PushLocalTransformation(t2->RemoveLocalTransformation(0));
-  } else {
-    PushDisplacement(t1, t2, attr);
-  }
-}
-
-// -----------------------------------------------------------------------------
-/// Compose current composite transformation with multi-level SV FFD
-void PushTransformation(FluidFreeFormTransformation                &t1,
-                        MultiLevelStationaryVelocityTransformation *t2,
-                        ImageAttributes                            &attr,
-                        bool = false)
-{
-  if (t2->NumberOfLevels() == 0) {
-    PushTransformation(t1, t2->GetGlobalTransformation(), attr);
-  } else if (t2->NumberOfLevels() == 1) {
-    t2->MergeGlobalIntoLocalDisplacement();
-    t1.PushLocalTransformation(t2->RemoveLocalTransformation(0));
-  } else {
-    PushDisplacement(t1, t2, attr);
-  }
-}
-
-// -----------------------------------------------------------------------------
-/// Compose current composite transformation with another composite transformation
-void PushTransformation(FluidFreeFormTransformation &t1,
-                        FluidFreeFormTransformation *t2,
-                        ImageAttributes             &attr,
-                        bool last = false)
-{
-  PushTransformation(t1, t2->GetGlobalTransformation(), attr);
-  while (t2->NumberOfLevels() > 0) {
-    PushTransformation(t1, t2->RemoveLocalTransformation(0), attr);
-  }
-  if (last) {
-    AffineTransformation *post = t1.GetAffineTransformation();
-    post->PutMatrix(post->GetMatrix() * t2->GetAffineTransformation()->GetMatrix());
-  } else {
-    PushTransformation(t1, t2->GetAffineTransformation(), attr);
-  }
 }
 
 // =============================================================================
@@ -289,59 +170,40 @@ int main(int argc, char **argv)
     else HANDLE_COMMON_OR_UNKNOWN_OPTION();
   }
 
-  HomogeneousTransformation                  *aff;
-  FreeFormTransformation                     *ffd;
-  MultiLevelFreeFormTransformation           *mffd;
-  MultiLevelStationaryVelocityTransformation *svmffd;
-  FluidFreeFormTransformation                *fluid;
-
-  // Compose affine transformations at the end
   if (verbose) {
-    cout << "Compose affine transformations at end..." << endl;
+    cout << "Compose remaining transformations..." << endl;
   }
-  AffineTransformation *post = t.GetAffineTransformation();
-  for (int n = N; n >= 1; --n) {
-    if (verbose) {
-      cout << "Reading transformation " << n << ": " << POSARG(n) << endl;
-    }
-    UniquePtr<Transformation> dof(Transformation::New(POSARG(n)));
-    if ((aff = dynamic_cast<HomogeneousTransformation *>(dof.get()))) {
-      post->PutMatrix(post->GetMatrix() * aff->GetMatrix());
-      --N; // remove transformation from composition chain
-    } else {
-      break;
-    }
-  }
-  if (verbose) {
-    cout << "Compose affine transformations at end... done" << endl;
-  }
-
-  // Compose remaining transformations from the start
-  if (verbose) {
-    cout << "\nCompose remaining transformations..." << endl;
-  }
+  ImageAttributes disp_attr = attr;
   for (int n = 1; n <= N; ++n) {
-
     // Read n-th transformation
     if (verbose) {
       cout << "Reading transformation " << n << " from " << POSARG(n) << endl;
     }
     UniquePtr<Transformation> dof(Transformation::New(POSARG(n)));
-    aff    = dynamic_cast<HomogeneousTransformation                  *>(dof.get());
-    ffd    = dynamic_cast<FreeFormTransformation                     *>(dof.get());
-    mffd   = dynamic_cast<MultiLevelFreeFormTransformation           *>(dof.get());
-    svmffd = dynamic_cast<MultiLevelStationaryVelocityTransformation *>(dof.get());
-    fluid  = dynamic_cast<FluidFreeFormTransformation                *>(dof.get());
-
+    // Scale velocities / invert transformation
     if (n <= static_cast<int>(scales.size()) && !AreEqual(scales[n - 1], 1.)) {
+      auto aff  = dynamic_cast<HomogeneousTransformation *>(dof.get());
+      auto ffd  = dynamic_cast<FreeFormTransformation    *>(dof.get());
+      auto mffd = dynamic_cast<MultiLevelTransformation  *>(dof.get());
+      if (mffd) {
+        if (mffd->NumberOfLevels() == 0) {
+          aff = mffd->GetGlobalTransformation();
+        } else if (mffd->GetGlobalTransformation()->IsIdentity()) {
+          if (mffd->NumberOfLevels() == 1) {
+            ffd = mffd->GetLocalTransformation(0);
+          }
+        }
+      }
       if (aff) {
         if (AreEqual(scales[n - 1], -1.)) {
+          cout << "  Inverting transformation" << endl;
           aff->Invert();
         } else {
           FatalError("Cannot -scale affine transformation, use '-1' to invert it!");
         }
       } else if (ffd) {
         const double scale = scales[n - 1];
+        cout << "  Scaling FFD coefficients by factor " << scale << endl;
         for (int i = 0; i < ffd->NumberOfDOFs(); ++i) {
           ffd->Put(i, scale * ffd->Get(i));
         }
@@ -349,41 +211,25 @@ int main(int argc, char **argv)
         FatalError("Cannot -scale non-FFD transformation! Option mainly used for SV FFDs.");
       }
     }
-
-    // Compose current composite transformation with n-th transformation
-    const bool last = (n == N);
-    if      (aff   ) PushTransformation(t, aff,    attr, last);
-    else if (mffd  ) PushTransformation(t, mffd,   attr, last);
-    else if (svmffd) PushTransformation(t, svmffd, attr, last);
-    else if (fluid ) PushTransformation(t, fluid,  attr, last);
-    else if (ffd   ) {
-      PushTransformation(t, ffd, attr, last);
-      dof.release();
-    }
-    else {
-      cerr << "Unsupported transformation file " << POSARG(n) << endl;
-      cerr << "  Type name = " << dof->NameOfClass() << endl;
-      exit(1);
-    }
-
-    // Transform target image attributes by affine transformation such that
-    // attributes of consecutively approximated displacment fields overlap
-    // with the thus far transformed image grid
-    if (aff && attr) {
-      attr.PutAffineMatrix(aff->GetMatrix(), true);
-    }
+    // Compose with current chain
+    t.PushTransformation(dof.get(), &disp_attr);
   }
   if (verbose) {
-    cout << "Compose remaining transformations... done\n" << endl;
+    cout << "Compose transformations... done\n" << endl;
   }
 
   // Approximate the composed transformation using a single free-form deformation
   if (approximate && t.NumberOfLevels() > 1) {
     double rms_error;
 
+    // Get copy of global transformation
+    const auto global = t.GetGlobalTransformation()->GetMatrix();
+
     // Use the most dense control point lattice in the local transformation stack
     ImageAttributes domain = attr;
-    if (!domain) {
+    if (domain) {
+      domain.PutAffineMatrix(global, true);
+    } else {
       for (int i = 0; i < t.NumberOfLevels(); ++i) {
         const auto &ffd_attr = t.GetLocalTransformation(i)->Attributes();
         if (ffd_attr.NumberOfLatticePoints() > domain.NumberOfLatticePoints()) {
@@ -395,7 +241,6 @@ int main(int argc, char **argv)
     domain._dt = 0.;
 
     // Reset global transformation
-    const auto global = t.GetGlobalTransformation()->GetMatrix();
     t.GetGlobalTransformation()->Reset();
 
     // Determine if only SV FFDs are being composed and use BCH formula (if not -nobch option given)
