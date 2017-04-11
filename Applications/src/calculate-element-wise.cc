@@ -190,15 +190,15 @@ void PrintHelp(const char *name)
   cout << "  -mul, -multiply-with, -times <value> | <file> [<scalars>]\n";
   cout << "      Multiply by constant value or data sequence read from specified file.\n";
   cout << "      Another name for this option is the '*' sign, see Examples.\n";
-  cout << "  -div, -divide-by, -over <value> | <file> [<scalars>]\n";
+  cout << "  -div, -divide-by, -over <value> | sum | <file> [<scalars>]\n";
   cout << "      Divide by constant value or data sequence read from specified file.\n";
+  cout << "      When the argument is \"sum\", the divisor is the sum of the values.\n";
   cout << "      When dividing by zero values in the input file, the result is NaN.\n";
   cout << "      Use :option:`-mask` with argument NaN and :option:`-pad` to replace\n";
   cout << "      these undefined values by a constant such as zero.\n";
   cout << "      Another name for this option is the '/' sign, see Examples.\n";
-  cout << "  -div-with-zero <file> [<scalars>]\n";
-  cout << "      Same as :option:`-div` but set result to zero instead of NaN in case of\n";
-  cout << "      a division by zero due to a zero value in the specified file.\n";
+  cout << "  -div-with-zero <value> | sum | <file> [<scalars>]\n";
+  cout << "      Same as :option:`-div`, but set result to zero in case of division by zero.\n";
   cout << "  -abs\n";
   cout << "      Replace values by their respective absolute value.\n";
   cout << "  -pow, -power <exponent>\n";
@@ -753,7 +753,12 @@ int main(int argc, char **argv)
     } else if (OPTION("-div") || OPTION("-divide-by") || OPTION("-over") || OPTION("/")) {
       const char *arg = ARGUMENT;
       double c;
-      if (FromString(arg, c)) {
+      if (ToLower(arg) == "sum") {
+        Statistic *a = new Sum();
+        a->Hidden(verbose < 1);
+        ops.push_back(UniquePtr<Op>(a));
+        ops.push_back(UniquePtr<Op>(new Div(&a->Value())));
+      } else if (FromString(arg, c)) {
         if (fequal(c, .0)) {
           cerr << "Invalid -div argument, value must not be zero!" << endl;
           exit(1);
@@ -784,28 +789,39 @@ int main(int argc, char **argv)
         ops.push_back(UniquePtr<Op>(op.release()));
       }
     } else if (OPTION("-div-with-zero")) {
-      const char *fname = ARGUMENT;
-      const char *aname = nullptr;
-      if (HAS_ARGUMENT) {
-        aname = ARGUMENT;
+      const char *arg = ARGUMENT;
+      double c;
+      if (ToLower(arg) == "sum") {
+        Statistic *a = new Sum();
+        a->Hidden(verbose < 1);
+        ops.push_back(UniquePtr<Op>(a));
+        ops.push_back(UniquePtr<Op>(new DivWithZero(&a->Value())));
+      } else if (FromString(arg, c)) {
+        ops.push_back(UniquePtr<Op>(new DivWithZero(c)));
       } else {
-        #if MIRTK_Image_WITH_VTK
-          if (dataset && arrays->HasArray(fname)) {
-            aname = fname;
-            fname = input_name;
-          }
-        #endif
+        const char *fname = arg;
+        const char *aname = nullptr;
+        if (HAS_ARGUMENT) {
+          aname = ARGUMENT;
+        } else {
+          #if MIRTK_Image_WITH_VTK
+            if (dataset && arrays->HasArray(fname)) {
+              aname = fname;
+              fname = input_name;
+            }
+          #endif
+        }
+        UniquePtr<DivWithZero> op(new DivWithZero(fname));
+        if (aname) {
+          #if MIRTK_Image_WITH_VTK
+            op->ArrayName(aname);
+            op->IsCellData(cell_data);
+          #else
+            FatalError("Cannot read point set files when build without VTK or wrong usage!");
+          #endif
+        }
+        ops.push_back(UniquePtr<Op>(op.release()));
       }
-      UniquePtr<DivWithZero> op(new DivWithZero(fname));
-      if (aname) {
-        #if MIRTK_Image_WITH_VTK
-          op->ArrayName(aname);
-          op->IsCellData(cell_data);
-        #else
-          FatalError("Cannot read point set files when build without VTK or wrong usage!");
-        #endif
-      }
-      ops.push_back(UniquePtr<Op>(op.release()));
     } else if (OPTION("-abs")) {
       ops.push_back(UniquePtr<Op>(new Abs()));
     } else if (OPTION("-pow") || OPTION("-power")) {

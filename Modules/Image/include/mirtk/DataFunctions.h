@@ -185,10 +185,13 @@ public:
 /// Base class of element-wise data transformations
 class ElementWiseBinaryOp : public Op
 {
-  /// Constant value to add
+  /// Constant value of right-hand side
   mirtkPublicAttributeMacro(double, Constant);
 
-  /// File path of second dataset
+  /// Pointer to memory of constant value
+  mirtkPublicAggregateMacro(const double, ConstantPointer);
+
+  /// File path of dataset of right-hand side
   mirtkPublicAttributeMacro(string, FileName);
 
   /// Name of input point/cell data array
@@ -208,31 +211,49 @@ protected:
   /// Constructor
   ElementWiseBinaryOp(double value)
   :
-    _Constant(value), _Other(nullptr)
+    _Constant(value), _ConstantPointer(nullptr), _Other(nullptr)
+  {}
+
+  /// Constructor
+  ElementWiseBinaryOp(const double *value)
+  :
+    _Constant(NaN), _ConstantPointer(value), _Other(nullptr)
   {}
 
   /// Constructor
   ElementWiseBinaryOp(const char *fname)
   :
-    _Constant(.0), _FileName(fname), _Other(nullptr)
+    _Constant(NaN), _ConstantPointer(nullptr), _FileName(fname), _Other(nullptr)
   {}
 
   /// Constructor
   ElementWiseBinaryOp(const char *fname, double value)
   :
-    _Constant(value), _FileName(fname), _Other(nullptr)
+    _Constant(value), _ConstantPointer(nullptr), _FileName(fname), _Other(nullptr)
+  {}
+
+  /// Constructor
+  ElementWiseBinaryOp(const char *fname, const double *value)
+  :
+    _Constant(NaN), _ConstantPointer(value), _FileName(fname), _Other(nullptr)
   {}
 
   /// Constructor
   ElementWiseBinaryOp(const char *fname, const char *aname, bool cell_data = false)
   :
-    _Constant(.0), _FileName(fname), _ArrayName(aname ? aname : ""), _IsCellData(cell_data), _Other(nullptr)
+    _Constant(NaN), _ConstantPointer(nullptr), _FileName(fname), _ArrayName(aname ? aname : ""), _IsCellData(cell_data), _Other(nullptr)
   {}
 
   /// Constructor
   ElementWiseBinaryOp(const char *fname, const char *aname, double value, bool cell_data = false)
   :
-    _Constant(value), _FileName(fname), _ArrayName(aname ? aname : ""), _IsCellData(cell_data), _Other(nullptr)
+    _Constant(value), _ConstantPointer(nullptr), _FileName(fname), _ArrayName(aname ? aname : ""), _IsCellData(cell_data), _Other(nullptr)
+  {}
+
+  /// Constructor
+  ElementWiseBinaryOp(const char *fname, const char *aname, const double *value, bool cell_data = false)
+  :
+    _Constant(NaN), _ConstantPointer(value), _FileName(fname), _ArrayName(aname ? aname : ""), _IsCellData(cell_data), _Other(nullptr)
   {}
 
 public:
@@ -258,17 +279,18 @@ public:
         }
       }
     } else {
+      double c = (_ConstantPointer ? *_ConstantPointer : _Constant);
       if (_Mask) {
         bool *mask = _Mask + re.begin();
         for (int i = re.begin(); i != re.end(); ++i) {
-          if (*mask) *data = this->Op(*data, _Constant, *mask);
+          if (*mask) *data = this->Op(*data, c, *mask);
           ++data, ++mask;
         }
       } else {
         bool mask;
         for (int i = re.begin(); i != re.end(); ++i) {
           mask = true;
-          *data = this->Op(*data, _Constant, mask);
+          *data = this->Op(*data, c, mask);
           ++data;
         }
       }
@@ -478,6 +500,9 @@ public:
   Add(double value) : ElementWiseBinaryOp(value) {}
 
   /// Constructor
+  Add(const double *value) : ElementWiseBinaryOp(value) {}
+
+  /// Constructor
   Add(const char *fname) : ElementWiseBinaryOp(fname) {}
 
   /// Transform data value and/or mask data value by setting *mask = false
@@ -503,6 +528,9 @@ public:
 
   /// Constructor
   Sub(double value) : ElementWiseBinaryOp(value) {}
+
+  /// Constructor
+  Sub(const double *value) : ElementWiseBinaryOp(value) {}
 
   /// Constructor
   Sub(const char *fname) : ElementWiseBinaryOp(fname) {}
@@ -532,6 +560,9 @@ public:
   Mul(double value) : ElementWiseBinaryOp(value) {}
 
   /// Constructor
+  Mul(const double *value) : ElementWiseBinaryOp(value) {}
+
+  /// Constructor
   Mul(const char *fname) : ElementWiseBinaryOp(fname) {}
 
   /// Transform data value and/or mask data value by setting *mask = false
@@ -559,6 +590,9 @@ public:
   Div(double value) : ElementWiseBinaryOp(value) {}
 
   /// Constructor
+  Div(const double *value) : ElementWiseBinaryOp(value) {}
+
+  /// Constructor
   Div(const char *fname) : ElementWiseBinaryOp(fname) {}
 
   /// Transform data value and/or mask data value by setting *mask = false
@@ -581,6 +615,12 @@ public:
 class DivWithZero : public ElementWiseBinaryOp
 {
 public:
+
+  /// Constructor
+  DivWithZero(double value) : ElementWiseBinaryOp(value) {}
+
+  /// Constructor
+  DivWithZero(const double *value) : ElementWiseBinaryOp(value) {}
 
   /// Constructor
   DivWithZero(const char *fname) : ElementWiseBinaryOp(fname) {}
@@ -644,6 +684,9 @@ public:
 
   /// Constructor
   Mask(double value) : ElementWiseBinaryOp(value) {}
+
+  /// Constructor
+  Mask(const double *value) : ElementWiseBinaryOp(value) {}
 
   /// Constructor
   Mask(const char *fname) : ElementWiseBinaryOp(fname) {}
