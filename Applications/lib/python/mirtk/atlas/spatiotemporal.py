@@ -42,7 +42,7 @@ class SpatioTemporalAtlas(object):
         path = paths.get(name, default)
         return os.path.normpath(os.path.join(self.topdir, path)) if path else None
 
-    def __init__(self, config, root=None, step=-1, verbose=1, threads=0):
+    def __init__(self, config, root=None, step=-1, verbose=1, threads=-1, exit_on_error=False):
         """Load spatio-temporal atlas configuration."""
         self.step = step
         if isinstance(config, str):
@@ -67,7 +67,7 @@ class SpatioTemporalAtlas(object):
         self.tmpdir = self._path(paths, "tmpdir", "cache")
         self.outdir = self._path(paths, "outdir", os.path.join(self.topdir, "templates"))
         self.refimg = self._path(images, "ref", os.path.join(self.topdir, "global", "average.nii.gz"))
-        self.channel = "t2w"
+        self.channel = images.get("default", "t2w")
         if len(self.config["images"]) == 1:
             self.channel = self.config["images"].keys()[0]
         # Parameters of temporal kernel regressions
@@ -92,8 +92,16 @@ class SpatioTemporalAtlas(object):
         else:
             self.age_specific_regdof = False
         # Other workflow execution settings
+        envcfg = self.config.get("environment", {})
         self.verbose = verbose
-        self.threads = threads
+        self.queue = {
+            "short": envcfg.get("queue", {}).get("short", "local").lower(),
+            "long": envcfg.get("queue", {}).get("long", "local").lower()
+        }
+        self.threads = envcfg.get("threads", 8) if threads < 0 else threads
+        self.mintasks = envcfg.get("mintasks", 1)
+        self.maxtasks = envcfg.get("maxtasks", 1000)
+        self.exit_on_error = exit_on_error
         # Discard images not required for any final time point
         imgids = set()
         for t in self.means:
@@ -115,9 +123,9 @@ class SpatioTemporalAtlas(object):
                     opts["verbose"] = self.verbose - 2
             if self.verbose > 1:
                 sys.stdout.write("\n\n")
-        mirtk.run(command, args=args, opts=opts, verbose=self.verbose - 1, threads=threads)
+        mirtk.run(command, args=args, opts=opts, verbose=self.verbose - 1, threads=threads, exit_on_error=self.exit_on_error)
 
-    def _submit(self, name, script, tasks=-1, opts={}, step=-1, queue=None):
+    def _submit(self, name, script, tasks=-1, group=1, opts={}, step=-1, queue=None, memory=8 * 1024):
         """Submit batch script."""
         if step < 0:
             step = self.step
@@ -125,21 +133,39 @@ class SpatioTemporalAtlas(object):
             queue = self.queue
         if tasks == 0:
             return (queue, 0)
-        source = 'import sys\n'
+        threads = self.threads if self.threads > 0 else 1
+        source = 'import sys\nimport socket\n'
+        source += 'sys.stdout.write("Host: " + socket.gethostname() + "\\n\\n")\n'
         source += 'sys.path.insert(0, "{0}")\n'.format(os.path.dirname(os.path.dirname(mirtk.__file__)))
         source += 'sys.path.insert(0, "{0}")\n'.format(os.path.dirname(__file__))
         source += 'from {0} import SpatioTemporalAtlas\n'.format(os.path.splitext(os.path.basename(__file__))[0])
-        source += 'atlas = SpatioTemporalAtlas(root="{root}", config={config}, step={step}, threads={threads}, verbose=3)\n'
+        source += 'atlas = SpatioTemporalAtlas(root="{root}", config={config}, step={step}, threads={threads}, verbose=3, exit_on_error=True)\n'
         if tasks > 0:
-            source += 'taskid = int(sys.argv[1])\n'
-            source += 'if taskid < 0: sys.stderr.write("Invalid task ID\\n")\n'
-        source += script
-        source += 'else: sys.stderr.write("Invalid task ID\\n")\n'
+            tasks_per_group = max(group, self.mintasks, (tasks + self.maxtasks - 1) // self.maxtasks)
+            if tasks_per_group > 1:
+                groups = range(0, tasks, tasks_per_group)
+                source += 'groupid = int(sys.argv[1])\n'
+                source += 'if groupid < 0 or groupid >= {0}:\n'.format(len(groups))
+                source += '    sys.stderr.write("Invalid group ID\\n")\n'
+                source += 'tasks_per_group = {0}\n'.format(tasks_per_group)
+                source += 'for taskid in range(groupid * tasks_per_group, (groupid + 1) * tasks_per_group):\n'
+                source += '    if taskid >= {0}: break\n'.format(tasks)
+                source += '    ' + '\n    '.join(script.splitlines()) + '\n'
+                source += '    else: sys.stderr.write("Invalid task ID\\n")\n'
+                groups = len(groups)
+            else:
+                source += 'taskid = int(sys.argv[1])\n'
+                source += 'if taskid < 0: sys.stderr.write("Invalid task ID\\n")\n'
+                source += script
+                source += 'else: sys.stderr.write("Invalid task ID\\n")\n'
+                groups = tasks
+        else:
+            source += script
         opts.update({
             "root": self.root,
             "config": repr(self.config),
             "step": step,
-            "threads": self.threads
+            "threads": threads
         })
         jobname = "i{0:02d}_{1}".format(step, name) if step >= 0 else name
         if queue.lower() in ("condor", "htcondor"):
@@ -147,18 +173,17 @@ class SpatioTemporalAtlas(object):
                 log = os.path.join(self.subdir(step), "log", name + "_$(Cluster).$(Process).log")
             else:
                 log = os.path.join(self.subdir(step), "log", name + "_$(Cluster).log")
-            jobid = cbatch(name=jobname, script=source, tasks=tasks, opts=opts, log=log,
-                           requirements=self.config.get("condor", {}).get("requirements", []), verbose=0)
+            requirements = self.config.get("environment", {}).get("condor", {}).get("requirements", [])
+            jobid = cbatch(name=jobname, script=source, tasks=groups, opts=opts, log=log, threads=threads, memory=memory, requirements=requirements, verbose=0)
         else:
             if tasks > 0:
                 log = os.path.join(self.subdir(step), "log", name + "_%A.%a.log")
             else:
                 log = os.path.join(self.subdir(step), "log", name + "_%j.log")
-            jobid = sbatch(name=jobname, script=source, tasks=tasks, opts=opts, log=log,
-                           threads=self.threads, queue=queue, verbose=0)
+            jobid = sbatch(name=jobname, script=source, tasks=groups, opts=opts, log=log, threads=threads, memory=memory, queue=queue, verbose=0)
         if tasks > 0:
-            self.info("Submitted job '{}' (id={}, #jobs={})".format(
-                name, jobid[0] if isinstance(jobid, tuple) else jobid, tasks)
+            self.info("Submitted batch '{}' (id={}, #jobs={}, #tasks={})".format(
+                name, jobid[0] if isinstance(jobid, tuple) else jobid, groups, tasks)
             )
         else:
             self.info("Submitted job '{}' (id={})".format(name, jobid))
@@ -171,10 +196,11 @@ class SpatioTemporalAtlas(object):
         condor_jobs = []
         slurm_jobs = []
         for queue, jobid in jobs:
-            if queue.lower() in ("condor", "htcondor"):
-                condor_jobs.append(jobid)
-            else:
-                slurm_jobs.append(jobid)
+            if queue and queue.lower() != "local":
+                if queue.lower() in ("condor", "htcondor"):
+                    condor_jobs.append(jobid)
+                else:
+                    slurm_jobs.append(jobid)
         if not cwait(condor_jobs, interval=interval, verbose=verbose):
             raise Exception("Not all HTCondor jobs finished successfully!")
         if not swait(slurm_jobs, interval=interval, verbose=verbose):
@@ -213,7 +239,7 @@ class SpatioTemporalAtlas(object):
             t2 = t1
         else:
             t2 = self.normtime(t2)
-        if t1 == t2:
+        if isclose(t1, t2):
             w = 2
             if self.precision > 0:
                 w += self.precision + 1
@@ -229,7 +255,7 @@ class SpatioTemporalAtlas(object):
         ages = set()
         for imgid in self.imgids:
             ages.add(self.age(imgid))
-        return ages
+        return list(ages)
 
     def stdev(self, t):
         """Get standard deviation of temporal Gaussian kernel centered at time t."""
@@ -327,18 +353,23 @@ class SpatioTemporalAtlas(object):
         suffix = cfg.get("suffix", ".dof")
         return os.path.normpath(os.path.join(self.topdir, prefix + imgid + suffix))
 
-    def regcfg(self, step=-1, force=False, create=True):
+    def regcfg(self, step=-1):
+        """Get registration configuration entries."""
+        configs = self.config.get("registration", {}).get("config", {})
+        if not isinstance(configs, list):
+            configs = [configs]
+        cfg = {}
+        for i in range(min(step, len(configs)) if step > 0 else len(configs)):
+            cfg.update(configs[i])
+        return cfg
+
+    def parin(self, step=-1, force=False, create=True):
         """Write registration configuration file and return path."""
         if step < 0:
             step = self.step
         parin = os.path.join(self.subdir(step), "config", "register.cfg")
         if create and (force or not os.path.exists(parin)):
-            configs = self.config.get("registration", {}).get("config", {})
-            if not isinstance(configs, list):
-                configs = [configs]
-            cfg = {}
-            for i in range(step if step > 0 else len(configs)):
-                cfg.update(configs[i])
+            cfg = self.regcfg(step)
             images = self.config["images"]
             channels = cfg.get("channels", ["t2w"])
             if not isinstance(channels, list):
@@ -365,15 +396,17 @@ class SpatioTemporalAtlas(object):
                 formula = energy
             else:
                 formula = ""
-                measures = cfg.get("measures", [])
-                if not isinstance(measures, list):
-                    measures = [measures]
-                if len(measures) < 0:
-                    measures = ["NMI"]
+                measures = cfg.get("measures", {})
                 for c in range(len(channels)):
                     target = 2 * c + 1
                     source = 2 * c + 2
-                    measure = measures[c] if c < len(measures) else measures[-1]
+                    if isinstance(measures, list):
+                        measure = measures[c] if c < len(measures) else measures[-1]
+                    elif isinstance(measures, dict):
+                        channel = self.splitchannel(channels[c])[0]
+                        measure = measures.get(channel, "NMI")
+                    else:
+                        measure = measures
                     if sim_term_type == 2:
                         term = "{sim}[{channel} sim](I({tgt}) o T^-0.5, I({src}) o T^0.5)"
                     elif sim_term_type == 1:
@@ -400,7 +433,7 @@ class SpatioTemporalAtlas(object):
                 resolutions = [resolutions]
             blurring = cfg.get("blurring", {})
             if isinstance(blurring, list):
-                blurring = {channels[0].split("=")[0]: blurring}
+                blurring = {self.splitchannel(channels[0])[0]: blurring}
             be_weights = cfg.get("bending", [0])
             if not isinstance(be_weights, list):
                 be_weights = [be_weights]
@@ -435,9 +468,12 @@ class SpatioTemporalAtlas(object):
                 for c in range(len(channels)):
                     target = 2 * c + 1
                     source = 2 * c + 2
-                    sigmas = blurring.get(self.splitchannel(channels[c])[0], [])
+                    channel = self.splitchannel(channels[c])[0]
+                    sigmas = blurring.get(channel, [])
                     if not isinstance(sigmas, list):
                         sigmas = [sigmas]
+                    if len(sigmas) == 0 and "labels" in images[channel]:
+                        sigmas = [2]
                     if len(sigmas) > 0:
                         sigma = float(sigmas[level - 1] if level <= len(sigmas) else sigmas[-1])
                         params.append("Blurring of image {0} [vox] = {1}".format(target, sigma))
@@ -464,17 +500,12 @@ class SpatioTemporalAtlas(object):
         if not path:
             path = os.path.join(self.subdir(step), "dof", "deformation", self.timename(t), "{0}.dof.gz".format(imgid))
         dof = path
-        if t == age:
+        if isclose(t, age):
             if force or not os.path.exists(path):
                 if step < 1:
                     dof = "identity"
                 elif create:
-                    configs = self.config.get("registration", {}).get("config", {})
-                    if not isinstance(configs, list):
-                        configs = [configs]
-                    cfg = {}
-                    for i in range(step if step > 0 else len(configs)):
-                        cfg.update(configs[i])
+                    cfg = self.regcfg(step)
                     args = []
                     affdof = self.affdof(imgid)
                     if affdof == "identity":
@@ -495,7 +526,7 @@ class SpatioTemporalAtlas(object):
                         args.append(self.avgimg(t, channel=channel, label=label, step=step - 1, create=not batch))
                     makedirs(os.path.dirname(dof))
                     self._run("register", args=args, opts={
-                        "parin": self.regcfg(step=step, force=force, create=not batch),
+                        "parin": self.parin(step=step, force=force, create=not batch),
                         "mask": self.refimg,
                         "dofin": "identity",
                         "dofout": dof
@@ -518,6 +549,10 @@ class SpatioTemporalAtlas(object):
         """Register all images to their age-specific template."""
         if step < 0:
             step = self.step
+        if not queue:
+            queue = self.queue["long"]
+        if queue == "local":
+            queue = None
         self.info("Register images to template of corresponding age", step=step)
         script = ""
         tasks = 0
@@ -530,19 +565,21 @@ class SpatioTemporalAtlas(object):
                 tasks += 1
             dofs[imgid] = dof
         if create and queue:
-            self.regcfg(step=step, force=force)  # create -parin file if missing
-            return (dofs, self._submit("register".format(step), script=script, tasks=tasks, step=step, queue=queue))
-        return dofs
+            self.parin(step=step, force=force)  # create -parin file if missing
+            job = self._submit("register".format(step), script=script, tasks=tasks, step=step, queue=queue)
+        else:
+            job = (None, 0)
+        return (job, dofs)
 
     def doftable(self, t, step=-1, force=False, create=True, batch=False):
         """Write table with image to atlas deformations of images with non-zero weight."""
         dofs = []
         t = self.normtime(t)
-        weights = self.weights(t, zero=False)
+        weights = self.weights(t)
         all_dofs_are_identity = True
         for imgid in self.imgids:
             if imgid in weights:
-                if not self.age_specific_regdof or t == self.age(imgid):
+                if not self.age_specific_regdof or isclose(t, self.age(imgid)):
                     dof = self.regdof(imgid, t=t, step=step, force=force, create=create and not batch)
                 else:
                     dof = self.regdof(imgid, t=t, step=step, force=force, create=create, batch=batch)
@@ -550,35 +587,51 @@ class SpatioTemporalAtlas(object):
                 if dof != "identity":
                     all_dofs_are_identity = False
         if all_dofs_are_identity:
-            table = "identity"
+            dofdir = None
+            dofnames = "identity"
         elif len(dofs) > 0:
-            table = os.path.join(self.subdir(step), "config", "{}-dofs.tsv".format(self.timename(t)))
-            if create and (force or not os.path.exists(table)):
-                makedirs(os.path.dirname(table))
-                with open(table, "wt") as f:
+            dofdir = self.topdir
+            dofnames = os.path.join(self.subdir(step), "config", "{}-dofs.tsv".format(self.timename(t)))
+            if create and (force or not os.path.exists(dofnames)):
+                makedirs(os.path.dirname(dofnames))
+                with open(dofnames, "wt") as table:
                     for dof, w in dofs:
-                        f.write("{}\t{}\n".format(dof, w))
+                        if dofdir:
+                            dof = os.path.relpath(dof, dofdir)
+                        table.write("{}\t{}\n".format(dof, w))
         else:
             raise ValueError("No image has non-zero weight for time {0}!".format(t))
-        return (table, "", "")
+        return (dofdir, dofnames)
 
     def avgdof(self, t, path=None, step=-1, force=False, create=True, batch=False):
         """Get mean cross-sectional SV FFD transformation at given time."""
+        t = self.normtime(t)
         if not path:
             path = os.path.join(self.subdir(step), "dof", "average", "{0}.dof.gz".format(self.timename(t)))
         if create and (force or not os.path.exists(path)):
-            table, prefix, suffix = self.doftable(t, step=step, force=force, batch=batch)
-            if table == "identity":
+            dofdir, dofnames = self.doftable(t, step=step, force=force, batch=batch)
+            if dofnames == "identity":
                 path = "identity"
             else:
                 makedirs(os.path.dirname(path))
-                self._run("average-dofs", args=[path], opts={"dofnames": table, "prefix": prefix, "suffix": suffix, "invert": None})
+                self._run("average-dofs", args=[path], opts={
+                    "dofdir": dofdir,
+                    "dofnames": dofnames,
+                    "type": "SVFFD",
+                    "target": "common",
+                    "invert": True,
+                    "global": False
+                })
         return path
 
     def avgdofs(self, step=-1, force=False, create=True, queue=None):
         """Compute all average SV FFDs needed for (parallel) atlas construction."""
         if step < 0:
             step = self.step
+        if not queue:
+            queue = self.queue["short"]
+        if queue == "local":
+            queue = None
         self.info("Compute residual average deformations at each age", step=step)
         script = ""
         tasks = 0
@@ -591,8 +644,10 @@ class SpatioTemporalAtlas(object):
                 tasks += 1
             dofs[t] = dof
         if create and queue:
-            return (dofs, self._submit("avgdofs", script=script, tasks=tasks, step=step, queue=queue))
-        return dofs
+            job = self._submit("avgdofs", script=script, tasks=tasks, step=step, queue=queue)
+        else:
+            job = (None, 0)
+        return (job, dofs)
 
     def growth(self, t1, t2, step=-1, force=False, create=True, batch=False):
         """Make composite SV FFD corresponding to longitudinal change from t1 to t2."""
@@ -600,7 +655,7 @@ class SpatioTemporalAtlas(object):
             step = self.step
         t1 = self.normtime(t1)
         t2 = self.normtime(t2)
-        if t1 == t2:
+        if isclose(t1, t2):
             return "identity"
         dof = os.path.join(self.subdir(step), "dof", "growth", "{0}.dof.gz".format(self.timename(t1, t2)))
         if step < 1:
@@ -621,6 +676,10 @@ class SpatioTemporalAtlas(object):
         """Compose longitudinal deformations with residual average deformations."""
         if step < 0:
             step = self.step
+        if not queue:
+            queue = self.queue
+        if queue == "local":
+            queue = None
         self.info("Update all pairs of longitudinal deformations", step=step)
         script = ""
         tasks = 0
@@ -638,8 +697,10 @@ class SpatioTemporalAtlas(object):
                         tasks += 1
                     dofs[t1][t2] = dof
         if create and queue:
-            return (dofs, self._submit("compose", script=script, tasks=tasks, step=step, queue=queue))
-        return dofs
+            job = self._submit("compose", script=script, tasks=tasks, step=step, queue=queue)
+        else:
+            job = (None, 0)
+        return (job, dofs)
 
     def imgdof(self, imgid, t, step=-1, decomposed=False, force=False, create=True, batch=False):
         """Compute composite image to atlas transformation."""
@@ -668,7 +729,44 @@ class SpatioTemporalAtlas(object):
                 dof = [dof] + ['identity'] * 2
         return dof
 
-    def defimg(self, imgid, t, channel=None, path=None, step=-1, force=False, create=True, batch=False):
+    def imgdofs(self, ages=[], step=-1, force=False, create=True, queue=None):
+        """Compute all composite image to atlas transformations."""
+        if step < 0:
+            step = self.step
+        if not queue:
+            queue = self.queue["short"]
+        if queue == "local":
+            queue = None
+        self.info("Update composite image to atlas transformations", step=step)
+        if ages:
+            if not isinstance(ages, (tuple, list)):
+                ages = [ages]
+            ages = [self.normtime(t) for t in ages]
+        else:
+            ages = self.ages()
+        script = ""
+        tasks = 0
+        dofs = {}
+        for t in ages:
+            dofs[t] = {}
+            weights = self.weights(t)
+            for imgid in self.imgids:
+                if imgid in weights:
+                    dof = self.imgdof(imgid=imgid, t=t, step=step, force=force, create=create and not queue)
+                    if dof != "identity" and queue and (force or not os.path.exists(dof)):
+                        remove_or_makedirs(dof)
+                        script += 'elif taskid == {taskid}: atlas.imgdof(imgid="{imgid}", t={t}, batch=True)\n'.format(
+                            taskid=tasks, imgid=imgid, t=t
+                        )
+                        tasks += 1
+                    dofs[t][imgid] = dof
+        if create and queue:
+            job = self._submit("imgdofs", script=script, tasks=tasks, step=step, queue=queue)
+        else:
+            job = (None, 0)
+        return (job, dofs)
+
+    def defimg(self, imgid, t, channel=None, path=None, step=-1, decomposed=True, force=False, create=True, batch=False):
         """Transform sample image to atlas space at given time point."""
         if not channel:
             channel = self.channel
@@ -677,34 +775,33 @@ class SpatioTemporalAtlas(object):
         if create and (force or not os.path.exists(path)):
             cfg = self.config["images"][channel]
             img = self.image(imgid, channel=channel)
+            dof = self.imgdof(imgid=imgid, t=t, step=step, decomposed=decomposed, force=force, create=not batch)
             opts = {
                 "interp": cfg.get("interp", "linear"),
                 "target": self.refimg,
-                "dofin": self.imgdof(imgid=imgid, t=t, step=step, force=force, create=not batch),
+                "dofin": dof,
                 "invert": True
             }
             if "bkgrnd" in cfg:
                 opts["source-padding"] = cfg["bkgrnd"]
             if "labels" in cfg:
-                opts["labels"] = "all"
+                opts["labels"] = cfg["labels"].split(",")
             makedirs(os.path.dirname(path))
             self._run("transform-image", args=[img, path], opts=opts)
         return path
 
-    def defimgs(self, ages=[], channels=[], step=-1, force=False, create=True, queue=None):
+    def defimgs(self, ages=[], channels=[], step=-1, decomposed=True, force=False, create=True, queue=None):
         """Transform all images to discrete set of atlas time points."""
         if step < 0:
             step = self.step
+        if not queue:
+            queue = self.queue["short"]
+        if queue == "local":
+            queue = None
         if not channels:
-            configs = self.config.get("registration", {}).get("config", {})
-            if not isinstance(configs, list):
-                configs = [configs]
-            cfg = {}
-            for i in range(step if step > 0 else len(configs)):
-                cfg.update(configs[i])
-            channels = cfg.get("channels", self.channel)
-            if not isinstance(channels, list):
-                channels = [channels]
+            channels = self.regcfg(step).get("channels", self.channel)
+        if not isinstance(channels, list):
+            channels = [channels]
         if ages:
             self.info("Deform images to discrete time points", step=step)
             if not isinstance(ages, (tuple, list)):
@@ -727,19 +824,21 @@ class SpatioTemporalAtlas(object):
                     raise Exception("No image has non-zero weight for t={}".format(t))
                 for imgid in self.imgids:
                     if imgid in weights:
-                        img = self.defimg(imgid=imgid, t=t, channel=channel, step=step, force=force, create=create and not queue)
+                        img = self.defimg(imgid=imgid, t=t, channel=channel, step=step, decomposed=decomposed, force=force, create=create and not queue)
                         if queue and (force or not os.path.exists(img)):
                             remove_or_makedirs(img)
-                            script += 'elif taskid == {taskid}: atlas.defimg(imgid="{imgid}", t={t}, channel="{channel}", path="{path}", batch=True)\n'.format(
-                                taskid=tasks, t=t, imgid=imgid, channel=channel, path=img
+                            script += 'elif taskid == {taskid}: atlas.defimg(imgid="{imgid}", t={t}, channel="{channel}", path="{path}", decomposed={decomposed}, batch=True)\n'.format(
+                                taskid=tasks, t=t, imgid=imgid, channel=channel, path=img, decomposed=decomposed
                             )
                             tasks += 1
                         imgs[t][channel].append(img)
         if create and queue:
-            return (imgs, self._submit("defimgs", script=script, tasks=tasks, step=step, queue=queue))
-        return imgs
+            job = self._submit("defimgs", script=script, tasks=tasks, step=step, queue=queue)
+        else:
+            job = (None, 0)
+        return (job, imgs)
 
-    def imgtable(self, t, channel=None, step=-1, force=False, create=True, batch=False):
+    def imgtable(self, t, channel=None, step=-1, decomposed=True, force=False, create=True, batch=False):
         """Write image table with weights for average-images, and deform images to given time point."""
         t = self.normtime(t)
         if not channel:
@@ -756,37 +855,52 @@ class SpatioTemporalAtlas(object):
                 f.write("\n")
                 for imgid in self.imgids:
                     if imgid in weights:
-                        img = self.defimg(t=t, imgid=imgid, channel=channel, step=step, force=force, create=not batch)
+                        img = self.defimg(t=t, imgid=imgid, channel=channel, step=step, decomposed=decomposed, force=force, create=not batch)
                         f.write(os.path.relpath(img, self.topdir))
                         f.write("\t{0}\n".format(weights[imgid]))
         return table
 
-    def avgimg(self, t, channel=None, label=0, path=None, step=-1, force=False, create=True, batch=False):
+    def avgimg(self, t, channel=None, label=0, path=None, outdir=None, step=-1, decomposed=True, force=False, create=True, batch=False):
         """Create average image for a given time point."""
         if not channel:
             channel = self.channel
         cfg = self.config["images"][channel]
         if not path:
-            path = os.path.join(self.subdir(step), channel, self.timename(t))
             if label:
                 if isinstance(label, (tuple, list)):
                     lblstr = ','.join([str(l).strip() for l in label])
+                elif isinstance(label, int):
+                    max_label = max(parselabels(cfg["labels"])) if "labels" in cfg else 9
+                    lblstr = "{0:0{1}d}".format(label, len(str(max_label)))
                 else:
                     lblstr = str(label).strip()
                 lblstr = lblstr.replace("..", "-")
-                path = os.path.join(path, "prob_{0}.nii.gz".format(lblstr))
-            elif "labels" in cfg:
-                path = os.path.join(path, "labels.nii.gz")
             else:
-                path = os.path.join(path, "mean.nii.gz")
+                lblstr = None
+            if outdir:
+                outdir = os.path.abspath(outdir)
+                if "labels" in cfg:
+                    if lblstr:
+                        path = os.path.join(outdir, "pbmaps", "_".join([channel, lblstr]))
+                    else:
+                        path = os.path.joint(outdir, "labels", channel)
+                else:
+                    path = os.path.join(outdir, "templates", channel)
+            else:
+                path = os.path.join(self.subdir(step), channel)
+                if lblstr:
+                    path = os.path.join(path, "prob_" + lblstr)
+                else:
+                    path = os.path.join(path, "mean")
+            path = os.path.join(path, self.timename(t) + ".nii.gz")
         if create and (force or not os.path.exists(path)):
             makedirs(os.path.dirname(path))
             if "labels" in cfg and not label:
                 labels = parselabels(cfg["labels"])
-                args = [self.avgimg(t, channel=channel, label=label, step=step, force=force, batch=batch) for label in labels]
+                args = [self.avgimg(t, channel=channel, label=label, step=step, decomposed=decomposed, force=force, batch=batch) for label in labels]
                 self._run("em-hard-segmentation", args=[len(args)] + args + [path])
             else:
-                table = self.imgtable(t, step=step, channel=channel, force=force, batch=batch)
+                table = self.imgtable(t, step=step, channel=channel, decomposed=decomposed, force=force, batch=batch)
                 opts = {
                     "images": table,
                     "reference": self.refimg,
@@ -804,10 +918,14 @@ class SpatioTemporalAtlas(object):
                 self._run("average-images", args=[path], opts=opts)
         return path
 
-    def avgimgs(self, step=-1, ages=[], channels=[], labels={}, outdir=None, force=False, create=True, queue=None):
+    def avgimgs(self, step=-1, ages=[], channels=[], labels={}, outdir=None, decomposed=True, force=False, create=True, queue=None):
         """Create all average images required for (parallel) atlas construction."""
         if step < 0:
             step = self.step
+        if not queue:
+            queue = self.queue["short"]
+        if queue == "local":
+            queue = None
         if ages:
             self.info("Average images at discrete time points", step=step)
             ages = [self.normtime(t) for t in ages]
@@ -815,15 +933,9 @@ class SpatioTemporalAtlas(object):
             self.info("Average images at observed time points", step=step)
             ages = self.ages()
         if not channels:
-            configs = self.config.get("registration", {}).get("config", {})
-            if not isinstance(configs, list):
-                configs = [configs]
-            cfg = {}
-            for i in range(step if step > 0 else len(configs)):
-                cfg.update(configs[i])
-            channels = cfg.get("channels", self.channel)
-            if not isinstance(channels, list):
-                channels = [channels]
+            channels = self.regcfg(step).get("channels", self.channel)
+        if not isinstance(channels, list):
+            channels = [channels]
         if not isinstance(labels, dict):
             dlabels = {}
             for channel in channels:
@@ -838,37 +950,26 @@ class SpatioTemporalAtlas(object):
                 imgs[t][channel] = []
         for t in ages:
             for channel in channels:
-                isseg = ("labels" in self.config["images"][channel])
-                if isseg:
-                    clabels = labels.get(channel, [0])
-                else:
-                    clabels = [0]
+                clabels = [0]
+                if "labels" in self.config["images"][channel]:
+                    if labels.get(channel, "").lower() == "all":
+                        clabels = parselabels(self.config["images"][channel]["labels"])
+                    elif channel in labels:
+                        clabels = parselabels(labels[channel])
                 for label in clabels:
-                    if outdir:
-                        if isseg:
-                            if label:
-                                if isinstance(label, (tuple, list)):
-                                    lblstr = ','.join([str(l).strip() for l in label])
-                                else:
-                                    lblstr = str(label).strip()
-                                lblstr = lblstr.replace("..", "-")
-                                img = os.path.join(outdir, "pbmaps", channel, self.timename(t), "prob_" + lblstr + ".nii.gz")
-                            else:
-                                img = os.path.joint(outdir, "labels", channel, self.timename(t) + ".nii.gz")
-                        else:
-                            img = os.path.join(outdir, "templates", channel, self.timename(t) + ".nii.gz")
-                    else:
-                        img = None
-                    img = self.avgimg(t, channel=channel, label=label, path=img, step=step, force=force, create=create and not queue)
+                    img = self.avgimg(t, channel=channel, label=label, outdir=outdir, step=step, decomposed=decomposed, force=force, create=create and not queue)
                     if queue and (force or not os.path.exists(img)):
-                        script += 'elif taskid == {taskid}: atlas.avgimg(t={t}, channel="{channel}", label={label}, path="{path}", batch=True)\n'.format(
-                            taskid=tasks, t=t, channel=channel, label=repr(label), path=img
+                        remove_or_makedirs(img)
+                        script += 'elif taskid == {taskid}: atlas.avgimg(t={t}, channel="{channel}", label={label}, outdir={outdir}, decomposed={decomposed}, batch=True)\n'.format(
+                            taskid=tasks, t=t, channel=channel, label=repr(label), outdir=repr(outdir), decomposed=decomposed
                         )
                         tasks += 1
                     imgs[t][channel].append(img)
         if create and queue:
-            return (imgs, self._submit("avgimgs", script=script, tasks=tasks, step=step, queue=queue))
-        return imgs
+            job = self._submit("avgimgs", script=script, tasks=tasks, step=step, queue=queue)
+        else:
+            job = (None, 0)
+        return (job, imgs)
 
     def construct(self, start=-1, niter=10, outdir=None, force=False, queue=None):
         """Perform atlas construction.
@@ -876,69 +977,111 @@ class SpatioTemporalAtlas(object):
         Args:
             start (int): Last completed iteration. (default: step)
             niter (int, optional): Number of atlas construction iterations. (default: 10)
-            outdir (str, optional): Directory for final templates. (default: subdir(step))
+            outdir (str, optional): Directory for final templates. (default: config.paths.outdir)
             force (bool, optional): Force re-creation of already existing files. (default: False)
-            queue (str, tuple, optional): Name of queues of batch queuing system.
+            queue (str, dict, optional): Name of queues of batch queuing system.
                 When not specified, the atlas construction runs on the local machine
-                using the number of threads specified during construction. When a single
-                `str` is given, both short and long running jobs are submitted to the same
-                queue. Otherwise, the first queue is used for shorter running jobs, while
-                the second queue is used for longer running jobs.
+                using the number of threads specified during construction. When a single `str`
+                is given, both short and long running jobs are submitted to the same queue.
+                Otherwise, separate environments can be specified for "short" or "long" running
+                jobs using the respective dictionary keys. The supported environments are:
+                - "local": Multi-threaded execution on host machine
+                - "condor": Batch execution using HTCondor
+                - "<other>": Batch execution using named SLURM partition
+                (default: config.environment.queue)
 
         """
         if start < 0:
             start = self.step
         if start < 0:
             raise ValueError("Atlas to be constructed must have step index >= 0!")
-        self.info("Performing {0} iterations starting with step {1}".format(niter, start))
-        self.info("Age-dependent image deformations:   {}".format(self.age_specific_imgdof))
-        self.info("Average age-dependent deformations: {}".format(self.age_specific_regdof))
+        if start > 0:
+            self.info("Performing {0} iterations starting with step {1}".format(niter, start))
+        else:
+            self.info("Performing {0} iterations".format(niter))
+        self.info("Age-dependent image deformations = {}".format(self.age_specific_imgdof))
+        self.info("Average age-dependent deformations = {}".format(self.age_specific_regdof))
+        # Initialize dict of queues used for batch execution
         if not queue:
-            queue = (None, None)
-        elif not isinstance(queue, (list, tuple)):
-            queue = (queue, queue)  # queues for (short, long) running jobs
+            queue = self.queue
+        if not isinstance(queue, dict):
+            queue = {"short": queue, "long": queue}
+        else:
+            if "short" not in queue:
+                queue["short"] = "local"
+            if "long" not in queue:
+                queue["long"] = "local"
+        if queue["short"] == "local":
+            queue["short"] = None
+        if queue["long"] == "local":
+            queue["long"] = None
+        # Save considerable amount of disk memory by not explicitly storing the
+        # composite image to atlas transformations of type FluidFreeFormTransformation
+        # (alternatively, approximate composition). The transform-image and/or
+        # average-images commands can apply a sequence of transforms in order to
+        # perform the composition quasi on-the-fly.
+        decomposed_imgdofs = True
+        rmtemp_regdofs = True
+        # Iterate atlas construction steps
+        weights = {}
+        for t in self.ages():
+            weights[t] = self.weights(t)
         for step in range(start + 1, start + niter + 1):
             # Deform images to atlas space
-            result = self.defimgs(step=step - 1, force=force, queue=queue[0])
-            if queue[0]:
-                self.wait(result[-1], interval=30, verbose=1)
+            if not decomposed_imgdofs:
+                job = self.imgdofs(step=step - 1, force=force, queue=queue["short"])[0]
+                self.wait(job, interval=30, verbose=1)
+            job = self.defimgs(step=step - 1, decomposed=decomposed_imgdofs, force=force, queue=queue["short"])[0]
+            self.wait(job, interval=30, verbose=1)
             # Average images in atlas space
-            result = self.avgimgs(step=step - 1, force=force, queue=queue[0])
-            if queue[0]:
-                self.wait(result[-1], interval=60, verbose=2)
+            job = self.avgimgs(step=step - 1, force=force, queue=queue["short"])[0]
+            self.wait(job, interval=60, verbose=2)
             # Register all images to the current template images
-            result = self.regdofs(step=step, force=force, queue=queue[1])
-            if queue[1]:
-                self.wait(result[-1], interval=60, verbose=5)
+            job = self.regdofs(step=step, force=force, queue=queue["long"])[0]
+            self.wait(job, interval=60, verbose=5)
             # Compute all required average deformations
-            result = self.avgdofs(step=step, force=force, queue=queue[0])
-            if queue[0]:
-                self.wait(result[-1], interval=60, verbose=2)
+            job = self.avgdofs(step=step, force=force, queue=queue["short"])[0]
+            self.wait(job, interval=60, verbose=2)
+            if rmtemp_regdofs and self.age_specific_regdof:
+                self.info("Deleting temporary deformation files", step=step)
+                for t in weights:
+                    for imgid in weights[t]:
+                        dof1 = self.regdof(imgid, step=step, create=False)
+                        dof2 = self.regdof(imgid, t=t, step=step, create=False)
+                        if dof2 != "identity" and dof1 != dof2 and os.path.exists(dof2):
+                            os.remove(dof2)
             # Compute all required longitudinal deformations
             if self.age_specific_regdof or self.age_specific_imgdof:
-                result = self.compose(step=step, force=force, queue=queue[0])
-                if queue[0]:
-                    self.wait(result[-1], interval=30, verbose=1)
+                job = self.compose(step=step, force=force, queue=queue["short"])[0]
+                self.wait(job, interval=30, verbose=1)
         # Write final template images to specified directory
-        if not outdir:
-            outdir = self.outdir
         self.step = start + niter
         self.info("Creating final mean shape templates")
-        result = self.defimgs(ages=self.means, force=force, queue=queue[0])
-        if queue[0]:
-            self.wait(result[-1], interval=30, verbose=1)
-        result = self.avgimgs(ages=self.means, force=force, queue=queue[0], outdir=outdir)
-        if queue[0]:
-            self.wait(result[-1], interval=60, verbose=2)
+        if outdir is None:
+            outdir = self.outdir
+        if outdir:
+            ages = self.means
+        else:
+            ages = self.ages()
+            outdir = None
+        if not decomposed_imgdofs:
+            job = self.imgdofs(ages=ages, force=force, queue=queue["short"])[0]
+            self.wait(job, interval=30, verbose=1)
+        job = self.defimgs(ages=ages, decomposed=decomposed_imgdofs, force=force, queue=queue["short"])[0]
+        self.wait(job, interval=30, verbose=1)
+        job = self.avgimgs(ages=ages, force=force, queue=queue["short"], outdir=outdir)[0]
+        self.wait(job, interval=60, verbose=2)
         self.info("Finished atlas construction!")
 
-    def template(self, i):
+    def template(self, i, channel=None):
         """Get absolute path of i-th template image."""
         if i < 0 or i >= len(self.means):
             raise IndexError()
-        img = os.path.join(self.outdir, self.timename(self.means[i]) + ".nii.gz")
+        if not channel:
+            channel = self.channel
+        img = self.avgimg(self.means[i], channel=channel, step=self.step, create=False, outdir=self.outdir)
         if self.step >= 0 and not os.path.exists(img):
-            avg = self.avgimg(self.means[i], step=self.step, create=False)
+            avg = self.avgimg(self.means[i], channel=channel, step=self.step, create=False)
             if os.path.exists(avg):
                 img = avg
         return img
@@ -959,9 +1102,11 @@ class SpatioTemporalAtlas(object):
             t = self.means[i + 1]
         return self.growth(self.means[i], t, step=self.step, force=force, create=create)
 
-    def deform(self, i, t, path=None, force=False, create=True):
+    def deform(self, i, t, path=None, channel=None, force=False, create=True):
         """Deform i-th template using longitudinal deformations to time point t."""
-        source = self.template(i)
+        if not channel:
+            channel = self.channel
+        source = self.template(i, channel=channel)
         t = self.normtime(t)
         if t == self.means[i]:
             if path and os.path.realpath(os.path.abspath(path)) != os.path.realpath(source):
@@ -971,14 +1116,14 @@ class SpatioTemporalAtlas(object):
             else:
                 return source
         if not path:
-            path = os.path.join(self.subdir(self.step), "img", "{}-{}.nii.gz".format(self.timename(self.means[i]), self.timename(t)))
+            path = os.path.join(self.subdir(self.step), channel, "temp", "{}-{}.nii.gz".format(self.timename(self.means[i]), self.timename(t)))
         if create and (force or not os.path.exists(path)):
             dof = self.deformation(i, t)
             makedirs(os.path.dirname(path))
             self._run("transform-image", args=[source, path], opts={"dofin": dof, "target": self.refimg})
         return path
 
-    def interpolate(self, t, path=None, interp="default", deform=False, sigma=0, force=False, create=True):
+    def interpolate(self, t, path=None, channel=None, interp="default", deform=False, sigma=0, force=False, create=True):
         """Interpolate atlas volume for specified time from finite set of templates.
 
         Unlike avgimg, this function does not evaluate the continuous spatio-temporal function
@@ -995,10 +1140,12 @@ class SpatioTemporalAtlas(object):
         interp = interp.lower()
         if interp in ("kernel", "default"):
             interp = "gaussian"
+        if not channel:
+            channel = self.channel
         t = self.normtime(t)
         i = self.timeindex(t)
         if t == self.means[i] and interp.startswith("linear"):
-            return self.template(i)
+            return self.template(i, channel=channel)
         if not path:
             path = os.path.join(self.outdir, self.timename(t) + ".nii.gz")
         if create and (force or not os.path.exists(path)):
@@ -1006,11 +1153,11 @@ class SpatioTemporalAtlas(object):
             # Linear interpolation
             if interp == "linear":
                 w = (self.means[i + 1] - t) / (self.means[i + 1] - self.means[i])
-                args.extend(["-image", self.template(i), w])
+                args.extend(["-image", self.template(i, channel=channel), w])
                 if deform:
                     args.extend(["-dof", self.deformation(i, t)])
                 w = (t - self.means[i]) / (self.means[i + 1] - self.means[i])
-                args.extend(["-image", self.template(i + 1), w])
+                args.extend(["-image", self.template(i + 1, channel=channel), w])
                 if deform:
                     args.extend(["-dof", self.deformation(i + 1, t)])
             # Gaussian interpolation
@@ -1018,22 +1165,25 @@ class SpatioTemporalAtlas(object):
                 for i in range(len(self.means)):
                     w = self.weight(self.means[i], mean=t, sigma=sigma)
                     if w > 0.:
-                        args.extend(["-image", self.template(i), w])
+                        args.extend(["-image", self.template(i, channel=channel), w])
                         if deform:
                             dof = self.deformation(self.means[i], t)
                             if dof != "identity":
                                 args.extend(["-dof", dof])
             if create:
-                self._run("average-images", args=args, opts={"reference": self.refimg, "dtype": "uchar", "padding": self.bgvalue})
+                bkgrnd = self.config["images"][channel].get("bkgrnd", -1)
+                self._run("average-images", args=args, opts={"reference": self.refimg, "dtype": "uchar", "padding": bkgrnd})
         return path
 
-    def view(self, i=None):
+    def view(self, i=None, channel=None):
         """View template image at specified time point(s)."""
         if i is None:
             i = range(len(self.means))
         elif not isinstance(i, (list, tuple)):
             i = [i]
-        imgs = [self.template(int(idx)) for idx in i]
+        if not channel:
+            channel = self.channel
+        imgs = [self.template(int(idx), channel=channel) for idx in i]
         mirtk.run("view", opts={"target": imgs})
 
     def rmtemp(self):
@@ -1052,7 +1202,7 @@ class SpatioTemporalAtlas(object):
 # Batch execution using SLURM
 
 # ----------------------------------------------------------------------------
-def sbatch(name, args=[], opts={}, script=None, tasks=0, deps=[], logdir=None, log=None, queue='long', threads=8, verbose=1):
+def sbatch(name, args=[], opts={}, script=None, tasks=0, deps=[], logdir=None, log=None, queue='long', threads=8, memory=8 * 1024, verbose=1):
     if threads <= 0:
         raise ValueError("Must specify number of threads when executing as SLURM batch job!")
     if script:
@@ -1084,7 +1234,7 @@ def sbatch(name, args=[], opts={}, script=None, tasks=0, deps=[], logdir=None, l
         '-n', '1',
         '-c', str(threads),
         '-p', queue,
-        '--mem=8G'
+        '--mem={0}M'.format(memory)
     ]
     if tasks > 0:
         argv.append('--array=0-{}'.format(tasks - 1))
@@ -1115,7 +1265,7 @@ def sbatch(name, args=[], opts={}, script=None, tasks=0, deps=[], logdir=None, l
     jobid = int(match.group(1))
     if verbose > 0:
         if tasks > 0:
-            print("  Submitted job {} (JobId={}, Tasks={})".format(name, jobid, tasks))
+            print("  Submitted batch {} (JobId={}, Tasks={})".format(name, jobid, tasks))
         else:
             print("  Submitted job {} (JobId={})".format(name, jobid))
     return jobid
@@ -1198,9 +1348,9 @@ def swait(jobs, max_time=0, interval=60, verbose=0):
 # Batch execution using HTCondor
 
 # ----------------------------------------------------------------------------
-def cbatch(name, args=[], opts={}, script=None, tasks=0, deps=[], requirements=[], logdir=None, log=None, verbose=1):
+def cbatch(name, args=[], opts={}, script=None, tasks=0, deps=[], threads=0, memory=8 * 1024, retries=5, requirements=[], logdir=None, log=None, verbose=1):
     if deps:
-        raise NotImplementedError("Cannot submit individual HTCondor jobs with dependencies, this requires use of DAGMan")
+        raise NotImplementedError("Cannot submit individual HTCondor jobs with dependencies yet, this requires use of DAGMan")
     if logdir or log:
         if not logdir:
             log = os.path.abspath(log)
@@ -1213,8 +1363,17 @@ def cbatch(name, args=[], opts={}, script=None, tasks=0, deps=[], requirements=[
                 log = os.path.join(logdir, name + "_$(Cluster).log")
         makedirs(logdir)
     jobdesc = "universe = vanilla\n"
+    if threads > 0:
+        jobdesc += "request_cpus = {0}\n".format(threads)
+    if memory > 0:
+        jobdesc += "request_memory = {0}\n".format(memory)
     if requirements:
         jobdesc += "requirements = " + " && ".join(requirements) + "\n"
+    # Note: MIRTK executables return exit code 6 when memory allocation fails, other codes are kill/term signals
+    jobdesc += "on_exit_remove = (ExitBySignal == False && ExitCode != 6 && ExitCode != 247 && ExitCode != 241) || (ExitBySignal == True && ExitSignal != 9 && ExitSignal != 15)\n"
+    jobdesc += "retry_until = ExitCode != 6 && ExitCode != 247 && ExitCode != 241\n"
+    if retries > 0:
+        jobdesc += "max_retries = {0}\n".format(retries)
     if script:
         if not log:
             raise ValueError("Script submission of batch to HTCondor requires log path for script file!")
@@ -1264,7 +1423,7 @@ def cbatch(name, args=[], opts={}, script=None, tasks=0, deps=[], requirements=[
     jobid = int(match.group(1))
     if verbose > 0:
         if tasks > 0:
-            print("  Submitted job {} (JobId={}, Tasks={})".format(name, jobid, tasks))
+            print("  Submitted batch {} (JobId={}, Tasks={})".format(name, jobid, tasks))
         else:
             print("  Submitted job {} (JobId={})".format(name, jobid))
     return jobid if tasks == 0 else (jobid, tasks)
@@ -1323,7 +1482,8 @@ def cwait(jobs, max_time=0, max_error=5, interval=60, verbose=0):
             num_held = 0
             num_done = 0
             for cluster, tasks in clusters:
-                classads = parse_condor_xml(subprocess.check_output(["condor_q", "-xml", str(cluster)]))
+                classads = subprocess.check_output(["condor_q", "-xml", str(cluster)], stderr=subprocess.STDOUT)
+                classads = parse_condor_xml(classads)
                 for process in range(tasks):
                     classad = classads.find(".c/a[@n='ClusterId'][i='{0}']/../a[@n='ProcId'][i='{1}']/..".format(cluster, process))
                     if classad is None:
@@ -1358,6 +1518,7 @@ def cwait(jobs, max_time=0, max_error=5, interval=60, verbose=0):
                     p=num_pending, r=num_running, s=num_suspended, h=num_held, d=num_done
                 ))
                 sys.stdout.flush()
+            num_error = 0
         except subprocess.CalledProcessError:
             sys.stdout.write("{:%Y-%b-%d %H:%M:%S}".format(datetime.now()))
             sys.stdout.write(" WAIT Failed to retrieve job status, will retry {0} more times!\n".format(max_error - num_error))
@@ -1419,6 +1580,12 @@ def cwait(jobs, max_time=0, max_error=5, interval=60, verbose=0):
 
 ##############################################################################
 # Auxiliaries
+
+# ----------------------------------------------------------------------------
+def isclose(a, b, rel_tol=1e-09, abs_tol=0.0):
+    """Compare too floating point numbers."""
+    return abs(a - b) <= max(rel_tol * max(abs(a), abs(b)), abs_tol)
+
 
 # ----------------------------------------------------------------------------
 def read_imgids(path):
@@ -1486,16 +1653,19 @@ def remove_or_makedirs(path):
 def parselabels(labels):
     """Parse labels specification."""
     values = []
-    if isinstance(labels, str) and "," in labels:
+    isstr = isinstance(labels, basestring)
+    if isstr and "," in labels:
         labels = labels.split(",")
     if isinstance(labels, (tuple, list)):
         for label in labels:
             values.extend(parselabels(label))
-    else:
+    elif isstr:
         m = re.match("([0-9]+)..([0-9]+)", labels)
         if m:
             values.extend(range(int(m.group(1)), int(m.group(2)) + 1))
         else:
             values.append(int(labels))
+    else:
+        values.append(int(labels))
     return values
 
