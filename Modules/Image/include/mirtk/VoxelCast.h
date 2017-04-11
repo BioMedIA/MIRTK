@@ -1,8 +1,8 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2013-2015 Imperial College London
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2013-2017 Imperial College London
+ * Copyright 2013-2017 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@
 
 #include "mirtk/Voxel.h"
 #include "mirtk/Stream.h"
+#include "mirtk/Math.h"
 
 
 // Overloading the C++ conversion operators for vector types would be possible
@@ -45,9 +46,12 @@ struct VoxelCaster
   /// type, the minium/maximum value of the output type is returned instead.
   static TOut Convert(const TIn &value)
   {
-    if      (static_cast<double>(value) < voxel_limits<TOut>::min()) return voxel_limits<TOut>::min_value();
-    else if (static_cast<double>(value) > voxel_limits<TOut>::max()) return voxel_limits<TOut>::max_value();
-    else                                                             return static_cast <TOut>(value);
+    if (static_cast<double>(value) < voxel_limits<TOut>::min()) {
+      return voxel_limits<TOut>::min_value();
+    } else if (static_cast<double>(value) > voxel_limits<TOut>::max()) {
+      return voxel_limits<TOut>::max_value();
+    }
+    return static_cast <TOut>(value);
   }
 };
 
@@ -60,6 +64,96 @@ struct VoxelCaster<T, T>
     return value;
   }
 };
+
+// -----------------------------------------------------------------------------
+template <>
+struct VoxelCaster<float, float>
+{
+  static float Convert(const float &value)
+  {
+    return value;
+  }
+};
+
+// -----------------------------------------------------------------------------
+template <>
+struct VoxelCaster<float, double>
+{
+  static double Convert(const float &value)
+  {
+    return static_cast<double>(value);
+  }
+};
+
+// -----------------------------------------------------------------------------
+#define _MIRTK_VOXELCAST_FLOAT_TO_INT(TOut) \
+    template <> \
+    struct VoxelCaster<float, TOut> \
+    { \
+      static TOut Convert(const float &value) \
+      { \
+        if (static_cast<double>(value) < voxel_limits<TOut>::min()) { \
+          return voxel_limits<TOut>::min_value(); \
+        } else if (static_cast<double>(value) > voxel_limits<TOut>::max()) { \
+          return voxel_limits<TOut>::max_value(); \
+        } \
+        return static_cast<TOut>(round(value)); \
+      } \
+    }
+_MIRTK_VOXELCAST_FLOAT_TO_INT(unsigned char);
+_MIRTK_VOXELCAST_FLOAT_TO_INT(char);
+_MIRTK_VOXELCAST_FLOAT_TO_INT(unsigned short);
+_MIRTK_VOXELCAST_FLOAT_TO_INT(short);
+_MIRTK_VOXELCAST_FLOAT_TO_INT(int);
+_MIRTK_VOXELCAST_FLOAT_TO_INT(unsigned int);
+_MIRTK_VOXELCAST_FLOAT_TO_INT(long);
+_MIRTK_VOXELCAST_FLOAT_TO_INT(unsigned long);
+#undef _MIRTK_VOXELCAST_FLOAT_TO_INT
+
+// -----------------------------------------------------------------------------
+template <>
+struct VoxelCaster<double, float>
+{
+  static float Convert(const double &value)
+  {
+    return static_cast<float>(value);
+  }
+};
+
+// -----------------------------------------------------------------------------
+template <>
+struct VoxelCaster<double, double>
+{
+  static double Convert(const double &value)
+  {
+    return value;
+  }
+};
+
+// -----------------------------------------------------------------------------
+#define _MIRTK_VOXELCAST_DOUBLE_TO_INT(TOut) \
+    template <> \
+    struct VoxelCaster<double, TOut> \
+    { \
+      static TOut Convert(const double &value) \
+      { \
+        if (value < voxel_limits<TOut>::min()) { \
+          return voxel_limits<TOut>::min_value(); \
+        } else if (value > voxel_limits<TOut>::max()) { \
+          return voxel_limits<TOut>::max_value(); \
+        } \
+        return static_cast<TOut>(round(value)); \
+      } \
+    }
+_MIRTK_VOXELCAST_DOUBLE_TO_INT(unsigned char);
+_MIRTK_VOXELCAST_DOUBLE_TO_INT(char);
+_MIRTK_VOXELCAST_DOUBLE_TO_INT(unsigned short);
+_MIRTK_VOXELCAST_DOUBLE_TO_INT(short);
+_MIRTK_VOXELCAST_DOUBLE_TO_INT(int);
+_MIRTK_VOXELCAST_DOUBLE_TO_INT(unsigned int);
+_MIRTK_VOXELCAST_DOUBLE_TO_INT(long);
+_MIRTK_VOXELCAST_DOUBLE_TO_INT(unsigned long);
+#undef _MIRTK_VOXELCAST_DOUBLE_TO_INT
 
 // -----------------------------------------------------------------------------
 template <class TIn>
@@ -413,6 +507,26 @@ struct VoxelCaster<TIn, Vector>
   static Vector Convert(const TIn &value)
   {
     return Vector(1, VoxelCaster<TIn, double>::Convert(value));
+  }
+};
+
+// -----------------------------------------------------------------------------
+template <>
+struct VoxelCaster<float, Vector>
+{
+  static Vector Convert(const float &value)
+  {
+    return Vector(1, static_cast<double>(value));
+  }
+};
+
+// -----------------------------------------------------------------------------
+template <>
+struct VoxelCaster<double, Vector>
+{
+  static Vector Convert(const double &value)
+  {
+    return Vector(1, value);
   }
 };
 
