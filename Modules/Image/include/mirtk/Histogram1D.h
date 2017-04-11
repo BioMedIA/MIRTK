@@ -184,6 +184,12 @@ public:
   /// Smooth histogram
   void Smooth();
 
+  /// Return smallest modal value
+  double Mode() const;
+
+  /// Return sorted modal values
+  Array<double> Modes() const;
+
   /// Calculate mean
   double Mean() const;
 
