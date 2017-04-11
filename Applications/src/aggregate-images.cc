@@ -44,8 +44,7 @@ void PrintHelp(const char* name)
   cout << "\n";
   cout << "Description:\n";
   cout << "  Aggregates multiple (co-registered) input images into a single output image\n";
-  cout << "  or numbers such as a statistic evaluated for a common region of interest\n";
-  cout << "  given the intensity samples within this region in all input images.\n";
+  cout << "  or report statistics thereof within a specified region of interest.\n";
   cout << "  The input images have to be defined in the same discrete finite image space.\n";
   cout << "\n";
   cout << "Required arguments:\n";
@@ -57,16 +56,16 @@ void PrintHelp(const char* name)
   cout << "      - ``theil``, ``theil-index``: Theil index, equivalent to GE(1).\n";
   cout << "      - ``entropy-index``, ``ge``: Generalized entropy index (GE), see also :option:`-alpha`.\"\n";
   cout << "      - ``entropy``: Shannon entropy, see also :option:`-bins` and :option:`-parzen`.\n";
+  cout << "      - ``mode``, ``majority``: Smallest modal value, can also be used for majority voting of labels.\n";
   cout << "  <image>\n";
-  cout << "      File names of at least two input intensity images.\n";
+  cout << "      File names of at least two input images.\n";
   cout << "  -output <file>\n";
   cout << "      Voxel-wise aggregate image.\n";
   cout << "\n";
   cout << "Optional arguments:\n";
   cout << "  -padding <value>\n";
-  cout << "      Background value in input images of voxels to be ignored during\n";
-  cout << "      intensity normalization. (default: NaN)\n";
-  cout << "  -normalize, -normalization <mode>\n";
+  cout << "      Background value of voxels to be ignored during :option:`-normalization` (default: NaN).\n";
+  cout << "  -normalization, -normalize <mode>\n";
   cout << "      Input intensity normalization:\n";
   cout << "      - ``none``:    Use input intensities unmodified. (default)\n";
   cout << "      - ``mean``:    Divide by mean foreground value.\n";
@@ -114,13 +113,14 @@ enum NormalizationMode
 // Enumeration of implemented aggregation functions
 enum AggregationMode
 {
-  AM_Mean,          ///< Mean value
-  AM_Median,        ///< Median value
-  AM_StDev,         ///< Standard deviation
-  AM_Gini,          ///< Gini coefficient
-  AM_Theil,         ///< Theil coefficient, i.e., GE(1)
-  AM_EntropyIndex,  ///< Generalized entropy index (GE)
-  AM_Entropy        ///< Shannon entropy
+  AM_Mean,            ///< Mean value
+  AM_Median,          ///< Median value
+  AM_StDev,           ///< Standard deviation
+  AM_Gini,            ///< Gini coefficient
+  AM_Theil,           ///< Theil coefficient, i.e., GE(1)
+  AM_EntropyIndex,    ///< Generalized entropy index (GE)
+  AM_Entropy,         ///< Shannon entropy
+  AM_Mode             ///< Modal value (can also be used for segmentation labels)
 };
 
 // Type of functions used to aggregate set of values
@@ -149,6 +149,8 @@ bool FromString(const char *str, AggregationMode &value)
     value = AM_EntropyIndex;
   } else if (lstr == "entropy" || lstr == "shannon-entropy") {
     value = AM_Entropy;
+  } else if (lstr == "mode" || lstr == "majority") {
+    value = AM_Mode;
   } else {
     return false;
   }
@@ -574,7 +576,7 @@ int main(int argc, char **argv)
     case AM_Entropy: {
       eval._Function = [bins, parzen](const InputArray &values) -> OutputType {
         const auto minmax = MinMaxElement(values);
-        if (minmax.first >= minmax.second) {
+        if (AreEqual(minmax.first, minmax.second)) {
           return 0.;
         }
         Histogram1D<int> hist(bins);
@@ -585,6 +587,24 @@ int main(int argc, char **argv)
         }
         if (parzen) hist.Smooth();
         return static_cast<OutputType>(hist.Entropy());
+      };
+    } break;
+
+    case AM_Mode: {
+      eval._Function = [bins, parzen](const InputArray &values) -> OutputType {
+        const auto minmax = MinMaxElement(values);
+        if (AreEqual(minmax.first, minmax.second)) {
+          return static_cast<OutputType>(values[0]);
+        }
+        Histogram1D<int> hist(bins);
+        hist.Min(static_cast<double>(minmax.first));
+        hist.Max(static_cast<double>(minmax.second));
+        for (auto value : values) {
+          hist.AddSample(static_cast<double>(value));
+        }
+        if (parzen) hist.Smooth();
+        double mode = hist.Mode();
+        return static_cast<OutputType>(IsNaN(mode) ? 0. : mode);
       };
     } break;
 
