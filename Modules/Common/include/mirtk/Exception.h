@@ -1,8 +1,8 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2016 Imperial College London
- * Copyright 2016 Andreas Schuh
+ * Copyright 2016-2017 Imperial College London
+ * Copyright 2016-2017 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,14 +27,16 @@
 namespace mirtk {
 
 
-/// Enumeration of error types
+/// Enumeration of error types / exit codes
 enum ErrorType
 {
-  ERR_Unknown,
-  ERR_LogicError,
-  ERR_InvalidArgument,
-  ERR_RuntimeError,
-  ERR_IOError
+  ERR_None            = 0,
+  ERR_Unknown         = 1,
+  ERR_LogicError      = 2,
+  ERR_InvalidArgument = 3,
+  ERR_RuntimeError    = 4,
+  ERR_IOError         = 5,
+  ERR_Memory          = 6
 };
 
 /// Convert error type to string
@@ -48,6 +50,7 @@ inline string ToString(const ErrorType &value, int w, char c, bool left)
     case ERR_InvalidArgument: { str = "InvalidArgument"; } break;
     case ERR_RuntimeError:    { str = "RuntimeError";    } break;
     case ERR_IOError:         { str = "IOError";         } break;
+    case ERR_Memory:          { str = "MemoryError";     } break;
   }
   return ToString(str, w, c, left);
 }
@@ -69,7 +72,7 @@ void Throw(ErrorType err, const char *func, Args... args)
 {
   Print(cerr, err, ": ", func, ": ", args...);
   cerr << endl;
-  exit(1);
+  exit(static_cast<int>(err));
 }
 
 

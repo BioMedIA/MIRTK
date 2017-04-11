@@ -1,8 +1,8 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2008-2015 Imperial College London
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2008-2017 Imperial College London
+ * Copyright 2013-2017 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@
 #ifndef MIRTK_Allocate_H
 #define MIRTK_Allocate_H
 
-#include "mirtk/Stream.h"
+#include "mirtk/Exception.h"
 
 
 namespace mirtk {
@@ -61,15 +61,14 @@ using std::nothrow;
 template <class Type>
 inline void Allocate(Type *&matrix, int n)
 {
-  // Set pointer to NULL if memory size is not positive
+  // Set pointer to nullptr if memory size is not positive
   if (n <= 0) {
-    matrix = NULL;
+    matrix = nullptr;
     return;
   }
   // Allocate data memory
-  if ((matrix = new (nothrow) Type[n]) == NULL) {
-    cerr << "Allocate: Failed to allocate " << (n * sizeof(Type)) << " bytes" << endl;
-    exit(1);
+  if ((matrix = new (nothrow) Type[n]) == nullptr) {
+    Throw(ERR_Memory, __FUNCTION__, "Failed to allocate ", n * sizeof(Type), " bytes");
   }
 }
 
@@ -99,7 +98,7 @@ inline void CAllocate(Type *&matrix, int n, const Type &init = Type())
 // -----------------------------------------------------------------------------
 /// Allocate 1D array and initialize it
 template <class Type>
-inline Type *CAllocate(int n, const Type *init = NULL)
+inline Type *CAllocate(int n, const Type *init = nullptr)
 {
   Type *matrix;
   const Type default_value = Type();
@@ -109,7 +108,7 @@ inline Type *CAllocate(int n, const Type *init = NULL)
 }
 
 // -----------------------------------------------------------------------------
-/// Allocate 1D array of pointers initialized to NULL
+/// Allocate 1D array of pointers initialized to nullptr
 template <typename Type>
 inline void PAllocate(Type **&matrix, int n)
 {
@@ -120,7 +119,7 @@ inline void PAllocate(Type **&matrix, int n)
 }
 
 // -----------------------------------------------------------------------------
-/// Allocate 1D array of pointers initialized to NULL
+/// Allocate 1D array of pointers initialized to nullptr
 template <typename Type>
 inline Type **PAllocate(int n)
 {
@@ -139,20 +138,18 @@ template <class Type>
 inline void CAllocate(Type **&matrix, int x, int y, const Type &init = Type())
 {
   const size_t n = static_cast<size_t>(x) * static_cast<size_t>(y);
-  // Set pointer to NULL if memory size is not positive
+  // Set pointer to nullptr if memory size is not positive
   if (n <= 0u) {
-    matrix = NULL;
+    matrix = nullptr;
     return;
   }
   // Allocate pointers
-  if ((matrix = new (nothrow) Type *[y]) == NULL) {
-    cerr << "CAllocate: Failed to allocate " << (y * sizeof(Type*)) << " bytes" << endl;
-    exit(1);
+  if ((matrix = new (nothrow) Type *[y]) == nullptr) {
+    Throw(ERR_Memory, __FUNCTION__, "Failed to allocate ", y * sizeof(Type *), " bytes");
   }
   // Allocate data memory
-  if ((matrix[0] = new (nothrow) Type[n]) == NULL) {
-    cerr << "CAllocate: Failed to allocate " << (n * sizeof(Type))  << " bytes" << endl;
-    exit(1);
+  if ((matrix[0] = new (nothrow) Type[n]) == nullptr) {
+    Throw(ERR_Memory, __FUNCTION__, "Failed to allocate ", n * sizeof(Type), " bytes");
   }
   // Initialize data memory
   for (size_t i = 0; i < n; ++i) matrix[0][i] = init;
@@ -165,7 +162,7 @@ inline void CAllocate(Type **&matrix, int x, int y, const Type &init = Type())
 // -----------------------------------------------------------------------------
 /// Allocate 2D array stored in contiguous memory block and initialize it
 template <typename Type>
-inline Type **CAllocate(int x, int y, const Type *init = NULL)
+inline Type **CAllocate(int x, int y, const Type *init = nullptr)
 {
   Type **matrix;
   const Type default_value = Type();
@@ -177,24 +174,22 @@ inline Type **CAllocate(int x, int y, const Type *init = NULL)
 // -----------------------------------------------------------------------------
 /// Allocate 2D array stored in contiguous memory block
 template <class Type>
-inline void Allocate(Type **&matrix, int x, int y, Type *data = NULL)
+inline void Allocate(Type **&matrix, int x, int y, Type *data = nullptr)
 {
   const size_t n = static_cast<size_t>(x) * static_cast<size_t>(y);
-  // Set pointer to NULL if memory size is not positive
+  // Set pointer to nullptr if memory size is not positive
   if (n <= 0u) {
-    matrix = NULL;
+    matrix = nullptr;
     return;
   }
   // Allocate pointers
-  if ((matrix = new (nothrow) Type *[y]) == NULL) {
-    cerr << "Allocate: Failed to allocate " << (y * sizeof(Type*)) << " bytes" << endl;
-    exit(1);
+  if ((matrix = new (nothrow) Type *[y]) == nullptr) {
+    Throw(ERR_Memory, __FUNCTION__, "Failed to allocate ", y * sizeof(Type *), " bytes");
   }
   // Allocate data memory
   if (data) matrix[0] = data;
-  else if ((matrix[0] = new (nothrow) Type[n]) == NULL) {
-    cerr << "Allocate: Failed to allocate " << (n * sizeof(Type))  << " bytes" << endl;
-    exit(1);
+  else if ((matrix[0] = new (nothrow) Type[n]) == nullptr) {
+    Throw(ERR_Memory, __FUNCTION__, "Failed to allocate ", n * sizeof(Type), " bytes");
   }
   // Initialize pointers
   for (int j = 1; j < y; ++j) {
@@ -205,7 +200,7 @@ inline void Allocate(Type **&matrix, int x, int y, Type *data = NULL)
 // -----------------------------------------------------------------------------
 /// Allocate 2D array stored in contiguous memory block
 template <typename Type>
-inline Type **Allocate(int x, int y, Type *data = NULL)
+inline Type **Allocate(int x, int y, Type *data = nullptr)
 {
   Type **matrix;
   Allocate(matrix, x, y, data);
@@ -222,9 +217,8 @@ inline Type **Reshape(Type **matrix, int x, int y)
   // Deallocate old pointers
   delete[] matrix;
   // Allocate new pointers
-  if ((matrix = new (nothrow) Type *[y]) == NULL) {
-    cerr << "Allocate: Failed to allocate " << (y * sizeof(Type*)) << " bytes" << endl;
-    exit(1);
+  if ((matrix = new (nothrow) Type *[y]) == nullptr) {
+    Throw(ERR_Memory, __FUNCTION__, "Failed to allocate ", y * sizeof(Type *), " bytes");
   }
   // Restore data memory
   matrix[0] = data;
@@ -247,24 +241,21 @@ inline void CAllocate(Type ***&matrix, int x, int y, int z, const Type &init = T
   const size_t n = static_cast<size_t>(x)
                  * static_cast<size_t>(y)
                  * static_cast<size_t>(z);
-  // Set pointer to NULL if memory size is not positive
+  // Set pointer to nullptr if memory size is not positive
   if (n <= 0u) {
-    matrix = NULL;
+    matrix = nullptr;
     return;
   }
   // Allocate pointers
-  if ((matrix    = new (nothrow) Type **[z])   == NULL) {
-    cerr << "CAllocate: Failed to allocate " << (z   * sizeof(Type**)) << " bytes" << endl;
-    exit(1);
+  if ((matrix = new (nothrow) Type **[z]) == nullptr) {
+    Throw(ERR_Memory, __FUNCTION__, "Failed to allocate ", z * sizeof(Type **), " bytes");
   }
-  if ((matrix[0] = new (nothrow) Type * [z*y]) == NULL) {
-    cerr << "CAllocate: Failed to allocate " << (z*y * sizeof(Type*))  << " bytes" << endl;
-    exit(1);
+  if ((matrix[0] = new (nothrow) Type *[z*y]) == nullptr) {
+    Throw(ERR_Memory, __FUNCTION__, "Failed to allocate ", z * y * sizeof(Type *), " bytes");
   }
   // Allocate data memory
-  if ((matrix[0][0] = new (nothrow) Type[n]) == NULL) {
-    cerr << "CAllocate: Failed to allocate " << (n   * sizeof(Type))   << " bytes" << endl;
-    exit(1);
+  if ((matrix[0][0] = new (nothrow) Type[n]) == nullptr) {
+    Throw(ERR_Memory, __FUNCTION__, "Failed to allocate ", n * sizeof(Type), " bytes");
   }
   // Initialize data memory
   for (size_t i = 0; i < n; ++i) matrix[0][0][i] = init;
@@ -280,7 +271,7 @@ inline void CAllocate(Type ***&matrix, int x, int y, int z, const Type &init = T
 // -----------------------------------------------------------------------------
 /// Allocate 3D array stored in contiguous memory block and initialize it
 template <typename Type>
-inline Type ***CAllocate(int x, int y, int z, const Type *init = NULL)
+inline Type ***CAllocate(int x, int y, int z, const Type *init = nullptr)
 {
   Type ***matrix;
   const Type default_value = Type();
@@ -292,30 +283,27 @@ inline Type ***CAllocate(int x, int y, int z, const Type *init = NULL)
 // -----------------------------------------------------------------------------
 /// Allocate 3D array stored in contiguous memory block
 template <class Type>
-inline void Allocate(Type ***&matrix, int x, int y, int z, Type *data = NULL)
+inline void Allocate(Type ***&matrix, int x, int y, int z, Type *data = nullptr)
 {
   const size_t n = static_cast<size_t>(x)
                  * static_cast<size_t>(y)
                  * static_cast<size_t>(z);
-  // Set pointer to NULL if memory size is not positive
+  // Set pointer to nullptr if memory size is not positive
   if (n <= 0u) {
-    matrix = NULL;
+    matrix = nullptr;
     return;
   }
   // Allocate pointers
-  if ((matrix    = new (nothrow) Type **[z])   == NULL) {
-    cerr << "Allocate: Failed to allocate " << (z   * sizeof(Type**)) << " bytes" << endl;
-    exit(1);
+  if ((matrix = new (nothrow) Type **[z]) == nullptr) {
+    Throw(ERR_Memory, __FUNCTION__, "Failed to allocate ", z * sizeof(Type **), " bytes");
   }
-  if ((matrix[0] = new (nothrow) Type * [z*y]) == NULL) {
-    cerr << "Allocate: Failed to allocate " << (z*y * sizeof(Type*))  << " bytes" << endl;
-    exit(1);
+  if ((matrix[0] = new (nothrow) Type *[z*y]) == nullptr) {
+    Throw(ERR_Memory, __FUNCTION__, "Failed to allocate ", z * y * sizeof(Type *), " bytes");
   }
   // Allocate data memory
   if (data) matrix[0][0] = data;
-  else if ((matrix[0][0] = new (nothrow) Type[n]) == NULL) {
-    cerr << "Allocate: Failed to allocate " << (n   * sizeof(Type))   << " bytes" << endl;
-    exit(1);
+  else if ((matrix[0][0] = new (nothrow) Type[n]) == nullptr) {
+    Throw(ERR_Memory, __FUNCTION__, "Failed to allocate ", n * sizeof(Type), " bytes");
   }
   // Initialize pointers
   for (int k = 0; k < z; ++k) {
@@ -329,7 +317,7 @@ inline void Allocate(Type ***&matrix, int x, int y, int z, Type *data = NULL)
 // -----------------------------------------------------------------------------
 /// Allocate 3D array stored in contiguous memory block
 template <typename Type>
-inline Type ***Allocate(int x, int y, int z, Type *data = NULL)
+inline Type ***Allocate(int x, int y, int z, Type *data = nullptr)
 {
   Type ***matrix;
   Allocate(matrix, x, y, z, data);
@@ -347,13 +335,11 @@ inline Type ***Reshape(Type ***matrix, int x, int y, int z)
   delete[] matrix[0];
   delete[] matrix;
   // Allocate new pointers
-  if ((matrix    = new (nothrow) Type **[z])   == NULL) {
-    cerr << "Allocate: Failed to allocate " << (z   * sizeof(Type**)) << " bytes" << endl;
-    exit(1);
+  if ((matrix = new (nothrow) Type **[z]) == nullptr) {
+    Throw(ERR_Memory, __FUNCTION__, "Failed to allocate ", z * sizeof(Type **), " bytes");
   }
-  if ((matrix[0] = new (nothrow) Type * [z*y]) == NULL) {
-    cerr << "Allocate: Failed to allocate " << (z*y * sizeof(Type*))  << " bytes" << endl;
-    exit(1);
+  if ((matrix[0] = new (nothrow) Type *[z*y]) == nullptr) {
+    Throw(ERR_Memory, __FUNCTION__, "Failed to allocate ", z * y * sizeof(Type *), " bytes");
   }
   // Restore data memory
   matrix[0][0] = data;
@@ -380,28 +366,24 @@ inline void CAllocate(Type ****&matrix, int x, int y, int z, int t, const Type &
                  * static_cast<size_t>(y)
                  * static_cast<size_t>(z)
                  * static_cast<size_t>(t);
-  // Set pointer to NULL if memory size is not positive
+  // Set pointer to nullptr if memory size is not positive
   if (n <= 0u) {
-    matrix = NULL;
+    matrix = nullptr;
     return;
   }
   // Allocate pointers
-  if ((matrix          = new (nothrow) Type ***[t])     == NULL) {
-    cerr << "CAllocate: Failed to allocate " << (t     * sizeof(Type***)) << " bytes" << endl;
-    exit(1);
+  if ((matrix = new (nothrow) Type ***[t]) == nullptr) {
+    Throw(ERR_Memory, __FUNCTION__, "Failed to allocate ", t * sizeof(Type ***), " bytes");
   }
-  if ((matrix[0]       = new (nothrow) Type ** [t*z])   == NULL) {
-    cerr << "CAllocate: Failed to allocate " << (t*z   * sizeof(Type**))  << " bytes" << endl;
-    exit(1);
+  if ((matrix[0] = new (nothrow) Type **[t*z]) == nullptr) {
+    Throw(ERR_Memory, __FUNCTION__, "Failed to allocate ", t * z * sizeof(Type **), " bytes");
   }
-  if ((matrix[0][0]    = new (nothrow) Type *  [t*z*y]) == NULL) {
-    cerr << "CAllocate: Failed to allocate " << (t*z*y * sizeof(Type*))   << " bytes" << endl;
-    exit(1);
+  if ((matrix[0][0] = new (nothrow) Type *[t*z*y]) == nullptr) {
+    Throw(ERR_Memory, __FUNCTION__, "Failed to allocate ", t * z * y * sizeof(Type *), " bytes");
   }
   // Allocate data memory
-  if ((matrix[0][0][0] = new (nothrow) Type    [n])     == NULL) {
-    cerr << "CAllocate: Failed to allocate " << (n     * sizeof(Type))    << " bytes" << endl;
-    exit(1);
+  if ((matrix[0][0][0] = new (nothrow) Type[n]) == nullptr) {
+    Throw(ERR_Memory, __FUNCTION__, "Failed to allocate ", n * sizeof(Type), " bytes");
   }
   // Initialize data memory
   for (size_t i = 0; i < n; ++i) matrix[0][0][0][i] = init;
@@ -420,7 +402,7 @@ inline void CAllocate(Type ****&matrix, int x, int y, int z, int t, const Type &
 // -----------------------------------------------------------------------------
 /// Allocate 4D array stored in contiguous memory block and initialize it
 template <typename Type>
-inline Type ****CAllocate(int x, int y, int z, int t, const Type *init = NULL)
+inline Type ****CAllocate(int x, int y, int z, int t, const Type *init = nullptr)
 {
   Type ****matrix;
   const Type default_value = Type();
@@ -432,35 +414,31 @@ inline Type ****CAllocate(int x, int y, int z, int t, const Type *init = NULL)
 // -----------------------------------------------------------------------------
 /// Allocate 4D array stored in contiguous memory block
 template <class Type>
-inline void Allocate(Type ****&matrix, int x, int y, int z, int t, Type *data = NULL)
+inline void Allocate(Type ****&matrix, int x, int y, int z, int t, Type *data = nullptr)
 {
   const size_t n = static_cast<size_t>(x)
                  * static_cast<size_t>(y)
                  * static_cast<size_t>(z)
                  * static_cast<size_t>(t);
-  // Set pointer to NULL if memory size is not positive
+  // Set pointer to nullptr if memory size is not positive
   if (n <= 0u) {
-    matrix = NULL;
+    matrix = nullptr;
     return;
   }
   // Allocate pointers
-  if ((matrix       = new (nothrow) Type ***[t])     == NULL) {
-    cerr << "Allocate: Failed to allocate " << (t     * sizeof(Type***)) << " bytes" << endl;
-    exit(1);
+  if ((matrix = new (nothrow) Type ***[t]) == nullptr) {
+    Throw(ERR_Memory, __FUNCTION__, "Failed to allocate ", t * sizeof(Type ***), " bytes");
   }
-  if ((matrix[0]    = new (nothrow) Type ** [t*z])   == NULL) {
-    cerr << "Allocate: Failed to allocate " << (t*z   * sizeof(Type**))  << " bytes" << endl;
-    exit(1);
+  if ((matrix[0] = new (nothrow) Type ** [t*z]) == nullptr) {
+    Throw(ERR_Memory, __FUNCTION__, "Failed to allocate ", t * z * sizeof(Type **), " bytes");
   }
-  if ((matrix[0][0] = new (nothrow) Type *  [t*z*y]) == NULL) {
-    cerr << "Allocate: Failed to allocate " << (t*z*y * sizeof(Type*))   << " bytes" << endl;
-    exit(1);
+  if ((matrix[0][0] = new (nothrow) Type * [t*z*y]) == nullptr) {
+    Throw(ERR_Memory, __FUNCTION__, "Failed to allocate ", t * z * y * sizeof(Type *), " bytes");
   }
   // Allocate data memory
   if (data) matrix[0][0][0] = data;
-  else if ((matrix[0][0][0] = new (nothrow) Type[n]) == NULL) {
-    cerr << "Allocate: Failed to allocate " << (n     * sizeof(Type))    << " bytes" << endl;
-    exit(1);
+  else if ((matrix[0][0][0] = new (nothrow) Type[n]) == nullptr) {
+    Throw(ERR_Memory, __FUNCTION__, "Failed to allocate ", n * sizeof(Type), " bytes");
   }
   // Initialize pointers
   for (int l = 0; l < t; ++l) {
@@ -477,7 +455,7 @@ inline void Allocate(Type ****&matrix, int x, int y, int z, int t, Type *data = 
 // -----------------------------------------------------------------------------
 /// Allocate 4D array stored in contiguous memory block
 template <typename Type>
-inline Type ****Allocate(int x, int y, int z, int t, Type *data = NULL)
+inline Type ****Allocate(int x, int y, int z, int t, Type *data = nullptr)
 {
   Type ****matrix;
   Allocate(matrix, x, y, z, t, data);
@@ -496,17 +474,14 @@ inline Type ****Reshape(Type ****matrix, int x, int y, int z, int t)
   delete[] matrix[0];
   delete[] matrix;
   // Allocate new pointers
-  if ((matrix       = new (nothrow) Type ***[t])     == NULL) {
-    cerr << "Allocate: Failed to allocate " << (t     * sizeof(Type***)) << " bytes" << endl;
-    exit(1);
+  if ((matrix = new (nothrow) Type ***[t]) == nullptr) {
+    Throw(ERR_Memory, __FUNCTION__, "Failed to allocate ", t * sizeof(Type ***), " bytes");
   }
-  if ((matrix[0]    = new (nothrow) Type ** [t*z])   == NULL) {
-    cerr << "Allocate: Failed to allocate " << (t*z   * sizeof(Type**)) << " bytes" << endl;
-    exit(1);
+  if ((matrix[0] = new (nothrow) Type **[t*z]) == nullptr) {
+    Throw(ERR_Memory, __FUNCTION__, "Failed to allocate ", t * z * sizeof(Type **), " bytes");
   }
-  if ((matrix[0][0] = new (nothrow) Type *  [t*z*y]) == NULL) {
-    cerr << "Allocate: Failed to allocate " << (t*z*y * sizeof(Type*)) << " bytes" << endl;
-    exit(1);
+  if ((matrix[0][0] = new (nothrow) Type *[t*z*y]) == nullptr) {
+    Throw(ERR_Memory, __FUNCTION__, "Failed to allocate ", t * z * y * sizeof(Type *), " bytes");
   }
   // Restore data memory
   matrix[0][0][0] = data;
