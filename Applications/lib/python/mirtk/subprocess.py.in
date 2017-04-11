@@ -28,6 +28,7 @@ from __future__ import absolute_import, unicode_literals
 import os
 import sys
 import shlex
+import traceback
 import subprocess
 
 from collections import OrderedDict
@@ -78,6 +79,7 @@ def path(argv, quiet=False):
             sys.stderr.write('Error: Insufficient permissions to execute command: ' + fpath)
     return fpath
 
+
 # ----------------------------------------------------------------------------
 def flatten(arg):
     """Given an argument, possibly a list nested to any level, return a flat list."""
@@ -88,6 +90,19 @@ def flatten(arg):
         return lis
     else:
         return [arg]
+
+
+# ----------------------------------------------------------------------------
+def quote(argv):
+    """Return quoted command arguments."""
+    args = []
+    for arg in argv:
+        arg = str(arg)
+        if ' ' in arg:
+            arg = '"' + arg + '"'
+        args.append(arg)
+    return args
+
 
 # ----------------------------------------------------------------------------
 def _call(argv, verbose=0, execfunc=subprocess.call):
@@ -106,23 +121,24 @@ def _call(argv, verbose=0, execfunc=subprocess.call):
     argv[0] = path(argv[0])
     if not argv[0]: return 1
     if verbose > 0:
-        args = []
-        for arg in argv:
-            if ' ' in arg: arg = '"' + arg + '"'
-            args.append(arg)
-        print('> ' + ' '.join(args) + '\n')
+        sys.stdout.write("> ")
+        sys.stdout.write(" ".join(quote(argv)))
+        sys.stdout.write("\n\n")
     sys.stdout.flush()
     return execfunc(argv)
+
 
 # ----------------------------------------------------------------------------
 def call(argv, verbose=0):
     """Execute MIRTK command and return exit code."""
     return _call(argv, verbose=verbose, execfunc=subprocess.call)
 
+
 # ----------------------------------------------------------------------------
 def check_call(argv, verbose=0):
     """Execute MIRTK command and throw exception on error."""
     _call(argv, verbose=verbose, execfunc=subprocess.check_call)
+
 
 # ----------------------------------------------------------------------------
 def check_output(argv, verbose=0, code='utf-8'):
@@ -131,9 +147,18 @@ def check_output(argv, verbose=0, code='utf-8'):
     if code: output = output.decode(code)
     return output
 
+
 # ----------------------------------------------------------------------------
-def run(cmd, args=[], opts={}, verbose=0, threads=0):
-    """Execute MIRTK command and throw exception on error."""
+def run(cmd, args=[], opts={}, verbose=0, threads=0, exit_on_error=False):
+    """Execute MIRTK command and throw exception or exit on error.
+
+    This convenience wrapper for check_call throws a subprocess.CalledProcessError 
+    when the command returned a non-zero exit code when exit_on_error=False.
+    If exit_on_error=True, a the command arguments, the exit code, and the
+    Python stack trace are printed to sys.stderr and this process terminated
+    using sys.exit with the return code of the executed command.
+
+    """
     argv = [cmd]
     argv.extend(args)
     if threads > 0:
@@ -160,4 +185,17 @@ def run(cmd, args=[], opts={}, verbose=0, threads=0):
             argv.append(opt)
             if not arg is None:
                 argv.extend(flatten(arg))
-    check_call(argv, verbose=verbose)
+    try:
+        check_call(argv, verbose=verbose)
+    except subprocess.CalledProcessError as e:
+        if exit_on_error:
+            sys.stdout.flush()
+            sys.stderr.write("\n")
+            sys.stderr.write("Command: ")
+            sys.stderr.write(" ".join(quote(argv)))
+            sys.stderr.write("\n")
+            sys.stderr.write("\nError: Command returned non-zero exit status {}\n".format(e.returncode))
+            sys.stderr.write("\nTraceback (most recent call last):\n")
+            traceback.print_stack()
+            sys.exit(e.returncode)
+        raise e
