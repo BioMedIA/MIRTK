@@ -44,19 +44,17 @@ if __name__ == '__main__':
                         help="Continue construction after the specified step.")
     parser.add_argument("-n", "--steps", dest="steps", default=10, type=int,
                         help="Number of steps of iterative atlas construction/refinement.")
-    parser.add_argument("-q", "--queue", default=None,
+    parser.add_argument("-q", "--queue", "--long-queue", dest="longqueue",
                         help="Name of batch system queue. Use 'condor' for HTCondor. Otherwise, the argument is assumed to be the name of a SLURM partition.")
-    parser.add_argument("--short-queue", default=None,
-                        help="Name of batch system queue to use for short running jobs (about 1-30 min).")
-    parser.add_argument("-t", "--threads", default=8, type=int,
+    parser.add_argument("--short-queue", dest="shortqueue",
+                        help="Name of batch system queue to use for short running jobs (about 1-30 min). Use --long-queue by default.")
+    parser.add_argument("-t", "--threads", type=int,
                         help="Maximum number of CPU cores/threads to use.")
     parser.add_argument("-v", "--verbose", default=1, type=int,
                         help="Verbosity level of output messages: 0) no output, 1) report progress, 2) print command arguments.")
     #parser.add_argument("--debug", default=2, type=int,
     #                    help="Set debugging level: 0) delete all temp file, 1) keep atlas at each iteration, 2) keep all.")
     args = parser.parse_args()
-    if not args.short_queue:
-        args.short_queue = args.queue
     args.config = os.path.abspath(args.config)
     root = os.path.dirname(args.config)
     with open(args.config, "rt") as f:
@@ -68,6 +66,8 @@ if __name__ == '__main__':
         }
     if args.outdir:
         config["paths"]["outdir"] = os.path.abspath(args.outdir)
+    elif args.outdir is not None:
+        config["paths"]["outdir"] = ""
     if args.tmpdir:
         config["paths"]["tmpdir"] = os.path.abspath(args.tmpdir)
     # registration parameters
@@ -116,5 +116,17 @@ if __name__ == '__main__':
         json.dump(config, sys.stdout, indent=4, separators=(',', ': '))
         sys.stdout.write("\n")
         sys.stdout.flush()
-    atlas = SpatioTemporalAtlas(config=config, root=root, threads=args.threads, verbose=args.verbose)
-    atlas.construct(start=args.start, niter=args.steps - args.start, queue=[args.short_queue, args.queue])
+    if "environment" not in config:
+        config["environment"] = {}
+    if "queue" not in config["environment"]:
+        config["environment"]["queue"] = {"short": "local", "long": "local"}
+    if args.threads:
+        config["environment"]["threads"] = args.threads
+    if not args.shortqueue and args.longqueue:
+        args.shortqueue = args.longqueue
+    if args.shortqueue:
+        config["environment"]["queue"]["short"] = args.shortqueue
+    if args.longqueue:
+        config["environment"]["queue"]["long"] = args.longqueue
+    atlas = SpatioTemporalAtlas(config=config, root=root, verbose=args.verbose, exit_on_error=True)
+    atlas.construct(start=args.start, niter=args.steps - args.start)
