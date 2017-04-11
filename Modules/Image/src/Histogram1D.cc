@@ -21,6 +21,7 @@
 
 #include "mirtk/Math.h"
 #include "mirtk/Memory.h"
+#include "mirtk/Algorithm.h"
 
 #include "mirtk/CommonExport.h"
 
@@ -252,6 +253,54 @@ void Histogram1D<HistogramType>::Smooth()
   // Replace histogram by smoothed version
   Deallocate(_bins);
   _bins = bins;
+}
+
+// -----------------------------------------------------------------------------
+template <class HistogramType>
+double Histogram1D<HistogramType>::Mode() const
+{
+  if (_nsamp > 0) {
+    HistogramType max_value = 0;
+    for (int i = 0; i < _nbins; ++i) {
+      max_value = max(max_value, _bins[i]);
+    }
+    for (int i = 0; i < _nbins; ++i) {
+      if (_bins[i] >= max_value) {
+        return this->BinToVal(i);
+      }
+    }
+  } else {
+    if (debug) {
+      cerr << "Histogram1D::Mode: No samples in Histogram" << endl;
+    }
+  }
+  return NaN;
+}
+
+// -----------------------------------------------------------------------------
+template <class HistogramType>
+Array<double> Histogram1D<HistogramType>::Modes() const
+{
+  Array<double> modes;
+  if (_nsamp == 0) {
+    if (debug) {
+      cerr << "Histogram1D::Modes: No samples in Histogram" << endl;
+    }
+    return modes;
+  }
+  HistogramType max_value = 0;
+  for (int i = 0; i < _nbins; ++i) {
+    max_value = max(max_value, _bins[i]);
+  }
+  modes.reserve(10);
+  for (int i = 0; i < _nbins; ++i) {
+    if (_bins[i] >= max_value) {
+      modes.push_back(this->BinToVal(i));
+    }
+  }
+  modes.shrink_to_fit();
+  Sort(modes);
+  return modes;
 }
 
 // -----------------------------------------------------------------------------
