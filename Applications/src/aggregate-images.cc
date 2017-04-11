@@ -64,6 +64,8 @@ void PrintHelp(const char* name)
   cout << "      Voxel-wise aggregate image.\n";
   cout << "\n";
   cout << "Optional arguments:\n";
+  cout << "  -dtype char|uchar|short|ushort|int|uint|float|double\n";
+  cout << "      Data type of output image. (default: float)\n";
   cout << "  -padding <value>\n";
   cout << "      Background value of voxels to be ignored during :option:`-normalization` (default: NaN).\n";
   cout << "  -normalization, -normalize <mode>\n";
@@ -93,7 +95,7 @@ void PrintHelp(const char* name)
 // =============================================================================
 
 // Type of input images
-typedef RealPixel                InputType;
+typedef float                    InputType;
 typedef GenericImage<InputType>  InputImage;
 typedef Array<InputType>         InputArray;
 
@@ -382,6 +384,7 @@ int main(int argc, char **argv)
   }
 
   const char        *output_name   = nullptr;
+  ImageDataType      dtype         = MIRTK_VOXEL_UNKNOWN;
   NormalizationMode  normalization = Normalization_None;
   int                alpha         = 0;
   int                bins          = 64;
@@ -391,6 +394,9 @@ int main(int argc, char **argv)
 
   for (ALL_OPTIONS) {
     if (OPTION("-output")) output_name = ARGUMENT;
+    else if (OPTION("-dtype") || OPTION("-datatype")) {
+      PARSE_ARGUMENT(dtype);
+    }
     else if (OPTION("-normalization") || OPTION("-normalize")) {
       if (HAS_ARGUMENT) {
         const string arg = ToLower(ARGUMENT);
@@ -647,7 +653,13 @@ int main(int argc, char **argv)
     cout << "Writing result to " << output_name << "...";
     cout.flush();
   }
-  output.Write(output_name);
+  if (dtype != MIRTK_VOXEL_UNKNOWN && dtype != output.GetDataType()) {
+    UniquePtr<BaseImage> image(BaseImage::New(dtype));
+    *image = output;
+    image->Write(output_name);
+  } else {
+    output.Write(output_name);
+  }
   if (verbose) cout << " done" << endl;
 
   return 0;
