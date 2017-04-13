@@ -153,8 +153,8 @@ struct EvaluateJacobianBase : public VoxelFunction
 
   // ---------------------------------------------------------------------------
   inline void Initialize(const ImageAttributes &domain,
-                         const VelocityField       *v,
-                         double                     s = 1.0)
+                         const VelocityField   *v,
+                         double                 s = 1.0)
   {
     const int n = domain.NumberOfSpatialPoints();
                  _xy = 1 * n; _xz = 2 * n;
@@ -221,15 +221,14 @@ struct EvaluateJacobianBase : public VoxelFunction
   // ---------------------------------------------------------------------------
   inline void PutDetJacobian(const Matrix &jac, TReal *dj)
   {
-    *dj = static_cast<TReal>(jac.Det3x3());
+    *dj = static_cast<TReal>(max(.0001, jac.Det3x3()));
   }
 
   // ---------------------------------------------------------------------------
   inline void PutLogJacobian(const Matrix &jac, TReal *lj)
   {
     double dj = jac.Det3x3();
-    if (dj < .0001) dj = .0001;
-    *lj = static_cast<TReal>(log(dj));
+    *lj = static_cast<TReal>(max(.0001, log(dj)));
   }
 
   // ---------------------------------------------------------------------------
@@ -1017,6 +1016,11 @@ void ScalingAndSquaring<TReal>
     output->Initialize(attr, interim->T());
     ResampleOutput<TInterpolator> resample(attr, interp);
     ParallelForEachVoxel(attr, output, resample);
+    TReal min_val, max_val;
+    interim->GetMinMax(min_val, max_val);
+    for (int vox = 0; vox < output->NumberOfVoxels(); ++vox) {
+      output->Put(vox, clamp(output->Get(vox), min_val, max_val));
+    }
   // Otherwise, just copy intermediate output
   } else {
     (*output) = (*interim);
@@ -1047,11 +1051,11 @@ void ScalingAndSquaring<TReal>::Finalize()
   }
 
   // Multiply output Jacobian by Jacobian of input deformation
-  if ((_OutputJacobian || _OutputDetJacobian || _OutputLogJacobian) && (_InputDeformation || _InputDeformation)) {
+  if ((_OutputJacobian || _OutputDetJacobian || _OutputLogJacobian) && (_InputDisplacement || _InputDeformation)) {
     // TODO: Multiply output Jacobian by Jacobian of input deformation
     // TODO: Multiply output determinant of Jacobian by determinant of Jacobian of input deformation
     cerr << "WARNING: ScalingAndSquaring::Finalize: Output Jacobian does not include the input deformation!" << endl;
-    cerr << "         Be aware that this will be fixed in the future and thus change the output." << endl;
+    cerr << "         Be aware that this may be fixed in the future and thus change the output." << endl;
     exit(1);
   }
 
