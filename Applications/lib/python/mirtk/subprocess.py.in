@@ -149,7 +149,7 @@ def check_output(argv, verbose=0, code='utf-8'):
 
 
 # ----------------------------------------------------------------------------
-def run(cmd, args=[], opts={}, verbose=0, threads=0, exit_on_error=False):
+def run(cmd, args=[], opts={}, workdir=None, verbose=0, threads=0, exit_on_error=False):
     """Execute MIRTK command and throw exception or exit on error.
 
     This convenience wrapper for check_call throws a subprocess.CalledProcessError 
@@ -185,6 +185,9 @@ def run(cmd, args=[], opts={}, verbose=0, threads=0, exit_on_error=False):
             argv.append(opt)
             if not arg is None:
                 argv.extend(flatten(arg))
+    prevdir = os.getcwd()
+    if workdir:
+        os.chdir(workdir)
     try:
         check_call(argv, verbose=verbose)
     except subprocess.CalledProcessError as e:
@@ -199,3 +202,5 @@ def run(cmd, args=[], opts={}, verbose=0, threads=0, exit_on_error=False):
             traceback.print_stack()
             sys.exit(e.returncode)
         raise e
+    finally:
+        os.chdir(prevdir)
