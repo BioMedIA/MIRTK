@@ -502,7 +502,7 @@ int main(int argc, char **argv)
   }
 
   // Initialize output image
-  const double bg = (mode == AM_Mean ? NaN : 1e-3);
+  double bg = NaN;
   OutputImage output(images[0].Attributes());
   if (!IsNaN(padding)) {
     if (intersection) {
@@ -651,13 +651,20 @@ int main(int argc, char **argv)
   parallel_for(blocked_range<int>(0, nvox), eval);
   if (verbose) cout << " done" << endl;
 
-  // Replace NaN's by minimum value
-  OutputType omin, omax;
-  output.GetMinMax(omin, omax);
-  omin -= 1e-3;
-  for (int vox = 0; vox < nvox; ++vox) {
-    if (IsNaN(output(vox))) output(vox) = omin;
+  // Set suitable background value
+  if (mode == AM_Mean || mode == AM_Median) {
+    OutputType omin, omax;
+    output.GetMinMax(omin, omax);
+    bg = omin - 1e-3;
+  } else if (mode == AM_LabelConsistency) {
+    bg = 1.;
+  } else {
+    bg = 0.;
   }
+  for (int vox = 0; vox < nvox; ++vox) {
+    if (output.IsBackground(vox)) output(vox) = bg;
+  }
+  output.ClearBackgroundValue();
 
   // Write output image
   if (verbose) {
