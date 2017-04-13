@@ -34,6 +34,8 @@ if __name__ == '__main__':
                         help="No. of bins to use for histogram-based measures.")
     parser.add_argument("--window", default=5, type=int,
                         help="Local window size for NCC measure in voxels.")
+    parser.add_argument("--spacing", dest="spacing", nargs="+", type=float,
+                        help="Control point spacing for each step.")
     parser.add_argument("-j", "--jacobian", nargs="+", type=float,
                         help="Jacobian penalty weight for each step.")
     parser.add_argument("--bch-terms", dest="bchterms", default=3, type=int,
@@ -89,6 +91,11 @@ if __name__ == '__main__':
             cfg["bins"] = args.bins
         if args.window:
             cfg["window"] = args.window
+    if args.spacing:
+        for i in range(max(len(regcfg), len(args.spacing))):
+            if i >= len(regcfg):
+                regcfg.append({})
+            regcfg[i]["spacing"] = args.spacing[i] if i < len(args.spacing) else args.spacing[-1]
     if args.bending:
         for i in range(max(len(regcfg), len(args.bending))):
             if i >= len(regcfg):

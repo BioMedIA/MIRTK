@@ -119,6 +119,7 @@ if (MIRTK_Registration_FOUND)
 
   if (Python_FOUND)
     mirtk_add_executable(construct-atlas)
+    mirtk_add_executable(evaluate-atlas)
   endif ()
 
 endif ()
