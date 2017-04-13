@@ -95,7 +95,7 @@ struct JacobianImpl : public VoxelReduction
 {
   GreyImage            *_image;
   BaseImage            *_jacobian;
-  BinaryImage          * _mask;
+  BinaryImage          *_mask;
   int                   _nvox;
   const Transformation *_dof;
   double               _t, _t0;
