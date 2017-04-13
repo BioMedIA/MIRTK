@@ -109,9 +109,15 @@ class SpatioTemporalAtlas(object):
         self.imgids = list(imgids)
         self.imgids.sort()
 
-    def _run(self, command, args=[], opts={}):
-        """Execute MIRTK command."""
-        if command in ("edit-dofs", "em-hard-segmentation"):
+    def _run(self, command, args=[], opts={}, step=-1, workdir=None, queue=None, name=None, submit_kwargs={}, wait_kwargs={}):
+        """Execute single MIRTK command."""
+        if step < 0:
+            step = self.step
+        if not name:
+            name = command
+        if queue and queue.lower() == "local":
+            queue = None
+        if command in ("edit-dofs", "em-hard-segmentation", "average-measure"):
             # These commands do not support the -threads option (yet)
             threads = 0
         else:
@@ -121,11 +127,24 @@ class SpatioTemporalAtlas(object):
                     opts.append(("verbose", self.verbose - 2))
                 else:
                     opts["verbose"] = self.verbose - 2
-            if self.verbose > 1:
-                sys.stdout.write("\n\n")
-        mirtk.run(command, args=args, opts=opts, verbose=self.verbose - 1, threads=threads, exit_on_error=self.exit_on_error)
+        if "verbose" in opts and command in ("average-measure"):
+            # These commands do not support the -verbose option (yet)
+            del opts["verbose"]
+        if queue:
+            job = self._submit(name, command=command, args=args, opts=opts, step=step, workdir=workdir, script=None, tasks=-1, group=1, queue=queue, **submit_kwargs)
+            self.wait(job, **wait_kwargs)
+        else:
+            prevdir = os.getcwd()
+            if workdir:
+                os.chdir(workdir)
+            try:
+                if self.verbose > 1:
+                    sys.stdout.write("\n\n")
+                mirtk.run(command, args=args, opts=opts, verbose=self.verbose - 1, threads=threads, exit_on_error=self.exit_on_error)
+            finally:
+                os.chdir(prevdir)
 
-    def _submit(self, name, script, tasks=-1, group=1, opts={}, step=-1, queue=None, memory=8 * 1024):
+    def _submit(self, name, command=None, args=[], opts={}, script=None, tasks=-1, group=1, step=-1, queue=None, memory=8 * 1024, workdir=None):
         """Submit batch script."""
         if step < 0:
             step = self.step
@@ -133,60 +152,70 @@ class SpatioTemporalAtlas(object):
             queue = self.queue
         if tasks == 0:
             return (queue, 0)
+        groups = tasks
         threads = self.threads if self.threads > 0 else 1
-        source = 'import sys\nimport socket\n'
-        source += 'sys.stdout.write("Host: " + socket.gethostname() + "\\n\\n")\n'
-        source += 'sys.path.insert(0, "{0}")\n'.format(os.path.dirname(os.path.dirname(mirtk.__file__)))
-        source += 'sys.path.insert(0, "{0}")\n'.format(os.path.dirname(__file__))
-        source += 'from {0} import SpatioTemporalAtlas\n'.format(os.path.splitext(os.path.basename(__file__))[0])
-        source += 'atlas = SpatioTemporalAtlas(root="{root}", config={config}, step={step}, threads={threads}, verbose=3, exit_on_error=True)\n'
-        if tasks > 0:
-            tasks_per_group = max(group, self.mintasks, (tasks + self.maxtasks - 1) // self.maxtasks)
-            if tasks_per_group > 1:
-                groups = range(0, tasks, tasks_per_group)
-                source += 'groupid = int(sys.argv[1])\n'
-                source += 'if groupid < 0 or groupid >= {0}:\n'.format(len(groups))
-                source += '    sys.stderr.write("Invalid group ID\\n")\n'
-                source += 'tasks_per_group = {0}\n'.format(tasks_per_group)
-                source += 'for taskid in range(groupid * tasks_per_group, (groupid + 1) * tasks_per_group):\n'
-                source += '    if taskid >= {0}: break\n'.format(tasks)
-                source += '    ' + '\n    '.join(script.splitlines()) + '\n'
-                source += '    else: sys.stderr.write("Invalid task ID\\n")\n'
-                groups = len(groups)
+        if script:
+            source = 'import sys\nimport socket\n'
+            source += 'sys.stdout.write("Host: " + socket.gethostname() + "\\n\\n")\n'
+            source += 'sys.path.insert(0, "{0}")\n'.format(os.path.dirname(os.path.dirname(mirtk.__file__)))
+            source += 'sys.path.insert(0, "{0}")\n'.format(os.path.dirname(__file__))
+            source += 'from {0} import SpatioTemporalAtlas\n'.format(os.path.splitext(os.path.basename(__file__))[0])
+            source += 'atlas = SpatioTemporalAtlas(root="{root}", config={config}, step={step}, threads={threads}, verbose=3, exit_on_error=True)\n'
+            if tasks > 0:
+                tasks_per_group = max(group, self.mintasks, (tasks + self.maxtasks - 1) // self.maxtasks)
+                if tasks_per_group > 1:
+                    groups = range(0, tasks, tasks_per_group)
+                    source += 'groupid = int(sys.argv[1])\n'
+                    source += 'if groupid < 0 or groupid >= {0}:\n'.format(len(groups))
+                    source += '    sys.stderr.write("Invalid group ID\\n")\n'
+                    source += 'tasks_per_group = {0}\n'.format(tasks_per_group)
+                    source += 'for taskid in range(groupid * tasks_per_group, (groupid + 1) * tasks_per_group):\n'
+                    source += '    if taskid >= {0}: break\n'.format(tasks)
+                    source += '    ' + '\n    '.join(script.splitlines()) + '\n'
+                    source += '    else: sys.stderr.write("Invalid task ID\\n")\n'
+                    groups = len(groups)
+                else:
+                    source += 'taskid = int(sys.argv[1])\n'
+                    source += 'if taskid < 0: sys.stderr.write("Invalid task ID\\n")\n'
+                    source += script
+                    source += 'else: sys.stderr.write("Invalid task ID\\n")\n'
             else:
-                source += 'taskid = int(sys.argv[1])\n'
-                source += 'if taskid < 0: sys.stderr.write("Invalid task ID\\n")\n'
                 source += script
-                source += 'else: sys.stderr.write("Invalid task ID\\n")\n'
-                groups = tasks
-        else:
-            source += script
-        opts.update({
-            "root": self.root,
-            "config": repr(self.config),
-            "step": step,
-            "threads": threads
-        })
+            opts.update({
+                "root": self.root,
+                "config": repr(self.config),
+                "step": step,
+                "threads": threads
+            })
+            script = source
+        elif not command:
+            command = name
         jobname = "i{0:02d}_{1}".format(step, name) if step >= 0 else name
         if queue.lower() in ("condor", "htcondor"):
             if tasks > 0:
                 log = os.path.join(self.subdir(step), "log", name + "_$(Cluster).$(Process).log")
             else:
                 log = os.path.join(self.subdir(step), "log", name + "_$(Cluster).log")
-            requirements = self.config.get("environment", {}).get("condor", {}).get("requirements", [])
-            jobid = cbatch(name=jobname, script=source, tasks=groups, opts=opts, log=log, threads=threads, memory=memory, requirements=requirements, verbose=0)
+            condor_config = self.config.get("environment", {}).get("condor", {})
+            requirements = condor_config.get("requirements", [])
+            environment = condor_config.get("environment", {})
+            jobid = cbatch(name=jobname, command=command, args=args, opts=opts, script=script, tasks=groups,
+                           log=log, threads=threads, memory=memory, requirements=requirements, environment=environment,
+                           workdir=workdir, verbose=0)
         else:
             if tasks > 0:
                 log = os.path.join(self.subdir(step), "log", name + "_%A.%a.log")
             else:
                 log = os.path.join(self.subdir(step), "log", name + "_%j.log")
-            jobid = sbatch(name=jobname, script=source, tasks=groups, opts=opts, log=log, threads=threads, memory=memory, queue=queue, verbose=0)
+            jobid = sbatch(name=jobname, command=command, args=args, opts=opts, script=script, tasks=groups,
+                           log=log, threads=threads, memory=memory, queue=queue,
+                           workdir=workdir, verbose=0)
         if tasks > 0:
             self.info("Submitted batch '{}' (id={}, #jobs={}, #tasks={})".format(
                 name, jobid[0] if isinstance(jobid, tuple) else jobid, groups, tasks)
             )
         else:
-            self.info("Submitted job '{}' (id={})".format(name, jobid))
+            self.info("Submitted job '{}' (id={})".format(name, jobid[0] if isinstance(jobid, tuple) else jobid))
         return (queue, jobid)
 
     def wait(self, jobs, interval=60, verbose=5):
@@ -424,6 +453,9 @@ class SpatioTemporalAtlas(object):
             params.append("No. of bins = {}".format(cfg.get("bins", 64)))
             params.append("Local window size [box] = {}".format(cfg.get("window", "5 vox")))
             params.append("No. of last function values = 10")
+            if "svffd" in model.lower():
+                params.append("Integration method = {}".format(cfg.get("ffdim", "FastSS")))
+                params.append("No. of BCH terms = {}".format(cfg.get("bchterms", 4)))
             # resolution pyramid
             spacings = cfg.get("spacing", [])
             if not isinstance(spacings, list):
@@ -446,9 +478,9 @@ class SpatioTemporalAtlas(object):
             resolution = 0.
             spacing = 0.
             params.append("No. of resolution levels = {0}".format(levels))
-            params.append("Image interpolation mode = Linear with padding")
-            params.append("Downsample images with padding = Yes")
-            params.append("Image similarity foreground = Overlap")
+            params.append("Image interpolation mode = {0}".format(cfg.get("interpolation", "Linear with padding")))
+            params.append("Downsample images with padding = {0}".format("Yes" if cfg.get("padding", True) else "No"))
+            params.append("Image similarity foreground = {0}".format(cfg.get("foreground", "Overlap")))
             params.append("Strict step length range = No")
             params.append("Maximum streak of rejected steps = 2")
             for level in range(1, levels + 1):
@@ -798,6 +830,7 @@ class SpatioTemporalAtlas(object):
             queue = self.queue["short"]
         if queue == "local":
             queue = None
+        single_channel = channels and isinstance(channels, basestring)
         if not channels:
             channels = self.regcfg(step).get("channels", self.channel)
         if not isinstance(channels, list):
@@ -812,16 +845,14 @@ class SpatioTemporalAtlas(object):
             ages = self.ages()
         script = ""
         tasks = 0
-        imgs = {}       
-        for t in ages:
-            imgs[t] = {}
-            for channel in channels:
-                imgs[t][channel] = []     
-        for t in ages:
-            for channel in channels:
+        imgs = {}
+        for channel in channels:
+            imgs[channel] = {}
+            for t in ages:
                 weights = self.weights(t)
                 if len(weights) == 0:
                     raise Exception("No image has non-zero weight for t={}".format(t))
+                imgs[channel][t] = []
                 for imgid in self.imgids:
                     if imgid in weights:
                         img = self.defimg(imgid=imgid, t=t, channel=channel, step=step, decomposed=decomposed, force=force, create=create and not queue)
@@ -831,11 +862,13 @@ class SpatioTemporalAtlas(object):
                                 taskid=tasks, t=t, imgid=imgid, channel=channel, path=img, decomposed=decomposed
                             )
                             tasks += 1
-                        imgs[t][channel].append(img)
+                        imgs[channel][t].append(img)
         if create and queue:
             job = self._submit("defimgs", script=script, tasks=tasks, step=step, queue=queue)
         else:
             job = (None, 0)
+        if single_channel:
+            imgs = imgs[channel]
         return (job, imgs)
 
     def imgtable(self, t, channel=None, step=-1, decomposed=True, force=False, create=True, batch=False):
@@ -865,6 +898,10 @@ class SpatioTemporalAtlas(object):
         if not channel:
             channel = self.channel
         cfg = self.config["images"][channel]
+        if isinstance(label, basestring):
+            label = label.split(",")
+        if isinstance(label, list) and len(label) == 1:
+            label = label[0]
         if not path:
             if label:
                 if isinstance(label, (tuple, list)):
@@ -932,6 +969,7 @@ class SpatioTemporalAtlas(object):
         else:
             self.info("Average images at observed time points", step=step)
             ages = self.ages()
+        single_channel = channels and isinstance(channels, basestring)
         if not channels:
             channels = self.regcfg(step).get("channels", self.channel)
         if not isinstance(channels, list):
@@ -944,31 +982,41 @@ class SpatioTemporalAtlas(object):
         script = ""
         tasks = 0
         imgs = {}
-        for t in ages:
-            imgs[t] = {}
-            for channel in channels:
-                imgs[t][channel] = []
-        for t in ages:
-            for channel in channels:
-                clabels = [0]
-                if "labels" in self.config["images"][channel]:
-                    if labels.get(channel, "").lower() == "all":
-                        clabels = parselabels(self.config["images"][channel]["labels"])
-                    elif channel in labels:
-                        clabels = parselabels(labels[channel])
-                for label in clabels:
-                    img = self.avgimg(t, channel=channel, label=label, outdir=outdir, step=step, decomposed=decomposed, force=force, create=create and not queue)
+        for channel in channels:
+            imgs[channel] = {}
+            for t in ages:
+                imgs[channel][t] = []
+        for channel in channels:
+            segments = [0]
+            if "labels" in self.config["images"][channel]:
+                lbls = labels.get(channel, [])
+                if lbls:
+                    if isinstance(lbls, basestring):
+                        if lbls.lower() == "all":
+                            segments = parselabels(self.config["images"][channel]["labels"])
+                        else:
+                            segments = parselabels(lbls)
+                    else:
+                        segments = lbls
+            for segment in segments:
+                for t in ages:
+                    img = self.avgimg(t, channel=channel, label=segment, outdir=outdir, step=step, decomposed=decomposed, force=force, create=create and not queue)
                     if queue and (force or not os.path.exists(img)):
                         remove_or_makedirs(img)
-                        script += 'elif taskid == {taskid}: atlas.avgimg(t={t}, channel="{channel}", label={label}, outdir={outdir}, decomposed={decomposed}, batch=True)\n'.format(
-                            taskid=tasks, t=t, channel=channel, label=repr(label), outdir=repr(outdir), decomposed=decomposed
+                        script += 'elif taskid == {taskid}: atlas.avgimg(t={t}, channel="{channel}", label={segment}, outdir={outdir}, decomposed={decomposed}, batch=True)\n'.format(
+                            taskid=tasks, t=t, channel=channel, segment=repr(segment), outdir=repr(outdir), decomposed=decomposed
                         )
                         tasks += 1
-                    imgs[t][channel].append(img)
+                    if len(segments) == 1:
+                        imgs[channel][t] = img
+                    else:
+                        imgs[channel][t].append(img)
         if create and queue:
             job = self._submit("avgimgs", script=script, tasks=tasks, step=step, queue=queue)
         else:
             job = (None, 0)
+        if single_channel:
+            imgs = imgs[channels[0]]
         return (job, imgs)
 
     def construct(self, start=-1, niter=10, outdir=None, force=False, queue=None):
@@ -1072,6 +1120,161 @@ class SpatioTemporalAtlas(object):
         job = self.avgimgs(ages=ages, force=force, queue=queue["short"], outdir=outdir)[0]
         self.wait(job, interval=60, verbose=2)
         self.info("Finished atlas construction!")
+
+    def evaluate(self, ages=[], step=-1, force=False, queue=None):
+        """Evaluate atlas sharpness measures."""
+        if not ages:
+            ages = self.means
+        if isinstance(ages, int):
+            ages = [float(ages)]
+        elif isinstance(ages, float):
+            ages = [ages]
+        steps = [step] if isinstance(step, int) else step
+        measures = self.config["evaluation"]["measures"]
+        rois_spec = self.config["evaluation"].get("rois", {})
+        roi_paths = {}
+        roi_labels = {}
+        for roi_name, roi_path in rois_spec.items():
+            if isinstance(roi_path, list):
+                if len(roi_path) != 2:
+                    raise ValueError("Invalid evaluation ROI value, must be either path (format) string of individual ROI or [<path_format>, <range>]")
+                labels_spec = roi_path[1]
+                roi_path = roi_path[0]
+                if isinstance(labels_spec, list):
+                    labels = [int(l) for l in labels_spec]
+                elif isinstance(labels_spec, int):
+                    labels = range(1, labels_spec + 1)
+                else:
+                    labels_spec = [int(l) for l in labels_spec.split(":")]
+                    if len(labels_spec) == 1:
+                        labels = range(1, labels_spec[0] + 1)
+                    elif len(labels_spec) == 2:
+                        labels = range(labels_spec[0], labels_spec[1] + 1)
+                    elif len(labels_spec) == 3:
+                        if labels_spec[1] == 0:
+                            raise ValueError("Invalid evaluation ROI label range, increment cannot be zero!")
+                        labels = range(labels_spec[0], labels_spec[2] + labels_spec[1], labels_spec[1])
+                    else:
+                        raise ValueError("Invalid evaluation ROI label range, use MATLAB/numpy style indexing!")
+                roi_name_format = roi_name
+                if roi_name_format.format(l=0) == roi_name_format:
+                    raise ValueError("Invalid evaluation ROI key name, name must include '{l}' format string!")
+                for label in labels:
+                    roi_name = roi_name_format.format(l=label)
+                    roi_paths[roi_name] = roi_path
+                    roi_labels[roi_name] = label
+            else:
+                roi_paths[roi_name] = roi_path
+        re_measure = re.compile("^\s*(\w+)\s*\((.*)\)\s*$")
+        for step in steps:
+            voxelwise_measures = {}
+            for t in ages:
+                voxelwise_measures[t] = []
+            for channel in measures:
+                channel_info = self.config["images"][channel]
+                channel_measures = measures[channel]
+                if isinstance(channel_measures, basestring):
+                    channel_measures = [channel_measures]
+                if channel_measures:
+                    # Deform individual images to atlas time point
+                    job, imgs = self.defimgs(channels=channel, ages=ages, step=step, queue=queue)
+                    self.wait(job, interval=30, verbose=1)
+                    # Evaluate measures for this image channel/modality
+                    for measure in channel_measures:
+                        measure = measure.lower().strip()
+                        match = re_measure.match(measure)
+                        if match:
+                            measure = match.group(1)
+                            args = match.group(2).strip()
+                        else:
+                            args = ""
+                        # Evaluate gradient magnitude of average image
+                        if measure == "grad":
+                            if "labels" in channel_info:
+                                if not args:
+                                    raise ValueError("Gradient magnitude of segmentation can only be computed for probability map of one or more label(s)!")
+                                labels = [args]
+                            else:
+                                if args and args not in ("mean", "avg", "average", "template"):
+                                    raise ValueError("Gradient magnitude of intensity images can only be computed from 'mean'/'avg'/'average'/'template' image!")
+                                labels = []
+                            job, avgs = self.avgimgs(channels=channel, labels={channel: labels}, ages=ages, step=step, queue=queue)
+                            self.wait(job, interval=60, verbose=2)
+                            if args:
+                                measure += "_" + args
+                            for t in ages:
+                                path = os.path.join(self.subdir(step), channel, measure, self.timename(t) + ".nii.gz")
+                                if force or not os.path.exists(path):
+                                    makedirs(os.path.dirname(path))
+                                    self._run("detect-edges", step=step, queue=queue, wait_kwargs={"interval": 10, "verbose": 3},
+                                              name="eval_{channel}_{measure}_{age}".format(channel=channel, measure=measure, age=self.timename(t)),
+                                              args=[avgs[t], path], opts={"padding": channel_info.get("bkgrnd", -1), "central": None})
+                                voxelwise_measures[t].append((channel, measure, path))
+                        else:
+                            if args:
+                                raise ValueError("Measure '{}' has no arguments!".format(measure))
+                            opts = {}
+                            if "labels" in channel_info:
+                                opts["bins"] = len(parselabels(channel_info["labels"])) + 1
+                            else:
+                                opts["normalization"] = "zscore"
+                            if "bkgrnd" in channel_info:
+                                opts["padding"] = channel_info["bkgrnd"]
+                            for t in ages:
+                                path = os.path.join(self.subdir(step), channel, measure, self.timename(t) + ".nii.gz")
+                                if force or not os.path.exists(path):
+                                    makedirs(os.path.dirname(path))
+                                    opts["output"] = os.path.relpath(path, self.topdir)
+                                    mask = self.config["evaluation"].get("mask", "").format(t=t)
+                                    if mask:
+                                        opts["mask"] = mask
+                                    self._run("aggregate-images", step=step, queue=queue, workdir=self.topdir, wait_kwargs={"interval": 30, "verbose": 1},
+                                              name="eval_{channel}_{measure}_{age}".format(channel=channel, measure=measure, age=self.timename(t)),
+                                              args=[measure] + [os.path.relpath(img, self.topdir) for img in imgs[t]], opts=opts)
+                                voxelwise_measures[t].append((channel, measure, path))
+            for t in ages:
+                if voxelwise_measures[t] and roi_paths:
+                    subdir = self.subdir(step)
+                    table = os.path.join(subdir, "qc-measures", self.timename(t) + ".csv")
+                    if force or not os.path.exists(table):
+                        path = os.path.dirname(table)
+                        makedirs(path)
+                        path = os.path.join(path, "." + os.path.basename(table))
+                        args = [x[2] for x in voxelwise_measures[t]]
+                        opts = {"name": [], "roi-name": [], "roi-path": [], "header": None, "preload": None, "table": path}
+                        for voxelwise_measure in voxelwise_measures[t]:
+                            channel = voxelwise_measure[0]
+                            measure = voxelwise_measure[1]
+                            opts["name"].append("{}/{}".format(channel, measure))
+                        for roi_name in roi_paths:
+                            opts["roi-name"].append(roi_name)
+                            opts["roi-path"].append(roi_paths[roi_name].format(
+                                subdir=subdir, tmpdir=self.tmpdir, topdir=self.topdir,
+                                i=step, t=t, l=roi_labels.get(roi_name, 0))
+                            )
+                        try:
+                            self._run("average-measure", step=step, queue=queue,
+                                      name="eval_average_{age}".format(age=self.timename(t)),
+                                      args=args, opts=opts)
+                        except Exception as e:
+                            if os.path.exists(path):
+                                os.remove(path)
+                            raise e
+                        cur_wait_time = 0
+                        inc_wait_time = 10
+                        max_wait_time = 6 * inc_wait_time
+                        if queue and queue.lower() != "local":
+                            while not os.path.exists(path):
+                                if cur_wait_time < max_wait_time:
+                                    time.sleep(inc_wait_time)
+                                    cur_wait_time += inc_wait_time
+                                else:
+                                    raise Exception("Job average-measure finished, but output file '{}' still missing after {}s".format(path, cur_wait_time))
+                        try:
+                            os.rename(path, table)
+                        except OSError as e:
+                            sys.stderr.write("Failed to rename '{}' to '{}'".format(path, table))
+                            raise e
 
     def template(self, i, channel=None):
         """Get absolute path of i-th template image."""
@@ -1202,10 +1405,12 @@ class SpatioTemporalAtlas(object):
 # Batch execution using SLURM
 
 # ----------------------------------------------------------------------------
-def sbatch(name, args=[], opts={}, script=None, tasks=0, deps=[], logdir=None, log=None, queue='long', threads=8, memory=8 * 1024, verbose=1):
+def sbatch(name, command=None, args=[], opts={}, script=None, tasks=0, deps=[], logdir=None, log=None, queue='long', threads=8, memory=8 * 1024, workdir=None, verbose=1):
     if threads <= 0:
         raise ValueError("Must specify number of threads when executing as SLURM batch job!")
     if script:
+        if command:
+            raise ValueError("Keyword arguments 'command' and 'script' are mutually exclusive")
         shexec = "#!/bin/bash\nexec {0} <(cat <<END_OF_SCRIPT\n".format(sys.executable)
         shexec += script.format(**opts)
         shexec += "\nEND_OF_SCRIPT)"
@@ -1215,19 +1420,29 @@ def sbatch(name, args=[], opts={}, script=None, tasks=0, deps=[], logdir=None, l
         script = shexec
     else:
         script = "#!/bin/bash\n"
-        script += "mirtk {}".format(name)
+        script += "{pyexe} -c 'import sys; import socket; import mirtk; mirtk.check_call([\"{command}\"] + sys.argv[1:])'".format(
+            pyexe=sys.executable, command=command if command else name
+        )
+        script += "\"{0}\" -c 'import sys; import socket;".format(sys.executable)
+        script += " sys.stdout.write(\"Host: \" + socket.gethostname() + \"\\n\\n\");"
+        script += " sys.path.insert(0, \"{0}\");".format(os.path.dirname(os.path.dirname(mirtk.__file__)))
+        script += " import mirtk; mirtk.check_call([\"{0}\"] + sys.argv[1:])'".format(command if command else name)
+        script += "'"
         for arg in args:
             if ' ' in arg:
                 arg = '"' + arg + '"'
             script += ' ' + str(arg)
         for opt in opts:
             arg = opts[opt]
-            if isinstance(arg, (list, tuple)):
-                arg = ' '.join(arg)
             if opt[0] != '-':
                 opt = '-' + opt
-            script += ' ' + opt + ' ' + str(arg)
+            script += ' ' + opt
+            if arg is not None:
+                if isinstance(arg, (list, tuple)):
+                    arg = ' '.join(arg)
+                script += ' ' + str(arg)
         script += " -threads {0}".format(threads)
+        script += "\n"
     argv = [
         'sbatch',
         '-J', name,
@@ -1255,6 +1470,8 @@ def sbatch(name, args=[], opts={}, script=None, tasks=0, deps=[], logdir=None, l
         deps = [str(dep) for dep in deps if dep > 0]
         if deps:
             argv.append('--dependency=afterok:' + ',afterok:'.join(deps))
+    if workdir:
+        argv.append('--workdir=' + os.path.abspath(workdir))
     proc = subprocess.Popen(argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
     (out, err) = proc.communicate(input=script.encode('utf-8'))
     if proc.returncode != 0:
@@ -1348,7 +1565,9 @@ def swait(jobs, max_time=0, interval=60, verbose=0):
 # Batch execution using HTCondor
 
 # ----------------------------------------------------------------------------
-def cbatch(name, args=[], opts={}, script=None, tasks=0, deps=[], threads=0, memory=8 * 1024, retries=5, requirements=[], logdir=None, log=None, verbose=1):
+def cbatch(name, command=None, args=[], opts={}, script=None, tasks=0, deps=[],
+           threads=0, memory=8 * 1024, retries=5, requirements=[], environment={},
+           logdir=None, log=None, workdir=None, verbose=1):
     if deps:
         raise NotImplementedError("Cannot submit individual HTCondor jobs with dependencies yet, this requires use of DAGMan")
     if logdir or log:
@@ -1369,12 +1588,20 @@ def cbatch(name, args=[], opts={}, script=None, tasks=0, deps=[], threads=0, mem
         jobdesc += "request_memory = {0}\n".format(memory)
     if requirements:
         jobdesc += "requirements = " + " && ".join(requirements) + "\n"
+    if environment:
+        jobdesc += "environment = \""
+        for envname, envval in environment.items():
+            jobdesc += " {0}='{1}'".format(envname, ':'.join(envval) if isinstance(envval, (list, tuple)) else envval)
+        jobdesc += "\"\n"
+    if workdir:
+        jobdesc += "initialdir = {0}\n".format(os.path.abspath(workdir))
     # Note: MIRTK executables return exit code 6 when memory allocation fails, other codes are kill/term signals
     jobdesc += "on_exit_remove = (ExitBySignal == False && ExitCode != 6 && ExitCode != 247 && ExitCode != 241) || (ExitBySignal == True && ExitSignal != 9 && ExitSignal != 15)\n"
-    jobdesc += "retry_until = ExitCode != 6 && ExitCode != 247 && ExitCode != 241\n"
     if retries > 0:
         jobdesc += "max_retries = {0}\n".format(retries)
     if script:
+        if command:
+            raise ValueError("Keyword arguments 'command' and 'script' are mutually exclusive")
         if not log:
             raise ValueError("Script submission of batch to HTCondor requires log path for script file!")
         script_path = os.path.join(logdir, name + ".py")
@@ -1393,19 +1620,24 @@ def cbatch(name, args=[], opts={}, script=None, tasks=0, deps=[], threads=0, mem
             jobdesc += " {}".format(tasks)
         jobdesc += "\n"
     else:
-        jobdesc += "executable = mirtk\n"
-        jobdesc += "arguments = \"" + name
+        jobdesc += "executable = {0}\n".format(sys.executable)
+        jobdesc += "arguments = \"-c 'import sys; import socket;"
+        jobdesc += " sys.stdout.write(\"\"Host: \"\" + socket.gethostname() + \"\"\\n\\n\"\");"
+        jobdesc += " sys.path.insert(0, \"\"{0}\"\");".format(os.path.dirname(os.path.dirname(mirtk.__file__)))
+        jobdesc += " import mirtk; mirtk.check_call([\"\"{0}\"\"] + sys.argv[1:])'".format(command if command else name)
         for arg in args:
             if ' ' in arg:
                 arg = "'" + arg + "'"
             jobdesc += ' ' + str(arg)
         for opt in opts:
             arg = opts[opt]
-            if isinstance(arg, (list, tuple)):
-                arg = ' '.join(arg)
             if opt[0] != '-':
                 opt = '-' + opt
-            jobdesc += ' ' + opt + ' ' + str(arg)
+            jobdesc += ' ' + opt
+            if arg is not None:
+                if isinstance(arg, (list, tuple)):
+                    arg = ' '.join(arg)
+                jobdesc += ' ' + str(arg)
         jobdesc += "\"\n"
         if log:
             jobdesc += "output = {0}\n".format(log)
@@ -1655,7 +1887,7 @@ def parselabels(labels):
     values = []
     isstr = isinstance(labels, basestring)
     if isstr and "," in labels:
-        labels = labels.split(",")
+        labels = [arg.trim() for arg in labels.split(",")]
     if isinstance(labels, (tuple, list)):
         for label in labels:
             values.extend(parselabels(label))
