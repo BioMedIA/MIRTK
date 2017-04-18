@@ -77,11 +77,16 @@ void PrintHelp(const char* name)
   cout << "  -images <file>\n";
   cout << "      Text file with N lines containing the file name of each input image,\n";
   cout << "      optionally a transformation file name (see :option:`-dof` and :option:`-dof_i`),\n";
-  cout << "      optionally followed by a weight for a weighted output average (default weight is 1).\n";
+  cout << "      followed by an optional weight for a weighted output average (default weight is 1).\n";
   cout << "      The first line of the text file must specify the common base directory\n";
   cout << "      of all relative image and transformation file paths occurring on the\n";
   cout << "      subsequent N lines. A path starting with './' must be relative to the\n";
-  cout << "      directory containing the input text file itself.\n";
+  cout << "      directory containing the input text file itself. Each transformation file\n";
+  cout << "      path may be prefixed with 'inv:' or 'dof:' to indicate whether the inverse\n";
+  cout << "      of the given transformation file maps points from the image world space to\n";
+  cout << "      the common average world space or not. When omitted from a file path, 'dof:'\n";
+  cout << "      is implied, i.e., the transformation is assumed to map points from input image\n";
+  cout << "      to average image world space (see :option:`-dof`).\n";
   cout << "  -delim, -delimiter <c>\n";
   cout << "      Delimiter used in :option:`-images` file.\n";
   cout << "      (default: ',' for .csv, '\\t' for .tsv, and ' ' otherwise)\n";
@@ -180,10 +185,12 @@ enum RescalingMode
 int read_image_list_file(const char *image_list_name,
                          Array<string> &names,
                          Array<Array<string> > &dofs,
+                         Array<Array<bool> > &invs,
                          Array<double> &weights,
                          const char *delim = " ")
 {
   Array<string> dof_names;
+  Array<bool>   dof_invert;
   string   base_dir = Directory(image_list_name); // Base directory for relative paths
   ifstream iff(image_list_name);                  // List input file stream
   string   line;                                  // Input line
@@ -192,6 +199,7 @@ int read_image_list_file(const char *image_list_name,
 
   names  .clear();
   dofs   .clear();
+  invs   .clear();
   weights.clear();
 
   // Read base directory for image files
@@ -231,10 +239,21 @@ int read_image_list_file(const char *image_list_name,
       weights.push_back(1.0);
     }
     dof_names.clear();
+    dof_invert.clear();
     if (ndofs > 0) {
       dof_names.reserve(ndofs);
+      dof_invert.reserve(ndofs);
       for (size_t i = 1; i <= ndofs; ++i) {
         if (!columns[i].empty()) {
+          if (columns[i].substr(0, 4) == "inv:") {
+            dof_invert.push_back(true);
+            columns[i] = columns[i].substr(4);
+          } else if (columns[i].substr(0, 4) == "dof:") {
+            dof_invert.push_back(false);
+            columns[i] = columns[i].substr(4);
+          } else {
+            dof_invert.push_back(false);
+          }
           if (!base_dir.empty() && columns[i].front() != PATHSEP) {
             dof_names.push_back(base_dir + PATHSEP + columns[i]);
           } else {
@@ -244,6 +263,7 @@ int read_image_list_file(const char *image_list_name,
       }
     }
     dofs.push_back(dof_names);
+    invs.push_back(dof_invert);
   }
 
   return static_cast<int>(names.size());
@@ -645,7 +665,6 @@ int main(int argc, char **argv)
   double             min_norm         = 0.;
   double             output_min       = -inf;
   double             output_max       = +inf;
-  bool               invert_dofs      = false;
   ImageDataType      dtype            = MIRTK_VOXEL_FLOAT;
   int                margin           = -1;
   bool               sharpen          = false;
@@ -783,7 +802,6 @@ int main(int argc, char **argv)
       PARSE_ARGUMENT(dtype);
     }
     else HANDLE_BOOL_OPTION(sharpen);
-    else HANDLE_BOOLEAN_OPTION("invert", invert_dofs);
     else HANDLE_COMMON_OR_UNKNOWN_OPTION();
   }
 
@@ -822,6 +840,7 @@ int main(int argc, char **argv)
   if (image_list_name) {
     Array<string>         names;
     Array<Array<string> > imdofs;
+    Array<Array<bool> >   invdofs;
     Array<double>         weights;
     if (image_list_delim == nullptr) {
       const string ext = Extension(image_list_name);
@@ -829,7 +848,7 @@ int main(int argc, char **argv)
       else if (ext == ".tsv") image_list_delim = "\t";
       else                    image_list_delim = " ";
     }
-    const int n = read_image_list_file(image_list_name, names, imdofs, weights, image_list_delim);
+    const int n = read_image_list_file(image_list_name, names, imdofs, invdofs, weights, image_list_delim);
     if (n == 0) {
       if (verbose) cout << endl;
       FatalError("Failed to parse input list file " << image_list_name << "!");
@@ -839,10 +858,7 @@ int main(int argc, char **argv)
     image_name  .insert(image_name  .end(), names  .begin(), names  .end());
     image_weight.insert(image_weight.end(), weights.begin(), weights.end());
     imdof_name  .insert(imdof_name  .end(), imdofs .begin(), imdofs .end());
-    imdof_invert.resize(nimages);
-    for (int i = nimages - n; i < nimages; ++i) {
-      imdof_invert[i].resize(imdof_name[i].size(), invert_dofs);
-    }
+    imdof_invert.insert(imdof_invert.end(), invdofs.begin(), invdofs.end());
   }
 
   // Check that any input image is given
