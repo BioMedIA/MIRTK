@@ -45,6 +45,7 @@ inline string ToString(const ErrorType &value, int w, char c, bool left)
 {
   const char *str;
   switch (value) {
+    case ERR_None:            { str = "NoError";         } break;
     case ERR_Unknown:         { str = "UnknownError";    } break;
     case ERR_LogicError:      { str = "LogicError";      } break;
     case ERR_InvalidArgument: { str = "InvalidArgument"; } break;
