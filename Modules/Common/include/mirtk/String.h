@@ -61,7 +61,7 @@ inline bool iequal(char const *a, char const *b)
     if (tolower(*a) != tolower(*b)) return false;
     ++a, ++b;
   }
-  return false;
+  return !(*a || *b);
 }
 
 /// Case insensitive string comparison
