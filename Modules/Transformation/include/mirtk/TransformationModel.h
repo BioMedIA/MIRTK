@@ -174,7 +174,7 @@ inline bool IsDiffeo(const Array<TransformationModel> &model)
 /// Whether a given transformation model is 3D+t
 inline bool IsSpatioTemporal(TransformationModel model)
 {
-  return model == TM_BSplineTDFFD;
+  return model == TM_BSplineTDFFD || model == TM_BSplineSVFFD;
 }
 
 // -----------------------------------------------------------------------------
