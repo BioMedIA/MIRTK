@@ -110,6 +110,7 @@ set(HEADERS
   HessianImageFilter.h
   Histogram1D.h
   Histogram2D.h
+  HistogramMatching.h
   Image.h
   ImageAttributes.h
   ImageFunction.h
@@ -201,6 +202,7 @@ set(SOURCES
   HessianImageFilter.cc
   Histogram1D.cc
   Histogram2D.cc
+  HistogramMatching.cc
   ImageAttributes.cc
   ImageFunction.cc
   ImageGradientFunction.cc
