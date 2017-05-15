@@ -90,6 +90,7 @@ if (MIRTK_Image_FOUND)
   endif ()
 
   if (Python_FOUND)
+    mirtk_add_executable(average-measure)
     mirtk_add_executable(average-overlap)
   endif ()
 
