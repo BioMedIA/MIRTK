@@ -117,6 +117,11 @@ if (MIRTK_Registration_FOUND)
     mirtk_target_dependencies(register TBB::tbb)
   endif ()
 
+  if (Python_FOUND)
+    mirtk_add_executable(construct-atlas)
+    mirtk_add_executable(evaluate-atlas)
+  endif ()
+
 endif ()
 
 # ----------------------------------------------------------------------------
