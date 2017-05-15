@@ -82,7 +82,8 @@ public:
   /// is given, a mask with constant value 1 is assumed.
   enum ForegroundRegion
   {
-    FG_Mask,     ///< Evaluate similarity for all voxels in image domain
+    FG_Domain,   ///< Evaluate similarity for all voxels in image domain, ignore mask
+    FG_Mask,     ///< Evaluate similarity for all voxels in domain or with non-zero mask value
     FG_Target,   ///< Evaluate similarity for foreground of untransformed image
     FG_Overlap,  ///< Evaluate similarity for intersection of foreground regions
     FG_Union     ///< Evaluate similarity for union of foreground regions
@@ -442,6 +443,7 @@ inline string ToString(const ImageSimilarity::ForegroundRegion &value, int w, ch
 {
   const char *str;
   switch (value) {
+    case ImageSimilarity::FG_Domain:  str = "Domain"; break;
     case ImageSimilarity::FG_Mask:    str = "Mask"; break;
     case ImageSimilarity::FG_Target:  str = "Target"; break;
     case ImageSimilarity::FG_Overlap: str = "Overlap"; break;
@@ -456,7 +458,9 @@ template <>
 inline bool FromString(const char *str, ImageSimilarity::ForegroundRegion &value)
 {
   string lstr = ToLower(str);
-  if (lstr == "mask" || lstr == "including background" || lstr == "incl. background") {
+  if (lstr == "domain" || lstr == "including background" || lstr == "incl. background") {
+    value = ImageSimilarity::FG_Domain;
+  } else if (lstr == "mask") {
     value = ImageSimilarity::FG_Mask;
   } else if (lstr == "target" || lstr == "target foreground" || lstr == "excluding target background" || lstr == "excl. target background") {
     value = ImageSimilarity::FG_Target;
@@ -473,12 +477,12 @@ inline bool FromString(const char *str, ImageSimilarity::ForegroundRegion &value
 // -----------------------------------------------------------------------------
 inline bool ImageSimilarity::IsForeground(int idx) const
 {
-  if (_Mask && !_Mask->Get(idx)) {
+  if (_Foreground != FG_Domain && _Mask && !_Mask->Get(idx)) {
     // Never evaluate similarity outside explicitly specified domain
     return false;
   }
   switch (_Foreground) {
-    case FG_Mask:
+    case FG_Domain: case FG_Mask:
       return true;
     case FG_Target:
       if ((_Source->Transformation() == nullptr) != (_Target->Transformation() == nullptr)) {
