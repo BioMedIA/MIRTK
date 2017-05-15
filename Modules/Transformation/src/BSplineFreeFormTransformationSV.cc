@@ -1619,7 +1619,7 @@ void BSplineFreeFormTransformationSV
     ParallelForEachVoxel(in, &dv, &dv, mul);
 
     // Multiply resulting vectors by derivative of v w.r.t. the DoFs
-    BSplineFreeFormTransformation3D::ParametricGradient(&dv, out, wc, t0, w);
+    BSplineFreeFormTransformation3D::ParametricGradient(&dv, out, i2w, wc, t0, w);
     MIRTK_DEBUG_TIMING(2, "parametric gradient computation (SS)");
 
   // ---------------------------------------------------------------------------
