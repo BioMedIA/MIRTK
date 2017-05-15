@@ -121,70 +121,113 @@ if __name__ == '__main__':
                         help="Overlap measure(s) to include in output, all by default.")
     parser.add_argument('--segment', '-segment', dest='segments', nargs='+', default=[], metavar='NAME LABEL...', action=ParseSegmentOptionArguments,
                         help="Average the overlap measures for the specified labels, LABEL must be integer or range '5..10'.")
+    parser.add_argument('--noheader', dest="header", action="store_false",
+                        help="Input tables have no header row, cannot use --measure and --micro options then.")
+    parser.add_argument('--noid', dest="idcol", action="store_false",
+                        help="Input tables have no label/subject ID column at index 0.")
     parser.add_argument('--output', '-output',
                         help="Name of output text file.")
     args = parser.parse_args()
+    if not args.header and (args.measures or args.micro):
+        raise Exception("Option --measure/--micro cannot be used when tables have --noheader")
+    if not args.idcol and args.segments:
+        raise Exception("Option --segment cannot be used when tables have --noid column with label IDs at index 0")
     header = []
     labels = []
-    with open(args.tables[0], 'rb') as f:
-        reader = csv.reader(f)
-        header = reader.next()
-        for row in reader:
-            if len(row) != len(header):
-                raise Exception("Rows of CSV tables must have equal number of columns")
-            labels.append(int(row[0]))
-    header = [abbreviate(name) for name in header]
+    ncols = -1
+    nrows = 0
+    if args.idcol:
+        with open(args.tables[0], 'rb') as f:
+            reader = csv.reader(f)
+            if args.header:
+                header = reader.next()
+                ncols = len(header)
+            for row in reader:
+                nrows += 1
+                if ncols == -1:
+                    ncols = len(row)
+                elif len(row) != ncols:
+                    raise ValueError("Rows of CSV tables must have equal number of columns")
+                labels.append(int(row[0]))
+    else:
+        with open(args.tables[0], 'rb') as f:
+            reader = csv.reader(f)
+            if args.header:
+                header = reader.next()
+                ncols = len(header)
+            for row in reader:
+                nrows += 1
+                if ncols == -1:
+                    ncols = len(row)
+                elif len(row) != ncols:
+                    raise ValueError("Rows of CSV tables must have equal number of columns")
+    if ncols <= 0 or nrows <= 0:
+        raise ValueError("CSV tables must have at least one row/column")
+    first_col = 1 if args.idcol else 0
+    if header:
+        header = [abbreviate(name) for name in header]
+    else:
+        header = [None] * ncols
     measures = [abbreviate(measure) for measure in args.measure]
     tp_col = -1
     fp_col = -1
     fn_col = -1
     tn_col = -1
-    for c in range(1, len(header)):
-        lstr = header[c].lower()
-        if lstr == 'tp':
-            tp_col = c
-        elif lstr == 'fp':
-            fp_col = c
-        elif lstr == 'fn':
-            fn_col = c
-        elif lstr == 'tn':
-            tn_col = c
-    if args.micro and (tp_col == -1 or fp_col == -1 or fn_col == -1 or tn_col == -1):
-        raise Exception("Missing one or more of TP,FP,FN,TN columns needed for micro-averaging")
+    if header:
+        for c in range(first_col, ncols):
+            lstr = header[c].lower()
+            if lstr == 'tp':
+                tp_col = c
+            elif lstr == 'fp':
+                fp_col = c
+            elif lstr == 'fn':
+                fn_col = c
+            elif lstr == 'tn':
+                tn_col = c
     if args.micro:
+        if tp_col == -1 or fp_col == -1 or fn_col == -1 or tn_col == -1:
+            raise Exception("Missing one or more of TP,FP,FN,TN columns needed for micro-averaging")
         usecols = (tp_col, fp_col, fn_col, tn_col)
     else:
-        usecols = range(1, len(header))
+        usecols = range(first_col, ncols)
     if args.micro and measures:
-        header = [header[0]]
-        header.extend(measures)
-        cols = range(1, len(header))
+        if args.idcol:
+            header = [header[0]]
+            header.extend(measures)
+        else:
+            header = measures
+        cols = range(first_col, ncols)
     else:
         cols = []
-        for measure in measures:
-            if measure not in header:
-                raise Exception("Requested measure {} not found in input tables, consider --micro average if TP,FP,FN,TN columns available".format(measure))
-        for col in range(1, len(header)):
-            if measures and header[col] not in measures:
-                continue
-            if args.micro and col in usecols:
-                continue
-            cols.append(col)
-    sums = np.zeros((len(labels), len(usecols)), dtype=np.float)
+        if args.micro or measures:
+            for measure in measures:
+                if measure not in header:
+                    raise Exception("Requested measure {} not found in input tables, consider --micro average if TP,FP,FN,TN columns available".format(measure))
+            for col in range(first_col, ncols):
+                if measures and header[col] not in measures:
+                    continue
+                if args.micro and col in usecols:
+                    continue
+                cols.append(col)
+        else:
+            cols = usecols
+    sums = np.zeros((nrows, len(usecols)), dtype=np.float)
     for csv_name in args.tables:
-        sums += np.genfromtxt(csv_name, delimiter=',', skip_header=1, usecols=usecols, dtype=np.float)
+        sums += np.genfromtxt(csv_name, delimiter=',', skip_header=1 if args.header else 0, usecols=usecols, dtype=np.float)
     num = len(args.tables)
     out = sys.stdout
     if args.output:
         out = open(args.output, 'w')
     try:
-        if args.segments:
-            out.write('Segment')
-        else:
-            out.write(header[0])
-        out.write(',')
-        out.write(','.join([header[col] for col in cols]))
-        out.write('\n')
+        if header:
+            if args.segments:
+                out.write('Segment')
+                out.write(',')
+            elif args.idcol:
+                out.write(header[0])
+                out.write(',')
+            out.write(','.join([header[col] for col in cols]))
+            out.write('\n')
         if args.segments:
             for segment in args.segments:
                 out.write(segment[0])
@@ -193,30 +236,34 @@ if __name__ == '__main__':
                     for label in segment[1]:
                         row = labels.index(label)
                         if args.micro:
-                            avg += evaluate_overlap(sums[row, tp_col - 1],
-                                                    sums[row, fp_col - 1],
-                                                    sums[row, fn_col - 1],
-                                                    sums[row, tn_col - 1],
+                            avg += evaluate_overlap(sums[row, tp_col - first_col],
+                                                    sums[row, fp_col - first_col],
+                                                    sums[row, fn_col - first_col],
+                                                    sums[row, tn_col - first_col],
                                                     measure=header[col])
                         else:
-                            avg += sums[row, col - 1] / num
+                            avg += sums[row, col - first_col] / num
                     avg /= len(segment[1])
                     out.write(',')
                     out.write('{:.5f}'.format(avg))
                 out.write('\n')
         else:
-            for row in range(0, len(labels)):
-                out.write(str(labels[row]))
-                for col in cols:
+            for row in range(nrows):
+                if args.idcol:
+                    out.write(str(labels[row]))
+                    out.write(',')
+                for c in range(len(cols)):
+                    if c > 0:
+                        out.write(',')
+                    col = cols[c]
                     if args.micro:
-                        avg = evaluate_overlap(sums[row, tp_col - 1],
-                                               sums[row, fp_col - 1],
-                                               sums[row, fn_col - 1],
-                                               sums[row, tn_col - 1],
+                        avg = evaluate_overlap(sums[row, tp_col - first_col],
+                                               sums[row, fp_col - first_col],
+                                               sums[row, fn_col - first_col],
+                                               sums[row, tn_col - first_col],
                                                measure=header[col])
                     else:
-                        avg = sums[row, col - 1] / num
-                    out.write(',')
+                        avg = sums[row, col - first_col] / num
                     out.write('{:.5f}'.format(avg))
                 out.write('\n')
     finally:
