@@ -970,10 +970,11 @@ void GenericRegistrationFilter::Clear()
 // -----------------------------------------------------------------------------
 GenericRegistrationFilter::GenericRegistrationFilter()
 :
-  _InitialGuess  (NULL),
-  _Domain        (NULL),
-  _Transformation(NULL),
-  _Optimizer     (NULL)
+  _InitialGuess(nullptr),
+  _Domain(nullptr),
+  _Transformation(nullptr),
+  _TargetTransformation(nullptr),
+  _Optimizer(nullptr)
 {
   // Bind broadcast method to optimizer events (excl. Start/EndEvent!)
   _EventDelegate.Bind(IterationEvent,                MakeDelegate(this, &Observable::Broadcast));
