@@ -194,6 +194,14 @@ T &NthElement(Array<T> &values, int n, Compare comp)
   return values[n];
 }
 
+/// Get median value
+template <class T>
+T MedianValue(const Array<T> &values)
+{
+  Array<T> copy(values);
+  return NthElement(copy, static_cast<int>(values.size())/2);
+}
+
 /// Get permutation of array indices corresponding to sorted order of values
 template <class T>
 Array<int> IncreasingOrder(const Array<T> &values)
