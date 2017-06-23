@@ -271,6 +271,7 @@ int main(int argc, char **argv)
       if (attr) {
         svffd.reset(new BSplineFreeFormTransformationSV());
         svffd->Initialize(domain, dx, dy, dz, first);
+        svffd->Parameter(first->Parameter());
       } else {
         svffd.reset(new BSplineFreeFormTransformationSV(*first));
       }
