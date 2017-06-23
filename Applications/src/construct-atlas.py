@@ -16,7 +16,7 @@ if __name__ == '__main__':
     parser.add_argument("config", help="JSON file with atlas configuration.")
     parser.add_argument("-a", "--ages", "--means", dest="means", type=float, nargs="+",
                         help="Discrete time points for which to construct atlas.")
-    parser.add_argument("-s", "--sigma", dest="sigma", type=float, default=1., nargs="+",
+    parser.add_argument("-s", "--sigma", dest="sigma", type=float, nargs="+", default=1.,
                         help="Standard deviation of temporal kernel(s).")
     parser.add_argument("-o", "--output", "--outdir", dest="outdir",
                         help="Output directory of final atlas.")
@@ -30,22 +30,22 @@ if __name__ == '__main__':
                         help="Image (dis-)similarity measure to use for each channel.")
     parser.add_argument("-b", "--bending", nargs="+", type=float,
                         help="Bending energy weight for each step.")
-    parser.add_argument("--bins", default=64, type=int,
+    parser.add_argument("--bins", type=int,
                         help="No. of bins to use for histogram-based measures.")
-    parser.add_argument("--window", default=5, type=int,
+    parser.add_argument("--window", type=int,
                         help="Local window size for NCC measure in voxels.")
     parser.add_argument("--spacing", dest="spacing", nargs="+", type=float,
                         help="Control point spacing for each step.")
     parser.add_argument("-j", "--jacobian", nargs="+", type=float,
                         help="Jacobian penalty weight for each step.")
-    parser.add_argument("--bch-terms", dest="bchterms", default=3, type=int,
+    parser.add_argument("--bch-terms", dest="bchterms", type=int,
                         help="No. of BCH terms to use for composition of SV FFDs.")
-    parser.add_argument("-g", "--growth", default=True, type=bool,
+    parser.add_argument("-g", "--growth", type=bool,
                         help="Whether to joinedly estimate mean shape and change.")
     parser.add_argument("-i", "--start", dest="start", default=0, type=int,
                         help="Continue construction after the specified step.")
-    parser.add_argument("-n", "--steps", dest="steps", default=10, type=int,
-                        help="Number of steps of iterative atlas construction/refinement.")
+    parser.add_argument("-n", "--steps", dest="steps", default=-1, type=int,
+                        help="Number of steps of iterative atlas construction/refinement. Use 'iterations' config entry if not specified (default: 10).")
     parser.add_argument("-q", "--queue", "--long-queue", dest="longqueue",
                         help="Name of batch system queue. Use 'condor' for HTCondor. Otherwise, the argument is assumed to be the name of a SLURM partition.")
     parser.add_argument("--short-queue", dest="shortqueue",
@@ -72,6 +72,9 @@ if __name__ == '__main__':
         config["paths"]["outdir"] = ""
     if args.tmpdir:
         config["paths"]["tmpdir"] = os.path.abspath(args.tmpdir)
+    # no. of iterations
+    if args.steps < 0:
+        args.steps = config.get("iterations", 10)
     # registration parameters
     if "registration" not in config:
         config["registration"] = {"config": [{}], "growth": {}}
