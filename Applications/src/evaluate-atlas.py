@@ -16,7 +16,7 @@ if __name__ == '__main__':
     parser.add_argument("-w", "--workdir", "--tmpdir", dest="tmpdir",
                         help="Working directory of intermediate files.")
     parser.add_argument("-i", "--step", dest="step", default=-1, type=int, nargs="+",
-                        help="Atlas construction steps to evaluate.")
+                        help="Atlas construction steps to evaluate. Evaluate all 'iterations' specified in config otherwise (default: 10).")
     parser.add_argument("-q", "--queue", dest="queue",
                         help="Name of batch system queue. Use 'condor' for HTCondor. Otherwise, the argument is assumed to be the name of a SLURM partition.")
     parser.add_argument("-t", "--threads", type=int,
@@ -38,5 +38,7 @@ if __name__ == '__main__':
         config["environment"] = {}
     if args.threads:
         config["environment"]["threads"] = args.threads
+    if args.step == -1:
+        args.step = list(range(1, config.get("iterations", 10) + 1))
     atlas = SpatioTemporalAtlas(root=root, config=config, verbose=args.verbose, exit_on_error=True)
     atlas.evaluate(step=args.step, ages=args.means, queue=args.queue)
