@@ -491,7 +491,7 @@ int main(int argc, char **argv)
   }
 
   // (Common) type and attributes of local input/output transformations
-  ImageAttributes attr;  // common FFD lattice attributes
+  ImageAttributes attr; // common FFD lattice attributes
 
   // When target image domain specified, always average displacement fields
   // which were sampled at the voxels of this target image domain
@@ -641,6 +641,7 @@ int main(int argc, char **argv)
   }
 
   // Read parameters of input transformations
+  ParameterList ffd_params;  // parameters of first (SV) FFD
   for (size_t i = 0; i < dofin.size(); ++i) {
     if (dofin[i] == identity_name) continue;
     // Read transformation from file
@@ -687,6 +688,9 @@ int main(int argc, char **argv)
       if (invert && (avgdofs == 0 || type != BSplineFreeFormTransformationSV::NameOfType()) && (avgdofs != 0 || logspace == 0)) {
         cerr << EXECNAME << ": -invert option only supported for rigid/affine transformations" << endl;
         exit(1);
+      }
+      if (ffd_params.empty() && avgdofs != 0 && !type.empty()) {
+        ffd_params = ffd->Parameter();
       }
       // Get inverse of the linear transformation matrix
       Matrix invA(4, 4);
@@ -900,6 +904,7 @@ int main(int argc, char **argv)
         ffd.reset(new LinearFreeFormTransformation3D(avgD, true));
       }
     }
+    ffd->Parameter(ffd_params);
     // Write average non-linear transformation
     UniquePtr<MultiLevelTransformation> mffd;
     if (mtype == MultiLevelStationaryVelocityTransformation::NameOfType()) {
