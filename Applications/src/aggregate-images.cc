@@ -96,8 +96,9 @@ void PrintHelp(const char* name)
 
 // Type of input images
 typedef float                    InputType;
-typedef GenericImage<InputType>  InputImage;
 typedef Array<InputType>         InputArray;
+typedef GenericImage<InputType>  InputImage;
+typedef Array<InputImage>        InputImages;
 
 // Type of output image
 typedef float                     OutputType;
@@ -231,6 +232,23 @@ void Normalize(InputImage &image, NormalizationMode mode = Normalization_ZScore)
     for (int i = 0; i < n; ++i, ++p, ++m) {
       if (*m) (*p) = s * (*p) + t;
     }
+  }
+}
+
+// -----------------------------------------------------------------------------
+/// Determine intensity range
+void GetMinMax(const InputImages &images, InputType &min_value, InputType &max_value)
+{
+  min_value = +inf;
+  max_value = -inf;
+  for (auto image : images) {
+    InputType min_val, max_val;
+    image.GetMinMax(min_val, max_val);
+    min_value = min(min_value, min_val);
+    max_value = max(max_value, max_val);
+  }
+  if (min_value > max_value) {
+    Throw(ERR_InvalidArgument, __FUNCTION__, "Input images are empty");
   }
 }
 
@@ -546,6 +564,16 @@ int main(int argc, char **argv)
     cout << "No. of background voxels = " << nbg << endl;
   }
 
+  // Parameters of histogram based measures
+  InputType min_value, max_value;
+  if (mode == AM_Entropy || mode == AM_Mode) {
+    GetMinMax(images, min_value, max_value);
+    if (bins == 0) {
+      bins = iceil(max_value) - ifloor(min_value);
+      if (bins == 0) bins = 1;
+    }
+  }
+
   // Evaluate aggregation function for samples given at each voxel
   if (verbose) {
     cout << "Performing voxel-wise aggregation...";
@@ -595,14 +623,10 @@ int main(int argc, char **argv)
     } break;
 
     case AM_Entropy: {
-      eval._Function = [bins, parzen](const InputArray &values) -> OutputType {
-        const auto minmax = MinMaxElement(values);
-        if (AreEqual(minmax.first, minmax.second)) {
-          return 0.;
-        }
+      eval._Function = [min_value, max_value, bins, parzen](const InputArray &values) -> OutputType {
         Histogram1D<int> hist(bins);
-        hist.Min(static_cast<double>(minmax.first));
-        hist.Max(static_cast<double>(minmax.second));
+        hist.Min(static_cast<double>(min_value));
+        hist.Max(static_cast<double>(max_value));
         for (auto value : values) {
           hist.AddSample(static_cast<double>(value));
         }
@@ -612,14 +636,10 @@ int main(int argc, char **argv)
     } break;
 
     case AM_Mode: {
-      eval._Function = [bins, parzen](const InputArray &values) -> OutputType {
-        const auto minmax = MinMaxElement(values);
-        if (AreEqual(minmax.first, minmax.second)) {
-          return static_cast<OutputType>(values[0]);
-        }
+      eval._Function = [min_value, max_value, bins, parzen](const InputArray &values) -> OutputType {
         Histogram1D<int> hist(bins);
-        hist.Min(static_cast<double>(minmax.first));
-        hist.Max(static_cast<double>(minmax.second));
+        hist.Min(static_cast<double>(min_value));
+        hist.Max(static_cast<double>(min_value));
         for (auto value : values) {
           hist.AddSample(static_cast<double>(value));
         }
