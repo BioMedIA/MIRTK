@@ -75,6 +75,13 @@ void PrintHelp(const char* name)
   cout << "      - ``median``:  Divide by median foreground value.\n";
   cout << "      - ``z-score``: Subtract mean and divide by standard deviation.\n";
   cout << "      - ``unit``:    Rescale input intensities to [0, 1].\n";
+  cout << "  -rescale [<min>] <max>\n";
+  cout << "      Rescale normalized intensities to specified range. When <min> not specified,\n";
+  cout << "      it is set to zero, i.e., the range is [0, <max>]. Intensities are only rescaled\n";
+  cout << "      when <min> is less than <max>. (default: off)\n";
+  cout << "  -threshold <0-1>\n";
+  cout << "      Percentage in [0, 1] of input images that must have a value not equal to the\n";
+  cout << "      specified :option:`-padding` value. Otherwise, the output value is background. (default: 0)\n";
   cout << "  -alpha <value>\n";
   cout << "      Alpha value of the generalized entropy index, where alpha=0 is the mean log deviation, alpha=1\n";
   cout << "      is the Theil coefficient, and alpha=2 is half the squared coefficient of variation. (default: 0)\n";
@@ -96,8 +103,9 @@ void PrintHelp(const char* name)
 
 // Type of input images
 typedef float                    InputType;
-typedef GenericImage<InputType>  InputImage;
 typedef Array<InputType>         InputArray;
+typedef GenericImage<InputType>  InputImage;
+typedef Array<InputImage>        InputImages;
 
 // Type of output image
 typedef float                     OutputType;
@@ -203,10 +211,10 @@ void Normalize(InputImage &image, NormalizationMode mode = Normalization_ZScore)
       double mean, sigma;
       NormalDistribution::Calculate(mean, sigma, n, data, mask.get());
       if (fequal(sigma, 0.)) {
+        t = - mean;
+      } else {
         s = 1. / sigma;
         t = - mean / sigma;
-      } else {
-        t = - mean;
       }
     } break;
 
@@ -214,23 +222,85 @@ void Normalize(InputImage &image, NormalizationMode mode = Normalization_ZScore)
       double min_value, max_value;
       Extrema::Calculate(min_value, max_value, n, data, mask.get());
       double range = max_value - min_value;
-      if (!fequal(range, 0.)) {
+      if (fequal(range, 0.)) {
+        t = - min_value;
+      } else {
         s = 1. / range;
         t = - min_value / range;
-      } else {
-        t = - min_value;
       }
     } break;
 
     default: break;
   };
 
-  if (s != 1. || t != 0.) {
+  if (!fequal(s, 1.) || !fequal(t, 0.)) {
     auto p = data;
     auto m = mask.get();
     for (int i = 0; i < n; ++i, ++p, ++m) {
       if (*m) (*p) = s * (*p) + t;
     }
+  }
+}
+
+// -----------------------------------------------------------------------------
+/// Normalize image intensities
+void Normalize(InputImages &images, NormalizationMode mode = Normalization_ZScore)
+{
+  if (mode != Normalization_None) {
+    for (auto &&image : images) {
+      Normalize(image, mode);
+    }
+  }
+}
+
+// -----------------------------------------------------------------------------
+/// Rescale intensities
+void Rescale(InputImage &image, double vmin, double vmax)
+{
+  double scale = 1., shift = 0.;
+  double min_value, max_value;
+
+  const auto mask = ForegroundMaskArray(image);
+  const int  n    = image.NumberOfVoxels();
+  auto *data      = image.Data();
+
+  Extrema::Calculate(min_value, max_value, n, data, mask.get());
+  if (!fequal(max_value, min_value)) {
+    scale = (vmax - vmin) / (max_value - min_value);
+  }
+  shift = vmin - scale * min_value;
+  if (!fequal(scale, 1.) || !fequal(shift, 0.)) {
+    for (int idx = 0; idx < n; ++idx) {
+      if (mask[idx]) {
+        data[idx] = voxel_cast<InputType>(clamp(scale * static_cast<double>(data[idx]) + shift, vmin, vmax));
+      }
+    }
+  }
+}
+
+// -----------------------------------------------------------------------------
+/// Rescale intensities
+void Rescale(InputImages &images, double vmin, double vmax)
+{
+  for (auto &&image : images) {
+    Rescale(image, vmin, vmax);
+  }
+}
+
+// -----------------------------------------------------------------------------
+/// Determine intensity range
+void GetMinMax(const InputImages &images, InputType &min_value, InputType &max_value)
+{
+  min_value = +inf;
+  max_value = -inf;
+  for (auto image : images) {
+    InputType min_val, max_val;
+    image.GetMinMax(min_val, max_val);
+    min_value = min(min_value, min_val);
+    max_value = max(max_value, max_val);
+  }
+  if (min_value > max_value) {
+    Throw(ERR_InvalidArgument, __FUNCTION__, "Input images are empty");
   }
 }
 
@@ -241,17 +311,31 @@ struct AggregateValuesAtEachVoxel
   Array<InputImage>  *_Images;
   OutputImage        *_Output;
   AggregationFunction _Function;
+  InputType           _Padding;
+  int                 _MinValues;
 
   void operator ()(const blocked_range<int> &voxels) const
   {
+    int m;
+    InputType v;
     InputArray values(_Images->size());
     const int n = static_cast<int>(_Images->size());
     for (int vox = voxels.begin(); vox < voxels.end(); ++vox) {
       if (_Output->IsForeground(vox)) {
+        m = n;
         for (int i = 0; i < n; ++i) {
-          values[i] = (*_Images)[i].Get(vox);
+          v = (*_Images)[i].Get(vox);
+          if (IsNaN(v)) {
+            v = _Padding;
+            --m;
+          }
+          values[i] = v;
         }
-        _Output->Put(vox, _Function(values));
+        if (m >= _MinValues) {
+          _Output->Put(vox, _Function(values));
+        } else {
+          _Output->Put(vox, NaN);
+        }
       }
     }
   }
@@ -391,7 +475,10 @@ int main(int argc, char **argv)
   int                bins          = 64;
   bool               parzen        = false;
   double             padding       = NaN;
+  double             threshold     = 0.;
   bool               intersection  = false;
+  double             rescale_min   = NaN;
+  double             rescale_max   = NaN;
 
   for (ALL_OPTIONS) {
     if (OPTION("-output")) output_name = ARGUMENT;
@@ -421,6 +508,18 @@ int main(int argc, char **argv)
       } else {
         normalization = Normalization_ZScore;
       }
+    }
+    else if (OPTION("-rescale")) {
+      PARSE_ARGUMENT(rescale_min);
+      if (HAS_ARGUMENT) {
+        PARSE_ARGUMENT(rescale_max);
+      } else {
+        rescale_max = rescale_min;
+        rescale_min = 0.;
+      }
+    }
+    else if (OPTION("-threshold")) {
+      PARSE_ARGUMENT(threshold);
     }
     else if (OPTION("-padding")) PARSE_ARGUMENT(padding);
     else if (OPTION("-alpha")) PARSE_ARGUMENT(alpha);
@@ -457,7 +556,7 @@ int main(int argc, char **argv)
   for (auto &image : images) {
     if (!IsNaN(padding)) {
       for (int vox = 0; vox < nvox; ++vox) {
-        if (image(vox) == padding) {
+        if (fequal(image(vox), padding)) {
           image(vox) = NaN;
         }
       }
@@ -471,9 +570,17 @@ int main(int argc, char **argv)
       cout << "Normalizing images...";
       cout.flush();
     }
-    for (auto &image : images) {
-      Normalize(image, normalization);
+    Normalize(images, normalization);
+    if (verbose) cout << " done" << endl;
+  }
+
+  // Rescale images
+  if (rescale_min < rescale_max) {
+    if (verbose) {
+      cout << "Rescaling images...";
+      cout.flush();
     }
+    Rescale(images, rescale_min, rescale_max);
     if (verbose) cout << " done" << endl;
   }
 
@@ -546,6 +653,16 @@ int main(int argc, char **argv)
     cout << "No. of background voxels = " << nbg << endl;
   }
 
+  // Parameters of histogram based measures
+  InputType min_value, max_value;
+  if (mode == AM_Entropy || mode == AM_Mode) {
+    GetMinMax(images, min_value, max_value);
+    if (bins == 0) {
+      bins = iceil(max_value) - ifloor(min_value);
+      if (bins == 0) bins = 1;
+    }
+  }
+
   // Evaluate aggregation function for samples given at each voxel
   if (verbose) {
     cout << "Performing voxel-wise aggregation...";
@@ -554,6 +671,8 @@ int main(int argc, char **argv)
   AggregateValuesAtEachVoxel eval;
   eval._Images = &images;
   eval._Output = &output;
+  eval._Padding = voxel_cast<InputType>(padding);
+  eval._MinValues = iround(threshold * double(images.size()));
   switch (mode) {
     case AM_Mean: {
       eval._Function = [](const InputArray &values) -> OutputType {
@@ -595,14 +714,10 @@ int main(int argc, char **argv)
     } break;
 
     case AM_Entropy: {
-      eval._Function = [bins, parzen](const InputArray &values) -> OutputType {
-        const auto minmax = MinMaxElement(values);
-        if (AreEqual(minmax.first, minmax.second)) {
-          return 0.;
-        }
+      eval._Function = [min_value, max_value, bins, parzen](const InputArray &values) -> OutputType {
         Histogram1D<int> hist(bins);
-        hist.Min(static_cast<double>(minmax.first));
-        hist.Max(static_cast<double>(minmax.second));
+        hist.Min(static_cast<double>(min_value));
+        hist.Max(static_cast<double>(max_value));
         for (auto value : values) {
           hist.AddSample(static_cast<double>(value));
         }
@@ -612,14 +727,10 @@ int main(int argc, char **argv)
     } break;
 
     case AM_Mode: {
-      eval._Function = [bins, parzen](const InputArray &values) -> OutputType {
-        const auto minmax = MinMaxElement(values);
-        if (AreEqual(minmax.first, minmax.second)) {
-          return static_cast<OutputType>(values[0]);
-        }
+      eval._Function = [min_value, max_value, bins, parzen](const InputArray &values) -> OutputType {
         Histogram1D<int> hist(bins);
-        hist.Min(static_cast<double>(minmax.first));
-        hist.Max(static_cast<double>(minmax.second));
+        hist.Min(static_cast<double>(min_value));
+        hist.Max(static_cast<double>(min_value));
         for (auto value : values) {
           hist.AddSample(static_cast<double>(value));
         }
@@ -655,7 +766,11 @@ int main(int argc, char **argv)
   if (mode == AM_Mean || mode == AM_Median) {
     OutputType omin, omax;
     output.GetMinMax(omin, omax);
-    bg = omin - 1e-3;
+    if (!IsNaN(padding) && padding < omin) {
+      bg = padding;
+    } else {
+      bg = omin - 1e-3;
+    }
   } else if (mode == AM_LabelConsistency) {
     bg = 1.;
   } else {
