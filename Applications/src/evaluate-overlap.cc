@@ -73,6 +73,12 @@ void PrintHelp(const char *name)
   cout << "      one (merged) segment at once. (default: none)\n";
   cout << "  -labels\n";
   cout << "      All (positive) segmentation labels individually.\n";
+  cout << "  -probs [<threshold>]\n";
+  cout << "      Evaluate overlap of class probability maps (fuzzy membership functions).\n";
+  cout << "      The values of the input images are rescaled to [0, 1]. When no <threshold>\n";
+  cout << "      is specified, a value of 0.5 is used to binarize the fuzzy segmentation masks.\n";
+  cout << "      When no <threshold> is specified and the metric is either Dice (DSC) or Jaccard (JSC),\n";
+  cout << "      these metrics are evaluated using their respective definition based on scalar products.\n";
   cout << "  -precision <int>\n";
   cout << "      Number of significant digits. (default: 2)\n";
   cout << "  -metric <name>\n";
@@ -85,6 +91,8 @@ void PrintHelp(const char *name)
   cout << "      one row per input source image which is compared to the target\n";
   cout << "      segmentation. By default, the output to STDIN with verbosity 0\n";
   cout << "      is the transpose table and excludes a table header. (default: off)\n";
+  cout << "  -[no]header [on|off]\n";
+  cout << "      Whether to output a header row when :option:`-table` option is used. (default: on)\n";
   PrintCommonOptions(cout);
   cout << endl;
 }
@@ -164,9 +172,9 @@ istream &operator >>(istream &is, OverlapMetric &metric)
     metric = Informedness;
   } else if (str == "mk" || str == "markedness") {
     metric = Markedness;
-  } else if (str == "dice coefficient" || str == "dicecoefficient" || str == "dice") {
+  } else if (str == "dsc" || str == "dice coefficient" || str == "dicecoefficient" || str == "dice") {
     metric = Dice;
-  } else if (str == "jaccard similarity" || str == "jacccardsimilarity" || str == "jaccard") {
+  } else if (str == "jsc" || str == "jaccard similarity" || str == "jacccardsimilarity" || str == "jaccard") {
     metric = Jaccard;
   } else {
     metric = UnknownMetric;
@@ -195,8 +203,8 @@ ostream &operator <<(ostream &os, const OverlapMetric &metric)
     case Informedness:            os << "Bookmaker informedness"; break;
     case Markedness:              os << "Markedness"; break;
     case F1Score:                 os << "F1-score"; break;
-    case Dice:                    os << "Dice coefficient"; break;
-    case Jaccard:                 os << "Jaccard similarity"; break;
+    case Dice:                    os << "Dice similarity coefficient"; break;
+    case Jaccard:                 os << "Jaccard similarity coefficient"; break;
     default:                      os << "Unknown metric"; break;
   }
   return os;
@@ -221,8 +229,8 @@ string Abbreviation(const OverlapMetric &metric)
     case MatthewsCorrelation:     return "MCC";
     case Informedness:            return "BM";
     case Markedness:              return "MK";
-    case Dice:                    return "Dice";
-    case Jaccard:                 return "Jaccard";
+    case Dice:                    return "DSC";
+    case Jaccard:                 return "JSC";
     default:                      return "Unknown";
   }
 }
@@ -269,6 +277,40 @@ double Evaluate(OverlapMetric metric, int tp, int fn, int fp, int tn)
       return double(tp) / double(fp + tp + fn);
     default:
       FatalError("Unknown overlap metric: " << metric);
+  }
+}
+
+// -----------------------------------------------------------------------------
+double Evaluate(OverlapMetric metric, const BaseImage *target, const BaseImage *source, double min_value = NaN)
+{
+  const int num = target->NumberOfVoxels();
+  if (source->NumberOfVoxels() != num) {
+    Throw(ERR_InvalidArgument, __FUNCTION__, "Both images must have the same number of voxels");
+  }
+  if (IsNaN(min_value) && (metric == Dice || metric == Jaccard)) {
+    double t2 = 0., s2 = 0., ts = 0.;
+    for (int idx = 0; idx < num; ++idx) {
+      t2 += target->GetAsDouble(idx) * target->GetAsDouble(idx);
+      s2 += source->GetAsDouble(idx) * source->GetAsDouble(idx);
+      ts += target->GetAsDouble(idx) * source->GetAsDouble(idx);
+    }
+    if (metric == Jaccard) {
+      return ts / (t2 + s2 - ts);
+    }
+    return 2.0 * ts / (t2 + s2);
+  } else {
+    if (IsNaN(min_value)) min_value = 0.5;
+    int tp = 0, tn = 0, fp = 0, fn = 0;
+    for (int idx = 0; idx < num; ++idx) {
+      if (target->GetAsDouble(idx) >= min_value) {
+        if (source->GetAsDouble(idx) >= min_value) ++tp;
+        else                                       ++fn;
+      } else {
+        if (source->GetAsDouble(idx) >= min_value) ++fp;
+        else                                       ++tn;
+      }
+    }
+    return Evaluate(metric, tp, fn, fp, tn);
   }
 }
 
@@ -350,9 +392,12 @@ int main(int argc, char **argv)
   const char *image_list  = nullptr;
   const char *image_delim = nullptr;
   GreyPixel   padding     = MIN_GREY;
+  bool        header      = true;
   const char *delim       = ",";
   int         digits      = 2;
   bool        all_labels  = false;
+  bool        pbmaps      = false;
+  double      pbmap_min   = NaN;
   Array<OrderedSet<GreyPixel> > segments;
   Array<OverlapMetric>          metrics;
 
@@ -400,7 +445,19 @@ int main(int argc, char **argv)
     else if (OPTION("-Ry2")) PARSE_ARGUMENT(j2);
     else if (OPTION("-Rz1")) PARSE_ARGUMENT(k1);
     else if (OPTION("-Rz2")) PARSE_ARGUMENT(k2);
+    else if (OPTION("-probs")) {
+      pbmaps = true;
+      if (HAS_ARGUMENT) {
+        PARSE_ARGUMENT(pbmap_min);
+      } else {
+        pbmap_min = NaN;
+      }
+    }
+    else HANDLE_BOOL_OPTION(header);
     else HANDLE_COMMON_OR_UNKNOWN_OPTION();
+  }
+  if (pbmaps && (all_labels || !segments.empty())) {
+    FatalError("Options -label[s] and -pbmaps are mutually exclusive");
   }
 
   // Read source image file paths from text file
@@ -413,11 +470,14 @@ int main(int argc, char **argv)
     FatalError("No source images specified!");
   }
 
-  // Read target image
+  // Initialize image reader/writer factories
   InitializeIOLibrary();
-  GreyImage target(target_name);
-  const ImageAttributes target_attributes = target.Attributes();
 
+  // Read target image and extract region of interest
+  UniquePtr<BaseImage> target(BaseImage::New(target_name));
+  const ImageAttributes target_attributes = target->Attributes();
+
+  // Determine set of hard segmentation labels
   if (all_labels) {
     OrderedSet<int> labels;
     bool cont;
@@ -432,8 +492,8 @@ int main(int argc, char **argv)
         }
       }
     } while (cont);
-    for (int i = 0; i < target.NumberOfVoxels(); ++i) {
-      GreyPixel label = target(i);
+    for (int i = 0; i < target->NumberOfVoxels(); ++i) {
+      GreyPixel label = voxel_cast<GreyPixel>(target->GetAsDouble(i));
       if (label > 0) {
         labels.insert(label);
       }
@@ -447,18 +507,23 @@ int main(int argc, char **argv)
   }
 
   // Extract region of interest
-  if (i2 < 0) i2 = target.X();
-  if (j2 < 0) j2 = target.Y();
-  if (k2 < 0) k2 = target.Z();
-  if ((i1 != 0) || (i2 != target.GetX()) ||
-      (j1 != 0) || (j2 != target.GetY()) ||
-      (k1 != 0) || (k2 != target.GetZ())) {
-    target = target.GetRegion(i1, j1, k1, i2, j2, k2);
+  if (i2 < 0) i2 = target->X();
+  if (j2 < 0) j2 = target->Y();
+  if (k2 < 0) k2 = target->Z();
+  if ((i1 != 0) || (i2 != target->X()) ||
+      (j1 != 0) || (j2 != target->Y()) ||
+      (k1 != 0) || (k2 != target->Z())) {
+    BaseImage *region = nullptr;
+    target->GetRegion(region, i1, j1, k1, i2, j2, k2);
+    target.reset(region);
   }
+
+  // Number of voxels
+  const int num = target->NumberOfVoxels();
 
   // -------------------------------------------------------------------------------
   // Intensity image overlap
-  if (segments.empty()) {
+  if (segments.empty() && !pbmaps) {
 
     for (size_t n = 0; n < source_name.size(); ++n) {
 
@@ -473,9 +538,9 @@ int main(int argc, char **argv)
       }
 
       // Extract region of interest
-      if ((i1 != 0) || (i2 != source.GetX()) ||
-          (j1 != 0) || (j2 != source.GetY()) ||
-          (k1 != 0) || (k2 != source.GetZ())) {
+      if ((i1 != 0) || (i2 != source.X()) ||
+          (j1 != 0) || (j2 != source.Y()) ||
+          (k1 != 0) || (k2 != source.Z())) {
         source = source.GetRegion(i1, j1, k1, i2, j2, k2);
       }
 
@@ -486,12 +551,12 @@ int main(int argc, char **argv)
 
       // Determine maximum intensity
       int max = 0;
-      for (int k = 0; k < target.Z(); ++k)
-      for (int j = 0; j < target.Y(); ++j)
-      for (int i = 0; i < target.X(); ++i) {
-        if (target(i, j, k) > padding) {
-          if (target(i, j, k) > max) max = target(i, j, k);
-          if (source(i, j, k) > max) max = source(i, j, k);
+      for (int idx = 0; idx < num; ++idx) {
+        auto tgt = voxel_cast<GreyPixel>(target->GetAsDouble(idx));
+        if (tgt > padding) {
+          auto src = source(idx);
+          if (tgt > max) max = tgt;
+          if (src > max) max = src;
         }
       }
 
@@ -500,13 +565,13 @@ int main(int argc, char **argv)
       Histogram1D<int> histogramB (max);
       Histogram1D<int> histogramAB(max);
 
-      for (int k = 0; k < target.Z(); ++k)
-      for (int j = 0; j < target.Y(); ++j)
-      for (int i = 0; i < target.X(); ++i) {
-        if (target(i, j, k) > padding) {
-          histogramA.Add(target(i, j, k));
-          histogramB.Add(source(i, j, k));
-          if (target(i, j, k) == source(i, j, k)) histogramAB.Add(target(i, j, k));
+      for (int idx = 0; idx < num; ++idx) {
+        auto tgt = voxel_cast<GreyPixel>(target->GetAsDouble(idx));
+        if (tgt > padding) {
+          auto src = source(idx);
+          histogramA.Add(tgt);
+          histogramB.Add(src);
+          if (tgt == src) histogramAB.Add(tgt);
         }
       }
       if (histogramA.NumberOfSamples() == 0) {
@@ -548,103 +613,121 @@ int main(int argc, char **argv)
       }
     }
 
-    if (table_name) {
+    if (table_name || pbmaps) {
 
       ostream *os = &cout;
       ofstream ofs;
 
-      if (ToLower(table_name) != "stdout" && ToLower(table_name) != "cout") {
+      if (table_name && ToLower(table_name) != "stdout" && ToLower(table_name) != "cout") {
         ofs.open(table_name);
         if (!ofs) FatalError("Failed to open output file: " << table_name);
         os = &ofs;
       }
 
-      if (source_name.size() == 1) {
-        *os << "Label";
-        for (size_t m = 0; m < metrics.size(); ++m) {
-          *os << delim << Abbreviation(metrics[m]);
-        }
-      } else {
-        for (size_t roi = 0; roi < segments.size(); ++roi)
-        for (size_t m = 0; m < metrics.size(); ++m) {
-          if (roi > 0 || m > 0) {
-            *os << delim;
-          }
-          if (metrics.size() > 1) {
+      if (table_name && header) {
+        if (pbmaps) {
+          for (size_t m = 0; m < metrics.size(); ++m) {
+            if (m > 0) *os << delim;
             *os << Abbreviation(metrics[m]);
-            if (strcmp(delim, " ") != 0) {
-              *os << ' ';
+          }
+        } else if (source_name.size() == 1) {
+          *os << "Label";
+          for (size_t m = 0; m < metrics.size(); ++m) {
+            *os << delim << Abbreviation(metrics[m]);
+          }
+        } else {
+          for (size_t roi = 0; roi < segments.size(); ++roi)
+          for (size_t m = 0; m < metrics.size(); ++m) {
+            if (roi > 0 || m > 0) {
+              *os << delim;
             }
-          }
-          const auto &labels = segments[roi];
-          for (auto it = labels.begin(); it != labels.end(); ++it) {
-            if (it != labels.begin()) *os << "+";
-            *os << *it;
-          }
-        }
-      }
-      *os << "\n";
-
-      for (size_t n = 0; n < source_name.size(); ++n) {
-
-        // Read source image and extract region of interest
-        GreyImage source(source_name[n].c_str());
-        if (source.Attributes() != target_attributes) {
-          FatalError("Input images must be sampled on same lattice!");
-        }
-        if ((i1 != 0) || (i2 != source.X()) ||
-            (j1 != 0) || (j2 != source.Y()) ||
-            (k1 != 0) || (k2 != source.Z())) {
-          source = source.GetRegion(i1, j1, k1, i2, j2, k2);
-        }
-
-        // Iterative over segments
-        for (size_t roi = 0; roi < segments.size(); ++roi) {
-          const auto &labels = segments[roi];
-          if (source_name.size() == 1) {
+            if (metrics.size() > 1) {
+              *os << Abbreviation(metrics[m]);
+              if (strcmp(delim, " ") != 0) {
+                *os << ' ';
+              }
+            }
+            const auto &labels = segments[roi];
             for (auto it = labels.begin(); it != labels.end(); ++it) {
               if (it != labels.begin()) *os << "+";
               *os << *it;
             }
           }
+        }
+        *os << "\n";
+      }
 
-          // Determine TP, FP, TN, FN
-          int tp = 0, fp = 0, tn = 0, fn = 0;
-          for (int k = 0; k < target.Z(); ++k)
-          for (int j = 0; j < target.Y(); ++j)
-          for (int i = 0; i < target.X(); ++i) {
-            if (labels.find(target(i, j, k)) != labels.end()) {
-              if (labels.find(source(i, j, k)) != labels.end()) ++tp;
-              else                                              ++fn;
-            }
-            else if (labels.find(source(i, j, k)) != labels.end()) ++fp;
-            else                                                   ++tn;
-          }
+      for (size_t n = 0; n < source_name.size(); ++n) {
 
-          // Compute overlap metrics
+        // Read source image and extract region of interest
+        UniquePtr<BaseImage> source(BaseImage::New(source_name[n].c_str()));
+        if (source->Attributes() != target_attributes) {
+          FatalError("Input images must be sampled on same lattice!");
+        }
+        if ((i1 != 0) || (i2 != source->X()) ||
+            (j1 != 0) || (j2 != source->Y()) ||
+            (k1 != 0) || (k2 != source->Z())) {
+          BaseImage *region = nullptr;
+          source->GetRegion(region, i1, j1, k1, i2, j2, k2);
+          source.reset(region);
+        }
+
+        if (pbmaps) {
           for (size_t m = 0; m < metrics.size(); ++m) {
-            if (source_name.size() == 1 || roi > 0 || m > 0) {
+            if (m > 0) {
               *os << delim;
             }
-            switch (metrics[m]) {
-              case TruePositives:
-                *os << tp;
-                break;
-              case TrueNegatives:
-                *os << tn;
-                break;
-              case FalsePositives:
-                *os << fp;
-                break;
-              case FalseNegatives:
-                *os << fn;
-                break;
-              default:
-                *os << setprecision(digits) << Evaluate(metrics[m], tp, fn, fp, tn);
-            }
+            *os << setprecision(digits) << Evaluate(metrics[m], target.get(), source.get(), pbmap_min);
           }
+        } else {
 
-          if (source_name.size() == 1) *os << "\n";
+          // Iterate over segments
+          for (size_t roi = 0; roi < segments.size(); ++roi) {
+            // Print segment ID
+            const auto &labels = segments[roi];
+            if (source_name.size() == 1) {
+              for (auto it = labels.begin(); it != labels.end(); ++it) {
+                if (it != labels.begin()) *os << "+";
+                *os << *it;
+              }
+            }
+            // Determine TP, FP, TN, FN
+            int tp = 0, fp = 0, tn = 0, fn = 0;
+            for (int idx = 0; idx < num; ++idx) {
+              const auto tgt = voxel_cast<GreyPixel>(target->GetAsDouble(idx));
+              const auto src = voxel_cast<GreyPixel>(source->GetAsDouble(idx));
+              if (labels.find(tgt) != labels.end()) {
+                if (labels.find(src) != labels.end()) ++tp;
+                else                                  ++fn;
+              }
+              else if (labels.find(src) != labels.end()) ++fp;
+              else                                       ++tn;
+            }
+            // Compute overlap metrics
+            for (size_t m = 0; m < metrics.size(); ++m) {
+              if (source_name.size() == 1 || roi > 0 || m > 0) {
+                *os << delim;
+              }
+              switch (metrics[m]) {
+                case TruePositives:
+                  *os << tp;
+                  break;
+                case TrueNegatives:
+                  *os << tn;
+                  break;
+                case FalsePositives:
+                  *os << fp;
+                  break;
+                case FalseNegatives:
+                  *os << fn;
+                  break;
+                default:
+                  *os << setprecision(digits) << Evaluate(metrics[m], tp, fn, fp, tn);
+              }
+            }
+
+            if (source_name.size() == 1) *os << "\n";
+          }
         }
         if (source_name.size() > 1) *os << "\n";
       }
@@ -713,24 +796,23 @@ int main(int argc, char **argv)
             if (source.Attributes() != target_attributes) {
               FatalError("Input images must be sampled on same lattice!");
             }
-            if ((i1 != 0) || (i2 != source.GetX()) ||
-                (j1 != 0) || (j2 != source.GetY()) ||
-                (k1 != 0) || (k2 != source.GetZ())) {
+            if ((i1 != 0) || (i2 != source.X()) ||
+                (j1 != 0) || (j2 != source.Y()) ||
+                (k1 != 0) || (k2 != source.Z())) {
               source = source.GetRegion(i1, j1, k1, i2, j2, k2);
             }
           }
 
           // Determine TP, FP, TN, FN
           int tp = 0, fp = 0, tn = 0, fn = 0;
-          for (int k = 0; k < target.Z(); ++k)
-          for (int j = 0; j < target.Y(); ++j)
-          for (int i = 0; i < target.X(); ++i) {
-            if (labels.find(target(i, j, k)) != labels.end()) {
-              if (labels.find(source(i, j, k)) != labels.end()) ++tp;
-              else                                              ++fn;
+          for (int idx = 0; idx < num; ++idx) {
+            const auto tgt = voxel_cast<GreyPixel>(target->GetAsDouble(idx));
+            if (labels.find(tgt) != labels.end()) {
+              if (labels.find(source(idx)) != labels.end()) ++tp;
+              else                                          ++fn;
             }
-            else if (labels.find(source(i, j, k)) != labels.end()) ++fp;
-            else                                                   ++tn;
+            else if (labels.find(source(idx)) != labels.end()) ++fp;
+            else                                               ++tn;
           }
 
           // Compute overlap metrics
