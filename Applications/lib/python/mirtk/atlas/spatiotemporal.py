@@ -1223,11 +1223,10 @@ class SpatioTemporalAtlas(object):
                         else:
                             if args:
                                 raise ValueError("Measure '{}' has no arguments!".format(measure))
-                            opts = {}
-                            if "labels" in channel_info:
-                                opts["bins"] = len(parselabels(channel_info["labels"])) + 1
-                            else:
-                                opts["normalization"] = "zscore"
+                            opts = {
+                                "bins": channel_info.get("bins", 0),
+                                "normalization": channel_info.get("normalization", "none")
+                            }
                             if "bkgrnd" in channel_info:
                                 opts["padding"] = channel_info["bkgrnd"]
                             for t in ages:
