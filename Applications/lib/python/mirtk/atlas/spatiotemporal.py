@@ -1253,13 +1253,26 @@ class SpatioTemporalAtlas(object):
             for t in ages:
                 if voxelwise_measures[t] and roi_paths:
                     subdir = self.subdir(step)
-                    table = os.path.join(subdir, "qc-measures", self.timename(t) + ".csv")
-                    if force or not os.path.exists(table):
-                        path = os.path.dirname(table)
-                        makedirs(path)
-                        path = os.path.join(path, "." + os.path.basename(table))
+                    mean_table = os.path.join(subdir, "qc-measures", self.timename(t) + "-mean.csv")
+                    sdev_table = os.path.join(subdir, "qc-measures", self.timename(t) + "-sdev.csv")
+                    wsum_table = os.path.join(subdir, "qc-measures", self.timename(t) + "-wsum.csv")
+                    if force or not os.path.exists(mean_table) or not os.path.exists(sdev_table) or not os.path.exists(wsum_table):
+                        outdir = os.path.dirname(mean_table)
+                        tmp_mean_table = os.path.join(outdir, "." + os.path.basename(mean_table))
+                        tmp_sdev_table = os.path.join(outdir, "." + os.path.basename(sdev_table))
+                        tmp_wsum_table = os.path.join(outdir, "." + os.path.basename(wsum_table))
                         args = [x[2] for x in voxelwise_measures[t]]
-                        opts = {"name": [], "roi-name": [], "roi-path": [], "header": None, "preload": None, "table": path}
+                        opts = {
+                            "name": [],
+                            "roi-name": [],
+                            "roi-path": [],
+                            "header": None,
+                            "preload": None,
+                            "mean": tmp_mean_table,
+                            "sdev": tmp_sdev_table,
+                            "size": tmp_wsum_table,
+                            "digits": self.config["evaluation"].get("digits", 9)
+                        }
                         for voxelwise_measure in voxelwise_measures[t]:
                             channel = voxelwise_measure[0]
                             measure = voxelwise_measure[1]
@@ -1275,29 +1288,38 @@ class SpatioTemporalAtlas(object):
                                 )
                             opts["roi-name"].append(roi_name)
                             opts["roi-path"].append(roi_path)
+                        makedirs(outdir)
                         try:
                             self._run("average-measure", step=step, queue=queue,
                                       name="eval_average_{age}".format(age=self.timename(t)),
                                       args=args, opts=opts)
                         except Exception as e:
-                            if os.path.exists(path):
-                                os.remove(path)
+                            for tmp_table in [tmp_mean_table, tmp_sdev_table, tmp_wsum_table]:
+                                if os.path.exists(tmp_table):
+                                    os.remove(tmp_table)
                             raise e
                         cur_wait_time = 0
                         inc_wait_time = 10
                         max_wait_time = 6 * inc_wait_time
                         if queue and queue.lower() != "local":
-                            while not os.path.exists(path):
+                            while True:
+                                missing = []
+                                for tmp_table in [tmp_mean_table, tmp_sdev_table, tmp_wsum_table]:
+                                    if not os.path.exists(tmp_table):
+                                        missing.append(tmp_table)
+                                if not missing:
+                                    break
                                 if cur_wait_time < max_wait_time:
                                     time.sleep(inc_wait_time)
                                     cur_wait_time += inc_wait_time
                                 else:
-                                    raise Exception("Job average-measure finished, but output file '{}' still missing after {}s".format(path, cur_wait_time))
-                        try:
-                            os.rename(path, table)
-                        except OSError as e:
-                            sys.stderr.write("Failed to rename '{}' to '{}'".format(path, table))
-                            raise e
+                                    raise Exception("Job average-measure finished, but output files still missing after {}s: {}".format(cur_wait_time, missing))
+                        for src, dst in zip([tmp_mean_table, tmp_sdev_table, tmp_wsum_table], [mean_table, sdev_table, wsum_table]):
+                            try:
+                                os.rename(src, dst)
+                            except OSError as e:
+                                sys.stderr.write("Failed to rename '{}' to '{}'".format(src, dst))
+                                raise e
 
     def template(self, i, channel=None):
         """Get absolute path of i-th template image."""
