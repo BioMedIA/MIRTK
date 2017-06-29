@@ -1443,13 +1443,10 @@ def sbatch(name, command=None, args=[], opts={}, script=None, tasks=0, deps=[], 
         script = shexec
     else:
         script = "#!/bin/bash\n"
-        script += "{pyexe} -c 'import sys; import socket; import mirtk; mirtk.check_call([\"{command}\"] + sys.argv[1:])'".format(
-            pyexe=sys.executable, command=command if command else name
-        )
         script += "\"{0}\" -c 'import sys; import socket;".format(sys.executable)
         script += " sys.stdout.write(\"Host: \" + socket.gethostname() + \"\\n\\n\");"
         script += " sys.path.insert(0, \"{0}\");".format(os.path.dirname(os.path.dirname(mirtk.__file__)))
-        script += " import mirtk; mirtk.check_call([\"{0}\"] + sys.argv[1:])'".format(command if command else name)
+        script += " import mirtk; mirtk.check_call([\"{0}\"] + sys.argv[1:])".format(command if command else name)
         script += "'"
         for arg in args:
             if ' ' in arg:
