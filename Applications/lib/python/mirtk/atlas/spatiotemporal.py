@@ -455,7 +455,9 @@ class SpatioTemporalAtlas(object):
             params.append("No. of last function values = 10")
             if "svffd" in model.lower():
                 params.append("Integration method = {}".format(cfg.get("ffdim", "FastSS")))
+                params.append("No. of integration steps = {}".format(cfg.get("intsteps", 64)))
                 params.append("No. of BCH terms = {}".format(cfg.get("bchterms", 4)))
+                params.append("Use Lie derivative = {}".format(cfg.get("liederiv", "No")))
             # resolution pyramid
             spacings = cfg.get("spacing", [])
             if not isinstance(spacings, list):
@@ -577,7 +579,7 @@ class SpatioTemporalAtlas(object):
                 self._run("compose-dofs", args=[dof1, dof2, dof], opts={"bch": self.num_bch_terms, "global": False})
         return dof
 
-    def regdofs(self, step=-1, force=False, create=True, queue=None):
+    def regdofs(self, step=-1, force=False, create=True, queue=None, batchname="register"):
         """Register all images to their age-specific template."""
         if step < 0:
             step = self.step
@@ -598,7 +600,7 @@ class SpatioTemporalAtlas(object):
             dofs[imgid] = dof
         if create and queue:
             self.parin(step=step, force=force)  # create -parin file if missing
-            job = self._submit("register".format(step), script=script, tasks=tasks, step=step, queue=queue)
+            job = self._submit(batchname, script=script, tasks=tasks, step=step, queue=queue)
         else:
             job = (None, 0)
         return (job, dofs)
@@ -656,7 +658,7 @@ class SpatioTemporalAtlas(object):
                 })
         return path
 
-    def avgdofs(self, step=-1, force=False, create=True, queue=None):
+    def avgdofs(self, step=-1, force=False, create=True, queue=None, batchname="avgdofs"):
         """Compute all average SV FFDs needed for (parallel) atlas construction."""
         if step < 0:
             step = self.step
@@ -676,7 +678,7 @@ class SpatioTemporalAtlas(object):
                 tasks += 1
             dofs[t] = dof
         if create and queue:
-            job = self._submit("avgdofs", script=script, tasks=tasks, step=step, queue=queue)
+            job = self._submit(batchname, script=script, tasks=tasks, step=step, queue=queue)
         else:
             job = (None, 0)
         return (job, dofs)
@@ -704,12 +706,12 @@ class SpatioTemporalAtlas(object):
             self._run("compose-dofs", args=dofs + [dof], opts={"scale": -1., "bch": self.num_bch_terms, "global": False})
         return dof
 
-    def compose(self, step=-1, ages=[], allpairs=False, force=False, create=True, queue=None):
+    def compose(self, step=-1, ages=[], allpairs=False, force=False, create=True, queue=None, batchname="compose"):
         """Compose longitudinal deformations with residual average deformations."""
         if step < 0:
             step = self.step
         if not queue:
-            queue = self.queue
+            queue = self.queue["short"]
         if queue == "local":
             queue = None
         self.info("Update all pairs of longitudinal deformations", step=step)
@@ -729,7 +731,7 @@ class SpatioTemporalAtlas(object):
                         tasks += 1
                     dofs[t1][t2] = dof
         if create and queue:
-            job = self._submit("compose", script=script, tasks=tasks, step=step, queue=queue)
+            job = self._submit(batchname, script=script, tasks=tasks, step=step, queue=queue)
         else:
             job = (None, 0)
         return (job, dofs)
@@ -761,7 +763,7 @@ class SpatioTemporalAtlas(object):
                 dof = [dof] + ['identity'] * 2
         return dof
 
-    def imgdofs(self, ages=[], step=-1, force=False, create=True, queue=None):
+    def imgdofs(self, ages=[], step=-1, force=False, create=True, queue=None, batchname="imgdofs"):
         """Compute all composite image to atlas transformations."""
         if step < 0:
             step = self.step
@@ -793,7 +795,7 @@ class SpatioTemporalAtlas(object):
                         tasks += 1
                     dofs[t][imgid] = dof
         if create and queue:
-            job = self._submit("imgdofs", script=script, tasks=tasks, step=step, queue=queue)
+            job = self._submit(batchname, script=script, tasks=tasks, step=step, queue=queue)
         else:
             job = (None, 0)
         return (job, dofs)
@@ -818,11 +820,13 @@ class SpatioTemporalAtlas(object):
                 opts["source-padding"] = cfg["bkgrnd"]
             if "labels" in cfg:
                 opts["labels"] = cfg["labels"].split(",")
+            if "datatype" in cfg:
+                opts["datatype"] = cfg["datatype"]
             makedirs(os.path.dirname(path))
             self._run("transform-image", args=[img, path], opts=opts)
         return path
 
-    def defimgs(self, ages=[], channels=[], step=-1, decomposed=True, force=False, create=True, queue=None):
+    def defimgs(self, ages=[], channels=[], step=-1, decomposed=True, force=False, create=True, queue=None, batchname="defimgs"):
         """Transform all images to discrete set of atlas time points."""
         if step < 0:
             step = self.step
@@ -864,7 +868,7 @@ class SpatioTemporalAtlas(object):
                             tasks += 1
                         imgs[channel][t].append(img)
         if create and queue:
-            job = self._submit("defimgs", script=script, tasks=tasks, step=step, queue=queue)
+            job = self._submit(batchname, script=script, tasks=tasks, step=step, queue=queue)
         else:
             job = (None, 0)
         if single_channel:
@@ -940,22 +944,23 @@ class SpatioTemporalAtlas(object):
                 table = self.imgtable(t, step=step, channel=channel, decomposed=decomposed, force=force, batch=batch)
                 opts = {
                     "images": table,
-                    "reference": self.refimg,
-                    "rescaling": (0, 100),
-                    "dtype": "uchar"
+                    "reference": self.refimg
                 }
                 if "bkgrnd" in cfg:
                     opts["padding"] = float(cfg["bkgrnd"])
                 if "labels" in cfg:
                     opts["label"] = label
+                    opts["datatype"] = "uchar"
                 else:
                     opts["threshold"] = .5
-                    opts["normalization"] = "zscore"
-                    opts["sharpen"] = True
+                    opts["normalization"] = cfg.get("normalization", "zscore")
+                    opts["sharpen"] = cfg.get("sharpen", True)
+                    opts["rescaling"] = cfg.get("rescaling", [0, 100])
+                    opts["datatype"] = cfg.get("datatype", "float")
                 self._run("average-images", args=[path], opts=opts)
         return path
 
-    def avgimgs(self, step=-1, ages=[], channels=[], labels={}, outdir=None, decomposed=True, force=False, create=True, queue=None):
+    def avgimgs(self, step=-1, ages=[], channels=[], labels={}, outdir=None, decomposed=True, force=False, create=True, queue=None, batchname="avgimgs"):
         """Create all average images required for (parallel) atlas construction."""
         if step < 0:
             step = self.step
@@ -1012,7 +1017,7 @@ class SpatioTemporalAtlas(object):
                     else:
                         imgs[channel][t].append(img)
         if create and queue:
-            job = self._submit("avgimgs", script=script, tasks=tasks, step=step, queue=queue)
+            job = self._submit(batchname, script=script, tasks=tasks, step=step, queue=queue)
         else:
             job = (None, 0)
         if single_channel:
@@ -1059,10 +1064,6 @@ class SpatioTemporalAtlas(object):
                 queue["short"] = "local"
             if "long" not in queue:
                 queue["long"] = "local"
-        if queue["short"] == "local":
-            queue["short"] = None
-        if queue["long"] == "local":
-            queue["long"] = None
         # Save considerable amount of disk memory by not explicitly storing the
         # composite image to atlas transformations of type FluidFreeFormTransformation
         # (alternatively, approximate composition). The transform-image and/or
@@ -1129,43 +1130,50 @@ class SpatioTemporalAtlas(object):
             ages = [float(ages)]
         elif isinstance(ages, float):
             ages = [ages]
-        steps = [step] if isinstance(step, int) else step
+        if isinstance(step, int):
+            if step < 0:
+                if self.step < 0:
+                    raise ValueError("Need to specify which step/iteration of atlas construction to evaluate!")
+                step = self.step
+            steps = [step]
+        else:
+            steps = step
         measures = self.config["evaluation"]["measures"]
         rois_spec = self.config["evaluation"].get("rois", {})
         roi_paths = {}
+        roi_label = {}
         roi_labels = {}
+        roi_channels = set()
         for roi_name, roi_path in rois_spec.items():
+            labels = []
             if isinstance(roi_path, list):
                 if len(roi_path) != 2:
                     raise ValueError("Invalid evaluation ROI value, must be either path (format) string of individual ROI or [<path_format>, <range>]")
-                labels_spec = roi_path[1]
+                labels = roi_path[1]
                 roi_path = roi_path[0]
-                if isinstance(labels_spec, list):
-                    labels = [int(l) for l in labels_spec]
-                elif isinstance(labels_spec, int):
-                    labels = range(1, labels_spec + 1)
+                if roi_path in self.config["images"] and isinstance(labels, basestring) and labels.lower() == "all":
+                    labels = parselabels(self.config["images"][roi_path].get("labels", ""))
+                    if not labels:
+                        raise ValueError("ROI channel {} must have 'labels' specified to use for 'all'!".format(roi_path))
                 else:
-                    labels_spec = [int(l) for l in labels_spec.split(":")]
-                    if len(labels_spec) == 1:
-                        labels = range(1, labels_spec[0] + 1)
-                    elif len(labels_spec) == 2:
-                        labels = range(labels_spec[0], labels_spec[1] + 1)
-                    elif len(labels_spec) == 3:
-                        if labels_spec[1] == 0:
-                            raise ValueError("Invalid evaluation ROI label range, increment cannot be zero!")
-                        labels = range(labels_spec[0], labels_spec[2] + labels_spec[1], labels_spec[1])
-                    else:
-                        raise ValueError("Invalid evaluation ROI label range, use MATLAB/numpy style indexing!")
+                    labels = parselabels(labels)
                 roi_name_format = roi_name
                 if roi_name_format.format(l=0) == roi_name_format:
                     raise ValueError("Invalid evaluation ROI key name, name must include '{l}' format string!")
                 for label in labels:
                     roi_name = roi_name_format.format(l=label)
                     roi_paths[roi_name] = roi_path
-                    roi_labels[roi_name] = label
+                    roi_label[roi_name] = label
             else:
                 roi_paths[roi_name] = roi_path
+            if roi_path in self.config["images"]:
+                roi_channels.add(roi_path)
+                roi_labels[roi_path] = labels
+        roi_names = roi_paths.keys()
+        roi_names.sort()
+        roi_channels = list(roi_channels)
         re_measure = re.compile("^\s*(\w+)\s*\((.*)\)\s*$")
+        # Evaluate voxel-wise measures
         for step in steps:
             voxelwise_measures = {}
             for t in ages:
@@ -1177,7 +1185,8 @@ class SpatioTemporalAtlas(object):
                     channel_measures = [channel_measures]
                 if channel_measures:
                     # Deform individual images to atlas time point
-                    job, imgs = self.defimgs(channels=channel, ages=ages, step=step, queue=queue)
+                    name = "eval_defimgs_{channel}".format(channel=channel)
+                    job, imgs = self.defimgs(channels=channel, ages=ages, step=step, queue=queue, batchname=name)
                     self.wait(job, interval=30, verbose=1)
                     # Evaluate measures for this image channel/modality
                     for measure in channel_measures:
@@ -1198,6 +1207,7 @@ class SpatioTemporalAtlas(object):
                                 if args and args not in ("mean", "avg", "average", "template"):
                                     raise ValueError("Gradient magnitude of intensity images can only be computed from 'mean'/'avg'/'average'/'template' image!")
                                 labels = []
+                            name = "eval_avgimgs_{channel}".format(channel=channel)
                             job, avgs = self.avgimgs(channels=channel, labels={channel: labels}, ages=ages, step=step, queue=queue)
                             self.wait(job, interval=60, verbose=2)
                             if args:
@@ -1213,11 +1223,10 @@ class SpatioTemporalAtlas(object):
                         else:
                             if args:
                                 raise ValueError("Measure '{}' has no arguments!".format(measure))
-                            opts = {}
-                            if "labels" in channel_info:
-                                opts["bins"] = len(parselabels(channel_info["labels"])) + 1
-                            else:
-                                opts["normalization"] = "zscore"
+                            opts = {
+                                "bins": channel_info.get("bins", 0),
+                                "normalization": channel_info.get("normalization", "none")
+                            }
                             if "bkgrnd" in channel_info:
                                 opts["padding"] = channel_info["bkgrnd"]
                             for t in ages:
@@ -1232,49 +1241,85 @@ class SpatioTemporalAtlas(object):
                                               name="eval_{channel}_{measure}_{age}".format(channel=channel, measure=measure, age=self.timename(t)),
                                               args=[measure] + [os.path.relpath(img, self.topdir) for img in imgs[t]], opts=opts)
                                 voxelwise_measures[t].append((channel, measure, path))
+            # Average voxel-wise measures within each ROI
+            for channel in roi_channels:
+                # Deform individual images to atlas time point
+                name = "eval_defimgs_{channel}".format(channel=channel)
+                job, imgs = self.defimgs(channels=channel, ages=ages, step=step, queue=queue, batchname=name)
+                self.wait(job, interval=30, verbose=1)
+                name = "eval_avgrois_{channel}".format(channel=channel)
+                job, rois = self.avgimgs(channels=[channel], labels=roi_labels, ages=ages, step=step, queue=queue, batchname=name)
+                self.wait(job, interval=60, verbose=2)
             for t in ages:
                 if voxelwise_measures[t] and roi_paths:
                     subdir = self.subdir(step)
-                    table = os.path.join(subdir, "qc-measures", self.timename(t) + ".csv")
-                    if force or not os.path.exists(table):
-                        path = os.path.dirname(table)
-                        makedirs(path)
-                        path = os.path.join(path, "." + os.path.basename(table))
+                    mean_table = os.path.join(subdir, "qc-measures", self.timename(t) + "-mean.csv")
+                    sdev_table = os.path.join(subdir, "qc-measures", self.timename(t) + "-sdev.csv")
+                    wsum_table = os.path.join(subdir, "qc-measures", self.timename(t) + "-wsum.csv")
+                    if force or not os.path.exists(mean_table) or not os.path.exists(sdev_table) or not os.path.exists(wsum_table):
+                        outdir = os.path.dirname(mean_table)
+                        tmp_mean_table = os.path.join(outdir, "." + os.path.basename(mean_table))
+                        tmp_sdev_table = os.path.join(outdir, "." + os.path.basename(sdev_table))
+                        tmp_wsum_table = os.path.join(outdir, "." + os.path.basename(wsum_table))
                         args = [x[2] for x in voxelwise_measures[t]]
-                        opts = {"name": [], "roi-name": [], "roi-path": [], "header": None, "preload": None, "table": path}
+                        opts = {
+                            "name": [],
+                            "roi-name": [],
+                            "roi-path": [],
+                            "header": None,
+                            "preload": None,
+                            "mean": tmp_mean_table,
+                            "sdev": tmp_sdev_table,
+                            "size": tmp_wsum_table,
+                            "digits": self.config["evaluation"].get("digits", 9)
+                        }
                         for voxelwise_measure in voxelwise_measures[t]:
                             channel = voxelwise_measure[0]
                             measure = voxelwise_measure[1]
                             opts["name"].append("{}/{}".format(channel, measure))
-                        for roi_name in roi_paths:
+                        for roi_name in roi_names:
+                            roi_path = roi_paths[roi_name]
+                            if roi_path in roi_channels:
+                                roi_path = self.avgimg(t, channel=roi_path, label=roi_label.get(roi_name, 0), step=step, create=False)
+                            else:
+                                roi_path = roi_path.format(
+                                    subdir=subdir, tmpdir=self.tmpdir, topdir=self.topdir,
+                                    i=step, t=t, l=roi_label.get(roi_name, 0)
+                                )
                             opts["roi-name"].append(roi_name)
-                            opts["roi-path"].append(roi_paths[roi_name].format(
-                                subdir=subdir, tmpdir=self.tmpdir, topdir=self.topdir,
-                                i=step, t=t, l=roi_labels.get(roi_name, 0))
-                            )
+                            opts["roi-path"].append(roi_path)
+                        makedirs(outdir)
                         try:
                             self._run("average-measure", step=step, queue=queue,
                                       name="eval_average_{age}".format(age=self.timename(t)),
                                       args=args, opts=opts)
                         except Exception as e:
-                            if os.path.exists(path):
-                                os.remove(path)
+                            for tmp_table in [tmp_mean_table, tmp_sdev_table, tmp_wsum_table]:
+                                if os.path.exists(tmp_table):
+                                    os.remove(tmp_table)
                             raise e
                         cur_wait_time = 0
                         inc_wait_time = 10
                         max_wait_time = 6 * inc_wait_time
                         if queue and queue.lower() != "local":
-                            while not os.path.exists(path):
+                            while True:
+                                missing = []
+                                for tmp_table in [tmp_mean_table, tmp_sdev_table, tmp_wsum_table]:
+                                    if not os.path.exists(tmp_table):
+                                        missing.append(tmp_table)
+                                if not missing:
+                                    break
                                 if cur_wait_time < max_wait_time:
                                     time.sleep(inc_wait_time)
                                     cur_wait_time += inc_wait_time
                                 else:
-                                    raise Exception("Job average-measure finished, but output file '{}' still missing after {}s".format(path, cur_wait_time))
-                        try:
-                            os.rename(path, table)
-                        except OSError as e:
-                            sys.stderr.write("Failed to rename '{}' to '{}'".format(path, table))
-                            raise e
+                                    raise Exception("Job average-measure finished, but output files still missing after {}s: {}".format(cur_wait_time, missing))
+                        for src, dst in zip([tmp_mean_table, tmp_sdev_table, tmp_wsum_table], [mean_table, sdev_table, wsum_table]):
+                            try:
+                                os.rename(src, dst)
+                            except OSError as e:
+                                sys.stderr.write("Failed to rename '{}' to '{}'".format(src, dst))
+                                raise e
 
     def template(self, i, channel=None):
         """Get absolute path of i-th template image."""
@@ -1375,7 +1420,7 @@ class SpatioTemporalAtlas(object):
                                 args.extend(["-dof", dof])
             if create:
                 bkgrnd = self.config["images"][channel].get("bkgrnd", -1)
-                self._run("average-images", args=args, opts={"reference": self.refimg, "dtype": "uchar", "padding": bkgrnd})
+                self._run("average-images", args=args, opts={"reference": self.refimg, "datatype": "uchar", "padding": bkgrnd})
         return path
 
     def view(self, i=None, channel=None):
@@ -1420,13 +1465,10 @@ def sbatch(name, command=None, args=[], opts={}, script=None, tasks=0, deps=[], 
         script = shexec
     else:
         script = "#!/bin/bash\n"
-        script += "{pyexe} -c 'import sys; import socket; import mirtk; mirtk.check_call([\"{command}\"] + sys.argv[1:])'".format(
-            pyexe=sys.executable, command=command if command else name
-        )
         script += "\"{0}\" -c 'import sys; import socket;".format(sys.executable)
         script += " sys.stdout.write(\"Host: \" + socket.gethostname() + \"\\n\\n\");"
         script += " sys.path.insert(0, \"{0}\");".format(os.path.dirname(os.path.dirname(mirtk.__file__)))
-        script += " import mirtk; mirtk.check_call([\"{0}\"] + sys.argv[1:])'".format(command if command else name)
+        script += " import mirtk; mirtk.check_call([\"{0}\"] + sys.argv[1:])".format(command if command else name)
         script += "'"
         for arg in args:
             if ' ' in arg:
@@ -1895,7 +1937,13 @@ def parselabels(labels):
         m = re.match("([0-9]+)..([0-9]+)", labels)
         if m:
             values.extend(range(int(m.group(1)), int(m.group(2)) + 1))
-        else:
+        elif ":" in labels:
+            range_spec = [int(x) for x in labels.split(":")]
+            if len(range_spec) == 2:
+                values.extend(list(range(range_spec[0], range_spec[2] + 1, range_spec[1])))
+            else:
+                values.extend(list(range(range_spec[0], range_spec[1] + 1)))
+        elif labels != "":
             values.append(int(labels))
     else:
         values.append(int(labels))
