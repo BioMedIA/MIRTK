@@ -75,6 +75,10 @@ void PrintHelp(const char* name)
   cout << "      - ``median``:  Divide by median foreground value.\n";
   cout << "      - ``z-score``: Subtract mean and divide by standard deviation.\n";
   cout << "      - ``unit``:    Rescale input intensities to [0, 1].\n";
+  cout << "  -rescale [<min>] <max>\n";
+  cout << "      Rescale normalized intensities to specified range. When <min> not specified,\n";
+  cout << "      it is set to zero, i.e., the range is [0, <max>]. Intensities are only rescaled\n";
+  cout << "      when <min> is less than <max>. (default: off)\n";
   cout << "  -alpha <value>\n";
   cout << "      Alpha value of the generalized entropy index, where alpha=0 is the mean log deviation, alpha=1\n";
   cout << "      is the Theil coefficient, and alpha=2 is half the squared coefficient of variation. (default: 0)\n";
@@ -204,10 +208,10 @@ void Normalize(InputImage &image, NormalizationMode mode = Normalization_ZScore)
       double mean, sigma;
       NormalDistribution::Calculate(mean, sigma, n, data, mask.get());
       if (fequal(sigma, 0.)) {
+        t = - mean;
+      } else {
         s = 1. / sigma;
         t = - mean / sigma;
-      } else {
-        t = - mean;
       }
     } break;
 
@@ -215,11 +219,11 @@ void Normalize(InputImage &image, NormalizationMode mode = Normalization_ZScore)
       double min_value, max_value;
       Extrema::Calculate(min_value, max_value, n, data, mask.get());
       double range = max_value - min_value;
-      if (!fequal(range, 0.)) {
+      if (fequal(range, 0.)) {
+        t = - min_value;
+      } else {
         s = 1. / range;
         t = - min_value / range;
-      } else {
-        t = - min_value;
       }
     } break;
 
@@ -231,6 +235,33 @@ void Normalize(InputImage &image, NormalizationMode mode = Normalization_ZScore)
     auto m = mask.get();
     for (int i = 0; i < n; ++i, ++p, ++m) {
       if (*m) (*p) = s * (*p) + t;
+    }
+  }
+}
+
+// -----------------------------------------------------------------------------
+/// Rescale intensities
+void Rescale(InputImages &images, double vmin, double vmax)
+{
+  for (auto image : images) {
+    double scale = 1., shift = 0.;
+    double min_value, max_value;
+
+    const auto mask = ForegroundMaskArray(image);
+    const int  n    = image.NumberOfVoxels();
+    auto *data      = image.Data();
+
+    Extrema::Calculate(min_value, max_value, n, data, mask.get());
+    if (!fequal(max_value, min_value)) {
+      scale = (vmax - vmin) / (max_value - min_value);
+    }
+    shift = vmin - scale * min_value;
+    if (!fequal(scale, 1.) || !fequal(shift, 0.)) {
+      for (int idx = 0; idx < n; ++idx) {
+        if (mask[idx]) {
+          data[idx] = voxel_cast<InputType>(clamp(scale * static_cast<double>(data[idx]) + shift, vmin, vmax));
+        }
+      }
     }
   }
 }
@@ -410,6 +441,8 @@ int main(int argc, char **argv)
   bool               parzen        = false;
   double             padding       = NaN;
   bool               intersection  = false;
+  double             rescale_min   = NaN;
+  double             rescale_max   = NaN;
 
   for (ALL_OPTIONS) {
     if (OPTION("-output")) output_name = ARGUMENT;
@@ -438,6 +471,15 @@ int main(int argc, char **argv)
         }
       } else {
         normalization = Normalization_ZScore;
+      }
+    }
+    else if (OPTION("-rescale")) {
+      PARSE_ARGUMENT(rescale_min);
+      if (HAS_ARGUMENT) {
+        PARSE_ARGUMENT(rescale_max);
+      } else {
+        rescale_max = rescale_min;
+        rescale_min = 0.;
       }
     }
     else if (OPTION("-padding")) PARSE_ARGUMENT(padding);
@@ -492,6 +534,16 @@ int main(int argc, char **argv)
     for (auto &image : images) {
       Normalize(image, normalization);
     }
+    if (verbose) cout << " done" << endl;
+  }
+
+  // Rescale images
+  if (rescale_min < rescale_max) {
+    if (verbose) {
+      cout << "Rescaling images...";
+      cout.flush();
+    }
+    Rescale(images, rescale_min, rescale_max);
     if (verbose) cout << " done" << endl;
   }
 
