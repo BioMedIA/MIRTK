@@ -1227,6 +1227,8 @@ class SpatioTemporalAtlas(object):
                                 "bins": channel_info.get("bins", 0),
                                 "normalization": channel_info.get("normalization", "none")
                             }
+                            if "rescaling" in channel_info:
+                                opts["rescaling"] = channel_info["rescaling"]
                             if "bkgrnd" in channel_info:
                                 opts["padding"] = channel_info["bkgrnd"]
                             for t in ages:
