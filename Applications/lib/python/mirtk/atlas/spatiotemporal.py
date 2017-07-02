@@ -948,15 +948,18 @@ class SpatioTemporalAtlas(object):
                 }
                 if "bkgrnd" in cfg:
                     opts["padding"] = float(cfg["bkgrnd"])
+                opts["datatype"] = cfg.get("datatype", "float")
                 if "labels" in cfg:
                     opts["label"] = label
-                    opts["datatype"] = "uchar"
+                    if opts["datatype"] not in ["float", "double"]:
+                        opts["rescaling"] = cfg.get("rescaling", [0, 100])
+                    elif "rescaling" in cfg:
+                        opts["rescaling"] = cfg["rescaling"]
                 else:
                     opts["threshold"] = .5
                     opts["normalization"] = cfg.get("normalization", "zscore")
                     opts["sharpen"] = cfg.get("sharpen", True)
                     opts["rescaling"] = cfg.get("rescaling", [0, 100])
-                    opts["datatype"] = cfg.get("datatype", "float")
                 self._run("average-images", args=[path], opts=opts)
         return path
 
@@ -1473,9 +1476,10 @@ def sbatch(name, command=None, args=[], opts={}, script=None, tasks=0, deps=[], 
         script += " import mirtk; mirtk.check_call([\"{0}\"] + sys.argv[1:])".format(command if command else name)
         script += "'"
         for arg in args:
+            arg = str(arg)
             if ' ' in arg:
                 arg = '"' + arg + '"'
-            script += ' ' + str(arg)
+            script += ' ' + arg
         for opt in opts:
             arg = opts[opt]
             if opt[0] != '-':
@@ -1483,8 +1487,10 @@ def sbatch(name, command=None, args=[], opts={}, script=None, tasks=0, deps=[], 
             script += ' ' + opt
             if arg is not None:
                 if isinstance(arg, (list, tuple)):
-                    arg = ' '.join(arg)
-                script += ' ' + str(arg)
+                    arg = ' '.join([str(x) for x in arg])
+                else:
+                    arg = str(arg)
+                script += ' ' + arg
         script += " -threads {0}".format(threads)
         script += "\n"
     argv = [
@@ -1670,9 +1676,10 @@ def cbatch(name, command=None, args=[], opts={}, script=None, tasks=0, deps=[],
         jobdesc += " sys.path.insert(0, \"\"{0}\"\");".format(os.path.dirname(os.path.dirname(mirtk.__file__)))
         jobdesc += " import mirtk; mirtk.check_call([\"\"{0}\"\"] + sys.argv[1:])'".format(command if command else name)
         for arg in args:
+            arg = str(arg)
             if ' ' in arg:
                 arg = "'" + arg + "'"
-            jobdesc += ' ' + str(arg)
+            jobdesc += ' ' + arg
         for opt in opts:
             arg = opts[opt]
             if opt[0] != '-':
@@ -1680,8 +1687,10 @@ def cbatch(name, command=None, args=[], opts={}, script=None, tasks=0, deps=[],
             jobdesc += ' ' + opt
             if arg is not None:
                 if isinstance(arg, (list, tuple)):
-                    arg = ' '.join(arg)
-                jobdesc += ' ' + str(arg)
+                    arg = ' '.join([str(x) for x in arg])
+                else:
+                    arg = str(arg)
+                jobdesc += ' ' + arg
         jobdesc += "\"\n"
         if log:
             jobdesc += "output = {0}\n".format(log)
