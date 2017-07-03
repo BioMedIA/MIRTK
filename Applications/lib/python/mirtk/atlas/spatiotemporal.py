@@ -897,7 +897,7 @@ class SpatioTemporalAtlas(object):
                         f.write("\t{0}\n".format(weights[imgid]))
         return table
 
-    def avgimg(self, t, channel=None, label=0, path=None, outdir=None, step=-1, decomposed=True, force=False, create=True, batch=False):
+    def avgimg(self, t, channel=None, label=0, path=None, sharpen=True, outdir=None, step=-1, decomposed=True, force=False, create=True, batch=False):
         """Create average image for a given time point."""
         if not channel:
             channel = self.channel
@@ -931,6 +931,8 @@ class SpatioTemporalAtlas(object):
                 path = os.path.join(self.subdir(step), channel)
                 if lblstr:
                     path = os.path.join(path, "prob_" + lblstr)
+                elif sharpen:
+                    path = os.path.join(path, "templates")
                 else:
                     path = os.path.join(path, "mean")
             path = os.path.join(path, self.timename(t) + ".nii.gz")
@@ -958,12 +960,13 @@ class SpatioTemporalAtlas(object):
                 else:
                     opts["threshold"] = .5
                     opts["normalization"] = cfg.get("normalization", "zscore")
-                    opts["sharpen"] = cfg.get("sharpen", True)
                     opts["rescaling"] = cfg.get("rescaling", [0, 100])
+                    if sharpen:
+                        opts["sharpen"] = cfg.get("sharpen", True)
                 self._run("average-images", args=[path], opts=opts)
         return path
 
-    def avgimgs(self, step=-1, ages=[], channels=[], labels={}, outdir=None, decomposed=True, force=False, create=True, queue=None, batchname="avgimgs"):
+    def avgimgs(self, step=-1, ages=[], channels=[], labels={}, sharpen=True, outdir=None, decomposed=True, force=False, create=True, queue=None, batchname="avgimgs"):
         """Create all average images required for (parallel) atlas construction."""
         if step < 0:
             step = self.step
@@ -1008,11 +1011,12 @@ class SpatioTemporalAtlas(object):
                         segments = lbls
             for segment in segments:
                 for t in ages:
-                    img = self.avgimg(t, channel=channel, label=segment, outdir=outdir, step=step, decomposed=decomposed, force=force, create=create and not queue)
+                    img = self.avgimg(t, channel=channel, label=segment, sharpen=sharpen, outdir=outdir, step=step,
+                                      decomposed=decomposed, force=force, create=create and not queue)
                     if queue and (force or not os.path.exists(img)):
                         remove_or_makedirs(img)
-                        script += 'elif taskid == {taskid}: atlas.avgimg(t={t}, channel="{channel}", label={segment}, outdir={outdir}, decomposed={decomposed}, batch=True)\n'.format(
-                            taskid=tasks, t=t, channel=channel, segment=repr(segment), outdir=repr(outdir), decomposed=decomposed
+                        script += 'elif taskid == {taskid}: atlas.avgimg(t={t}, channel="{channel}", label={segment}, sharpen={sharpen}, outdir={outdir}, decomposed={decomposed}, batch=True)\n'.format(
+                            taskid=tasks, t=t, channel=channel, segment=repr(segment), sharpen=sharpen, outdir=repr(outdir), decomposed=decomposed
                         )
                         tasks += 1
                     if len(segments) == 1:
@@ -1202,6 +1206,7 @@ class SpatioTemporalAtlas(object):
                             args = ""
                         # Evaluate gradient magnitude of average image
                         if measure == "grad":
+                            sharpen = False
                             if "labels" in channel_info:
                                 if not args:
                                     raise ValueError("Gradient magnitude of segmentation can only be computed for probability map of one or more label(s)!")
@@ -1209,9 +1214,11 @@ class SpatioTemporalAtlas(object):
                             else:
                                 if args and args not in ("mean", "avg", "average", "template"):
                                     raise ValueError("Gradient magnitude of intensity images can only be computed from 'mean'/'avg'/'average'/'template' image!")
+                                if args and args == "template":
+                                    sharpen = True
                                 labels = []
                             name = "eval_avgimgs_{channel}".format(channel=channel)
-                            job, avgs = self.avgimgs(channels=channel, labels={channel: labels}, ages=ages, step=step, queue=queue)
+                            job, avgs = self.avgimgs(channels=channel, labels={channel: labels}, ages=ages, sharpen=sharpen, step=step, queue=queue)
                             self.wait(job, interval=60, verbose=2)
                             if args:
                                 measure += "_" + args
