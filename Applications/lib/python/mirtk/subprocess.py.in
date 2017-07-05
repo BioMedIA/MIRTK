@@ -50,6 +50,15 @@ else:                              libexec_ext = ['']
 # ============================================================================
 
 # ----------------------------------------------------------------------------
+def remove_kwargs(kwargs, keys):
+    if isinstance(keys, basestring):
+        keys = [keys]
+    for k in keys:
+        if k in kwargs:
+            del kwargs[k]
+
+
+# ----------------------------------------------------------------------------
 def path(argv, quiet=False):
     """Get full path of MIRTK command executable."""
     if isinstance(argv, list): command = argv[0]
@@ -149,7 +158,7 @@ def check_output(argv, verbose=0, code='utf-8'):
 
 
 # ----------------------------------------------------------------------------
-def run(cmd, args=[], opts={}, workdir=None, verbose=0, threads=0, exit_on_error=False):
+def run(cmd, *args, **kwargs): 
     """Execute MIRTK command and throw exception or exit on error.
 
     This convenience wrapper for check_call throws a subprocess.CalledProcessError 
@@ -159,11 +168,19 @@ def run(cmd, args=[], opts={}, workdir=None, verbose=0, threads=0, exit_on_error
     using sys.exit with the return code of the executed command.
 
     """
+    workdir = kwargs.get("workdir", None)
+    verbose = kwargs.get("verbose", 0)
+    threads = kwargs.get("threads", 0)
+    exit_on_error = kwargs.get("exit_on_error", False)
+    remove_kwargs(kwargs, ["workdir", "verbose", "threads", "exit_on_error"])
+    # command arguments
     argv = [cmd]
     argv.extend(args)
-    if threads > 0:
-        argv.extend(['-threads', str(threads)])
-    # ordered list of options
+    argv.extend(kwargs.get("args", []))
+    remove_kwargs(kwargs, "args")
+    # add ordered list of options
+    opts = kwargs.get("opts", {})
+    remove_kwargs(kwargs, "opts")
     if isinstance(opts, list):
         for item in opts:
             if isinstance(item, (tuple, list)):
@@ -177,7 +194,7 @@ def run(cmd, args=[], opts={}, workdir=None, verbose=0, threads=0, exit_on_error
             argv.append(opt)
             if not arg is None:
                 argv.extend(flatten(arg))
-    # unordered dict of options
+    # add unordered dict of options
     else:
         for opt, arg in opts.items():
             if not opt.startswith('-'):
@@ -185,6 +202,17 @@ def run(cmd, args=[], opts={}, workdir=None, verbose=0, threads=0, exit_on_error
             argv.append(opt)
             if not arg is None:
                 argv.extend(flatten(arg))
+    # add options given as kwargs
+    for opt, arg in kwargs.items():
+        if not opt.startswith('-'):
+            opt = '-' + opt
+        argv.append(opt)
+        if not arg is None:
+            argv.extend(flatten(arg))
+    # add -threads option
+    if threads > 0 and not "threads" in opts:
+        argv.extend(['-threads', str(threads)])
+    # execute command
     prevdir = os.getcwd()
     if workdir:
         os.chdir(workdir)
