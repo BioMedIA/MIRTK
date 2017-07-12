@@ -1,8 +1,8 @@
 # ==============================================================================
 # Medical Image Registration ToolKit (MIRTK)
 #
-# Copyright 2013-2016 Imperial College London
-# Copyright 2013-2016 Andreas Schuh
+# Copyright 2013-2017 Imperial College London
+# Copyright 2013-2017 Andreas Schuh
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -57,7 +57,7 @@
 if (MIRTK_Image_FOUND)
   # command: calculate
   if (MIRTK_Image_WITH_VTK)
-    basis_find_package(VTK 7|6 REQUIRED COMPONENTS vtkCommonCore vtkCommonDataModel)
+    basis_find_package(VTK 8|7|6 REQUIRED COMPONENTS vtkCommonCore vtkCommonDataModel)
   endif ()
 endif ()
 
@@ -65,7 +65,7 @@ endif ()
 # Dependencies of point set commands
 if (MIRTK_PointSet_FOUND)
   # command: all point set commands, info
-  basis_find_package(VTK 7|6 REQUIRED
+  basis_find_package(VTK 8|7|6 REQUIRED
     COMPONENTS
       vtkCommonCore
       vtkCommonDataModel

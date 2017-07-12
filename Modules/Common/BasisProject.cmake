@@ -57,7 +57,7 @@ basis_project (
     #<dependency>
   OPTIONAL_DEPENDS
     MATLAB{mwmclmcrrt}
-    VTK-7|6{vtkCommonCore,vtkCommonDataModel}
+    VTK-8|7|6{vtkCommonCore,vtkCommonDataModel}
     TBB{tbb}
     ZLIB
     #<optional-dependency>
