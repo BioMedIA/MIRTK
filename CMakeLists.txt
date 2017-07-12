@@ -77,6 +77,34 @@ if (NOT Boost_DIR)
 endif ()
 
 # ----------------------------------------------------------------------------
+# Support use of ccache to speed up builds (-D WITH_CCACHE=ON)
+option(WITH_CCACHE "Use ccache if available" OFF)
+mark_as_advanced(WITH_CCACHE)
+if (WITH_CCACHE)
+  if (CMAKE_CXX_COMPILER MATCHES "ccache")
+    message(STATUS "Detected C++ compiler is in ccache path, ignoring WITH_CCACHE option")
+  else ()
+    find_program(CCACHE_COMMAND "ccache")
+    if (NOT CCACHE_COMMAND)
+      message(FATAL_ERROR "Use of ccache requested, but CCACHE_COMMAND not found!")
+    endif ()
+    message(STATUS "Using ccache for compilation of C++ code")
+    mark_as_advanced(CCACHE_COMMAND)
+    # For Unix Makefiles and Ninja generators
+    if (CMAKE_VERSION VERSION_LESS 3.4)
+      set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "${CCACHE_COMMAND}")
+    else ()
+      set(CMAKE_CXX_COMPILER_LAUNCHER "${CCACHE_COMMAND}")
+    endif ()
+    if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+      add_compile_options("-Qunused-arguments")
+    endif ()
+  endif ()
+else ()
+  message(STATUS "Not using ccache for compilation of C++ code (WITH_CCACHE=${WITH_CCACHE})")
+endif ()
+
+# ----------------------------------------------------------------------------
 # Configure build system
 
 # Initialize project
