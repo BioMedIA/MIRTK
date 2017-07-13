@@ -210,6 +210,12 @@ public:
   /// Destructor
   ~RegisteredImage();
 
+  /// Get interpolation mode
+  ///
+  /// When _InterpolationMode is Interpolation_Default, this function returns
+  /// the respective default interpolation mode with or without padding.
+  enum InterpolationMode GetInterpolationMode() const;
+
   // ---------------------------------------------------------------------------
   // Channels
 
