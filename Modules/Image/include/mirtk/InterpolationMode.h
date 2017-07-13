@@ -100,6 +100,20 @@ inline InterpolationMode InterpolationWithoutPadding(InterpolationMode m)
 }
 
 // ----------------------------------------------------------------------------
+/// Whether interpolation mode is "with padding"
+inline bool IsInterpolationWithPadding(InterpolationMode m)
+{
+  return InterpolationWithPadding(m) == m;
+}
+
+// ----------------------------------------------------------------------------
+/// Whether interpolation mode is "without padding"
+inline bool IsInterpolationWithoutPadding(InterpolationMode m)
+{
+  return InterpolationWithoutPadding(m) == m;
+}
+
+// ----------------------------------------------------------------------------
 template <>
 inline string ToString(const InterpolationMode &m, int w, char c, bool left)
 {
