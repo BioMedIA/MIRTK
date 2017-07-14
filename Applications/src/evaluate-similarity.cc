@@ -149,7 +149,8 @@ int main(int argc, char **argv)
   int         source_bins    = 0;
   bool        parzen_window  = false;
   bool        full_path_id   = false;
-  bool        no_image_id    = false;
+  bool        image_id_col   = true;
+  bool        table_header   = true;
   int         digits         = 5;
   string      delim;
 
@@ -202,7 +203,6 @@ int main(int argc, char **argv)
     else if (OPTION("-csv")) verbose = -1, delim = ',';
     else if (OPTION("-tsv")) verbose = -1, delim = '\t';
     else if (OPTION("-fullid")) full_path_id = true;
-    else if (OPTION("-noid")) no_image_id = true;
     else if (OPTION("-Rx1")) PARSE_ARGUMENT(i1);
     else if (OPTION("-Rx2")) PARSE_ARGUMENT(i2);
     else if (OPTION("-Ry1")) PARSE_ARGUMENT(j1);
@@ -210,6 +210,8 @@ int main(int argc, char **argv)
     else if (OPTION("-Rz1")) PARSE_ARGUMENT(k1);
     else if (OPTION("-Rz2")) PARSE_ARGUMENT(k2);
     else HANDLE_BOOL_OPTION(invert);
+    else HANDLE_BOOLEAN_OPTION("id", image_id_col);
+    else HANDLE_BOOLEAN_OPTION("header", table_header);
     else HANDLE_COMMON_OR_UNKNOWN_OPTION();
   }
 
@@ -421,8 +423,8 @@ int main(int argc, char **argv)
   // Print table header
   const string target_id = (full_path_id ? target_name : FileName(target_name));
 
-  if (verbose < 0) {
-    if (!no_image_id) {
+  if (table_header && verbose < 0) {
+    if (image_id_col) {
       *out << "Target" << delim << "Source" << delim;
     }
     for (size_t i = 0; i < metric.size(); ++i) {
@@ -470,7 +472,7 @@ int main(int argc, char **argv)
     if (verbose > 0) {
       cout << "Similarity of target image " << target_id << " and source image " << source_id << ":\n";
       ++indent;
-    } else if (!no_image_id) {
+    } else if (image_id_col) {
       if (verbose == 0) cout << "Target = ";
       *out << target_id << delim;
       if (verbose == 0) cout << "Source = ";
@@ -527,7 +529,7 @@ int main(int argc, char **argv)
 
     // Evaluate similarity measure(s)
     for (size_t i = 0; i < sim.size(); ++i) {
-      if (!no_image_id || i > 0) {
+      if (image_id_col || i > 0) {
         *out << delim;
       }
       if (verbose > 0) {
