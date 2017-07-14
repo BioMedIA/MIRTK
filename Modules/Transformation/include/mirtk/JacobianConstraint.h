@@ -1,8 +1,8 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2013-2015 Imperial College London
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2013-2017 Imperial College London
+ * Copyright 2013-2017 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,6 +33,11 @@ class FreeFormTransformation;
 
 /**
  * Base class of soft transformation constraints penalizing the Jacobian determinant
+ *
+ * \note The Jacobian, Penalty, and Derivative functions are public such that
+ *       these can be called by a TBB parallel_for/parall_reduce body in a subclass
+ *       implementation. These should not be considered as public API and may be
+ *       subject to change.
  */
 class JacobianConstraint : public TransformationConstraint
 {
@@ -79,8 +84,28 @@ public:
     return det;
   }
 
+  /// Evaluate penalty at control point location given Jacobian determinant value
+  ///
+  /// \param[in] det Jacobian determinant value.
+  virtual double Penalty(double det) const = 0;
+
+  /// Evaluate derivative of penalty w.r.t. Jacobian determinant value
+  ///
+  /// \param[in] det Jacobian determinant value.
+  virtual double DerivativeWrtJacobianDet(double det) const = 0;
+
+protected:
+
+  /// Compute penalty for current transformation estimate
+  virtual double Evaluate();
+
+  /// Compute gradient of penalty term w.r.t transformation parameters
+  virtual void EvaluateGradient(double *, double, double);
+
   // ---------------------------------------------------------------------------
   // Debugging
+
+public:
 
   /// Write Jacobian determinant
   virtual void WriteDataSets(const char *, const char *, bool = true) const;
