@@ -249,6 +249,19 @@ RegisteredImage::~RegisteredImage()
   delete _InputHessian;
 }
 
+// -----------------------------------------------------------------------------
+InterpolationMode RegisteredImage::GetInterpolationMode() const
+{
+  enum InterpolationMode interp = _InterpolationMode;
+  if (interp == Interpolation_Default) {
+    interp = DefaultInterpolationMode();
+    if (_InputImage && _InputImage->HasBackgroundValue()) {
+      interp = InterpolationWithPadding(interp);
+    }
+  }
+  return interp;
+}
+
 // =============================================================================
 // Initialization
 // =============================================================================
@@ -325,12 +338,7 @@ void RegisteredImage::Initialize(const ImageAttributes &attr, int t)
 
   // Pre-compute input derivatives
   if (!_PrecomputeDerivatives) {
-    enum InterpolationMode interp;
-    if (_InterpolationMode == Interpolation_Default) {
-      interp = DefaultInterpolationMode();
-    } else {
-      interp = InterpolationWithoutPadding(_InterpolationMode);
-    }
+    const auto interp = InterpolationWithoutPadding(GetInterpolationMode());
     if (interp != Interpolation_Linear && interp != Interpolation_FastLinear) {
       _PrecomputeDerivatives = true;
     }
@@ -363,7 +371,7 @@ void RegisteredImage::ComputeInputGradient(double sigma)
   if (sigma > 0. || _PrecomputeDerivatives) {
     // Background value
     double bgvalue = -inf;
-    if (_InputImage->HasBackgroundValue()) {
+    if (_InputImage->HasBackgroundValue() && IsInterpolationWithPadding(GetInterpolationMode())) {
       bgvalue = _InputImage->GetBackgroundValueAsDouble();
     }
     // Cast to gradient voxel type
@@ -399,6 +407,7 @@ void RegisteredImage::ComputeInputGradient(double sigma)
       image = temp.get();
     }
     if (_PrecomputeDerivatives) {
+      const int nvox = image->NumberOfSpatialVoxels();
       UniquePtr<InputGradientType> gradient(new InputGradientType());
       // Compute image gradient using finite differences
       typedef GradientImageFilter<InputGradientType::VoxelType> GradientFilterType;
@@ -416,11 +425,20 @@ void RegisteredImage::ComputeInputGradient(double sigma)
       filter.UseOrientation(true);
       filter.PaddingValue(bgvalue);
       filter.Run();
+      if (!IsInf(bgvalue)) {
+        InputGradientType::VoxelType *gx = gradient->Data(0, 0, 0, 0);
+        InputGradientType::VoxelType *gy = gradient->Data(0, 0, 0, 1);
+        InputGradientType::VoxelType *gz = gradient->Data(0, 0, 0, 2);
+        for (int vox = 0; vox < nvox; ++vox, ++gx, ++gy, ++gz) {
+          if (image->IsBackground(vox)) {
+            *gx = *gy = *gz = NaN;
+          }
+        }
+        gradient->PutBackgroundValueAsDouble(NaN);
+      }
       gradient->PutTSize(0.);
-      gradient->PutBackgroundValueAsDouble(0.);
       MIRTK_DEBUG_TIMING(5, "computation of 1st order image derivatives");
       if (_MaxGradientPercentile > 0 || (_MaxGradientMagnitude > 0. && !IsInf(_MaxGradientMagnitude))) {
-        const int nvox = gradient->NumberOfSpatialVoxels();
         // Initialize foreground mask
         UniquePtr<bool[]> mask(new bool[nvox]);
         for (int vox = 0; vox < nvox; ++vox) {
@@ -476,7 +494,7 @@ void RegisteredImage::ComputeInputHessian(double sigma)
   Delete(_InputHessian);
   // Background value
   double bgvalue = -inf;
-  if (_InputImage->HasBackgroundValue()) {
+  if (_InputImage->HasBackgroundValue() && IsInterpolationWithPadding(GetInterpolationMode())) {
     bgvalue = _InputImage->GetBackgroundValueAsDouble();
   }
   // Cast to gradient voxel type
@@ -521,8 +539,19 @@ void RegisteredImage::ComputeInputHessian(double sigma)
   filter.UseOrientation(true);
   filter.PaddingValue(bgvalue);
   filter.Run();
+  if (!IsInf(bgvalue)) {
+    const int nvox = image->NumberOfSpatialVoxels();
+    for (int vox = 0; vox < nvox; ++vox) {
+      if (image->IsBackground(vox)) {
+        InputHessianType::VoxelType *h = hessian->Data(vox);
+        for (int l = 0; l < hessian->T(); ++l, h += nvox) {
+          *h = NaN;
+        }
+      }
+    }
+    hessian->PutBackgroundValueAsDouble(NaN);
+  }
   hessian->PutTSize(.0);
-  hessian->PutBackgroundValueAsDouble(.0);
   _InputHessian = hessian.release();
   MIRTK_DEBUG_TIMING(5, "computation of 2nd order image derivatives");
 }
@@ -704,9 +733,8 @@ void New(
 #ifndef NDEBUG
     if (interp == Interpolation_Default) {
       interp = DefaultInterpolationMode();
-    } else {
-      interp = InterpolationWithoutPadding(interp);
     }
+    interp = InterpolationWithoutPadding(interp);
     if (interp == Interpolation_FastLinear) interp = Interpolation_Linear;
     InterpolationMode mode = f->InterpolationMode();
     if (mode == Interpolation_FastLinear) mode = Interpolation_Linear;
@@ -844,7 +872,7 @@ public:
     }
     if (other._GradientFunction) {
       const BaseImage *g = other._GradientFunction->Input();
-      const double g_bg = (g->HasBackgroundValue() ? g->GetBackgroundValueAsDouble() : 0.);
+      const double g_bg = (g->HasBackgroundValue() ? g->GetBackgroundValueAsDouble() : NaN);
       New<GradientFunction>(_GradientFunction, g,
                             other._GradientFunction->InterpolationMode(),
                             other._GradientFunction->ExtrapolationMode(),
@@ -852,7 +880,7 @@ public:
     }
     if (other._HessianFunction) {
       const BaseImage *h = other._HessianFunction->Input();
-      const double h_bg = (h->HasBackgroundValue() ? h->GetBackgroundValueAsDouble() : 0.);
+      const double h_bg = (h->HasBackgroundValue() ? h->GetBackgroundValueAsDouble() : NaN);
       New<HessianFunction>(_HessianFunction, h,
                            other._HessianFunction->InterpolationMode(),
                            other._HessianFunction->ExtrapolationMode(),
@@ -875,14 +903,11 @@ public:
     const BaseImage * const g = o->InputGradient();
     const BaseImage * const h = o->InputHessian();
     const double f_bg = (f->HasBackgroundValue() ? f->GetBackgroundValueAsDouble() : NaN);
-    const double g_bg = (g && g->HasBackgroundValue() ? g->GetBackgroundValueAsDouble() : 0.);
-    const double h_bg = (h && h->HasBackgroundValue() ? h->GetBackgroundValueAsDouble() : 0.);
-    InterpolationMode interp = o->InterpolationMode();
-    if (interp == Interpolation_Default) {
-      interp = DefaultInterpolationMode();
-    }
+    const double g_bg = (g && g->HasBackgroundValue() ? g->GetBackgroundValueAsDouble() : NaN);
+    const double h_bg = (h && h->HasBackgroundValue() ? h->GetBackgroundValueAsDouble() : NaN);
+    InterpolationMode interp = o->GetInterpolationMode();
     if (f->HasBackgroundValue() || f->HasMask()) {
-      _InterpolateWithPadding = (interp != InterpolationWithoutPadding(interp));
+      _InterpolateWithPadding = IsInterpolationWithPadding(interp);
     } else {
       _InterpolateWithPadding = false;
     }
@@ -1016,23 +1041,21 @@ private:
   {
     switch (mode) {
       // Inside
-      case 1:
+      case 1: {
         if (_InterpolateWithPadding) {
           _GradientFunction->EvaluateWithPaddingInside(o, x, y, z, stride);
         } else {
           _GradientFunction->EvaluateInside(o, x, y, z, stride);
         }
-        break;
+      } break;
       // Boundary
-      case 0:
-        if (_PrecomputedDerivatives) {
-          if (_InterpolateWithPadding) {
-            _GradientFunction->EvaluateWithPaddingOutside(o, x, y, z, stride);
-          } else {
-            _GradientFunction->EvaluateOutside(o, x, y, z, stride);
-          }
-          break;
-        } // otherwise continue with Outside case
+      case 0: {
+        if (_InterpolateWithPadding) {
+          _GradientFunction->EvaluateWithPaddingOutside(o, x, y, z, stride);
+        } else {
+          _GradientFunction->EvaluateOutside(o, x, y, z, stride);
+        }
+      } break;
       // Outside
       default: {
         for (int c = 1; c <= 3; ++c, o += stride) *o = 0.;
@@ -1045,23 +1068,21 @@ private:
   {
     switch (mode) {
       // Inside
-      case 1:
+      case 1: {
         if (_InterpolateWithPadding) {
           _HessianFunction->EvaluateWithPaddingInside(o, x, y, z, stride);
         } else {
           _HessianFunction->EvaluateInside(o, x, y, z, stride);
         }
-        break;
+      } break;
       // Boundary
-      case 0:
-        if (_PrecomputedDerivatives) {
-          if (_InterpolateWithPadding) {
-            _HessianFunction->EvaluateWithPaddingOutside(o, x, y, z, stride);
-          } else {
-            _HessianFunction->EvaluateOutside(o, x, y, z, stride);
-          }
-          break;
-        } // otherwise continue with Outside case
+      case 0: {
+        if (_InterpolateWithPadding) {
+          _HessianFunction->EvaluateWithPaddingOutside(o, x, y, z, stride);
+        } else {
+          _HessianFunction->EvaluateOutside(o, x, y, z, stride);
+        }
+      } break;
       // Outside
       default: {
         for (int c = 4; c < _NumberOfChannels; ++c, o += stride) *o = 0.;
@@ -1381,13 +1402,7 @@ template <class Transformer>
 void RegisteredImage::Update1(const blocked_range3d<int> &region,
                               bool intensity, bool gradient, bool hessian)
 {
-  enum InterpolationMode interp;
-  if (_InterpolationMode == Interpolation_Default) {
-    interp = DefaultInterpolationMode();
-  } else {
-    interp = InterpolationWithoutPadding(_InterpolationMode);
-  }
-
+  const auto interp = InterpolationWithoutPadding(GetInterpolationMode());
   if (_PrecomputeDerivatives) {
     // Instantiate image functions for commonly used interpolation methods
     // to allow the compiler to generate optimized code for these
