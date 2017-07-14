@@ -16,18 +16,27 @@ env:
   - WITH_CCACHE=ON    # speed up MIRTK build itself using ccache
   - WITH_ARPACK=OFF   # requires time consuming build of gcc on macOS
   - WITH_UMFPACK=OFF  # ARPACK & UMFPACK dependencies come in pairs
-  - WITH_TBB=ON
-  - WITH_FLANN=ON
+  - WITH_TBB=ON       # build with TBB is always recommended
+  - WITH_FLANN=ON     # build with FLANN is optional, but requires only little extra build time
   matrix:
-  - WITH_VTK=OFF
-  - WITH_VTK=ON
+  - WITH_VTK=OFF      # make sure that MIRTK can be build fine without VTK
+  - WITH_VTK=ON       # test build with all moduldes, including those using VTK
 
 matrix:
   exclude:
+  # in order to reduce number of jobs to wait for, test only main compilers used on each OS
   - os: linux
     compiler: clang
   - os: osx
     compiler: g++
+  # travis-ci.org has low capacity for macOS jobs, thus reduce number of macOS jobs to
+  # only the essential ones. With the following, we only need to wait for one macOS job.
+  # Because on macOS usually a very recent VTK version is installed with Homebrew,
+  # it is more interesting to build with VTK on macOS than on Ubuntu. When the GCC build
+  # without VTK on Ubuntu succeeds, chances are very high it also builts fine on macOS.
+  - os: osx
+    compiler: clang
+    env: WITH_VTK=OFF
 
 cache:
   ccache: true
