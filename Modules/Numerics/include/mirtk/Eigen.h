@@ -1,9 +1,9 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2008-2015 Imperial College London
+ * Copyright 2008-2017 Imperial College London
  * Copyright 2008-2015 Daniel Rueckert, Julia Schnabel
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2013-2017 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,7 +31,16 @@
 #include "mirtk/Matrix.h"
 #include "mirtk/Vector.h"
 
+#if defined __clang__
+  #pragma clang diagnostic push
+  // Disable "'register' storage class specifier is deprecated" warning
+  #pragma clang diagnostic ignored "-Wdeprecated-register"
+#endif
 #include "Eigen/Core"
+#if defined __clang__
+  // Enable warnings again
+  #pragma clang diagnostic pop
+#endif
 
 
 namespace mirtk {
