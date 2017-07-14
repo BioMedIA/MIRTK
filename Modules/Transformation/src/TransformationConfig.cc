@@ -1,8 +1,8 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2013-2015 Imperial College London
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2013-2017 Imperial College London
+ * Copyright 2013-2017 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,7 +23,6 @@
 #ifndef MIRTK_AUTO_REGISTER
   #include "mirtk/SmoothnessConstraint.h"
   #include "mirtk/LogJacobianConstraint.h"
-  #include "mirtk/MinJacobianConstraint.h"
   #include "mirtk/TopologyPreservationConstraint.h"
   #include "mirtk/VolumePreservationConstraint.h"
   #include "mirtk/SparsityConstraint.h"
@@ -39,7 +38,6 @@ static void RegisterTransformationConstraints()
   #ifndef MIRTK_AUTO_REGISTER
     mirtkRegisterEnergyTermMacro(SmoothnessConstraint);
     mirtkRegisterEnergyTermMacro(LogJacobianConstraint);
-    mirtkRegisterEnergyTermMacro(MinJacobianConstraint);
     mirtkRegisterEnergyTermMacro(TopologyPreservationConstraint);
     mirtkRegisterEnergyTermMacro(VolumePreservationConstraint);
     mirtkRegisterEnergyTermMacro(SparsityConstraint);
