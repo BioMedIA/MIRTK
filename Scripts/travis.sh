@@ -81,5 +81,5 @@ run cmake -D CMAKE_INSTALL_PREFIX=$HOME/local \
       ${cmake_args[@]} \
       ..
 
-make -j $cpu_cores
+run make -j $cpu_cores
 [ $TESTING = OFF ] || make test

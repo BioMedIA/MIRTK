@@ -13,6 +13,11 @@ os:
 
 env:
   global:
+  # versions of VTK for each OS
+  # - On Ubuntu, use default version installed by apt-get
+  # - On macOS, build recent VTK version from sources and cache installation
+  - LINUX_VTK_VERSION=6.0.0
+  - MACOS_VTK_VERSION=8.0.0
   - WITH_CCACHE=ON    # speed up MIRTK build itself using ccache
   - WITH_ARPACK=OFF   # requires time consuming build of gcc on macOS
   - WITH_UMFPACK=OFF  # ARPACK & UMFPACK dependencies come in pairs
@@ -41,9 +46,16 @@ matrix:
 cache:
   ccache: true
   timeout: 1000
+  directories:
+  - $HOME/VTK-$LINUX_VTK_VERSION
+  - $HOME/VTK-$MACOS_VTK_VERSION
 
-before_install: Scripts/install_depends.sh
-script:         Scripts/travis.sh
+before_install:
+  - . Scripts/install_depends.sh  # sourcing should enable export of env variables
+  - cd $TRAVIS_BUILD_DIR          # working directory may have been changed
+
+script:
+  - Scripts/travis.sh
 
 notifications:
   email: false
