@@ -1,3 +1,6 @@
+dist: trusty
+sudo: required
+
 language: cpp
 
 compiler:
@@ -9,11 +12,26 @@ os:
   - osx
 
 env:
+  global:
+  - WITH_CCACHE=ON    # speed up MIRTK build itself using ccache
+  - WITH_ARPACK=OFF   # requires time consuming build of gcc on macOS
+  - WITH_UMFPACK=OFF  # ARPACK & UMFPACK dependencies come in pairs
+  - WITH_TBB=ON
+  - WITH_FLANN=ON
+  matrix:
   - WITH_VTK=OFF
   - WITH_VTK=ON
 
-dist: trusty
-sudo: required
+matrix:
+  exclude:
+  - os: linux
+    compiler: clang
+  - os: osx
+    compiler: g++
+
+cache:
+  ccache: true
+  timeout: 1000
 
 before_install: Scripts/install_depends.sh
 script:         Scripts/travis.sh

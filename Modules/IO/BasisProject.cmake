@@ -58,7 +58,7 @@ basis_project (
     #<dependency>
   OPTIONAL_DEPENDS
     PNG
-    "VTK-7|6{
+    "VTK-8|7|6{
       vtkCommonCore,
       vtkIOGeometry,
       vtkIOLegacy,
