@@ -1,8 +1,8 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2013-2015 Imperial College London
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2013-2017 Imperial College London
+ * Copyright 2013-2017 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -44,8 +44,7 @@ enum ConstraintMeasure
   CM_L0Norm               = EM_L0Norm,               ///< Sparsity constraint based on l0-norm
   CM_L1Norm               = EM_L1Norm,               ///< Sparsity constraint based on l1-norm
   CM_L2Norm               = EM_L2Norm,               ///< Sparsity constraint based on l2-norm
-  CM_SqLogDetJac          = EM_SqLogDetJac,          ///< Squared logarithm of the Jacobian determinant
-  CM_MinDetJac            = EM_MinDetJac,            ///< Constrain minimum Jacobian determinant
+  CM_SqLogDetJac          = EM_SqLogDetJac           ///< Squared logarithm of the Jacobian determinant
 };
 
 // -----------------------------------------------------------------------------
