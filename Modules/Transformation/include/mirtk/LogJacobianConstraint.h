@@ -1,8 +1,8 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2013-2015 Imperial College London
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2013-2017 Imperial College London
+ * Copyright 2013-2017 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -69,13 +69,18 @@ public:
     return det;
   }
 
-protected:
+  /// Evaluate penalty at control point location given Jacobian determinant value
+  virtual double Penalty(double det) const
+  {
+    double logdet = log(det);
+    return logdet * logdet;
+  }
 
-  /// Compute penalty for current transformation estimate
-  virtual double Evaluate();
-
-  /// Compute gradient of penalty term w.r.t transformation parameters
-  virtual void EvaluateGradient(double *, double, double);
+  /// Evaluate penalty derivative at control point location w.r.t. Jacobian determinant value
+  virtual double DerivativeWrtJacobianDet(double det) const
+  {
+    return 2.0 * log(det) / det;
+  }
 
 };
 
