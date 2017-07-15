@@ -929,7 +929,7 @@ void Histogram2D<HistogramType>::Read(const char *filename)
   }
 
   from >> buffer;
-  if (strcmp(buffer, "Histogram2D") != 0) {
+  if (strcmp(buffer, "irtkHistogram2D") != 0) {
     cerr << "Histogram2D<HistogramType>::Read: Invalid format" << endl;
     exit(1);
   }
@@ -968,7 +968,7 @@ void Histogram2D<HistogramType>::Write(const char *filename) const
     cerr << "Histogram2D<HistogramType>::Write: Can't open file " << filename << endl;
     exit(1);
   }
-  to << "Histogram2D\n";
+  to << "irtkHistogram2D\n";
   to << _nbins_x << " "
      << _nbins_y << " "
      << _nsamp << " "
