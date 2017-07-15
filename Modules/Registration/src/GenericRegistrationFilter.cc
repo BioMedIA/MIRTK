@@ -1144,6 +1144,16 @@ enum ExtrapolationMode GenericRegistrationFilter::ExtrapolationMode(int n) const
   }
 }
 
+// -----------------------------------------------------------------------------
+double GenericRegistrationFilter::BackgroundValue(int n) const
+{
+  if (n < 0 || static_cast<size_t>(n) >= _Background.size()) {
+    return _DefaultBackground;
+  } else {
+    return _Background[n];
+  }
+}
+
 // =============================================================================
 // Input points, lines, and/or surfaces
 // =============================================================================
