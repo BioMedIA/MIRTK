@@ -1,8 +1,8 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2013-2015 Imperial College London
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2013-2017 Imperial College London
+ * Copyright 2013-2017 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -81,6 +81,7 @@ void PrintUsage(const char* name)
   cout << "Optional arguments:\n";
   cout << "  -model  <name>          Transformation model(s). (default: Rigid+Affine+FFD)\n";
   cout << "  -image  <file>...       Input image(s) to be registered.\n";
+  cout << "  -output <file>          Write (first) transformed source image to specified file.\n";
 #if MIRTK_Registration_WITH_PointSet
   cout << "  -pset <file>...         Input points, curve(s), surface(s), and/or other simplicial complex(es).\n";
 #endif
@@ -129,8 +130,14 @@ void PrintHelp(const char* name)
   cout << "  use the -par option on the command-line. To enable volume preservation, set the\n";
   cout << "  parameter \"Volume preservation weight\" to a positive value.\n";
   cout << "\n";
-  cout << "Required arguments:\n";
+  cout << "Output options:\n";
   cout << "  -dofout <file>    Write transformation to specified file.\n";
+  cout << "  -output <file>    Write (first) transformed source image to specified file.\n";
+  cout << "                    Given the flexibility of the energy function formulation,\n";
+  cout << "                    this option may not always give the desired output and is\n";
+  cout << "                    limited to standard pairwise image registration using a\n";
+  cout << "                    single image dissimilarity term. Use transform-image command\n";
+  cout << "                    with the :option:`-dofout` file as input otherwise.\n";
   cout << "\n";
   cout << "Input options:\n";
   cout << "  -image <file>...\n";
@@ -211,7 +218,7 @@ void PrintHelp(const char* name)
   cout << "      with the local free-form deformations at each resolution level. (default: Sum)\n";
   cout << "  -sim <value>\n";
   cout << "      Specifies concrete \"Image (dis-)similarity\" measure of SIM \"Energy function\" term.\n";
-  cout << "      Most often used measures are MSE/SSD, NMI, and NCC/LNCC.\n";
+  cout << "      Most often used measures are MSE/SSD, NMI, and NCC/LNCC. (default: NMI)\n";
   cout << "  -bins <n>\n";
   cout << "      \"No. of bins\" used for NMI image similarity measure.\n";
   cout << "  -window <width> [<units> [<type>]]\n";
@@ -232,16 +239,18 @@ void PrintHelp(const char* name)
   cout << "      When images are given as input, the default number of levels is 4 and 1 otherwise.\n";
   cout << "  -level <n>\n";
   cout << "      Alias for :option:`-levels` <n> <n> which only performs the registration on a single level.\n";
+  cout << "  -bg, -background, -padding <value>\n";
+  cout << "      \"Background value\" (threshold) of input and output images (default: none)\n";
   cout << "  -ds <width>\n";
-  cout << "      \"Control point spacing\" of free-form deformation on highest resolution level.\n";
+  cout << "      \"Control point spacing\" of free-form deformation on highest resolution level. (default: 4x min voxel size)\n";
   cout << "  -be <w>\n";
-  cout << "      \"Bending energy weight\" of free-form deformation.\n";
+  cout << "      \"Bending energy weight\" of free-form deformation. (default: 0.001)\n";
   cout << "  -vp <w>\n";
-  cout << "      \"Volume preservation weight\" of free-form deformation.\n";
+  cout << "      \"Volume preservation weight\" of free-form deformation. (default: 0)\n";
   cout << "  -jl, -jac <w>\n";
   cout << "      \"Jacobian penalty weight\" of free-form deformation. For a classic FFD transformation model\n";
   cout << "      this penalty term is equivalent to the volume preservation term. When applied to the SVFFD\n";
-  cout << "      model, however, this penalty applies to the Jacobian determinant of the velocity field.\n";
+  cout << "      model, however, this penalty applies to the Jacobian determinant of the velocity field. (default: 0)\n";
   cout << "  -parout <file>\n";
   cout << "      Write parameters to the named configuration file. Note that after initialization of\n";
   cout << "      the registration, an interim configuration file is written. This file is overwritten\n";
@@ -651,15 +660,16 @@ int main(int argc, char **argv)
 
   // Optional arguments
   bool debug_output_level_prefix = true;
-  const char *image_list_name    = NULL;
-  const char *dofin_list_name    = NULL;
-  const char *pset_list_name     = NULL;
-  const char *dofin_name         = NULL;
-  const char *dofout_name        = NULL;
-  const char *tgtdof_name        = NULL;
-  const char *parin_name         = NULL;
-  const char *parout_name        = NULL;
-  const char *mask_name          = NULL;
+  const char *image_list_name    = nullptr;
+  const char *dofin_list_name    = nullptr;
+  const char *pset_list_name     = nullptr;
+  const char *dofin_name         = nullptr;
+  const char *dofout_name        = nullptr;
+  const char *imgout_name        = nullptr;
+  const char *tgtdof_name        = nullptr;
+  const char *parin_name         = nullptr;
+  const char *parout_name        = nullptr;
+  const char *mask_name          = nullptr;
   bool        reset_mask         = false;
   ParameterList params;
 
@@ -734,6 +744,7 @@ int main(int argc, char **argv)
     else if (OPTION("-dofins")) dofin_list_name = ARGUMENT;
     else if (OPTION("-dofin" )) dofin_name      = ARGUMENT;
     else if (OPTION("-dofout")) dofout_name     = ARGUMENT;
+    else if (OPTION("-output")) imgout_name     = ARGUMENT;
     else if (OPTION("-disp"))   tgtdof_name     = ARGUMENT;
     else if (OPTION("-mask"))   mask_name       = ARGUMENT;
     else HANDLE_BOOLEAN_OPTION("reset-mask", reset_mask);
@@ -818,19 +829,22 @@ int main(int argc, char **argv)
       PARSE_ARGUMENT(w);
       Insert(params, "Jacobian penalty weight", w);
     }
+    else if (OPTION("-padding") || OPTION("-bg") || OPTION("-background")) {
+      double v;
+      PARSE_ARGUMENT(v);
+      Insert(params, "Background value", v);
+    }
     // Unknown option
     else HANDLE_COMMON_OR_UNKNOWN_OPTION();
   }
 
-  if (!dofout_name) {
-    cerr << "Error: Missing -dofout argument" << endl;
-    exit(1);
+  if (!dofout_name && !imgout_name) {
+    FatalError("Either -dofout (recommended) or -output option argument required! Use -dofout none to not write any output.");
   }
 
   // TODO: Read initial transformations from list file (cf. obsolete tdreg)
   if (dofin_list_name) {
-    cerr << "Option -dofins currently not implemented" << endl;
-    exit(1);
+    FatalError("Option -dofins currently not implemented");
   }
 
   // ---------------------------------------------------------------------------
@@ -1128,6 +1142,8 @@ int main(int argc, char **argv)
 #endif
 
   registration.Run();
+  registration.DeleteObserver(logger);
+  registration.DeleteObserver(debugger);
 
   if (verbose) {
     cout << "\n";
@@ -1157,10 +1173,32 @@ int main(int argc, char **argv)
   // Write actual parameters used to file
   if (parout_name) registration.Write(parout_name);
 
+  // Write (first) transformed source image
+  if (imgout_name) {
+    int t = -1, s = -1;
+    for (int n = 0; n < registration.NumberOfImages(); ++n) {
+      if (t == -1 && registration.IsTargetImage(n)) t = n;
+      if (s == -1 && registration.IsSourceImage(n)) s = n;
+    }
+    if (t == -1 || s == -1 || t == s) {
+      delete dofout;
+      FatalError("Sorry, could not determine which input image to resample on which target domain to write -output image. Use transform-image command instead.");
+    }
+    RegisteredImage output;
+    RegisteredImage::InputImageType input(*images[s]);
+    input.PutBackgroundValueAsDouble(registration.BackgroundValue(s));
+    output.InputImage(&input);
+    output.Transformation(dofout);
+    output.InterpolationMode(registration.InterpolationMode(s));
+    output.ExtrapolationMode(registration.ExtrapolationMode(s));
+    output.PutBackgroundValueAsDouble(registration.BackgroundValue(s));
+    output.Initialize(images[t]->Attributes());
+    output.Update(true, false, false, true);
+    output.Write(imgout_name);
+  }
+
   // Clean up
   delete dofout;
-  registration.DeleteObserver(logger);
-  registration.DeleteObserver(debugger);
 
   return 0;
 }

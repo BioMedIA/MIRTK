@@ -515,6 +515,9 @@ public:
   /// Get extrapolation mode of n-th input image or default mode, respectively
   enum ExtrapolationMode ExtrapolationMode(int = -1) const;
 
+  /// Get background value of n-th input image (after registration done)
+  double BackgroundValue(int) const;
+
   // ---------------------------------------------------------------------------
   // Input simplicial complexes (points, curves, surfaces, tetrahedral meshes)
 
