@@ -1109,7 +1109,7 @@ void GenericRegistrationFilter::InterpolationMode(int n, enum InterpolationMode 
 }
 
 // -----------------------------------------------------------------------------
-enum InterpolationMode GenericRegistrationFilter::InterpolationMode(int n)
+enum InterpolationMode GenericRegistrationFilter::InterpolationMode(int n) const
 {
   if (n < 0 || static_cast<size_t>(n) >= _InterpolationMode.size() || _InterpolationMode[n] == Interpolation_Default) {
     return _DefaultInterpolationMode;
@@ -1135,7 +1135,7 @@ void GenericRegistrationFilter::ExtrapolationMode(int n, enum ExtrapolationMode 
 }
 
 // -----------------------------------------------------------------------------
-enum ExtrapolationMode GenericRegistrationFilter::ExtrapolationMode(int n)
+enum ExtrapolationMode GenericRegistrationFilter::ExtrapolationMode(int n) const
 {
   if (n < 0 || static_cast<size_t>(n) >= _ExtrapolationMode.size() || _ExtrapolationMode[n] == Extrapolation_Default) {
     return _DefaultExtrapolationMode;
