@@ -230,7 +230,7 @@ void PrintHelp(const char* name)
   cout << "      standard deviation, full width at half maximum, or full width at tenth maximum,\n";
   cout << "      respectively. The default is a box window with uniform weights for each voxel.\n";
   cout << "  -interp, -interpolation <mode>\n";
-  cout << "      \"Image interpolation\" mode. (default: \"Fast linear\")\n";
+  cout << "      \"Image interpolation\" mode. (default: \"Fast linear [with padding]\")\n";
   cout << "  -extrap, -extrapolation <mode>\n";
   cout << "      \"Image extrapolation\" mode. (default: \"Default\" for used interpolation mode)\n";
   cout << "  -levels <from> [<to>]\n";
