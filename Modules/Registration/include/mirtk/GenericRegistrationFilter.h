@@ -504,7 +504,7 @@ public:
   void InterpolationMode(int, enum InterpolationMode);
 
   /// Get interpolation mode of n-th input image or default mode, respectively
-  enum InterpolationMode InterpolationMode(int = -1);
+  enum InterpolationMode InterpolationMode(int = -1) const;
 
   /// Set common/default extrapolation mode for all input images
   void ExtrapolationMode(enum ExtrapolationMode);
@@ -513,7 +513,7 @@ public:
   void ExtrapolationMode(int, enum ExtrapolationMode);
 
   /// Get extrapolation mode of n-th input image or default mode, respectively
-  enum ExtrapolationMode ExtrapolationMode(int = -1);
+  enum ExtrapolationMode ExtrapolationMode(int = -1) const;
 
   // ---------------------------------------------------------------------------
   // Input simplicial complexes (points, curves, surfaces, tetrahedral meshes)
