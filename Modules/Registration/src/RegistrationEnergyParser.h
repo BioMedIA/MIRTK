@@ -1,8 +1,8 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2013-2015 Imperial College London
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2013-2017 Imperial College London
+ * Copyright 2013-2017 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -179,10 +179,60 @@ class RegistrationEnergyParser
       case '0': case '1': case '2': case '3': case '4':
       case '5': case '6': case '7': case '8': case '9':
       case '.': {
-        in.putback(c);
-        double number = .0;
-        in >> number;
-        return number;
+        string number(1, c);
+        bool before_decimal_point = (c != '.');
+        while (in.get(c)) {
+          if (isdigit(c) || (c == '.' && before_decimal_point)) {
+            if (c == '.') before_decimal_point = false;
+            number += c;
+          } else if (c == 'e' || c == 'E') {
+            bool is_next_token = false;
+            string exponent(1, c);
+            if (in.get(c)) {
+              exponent += c;
+              if (c == '-' || c == '+') {
+                if (in.get(c)) {
+                  exponent += c;
+                  if (!isdigit(c)) {
+                    is_next_token = true;
+                  }
+                } else {
+                  is_next_token = true;
+                }
+              } else if (!isdigit(c)) {
+                is_next_token = true;
+              }
+              if (!is_next_token) {
+                while (in.get(c)) {
+                  if (isdigit(c)) {
+                    exponent += c;
+                  } else {
+                    in.putback(c);
+                    break;
+                  }
+                }
+              }
+            } else {
+              is_next_token = true;
+            }
+            if (is_next_token) {
+              for (auto it = exponent.rbegin(); it != exponent.rend(); ++it) {
+                in.putback(*it);
+              }
+            } else {
+              number += exponent;
+            }
+            break;
+          } else {
+            in.putback(c);
+            break;
+          }
+        }
+        double value = .0;
+        if (!FromString(number, value)) {
+          in.setstate(std::ios::failbit);
+        }
+        return value;
       }
       case 'o': {
         char c2;
@@ -480,11 +530,12 @@ protected:
   void ParseEnergyTerm(istream &in, Token &token, int nimages, int npsets)
   {
     double weight = Number(in, token);
-
-    if (token == MUL) token = NextToken(in);
+    if (token == MUL) {
+      token = NextToken(in);
+    }
     if (token != NAME) {
       cout << endl;
-      cerr << "Expected similarity or constraint name" << endl;
+      cerr << "Expected similarity or constraint name after optional weight value" << endl;
       exit(1);
     }
 
