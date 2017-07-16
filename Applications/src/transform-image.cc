@@ -947,7 +947,7 @@ int main(int argc, char **argv)
         cout << "Making hard segmentation...";
         cout.flush();
       }
-      FuzzySeg::VoxelType eps = .5 * voxel_limits<FuzzySeg::VoxelType>::max();
+      FuzzySeg::VoxelType eps = static_cast<FuzzySeg::VoxelType>(.5 * voxel_limits<FuzzySeg::VoxelType>::max());
       output.reset(MakeHardSegmentation(source, probs, ToArray(labels), map, eps));
       if (verbose) cout << " done" << endl;
 

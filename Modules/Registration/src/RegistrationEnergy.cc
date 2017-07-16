@@ -177,7 +177,7 @@ void RegistrationEnergy::Initialize()
   _Transformation->Changed(true);
 
   // Initialize energy terms
-  for (size_t i = 0; i < _Term.size(); ++i) {
+  for (int i = 0; i < NumberOfTerms(); ++i) {
     if (IsActive(i)) {
       _Term[i]->Transformation(_Transformation);
       _Term[i]->Initialize();
@@ -187,7 +187,7 @@ void RegistrationEnergy::Initialize()
   // Adjust weight of sparsity constraint
   SparsityConstraint *sparsity;
   int                 nsparsity = 0;
-  for (size_t i = 0; i < _Term.size(); ++i) {
+  for (int i = 0; i < NumberOfTerms(); ++i) {
     if ((sparsity = dynamic_cast<SparsityConstraint *>(_Term[i]))) {
       const double weight = sparsity->Weight();
       if (weight == .0) continue;
@@ -208,7 +208,7 @@ void RegistrationEnergy::Initialize()
       // (excl. sparsity, non-normalized, non-conjugated)
       const int ndofs  = _Transformation->NumberOfDOFs();
       double *gradient = CAllocate<double>(ndofs);
-      for (size_t j = 0; j < _Term.size(); ++j) {
+      for (int j = 0; j < NumberOfTerms(); ++j) {
         if (j != i) _Term[j]->Gradient(gradient, _StepLength);
       }
 
@@ -234,7 +234,9 @@ void RegistrationEnergy::Initialize()
 // -----------------------------------------------------------------------------
 void RegistrationEnergy::Clear()
 {
-  for (size_t i = 0; i < _Term.size(); ++i) delete _Term[i];
+  for (int i = 0; i < NumberOfTerms(); ++i) {
+    delete _Term[i];
+  }
   _Term.clear();
 }
 
@@ -263,16 +265,10 @@ bool RegistrationEnergy::IsConstraint(int i) const
 }
 
 // -----------------------------------------------------------------------------
-int RegistrationEnergy::NumberOfTerms() const
-{
-  return static_cast<int>(_Term.size());
-}
-
-// -----------------------------------------------------------------------------
 int RegistrationEnergy::NumberOfActiveTerms() const
 {
   int nactive = 0;
-  for (size_t i = 0; i < _Term.size(); ++i) {
+  for (int i = 0; i < NumberOfTerms(); ++i) {
     if (IsActive(i)) ++nactive;
   }
   return nactive;
@@ -282,7 +278,7 @@ int RegistrationEnergy::NumberOfActiveTerms() const
 int RegistrationEnergy::NumberOfDataTerms() const
 {
   int n = 0;
-  for (size_t i = 0; i < _Term.size(); ++i) {
+  for (int i = 0; i < NumberOfTerms(); ++i) {
     if (IsDataTerm(i)) ++n;
   }
   return n;
@@ -292,7 +288,7 @@ int RegistrationEnergy::NumberOfDataTerms() const
 int RegistrationEnergy::NumberOfConstraints() const
 {
   int n = 0;
-  for (size_t i = 0; i < _Term.size(); ++i) {
+  for (int i = 0; i < NumberOfTerms(); ++i) {
     if (IsConstraint(i)) ++n;
   }
   return n;
@@ -350,7 +346,7 @@ bool RegistrationEnergy::Set(const char *name, const char *value)
   }
   // Energy term parameter
   bool known = false;
-  for (size_t i = 0; i < _Term.size(); ++i) {
+  for (int i = 0; i < NumberOfTerms(); ++i) {
     known = _Term[i]->Set(name, value) || known;
   }
   return known;
@@ -360,7 +356,7 @@ bool RegistrationEnergy::Set(const char *name, const char *value)
 ParameterList RegistrationEnergy::Parameter() const
 {
   ParameterList params;
-  for (size_t i = 0; i < _Term.size(); ++i) {
+  for (int i = 0; i < NumberOfTerms(); ++i) {
     Insert(params, _Term[i]->Parameter());
   }
   Insert(params, "Normalize energy gradients (experimental)", _NormalizeGradients);
@@ -409,7 +405,7 @@ void RegistrationEnergy::Update(bool gradient)
   // input moving images and updates them all at once in predefined order.
   if (_Transformation->Changed() || gradient) {
     MIRTK_START_TIMING();
-    for (size_t i = 0; i < _Term.size(); ++i) {
+    for (int i = 0; i < NumberOfTerms(); ++i) {
       if (IsActive(i)) {
         _Term[i]->Update(gradient);
         _Term[i]->ResetValue(); // in case energy term does not do this
@@ -425,7 +421,7 @@ void RegistrationEnergy::Update(bool gradient)
 bool RegistrationEnergy::Upgrade()
 {
   bool changed = false;
-  for (size_t i = 0; i < _Term.size(); ++i) {
+  for (int i = 0; i < NumberOfTerms(); ++i) {
     if (IsActive(i) && _Term[i]->Upgrade()) {
       _Term[i]->ResetValue();
       changed = true;
@@ -445,7 +441,7 @@ void RegistrationEnergy::Put(const double *x)
 {
   _Transformation->Put(x);
   _Transformation->Changed(true); // in case Put does not do this
-  for (size_t i = 0; i < _Term.size(); ++i) {
+  for (int i = 0; i < NumberOfTerms(); ++i) {
     _Term[i]->ResetValue();
   }
 }
@@ -467,7 +463,7 @@ double RegistrationEnergy::Step(double *dx)
 {
   double max_delta = _Transformation->Update(dx);
   if (max_delta > .0) _Transformation->Changed(true); // in case Update does not do this
-  for (size_t i = 0; i < _Term.size(); ++i) {
+  for (int i = 0; i < NumberOfTerms(); ++i) {
     _Term[i]->ResetValue();
   }
   return max_delta;
@@ -489,7 +485,7 @@ double RegistrationEnergy::InitialValue()
   MIRTK_START_TIMING();
 
   double value, sum = .0;
-  for (size_t i = 0; i < _Term.size(); ++i) {
+  for (int i = 0; i < NumberOfTerms(); ++i) {
     if (IsActive(i) && (!_ExcludeConstraints || !IsConstraint(i))) {
       value = _Term[i]->InitialValue();
     } else {
@@ -520,7 +516,7 @@ double RegistrationEnergy::Value()
   MIRTK_START_TIMING();
 
   double value, sum = .0;
-  for (size_t i = 0; i < _Term.size(); ++i) {
+  for (int i = 0; i < NumberOfTerms(); ++i) {
     if (IsActive(i) && (!_ExcludeConstraints || !IsConstraint(i))) {
       value = _Term[i]->Value();
     } else {
@@ -611,7 +607,7 @@ void RegistrationEnergy::Gradient(double *gradient, double step, bool *sgn_chg)
   // gradient changes the sign of the energy gradient.
   if (_NormalizeGradients) {
     double W = .0;
-    for (size_t i = 0; i < _Term.size(); ++i) {
+    for (int i = 0; i < NumberOfTerms(); ++i) {
       sparsity = dynamic_cast<SparsityConstraint *>(_Term[i]);
       if (sparsity) continue;
       W += abs(_Term[i]->Weight());
@@ -620,7 +616,7 @@ void RegistrationEnergy::Gradient(double *gradient, double step, bool *sgn_chg)
       cerr << "RegistrationEnergy::Gradient: All energy terms have zero weight!" << endl;
       exit(1);
     }
-    for (size_t i = 0; i < _Term.size(); ++i) {
+    for (int i = 0; i < NumberOfTerms(); ++i) {
       if (IsActive(i)) {
         sparsity = dynamic_cast<SparsityConstraint *>(_Term[i]);
         if (sparsity) continue;
@@ -631,7 +627,7 @@ void RegistrationEnergy::Gradient(double *gradient, double step, bool *sgn_chg)
       }
     }
   } else {
-    for (size_t i = 0; i < _Term.size(); ++i) {
+    for (int i = 0; i < NumberOfTerms(); ++i) {
       if (IsActive(i)) {
         sparsity = dynamic_cast<SparsityConstraint *>(_Term[i]);
         if (sparsity) continue;
@@ -641,7 +637,7 @@ void RegistrationEnergy::Gradient(double *gradient, double step, bool *sgn_chg)
   }
 
   // Add sparsity constraint gradient
-  for (size_t i = 0; i < _Term.size(); ++i) {
+  for (int i = 0; i < NumberOfTerms(); ++i) {
     if (IsActive(i)) {
       sparsity = dynamic_cast<SparsityConstraint *>(_Term[i]);
       if (sparsity) {
@@ -683,7 +679,7 @@ double RegistrationEnergy::GradientNorm(const double *dx) const
 // -----------------------------------------------------------------------------
 void RegistrationEnergy::GradientStep(const double *dx, double &min, double &max) const
 {
-  for (size_t i = 0; i < _Term.size(); ++i) {
+  for (int i = 0; i < NumberOfTerms(); ++i) {
     if (IsActive(i)) {
       _Term[i]->GradientStep(dx, min, max);
     }
@@ -710,7 +706,7 @@ double RegistrationEnergy::Evaluate(double *dx, double step, bool *sgn_chg)
 // -----------------------------------------------------------------------------
 void RegistrationEnergy::WriteDataSets(const char *prefix, const char *suffix, bool all) const
 {
-  for (size_t i = 0; i < _Term.size(); ++i) {
+  for (int i = 0; i < NumberOfTerms(); ++i) {
     if (IsActive(i)) {
       _Term[i]->WriteDataSets(prefix, suffix, all);
     }
@@ -720,7 +716,7 @@ void RegistrationEnergy::WriteDataSets(const char *prefix, const char *suffix, b
 // -----------------------------------------------------------------------------
 void RegistrationEnergy::WriteGradient(const char *prefix, const char *suffix) const
 {
-  for (size_t i = 0; i < _Term.size(); ++i) {
+  for (int i = 0; i < NumberOfTerms(); ++i) {
     if (IsActive(i)) {
       _Term[i]->WriteGradient(prefix, suffix);
     }

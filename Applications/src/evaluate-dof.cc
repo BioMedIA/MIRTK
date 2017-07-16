@@ -213,7 +213,7 @@ int main(int argc, char **argv)
       dof.Read(fname.c_str());
       residual += dof.GetMatrix().Log();
     }
-    residual /= dofin_name.size();
+    residual /= static_cast<double>(dofin_name.size());
     cout << residual.Norm() << endl;
 
   } else {
