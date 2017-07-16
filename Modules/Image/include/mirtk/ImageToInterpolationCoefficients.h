@@ -490,7 +490,7 @@ void FillBackgroundBeforeConversionToSplineCoefficients(GenericImage<TData> &ima
             }
           }
         }
-        value /= count;
+        value /= static_cast<float>(count);
         image.Put(idx, value);
         bg(idx) = 0;
       }

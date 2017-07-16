@@ -1109,7 +1109,7 @@ void GenericRegistrationFilter::InterpolationMode(int n, enum InterpolationMode 
 }
 
 // -----------------------------------------------------------------------------
-enum InterpolationMode GenericRegistrationFilter::InterpolationMode(int n)
+enum InterpolationMode GenericRegistrationFilter::InterpolationMode(int n) const
 {
   if (n < 0 || static_cast<size_t>(n) >= _InterpolationMode.size() || _InterpolationMode[n] == Interpolation_Default) {
     return _DefaultInterpolationMode;
@@ -1135,12 +1135,22 @@ void GenericRegistrationFilter::ExtrapolationMode(int n, enum ExtrapolationMode 
 }
 
 // -----------------------------------------------------------------------------
-enum ExtrapolationMode GenericRegistrationFilter::ExtrapolationMode(int n)
+enum ExtrapolationMode GenericRegistrationFilter::ExtrapolationMode(int n) const
 {
   if (n < 0 || static_cast<size_t>(n) >= _ExtrapolationMode.size() || _ExtrapolationMode[n] == Extrapolation_Default) {
     return _DefaultExtrapolationMode;
   } else {
     return _ExtrapolationMode[n];
+  }
+}
+
+// -----------------------------------------------------------------------------
+double GenericRegistrationFilter::BackgroundValue(int n) const
+{
+  if (n < 0 || static_cast<size_t>(n) >= _Background.size()) {
+    return _DefaultBackground;
+  } else {
+    return _Background[n];
   }
 }
 
@@ -2593,6 +2603,33 @@ void GenericRegistrationFilter::GuessParameter()
     _CropPadFFD = (_Domain == nullptr && !IsDiffeo(_TransformationModel) ? 1 : 0);
   }
 
+  // Compute centers of foreground mass (if needed)
+  bool centering = false;
+  for (int l = 1; !centering && l <= _NumberOfLevels; ++l) {
+    centering = (_Centering[l] != 0 ? true : false);
+  }
+  if (centering) {
+    centering = (NumberOfImages() > 0);
+    for (int n = 0; centering && n < NumberOfImages(); ++n) {
+      centering = _Input[n]->GetAffineMatrix().IsIdentity();
+    }
+  }
+  if (NumberOfImages() > 0 && (!_InitialGuess || centering)) {
+    if (_Centroid.empty()) {
+      Broadcast(LogEvent, "Computing centroids .....");
+      _Centroid.resize(NumberOfImages());
+      for (int n = 0; n < NumberOfImages(); ++n) {
+        if (_Input[n]->CenterOfForeground(_Centroid[n], _Background[n]) == 0) {
+          Broadcast(LogEvent, " failed\n");
+          Throw(ERR_InvalidArgument, "Input image ", n + 1, " contains background only!");
+        }
+      }
+      Broadcast(LogEvent, " done\n");
+    }
+  } else {
+    _Centroid.clear();
+  }
+
   // Optimization parameters
   double value;
 
@@ -2720,7 +2757,9 @@ void GenericRegistrationFilter::Run()
 
   // Make initial guess of transformation if none provided
   const Transformation * const dofin = _InitialGuess;
-  if (!_InitialGuess) _InitialGuess = this->MakeInitialGuess();
+  if (!_InitialGuess && IsLinear(_TransformationModel.front())) {
+    _InitialGuess = this->MakeInitialGuess();
+  }
 
   MIRTK_DEBUG_TIMING(1, "initialization of registration");
 
@@ -2789,39 +2828,13 @@ void GenericRegistrationFilter::MultiResolutionOptimization()
 // -----------------------------------------------------------------------------
 void GenericRegistrationFilter::InitializePyramid()
 {
+  MIRTK_START_TIMING();
+
   // Note: Level indices are in the range [1, N]
   const blocked_range  <int> images (0,  NumberOfImages());
   const blocked_range  <int> levels (1, _NumberOfLevels + 1);
   const blocked_range2d<int> pyramid(1, _NumberOfLevels + 1, 0, NumberOfImages());
   const blocked_range  <int> &level = images;
-
-  // Compute centers of foreground mass (if needed)
-  bool centering = false;
-  for (int l = 1; !centering && l <= _NumberOfLevels; ++l) {
-    centering = (_Centering[l] != 0 ? true : false);
-  }
-  if (centering) {
-    centering = (NumberOfImages() > 0);
-    for (int n = 0; centering && n < NumberOfImages(); ++n) {
-      centering = _Input[n]->GetAffineMatrix().IsIdentity();
-    }
-  }
-  if (NumberOfImages() > 0 && (!_InitialGuess || centering)) {
-    Broadcast(LogEvent, "Computing centroids .....");
-    _Centroid.resize(NumberOfImages());
-    for (int n = 0; n < NumberOfImages(); ++n) {
-      if (_Input[n]->CenterOfForeground(_Centroid[n], _Background[n]) == 0) {
-        Broadcast(LogEvent, " failed\n");
-        cerr << "Error: Input image " << (n + 1) << " contains background only!" << endl;
-        exit(1);
-      }
-    }
-    Broadcast(LogEvent, " done\n");
-  } else {
-    _Centroid.clear();
-  }
-
-  MIRTK_START_TIMING();
 
   // Allocate image list for each level even if empty
   _Image.resize(_NumberOfLevels + 1);
@@ -3496,11 +3509,11 @@ void GenericRegistrationFilter::InitializeTransformation()
 // -----------------------------------------------------------------------------
 Transformation *GenericRegistrationFilter::MakeInitialGuess()
 {
-  Transformation *dofin = NULL;
+  UniquePtr<Transformation> dofin;
 
   // Use identity transformation as initial guess for longitudinal registration
   if (_RegistrationDomain._t > 2 || (_RegistrationDomain._t == 2 && IsSpatioTemporal(_TransformationModel))) {
-    return NULL;
+    return nullptr;
   }
 
   double tx = .0, ty = .0, tz = .0;
@@ -3549,15 +3562,15 @@ Transformation *GenericRegistrationFilter::MakeInitialGuess()
   // Set initial translation to average displacement of input data centroids
   if (n > 0) {
     Broadcast(LogEvent, "Make initial guess ......");
-    RigidTransformation *rigid = new RigidTransformation();
+    UniquePtr<RigidTransformation> rigid(new RigidTransformation());
     rigid->PutTranslationX(tx / n);
     rigid->PutTranslationY(ty / n);
     rigid->PutTranslationZ(tz / n);
-    dofin = rigid;
+    dofin.reset(rigid.release());
     Broadcast(LogEvent, " done\n");
   }
 
-  return dofin;
+  return dofin.release();
 }
 
 // -----------------------------------------------------------------------------

@@ -99,7 +99,7 @@ Histogram1D<HistogramType>::Histogram1D(const char *filename)
   }
   char buffer[255];
   from >> buffer;
-  if (strcmp(buffer, "Histogram1D") != 0) {
+  if (strcmp(buffer, "irtkHistogram1D") != 0) {
     cerr << "Histogram1D::Read: Invalid format" << endl;
     exit(1);
   }
@@ -405,7 +405,7 @@ void Histogram1D<HistogramType>::Write(const char *filename) const
     cerr << "Histogram1D::Write: Can't open file " << filename << endl;
     exit(1);
   }
-  to << "Histogram1D\n";
+  to << "irtkHistogram1D\n";
   to << _nbins << " " << _nsamp << " " << _min << " " << _max << " " << _width << "\n";
   for (int i = 0; i < _nbins; ++i) to << _bins[i] << "\n";
   to.close();

@@ -1564,7 +1564,6 @@ inline bool BaseImage::IsBoundingBoxInsideForeground(int i1, int j1,
       }
     }
   } else if (_bgSet) {
-    double value;
     for (int j = j1; j != j2; j++) {
       for (int i = i1; i != i2; i++) {
         if (AreEqualOrNaN(this->GetAsDouble(i, j), _bg, 1e-6)) return false;
@@ -1590,7 +1589,6 @@ inline bool BaseImage::IsBoundingBoxInsideForeground(int i1, int j1, int k1,
       }
     }
   } else if (_bgSet) {
-    double value;
     for (int k = k1; k != k2; k++) {
       for (int j = j1; j != j2; j++) {
         for (int i = i1; i != i2; i++) {

@@ -1,8 +1,8 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2013-2015 Imperial College London
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2013-2017 Imperial College London
+ * Copyright 2013-2017 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,6 +25,10 @@
 #include "mirtk/Stream.h"
 #include "mirtk/Memory.h"
 
+#ifndef MIRTK_COMMON_WITH_TBB_MALLOC
+#  define MIRTK_COMMON_WITH_TBB_MALLOC 0
+#endif
+
 #ifdef HAVE_TBB
 // TBB includes windows header which defines min/max macros otherwise
 #  ifndef NOMINMAX
@@ -38,8 +42,10 @@
 #  include <tbb/parallel_for.h>
 #  include <tbb/parallel_reduce.h>
 #  include <tbb/concurrent_queue.h>
-#  include <tbb/scalable_allocator.h>
-#  include <tbb/cache_aligned_allocator.h>
+#  if MIRTK_COMMON_WITH_TBB_MALLOC
+#    include <tbb/scalable_allocator.h>
+#    include <tbb/cache_aligned_allocator.h>
+#  endif
 #  include <tbb/mutex.h>
 #  ifdef MIRTK_UNDEF_NOMINMAX
 #    undef MIRTK_UNDEF_NOMINMAX
@@ -104,8 +110,11 @@ using tbb::parallel_reduce;
 using tbb::concurrent_queue;
 using tbb::mutex;
 using tbb::split;
+
+#if MIRTK_COMMON_WITH_TBB_MALLOC
 using tbb::scalable_allocator;
 using tbb::cache_aligned_allocator;
+#endif
 
 // A task scheduler is created/terminated automatically by TBB since
 // version 2.2. It is recommended by Intel not to instantiate any task

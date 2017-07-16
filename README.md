@@ -1,7 +1,9 @@
 Medical Image Registration ToolKit
 ==================================
 
-[![Build Status](https://travis-ci.org/BioMedIA/MIRTK.svg?branch=master)](https://travis-ci.org/BioMedIA/MIRTK)
+[![Travis CI status](https://travis-ci.org/BioMedIA/MIRTK.svg?branch=master)](https://travis-ci.org/BioMedIA/MIRTK)
+&nbsp;
+[![AppVeyor status](https://ci.appveyor.com/api/projects/status/f4ef923d1h9lo9pm/branch/master?svg=true)](https://ci.appveyor.com/project/schuhschuh/mirtk/branch/master)
 &nbsp;
 [![Docker Image](https://images.microbadger.com/badges/image/biomedia/mirtk.svg)](https://microbadger.com/#/images/biomedia/mirtk)
 &nbsp;

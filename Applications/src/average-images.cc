@@ -997,7 +997,7 @@ int main(int argc, char **argv)
     norm.reset(new WeightImage(fov));
   }
   if (labels.empty()) {
-    average = NaN;
+    average = numeric_limits<AverageImage::VoxelType>::quiet_NaN();
     average.PutBackgroundValueAsDouble(NaN);
   }
   for (int n = 0; n < nimages; ++n) {
@@ -1027,7 +1027,7 @@ int main(int argc, char **argv)
       image.PutBackgroundValueAsDouble(padding, !IsNaN(padding));
     } else {
       for (int idx = 0; idx < image.NumberOfVoxels(); ++idx) {
-        image(idx) = (labels.find(static_cast<GreyPixel>(image(idx))) == labels.end() ? 0. : 1.);
+        image(idx) = static_cast<InputType>(labels.find(static_cast<GreyPixel>(image(idx))) == labels.end() ? 0. : 1.);
       }
       if (debug) image.Write((string("debug_segment_") + ToString(n + 1) + string(".nii.gz")).c_str());
     }
@@ -1058,7 +1058,7 @@ int main(int argc, char **argv)
   if (average.HasBackgroundValue() && IsNaN(average.GetBackgroundValueAsDouble())) {
     AverageImage::VoxelType min_value, max_value;
     average.GetMinMax(min_value, max_value);
-    AverageImage::VoxelType bg = min_value - 1.;
+    auto bg = static_cast<AverageImage::VoxelType>(min_value - 1.);
     if (bg > 0.) bg = 0.;
     for (int idx = 0; idx < average.NumberOfVoxels(); ++idx) {
       if (IsNaN(average(idx))) {
@@ -1071,7 +1071,7 @@ int main(int argc, char **argv)
   // ---------------------------------------------------------------------------
   // Apply norm threshold
   if (norm) {
-    const auto bg = (average.HasBackgroundValue() ? average.GetBackgroundValueAsDouble() : 0.);
+    auto bg = static_cast<AverageImage::VoxelType>(average.HasBackgroundValue() ? average.GetBackgroundValueAsDouble() : 0.);
     for (int idx = 0; idx < average.NumberOfVoxels(); ++idx) {
       if (norm->GetAsDouble(idx) < min_norm) {
         average(idx) = bg;

@@ -504,7 +504,7 @@ public:
   void InterpolationMode(int, enum InterpolationMode);
 
   /// Get interpolation mode of n-th input image or default mode, respectively
-  enum InterpolationMode InterpolationMode(int = -1);
+  enum InterpolationMode InterpolationMode(int = -1) const;
 
   /// Set common/default extrapolation mode for all input images
   void ExtrapolationMode(enum ExtrapolationMode);
@@ -513,7 +513,10 @@ public:
   void ExtrapolationMode(int, enum ExtrapolationMode);
 
   /// Get extrapolation mode of n-th input image or default mode, respectively
-  enum ExtrapolationMode ExtrapolationMode(int = -1);
+  enum ExtrapolationMode ExtrapolationMode(int = -1) const;
+
+  /// Get background value of n-th input image (after registration done)
+  double BackgroundValue(int) const;
 
   // ---------------------------------------------------------------------------
   // Input simplicial complexes (points, curves, surfaces, tetrahedral meshes)
@@ -593,6 +596,9 @@ public:
   // ---------------------------------------------------------------------------
   // Execution
 
+  /// Make an initial guess of the (global) output transformation
+  virtual Transformation *MakeInitialGuess();
+
   /// Run the multi-level registration
   virtual void Run();
 
@@ -624,9 +630,6 @@ protected:
 
   /// Initialize new transformation instance
   virtual void InitializeTransformation();
-
-  /// Make an initial guess of the (global) output transformation
-  virtual Transformation *MakeInitialGuess();
 
   /// Initialize transformation parameters using provided initial guess
   virtual void ApplyInitialGuess();
