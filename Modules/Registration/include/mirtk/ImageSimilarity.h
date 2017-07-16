@@ -477,26 +477,26 @@ inline bool FromString(const char *str, ImageSimilarity::ForegroundRegion &value
 // -----------------------------------------------------------------------------
 inline bool ImageSimilarity::IsForeground(int idx) const
 {
-  if (_Foreground != FG_Domain && _Mask && !_Mask->Get(idx)) {
-    // Never evaluate similarity outside explicitly specified domain
-    return false;
-  }
-  switch (_Foreground) {
-    case FG_Domain: case FG_Mask:
-      return true;
-    case FG_Target:
-      if ((_Source->Transformation() == nullptr) != (_Target->Transformation() == nullptr)) {
-        // Either both or none of the images is being tranformed
+  if (_Foreground == FG_Domain || !_Mask || _Mask->Get(idx)) {
+    switch (_Foreground) {
+      case FG_Domain: case FG_Mask:
+        return true;
+      case FG_Target:
+        if ((_Source->Transformation() == nullptr) != (_Target->Transformation() == nullptr)) {
+          // Either both or none of the images is being tranformed
+          return _Source->IsForeground(idx) || _Target->IsForeground(idx);
+        }
+        // Only one of the image is being transformed
+        if (_Target->Transformation()) return _Source->IsForeground(idx);
+        else                           return _Target->IsForeground(idx);
+      case FG_Overlap:
+        return _Source->IsForeground(idx) && _Target->IsForeground(idx);
+      case FG_Union:
         return _Source->IsForeground(idx) || _Target->IsForeground(idx);
-      }
-      // Only one of the image is being transformed
-      if (_Target->Transformation()) return _Source->IsForeground(idx);
-      else                           return _Target->IsForeground(idx);
-    case FG_Overlap:
-      return _Source->IsForeground(idx) && _Target->IsForeground(idx);
-    case FG_Union:
-      return _Source->IsForeground(idx) || _Target->IsForeground(idx);
-  };
+    };
+  }
+  // Never evaluate similarity outside explicitly specified domain
+  return false;
 }
 
 // -----------------------------------------------------------------------------

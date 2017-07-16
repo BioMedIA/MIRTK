@@ -237,7 +237,7 @@ void Normalize(InputImage &image, NormalizationMode mode = Normalization_ZScore)
     auto p = data;
     auto m = mask.get();
     for (int i = 0; i < n; ++i, ++p, ++m) {
-      if (*m) (*p) = s * (*p) + t;
+      if (*m) (*p) = static_cast<InputType>(s * static_cast<double>(*p) + t);
     }
   }
 }
@@ -291,8 +291,8 @@ void Rescale(InputImages &images, double vmin, double vmax)
 /// Determine intensity range
 void GetMinMax(const InputImages &images, InputType &min_value, InputType &max_value)
 {
-  min_value = +inf;
-  max_value = -inf;
+  min_value = +numeric_limits<InputType>::infinity();
+  max_value = -numeric_limits<InputType>::infinity();
   for (auto image : images) {
     InputType min_val, max_val;
     image.GetMinMax(min_val, max_val);
@@ -334,7 +334,7 @@ struct AggregateValuesAtEachVoxel
         if (m >= _MinValues) {
           _Output->Put(vox, _Function(values));
         } else {
-          _Output->Put(vox, NaN);
+          _Output->Put(vox, numeric_limits<InputType>::quiet_NaN());
         }
       }
     }
@@ -557,7 +557,7 @@ int main(int argc, char **argv)
     if (!IsNaN(padding)) {
       for (int vox = 0; vox < nvox; ++vox) {
         if (fequal(image(vox), padding)) {
-          image(vox) = NaN;
+          image(vox) = numeric_limits<InputType>::quiet_NaN();
         }
       }
     }
@@ -599,7 +599,7 @@ int main(int argc, char **argv)
     for (auto &image : images) {
       for (int vox = 0; vox < nvox; ++vox) {
         if (image.IsForeground(vox)) {
-          image(vox) -= min_value;
+          image(vox) -= static_cast<InputType>(min_value);
         } else {
           image(vox) = 0.;
         }
@@ -617,13 +617,13 @@ int main(int argc, char **argv)
       for (int vox = 0; vox < nvox; ++vox) {
         for (size_t i = 0; i < images.size(); ++i) {
           if (images[i].IsBackground(vox)) {
-            output(vox) = bg;
+            output(vox) = static_cast<OutputType>(bg);
             break;
           }
         }
       }
     } else {
-      output = bg;
+      output = static_cast<OutputType>(bg);
       for (int vox = 0; vox < nvox; ++vox) {
         for (size_t i = 0; i < images.size(); ++i) {
           if (images[i].IsForeground(vox)) {
@@ -640,7 +640,7 @@ int main(int argc, char **argv)
       FatalError("Mask has different attributes!");
     }
     for (int vox = 0; vox < nvox; ++vox) {
-      if (mask(vox) == BinaryPixel(0)) output(vox) = bg;
+      if (mask(vox) == BinaryPixel(0)) output(vox) = static_cast<OutputType>(bg);
     }
   }
   output.PutBackgroundValueAsDouble(bg);
@@ -777,7 +777,9 @@ int main(int argc, char **argv)
     bg = 0.;
   }
   for (int vox = 0; vox < nvox; ++vox) {
-    if (output.IsBackground(vox)) output(vox) = bg;
+    if (output.IsBackground(vox)) {
+      output(vox) = static_cast<OutputType>(bg);
+    }
   }
   output.ClearBackgroundValue();
 

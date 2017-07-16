@@ -775,6 +775,28 @@ GenericImage<VoxelType>& GenericImage<VoxelType>::operator+=(double scalar)
   VoxelType *ptr = this->Data();
   for (int idx = 0; idx < _NumberOfVoxels; ++idx) {
     if (IsForeground(idx)) {
+      ptr[idx] += voxel_cast<VoxelType>(scalar);
+    }
+  }
+  return *this;
+}
+
+template <> GenericImage<float3x3 > &GenericImage<float3x3 >::operator+=(double scalar)
+{
+  VoxelType *ptr = this->Data();
+  for (int idx = 0; idx < _NumberOfVoxels; ++idx) {
+    if (IsForeground(idx)) {
+      ptr[idx] += static_cast<float>(scalar);
+    }
+  }
+  return *this;
+}
+
+template <> GenericImage<double3x3> &GenericImage<double3x3>::operator+=(double scalar)
+{
+  VoxelType *ptr = this->Data();
+  for (int idx = 0; idx < _NumberOfVoxels; ++idx) {
+    if (IsForeground(idx)) {
       ptr[idx] += scalar;
     }
   }
@@ -784,6 +806,28 @@ GenericImage<VoxelType>& GenericImage<VoxelType>::operator+=(double scalar)
 // -----------------------------------------------------------------------------
 template <class VoxelType>
 GenericImage<VoxelType>& GenericImage<VoxelType>::operator-=(double scalar)
+{
+  VoxelType *ptr = this->Data();
+  for (int idx = 0; idx < _NumberOfVoxels; ++idx) {
+    if (IsForeground(idx)) {
+      ptr[idx] -= voxel_cast<VoxelType>(scalar);
+    }
+  }
+  return *this;
+}
+
+template <> GenericImage<float3x3 > &GenericImage<float3x3 >::operator-=(double scalar)
+{
+  VoxelType *ptr = this->Data();
+  for (int idx = 0; idx < _NumberOfVoxels; ++idx) {
+    if (IsForeground(idx)) {
+      ptr[idx] -= static_cast<float>(scalar);
+    }
+  }
+  return *this;
+}
+
+template <> GenericImage<double3x3> &GenericImage<double3x3>::operator-=(double scalar)
 {
   VoxelType *ptr = this->Data();
   for (int idx = 0; idx < _NumberOfVoxels; ++idx) {
@@ -801,6 +845,28 @@ GenericImage<VoxelType>& GenericImage<VoxelType>::operator*=(double scalar)
   VoxelType *ptr = this->Data();
   for (int idx = 0; idx < _NumberOfVoxels; ++idx) {
     if (IsForeground(idx)) {
+      ptr[idx] *= voxel_cast<VoxelType>(scalar);
+    }
+  }
+  return *this;
+}
+
+template <> GenericImage<float3x3 > &GenericImage<float3x3 >::operator*=(double scalar)
+{
+  VoxelType *ptr = this->Data();
+  for (int idx = 0; idx < _NumberOfVoxels; ++idx) {
+    if (IsForeground(idx)) {
+      ptr[idx] *= static_cast<float>(scalar);
+    }
+  }
+  return *this;
+}
+
+template <> GenericImage<double3x3> &GenericImage<double3x3>::operator*=(double scalar)
+{
+  VoxelType *ptr = this->Data();
+  for (int idx = 0; idx < _NumberOfVoxels; ++idx) {
+    if (IsForeground(idx)) {
       ptr[idx] *= scalar;
     }
   }
@@ -812,6 +878,36 @@ template <class VoxelType>
 GenericImage<VoxelType>& GenericImage<VoxelType>::operator/=(double scalar)
 {
   if (scalar != .0) {
+    VoxelType *ptr = this->Data();
+    for (int idx = 0; idx < _NumberOfVoxels; ++idx) {
+      if (IsForeground(idx)) {
+        ptr[idx] /= voxel_cast<VoxelType>(scalar);
+      }
+    }
+  } else {
+    cerr << "GenericImage<VoxelType>::operator/=: Division by zero" << endl;
+  }
+  return *this;
+}
+
+template <> GenericImage<float3x3 > &GenericImage<float3x3 >::operator/=(double scalar)
+{
+  if (scalar != 0.) {
+    VoxelType *ptr = this->Data();
+    for (int idx = 0; idx < _NumberOfVoxels; ++idx) {
+      if (IsForeground(idx)) {
+        ptr[idx] /= static_cast<float>(scalar);
+      }
+    }
+  } else {
+    cerr << "GenericImage<VoxelType>::operator/=: Division by zero" << endl;
+  }
+  return *this;
+}
+
+template <> GenericImage<double3x3> &GenericImage<double3x3>::operator/=(double scalar)
+{
+  if (scalar != 0.) {
     VoxelType *ptr = this->Data();
     for (int idx = 0; idx < _NumberOfVoxels; ++idx) {
       if (IsForeground(idx)) {
@@ -1051,7 +1147,7 @@ void GenericImage<VoxelType>::GetMinMax(VoxelType &min, VoxelType &max) const
   }
 }
 
-template <> void GenericImage<float3x3 >::GetMinMax(VoxelType &, VoxelType &) const
+template <> void GenericImage<float3x3>::GetMinMax(VoxelType &, VoxelType &) const
 {
   cerr << "GenericImage<float3x3>::GetMinMax: Not implemented" << endl;
   exit(1);
@@ -1085,7 +1181,7 @@ void GenericImage<VoxelType>::GetMinMax(VoxelType &min, VoxelType &max, VoxelTyp
   }
 }
 
-template <> void GenericImage<float3x3 >::GetMinMax(VoxelType &, VoxelType &, VoxelType) const
+template <> void GenericImage<float3x3>::GetMinMax(VoxelType &, VoxelType &, VoxelType) const
 {
   cerr << "GenericImage<float3x3>::GetMinMax: Not implemented" << endl;
   exit(1);
@@ -1111,7 +1207,7 @@ void GenericImage<VoxelType>::PutMinMax(VoxelType min, VoxelType max)
   }
 }
 
-template <> void GenericImage<float3x3 >::PutMinMax(VoxelType, VoxelType)
+template <> void GenericImage<float3x3>::PutMinMax(VoxelType, VoxelType)
 {
   cerr << "GenericImage<float3x3>::PutMinMax: Not implemented" << endl;
   exit(1);
@@ -1129,7 +1225,7 @@ typename GenericImage<VoxelType>::RealType
 GenericImage<VoxelType>::Mean(bool fg) const
 {
   int num = 0;
-  RealType sum = voxel_cast<RealType >(0);
+  RealType sum = voxel_cast<RealType>(0);
   const VoxelType *ptr = this->Data();
   for (int idx = 0; idx < _NumberOfVoxels; ++idx) {
     if (!fg || IsForeground(idx)) {
@@ -1138,10 +1234,10 @@ GenericImage<VoxelType>::Mean(bool fg) const
     }
     ++ptr;
   }
-  return (num > 0 ? sum / num : sum);
+  return (num > 0 ? sum / static_cast<RealScalarType>(num) : sum);
 }
 
-template <> typename GenericImage<float3x3 >::RealType GenericImage<float3x3 >::Mean(bool) const
+template <> typename GenericImage<float3x3>::RealType GenericImage<float3x3 >::Mean(bool) const
 {
   cerr << "GenericImage<float3x3>::Mean: Not implemented" << endl;
   exit(1);
