@@ -111,7 +111,7 @@ using tbb::concurrent_queue;
 using tbb::mutex;
 using tbb::split;
 
-#ifdef MIRTK_COMMON_WITH_TBB_MALLOC
+#if MIRTK_COMMON_WITH_TBB_MALLOC
 using tbb::scalable_allocator;
 using tbb::cache_aligned_allocator;
 #endif
