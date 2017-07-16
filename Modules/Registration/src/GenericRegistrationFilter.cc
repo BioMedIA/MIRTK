@@ -1456,30 +1456,15 @@ bool GenericRegistrationFilter::Set(const char *param, const char *value, int le
   // Transformation model
   } else if (name == "Transformation model") {
     _TransformationModel.clear();
-    #ifdef WINDOWS
-      char *str = _strdup(value);
-      char *nxt = nullptr;
-      char *val = strtok_s(str, " \t,+", &nxt);
-    #else // WINDOWS
-      char *str = strdup(value);
-      char *val = strtok(str, " \t,+");
-    #endif // WINDOWS
-    while (val != nullptr) {
+    for (auto val : Split(value, '+')) {
       enum TransformationModel model;
-      if (FromString(val, model)) {
+      if (FromString(Trim(val), model)) {
         _TransformationModel.push_back(model);
       } else {
         _TransformationModel.clear();
-        free(str);
         return false;
       }
-      #ifdef WINDOWS
-        val = strtok_s(nullptr, " \t,+", &nxt);
-      #else // WINDOWS
-        val = strtok(nullptr, " \t,+");
-      #endif // WINDOWS
     }
-    free(str);
     return true;
 
   // Restrict deformation along coordinate axis
