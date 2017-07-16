@@ -596,6 +596,9 @@ public:
   // ---------------------------------------------------------------------------
   // Execution
 
+  /// Make an initial guess of the (global) output transformation
+  virtual Transformation *MakeInitialGuess();
+
   /// Run the multi-level registration
   virtual void Run();
 
@@ -627,9 +630,6 @@ protected:
 
   /// Initialize new transformation instance
   virtual void InitializeTransformation();
-
-  /// Make an initial guess of the (global) output transformation
-  virtual Transformation *MakeInitialGuess();
 
   /// Initialize transformation parameters using provided initial guess
   virtual void ApplyInitialGuess();
