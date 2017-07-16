@@ -1,0 +1,116 @@
+# Configuration for Windows CI build at appveyor.com
+
+version: 'build.{build}'
+
+os: Visual Studio 2015
+
+environment:
+  LIBPNG_VERSION: 1.6.18.44
+  ZLIB_VERSION: 1.2.8.4
+  EIGEN_VERSION: 3.3.4
+  TBB_VERSION: 2017_U7
+  TBB_PACKAGE_ID: tbb2017_20170604oss
+  matrix:
+  - Toolset: v140
+
+platform:
+- x64
+
+configuration:
+- Release
+
+branches:
+  except:
+  - gh-pages
+
+skip_commits:
+  message: /(\[skip ci\]|\[ci skip\])/
+
+clone_depth: 1
+
+matrix:
+  fast_finish: false
+
+install:
+- ps: |
+    $compiler = switch ($env:TOOLSET) {
+      "v150" {"msvc15"}
+      "v140" {"msvc14"}
+      "v120" {"msvc12"}
+    }
+    Write-Output "Compiler: $compiler"
+    cd C:\projects
+
+- ps: |
+    Write-Output "Installing zlib $($env:ZLIB_VERSION)"
+    & nuget install zlib-$($compiler)-$($env:PLATFORM)-master -Version $env:ZLIB_VERSION -Source https://ci.appveyor.com/nuget/zlib-shallow-x0n34b3pfq1b
+    Rename-Item -path zlib-$($compiler)-$($env:PLATFORM)-master.$($env:ZLIB_VERSION) -newName zlib
+
+- ps: |
+    Write-Output "Installing libpng $($env:LIBPNG_VERSION)"
+    & nuget install libpng-$($compiler)-$($env:PLATFORM)-master -Version $env:LIBPNG_VERSION -Source https://ci.appveyor.com/nuget/libpng-7hwq4pmmrc48
+    Rename-Item -path libpng-$($compiler)-$($env:PLATFORM)-master.$($env:LIBPNG_VERSION) -newName libpng
+
+- ps: |
+    Write-Output "Installing Eigen $($env:EIGEN_VERSION)"
+    & curl -o eigen.zip http://bitbucket.org/eigen/eigen/get/$($env:EIGEN_VERSION).zip
+    & 7z x eigen.zip -y | Out-Null
+    Rename-Item -path eigen-eigen-5a0156e40feb -newName eigen
+
+- ps: |
+    Write-Output "Installing TBB $($env:TBB_VERSION)"
+    & curl -o tbb.zip https://github.com/01org/tbb/releases/download/$($env:TBB_VERSION)/$($env:TBB_PACKAGE_ID)_win.zip
+    & 7z x tbb.zip -y | Out-Null
+    Rename-Item -path $($env:TBB_PACKAGE_ID) -newName tbb
+
+before_build:
+- ps: |
+    Write-Output "Configuration: $env:CONFIGURATION"
+    Write-Output "Platform: $env:PLATFORM"
+    $generator = switch ($env:TOOLSET) {
+      "v150" {"Visual Studio 15 2017"}
+      "v140" {"Visual Studio 14 2015"}
+      "v120" {"Visual Studio 12 2013"}
+    }
+    if ($env:PLATFORM -eq "x64") {
+      $generator = "$generator Win64"
+    }
+    Write-Output "Generator: $generator"
+
+build_script:
+  # see https://gitlab.kitware.com/cmake/cmake/issues/16783 regarding CMAKE_SUPPRESS_REGENERATION
+- ps: |
+    cd $env:APPVEYOR_BUILD_FOLDER
+    md Build -Force | Out-Null
+    cd Build
+    & cmake -G "$generator" `
+          -D CMAKE_SUPPRESS_REGENERATION=1 `
+          -D CMAKE_CONFIGURATION_TYPES="Debug;Release" `
+          -D DEPENDS_Boost_DIR=C:/Libraries/boost_1_63_0 `
+          -D DEPENDS_PNG_DIR=C:/projects/libpng `
+          -D DEPENDS_ZLIB_DIR=C:/projects/zlib `
+          -D DEPENDS_Eigen3_DIR=C:/projects/eigen `
+          -D DEPENDS_TBB_DIR=C:/projects/tbb `
+          -D BUILD_SHARED_LIBS=ON `
+          -D BUILD_APPLICATIONS=ON `
+          -D BUILD_TESTING=$TESTING `
+          -D BUILD_DOCUMENTATION=OFF `
+          -D BUILD_CHANGELOG=OFF `
+          -D WITH_ARPACK=OFF `
+          -D WITH_FLANN=OFF `
+          -D WITH_MATLAB=OFF `
+          -D WITH_NiftiCLib=OFF `
+          -D WITH_PNG=ON `
+          -D WITH_PROFILING=ON `
+          -D WITH_TBB=ON `
+          -D WITH_UMFPACK=OFF `
+          -D WITH_VTK=OFF `
+          -D WITH_ZLIB=ON `
+          ..
+    if ($LastExitCode -ne 0) {
+      throw "Exec: $ErrorMessage"
+    }
+    & cmake --build . --config $env:CONFIGURATION -- /verbosity:minimal /maxcpucount
+    if ($LastExitCode -ne 0) {
+      throw "Exec: $ErrorMessage"
+    }
