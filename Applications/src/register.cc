@@ -79,20 +79,20 @@ void PrintUsage(const char* name)
   cout << "  -dofout <file>          Write transformation to specified file.\n";
   cout << "\n";
   cout << "Optional arguments:\n";
-  cout << "  -model  <name>          Transformation model(s). (default: Rigid+Affine+FFD)\n";
-  cout << "  -image  <file>...       Input image(s) to be registered.\n";
+  cout << "  -model <name>           Transformation model(s). (default: Rigid+Affine+FFD)\n";
+  cout << "  -image <file>...        Input image(s) to be registered.\n";
   cout << "  -output <file>          Write (first) transformed source image to specified file.\n";
 #if MIRTK_Registration_WITH_PointSet
   cout << "  -pset <file>...         Input points, curve(s), surface(s), and/or other simplicial complex(es).\n";
 #endif
-  cout << "  -dof    <file>          Affine transformation to be applied to the preceeding image and/or polydata.\n";
-  cout << "  -dof_i  <file>          Apply inverse of pre-computed affine transformation instead (cf. -dof).\n";
-  cout << "  -mask   <file>          Reference mask which defines the domain within which to evaluate the\n";
+  cout << "  -dof <file>             Affine transformation to be applied to the preceeding image and/or polydata.\n";
+  cout << "  -dof_i <file>           Apply inverse of pre-computed affine transformation instead (cf. -dof).\n";
+  cout << "  -mask <file>            Reference mask which defines the domain within which to evaluate the\n";
   cout << "                          energy function (i.e. data fidelity terms). (default: none)\n";
   cout << "  -reset-mask [yes|no]    Set value of all :option:`-mask` voxels to active (1). (default: no)\n";
-  cout << "  -dofin  <file>          Initial transformation estimate. (default: align centroids)\n";
+  cout << "  -dofin <file>           Initial transformation estimate. (default: guess or identity)\n";
   cout << "  -par <name> <value>     Specify parameter value directly as command argument.\n";
-  cout << "  -parin  <file>          Read parameters from configuration file. If \"stdin\" or \"cin\",\n";
+  cout << "  -parin <file>           Read parameters from configuration file. If \"stdin\" or \"cin\",\n";
   cout << "                          the parameters are read from standard input instead. (default: none)\n";
   cout << "  -parout <file>          Write parameters to the named configuration file. (default: none)\n";
   cout << "  -v, -verbose [n]        Increase/Set verbosity of output messages. (default: " << verbose << ")\n";
@@ -190,13 +190,15 @@ void PrintHelp(const char* name)
   cout << "      in the :option:`-images` list file. (default: none)\n";
   cout << "  -dofin <file>\n";
   cout << "      Read initial transformation from file if :option:`-dofins` not specified.\n";
-  cout << "      Otherwise, writes the initial transformation obtained by approximating\n";
-  cout << "      the pairwise transformations to the named file.\n";
-  cout << "      If the given transformation cannot be used directly as starting\n";
-  cout << "      point of the registration, it will be approximated by an instance\n";
-  cout << "      of the chosen transformation model at the initial resolution level.\n";
-  cout << "      The input transformation may thus be of different type than the\n";
-  cout << "      output transformation of the registration. (default: none)\n";
+  cout << "      When no initial guess is given, and the first transformation model is a\n";
+  cout << "      homogeneous transformation, a translation which aligns image foreground centers\n";
+  cout << "      of mass is used. The identity mapping ('Id' or 'identity') is used as initial guess\n";
+  cout << "      for deformable models unless the <file> argument is 'guess' to align the centers.\n";
+  cout << "      If the given transformation cannot be used directly as starting point of the\n";
+  cout << "      registration, it will be approximated by an instance of the chosen transformation\n";
+  cout << "      model at the initial resolution level. The input transformation may thus be of\n";
+  cout << "      different type than the output transformation of the registration.\n";
+  cout << "      (default: guess or Id/identity)\n";
   cout << "  -mask <file>\n";
   cout << "      Reference mask which defines the domain within which to evaluate the\n";
   cout << "      energy function (i.e. image similarity). The registered images will\n";
@@ -1089,29 +1091,7 @@ int main(int argc, char **argv)
   }
 
   // ---------------------------------------------------------------------------
-  // Read initial transformation
-  UniquePtr<Transformation> dofin;
-  if (dofin_name) {
-    if (IsIdentity(dofin_name)) dofin.reset(new RigidTransformation());
-    else                        dofin.reset(Transformation::New(dofin_name));
-    registration.InitialGuess(dofin.get());
-  } else {
-    registration.InitialGuess(tgtdof.get());
-  }
-
-  // ---------------------------------------------------------------------------
-  // Read mask which defines domain on which similarity is evaluated
-  UniquePtr<BinaryImage> mask;
-  if (mask_name) {
-    mask.reset(new BinaryImage(mask_name));
-    if (reset_mask) *mask = 1;
-    registration.Domain(mask.get());
-  }
-
-  MIRTK_DEBUG_TIMING(1, "reading input data");
-
-  // ---------------------------------------------------------------------------
-  // Run registration
+  // Initialize registration
   GenericRegistrationLogger   logger;
   GenericRegistrationDebugger debugger("mirtk_");
   debugger.LevelPrefix(debug_output_level_prefix);
@@ -1125,17 +1105,47 @@ int main(int argc, char **argv)
     registration.AddObserver(debugger);
   }
 
-  Transformation *dofout = NULL;
+  Transformation *dofout = nullptr;
   registration.Output(&dofout);
 
+  // Read mask which defines domain on which similarity is evaluated
+  UniquePtr<BinaryImage> mask;
+  if (mask_name) {
+    mask.reset(new BinaryImage(mask_name));
+    if (reset_mask) *mask = 1;
+    registration.Domain(mask.get());
+  }
+
+  // Guess unset parameters, must be called before MakeInitialGuess and Write -parout
+  registration.GuessParameter();
+
   // Write initial parameters to file
+  //
   // Note: Will be overwritten once the registration finished successfully
   //       with the actual parameters used below.
   if (parout_name) {
-    registration.GuessParameter();
     registration.Write(parout_name);
   }
 
+  // Read initial transformation
+  UniquePtr<Transformation> dofin;
+  if (dofin_name) {
+    if (IsIdentity(dofin_name)) {
+      dofin.reset(new RigidTransformation());
+    } else if (ToLower(dofin_name) == "guess") {
+      dofin.reset(registration.MakeInitialGuess());
+    } else {
+      dofin.reset(Transformation::New(dofin_name));
+    }
+    registration.InitialGuess(dofin.get());
+  } else {
+    registration.InitialGuess(tgtdof.get());
+  }
+
+  MIRTK_DEBUG_TIMING(1, "reading input data");
+
+  // ---------------------------------------------------------------------------
+  // Run registration
   const clock_t start_cpu_time = clock();
 #ifdef HAVE_TBB
   tbb::tick_count start_wall_time = tbb::tick_count::now();

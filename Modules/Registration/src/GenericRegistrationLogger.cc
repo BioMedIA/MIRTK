@@ -128,7 +128,17 @@ void GenericRegistrationLogger::HandleEvent(Observable *obj, Event event, const 
 
     // Before GenericRegistrationFilter::Initialize
     case InitEvent: {
-      if (_Verbosity > 0) os << "\n";
+      if (_Verbosity > 0) {
+        if (iter->Iter() == reg->NumberOfLevels() && reg->InitialGuess()) {
+          const HomogeneousTransformation *lin;
+          lin = dynamic_cast<const HomogeneousTransformation *>(reg->InitialGuess());
+          if (lin) {
+            os << "\nInitial guess:\n\n";
+            lin->Print(os, Indent(2, 2));
+          }
+        }
+        os << "\n";
+      }
       os << "\nResolution level " << iter->Iter() << "\n\n";
     } break;
 
