@@ -63,7 +63,8 @@ script:
   - Scripts/travis.sh
 
 after_success:
-  - if [ "$AppImage_BUILD" = ON ] && [ "$(git rev-parse --abbrev-ref HEAD)" = "master" ] && [ "$TRAVIS_OS_NAME" = "linux" ] && [ "$WITH_VTK" = ON ]; then
+  - echo "Git branch: $(git rev-parse --abbrev-ref HEAD)"
+  - if [ "$AppImage_BUILD" = ON ] && [ "$TRAVIS_OS_NAME" = "linux" ] && [ "$WITH_VTK" = ON ] && [ "$(git rev-parse --abbrev-ref HEAD)" = "master" ]; then
       Scripts/make_appimage.sh;
       export AppImage_DEPLOY=ON;
     else
