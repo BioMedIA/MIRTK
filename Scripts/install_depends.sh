@@ -59,9 +59,9 @@ if [ $os = linux ] || [ $os = Linux ]; then
     libpng12-dev \
   )
 
-  [ $TESTING     = OFF ] || deps=(${deps[@]} libgtest-dev)
-  [ $WITH_TBB    = OFF ] || deps=(${deps[@]} libtbb-dev)
-  [ $WITH_FLANN  = OFF ] || deps=(${deps[@]} libflann-dev)
+  [ $TESTING = OFF ] || deps=(${deps[@]} libgtest-dev)
+  [ $WITH_TBB = OFF ] || deps=(${deps[@]} libtbb-dev)
+  [ $WITH_FLANN = OFF ] || deps=(${deps[@]} libflann-dev)
   [ $WITH_ARPACK = OFF ] || deps=(${deps[@]} libarpack2-dev)
 
   if [ $WITH_UMFPACK = ON ]; then
