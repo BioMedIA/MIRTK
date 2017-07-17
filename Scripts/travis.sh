@@ -60,7 +60,8 @@ for module in ${modules[@]}; do
 done
 
 mkdir Build && cd Build
-run cmake -D CMAKE_INSTALL_PREFIX=$HOME/local \
+run cmake \
+      -D CMAKE_INSTALL_PREFIX=/usr \
       -D CMAKE_BUILD_TYPE=Release \
       -D BUILD_SHARED_LIBS=ON \
       -D BUILD_APPLICATIONS=ON \

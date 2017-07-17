@@ -1,0 +1,37 @@
+{
+    "package": {
+        "name": "MIRTK",
+        "repo": "AppImages",
+        "subject": "schuhschuh",
+        "desc": "Medical Image Registration ToolKit",
+        "website_url": "https://mirtk.github.io",
+        "issue_tracker_url": "https://github.com/BioMedIA/MIRTK/issues",
+        "vcs_url": "https://github.com/BioMedIA/MIRTK.git",
+        "licenses": ["Apache-2.0"],
+        "labels": [
+            "BioMedIA",
+            "MIRTK",
+            "medical imaging",
+            "image registration",
+            "cortical surface reconstruction",
+            "brain atlas construction"
+        ],
+        "public_download_numbers": false,
+        "public_stats": false
+    },
+    "version": {
+        "name": "master",
+        "desc": "AppImage of MIRTK master HEAD deployed by Travis CI build",
+        "gpgSign": true
+    },
+    "files": [
+        {
+            "includePattern": "Deploy/(.*\\.AppImage)",
+            "uploadPattern": "$1",
+            "matrixParams": {
+                "override": 1
+            }
+        }
+    ],
+    "publish": true
+}
