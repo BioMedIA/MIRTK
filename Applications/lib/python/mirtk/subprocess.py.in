@@ -51,7 +51,7 @@ else:                              libexec_ext = ['']
 
 # ----------------------------------------------------------------------------
 def remove_kwargs(kwargs, keys):
-    if isinstance(keys, basestring):
+    if not isinstance(keys, (tuple, list)):
         keys = [keys]
     for k in keys:
         if k in kwargs:
