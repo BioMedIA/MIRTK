@@ -2204,6 +2204,7 @@ void GenericRegistrationFilter::ParseEnergyFormula(int nimages, int npsets, int 
       const double be_w = ((nimages >= 2) ? 0.001 : .0);
       formula += ToString(be_w);
       formula +=     " BE[Bending energy]"
+                 " + 0 TP[Topology preservation]"
                  " + 0 VP[Volume preservation]"
                  " + 0 JAC[Jacobian penalty]"
                  " + 0 Sparsity";
