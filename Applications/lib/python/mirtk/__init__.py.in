@@ -1,8 +1,8 @@
 ##############################################################################
 # Medical Image Registration ToolKit (MIRTK)
 #
-# Copyright 2016 Imperial College London
-# Copyright 2016 Andreas Schuh
+# Copyright 2016-2017 Imperial College London
+# Copyright 2016-2017 Andreas Schuh
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,7 +17,23 @@
 # limitations under the License.
 ##############################################################################
 
+"""Medical Image Registration ToolKit
+
+This is the Python package of MIRTK. It can be used to execute the MIRTK
+commands as subprocesses within a image processing pipeline written in Python.
+Moreover, some MIRTK modules may provide loadable Python modules.
+
+To call a MIRTK command, either use the functions of the mirtk.subprocess module,
+or simply execute a command using mirtk.<command>(args, option=value).
+This will invoke the mirtk.subprocess.run function with name=<command> and
+the provided positional and keyword arguments.
+"""
+
 from __future__ import absolute_import
+
+import sys
+from types import ModuleType
+from mirtk import subprocess
 
 # ==============================================================================
 # Set up environment for MIRTK command execution
@@ -25,8 +41,8 @@ from __future__ import absolute_import
 
 def _putenvs():
     """Modify shared library search paths for MIRTK command execution."""
+    import os
     from mirtk.subprocess import config, libexec_dir
-    import os, sys
     ldpaths = []
     if config != '':
         ldpaths.append(os.path.join(libexec_dir, config))
@@ -46,7 +62,28 @@ _putenvs()
 del _putenvs
 
 # ==============================================================================
-# Import main functions
+# Wrap module into new ModuleType with dynamic subprocess.run methods
 # ==============================================================================
 
-from mirtk.subprocess import path, run, call, check_call, check_output
+class Module(ModuleType):
+    """Module with dynamic creation of MIRTK command methods."""
+
+    def __getattr__(self, name):
+        """Get method for execution of named MIRTK command."""
+        if len(name) == 0 or name[0] == '_':
+            return ModuleType.__getattribute__(self, name)
+        elif name in ["path", "run", "call", "check_call", "check_output"]:
+            return getattr(subprocess, name)
+        def run(*args, **kwargs):
+            return subprocess.run(name, *args, **kwargs)
+        setattr(self, name, run)
+        return run
+
+# keep a reference to this module so that it's not garbage collected
+old_module = sys.modules[__name__]
+
+# setup the new module and patch it into the dict of loaded modules
+new_module = sys.modules[__name__] = Module(__name__)
+for attr in dict(old_module.__dict__):
+    if attr[0] == '_':
+        new_module.__dict__[attr] = old_module.__dict__[attr]
