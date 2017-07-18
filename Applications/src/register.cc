@@ -117,6 +117,7 @@ void PrintHelp(const char* name)
   cout << "  Energy function =      SIM[Image dissimilarity](I(1), I(2:end) o T)\n";
   cout << "                  +      PDM[Point set distance](T o P(1), P(2:end))\n";
   cout << "                  + 1e-3 BE [Bending energy](T)\n";
+  cout << "                  +    0 TP [Topology preservation](T)\n";
   cout << "                  +    0 VP [Volume preservation](T)\n";
   cout << "                  +    0 JAC[Jacobian penalty](T)\n";
   cout << "                  +    0 Sparsity(T)\n";
@@ -247,6 +248,8 @@ void PrintHelp(const char* name)
   cout << "      \"Control point spacing\" of free-form deformation on highest resolution level. (default: 4x min voxel size)\n";
   cout << "  -be <w>\n";
   cout << "      \"Bending energy weight\" of free-form deformation. (default: 0.001)\n";
+  cout << "  -tp <w>\n";
+  cout << "      \"Topology preservation weight\" of free-form deformation. (default: 0)\n";
   cout << "  -vp <w>\n";
   cout << "      \"Volume preservation weight\" of free-form deformation. (default: 0)\n";
   cout << "  -jl, -jac <w>\n";
@@ -825,6 +828,11 @@ int main(int argc, char **argv)
       double w;
       PARSE_ARGUMENT(w);
       Insert(params, "Volume preservation weight", w);
+    }
+    else if (OPTION("-tp")) {
+      double w;
+      PARSE_ARGUMENT(w);
+      Insert(params, "Topology preservation weight", w);
     }
     else if (OPTION("-jl") || OPTION("-jac")) {
       double w;
