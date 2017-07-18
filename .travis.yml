@@ -26,6 +26,11 @@ env:
   - WITH_UMFPACK=OFF  # ARPACK & UMFPACK dependencies come in pairs
   - WITH_TBB=ON       # build with TBB is always recommended
   - WITH_FLANN=ON     # build with FLANN is optional, but requires only little extra build time
+  # build and deployment of AppImage for Linux
+  - AppImage_BUILD=${AppImage_BUILD:-ON}
+  - AppImage_BRANCH=${AppImage_BRANCH:-master}
+  - AppImage_VIEWER=${AppImage_VIEWER:-OFF}
+  - AppImage_LATEST=${AppImage_LATEST:-ON}
   matrix:
   - WITH_VTK=OFF      # make sure that MIRTK can be build fine without VTK
   - WITH_VTK=ON       # test build with all moduldes, including those using VTK
@@ -63,7 +68,7 @@ script:
   - Scripts/travis.sh
 
 after_success:
-  - if [ "$AppImage_BUILD" = ON ] && [ "$TRAVIS_REPO_SLUG" = "BioMedIA/MIRTK" ] && [ "$TRAVIS_BRANCH" = master ] && [ "$TRAVIS_PULL_REQUEST" = false ] && [ "$TRAVIS_OS_NAME" = linux ] && [ "$WITH_VTK" = ON ]; then
+  - if [ "$AppImage_BUILD" = ON ] && [ "$TRAVIS_REPO_SLUG" = "BioMedIA/MIRTK" ] && [ "$TRAVIS_BRANCH" = "$AppImage_BRANCH" ] && [ "$TRAVIS_PULL_REQUEST" = false ] && [ "$TRAVIS_OS_NAME" = linux ] && [ "$WITH_VTK" = ON ]; then
       export AppImage_BINTRAY=ON;
     else
       export AppImage_BINTRAY=OFF;
