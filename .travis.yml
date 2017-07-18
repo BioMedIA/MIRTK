@@ -63,18 +63,12 @@ script:
   - Scripts/travis.sh
 
 after_success:
-  - if [ -z "$AppImage_BUILD" ] || [ "$TRAVIS_BRANCH" != master ] || [ "$TRAVIS_PULL_REQUEST" != false ] || [ "$TRAVIS_OS_NAME" != linux ] || [ "$WITH_VTK" = OFF ]; then
+  - if [ "$AppImage_BUILD" = ON ] && [ "$TRAVIS_REPO_SLUG" = "BioMedIA/MIRTK" ] && [ "$TRAVIS_BRANCH" = master ] && [ "$TRAVIS_PULL_REQUEST" = false ] && [ "$TRAVIS_OS_NAME" = linux ] && [ "$WITH_VTK" = ON ]; then
       export AppImage_BINTRAY=ON;
     else
       export AppImage_BINTRAY=OFF;
     fi
-  - echo "TRAVIS_TAG=$TRAVIS_TAG"
-  - echo "TRAVIS_BRANCH=$TRAVIS_BRANCH"
-  - echo "TRAVIS_PULL_REQUEST=$TRAVIS_PULL_REQUEST"
-  - echo "TRAVIS_OS_NAME=$TRAVIS_OS_NAME"
-  - echo "WITH_VTK=$WITH_VTK"
-  - echo "AppImage_BINTRAY=$AppImage_BINTRAY"
-  - if [ "$AppImage_BINTRAY" = ON -o -n "$TRAVIS_TAG" ]; then
+  - if [ "$AppImage_BUILD" = ON ] && [ "$AppImage_BINTRAY" = ON -o -n "$TRAVIS_TAG" ]; then
       Scripts/make_appimage.sh;
     fi
 

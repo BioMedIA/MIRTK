@@ -41,11 +41,19 @@ fi
 
 APP='MIRTK'
 LOWERAPP=${APP,,}
-VERSION=$(git describe --tags --exact-match --abbrev=0 HEAD 2> /dev/null || true)
-if [ -n "$VERSION" ]; then
-  RELEASE="$VERSION"
+RELEASE=''
+if [ $TRAVIS = ON ]; then
+  if [ -n "$TRAVIS_TAG" ]; then
+    VERSION="$TRAVIS_TAG"
+    RELEASE="$TRAVIS_TAG"
+  else
+    VERSION="$TRAVIS_COMMIT"
+  fi
 else
-  VERSION=$(git rev-parse --short HEAD)
+  VERSION=$(git describe --tags --exact-match --abbrev=0 HEAD 2> /dev/null || true)
+  [ -n "$VERSION" ] || VERSION="$(git rev-parse --short HEAD)"
+fi
+if [ -z "$RELEASE" ]; then
   if [ $AppImage_LATEST = ON ]; then
     RELEASE="latest"  # overwrite previous "latest" BinTray AppImage
   else
