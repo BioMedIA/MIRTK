@@ -74,6 +74,12 @@ class Module(ModuleType):
             return ModuleType.__getattribute__(self, name)
         elif name in ["path", "run", "call", "check_call", "check_output"]:
             return getattr(subprocess, name)
+        if not subprocess.path(name, quiet=True):
+            command = name.replace('_', '-')
+            if subprocess.path(command, quiet=True):
+                name = command
+            else:
+                return ModuleType.__getattribute__(self, name)
         def run(*args, **kwargs):
             return subprocess.run(name, *args, **kwargs)
         setattr(self, name, run)
