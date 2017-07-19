@@ -158,8 +158,33 @@ def check_output(argv, verbose=0, code='utf-8'):
 
 
 # ----------------------------------------------------------------------------
-def run(cmd, *args, **kwargs): 
+def run(cmd, *args, **kwargs):
     """Execute MIRTK command and throw exception or exit on error.
+
+    This function calls the specified MIRTK command with the given positional
+    and option arguments (keyword arguments prepended by single dash, '-').
+    The 'onexit' and 'onexit' keyword arguments define the return value and
+    the error handling when the subprocess returns a non-zero exit code.
+    By default, this function behaves identical to check_call, i.e., throws
+    and exception when the command failed and does not return a value otherwise.
+
+    Arguments
+    ---------
+
+    onexit: str
+        Defines action to take when command subprocess finished.
+        - 'none': Always return None, even when process failed when onerror='return'
+        - 'output': Return standard output of command instead of printing it
+        - 'returncode': Return exit code of command. When onerror is not 'return',
+          this always returns 0 indicating successful execution of the command.
+    onerror: str
+        - 'return': Return value specified by 'onexit' even when command failed.
+        - 'throw': Throw CalledProcessError when command failed.
+        - 'exit': Exit this process (sys.exit) with exit command of failed command.
+
+
+    Deprecated
+    ----------
 
     This convenience wrapper for check_call throws a subprocess.CalledProcessError 
     when the command returned a non-zero exit code when exit_on_error=False.
@@ -168,11 +193,30 @@ def run(cmd, *args, **kwargs):
     using sys.exit with the return code of the executed command.
 
     """
+    if "exit_on_error" in kwargs and "onerror" in kwargs:
+        raise ValueError("Deprecated keyword argument 'exit_on_error' given together with new 'onerror' argument!")
     workdir = kwargs.get("workdir", None)
     verbose = kwargs.get("verbose", 0)
     threads = kwargs.get("threads", 0)
-    exit_on_error = kwargs.get("exit_on_error", False)
-    remove_kwargs(kwargs, ["workdir", "verbose", "threads", "exit_on_error"])
+    onerror = kwargs.get("onerror", "exit" if kwargs.get("exit_on_error", False) else "throw")
+    if onerror is None:
+        onerror = 'return'
+    else:
+        onerror = onerror.lower()
+        if onerror not in ('return', 'throw', 'exit'):
+            raise ValueError("Invalid 'onerror={}' argument! Must be 'return', 'throw', or 'exit'.".format(onerror))
+    onexit = kwargs.get("onexit", None)
+    if onexit is None:
+        onexit = 'none'
+    else:
+        onexit = onexit.lower()
+        if onexit in ('code', 'exit_code', 'return_code'):
+            onexit = 'returncode'
+        if onexit in ('stdout', 'return_stdout', 'return_output'):
+            onexit = 'output'
+        if onexit not in ('none', 'output', 'returncode'):
+            raise ValueError("Invalid 'onexit={}' argument! Must be 'none', 'returncode', 'output' or alternatives thereof.".format(onexit))
+    remove_kwargs(kwargs, ["workdir", "verbose", "threads", "onexit", "onerror", "exit_on_error"])
     # command arguments
     argv = [cmd]
     argv.extend(args)
@@ -204,22 +248,29 @@ def run(cmd, *args, **kwargs):
                 argv.extend(flatten(arg))
     # add options given as kwargs
     for opt, arg in kwargs.items():
+        opt = opt.replace('_', '-')
         if not opt.startswith('-'):
             opt = '-' + opt
         argv.append(opt)
         if not arg is None:
             argv.extend(flatten(arg))
     # add -threads option
-    if threads > 0 and not "threads" in opts:
+    if threads > 0 and not 'threads' in opts:
         argv.extend(['-threads', str(threads)])
     # execute command
+    retval = None
     prevdir = os.getcwd()
     if workdir:
         os.chdir(workdir)
     try:
-        check_call(argv, verbose=verbose)
+        if onexit == 'output':
+            retval = check_output(argv, verbose=verbose)
+        else:
+            check_call(argv, verbose=verbose)
+            if onexit == 'returncode':
+                retval = 0
     except subprocess.CalledProcessError as e:
-        if exit_on_error:
+        if onerror == 'exit':
             sys.stdout.flush()
             sys.stderr.write("\n")
             sys.stderr.write("Command: ")
@@ -229,6 +280,10 @@ def run(cmd, *args, **kwargs):
             sys.stderr.write("\nTraceback (most recent call last):\n")
             traceback.print_stack()
             sys.exit(e.returncode)
-        raise e
+        elif onerror == 'throw':
+            raise e
+        if onexit == 'returncode':
+            retval = e.returncode
     finally:
         os.chdir(prevdir)
+    return retval
