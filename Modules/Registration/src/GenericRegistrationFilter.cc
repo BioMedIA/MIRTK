@@ -2633,7 +2633,8 @@ void GenericRegistrationFilter::GuessParameter()
   }
   // Default maximum no. of line search iterations, use the same defaults
   // as the previous rreg2, areg2, and nreg2 implementations have used
-  int nlineiter = IsLinear(_TransformationModel) ? 20 : 12;
+  const bool is_linear_model = IsLinear(_TransformationModel);
+  int nlineiter = is_linear_model ? 20 : 12;
   if (Contains(_Parameter[0], MAXLINEITER)) {
     FromString(Get(_Parameter[0], MAXLINEITER), nlineiter);
   } else {
@@ -2646,12 +2647,16 @@ void GenericRegistrationFilter::GuessParameter()
     // to save function evaluations which with high chance are rejected anyway
     Insert(_Parameter[0], MAXREJECTED, max(nlineiter / 4, 2));
   }
-
   if (!Contains(_Parameter[0], MINSTEP) && !Contains(_Parameter[0], MAXSTEP)) {
-    // By default, limit step length to one (target) voxel unit
-    const double maxres = max(avgres[0], max(avgres[1], avgres[2]));
-    Insert(_Parameter[0], MINSTEP, maxres / 100.);
-    Insert(_Parameter[0], MAXSTEP, maxres);
+    if (is_linear_model) {
+      Insert(_Parameter[0], MINSTEP, .01);
+      Insert(_Parameter[0], MAXSTEP, 1.);
+    } else {
+      // By default, limit step length to one (target) voxel unit
+      const double maxres = max(avgres[0], max(avgres[1], avgres[2]));
+      Insert(_Parameter[0], MINSTEP, maxres / 100.);
+      Insert(_Parameter[0], MAXSTEP, maxres);
+    }
   } else if (!Contains(_Parameter[0], MINSTEP)) {
     if (!FromString(Get(_Parameter[0], MAXSTEP).c_str(), value)) {
       cerr << "GenericRegistrationFilter::GuessParameter: Invalid '"
@@ -2682,7 +2687,7 @@ void GenericRegistrationFilter::GuessParameter()
              << MAXSTEP << "' argument: " << Get(_Parameter[level-1], MAXSTEP) << endl;
         exit(1);
       }
-      if (level > 1 && (value - maxres) < 1e-3) {
+      if (!is_linear_model && level > 1 && (value - maxres) < 1e-3) {
         value = 2. * value;
       }
       Insert(_Parameter[level], MAXSTEP, ToString(value));
