@@ -183,11 +183,12 @@ int main(int argc, char *argv[])
   output->Initialize(out_attr);
 
   // Concatenate images
-  double avg_spacing = .0;
-  double min_zorigin = numeric_limits<double>::max();
+  double avg_spacing = 0.;
+  double min_zorigin = ref->GetOrigin()._z;
 
   if (twod) {
 
+    avg_spacing = ref->GetZSize();
     for (int j = 0; j < out_attr._y; ++j)
     for (int i = 0; i < out_attr._x; ++i) {
       output->PutAsDouble(i, j, 0, 0, ref->GetAsDouble(i, j));
@@ -224,6 +225,7 @@ int main(int argc, char *argv[])
 
   } else {
 
+    avg_spacing = ref->GetTSize();
     for (int k = 0; k < out_attr._z; ++k)
     for (int j = 0; j < out_attr._y; ++j)
     for (int i = 0; i < out_attr._x; ++i) {
@@ -254,12 +256,13 @@ int main(int argc, char *argv[])
       for (int i = 0; i < out_attr._x; ++i) {
         output->PutAsDouble(i, j, k, l, image->GetAsDouble(i, j, k));
       }
-      avg_spacing += image->GetZSize();
+      avg_spacing += image->GetTSize();
     }
 
   }
 
   // Set output spacing to average of input images by default
+  avg_spacing /= n;
   if (IsNaN(spacing)) spacing = avg_spacing;
 
   if (twod) {
