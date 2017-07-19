@@ -1,8 +1,8 @@
 ##############################################################################
 # Medical Image Registration ToolKit (MIRTK)
 #
-# Copyright 2016 Imperial College London
-# Copyright 2016 Andreas Schuh
+# Copyright 2016-2017 Imperial College London
+# Copyright 2016-2017 Andreas Schuh
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -33,6 +33,7 @@ import subprocess
 
 from collections import OrderedDict
 
+
 # ============================================================================
 # configuration
 # ============================================================================
@@ -44,6 +45,13 @@ libexec_dir = os.path.realpath(os.path.join(__dir__, '@LIBEXEC_DIR@'))
 
 if sys.platform.startswith('win'): libexec_ext = ['.exe', '.cmd', '.bat']
 else:                              libexec_ext = ['']
+
+# default values for kwargs of run function
+showcmd = False
+workdir = None
+threads = 0
+onerror = 'throw'
+onexit = None
 
 # ============================================================================
 # command execution
@@ -193,19 +201,23 @@ def run(cmd, *args, **kwargs):
     using sys.exit with the return code of the executed command.
 
     """
+    default = globals()
     if "exit_on_error" in kwargs and "onerror" in kwargs:
         raise ValueError("Deprecated keyword argument 'exit_on_error' given together with new 'onerror' argument!")
-    workdir = kwargs.get("workdir", None)
-    verbose = kwargs.get("verbose", 0)
-    threads = kwargs.get("threads", 0)
-    onerror = kwargs.get("onerror", "exit" if kwargs.get("exit_on_error", False) else "throw")
+    showcmd = kwargs.get("showcmd", default["showcmd"])
+    workdir = kwargs.get("workdir", default["workdir"])
+    threads = kwargs.get("threads", default["threads"])
+    if "exit_on_error" in kwargs:
+        onerror = kwargs.get("onerror", "exit" if kwargs.get("exit_on_error", False) else "throw")
+    else:
+        onerror = kwargs.get("onerror", default["onerror"])
     if onerror is None:
         onerror = 'return'
     else:
         onerror = onerror.lower()
         if onerror not in ('return', 'throw', 'exit'):
             raise ValueError("Invalid 'onerror={}' argument! Must be 'return', 'throw', or 'exit'.".format(onerror))
-    onexit = kwargs.get("onexit", None)
+    onexit = kwargs.get("onexit", default["onexit"])
     if onexit is None:
         onexit = 'none'
     else:
@@ -216,7 +228,7 @@ def run(cmd, *args, **kwargs):
             onexit = 'output'
         if onexit not in ('none', 'output', 'returncode'):
             raise ValueError("Invalid 'onexit={}' argument! Must be 'none', 'returncode', 'output' or alternatives thereof.".format(onexit))
-    remove_kwargs(kwargs, ["workdir", "verbose", "threads", "onexit", "onerror", "exit_on_error"])
+    remove_kwargs(kwargs, ["showcmd", "workdir", "threads", "onexit", "onerror", "exit_on_error"])
     # command arguments
     argv = [cmd]
     argv.extend(args)
@@ -264,9 +276,9 @@ def run(cmd, *args, **kwargs):
         os.chdir(workdir)
     try:
         if onexit == 'output':
-            retval = check_output(argv, verbose=verbose)
+            retval = check_output(argv, verbose=1 if showcmd else 0)
         else:
-            check_call(argv, verbose=verbose)
+            check_call(argv, verbose=1 if showcmd else 0)
             if onexit == 'returncode':
                 retval = 0
     except subprocess.CalledProcessError as e:
