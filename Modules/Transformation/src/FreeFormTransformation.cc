@@ -286,7 +286,7 @@ void FreeFormTransformation::Initialize(const ImageAttributes &attr)
 
 // -----------------------------------------------------------------------------
 void FreeFormTransformation::Initialize(const ImageAttributes &attr,
-                                            double dx, double dy, double dz, double dt)
+                                        double dx, double dy, double dz, double dt)
 {
   this->Initialize(DefaultAttributes(attr, dx, dy, dz, dt));
 }
