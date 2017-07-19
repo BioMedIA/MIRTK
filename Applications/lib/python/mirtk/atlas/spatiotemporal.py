@@ -157,7 +157,7 @@ class SpatioTemporalAtlas(object):
             try:
                 if self.verbose > 1:
                     sys.stdout.write("\n\n")
-                mirtk.run(command, args=args, opts=opts, verbose=self.verbose - 1, threads=threads, exit_on_error=self.exit_on_error)
+                mirtk.run(command, args=args, opts=opts, showcmd=(self.verbose > 1), threads=threads, onexit='exit' if self.exit_on_error else 'throw')
             finally:
                 os.chdir(prevdir)
 
@@ -1462,7 +1462,7 @@ class SpatioTemporalAtlas(object):
         if not channel:
             channel = self.channel
         imgs = [self.template(int(idx), channel=channel) for idx in i]
-        mirtk.run("view", opts={"target": imgs})
+        mirtk.run("view", target=imgs)
 
     def rmtemp(self):
         """Delete temporary files.

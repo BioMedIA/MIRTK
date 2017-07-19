@@ -70,9 +70,11 @@ class Module(ModuleType):
 
     def __getattr__(self, name):
         """Get method for execution of named MIRTK command."""
+        if name == 'subprocess':
+            return subprocess
         if len(name) == 0 or name[0] == '_':
             return ModuleType.__getattribute__(self, name)
-        elif name in ["path", "run", "call", "check_call", "check_output"]:
+        if name in ["path", "run", "call", "check_call", "check_output"]:
             return getattr(subprocess, name)
         if not subprocess.path(name, quiet=True):
             command = name.replace('_', '-')
