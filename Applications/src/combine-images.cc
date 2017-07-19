@@ -285,7 +285,7 @@ int main(int argc, char *argv[])
     Point origin = output->GetOrigin();
     origin._z = start;
     // Move to center of image stack, i.e. translate along z axis
-    double s = .5 * (output->Z() * output->GetZSize());
+    double s = .5 * (n - 1) * output->ZSize();
     origin._x += s * output->Attributes()._zaxis[0];
     origin._y += s * output->Attributes()._zaxis[1];
     origin._z += s * output->Attributes()._zaxis[2];
