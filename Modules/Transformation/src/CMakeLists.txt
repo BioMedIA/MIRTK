@@ -46,6 +46,7 @@ set(HEADERS
   LinearFreeFormTransformation4D.h
   LinearFreeFormTransformationTD.h
   LogJacobianConstraint.h
+  NegJacobianConstraint.h
   MultiLevelFreeFormTransformation.h
   MultiLevelStationaryVelocityTransformation.h
   MultiLevelTransformation.h
@@ -92,6 +93,7 @@ set(SOURCES
   LinearFreeFormTransformation4D.cc
   LinearFreeFormTransformationTD.cc
   LogJacobianConstraint.cc
+  NegJacobianConstraint.cc
   MultiLevelFreeFormTransformation.cc
   MultiLevelStationaryVelocityTransformation.cc
   MultiLevelTransformation.cc
