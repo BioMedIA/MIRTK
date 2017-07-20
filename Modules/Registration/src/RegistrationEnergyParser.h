@@ -562,10 +562,11 @@ protected:
     // Hence, use EnergyMeasure enumeration of Common module instead
     EnergyMeasure measure;
     FromString(name.c_str(), measure);
+    const string lname = ToLower(name);
     term_is_[PCM ] = (IFT_Begin < measure && measure < IFT_End);
-    term_is_[SIM ] = ((name == "SIM") || FromString(name.c_str(), similarity));
-    term_is_[PDM ] = ((name == "PDM") || FromString(name.c_str(), pdm));
-    term_is_[CM  ] = (                   FromString(name.c_str(), constraint));
+    term_is_[SIM ] = ((lname == "sim") || FromString(name.c_str(), similarity));
+    term_is_[PDM ] = ((lname == "pdm") || FromString(name.c_str(), pdm));
+    term_is_[CM  ] = (                    FromString(name.c_str(), constraint));
     term_is_[MSDE] = (measure == EM_MeanSquaredDisplacementError);
     if (!term_is_[SIM] && !term_is_[PDM] && !term_is_[PCM] && !term_is_[CM] && !term_is_[MSDE]) {
       cout << endl;
@@ -573,8 +574,8 @@ protected:
       exit(1);
     }
 
-    bool default_measure = (term_is_[SIM] && name == "SIM") ||
-                           (term_is_[PDM] && name == "PDM");
+    bool default_measure = (term_is_[SIM] && lname == "sim") ||
+                           (term_is_[PDM] && lname == "pdm");
 
     // Custom name
     token = NextToken(in);
