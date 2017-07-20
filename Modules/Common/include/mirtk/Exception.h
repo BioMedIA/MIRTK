@@ -36,7 +36,8 @@ enum ErrorType
   ERR_InvalidArgument = 3,
   ERR_RuntimeError    = 4,
   ERR_IOError         = 5,
-  ERR_Memory          = 6
+  ERR_Memory          = 6,
+  ERR_NotImplemented  = 42
 };
 
 /// Convert error type to string
@@ -52,6 +53,7 @@ inline string ToString(const ErrorType &value, int w, char c, bool left)
     case ERR_RuntimeError:    { str = "RuntimeError";    } break;
     case ERR_IOError:         { str = "IOError";         } break;
     case ERR_Memory:          { str = "MemoryError";     } break;
+    case ERR_NotImplemented:  { str = "NotImplemented";  } break;
   }
   return ToString(str, w, c, left);
 }

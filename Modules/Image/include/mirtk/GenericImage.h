@@ -421,12 +421,19 @@ public:
   virtual void ReflectY();  ///< Reflect image along y
   virtual void ReflectZ();  ///< Reflect image along z
 
-  virtual void FlipXY(bool); ///< Flip x and y axis
-  virtual void FlipXZ(bool); ///< Flip x and z axis
-  virtual void FlipYZ(bool); ///< Flip y and z axis
-  virtual void FlipXT(bool); ///< Flip x and t axis
-  virtual void FlipYT(bool); ///< Flip y and t axis
-  virtual void FlipZT(bool); ///< Flip z and t axis
+  virtual void FlipXY(bool modify_origin = false); ///< Flip x and y axis, always also swaps voxel size
+  virtual void FlipXZ(bool modify_origin = false); ///< Flip x and z axis, always also swaps voxel size
+  virtual void FlipYZ(bool modify_origin = false); ///< Flip y and z axis, always also swaps voxel size
+  virtual void FlipXT(bool modify_origin = false); ///< Flip x and t axis, always also swaps voxel size
+  virtual void FlipYT(bool modify_origin = false); ///< Flip y and t axis, always also swaps voxel size
+  virtual void FlipZT(bool modify_origin = false); ///< Flip z and t axis, always also swaps voxel size
+
+  virtual void SwapXY(bool modify_axes = true); ///< Swap x and y axis
+  virtual void SwapXZ(bool modify_axes = true); ///< Swap x and z axis
+  virtual void SwapYZ(bool modify_axes = true); ///< Swap y and z axis
+  virtual void SwapXT(bool modify_axes = true); ///< Swap x and t axis
+  virtual void SwapYT(bool modify_axes = true); ///< Swap y and t axis
+  virtual void SwapZT(bool modify_axes = true); ///< Swap z and t axis
 
   bool CropPad(int margin = 0); ///< Crop/pad image background
 
