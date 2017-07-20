@@ -1445,7 +1445,7 @@ void GenericImage<VoxelType>::ReflectZ()
 
 // -----------------------------------------------------------------------------
 template <class VoxelType>
-void GenericImage<VoxelType>::FlipXY(bool modifyOrigin)
+void GenericImage<VoxelType>::FlipXY(bool modify_origin)
 {
   // TODO: Implement BaseImage::FlipXY which flips the foreground mask (if any),
   //       adjusts the attributes, and updates the coordinate transformation matrices.
@@ -1469,7 +1469,7 @@ void GenericImage<VoxelType>::FlipXY(bool modifyOrigin)
   swap(_attr._dx, _attr._dy);
 
   // Swap origin coordinates
-  if (modifyOrigin) swap(_attr._xorigin, _attr._yorigin);
+  if (modify_origin) swap(_attr._xorigin, _attr._yorigin);
 
   // Reshape image matrix
   //
@@ -1492,7 +1492,7 @@ void GenericImage<VoxelType>::FlipXY(bool modifyOrigin)
 
 // -----------------------------------------------------------------------------
 template <class VoxelType>
-void GenericImage<VoxelType>::FlipXZ(bool modifyOrigin)
+void GenericImage<VoxelType>::FlipXZ(bool modify_origin)
 {
   // TODO: Implement BaseImage::FlipXZ which flips the foreground mask (if any),
   //       adjusts the attributes, and updates the coordinate transformation matrices.
@@ -1508,7 +1508,7 @@ void GenericImage<VoxelType>::FlipXZ(bool modifyOrigin)
   for (int i = 0; i < _attr._x; ++i) {
     matrix[l][i][j][k] = _matrix[l][k][j][i];
   }
- 
+
   // Swap image dimensions
   swap(_attr._x, _attr._z);
 
@@ -1516,7 +1516,7 @@ void GenericImage<VoxelType>::FlipXZ(bool modifyOrigin)
   swap(_attr._dx, _attr._dz);
 
   // Swap origin coordinates
-  if (modifyOrigin) swap(_attr._xorigin, _attr._zorigin);
+  if (modify_origin) swap(_attr._xorigin, _attr._zorigin);
 
   // Reshape image data
   //
@@ -1526,7 +1526,7 @@ void GenericImage<VoxelType>::FlipXZ(bool modifyOrigin)
   //            to the old memory and in particular complicates the synchronization
   //            of host and device memory in CUGenericImage used by CUDA code.
   _matrix = Reshape(_matrix, _attr._x, _attr._y, _attr._z, _attr._t);
-  
+
   // Copy flipped image
   CopyFrom(matrix[0][0][0]);
 
@@ -1539,7 +1539,7 @@ void GenericImage<VoxelType>::FlipXZ(bool modifyOrigin)
 
 // -----------------------------------------------------------------------------
 template <class VoxelType>
-void GenericImage<VoxelType>::FlipYZ(bool modifyOrigin)
+void GenericImage<VoxelType>::FlipYZ(bool modify_origin)
 {
   // TODO: Implement BaseImage::FlipYZ which flips the foreground mask (if any),
   //       adjusts the attributes, and updates the coordinate transformation matrices.
@@ -1548,7 +1548,7 @@ void GenericImage<VoxelType>::FlipYZ(bool modifyOrigin)
   // Allocate memory for flipped image
   VoxelType ****matrix = Allocate<VoxelType>(_attr._x, _attr._z, _attr._y, _attr._t);
 
-  // Flip image in memory  
+  // Flip image in memory
   for (int l = 0; l < _attr._t; ++l)
   for (int k = 0; k < _attr._z; ++k)
   for (int j = 0; j < _attr._y; ++j)
@@ -1563,7 +1563,7 @@ void GenericImage<VoxelType>::FlipYZ(bool modifyOrigin)
   swap(_attr._dy, _attr._dz);
 
   // Swap origin coordinates
-  if (modifyOrigin) swap(_attr._yorigin, _attr._zorigin);
+  if (modify_origin) swap(_attr._yorigin, _attr._zorigin);
 
   // Reshape image matrix
   //
@@ -1573,7 +1573,7 @@ void GenericImage<VoxelType>::FlipYZ(bool modifyOrigin)
   //            to the old memory and in particular complicates the synchronization
   //            of host and device memory in CUGenericImage used by CUDA code.
   _matrix = Reshape(_matrix, _attr._x, _attr._y, _attr._z, _attr._t);
-  
+
   // Copy flipped image
   CopyFrom(matrix[0][0][0]);
 
@@ -1586,7 +1586,7 @@ void GenericImage<VoxelType>::FlipYZ(bool modifyOrigin)
 
 // -----------------------------------------------------------------------------
 template <class VoxelType>
-void GenericImage<VoxelType>::FlipXT(bool modifyOrigin)
+void GenericImage<VoxelType>::FlipXT(bool modify_origin)
 {
   // TODO: Implement BaseImage::FlipXT which flips the foreground mask (if any),
   //       adjusts the attributes, and updates the coordinate transformation matrices.
@@ -1610,7 +1610,7 @@ void GenericImage<VoxelType>::FlipXT(bool modifyOrigin)
   swap(_attr._dx, _attr._dt);
 
   // Swap origin coordinates
-  if (modifyOrigin) swap(_attr._xorigin, _attr._torigin);
+  if (modify_origin) swap(_attr._xorigin, _attr._torigin);
 
   // Reshape image matrix
   //
@@ -1620,7 +1620,7 @@ void GenericImage<VoxelType>::FlipXT(bool modifyOrigin)
   //            to the old memory and in particular complicates the synchronization
   //            of host and device memory in CUGenericImage used by CUDA code.
   _matrix = Reshape(_matrix, _attr._x, _attr._y, _attr._z, _attr._t);
-  
+
   // Copy flipped image
   CopyFrom(matrix[0][0][0]);
 
@@ -1633,7 +1633,7 @@ void GenericImage<VoxelType>::FlipXT(bool modifyOrigin)
 
 // -----------------------------------------------------------------------------
 template <class VoxelType>
-void GenericImage<VoxelType>::FlipYT(bool modifyOrigin)
+void GenericImage<VoxelType>::FlipYT(bool modify_origin)
 {
   // TODO: Implement BaseImage::FlipYT which flips the foreground mask (if any),
   //       adjusts the attributes, and updates the coordinate transformation matrices.
@@ -1656,7 +1656,7 @@ void GenericImage<VoxelType>::FlipYT(bool modifyOrigin)
   swap(_attr._dy, _attr._dt);
 
   // Swap origin coordinates
-  if (modifyOrigin) swap(_attr._yorigin, _attr._torigin);
+  if (modify_origin) swap(_attr._yorigin, _attr._torigin);
 
   // Reshape image matrix
   //
@@ -1666,7 +1666,7 @@ void GenericImage<VoxelType>::FlipYT(bool modifyOrigin)
   //            to the old memory and in particular complicates the synchronization
   //            of host and device memory in CUGenericImage used by CUDA code.
   _matrix = Reshape(_matrix, _attr._x, _attr._y, _attr._z, _attr._t);
-  
+
   // Copy flipped image
   CopyFrom(matrix[0][0][0]);
 
@@ -1679,7 +1679,7 @@ void GenericImage<VoxelType>::FlipYT(bool modifyOrigin)
 
 // -----------------------------------------------------------------------------
 template <class VoxelType>
-void GenericImage<VoxelType>::FlipZT(bool modifyOrigin)
+void GenericImage<VoxelType>::FlipZT(bool modify_origin)
 {
   // TODO: Implement BaseImage::FlipZT which flips the foreground mask (if any),
   //       adjusts the attributes, and updates the coordinate transformation matrices.
@@ -1702,7 +1702,136 @@ void GenericImage<VoxelType>::FlipZT(bool modifyOrigin)
   swap(_attr._dz, _attr._dt);
 
   // Swap origin coordinates
-  if (modifyOrigin) swap(_attr._zorigin, _attr._torigin);
+  if (modify_origin) swap(_attr._zorigin, _attr._torigin);
+
+  // Reshape image matrix
+  //
+  // Attention: DO NOT just swap the pointers to the data elements as this
+  //            changes the memory location of the image data. This is not
+  //            predictable by users of the class which may still hold a pointer
+  //            to the old memory and in particular complicates the synchronization
+  //            of host and device memory in CUGenericImage used by CUDA code.
+  _matrix = Reshape(_matrix, _attr._x, _attr._y, _attr._z, _attr._t);
+
+  // Copy flipped image
+  CopyFrom(matrix[0][0][0]);
+
+  // Deallocate memory
+  Deallocate(matrix);
+
+  // Update coordinate transformation
+  UpdateMatrix();
+}
+
+// -----------------------------------------------------------------------------
+template <class VoxelType>
+void GenericImage<VoxelType>::SwapXY(bool modify_axes)
+{
+  // TODO: Implement BaseImage::FlipXY which flips the foreground mask (if any),
+  //       adjusts the attributes, and updates the coordinate transformation matrices.
+  //       The subclass then only needs to reshape the image _matrix data itself.
+
+  // Allocate memory
+  VoxelType ****matrix = Allocate<VoxelType>(_attr._y, _attr._x, _attr._z, _attr._t);
+
+  // Swap image dimensions in memory
+  for (int l = 0; l < _attr._t; ++l)
+  for (int k = 0; k < _attr._z; ++k)
+  for (int j = 0; j < _attr._y; ++j)
+  for (int i = 0; i < _attr._x; ++i) {
+    matrix[l][k][i][j] = _matrix[l][k][j][i];
+  }
+  swap(_attr._x, _attr._y);
+
+  // Reshape image matrix
+  //
+  // Attention: DO NOT just swap the pointers to the data elements as this
+  //            changes the memory location of the image data. This is not
+  //            predictable by users of the class which may still hold a pointer
+  //            to the old memory and in particular complicates the synchronization
+  //            of host and device memory in CUGenericImage used by CUDA code.
+  _matrix = Reshape(_matrix, _attr._x, _attr._y, _attr._z, _attr._t);
+
+  // Copy flipped image
+  CopyFrom(matrix[0][0][0]);
+
+  // Deallocate memory
+  Deallocate(matrix);
+
+  // Update coordinate transformation
+  if (modify_axes) {
+    swap(_attr._dx, _attr._dy);
+    for (int d = 0; d < 3; ++d) {
+      swap(_attr._xaxis[d], _attr._yaxis[d]);
+    }
+  }
+  UpdateMatrix();
+}
+
+// -----------------------------------------------------------------------------
+template <class VoxelType>
+void GenericImage<VoxelType>::SwapXZ(bool modify_axes)
+{
+  // TODO: Implement BaseImage::FlipXZ which flips the foreground mask (if any),
+  //       adjusts the attributes, and updates the coordinate transformation matrices.
+  //       The subclass then only needs to reshape the image _matrix data itself.
+
+  // Allocate memory
+  VoxelType ****matrix = Allocate<VoxelType>(_attr._z, _attr._y, _attr._x, _attr._t);
+
+  // Swap image dimensions in memory
+  for (int l = 0; l < _attr._t; ++l)
+  for (int k = 0; k < _attr._z; ++k)
+  for (int j = 0; j < _attr._y; ++j)
+  for (int i = 0; i < _attr._x; ++i) {
+    matrix[l][i][j][k] = _matrix[l][k][j][i];
+  }
+  swap(_attr._x, _attr._z);
+
+  // Reshape image data
+  //
+  // Attention: DO NOT just swap the pointers to the data elements as this
+  //            changes the memory location of the image data. This is not
+  //            predictable by users of the class which may still hold a pointer
+  //            to the old memory and in particular complicates the synchronization
+  //            of host and device memory in CUGenericImage used by CUDA code.
+  _matrix = Reshape(_matrix, _attr._x, _attr._y, _attr._z, _attr._t);
+
+  // Copy flipped image
+  CopyFrom(matrix[0][0][0]);
+
+  // Deallocate memory
+  Deallocate(matrix);
+
+  // Update coordinate transformation
+  if (modify_axes) {
+    swap(_attr._dx, _attr._dz);
+    for (int d = 0; d < 3; ++d) {
+      swap(_attr._xaxis[d], _attr._zaxis[d]);
+    }
+  }
+  UpdateMatrix();
+}
+
+// -----------------------------------------------------------------------------
+template <class VoxelType>
+void GenericImage<VoxelType>::SwapYZ(bool modify_axes)
+{
+  // TODO: Implement BaseImage::FlipYZ which flips the foreground mask (if any),
+  //       adjusts the attributes, and updates the coordinate transformation matrices.
+  //       The subclass then only needs to reshape the image _matrix data itself.
+
+  // Allocate memory for flipped image
+  VoxelType ****matrix = Allocate<VoxelType>(_attr._x, _attr._z, _attr._y, _attr._t);
+
+  // Swap image dimensions in memory
+  for (int l = 0; l < _attr._t; ++l)
+  for (int k = 0; k < _attr._z; ++k)
+  for (int j = 0; j < _attr._y; ++j)
+  for (int i = 0; i < _attr._x; ++i) {
+    matrix[l][j][k][i] = _matrix[l][k][j][i];
+  }
+  swap(_attr._y, _attr._z);
 
   // Reshape image matrix
   //
@@ -1720,6 +1849,147 @@ void GenericImage<VoxelType>::FlipZT(bool modifyOrigin)
   Deallocate(matrix);
 
   // Update coordinate transformation
+  if (modify_axes) {
+    swap(_attr._dy, _attr._dz);
+    for (int d = 0; d < 3; ++d) {
+      swap(_attr._yaxis[d], _attr._zaxis[d]);
+    }
+  }
+  UpdateMatrix();
+}
+
+// -----------------------------------------------------------------------------
+template <class VoxelType>
+void GenericImage<VoxelType>::SwapXT(bool modify_axes)
+{
+  // TODO: Implement BaseImage::FlipXT which flips the foreground mask (if any),
+  //       adjusts the attributes, and updates the coordinate transformation matrices.
+  //       The subclass then only needs to reshape the image _matrix data itself.
+
+  // Allocate memory
+  VoxelType ****matrix = Allocate<VoxelType>(_attr._t, _attr._y, _attr._z, _attr._x);
+
+  // Swap image dimensions in memory
+  for (int l = 0; l < _attr._t; ++l)
+  for (int k = 0; k < _attr._z; ++k)
+  for (int j = 0; j < _attr._y; ++j)
+  for (int i = 0; i < _attr._x; ++i) {
+    matrix[i][k][j][l] = _matrix[l][k][j][i];
+  }
+  swap(_attr._x, _attr._t);
+
+  // Reshape image matrix
+  //
+  // Attention: DO NOT just swap the pointers to the data elements as this
+  //            changes the memory location of the image data. This is not
+  //            predictable by users of the class which may still hold a pointer
+  //            to the old memory and in particular complicates the synchronization
+  //            of host and device memory in CUGenericImage used by CUDA code.
+  _matrix = Reshape(_matrix, _attr._x, _attr._y, _attr._z, _attr._t);
+  
+  // Copy flipped image
+  CopyFrom(matrix[0][0][0]);
+
+  // Deallocate memory
+  Deallocate(matrix);
+
+  // Update coordinate transformation
+  if (modify_axes) {
+    swap(_attr._dx, _attr._dt);
+    _attr._xaxis[0] = 1.;
+    _attr._xaxis[1] = 0.;
+    _attr._xaxis[2] = 0.;
+  }
+  UpdateMatrix();
+}
+
+// -----------------------------------------------------------------------------
+template <class VoxelType>
+void GenericImage<VoxelType>::SwapYT(bool modify_axes)
+{
+  // TODO: Implement BaseImage::FlipYT which flips the foreground mask (if any),
+  //       adjusts the attributes, and updates the coordinate transformation matrices.
+  //       The subclass then only needs to reshape the image _matrix data itself.
+
+  // Allocate memory
+  VoxelType ****matrix = Allocate<VoxelType>(_attr._x, _attr._t, _attr._z, _attr._y);
+
+  // Swap image dimensions in memory
+  for (int l = 0; l < _attr._t; ++l)
+  for (int k = 0; k < _attr._z; ++k)
+  for (int j = 0; j < _attr._y; ++j)
+  for (int i = 0; i < _attr._x; ++i) {
+    matrix[j][k][l][i] = _matrix[l][k][j][i];
+  }
+  swap(_attr._y, _attr._t);
+
+  // Reshape image matrix
+  //
+  // Attention: DO NOT just swap the pointers to the data elements as this
+  //            changes the memory location of the image data. This is not
+  //            predictable by users of the class which may still hold a pointer
+  //            to the old memory and in particular complicates the synchronization
+  //            of host and device memory in CUGenericImage used by CUDA code.
+  _matrix = Reshape(_matrix, _attr._x, _attr._y, _attr._z, _attr._t);
+  
+  // Copy flipped image
+  CopyFrom(matrix[0][0][0]);
+
+  // Deallocate memory
+  Deallocate(matrix);
+
+  // Update coordinate transformation
+  if (modify_axes) {
+    swap(_attr._dy, _attr._dt);
+    _attr._yaxis[0] = 1.;
+    _attr._yaxis[1] = 0.;
+    _attr._yaxis[2] = 0.;
+  }
+  UpdateMatrix();
+}
+
+// -----------------------------------------------------------------------------
+template <class VoxelType>
+void GenericImage<VoxelType>::SwapZT(bool modify_axes)
+{
+  // TODO: Implement BaseImage::FlipZT which flips the foreground mask (if any),
+  //       adjusts the attributes, and updates the coordinate transformation matrices.
+  //       The subclass then only needs to reshape the image _matrix data itself.
+
+  // Allocate memory
+  VoxelType ****matrix = Allocate<VoxelType>(_attr._x, _attr._y, _attr._t, _attr._z);
+
+  // Swap image dimensions in memory
+  for (int l = 0; l < _attr._t; ++l)
+  for (int k = 0; k < _attr._z; ++k)
+  for (int j = 0; j < _attr._y; ++j)
+  for (int i = 0; i < _attr._x; ++i) {
+    matrix[k][l][j][i] = _matrix[l][k][j][i];
+  }
+  swap(_attr._z, _attr._t);
+
+  // Reshape image matrix
+  //
+  // Attention: DO NOT just swap the pointers to the data elements as this
+  //            changes the memory location of the image data. This is not
+  //            predictable by users of the class which may still hold a pointer
+  //            to the old memory and in particular complicates the synchronization
+  //            of host and device memory in CUGenericImage used by CUDA code.
+  _matrix = Reshape(_matrix, _attr._x, _attr._y, _attr._z, _attr._t);
+  
+  // Copy flipped image
+  CopyFrom(matrix[0][0][0]);
+
+  // Deallocate memory
+  Deallocate(matrix);
+
+  // Update coordinate transformation
+  if (modify_axes) {
+    swap(_attr._dz, _attr._dt);
+    _attr._zaxis[0] = 1.;
+    _attr._zaxis[1] = 0.;
+    _attr._zaxis[2] = 0.;
+  }
   UpdateMatrix();
 }
 

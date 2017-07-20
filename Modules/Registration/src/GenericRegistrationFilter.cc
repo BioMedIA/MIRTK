@@ -1291,7 +1291,7 @@ inline void rtrim(char *s)
 // -----------------------------------------------------------------------------
 static bool read_next(istream &in, char *buffer, int n, char *&name, char *&value, int &no)
 {
-  char *p = NULL;
+  char *p = nullptr;
   // skip comments and blank lines
   do {
     if (!in) return false;
@@ -1303,7 +1303,7 @@ static bool read_next(istream &in, char *buffer, int n, char *&name, char *&valu
     name = buffer;
     while (*name == ' ' || *name == '\t') ++name;
     // discard comment and trailing whitespace characters at end of line
-    if ((p = strstr(name, "#")) != NULL) {
+    if ((p = strstr(name, "#")) != nullptr) {
       if (p == name) {
         name[0] = '\0';
       } else if (p[-1] == ' ' || p[-1] == '\t') {
@@ -1328,20 +1328,47 @@ static bool read_next(istream &in, char *buffer, int n, char *&name, char *&valu
     return true;
   }
   // find '=' character
-  if ((p = strchr(name, '=')) == NULL) return false;
+  if ((p = strchr(name, '=')) == nullptr) return false;
   // skip leading whitespace characters of parameter value
   value = p;
   do { ++value; } while (*value == ' ' || *value == '\t');
   // truncate parameter name, skipping trailing whitespace characters
-  *p = '\0'; // discard '=' character
+  *p = '\0';
   rtrim(name);
+  // concatenate multi-line energy function value
+  if (strcmp(name, "Energy function") == 0) {
+    while (true) {
+      rtrim(value);
+      size_t len = strlen(value);
+      if (len > 3 && strcmp(value + len - 3, "...") == 0) {
+        // separate multi-line statements by single space (i.e. replace first '.' by ' ')
+        value[len - 3] = ' ';
+        // read next line into buffer at the end of current 'value'
+        char *next_value = value + len - 2;
+        in.getline(next_value, n - int(next_value - buffer));
+        if (!in) return false;
+        ++no;
+        // discard leading whitespace characters
+        p = next_value;
+        while (*p == ' ' || *p == '\t') ++p;
+        if (p != next_value) {
+          char *q = next_value;
+          while (*p) {
+            *q = *p;
+            ++q, ++p;
+          }
+          *q = '\0';
+        }
+      } else break;
+    }
+  }
   return true;
 }
 
 // -----------------------------------------------------------------------------
 bool GenericRegistrationFilter::Read(istream &from, bool echo)
 {
-  const size_t sz         = 1024;
+  const size_t sz         = 4096;
   char         buffer[sz] = {0};
   char        *name       = NULL;
   char        *value      = NULL;
@@ -2204,6 +2231,7 @@ void GenericRegistrationFilter::ParseEnergyFormula(int nimages, int npsets, int 
       const double be_w = ((nimages >= 2) ? 0.001 : .0);
       formula += ToString(be_w);
       formula +=     " BE[Bending energy]"
+                 " + 0 TP[Topology preservation]"
                  " + 0 VP[Volume preservation]"
                  " + 0 JAC[Jacobian penalty]"
                  " + 0 Sparsity";
@@ -2632,7 +2660,8 @@ void GenericRegistrationFilter::GuessParameter()
   }
   // Default maximum no. of line search iterations, use the same defaults
   // as the previous rreg2, areg2, and nreg2 implementations have used
-  int nlineiter = IsLinear(_TransformationModel) ? 20 : 12;
+  const bool is_linear_model = IsLinear(_TransformationModel);
+  int nlineiter = is_linear_model ? 20 : 12;
   if (Contains(_Parameter[0], MAXLINEITER)) {
     FromString(Get(_Parameter[0], MAXLINEITER), nlineiter);
   } else {
@@ -2645,12 +2674,16 @@ void GenericRegistrationFilter::GuessParameter()
     // to save function evaluations which with high chance are rejected anyway
     Insert(_Parameter[0], MAXREJECTED, max(nlineiter / 4, 2));
   }
-
   if (!Contains(_Parameter[0], MINSTEP) && !Contains(_Parameter[0], MAXSTEP)) {
-    // By default, limit step length to one (target) voxel unit
-    const double maxres = max(avgres[0], max(avgres[1], avgres[2]));
-    Insert(_Parameter[0], MINSTEP, maxres / 100.);
-    Insert(_Parameter[0], MAXSTEP, maxres);
+    if (is_linear_model) {
+      Insert(_Parameter[0], MINSTEP, .01);
+      Insert(_Parameter[0], MAXSTEP, 1.);
+    } else {
+      // By default, limit step length to one (target) voxel unit
+      const double maxres = max(avgres[0], max(avgres[1], avgres[2]));
+      Insert(_Parameter[0], MINSTEP, maxres / 100.);
+      Insert(_Parameter[0], MAXSTEP, maxres);
+    }
   } else if (!Contains(_Parameter[0], MINSTEP)) {
     if (!FromString(Get(_Parameter[0], MAXSTEP).c_str(), value)) {
       cerr << "GenericRegistrationFilter::GuessParameter: Invalid '"
@@ -2681,7 +2714,7 @@ void GenericRegistrationFilter::GuessParameter()
              << MAXSTEP << "' argument: " << Get(_Parameter[level-1], MAXSTEP) << endl;
         exit(1);
       }
-      if (level > 1 && (value - maxres) < 1e-3) {
+      if (!is_linear_model && level > 1 && (value - maxres) < 1e-3) {
         value = 2. * value;
       }
       Insert(_Parameter[level], MAXSTEP, ToString(value));

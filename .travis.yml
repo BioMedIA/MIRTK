@@ -7,6 +7,9 @@ compiler:
   - g++
   - clang
 
+git:
+  depth: 10
+
 os:
   - linux
   - osx
@@ -23,6 +26,11 @@ env:
   - WITH_UMFPACK=OFF  # ARPACK & UMFPACK dependencies come in pairs
   - WITH_TBB=ON       # build with TBB is always recommended
   - WITH_FLANN=ON     # build with FLANN is optional, but requires only little extra build time
+  # build and deployment of AppImage for Linux
+  - AppImage_BUILD=${AppImage_BUILD:-ON}
+  - AppImage_BRANCH=${AppImage_BRANCH:-master}
+  - AppImage_VIEWER=${AppImage_VIEWER:-OFF}
+  - AppImage_LATEST=${AppImage_LATEST:-ON}
   matrix:
   - WITH_VTK=OFF      # make sure that MIRTK can be build fine without VTK
   - WITH_VTK=ON       # test build with all moduldes, including those using VTK
@@ -47,15 +55,47 @@ cache:
   ccache: true
   timeout: 1000
   directories:
-  - $HOME/VTK-$LINUX_VTK_VERSION
-  - $HOME/VTK-$MACOS_VTK_VERSION
+  - "$HOME/VTK-$LINUX_VTK_VERSION"
+  - "$HOME/VTK-$MACOS_VTK_VERSION"
 
 before_install:
   - . Scripts/install_depends.sh  # sourcing should enable export of env variables
   - cd $TRAVIS_BUILD_DIR          # working directory may have been changed
 
+install: true
+
 script:
   - Scripts/travis.sh
+
+after_success:
+  - if [ "$AppImage_BUILD" = ON ] && [ "$TRAVIS_REPO_SLUG" = "BioMedIA/MIRTK" ] && [ "$TRAVIS_BRANCH" = "$AppImage_BRANCH" ] && [ "$TRAVIS_PULL_REQUEST" = false ] && [ "$TRAVIS_OS_NAME" = linux ] && [ "$WITH_VTK" = ON ]; then
+      export AppImage_BINTRAY=ON;
+    else
+      export AppImage_BINTRAY=OFF;
+    fi
+  - if [ "$AppImage_BUILD" = ON ] && [ "$AppImage_BINTRAY" = ON -o -n "$TRAVIS_TAG" ]; then
+      Scripts/make_appimage.sh;
+    fi
+
+deploy:
+  - provider: bintray
+    skip_cleanup: true
+    user: "schuhschuh"
+    key:
+      secure: "ZppKEFWcfVwcO93ciA/zU5ThGLkveY/9fnEH4VyTZyYlnVuL+6R6G3BAalhgZLIdNLpmtMd057laqhupPYqt2c4KClRWuhg7pKisCzpZptUWHLgMq3hl2AKGpxMgWrwktVPR2lIpTG6UaQEZ6MUG+NscPUp2OlMwk4Kog2s/Vjr2qkkK51/reZBKz4K0mHmFuIhW7cUkebWCn81CgRLoIX1fiHo22hDvbIvZA/WH8UcyucR3znBjVaWSniXk70TMUyH6uDhx0sX+nml/JDd8UcIZsZm3wBxam39TzviTcyuY/YyK3TkPOOhWe9jutyVnOHwMbQSiI+Av+XjnlKI7DsBNvuMFA+ULcaHqozXgEFC87BrjeyBPq3Y95czsK11OWAB6xo/LIMONmhCSrybBG6ZuRi8c/FDuVlGhdaoixK3KjxD+JkB0twFSXA4ITKTAHPRrZHkgWiM0qFwL4KM1an86s4n8k8pdsN3HA61WoNR3k6WCZkOSrZ3mwi9IHaNN/Mh1jIYBDroBwNdAK0bCVXHgI0iFIdt7VU9K3ZeVoB//vdaG6qcVSkEXlcdTuzuhaD8fAuCnO1muv4FFz3+K6GX1Kc0rRWGqUlWRnOqCV1bG/g7fJnY+CeuZgkFzBlPyVtXa6gA1McHS21YzR7GprP9PLT6zxN0dvf457er8hyM="
+    file: ".bintray.yml"
+    on:
+      all_branches: true
+      condition: "$AppImage_BINTRAY = ON"
+  - provider: releases
+    skip_cleanup: true
+    api_key:
+      secure: "AQD/827hwRqb7Dihl+X3w2WBqGY+JpVcdfm28FEcxNF70WnjCis8V0OHACZ7VIGZHZbcyw33278wJoPwKPm7D1pu3+G++hP7PPLE7JhHJbj6oU7WTqJuvTjSc7F0DkUmXyttMPRpocCU0m3pbJXNhY4oqrYwEQJNtQbqbnYRPV958YR104bWji5VhmtB6Gsp3L7kfjvEAjinHAEDQXybO4/ZVSn+/5MycvE/qTk20NZedsa3rusdmrRAR79CwPBkg0zQhbV4qT0+K1COF1pw/35kyZ22x+mzG5wO+3n2NxrmKo4X3V1awipP+JEFFCsZti1joKxJ9IQo6OFfTPIDpqZQIuvlGr3/1K+iKuGq2OqiXFCdOoHnLBYvVxnr7uToaSMM9kqowevGc5fea2sV3YDvx7EIWJSJiCe5Ee8sWnSDLYJVoSY9ykmx6vRxPJ0iaUjLLajvPenapZOvQZRdZrIX1eFFZqXBB3HQzlbSG/PdjAVDY2KzOuOkXU5Rsaztj8FZgcvWk1U4mqYon+Hol30oGM6u+ZpiOEQclBQe0lUgFUbJv+na0cOoT2LLH0l6ZyifJtUIcfi4ZMAR8vRVAm63gQMX/PPaojXegWrVhS3KWSXyDqHNnFyTuwrnLKH7FWrpEkmaPann1i+LowukaMnizTaQjMM+JgVkBhhdwgo="
+    file: "Deploy/*.AppImage"
+    file_glob: true
+    on:
+      tags: true
+      all_branches: true
 
 notifications:
   email: false

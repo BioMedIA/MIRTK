@@ -55,6 +55,8 @@ void PrintHelp(const char *name)
   cout << "  unknown                     Unknown, try to guess it from file header/type.\n";
   cout << "  disp_world|disp|image       Dense displacement field image with world space displacement vectors [mm].\n";
   cout << "  disp_voxel                  Dense displacement field image with target space displacement vectors [voxel].\n";
+  cout << "  svf_world|svf               Dense velocity field image with world space vectors [mm]. Requires input SVFFD.\n";
+  cout << "  svf_voxel                   Dense velocity field image with target space vectors [voxel]. Requires input SVFFD.\n";
   cout << "  mirtk                       MIRTK transformation file format.\n";
   cout << "  mirtk_rigid|rigid           Rigid MIRTK transformation file format (6 DoFs).\n";
   cout << "  mirtk_similarity            Similarity MIRTK transformation file format (7 DoFs).\n";
@@ -167,6 +169,8 @@ enum TransformationFileFormat
   // Dense displacement field image
   Format_WorldDisplacement, ///< Displacement vectors in world units (mm)
   Format_VoxelDisplacement, ///< Displacement vectors in voxel units
+  Format_WorldSVF,          ///< Stationary velocity field in world units (mm)
+  Format_VoxelSVF,          ///< Stationary velocity field in voxel units
   // MIRTK
   Format_MIRTK,
   Format_MIRTK_Rigid,
@@ -229,6 +233,8 @@ inline string ToString(const TransformationFileFormat &format, int w, char c, bo
   switch (format) {
     case Format_WorldDisplacement:        str = "disp_world"; break;
     case Format_VoxelDisplacement:        str = "disp_voxel"; break;
+    case Format_WorldSVF:                 str = "svf_world"; break;
+    case Format_VoxelSVF:                 str = "svf_voxel"; break;
     case Format_MIRTK:                    str = "mirtk"; break;
     case Format_MIRTK_Rigid:              str = "mirtk_rigid"; break;
     case Format_MIRTK_Similarity:         str = "mirtk_similarity"; break;
@@ -286,6 +292,7 @@ inline bool FromString(const char *str, TransformationFileFormat &format)
 
   // Alternative format names
   if      (format_name == "disp" || format_name == "image") format = Format_WorldDisplacement;
+  else if (format_name == "svf") format = Format_WorldSVF;
   else if (format_name == "rigid") format = Format_MIRTK_Rigid;
   else if (format_name == "similarity") format = Format_MIRTK_Similarity;
   else if (format_name == "affine") format = Format_MIRTK_Affine;
@@ -526,7 +533,7 @@ Transformation *ToLinearFFD(const GenericImage<double> &disp,
   if (dy <= .0) dy = disp.YSize();
   if (dz <= .0) dz = disp.ZSize();
 
-  if (fequal(dx, disp.GetXSize()) && fequal(dy, disp.GetYSize()) && fequal(dz, disp.GetZSize())) {
+  if (fequal(dx, disp.XSize()) && fequal(dy, disp.YSize()) && fequal(dz, disp.ZSize())) {
 
     ffd.reset(new LinearFreeFormTransformation3D(disp, true));
 
@@ -564,6 +571,20 @@ Transformation *ToLinearFFD(const GenericImage<double> &disp,
   dof.reset(new MultiLevelFreeFormTransformation());
   dof->PushLocalTransformation(ffd.release());
   return dof.release();
+}
+
+// -----------------------------------------------------------------------------
+/// Convert dense stationary velocity field to cubic B-spline SVFFD
+Transformation *ToBSplineSVFFD(GenericImage<double> &velo,
+                               double dx = .0, double dy = .0, double dz = .0)
+{
+  if (dx <= .0) dx = velo.XSize();
+  if (dy <= .0) dy = velo.YSize();
+  if (dz <= .0) dz = velo.ZSize();
+  UniquePtr<BSplineFreeFormTransformationSV> svffd;
+  svffd.reset(new BSplineFreeFormTransformationSV(velo.Attributes(), dx, dy, dz));
+  svffd->ApproximateVelocitiesAsNew(velo);
+  return svffd.release();
 }
 
 // -----------------------------------------------------------------------------
@@ -617,6 +638,40 @@ Transformation *ReadVoxelDisplacement(const char *dx_name, const char *dy_name, 
   GenericImage<double> disp = ConcatenateWorldDisplacement(dx_name, dy_name, dz_name);
   ConvertVoxelToWorldDisplacement(disp);
   return ToLinearFFD(disp);
+}
+
+// -----------------------------------------------------------------------------
+/// Read transformation from dense world space stationary velocity field image
+Transformation *ReadWorldSVF(const char *fname)
+{
+  GenericImage<double> velo(fname);
+  return ToBSplineSVFFD(velo);
+}
+
+// -----------------------------------------------------------------------------
+/// Read transformation from dense world space stationary velocity field component images
+Transformation *ReadWorldSVF(const char *dx_name, const char *dy_name, const char *dz_name)
+{
+  auto velo = ConcatenateWorldDisplacement(dx_name, dy_name, dz_name);
+  return ToBSplineSVFFD(velo);
+}
+
+// -----------------------------------------------------------------------------
+/// Read transformation from dense voxel space stationary velocity field image
+Transformation *ReadVoxelSVF(const char *fname)
+{
+  GenericImage<double> velo(fname);
+  ConvertVoxelToWorldDisplacement(velo);
+  return ToBSplineSVFFD(velo);
+}
+
+// -----------------------------------------------------------------------------
+/// Read transformation from dense voxel space stationary velocity field component images
+Transformation *ReadVoxelSVF(const char *dx_name, const char *dy_name, const char *dz_name)
+{
+  GenericImage<double> velo = ConcatenateWorldDisplacement(dx_name, dy_name, dz_name);
+  ConvertVoxelToWorldDisplacement(velo);
+  return ToBSplineSVFFD(velo);
 }
 
 // =============================================================================
@@ -2028,6 +2083,7 @@ int main(int argc, char *argv[])
   double      tmax        = +numeric_limits<double>::infinity();
   const char *delimiter   = nullptr;
   int         precision   = -1;
+  bool        velocities  = false;
   FFDIMParams ffdim;
   BCHParams   bchparam;
 
@@ -2099,6 +2155,7 @@ int main(int argc, char *argv[])
         ARGUMENT; // unused, but needs to be parsed
       #endif // MIRTK_IO_WITH_NIfTI
     }
+    else HANDLE_BOOL_OPTION(velocities);
     else HANDLE_COMMON_OR_UNKNOWN_OPTION();
   }
 
@@ -2194,7 +2251,7 @@ int main(int argc, char *argv[])
   const char *dy_input = nullptr;
   const char *dz_input = nullptr;
 
-  if (format_in == Format_WorldDisplacement || format_in == Format_VoxelDisplacement) {
+  if (format_in == Format_WorldDisplacement || format_in == Format_VoxelDisplacement || format_in == Format_WorldSVF || format_in == Format_VoxelSVF) {
     if (NUM_POSARGS == 4 || NUM_POSARGS == 6) {
       dx_input    = POSARG(1);
       dy_input    = POSARG(2);
@@ -2212,7 +2269,7 @@ int main(int argc, char *argv[])
   UniquePtr<Transformation> dof;
   switch (format_in) {
 
-    // Image
+    // Dense displacement field
     case Format_WorldDisplacement: {
       if (input_name) {
         dof.reset(ReadWorldDisplacement(input_name));
@@ -2225,6 +2282,22 @@ int main(int argc, char *argv[])
         dof.reset(ReadVoxelDisplacement(input_name));
       } else {
         dof.reset(ReadVoxelDisplacement(dx_input, dy_input, dz_input));
+      }
+    } break;
+
+    // Dense stationary velocity field
+    case Format_WorldSVF: {
+      if (input_name) {
+        dof.reset(ReadWorldSVF(input_name));
+      } else {
+        dof.reset(ReadWorldSVF(dx_input, dy_input, dz_input));
+      }
+    } break;
+    case Format_VoxelSVF: {
+      if (input_name) {
+        dof.reset(ReadVoxelSVF(input_name));
+      } else {
+        dof.reset(ReadVoxelSVF(dx_input, dy_input, dz_input));
       }
     } break;
 
@@ -2322,20 +2395,20 @@ int main(int argc, char *argv[])
   const char *dy_output = nullptr;
   const char *dz_output = nullptr;
 
-  if ((format_in  == Format_WorldDisplacement || format_in  == Format_VoxelDisplacement) &&
-      (format_out == Format_WorldDisplacement || format_out == Format_VoxelDisplacement)) {
+  if ((format_in  == Format_WorldDisplacement || format_in  == Format_VoxelDisplacement || format_out == Format_WorldSVF || format_out == Format_VoxelSVF) &&
+      (format_out == Format_WorldDisplacement || format_out == Format_VoxelDisplacement || format_out == Format_WorldSVF || format_out == Format_VoxelSVF)) {
     if (NUM_POSARGS == 4) {
-      FatalError("Ambiguous usage when both input and output formats are dense displacement\n"
-                 " fields and 4 positional arguments given. Either read *and* write components\n"
-                 " from/to separate image files (6 arguments) or from/to a single 3D+3 image.\n");
+      FatalError("Ambiguous usage when both input and output formats are dense vector fields\n"
+                 " and 4 positional arguments given. Either read *and* write components from/to\n"
+                 " separate image files (6 arguments) or from/to a single 3D+3 image.\n");
     }
   }
-  if (format_out == Format_WorldDisplacement || format_out == Format_VoxelDisplacement) {
+  if (format_out == Format_WorldDisplacement || format_out == Format_VoxelDisplacement || format_out == Format_WorldSVF || format_out == Format_VoxelSVF) {
     if (NUM_POSARGS == 4) {
       if (dx_input || dy_input || dz_input) {
-        FatalError("Ambiguous usage when both input and output formats are dense displacement\n"
-                   " fields and 4 positional arguments given. Either read *and* write components\n"
-                   " from/to separate image files (6 arguments) or from/to a single 3D+3 image.\n");
+        FatalError("Ambiguous usage when both input and output formats are dense vector fields\n"
+                   " and 4 positional arguments given. Either read *and* write components from/to\n"
+                   " separate image files (6 arguments) or from/to a single 3D+3 image.\n");
       }
       dx_output = POSARG(2);
       dy_output = POSARG(3);
@@ -2349,11 +2422,23 @@ int main(int argc, char *argv[])
     }
   }
 
+  // Cast velocity based MIRTK transformation to displacement based MIRTK transformation
+  if (format_out == Format_WorldSVF || format_out == Format_VoxelSVF) {
+    BSplineFreeFormTransformationSV *svffd;
+    svffd = dynamic_cast<BSplineFreeFormTransformationSV *>(dof.get());
+    if (svffd == nullptr) {
+      FatalError("Output format 'svf_world' and 'svf_voxel' requires input SVFFD!");
+    }
+    dof.reset(new BSplineFreeFormTransformation3D(*svffd));
+    if (format_out == Format_WorldSVF) format_out = Format_WorldDisplacement;
+    else                               format_out = Format_VoxelDisplacement;
+  }
+
   // Write transformation in requested output format
   bool success;
   switch (format_out) {
 
-    // Image
+    // Dense displacement field or stationary velocity field, respectively
     case Format_WorldDisplacement: {
       if (output_name) {
         success = WriteWorldDisplacement(output_name, dof.get(), target_attr, ts);

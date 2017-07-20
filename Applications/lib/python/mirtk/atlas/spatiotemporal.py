@@ -1,4 +1,21 @@
-#!/usr/bin/python
+##############################################################################
+# Medical Image Registration ToolKit (MIRTK)
+#
+# Copyright 2017 Imperial College London
+# Copyright 2017 Andreas Schuh
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+##############################################################################
 
 import os
 import sys
@@ -140,7 +157,7 @@ class SpatioTemporalAtlas(object):
             try:
                 if self.verbose > 1:
                     sys.stdout.write("\n\n")
-                mirtk.run(command, args=args, opts=opts, verbose=self.verbose - 1, threads=threads, exit_on_error=self.exit_on_error)
+                mirtk.run(command, args=args, opts=opts, showcmd=(self.verbose > 1), threads=threads, onexit='exit' if self.exit_on_error else 'throw')
             finally:
                 os.chdir(prevdir)
 
@@ -1445,7 +1462,7 @@ class SpatioTemporalAtlas(object):
         if not channel:
             channel = self.channel
         imgs = [self.template(int(idx), channel=channel) for idx in i]
-        mirtk.run("view", opts={"target": imgs})
+        mirtk.run("view", target=imgs)
 
     def rmtemp(self):
         """Delete temporary files.

@@ -35,40 +35,67 @@ using namespace mirtk;
 // -----------------------------------------------------------------------------
 void PrintHelp(const char *name)
 {
-  cout << endl;
-  cout << "Usage: " << name << " <input> <output> [options]" << endl;
-  cout << endl;
+  cout << "\n";
+  cout << "Usage: " << name << " <input> <output> [options]\n";
+  cout << "\n";
   cout << "Description:" << endl;
-  cout << "  Crop/pad image by extracting a region of interest. The output image region" << endl;
-  cout << "  is chosen such that it contains the union of all specified axis-aligned" << endl;
-  cout << "  rectangular input image regions. In case of :option:`-pad`, the output" << endl;
-  cout << "  region does not have to be fully contained within the input image." << endl;
-  cout << "  Values outside are then set to the specified padding value." << endl;
-  cout << endl;
-  cout << "Positional arguments:" << endl;
-  cout << "  input                  Input image." << endl;
-  cout << "  output                 Output image." << endl;
-  cout << endl;
-  cout << "Optional arguments:" << endl;
-  cout << "  -Rx1 <int>             Leftmost  input voxel index along x axis." << endl;
-  cout << "  -Rx2 <int>             Rightmost input voxel index along x axis." << endl;
-  cout << "  -Ry1 <int>             Leftmost  input voxel index along y axis." << endl;
-  cout << "  -Ry2 <int>             Rightmost input voxel index along y axis." << endl;
-  cout << "  -Rz1 <int>             Leftmost  input voxel index along z axis." << endl;
-  cout << "  -Rz2 <int>             Rightmost input voxel index along z axis." << endl;
-  cout << "  -Rt1 <int>             Leftmost  input voxel index along t axis." << endl;
-  cout << "  -Rt2 <int>             Rightmost input voxel index along t axis." << endl;
-  cout << endl;
-  cout << "  -patch <i> <j> <k> <nx> [<ny> [<nz>]]" << endl;
-  cout << "      Extract image patch of given size centered at the specified voxel." << endl;
-  cout << "  -closest-patch <x> <y> <z> <nx> [<ny> [<nz>]]" << endl;
-  cout << "      Extract image patch of given size centered at nearest voxel to specified point [mm]." << endl;
-  cout << "  -landmarks <file>...     Extract minimum bounding box containing the landmark points." << endl;
-  cout << "  -ref <image>             Extract region specified by discrete reference image domain." << endl;
-  cout << "  -margin <int>            Add fixed-width margin to union of image regions. (default: 0)" << endl;
-  cout << "  -scale <float>           Scale resulting region by specified factor. (default: 1)" << endl;
-  cout << "  -crop [<value>]          Crop background with intensity below or equal specified value. (default: 0)" << endl;
-  cout << "  -pad [<value>]           Pad output image by the specified value. (default: 0)" << endl;
+  cout << "  Crop/pad image by extracting a region of interest and optionally split";
+  cout << "  the extracted region into separate image files, e.g., individual slices";
+  cout << "  of a volume saved as individual image files. The output image region\n";
+  cout << "  is chosen such that it contains the union of all specified axis-aligned\n";
+  cout << "  rectangular input image regions. In case of :option:`-pad`, the output\n";
+  cout << "  region does not have to be fully contained within the input image.\n";
+  cout << "  Values outside are then set to the specified padding value.\n";
+  cout << "\n";
+  cout << "Positional arguments:\n";
+  cout << "  input    Input image file path.\n";
+  cout << "  output   Output file path.\n";
+  cout << "\n";
+  cout << "Optional arguments:\n";
+  cout << "  -Rx1 <int>\n";
+  cout << "      Leftmost input voxel index along x axis.\n";
+  cout << "  -Rx2 <int>\n";
+  cout << "      Rightmost input voxel index along x axis.\n";
+  cout << "  -Ry1 <int>\n";
+  cout << "      Leftmost input voxel index along y axis.\n";
+  cout << "  -Ry2 <int>\n";
+  cout << "      Rightmost input voxel index along y axis.\n";
+  cout << "  -Rz1 <int>\n";
+  cout << "      Leftmost input voxel index along z axis.\n";
+  cout << "  -Rz2 <int>\n";
+  cout << "      Rightmost input voxel index along z axis.\n";
+  cout << "  -Rt1 <int>\n";
+  cout << "      Leftmost input voxel index along t axis.\n";
+  cout << "  -Rt2 <int>\n";
+  cout << "      Rightmost input voxel index along t axis.\n";
+  cout << "  -patch <i> <j> <k> <nx> [<ny> [<nz>]]\n";
+  cout << "      Extract image patch of given size centered at the specified voxel.\n";
+  cout << "  -closest-patch <x> <y> <z> <nx> [<ny> [<nz>]]\n";
+  cout << "      Extract image patch of given size centered at nearest voxel to specified point [mm].\n";
+  cout << "  -landmarks <file>...\n";
+  cout << "      Extract minimum bounding box containing the landmark points.\n";
+  cout << "  -ref <file>\n";
+  cout << "      Extract region specified by discrete reference image domain.\n";
+  cout << "  -margin <int>\n";
+  cout << "      Add fixed-width margin to union of image regions. (default: 0)\n";
+  cout << "  -scale <float>\n";
+  cout << "      Scale resulting region by specified factor. (default: 1)\n";
+  cout << "  -crop [value]\n";
+  cout << "      Crop background with intensity below or equal specified value. (default: 0)\n";
+  cout << "  -pad [value]\n";
+  cout << "      Pad output image by the specified value. (default: 0)\n";
+  cout << "  -split <dim>|x|y|z|t\n";
+  cout << "      Split extracted region along specified dimension into separate images.\n";
+  cout << "      For example, use '-split z' to save individual slices of a 3D volume.\n";
+  cout << "      The <output> file path is appended with a format string '_%03d' before\n";
+  cout << "      the file name extension to create unique output file paths, unless such\n";
+  cout << "      format specification is part of the given file path already.\n";
+  cout << "  -swap [on|off]\n";
+  cout << "      When :option:`-split` is used, first swap the dimension along which the\n";
+  cout << "      extracted region is split with the last dimension such that when splitting\n";
+  cout << "      a volume along the first dimension, the output image files have z=1. (default: off)\n";
+  cout << "  -noswap\n";
+  cout << "      Set :option:`-swap` to off.\n";
   PrintStandardOptions(cout);
   cout << endl;
 }
@@ -156,6 +183,8 @@ int main(int argc, char **argv)
   double xscale  = 1, yscale  = 1, zscale  = 1, tscale  = 1;
   bool   pad           = false;
   double padding_value = .0;
+  int    split         = -1;
+  bool   swap_dims     = false;
 
   int x1 = MIN_INDEX, x2 = MAX_INDEX;
   int y1 = MIN_INDEX, y2 = MAX_INDEX;
@@ -285,7 +314,20 @@ int main(int argc, char **argv)
       pad = true;
       if (HAS_ARGUMENT) PARSE_ARGUMENT(padding_value);
     }
-    else if (OPTION("-nopad")) pad = false;
+    else if (OPTION("-nopad")) {
+      pad = false;
+    }
+    else if (OPTION("-split")) {
+      const string arg = ToLower(ARGUMENT);
+      if      (arg == "x") split = 0;
+      else if (arg == "y") split = 1;
+      else if (arg == "z") split = 2;
+      else if (arg == "t") split = 3;
+      else if (!FromString(arg, split) || split < 0 || split > 3) {
+        FatalError("Invalid -split option argument: " << arg);
+      }
+    }
+    else HANDLE_BOOLEAN_OPTION("swap", swap_dims);
     else HANDLE_COMMON_OR_UNKNOWN_OPTION();
   }
 
@@ -370,7 +412,79 @@ int main(int argc, char **argv)
   }
 
   // Write output region
-  out->Write(output_name);
+  if (split == -1) {
+    out->Write(output_name);
+  } else {
+    // Format string for output file paths
+    string output_path(output_name);
+    auto pos = output_path.find('%');
+    auto end = pos;
+    if (pos != string::npos) {
+      end = output_path.find('d', pos);
+    }
+    if (pos == end) {
+      const int dims[] = {out->X(), out->Y(), out->Z(), out->T()};
+      auto name = FileName(output_path);
+      auto ext  = Extension(output_path);
+      string fmt = "%03d";
+      if      (dims[split] <  10) fmt = "%d";
+      else if (dims[split] < 100) fmt = "%02d";
+      else if (dims[split] > 999) fmt = "%04d";
+      output_path = name + string("_") + fmt + ext;
+    }
+    // Buffer for output file paths
+    size_t max_image_path_length = output_path.length() + 10;
+    UniquePtr<char> image_path(new char[max_image_path_length + 1]);
+    // Swap image dimensions
+    if (swap_dims && split < 2) {
+      if (split == 0) out->SwapXY();
+      if (split <= 1) out->SwapYZ();
+      split = 2;
+    }
+    // Allocate memory for sub-regions
+    double origin[3];
+    int dims[] = {out->X(), out->Y(), out->Z(), out->T()};
+    auto attr = out->Attributes();
+    if      (split == 0) attr._x = 1;
+    else if (split == 1) attr._y = 1;
+    else if (split == 2) attr._z = 1;
+    else if (split == 3) attr._t = 1;
+    UniquePtr<BaseImage> sub(BaseImage::New(out->GetDataType()));
+    sub->Initialize(attr);
+    // Save individual sub-regions
+    int outidx[4], subidx[4];
+    int perm[] = {0, 1, 2, 3};  // permutation of for loops
+    if (split == 0) swap(perm[0], perm[1]);
+    if (split <= 1) swap(perm[1], perm[2]);
+    if (split <= 2) swap(perm[2], perm[3]);
+    for (outidx[perm[3]] = 0; outidx[perm[3]] < dims[perm[3]]; ++outidx[perm[3]]) {
+      // Set origin of sub-region image
+      if (split < 3) {
+        origin[0] = .5 * static_cast<double>(dims[0] - 1);
+        origin[1] = .5 * static_cast<double>(dims[1] - 1);
+        origin[2] = .5 * static_cast<double>(dims[2] - 1);
+        origin[split] = static_cast<double>(outidx[perm[3]]);
+        out->ImageToWorld(origin[0], origin[1], origin[2]);
+        sub->PutOrigin(origin[0], origin[1], origin[2]);
+      } else {
+        sub->PutTOrigin(out->ImageToTime(outidx[perm[3]]));
+      }
+      // Copy sub-region to output image
+      double value;
+      for (outidx[perm[2]] = 0; outidx[perm[2]] < dims[perm[2]]; ++outidx[perm[2]])
+      for (outidx[perm[1]] = 0; outidx[perm[1]] < dims[perm[1]]; ++outidx[perm[1]])
+      for (outidx[perm[0]] = 0; outidx[perm[0]] < dims[perm[0]]; ++outidx[perm[0]]) {
+        value = out->GetAsDouble(outidx[0], outidx[1], outidx[2], outidx[3]);
+        memcpy(subidx, outidx, 4 * sizeof(int));
+        subidx[split] = 0;
+        sub->PutAsDouble(subidx[0], subidx[1], subidx[2], subidx[3], value);
+      }
+      // Write sub-region to output image
+      snprintf(image_path.get(), max_image_path_length, output_path.c_str(), outidx[perm[3]]);
+      sub->Write(image_path.get());
+
+    }
+  }
 
   return 0;
 }
