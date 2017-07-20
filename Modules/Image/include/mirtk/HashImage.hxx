@@ -2,6 +2,7 @@
  * Medical Image Registration ToolKit (MIRTK)
  *
  * Copyright 2013-2015 Antonios Makropoulos
+ * Copyright 2017 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -46,6 +47,7 @@
 
 
 namespace mirtk {
+
 
 // =============================================================================
 // Construction/Destruction
@@ -172,6 +174,7 @@ template <class VoxelType> void HashImage<VoxelType>::Clear()
   if (_maskOwner) Delete(_mask);
   _attr = ImageAttributes();
 }
+
 
 // =============================================================================
 // Initialization
@@ -379,6 +382,7 @@ bool HashImage<VoxelType>::operator==(const HashImage<VoxelType2> &image) const
   return true;
 }
 
+
 // =============================================================================
 // Region-of-interest extraction
 // =============================================================================
@@ -392,8 +396,7 @@ void HashImage<VoxelType>
   double x1, y1, z1, t1, x2, y2, z2, t2;
 
   if ((k < 0) || (k >= _attr._z) || (m < 0) || (m >= _attr._t)) {
-    cerr << "HashImage::GetRegion: Parameter out of range" << endl;
-    exit(1);
+    Throw(ERR_InvalidArgument, __FUNCTION__, "Parameter out of range");
   }
 
   // Initialize
@@ -469,8 +472,7 @@ void HashImage<VoxelType>
       (j1 < 0) || (j1 >= j2) ||
       (k1 < 0) || (k1 >= k2) ||
       (i2 > _attr._x) || (j2 > _attr._y) || (k2 > _attr._z)) {
-    cerr << "HashImage::GetRegion: Parameter out of range\n";
-    exit(1);
+    Throw(ERR_InvalidArgument, __FUNCTION__, "Parameter out of range");
   }
 
   // Initialize
@@ -547,8 +549,7 @@ void HashImage<VoxelType>
       (k1 < 0) || (k1 >= k2) ||
       (l1 < 0) || (l1 >= l2) ||
       (i2 > _attr._x) || (j2 > _attr._y) || (k2 > _attr._z) || (l2 > _attr._t)) {
-    cerr << "HashImage::GetRegion: Parameter out of range\n";
-    exit(1);
+    Throw(ERR_InvalidArgument, __FUNCTION__, "Parameter out of range");
   }
 
   // Initialize
@@ -619,8 +620,7 @@ void HashImage<VoxelType>::GetFrame(HashImage &image, int l1, int l2) const
   if (l2 < 0) l2 = l1;
 
   if ((l2 < 0) || (l1 >= _attr._t)) {
-    cerr << "HashImage::GetFrame: Parameter out of range\n";
-    exit(1);
+    Throw(ERR_InvalidArgument, __FUNCTION__, "Parameter out of range");
   }
 
   if (l1 < 0) l1 = 0;
@@ -664,6 +664,7 @@ void HashImage<VoxelType>::GetFrame(BaseImage *&base, int l1, int l2) const
   }
   this->GetFrame(*image, l1, l2);
 }
+
 
 // =============================================================================
 // Image arithmetic
@@ -747,16 +748,16 @@ HashImage<VoxelType>& HashImage<VoxelType>::operator/=(const HashImage &image)
   return *this;
 }
 
-template <> inline HashImage<float3x3 > &HashImage<float3x3 >::operator/=(const HashImage &)
+template <> inline HashImage<float3x3> &HashImage<float3x3 >::operator/=(const HashImage &)
 {
-  cerr << "HashImage<float3x3>::operator /=: Not implemented" << endl;
-  exit(1);
+  Throw(ERR_NotImplemented, __FUNCTION__, "Not implemented for VoxelType=float3x3");
+  return *this;
 }
 
 template <> inline HashImage<double3x3> &HashImage<double3x3>::operator/=(const HashImage &)
 {
-  cerr << "HashImage<double3x3>::operator /=: Not implemented" << endl;
-  exit(1);
+  Throw(ERR_NotImplemented, __FUNCTION__, "Not implemented for VoxelType=double3x3");
+  return *this;
 }
 
 // -----------------------------------------------------------------------------
@@ -891,6 +892,7 @@ HashImage<VoxelType> HashImage<VoxelType>::operator/(ScalarType scalar) const
   return tmp;
 }
 
+
 // =============================================================================
 // Thresholding
 // =============================================================================
@@ -936,6 +938,8 @@ template <> inline void HashImage<double3x3>::PutBackgroundValueAsDouble(double 
 {
   BaseImage::PutBackgroundValueAsDouble(value, threshold);
 }
+
+
 // =============================================================================
 // Common image statistics
 // =============================================================================
@@ -958,14 +962,12 @@ void HashImage<VoxelType>::GetMinMax(VoxelType &min, VoxelType &max) const
 
 template <> inline void HashImage<float3x3 >::GetMinMax(VoxelType &, VoxelType &) const
 {
-  cerr << "HashImage<float3x3>::GetMinMax: Not implemented" << endl;
-  exit(1);
+  Throw(ERR_NotImplemented, __FUNCTION__, "Not implemented for VoxelType=float3x3");
 }
 
 template <> inline void HashImage<double3x3>::GetMinMax(VoxelType &, VoxelType &) const
 {
-  cerr << "HashImage<double3x3>::GetMinMax: Not implemented" << endl;
-  exit(1);
+  Throw(ERR_NotImplemented, __FUNCTION__, "Not implemented for VoxelType=double3x3");
 }
 
 // -----------------------------------------------------------------------------
@@ -985,14 +987,12 @@ void HashImage<VoxelType>::GetMinMax(VoxelType &min, VoxelType &max, VoxelType p
 
 template <> inline void HashImage<float3x3 >::GetMinMax(VoxelType &, VoxelType &, VoxelType) const
 {
-  cerr << "HashImage<float3x3>::GetMinMax: Not implemented" << endl;
-  exit(1);
+  Throw(ERR_NotImplemented, __FUNCTION__, "Not implemented for VoxelType=float3x3");
 }
 
 template <> inline void HashImage<double3x3>::GetMinMax(VoxelType &, VoxelType &, VoxelType) const
 {
-  cerr << "HashImage<double3x3>::GetMinMax: Not implemented" << endl;
-  exit(1);
+  Throw(ERR_NotImplemented, __FUNCTION__, "Not implemented for VoxelType=double3x3");
 }
 
 // -----------------------------------------------------------------------------
@@ -1012,16 +1012,14 @@ void HashImage<VoxelType>::PutMinMax(VoxelType min, VoxelType max)
   }
 }
 
-template <> inline void HashImage<float3x3 >::PutMinMax(VoxelType, VoxelType)
+template <> inline void HashImage<float3x3>::PutMinMax(VoxelType, VoxelType)
 {
-  cerr << "HashImage<float3x3>::PutMinMax: Not implemented" << endl;
-  exit(1);
+  Throw(ERR_NotImplemented, __FUNCTION__, "Not implemented for VoxelType=float3x3");
 }
 
 template <> inline void HashImage<double3x3>::PutMinMax(VoxelType, VoxelType)
 {
-  cerr << "HashImage<double3x3>::PutMinMax: Not implemented" << endl;
-  exit(1);
+  Throw(ERR_NotImplemented, __FUNCTION__, "Not implemented for VoxelType=double3x3");
 }
 
 
@@ -1077,74 +1075,87 @@ void HashImage<VoxelType>::ReflectZ()
 
 // -----------------------------------------------------------------------------
 template <class VoxelType>
-void HashImage<VoxelType>::FlipXY(bool modifyOrigin)
+void HashImage<VoxelType>::FlipXY(bool)
 {
-  // TODO: Implement BaseImage::FlipXY which flips the foreground mask (if any),
-  //     adjusts the attributes, and updates the coordinate transformation matrices.
-  //     The subclass then only needs to reshape the image _matrix data itself.
-
-  cerr << "HashImage::FlipXY: Not implemented" << endl;
-  exit(1);
+  Throw(ERR_NotImplemented, __FUNCTION__, "Not implemented");
 }
 
 // -----------------------------------------------------------------------------
 template <class VoxelType>
-void HashImage<VoxelType>::FlipXZ(bool modifyOrigin)
+void HashImage<VoxelType>::FlipXZ(bool)
 {
-  // TODO: Implement BaseImage::FlipXZ which flips the foreground mask (if any),
-  //     adjusts the attributes, and updates the coordinate transformation matrices.
-  //     The subclass then only needs to reshape the image _matrix data itself.
-
-  cerr << "HashImage::FlipXZ: Not implemented" << endl;
-  exit(1);
+  Throw(ERR_NotImplemented, __FUNCTION__, "Not implemented");
 }
 
 // -----------------------------------------------------------------------------
 template <class VoxelType>
-void HashImage<VoxelType>::FlipYZ(bool modifyOrigin)
+void HashImage<VoxelType>::FlipYZ(bool)
 {
-  // TODO: Implement BaseImage::FlipYZ which flips the foreground mask (if any),
-  //     adjusts the attributes, and updates the coordinate transformation matrices.
-  //     The subclass then only needs to reshape the image _matrix data itself.
-
-  cerr << "HashImage::FlipYZ: Not implemented" << endl;
-  exit(1);
+  Throw(ERR_NotImplemented, __FUNCTION__, "Not implemented");
 }
 
 // -----------------------------------------------------------------------------
 template <class VoxelType>
-void HashImage<VoxelType>::FlipXT(bool modifyOrigin)
+void HashImage<VoxelType>::FlipXT(bool)
 {
-  // TODO: Implement BaseImage::FlipXT which flips the foreground mask (if any),
-  //     adjusts the attributes, and updates the coordinate transformation matrices.
-  //     The subclass then only needs to reshape the image _matrix data itself.
-
-  cerr << "HashImage::FlipXT: Not implemented" << endl;
-  exit(1);
+  Throw(ERR_NotImplemented, __FUNCTION__, "Not implemented");
 }
 
 // -----------------------------------------------------------------------------
 template <class VoxelType>
-void HashImage<VoxelType>::FlipYT(bool modifyOrigin)
+void HashImage<VoxelType>::FlipYT(bool)
 {
-  // TODO: Implement BaseImage::FlipYT which flips the foreground mask (if any),
-  //     adjusts the attributes, and updates the coordinate transformation matrices.
-  //     The subclass then only needs to reshape the image _matrix data itself.
-
-  cerr << "HashImage::FlipYT: Not implemented" << endl;
-  exit(1);
+  Throw(ERR_NotImplemented, __FUNCTION__, "Not implemented");
 }
 
 // -----------------------------------------------------------------------------
 template <class VoxelType>
-void HashImage<VoxelType>::FlipZT(bool modifyOrigin)
+void HashImage<VoxelType>::FlipZT(bool)
 {
-  // TODO: Implement BaseImage::FlipZT which flips the foreground mask (if any),
-  //     adjusts the attributes, and updates the coordinate transformation matrices.
-  //     The subclass then only needs to reshape the image _matrix data itself.
+  Throw(ERR_NotImplemented, __FUNCTION__, "Not implemented");
+}
 
-  cerr << "HashImage::FlipZT: Not implemented" << endl;
-  exit(1);
+
+// -----------------------------------------------------------------------------
+template <class VoxelType>
+void HashImage<VoxelType>::SwapXY(bool)
+{
+  Throw(ERR_NotImplemented, __FUNCTION__, "Not implemented");
+}
+
+// -----------------------------------------------------------------------------
+template <class VoxelType>
+void HashImage<VoxelType>::SwapXZ(bool)
+{
+  Throw(ERR_NotImplemented, __FUNCTION__, "Not implemented");
+}
+
+// -----------------------------------------------------------------------------
+template <class VoxelType>
+void HashImage<VoxelType>::SwapYZ(bool)
+{
+  Throw(ERR_NotImplemented, __FUNCTION__, "Not implemented");
+}
+
+// -----------------------------------------------------------------------------
+template <class VoxelType>
+void HashImage<VoxelType>::SwapXT(bool)
+{
+  Throw(ERR_NotImplemented, __FUNCTION__, "Not implemented");
+}
+
+// -----------------------------------------------------------------------------
+template <class VoxelType>
+void HashImage<VoxelType>::SwapYT(bool)
+{
+  Throw(ERR_NotImplemented, __FUNCTION__, "Not implemented");
+}
+
+// -----------------------------------------------------------------------------
+template <class VoxelType>
+void HashImage<VoxelType>::SwapZT(bool)
+{
+  Throw(ERR_NotImplemented, __FUNCTION__, "Not implemented");
 }
 
 // =============================================================================
@@ -1157,8 +1168,7 @@ template <class VoxelType>
 void HashImage<VoxelType>::ImageToVTK(vtkStructuredPoints *vtk) const
 {
   if (this->ImageToVTKScalarType() == VTK_VOID) {
-    cerr << "HashImage::ImageToVTK: Cannot convert image to VTK structured points" << endl;
-    exit(1);
+    Throw(ERR_LogicError, __FUNCTION__, "Cannot convert image with this VoxelType to VTK structured points");
   }
   double x = 0, y = 0, z = 0;
   this->ImageToWorld(x, y, z);
@@ -1177,19 +1187,18 @@ void HashImage<VoxelType>::ImageToVTK(vtkStructuredPoints *vtk) const
     for (int l = 0; l < _attr._t; ++l, ++ptr2) *ptr2 = Get(l * nvox);
   }
 }
+
 template <>
 inline void HashImage<Matrix3x3>::ImageToVTK(vtkStructuredPoints *) const
 {
-  cerr << "HashImage<Matrix3x3>::VTKToImage: Not implemented" << endl;
-  exit(1);
+  Throw(ERR_NotImplemented, __FUNCTION__, "Not implemented");
 }
 
 // -----------------------------------------------------------------------------
 template <class Type>
 void HashImage<Type>::VTKToImage(vtkStructuredPoints *)
 {
-  cerr << this->NameOfClass() << "::VTKToImage: Not implemented" << endl;
-  exit(1);
+  Throw(ERR_NotImplemented, __FUNCTION__, "Not implemented");
 }
 
 #endif // defined(HAVE_VTK) && MIRTK_Image_WITH_VTK
@@ -1198,7 +1207,6 @@ void HashImage<Type>::VTKToImage(vtkStructuredPoints *)
 // =============================================================================
 
 // -----------------------------------------------------------------------------
-
 template <class VoxelType>
 void HashImage<VoxelType>::Read(const char *fname)
 {
@@ -1210,14 +1218,12 @@ void HashImage<VoxelType>::Read(const char *fname)
 
 template <> inline void HashImage<float3x3>::Read(const char *)
 {
-  cerr << "HashImage<float3x3>::Read: Not implemented" << endl;
-  exit(1);
+  Throw(ERR_NotImplemented, __FUNCTION__, "Not implemented for VoxelType=float3x3");
 }
 
 template <> inline void HashImage<double3x3>::Read(const char *)
 {
-  cerr << "HashImage<double3x3>::Read: Not implemented" << endl;
-  exit(1);
+  Throw(ERR_NotImplemented, __FUNCTION__, "Not implemented for VoxelType=double3x3");
 }
 
 // -----------------------------------------------------------------------------
@@ -1234,17 +1240,15 @@ void HashImage<VoxelType>::Write(const char *fname) const
 
 template <> inline void HashImage<float3x3>::Write(const char *) const
 {
-  cerr << "HashImage<float3x3>::Write: Not implemented" << endl;
-  exit(1);
+  Throw(ERR_NotImplemented, __FUNCTION__, "Not implemented for VoxelType=float3x3");
 }
 
 template <> inline void HashImage<double3x3>::Write(const char *) const
 {
-  cerr << "HashImage<double3x3>::Read: Not implemented" << endl;
-  exit(1);
+  Throw(ERR_NotImplemented, __FUNCTION__, "Not implemented for VoxelType=double3x3");
 }
 
-
+// -----------------------------------------------------------------------------
 template <class VoxelType>
 GenericImage<VoxelType> HashImage<VoxelType>::ToGenericImage() const
 {
@@ -1253,12 +1257,13 @@ GenericImage<VoxelType> HashImage<VoxelType>::ToGenericImage() const
   return dense_image;
 }
 
-
+// -----------------------------------------------------------------------------
 template <class VoxelType> template <class VoxelType2>
 void HashImage<VoxelType>::ToGenericImage(GenericImage<VoxelType2>& image) const
 {
   this->CopyTo(image);
 }
+
 
 } // namespace mirtk
 
