@@ -1291,7 +1291,7 @@ inline void rtrim(char *s)
 // -----------------------------------------------------------------------------
 static bool read_next(istream &in, char *buffer, int n, char *&name, char *&value, int &no)
 {
-  char *p = NULL;
+  char *p = nullptr;
   // skip comments and blank lines
   do {
     if (!in) return false;
@@ -1303,7 +1303,7 @@ static bool read_next(istream &in, char *buffer, int n, char *&name, char *&valu
     name = buffer;
     while (*name == ' ' || *name == '\t') ++name;
     // discard comment and trailing whitespace characters at end of line
-    if ((p = strstr(name, "#")) != NULL) {
+    if ((p = strstr(name, "#")) != nullptr) {
       if (p == name) {
         name[0] = '\0';
       } else if (p[-1] == ' ' || p[-1] == '\t') {
@@ -1328,20 +1328,47 @@ static bool read_next(istream &in, char *buffer, int n, char *&name, char *&valu
     return true;
   }
   // find '=' character
-  if ((p = strchr(name, '=')) == NULL) return false;
+  if ((p = strchr(name, '=')) == nullptr) return false;
   // skip leading whitespace characters of parameter value
   value = p;
   do { ++value; } while (*value == ' ' || *value == '\t');
   // truncate parameter name, skipping trailing whitespace characters
-  *p = '\0'; // discard '=' character
+  *p = '\0';
   rtrim(name);
+  // concatenate multi-line energy function value
+  if (strcmp(name, "Energy function") == 0) {
+    while (true) {
+      rtrim(value);
+      size_t len = strlen(value);
+      if (len > 3 && strcmp(value + len - 3, "...") == 0) {
+        // separate multi-line statements by single space (i.e. replace first '.' by ' ')
+        value[len - 3] = ' ';
+        // read next line into buffer at the end of current 'value'
+        char *next_value = value + len - 2;
+        in.getline(next_value, n - int(next_value - buffer));
+        if (!in) return false;
+        ++no;
+        // discard leading whitespace characters
+        p = next_value;
+        while (*p == ' ' || *p == '\t') ++p;
+        if (p != next_value) {
+          char *q = next_value;
+          while (*p) {
+            *q = *p;
+            ++q, ++p;
+          }
+          *q = '\0';
+        }
+      } else break;
+    }
+  }
   return true;
 }
 
 // -----------------------------------------------------------------------------
 bool GenericRegistrationFilter::Read(istream &from, bool echo)
 {
-  const size_t sz         = 1024;
+  const size_t sz         = 4096;
   char         buffer[sz] = {0};
   char        *name       = NULL;
   char        *value      = NULL;
