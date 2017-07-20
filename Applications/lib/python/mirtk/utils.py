@@ -20,6 +20,7 @@
 """Miscellaneous utility functions."""
 
 import os
+import errno
 
 
 # ----------------------------------------------------------------------------
@@ -32,3 +33,4 @@ def makedirs(path):
     except OSError as e:
         if e.errno != errno.EEXIST:
             raise
+
