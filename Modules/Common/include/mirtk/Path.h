@@ -1,8 +1,8 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2013-2015 Imperial College London
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2013-2017 Imperial College London
+ * Copyright 2013-2017 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -72,6 +72,12 @@ string FileName(const char *, ExtensionMode = EXT_Default);
 
 /// Get file name of file path excl. file extension
 string FileName(const string &, ExtensionMode = EXT_Default);
+
+/// Get file path excl. file extension
+string FilePrefix(const char *, ExtensionMode = EXT_Default);
+
+/// Get file path excl. file extension
+string FilePrefix(const string &, ExtensionMode = EXT_Default);
 
 
 } // namespace mirtk
