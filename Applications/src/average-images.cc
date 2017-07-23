@@ -70,7 +70,7 @@ void PrintHelp(const char* name)
   cout << "Required arguments:\n";
   cout << "  <output>\n";
   cout << "      Voxel-wise average image. When the :option:`-label` is used multiple times,\n";
-  cout << "      one <output> file name can be given for each resulting probabilistic segmentation.\n";
+  cout << "      a unique file path is created for each fuzzy output segmentation.\n";
   cout << "\n";
   cout << "Input options:\n";
   cout << "  -image <file> [<w>]\n";
