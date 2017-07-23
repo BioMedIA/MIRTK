@@ -424,7 +424,7 @@ int main(int argc, char **argv)
     }
     if (pos == end) {
       const int dims[] = {out->X(), out->Y(), out->Z(), out->T()};
-      auto name = FileName(output_path);
+      auto name = FilePrefix(output_path);
       auto ext  = Extension(output_path);
       string fmt = "%03d";
       if      (dims[split] <  10) fmt = "%d";

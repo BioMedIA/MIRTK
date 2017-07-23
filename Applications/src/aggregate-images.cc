@@ -127,6 +127,7 @@ enum AggregationMode
   AM_Mean,            ///< Mean value
   AM_Median,          ///< Median value
   AM_StDev,           ///< Standard deviation
+  AM_Variance,        ///< Variance
   AM_Gini,            ///< Gini coefficient
   AM_Theil,           ///< Theil coefficient, i.e., GE(1)
   AM_EntropyIndex,    ///< Generalized entropy index (GE)
@@ -153,6 +154,8 @@ bool FromString(const char *str, AggregationMode &value)
     value = AM_Median;
   } else if (lstr == "stddev" || lstr == "stdev" || lstr == "sdev" || lstr == "sd" || lstr == "sigma") {
     value = AM_StDev;
+  } else if (lstr == "var" || lstr == "variance") {
+    value = AM_Variance;
   } else if (lstr == "gini" || lstr == "gini-coefficient") {
     value = AM_Gini;
   } else if (lstr == "theil" || lstr == "theil-index") {
@@ -692,6 +695,13 @@ int main(int argc, char **argv)
       eval._Function = [](const InputArray &values) -> OutputType {
         const auto n = static_cast<int>(values.size());
         return static_cast<OutputType>(StDev::Calculate(n, values.data()));
+      };
+    } break;
+
+    case AM_Variance: {
+      eval._Function = [](const InputArray &values) -> OutputType {
+        const auto n = static_cast<int>(values.size());
+        return static_cast<OutputType>(Var::Calculate(n, values.data()));
       };
     } break;
 
