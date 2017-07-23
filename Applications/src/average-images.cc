@@ -141,7 +141,7 @@ void PrintHelp(const char* name)
   cout << "      This option can be given multiple times to create more than one average\n";
   cout << "      image for each segment. When only one <output> file name is given, it is\n";
   cout << "      modified to include the index of the segment corresponding to the order\n";
-  cout << "      of the -label(s) options. Otherwise, specify a different output <path> for\n";
+  cout << "      of the -label(s) options. Otherwise, specify a different output <path>\n";
   cout << "      as argument. A suffix corresponding to the respective label is appended to\n";
   cout << "      the output file path before the file name extension. When no argument is given\n";
   cout << "      the <output> path is used.\n";
