@@ -69,7 +69,8 @@ void PrintHelp(const char* name)
   cout << "\n";
   cout << "Required arguments:\n";
   cout << "  <output>\n";
-  cout << "      Voxel-wise average image.\n";
+  cout << "      Voxel-wise average image. When the :option:`-label` is used multiple times,\n";
+  cout << "      one <output> file name can be given for each resulting probabilistic segmentation.\n";
   cout << "\n";
   cout << "Input options:\n";
   cout << "  -image <file> [<w>]\n";
@@ -134,9 +135,16 @@ void PrintHelp(const char* name)
   cout << "      Crop/pad average image and ensure a margin of <n> voxels at each boundary. (default: -1/off)\n";
   cout << "  -interpolation, -interp <mode>\n";
   cout << "      Interpolation mode, e.g., NN, Linear, BSpline, Cubic, Sinc. (default: Linear)\n";
-  cout << "  -label, -labels <value>|<from>..<to>...\n";
+  cout << "  -label, -labels [<path>|<value>|<from>..<to>...]\n";
   cout << "      Segmentation label(s) of which to create an average probability map.\n";
   cout << "      When multiple labels are given, the corresponding segments are merged.\n";
+  cout << "      This option can be given multiple times to create more than one average\n";
+  cout << "      image for each segment. When only one <output> file name is given, it is\n";
+  cout << "      modified to include the index of the segment corresponding to the order\n";
+  cout << "      of the -label(s) options. Otherwise, specify a different output <path> for\n";
+  cout << "      as argument. A suffix corresponding to the respective label is appended to\n";
+  cout << "      the output file path before the file name extension. When no argument is given\n";
+  cout << "      the <output> path is used.\n";
   cout << "  -datatype, -dtype, -type char|uchar|short|float|double\n";
   cout << "      Data type of output image. The intermediate average image always has floating point data type.\n";
   cout << "      When this option is given, this average is cast to the respective output type before writing\n";
@@ -611,10 +619,11 @@ int main(int argc, char **argv)
   // Required positional argument(s)
   REQUIRES_POSARGS(1);
   const char *output_name = POSARG(1);
+  Array<string> output_names;
 
   // Optional positional argument(s)
   int nposarg;
-  for (nposarg = NUM_POSARGS + 1; nposarg < argc; ++nposarg) {
+  for (nposarg = 2; nposarg < argc; ++nposarg) {
     bool img = (strcmp(argv[nposarg], "-image") == 0);
     bool inv = (strcmp(argv[nposarg], "-dof_i") == 0);
     bool dof = inv || (strcmp(argv[nposarg], "-dof")   == 0);
@@ -669,7 +678,7 @@ int main(int argc, char **argv)
   int                margin           = -1;
   bool               sharpen          = false;
   double             dx = .0, dy = .0, dz = .0;
-  OrderedSet<GreyPixel> labels;
+  Array<OrderedSet<GreyPixel> > segments;
 
   for (ARGUMENTS_AFTER(nposarg)) {
     if (OPTION("-images")) {
@@ -771,29 +780,40 @@ int main(int argc, char **argv)
       PARSE_ARGUMENT(margin);
     }
     else if (OPTION("-label") || OPTION("-labels")) {
+      OrderedSet<GreyPixel> segment;
       GreyPixel a, b;
-      do {
+      while (HAS_ARGUMENT) {
         const char * const arg = ARGUMENT;
-        const Array<string> parts = Split(ToLower(arg), "..");
-        if (parts.size() == 1) {
-          if (!FromString(parts[0], a)) {
-            a = -1;
-          }
-          b = a;
-        } else if (parts.size() == 2) {
-          if (!FromString(parts[0], a) || !FromString(parts[1], b)) {
+        if (isdigit(arg[0])) {
+          const Array<string> parts = Split(ToLower(arg), "..");
+          if (parts.size() == 1) {
+            if (!FromString(parts[0], a)) {
+              a = -1;
+            }
+            b = a;
+          } else if (parts.size() == 2) {
+            if (!FromString(parts[0], a) || !FromString(parts[1], b)) {
+              a = b = -1;
+            }
+          } else {
             a = b = -1;
           }
+          if (a == -1 || b == -1) {
+            FatalError("Invalid -label argument: " << arg);
+          }
+          for (GreyPixel l = a; l <= b; ++l) {
+            segment.insert(l);
+          }
         } else {
-          a = b = -1;
+          if (HAS_ARGUMENT) {
+            FatalError("Option -label(s) either takes an output path template or label set specification as argument, not both!");
+          }
+          segment.clear();
+          output_names.push_back(arg);
+          break;
         }
-        if (a == -1 || b == -1) {
-          FatalError("Invalid -label argument: " << arg);
-        }
-        for (GreyPixel l = a; l <= b; ++l) {
-          labels.insert(l);
-        }
-      } while (HAS_ARGUMENT);
+      }
+      segments.push_back(segment);
     }
     else if (OPTION("-interpolation") || OPTION("-interp")) {
       PARSE_ARGUMENT(interpolation);
@@ -812,7 +832,7 @@ int main(int argc, char **argv)
     imdof_invert.resize(nimages);
   #endif // HAVE_MIRTK_Transformation
 
-  if (!labels.empty() && IsNaN(padding)) {
+  if (!segments.empty() && IsNaN(padding)) {
     normalization = Normalization_None;
     if (rescaling == Rescaling_MeanStDev) {
       rescaling = Rescaling_None;
@@ -885,15 +905,23 @@ int main(int argc, char **argv)
   double sum_of_means  = 0.;
   double sum_of_sigmas = 0.;
   Array<ImageAttributes> attrs;
-  bool calc_input_distribution = false;
-  bool collect_attrs           = false;
+  OrderedSet<GreyPixel> labels;
+  bool calc_input_distribution   = false;
+  bool collect_attrs             = false;
+  bool collect_set_of_all_labels = false;
+  for (const auto &segment : segments) {
+    if (segment.empty()) {
+      collect_set_of_all_labels = true;
+      break;
+    }
+  }
   if (reference_name.empty() || reference_name == "max-size" || reference_name == "max-space") {
     collect_attrs = sequence.IsEmpty();
   }
   if (normalization == Normalization_MeanStDev || rescaling == Rescaling_MeanStDev) {
     calc_input_distribution = true;
   }
-  if (collect_attrs || calc_input_distribution) {
+  if (collect_attrs || calc_input_distribution || collect_set_of_all_labels) {
     if (verbose) {
       cout << "Determine";
       if (collect_attrs) {
@@ -904,8 +932,15 @@ int main(int argc, char **argv)
         }
       }
       if (calc_input_distribution) {
-        if (collect_attrs) cout << ", and";
+        if (collect_attrs) {
+          cout << ",";
+          if (!collect_set_of_all_labels) cout << " and";
+        }
         cout << " average intensity distribution";
+      }
+      if (collect_set_of_all_labels) {
+        if (collect_attrs || calc_input_distribution) cout << ", and";
+        cout << " union set of labels";
       }
       cout << "...";
       cout.flush();
@@ -923,6 +958,15 @@ int main(int argc, char **argv)
       }
       if (collect_attrs) {
         attrs.push_back(OrthogonalFieldOfView(image.Attributes()));
+      }
+      if (collect_set_of_all_labels) {
+        GreyPixel label;
+        for (int vox = 0; vox < image.NumberOfVoxels(); ++vox) {
+          label = static_cast<GreyPixel>(image(vox));
+          if (label > 0) {
+            labels.insert(label);
+          }
+        }
       }
       image.PutBackgroundValueAsDouble(padding);
       if (calc_input_distribution) {
@@ -942,6 +986,80 @@ int main(int argc, char **argv)
 
   const double avg_mean  = sum_of_means  / nimages;
   const double avg_sigma = sum_of_sigmas / nimages;
+
+  // ---------------------------------------------------------------------------
+  // Create unique output name for each average image
+  if (segments.size() > 1) {
+    // Format string for output file paths
+    string output_path(output_name);
+    auto pos = output_path.find('%');
+    auto end = pos;
+    if (pos != string::npos) {
+      end = output_path.find('d', pos);
+    }
+    if (pos == end) {
+      auto pre = FilePrefix(output_path);
+      auto ext = Extension(output_path);
+      string fmt = "%d";
+      if      (segments.size() > 999u) fmt = "%04d";
+      else if (segments.size() >  99u) fmt = "%03d";
+      else if (segments.size() >   9u) fmt = "%02d";
+      output_path = pre + string("_") + fmt + ext;
+    }
+    // Buffer for output file paths
+    size_t max_output_path_length = output_path.length() + 10;
+    UniquePtr<char> file_path(new char[max_output_path_length + 1]);
+    // Create unique output file paths
+    for (size_t i = 0; i < segments.size(); ++i) {
+      if (i >= output_names.size()) {
+        snprintf(file_path.get(), max_output_path_length, output_path.c_str(), i);
+        output_names.insert(output_names.begin() + i, string(file_path.get()));
+      }
+    }
+  } else if (output_names.empty()) {
+    output_names.push_back(output_name);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Expand "-labels all", create unique output name for each label using this label
+  if (collect_set_of_all_labels) {
+    for (size_t i = 0; i < segments.size(); ++i) {
+      if (segments[i].empty()) {
+        // Format string for output file paths
+        string output_path(output_names[i]);
+        auto pos = output_path.find('%');
+        auto end = pos;
+        if (pos != string::npos) {
+          end = output_path.find('d', pos);
+        }
+        if (pos == end) {
+          auto pre = FilePrefix(output_path);
+          auto ext = Extension(output_path);
+          string fmt = "%d";
+          if      (labels.size() > 999u) fmt = "%04d";
+          else if (labels.size() >  99u) fmt = "%03d";
+          else if (labels.size() >   9u) fmt = "%02d";
+          output_path = pre + string("_") + fmt + ext;
+        }
+        // Buffer for output file paths
+        size_t max_output_path_length = output_path.length() + 10;
+        UniquePtr<char> file_path(new char[max_output_path_length + 1]);
+        // Expand labels
+        segments.erase(segments.begin() + i);
+        output_names.erase(output_names.begin() + i);
+        OrderedSet<GreyPixel> segment;
+        for (auto label : labels) {
+          segment.clear();
+          segment.insert(label);
+          segments.insert(segments.begin() + i, segment);
+          snprintf(file_path.get(), max_output_path_length, output_path.c_str(), label);
+          output_names.insert(output_names.begin() + i, string(file_path.get()));
+          ++i;
+        }
+        --i;
+      }
+    }
+  }
 
   // ---------------------------------------------------------------------------
   // Average image attributes (field-of-view)
@@ -990,234 +1108,249 @@ int main(int argc, char **argv)
   }
 
   // ---------------------------------------------------------------------------
-  // Compute average image
-  AverageImage average(fov);
-  UniquePtr<WeightImage> norm;
-  if (min_norm > 0.f) {
-    norm.reset(new WeightImage(fov));
-  }
-  if (labels.empty()) {
-    average = numeric_limits<AverageImage::VoxelType>::quiet_NaN();
-    average.PutBackgroundValueAsDouble(NaN);
-  }
-  for (int n = 0; n < nimages; ++n) {
-    if (sequence.IsEmpty()) {
-      if (verbose) {
-        cout << "Add " << (labels.empty() ? "image" : "segmentation") << " ";
-        cout << setw(3) << (n+1) << " out of " << nimages << "... ";
-        cout.flush();
-      }
-      #ifdef HAVE_MIRTK_Transformation
-        Read(image_name[n], imdof_name[n], imdof_invert[n], image, dofs, invert);
-      #else // HAVE_MIRTK_Transformation
-        image.Read(image_name[n].c_str());
-      #endif // HAVE_MIRTK_Transformation
-    } else {
-      if (verbose) {
-        cout << "Add frame " << setw(3) << (n+1) << " out of " << nimages << "... ";
-        cout.flush();
-      }
-      sequence.GetFrame(image, n);
-      #ifdef HAVE_MIRTK_Transformation
-        dofs.clear();
-        invert.clear();
-      #endif
-    }
-    if (labels.empty()) {
-      image.PutBackgroundValueAsDouble(padding, !IsNaN(padding));
-    } else {
-      for (int idx = 0; idx < image.NumberOfVoxels(); ++idx) {
-        image(idx) = static_cast<InputType>(labels.find(static_cast<GreyPixel>(image(idx))) == labels.end() ? 0. : 1.);
-      }
-      if (debug) image.Write((string("debug_segment_") + ToString(n + 1) + string(".nii.gz")).c_str());
+  // Compute average image(s)
+  for (size_t o = 0; o < output_names.size(); ++o) {
+
+    if (verbose > 0 && output_names.size() > 1) {
+      if (o > 0) cout << "\n";
+      cout << "Computing ";
+      if      (o == 0) cout << "1st";
+      else if (o == 1) cout << "2nd";
+      else if (o == 2) cout << "3rd";
+      else if (o >= 3) cout << (o + 1) << "th";
+      cout << " out of " << output_names.size() << " average images\n\n";
+      cout.flush();
     }
 
-    bool ok;
-    #ifdef HAVE_MIRTK_Transformation
-      ok = Add(average, norm.get(), image, dofs, invert, image_weight[n], !labels.empty(), interpolation, normalization, avg_mean, avg_sigma);
-      dofs.clear(), invert.clear();
-    #else
-      ok = Add(average, norm.get(), image, image_weight[n], !labels.empty(), interpolation, normalization, avg_mean, avg_sigma);
-    #endif
-    if (ok) {
-      if (verbose) cout << " done" << endl;
-    } else {
-      if (verbose) cout << " skip" << endl;
-      if (labels.empty()) {
-        if (normalization == Normalization_UnitRange || normalization == Normalization_ZScore || normalization == Normalization_MeanStDev) {
-          Warning("Input image " << image_name[n] << " either contains no or constant foreground values!");
-        } else {
-          Warning("Input image " << image_name[n] << " contains no foreground values!");
+    AverageImage average(fov);
+    UniquePtr<WeightImage> norm;
+    if (min_norm > 0.f) {
+      norm.reset(new WeightImage(fov));
+    }
+    if (segments.empty()) {
+      average = numeric_limits<AverageImage::VoxelType>::quiet_NaN();
+      average.PutBackgroundValueAsDouble(NaN);
+    }
+    for (int n = 0; n < nimages; ++n) {
+      if (sequence.IsEmpty()) {
+        if (verbose) {
+          cout << "Add " << (segments.empty() ? "image" : "segmentation") << " ";
+          cout << setw(3) << (n+1) << " out of " << nimages << "... ";
+          cout.flush();
         }
-      }
-    }
-  }
-
-  // ---------------------------------------------------------------------------
-  // Replace NaN values by suitable background value
-  if (average.HasBackgroundValue() && IsNaN(average.GetBackgroundValueAsDouble())) {
-    AverageImage::VoxelType min_value, max_value;
-    average.GetMinMax(min_value, max_value);
-    auto bg = static_cast<AverageImage::VoxelType>(min_value - 1.);
-    if (bg > 0.) bg = 0.;
-    for (int idx = 0; idx < average.NumberOfVoxels(); ++idx) {
-      if (IsNaN(average(idx))) {
-        average(idx) = bg;
-      }
-    }
-    average.PutBackgroundValueAsDouble(bg);
-  }
-
-  // ---------------------------------------------------------------------------
-  // Apply norm threshold
-  if (norm) {
-    auto bg = static_cast<AverageImage::VoxelType>(average.HasBackgroundValue() ? average.GetBackgroundValueAsDouble() : 0.);
-    for (int idx = 0; idx < average.NumberOfVoxels(); ++idx) {
-      if (norm->GetAsDouble(idx) < min_norm) {
-        average(idx) = bg;
-      }
-    }
-  }
-
-  // ---------------------------------------------------------------------------
-  // Crop/pad average image
-  if (margin >= 0) {
-    if (verbose) {
-      cout << "Cropping average image adding margin of " << margin << " background layers...";
-      cout.flush();
-    }
-    average.CropPad(margin);
-    if (verbose) cout << " done" << endl;
-  }
-
-  // ---------------------------------------------------------------------------
-  // Sharpen average image (cf. itkLaplacianSharpeningImageFilter, ANTs AverageImages)
-  if (sharpen) {
-    // TODO: Implement this as reusable MIRTK image filter
-    if (verbose) {
-      cout << "Sharpening average image using Laplacian operator...";
-      cout.flush();
-    }
-    typedef AverageImage::VoxelType Real;
-    const int num = average.NumberOfSpatialVoxels();
-    UniquePtr<bool[]> mask = ForegroundMaskArray(&average);
-    AverageImage laplace = ApplyLaplaceOperator(average);
-    Real mean = static_cast<Real>(Mean::Calculate(num, average.Data(), mask.get()));
-    if (debug) {
-      average.Write("debug_average_intensity.nii.gz");
-      laplace.Write("debug_average_laplacian.nii.gz");
-    }
-    double min_average, max_average, min_laplace, max_laplace;
-    Extrema::Calculate(min_average, max_average, num, average.Data(), mask.get());
-    Extrema::Calculate(min_laplace, max_laplace, num, laplace.Data(), mask.get());
-    Real scale = 1., intercept = 0.;
-    if (min_average < max_average && min_laplace < max_laplace) {
-      scale = static_cast<Real>((max_average - min_average) / (max_laplace - min_laplace));
-      intercept = static_cast<Real>(min_average - scale * min_laplace);
-    }
-    for (int idx = 0; idx < num; ++idx) {
-      if (mask[idx]) {
-        average(idx) -= scale * laplace(idx) + intercept;
-      }
-    }
-    if (debug) {
-      average.Write("debug_average_sharpened.nii.gz");
-    }
-    Real shift = mean - static_cast<Real>(Mean::Calculate(num, average.Data(), mask.get()));
-    Real min_value = static_cast<Real>(min_average);
-    Real max_value = static_cast<Real>(max_average);
-    for (int idx = 0; idx < num; ++idx) {
-      if (mask[idx]) {
-        average(idx) = clamp(average(idx) + shift, min_value, max_value);
-      }
-    }
-    if (verbose) cout << " done" << endl;
-  }
-
-  // ---------------------------------------------------------------------------
-  // Replace background value by specified padding value
-  if (!IsNaN(padding) && average.HasBackgroundValue() && padding != average.GetBackgroundValueAsDouble()) {
-    AverageImage::VoxelType bg;
-    bg = voxel_cast<AverageImage::VoxelType>(padding);
-    for (int idx = 0; idx < average.NumberOfVoxels(); ++idx) {
-      if (average.IsBackground(idx)) average(idx) = bg;
-    }
-    average.PutBackgroundValueAsDouble(padding);
-  }
-
-  // ---------------------------------------------------------------------------
-  // Rescale average intensities
-  if (rescaling != Rescaling_None) {
-    double scale = 1., shift = 0.;
-    const int num = average.NumberOfSpatialVoxels();
-    UniquePtr<bool[]> mask = ForegroundMaskArray(&average);
-    if (rescaling == Rescaling_MeanStDev) {
-      if (verbose) {
-        cout << "Rescaling average to input mean and standard deviation...";
-        cout.flush();
-      }
-      double mean, sigma;
-      NormalDistribution::Calculate(mean, sigma, num, average.Data(), mask.get());
-      if (!fequal(avg_sigma, 0.) && !fequal(sigma, 0.)) {
-        scale = avg_sigma / sigma;
-      }
-      shift = avg_mean - scale * mean;
-    } else if (rescaling == Rescaling_Range) {
-      if (verbose) {
-        cout << "Rescaling average to output range [" << output_min << ", " << output_max << "]...";
-        cout.flush();
-      }
-      if (!labels.empty()) {
-        scale = output_max - output_min;
-        shift = output_min;
+        #ifdef HAVE_MIRTK_Transformation
+          Read(image_name[n], imdof_name[n], imdof_invert[n], image, dofs, invert);
+        #else // HAVE_MIRTK_Transformation
+          image.Read(image_name[n].c_str());
+        #endif // HAVE_MIRTK_Transformation
       } else {
-        double min_value, max_value;
-        Extrema::Calculate(min_value, max_value, num, average.Data(), mask.get());
-        if (!fequal(max_value, min_value)) {
-          scale = (output_max - output_min) / (max_value - min_value);
+        if (verbose) {
+          cout << "Add frame " << setw(3) << (n+1) << " out of " << nimages << "... ";
+          cout.flush();
         }
-        shift = output_min - scale * min_value;
+        sequence.GetFrame(image, n);
+        #ifdef HAVE_MIRTK_Transformation
+          dofs.clear();
+          invert.clear();
+        #endif
+      }
+      if (segments.empty()) {
+        image.PutBackgroundValueAsDouble(padding, !IsNaN(padding));
+      } else {
+        const auto &labels = segments[o];
+        for (int idx = 0; idx < image.NumberOfVoxels(); ++idx) {
+          image(idx) = static_cast<InputType>(labels.find(static_cast<GreyPixel>(image(idx))) == labels.end() ? 0. : 1.);
+        }
+        if (debug) image.Write((string("debug_segment_") + ToString(n + 1) + string(".nii.gz")).c_str());
+      }
+
+      bool ok;
+      #ifdef HAVE_MIRTK_Transformation
+        ok = Add(average, norm.get(), image, dofs, invert, image_weight[n], !segments.empty(), interpolation, normalization, avg_mean, avg_sigma);
+        dofs.clear(), invert.clear();
+      #else
+        ok = Add(average, norm.get(), image, image_weight[n], !segments.empty(), interpolation, normalization, avg_mean, avg_sigma);
+      #endif
+      if (ok) {
+        if (verbose) cout << " done" << endl;
+      } else {
+        if (verbose) cout << " skip" << endl;
+        if (segments.empty()) {
+          if (normalization == Normalization_UnitRange || normalization == Normalization_ZScore || normalization == Normalization_MeanStDev) {
+            Warning("Input image " << image_name[n] << " either contains no or constant foreground values!");
+          } else {
+            Warning("Input image " << image_name[n] << " contains no foreground values!");
+          }
+        }
       }
     }
-    double min_value = +inf;
-    if (!fequal(scale, 1.) || !fequal(shift, 0.)) {
-      double value;
+
+    // ---------------------------------------------------------------------------
+    // Replace NaN values by suitable background value
+    if (average.HasBackgroundValue() && IsNaN(average.GetBackgroundValueAsDouble())) {
+      AverageImage::VoxelType min_value, max_value;
+      average.GetMinMax(min_value, max_value);
+      auto bg = static_cast<AverageImage::VoxelType>(min_value - 1.);
+      if (bg > 0.) bg = 0.;
+      for (int idx = 0; idx < average.NumberOfVoxels(); ++idx) {
+        if (IsNaN(average(idx))) {
+          average(idx) = bg;
+        }
+      }
+      average.PutBackgroundValueAsDouble(bg);
+    }
+
+    // ---------------------------------------------------------------------------
+    // Apply norm threshold
+    if (norm) {
+      auto bg = static_cast<AverageImage::VoxelType>(average.HasBackgroundValue() ? average.GetBackgroundValueAsDouble() : 0.);
+      for (int idx = 0; idx < average.NumberOfVoxels(); ++idx) {
+        if (norm->GetAsDouble(idx) < min_norm) {
+          average(idx) = bg;
+        }
+      }
+    }
+
+    // ---------------------------------------------------------------------------
+    // Crop/pad average image
+    if (margin >= 0) {
+      if (verbose) {
+        cout << "Cropping average image adding margin of " << margin << " background layers...";
+        cout.flush();
+      }
+      average.CropPad(margin);
+      if (verbose) cout << " done" << endl;
+    }
+
+    // ---------------------------------------------------------------------------
+    // Sharpen average image (cf. itkLaplacianSharpeningImageFilter, ANTs AverageImages)
+    if (sharpen) {
+      // TODO: Implement this as reusable MIRTK image filter
+      if (verbose) {
+        cout << "Sharpening average image using Laplacian operator...";
+        cout.flush();
+      }
+      typedef AverageImage::VoxelType Real;
+      const int num = average.NumberOfSpatialVoxels();
+      UniquePtr<bool[]> mask = ForegroundMaskArray(&average);
+      AverageImage laplace = ApplyLaplaceOperator(average);
+      Real mean = static_cast<Real>(Mean::Calculate(num, average.Data(), mask.get()));
+      if (debug) {
+        average.Write("debug_average_intensity.nii.gz");
+        laplace.Write("debug_average_laplacian.nii.gz");
+      }
+      double min_average, max_average, min_laplace, max_laplace;
+      Extrema::Calculate(min_average, max_average, num, average.Data(), mask.get());
+      Extrema::Calculate(min_laplace, max_laplace, num, laplace.Data(), mask.get());
+      Real scale = 1., intercept = 0.;
+      if (min_average < max_average && min_laplace < max_laplace) {
+        scale = static_cast<Real>((max_average - min_average) / (max_laplace - min_laplace));
+        intercept = static_cast<Real>(min_average - scale * min_laplace);
+      }
       for (int idx = 0; idx < num; ++idx) {
         if (mask[idx]) {
-          value = clamp(scale * double(average(idx)) + shift, min_input, max_input);
-          if (value < min_value) min_value = value;
-          average(idx) = voxel_cast<AverageImage::VoxelType>(value);
+          average(idx) -= scale * laplace(idx) + intercept;
         }
       }
-    }
-    if (verbose) {
-      cout << " done" << endl;
-    }
-    if (average.HasBackgroundValue()) {
-      double bg = average.GetBackgroundValueAsDouble();
-      if (min_value < bg) {
-        bg = min(0., min_value - 1.);
-        if (verbose && !IsNaN(padding)) {
-          cout << "Input -padding value larger than rescaled minimum, pad output with: " << padding << endl;
-        }
-        AverageImage::VoxelType value;
-        value = static_cast<AverageImage::VoxelType>(bg);
-        for (int idx = 0; idx < num; ++idx) {
-          if (!mask[idx]) average(idx) = value;
-        }
-        average.PutBackgroundValueAsDouble(bg);
+      if (debug) {
+        average.Write("debug_average_sharpened.nii.gz");
       }
+      Real shift = mean - static_cast<Real>(Mean::Calculate(num, average.Data(), mask.get()));
+      Real min_value = static_cast<Real>(min_average);
+      Real max_value = static_cast<Real>(max_average);
+      for (int idx = 0; idx < num; ++idx) {
+        if (mask[idx]) {
+          average(idx) = clamp(average(idx) + shift, min_value, max_value);
+        }
+      }
+      if (verbose) cout << " done" << endl;
     }
-  }
 
-  // ---------------------------------------------------------------------------
-  // Write average image
-  if (average.GetDataType() != dtype) {
-    UniquePtr<BaseImage> output(BaseImage::New(dtype));
-    *output = average;
-    output->Write(output_name);
-  } else {
-    average.Write(output_name);
+    // ---------------------------------------------------------------------------
+    // Replace background value by specified padding value
+    if (!IsNaN(padding) && average.HasBackgroundValue() && padding != average.GetBackgroundValueAsDouble()) {
+      AverageImage::VoxelType bg;
+      bg = voxel_cast<AverageImage::VoxelType>(padding);
+      for (int idx = 0; idx < average.NumberOfVoxels(); ++idx) {
+        if (average.IsBackground(idx)) average(idx) = bg;
+      }
+      average.PutBackgroundValueAsDouble(padding);
+    }
+
+    // ---------------------------------------------------------------------------
+    // Rescale average intensities
+    if (rescaling != Rescaling_None) {
+      double scale = 1., shift = 0.;
+      const int num = average.NumberOfSpatialVoxels();
+      UniquePtr<bool[]> mask = ForegroundMaskArray(&average);
+      if (rescaling == Rescaling_MeanStDev) {
+        if (verbose) {
+          cout << "Rescaling average to input mean and standard deviation...";
+          cout.flush();
+        }
+        double mean, sigma;
+        NormalDistribution::Calculate(mean, sigma, num, average.Data(), mask.get());
+        if (!fequal(avg_sigma, 0.) && !fequal(sigma, 0.)) {
+          scale = avg_sigma / sigma;
+        }
+        shift = avg_mean - scale * mean;
+      } else if (rescaling == Rescaling_Range) {
+        if (verbose) {
+          cout << "Rescaling average to output range [" << output_min << ", " << output_max << "]...";
+          cout.flush();
+        }
+        if (!segments.empty()) {
+          scale = output_max - output_min;
+          shift = output_min;
+        } else {
+          double min_value, max_value;
+          Extrema::Calculate(min_value, max_value, num, average.Data(), mask.get());
+          if (!fequal(max_value, min_value)) {
+            scale = (output_max - output_min) / (max_value - min_value);
+          }
+          shift = output_min - scale * min_value;
+        }
+      }
+      double min_value = +inf;
+      if (!fequal(scale, 1.) || !fequal(shift, 0.)) {
+        double value;
+        for (int idx = 0; idx < num; ++idx) {
+          if (mask[idx]) {
+            value = clamp(scale * double(average(idx)) + shift, min_input, max_input);
+            if (value < min_value) min_value = value;
+            average(idx) = voxel_cast<AverageImage::VoxelType>(value);
+          }
+        }
+      }
+      if (verbose) {
+        cout << " done" << endl;
+      }
+      if (average.HasBackgroundValue()) {
+        double bg = average.GetBackgroundValueAsDouble();
+        if (min_value < bg) {
+          bg = min(0., min_value - 1.);
+          if (verbose && !IsNaN(padding)) {
+            cout << "Input -padding value larger than rescaled minimum, pad output with: " << padding << endl;
+          }
+          AverageImage::VoxelType value;
+          value = static_cast<AverageImage::VoxelType>(bg);
+          for (int idx = 0; idx < num; ++idx) {
+            if (!mask[idx]) average(idx) = value;
+          }
+          average.PutBackgroundValueAsDouble(bg);
+        }
+      }
+    }
+
+    // ---------------------------------------------------------------------------
+    // Write average image
+    if (average.GetDataType() != dtype) {
+      UniquePtr<BaseImage> output(BaseImage::New(dtype));
+      *output = average;
+      output->Write(output_names[o].c_str());
+    } else {
+      average.Write(output_names[o].c_str());
+    }
   }
 
   return 0;
