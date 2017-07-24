@@ -56,7 +56,7 @@ fi
 
 cmake_args=
 for module in ${modules[@]}; do
-  cmake_args=(${config[@]} -D MODULE_${module}=ON)
+  cmake_args=(${cmake_args[@]} -D MODULE_${module}=ON)
 done
 
 mkdir Build && cd Build
