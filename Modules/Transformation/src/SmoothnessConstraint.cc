@@ -131,17 +131,6 @@ void SmoothnessConstraint::EvaluateGradient(double *gradient, double, double wei
 // =============================================================================
 
 // -----------------------------------------------------------------------------
-void SmoothnessConstraint
-::WriteFFDGradient(const char *fname, const FreeFormTransformation *ffd, const double *g) const
-{
-  typedef FreeFormTransformation::CPValue CPValue;
-  typedef GenericImage<CPValue>           CPImage;
-  CPValue *data = reinterpret_cast<CPValue *>(const_cast<double *>(g));
-  CPImage gradient(ffd->Attributes(), data);
-  gradient.Write(fname);
-}
-
-// -----------------------------------------------------------------------------
 void SmoothnessConstraint::WriteGradient(const char *p, const char *suffix) const
 {
   const int   sz = 1024;

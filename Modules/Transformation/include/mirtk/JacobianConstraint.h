@@ -23,6 +23,7 @@
 #include "mirtk/TransformationConstraint.h"
 
 #include "mirtk/Matrix.h"
+#include "mirtk/GenericImage.h"
 
 
 namespace mirtk {
@@ -44,45 +45,72 @@ class JacobianConstraint : public TransformationConstraint
   mirtkAbstractMacro(JacobianConstraint);
 
   // ---------------------------------------------------------------------------
+  // Types
+
+public:
+
+  /// Enumeration of target image sub-domains on which to evaluate penalty
+  enum SubDomainEnum
+  {
+    SD_Image,   ///< Evaluate penalty at image voxels
+    SD_Lattice, ///< Evaluate penalty at control points
+    SD_SubDiv,  ///< Evaluate penalty at subdivided control point lattice
+    SD_Shifted  ///< Evaluate penalty in-between control points
+  };
+
+  // ---------------------------------------------------------------------------
   // Attributes
+
+  /// Sub-domain on which to evaluate penalty
+  mirtkPublicAttributeMacro(SubDomainEnum, SubDomain);
+
+  /// Whether to always apply constraint to Jacobian of FFD spline function
+  ///
+  /// This option has no effect when the FFD parameters are displacements.
+  /// In case of a velocity based FFD model, it applies the constraint to
+  /// the velocity field instead of the corresponding displacement field.
+  mirtkReadOnlyAttributeMacro(bool, ConstrainJacobianOfParameterization);
 
 protected:
 
   double *_DetJacobian; ///< Determinant of Jacobian at each control point
   Matrix *_AdjJacobian; ///< Adjugate of Jacobian at each control point
-  int     _NumberOfCPs; ///< Number of control points
+  Array<Matrix> _MatW2L; ///< World to sub-domain lattice coordinates
+  Array<Matrix> _MatL2W; ///< Sub-domain lattice coordinates to world
+  Array<ImageAttributes> _SubDomains; ///< Discrete sub-domain over which to integrate penalty
 
   // ---------------------------------------------------------------------------
   // Construction/destruction
 
   /// Constructor
-  JacobianConstraint(const char * = "");
+  JacobianConstraint(const char *, bool = false);
 
 public:
 
   /// Destructor
   virtual ~JacobianConstraint();
 
+protected:
+
+  /// Set parameter value from string
+  virtual bool SetWithoutPrefix(const char *, const char *);
+
+public:
+
+  // Import other overloads
+  using TransformationConstraint::Parameter;
+
+  /// Get parameter key/value as string map
+  virtual ParameterList Parameter() const;
+
   // ---------------------------------------------------------------------------
   // Evaluation
 
+  /// Initialize energy term once input and parameters have been set
+  virtual void Initialize();
+
   /// Update internal state upon change of input
   virtual void Update(bool = true);
-
-  /// Compute determinant and adjugate of Jacobian of transformation
-  ///
-  /// This function is called by Update for each (control) point at which the
-  /// Jacobian determinant is evaluated. Can be overridden in subclasses to
-  /// either compute a different Jacobian or to threshold the determinant value.
-  virtual double Jacobian(const FreeFormTransformation *ffd,
-                          double x, double y, double z, double t,
-                          Matrix &adj) const
-  {
-    double det;
-    ffd->Jacobian(adj, x, y, z, t, t);
-    adj.Adjugate(det);
-    return det;
-  }
 
   /// Evaluate penalty at control point location given Jacobian determinant value
   ///
@@ -110,12 +138,48 @@ public:
   /// Write Jacobian determinant
   virtual void WriteDataSets(const char *, const char *, bool = true) const;
 
-protected:
-
-  /// Write Jacobian determinant values to scalar image
-  void WriteJacobian(const char *, const FreeFormTransformation *, const double *) const;
+  /// Write gradient of penalty term
+  virtual void WriteGradient(const char *, const char *) const;
 
 };
+
+///////////////////////////////////////////////////////////////////////////////
+// Inline definitions
+///////////////////////////////////////////////////////////////////////////////
+
+// ----------------------------------------------------------------------------
+template <>
+inline string ToString(const JacobianConstraint::SubDomainEnum &value, int w, char c, bool left)
+{
+  const char *str;
+  switch (value) {
+    case JacobianConstraint::SD_Image:   str = "Image";   break;
+    case JacobianConstraint::SD_Lattice: str = "Lattice"; break;
+    case JacobianConstraint::SD_Shifted: str = "Shifted"; break;
+    case JacobianConstraint::SD_SubDiv:  str = "SubDiv";  break;
+    default:                             str = "Unknown"; break;
+  }
+  return ToString(str, w, c, left);
+}
+
+// ----------------------------------------------------------------------------
+template <>
+inline bool FromString(const char *str, JacobianConstraint::SubDomainEnum &value)
+{
+  string lstr = ToLower(str);
+  if (lstr == "image" || lstr == "target" || lstr == "imagelattice") {
+    value = JacobianConstraint::SD_Image;
+  } else if (lstr == "lattice" || lstr == "ffd" || lstr == "ffdlattice" || lstr == "cp" || lstr == "cps" || lstr == "controlpoints") {
+    value = JacobianConstraint::SD_Lattice;
+  } else if (lstr == "shifted" || lstr == "betweencontrolpoints") {
+    value = JacobianConstraint::SD_Shifted;
+  } else if (lstr == "subdiv" || lstr == "subdivided" || lstr == "subdividedlattice") {
+    value = JacobianConstraint::SD_SubDiv;
+  } else {
+    return false;
+  }
+  return true;
+}
 
 
 } // namespace mirtk

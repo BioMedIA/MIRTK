@@ -99,11 +99,6 @@ public:
   /// Write gradient of penalty term
   virtual void WriteGradient(const char *, const char *) const;
 
-protected:
-
-  /// Write gradient of penalty term w.r.t. control point parameters
-  void WriteFFDGradient(const char *, const FreeFormTransformation *, const double *) const;
-
 };
 
 

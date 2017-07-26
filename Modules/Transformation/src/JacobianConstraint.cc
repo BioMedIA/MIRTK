@@ -24,10 +24,24 @@
 #include "mirtk/Parallel.h"
 #include "mirtk/FreeFormTransformation.h"
 #include "mirtk/BSplineFreeFormTransformation3D.h"
+#include "mirtk/BSplineFreeFormTransformationSV.h"
 #include "mirtk/MultiLevelTransformation.h"
 #include "mirtk/Profiling.h"
 
 #include "mirtk/CommonExport.h" 
+
+// The sum of the individual contributions to the gradient w.r.t. a control point
+// has been normalized by dividing by the number of terms. It is disabled with this flag.
+#define _USE_INNER_GRADIENT_SUM_NORM 1
+
+// Whether to divide gradient vectors by number of points in (sub-)domain.
+// This was done in the IRTK nreg2 implementation, but the gradient magnitude is too
+// small in this case and would need a high weight (>10). The volume preservation and
+// topology preservation penalties for the classic FFD model seemed to work better
+// without dividing the gradient vectors by the number of sub-domain points.
+// Instead, the sum of gradient contributions is divided by the number of sub-domain
+// points within the local support of the respective control point.
+#define _DIVIDE_GRADIENT_BY_NPOINTS 0
 
 
 namespace mirtk {
@@ -45,6 +59,67 @@ namespace {
 
 
 // -----------------------------------------------------------------------------
+/// Subdivide lattice by inserting points in-between previous lattice points
+void SubdivDomain(ImageAttributes &domain)
+{
+  if (domain._x > 1) {
+    domain._x  *= 2;
+    domain._dx /= 2.;
+  }
+  if (domain._y > 1) {
+    domain._y  *= 2;
+    domain._dy /= 2.;
+  }
+  if (domain._z > 1) {
+    domain._z  *= 2;
+    domain._dz /= 2.;
+  }
+  if (domain._t > 1) {
+    domain._t  *= 2;
+    domain._dt /= 2.;
+  }
+}
+
+// -----------------------------------------------------------------------------
+/// Add one voxel to each dimension, while center remains fixed.
+/// This results in an evaluation of the penalty in-between lattice points
+void ShiftDomain(ImageAttributes &domain)
+{
+  if (domain._x > 1) domain._x += 1;
+  if (domain._y > 1) domain._y += 1;
+  if (domain._z > 1) domain._z += 1;
+  if (domain._t > 1) domain._t += 1;
+}
+
+// -----------------------------------------------------------------------------
+/// Check if world point is within local support of an active control point
+inline bool IsActive(const FreeFormTransformation *ffd, double x, double y, double z, double t)
+{
+  ffd->WorldToLattice(x, y, z);
+  t = ffd->TimeToLattice(t);
+
+  const double r = static_cast<double>(ffd->KernelRadius());
+
+  int i1 = max(0, ifloor(x - r));
+  int j1 = max(0, ifloor(y - r));
+  int k1 = max(0, ifloor(z - r));
+  int l1 = max(0, ifloor(t - r));
+
+  int i2 = min(iceil(x + r), ffd->X() - 1);
+  int j2 = min(iceil(y + r), ffd->Y() - 1);
+  int k2 = min(iceil(z + r), ffd->Z() - 1);
+  int l2 = min(iceil(t + r), ffd->T() - 1);
+
+  for (int l = l1; l <= l2; ++l)
+  for (int k = k1; k <= k2; ++k)
+  for (int j = j1; j <= j2; ++j)
+  for (int i = i1; i <= i2; ++i) {
+    if (ffd->IsActive(i, j, k, l)) return true;
+  }
+  return false;
+}
+
+// -----------------------------------------------------------------------------
 /// Body of Update function for parallel execution
 struct JacobianConstraintUpdate
 {
@@ -52,35 +127,99 @@ private:
 
   const JacobianConstraint     *_This;
   const FreeFormTransformation *_FFD;
+  const ImageAttributes        *_Domain;
   Matrix                       *_AdjJacobian;
   double                       *_DetJacobian;
 
 public:
 
-  void operator()(const blocked_range<int> &re) const
+  void operator()(const blocked_range3d<int> &re) const
   {
-    int    i, j, k, l;
+    int idx;
     double x, y, z, t;
-    for (int cp = re.begin(); cp != re.end(); ++cp) {
-      _FFD->IndexToLattice(cp, i, j, k, l);
-      x = i, y = j, z = k, t = _FFD->LatticeToTime(l);
-      _FFD->LatticeToWorld(x, y, z);
-      _DetJacobian[cp] = _This->Jacobian(_FFD, x, y, z, t, _AdjJacobian[cp]);
+    if (_This->ConstrainPassiveDoFs()) {
+      if (_This->ConstrainJacobianOfParameterization()) {
+        for (int l = 0; l < _Domain->T(); ++l) {
+          t = _Domain->LatticeToTime(l);
+          for (int k = re.pages().begin(); k != re.pages().end(); ++k)
+          for (int j = re.rows ().begin(); j != re.rows ().end(); ++j)
+          for (int i = re.cols ().begin(); i != re.cols ().end(); ++i) {
+            x = i, y = j, z = k;
+            _Domain->LatticeToWorld(x, y, z);
+            idx = _Domain->LatticeToIndex(i, j, k, l);
+            _FFD->FFDJacobianWorld(_AdjJacobian[idx], x, y, z, t);
+            _AdjJacobian[idx].Adjugate(_DetJacobian[idx]);
+          }
+        }
+      } else {
+        for (int l = 0; l < _Domain->T(); ++l) {
+          t = _Domain->LatticeToTime(l);
+          for (int k = re.pages().begin(); k != re.pages().end(); ++k)
+          for (int j = re.rows ().begin(); j != re.rows ().end(); ++j)
+          for (int i = re.cols ().begin(); i != re.cols ().end(); ++i) {
+            x = i, y = j, z = k;
+            _Domain->LatticeToWorld(x, y, z);
+            idx = _Domain->LatticeToIndex(i, j, k, l);
+            _FFD->LocalJacobian(_AdjJacobian[idx], x, y, z, t);
+            _AdjJacobian[idx].Adjugate(_DetJacobian[idx]);
+          }
+        }
+      }
+    } else {
+      if (_This->ConstrainJacobianOfParameterization()) {
+        for (int l = 0; l < _Domain->T(); ++l) {
+          t = _Domain->LatticeToTime(l);
+          for (int k = re.pages().begin(); k != re.pages().end(); ++k)
+          for (int j = re.rows ().begin(); j != re.rows ().end(); ++j)
+          for (int i = re.cols ().begin(); i != re.cols ().end(); ++i) {
+            x = i, y = j, z = k;
+            _Domain->LatticeToWorld(x, y, z);
+            idx = _Domain->LatticeToIndex(i, j, k, l);
+            if (IsActive(_FFD, x, y, z, t)) {
+              _FFD->FFDJacobianWorld(_AdjJacobian[idx], x, y, z, t);
+              _AdjJacobian[idx].Adjugate(_DetJacobian[idx]);
+            } else {
+              _DetJacobian[idx] = NaN;
+            }
+          }
+        }
+      } else {
+        for (int l = 0; l < _Domain->T(); ++l) {
+          t = _Domain->LatticeToTime(l);
+          for (int k = re.pages().begin(); k != re.pages().end(); ++k)
+          for (int j = re.rows ().begin(); j != re.rows ().end(); ++j)
+          for (int i = re.cols ().begin(); i != re.cols ().end(); ++i) {
+            x = i, y = j, z = k;
+            _Domain->LatticeToWorld(x, y, z);
+            idx = _Domain->LatticeToIndex(i, j, k, l);
+            if (IsActive(_FFD, x, y, z, t)) {
+              _FFD->LocalJacobian(_AdjJacobian[idx], x, y, z, t);
+              _AdjJacobian[idx].Adjugate(_DetJacobian[idx]);
+            } else {
+              _DetJacobian[idx] = NaN;
+            }
+          }
+        }
+      }
     }
   }
 
   static void Run(const JacobianConstraint     *obj,
                   const FreeFormTransformation *ffd,
+                  const ImageAttributes        &domain,
                   double                       *det,
                   Matrix                       *adj)
   {
     JacobianConstraintUpdate body;
     body._This        = obj;
     body._FFD         = ffd;
+    body._Domain      = &domain;
     body._AdjJacobian = adj;
     body._DetJacobian = det;
-    blocked_range<int> cps(0, ffd->NumberOfCPs());
-    parallel_for(cps, body);
+    blocked_range3d<int> range(0, domain.Z(),
+                               0, domain.Y(),
+                               0, domain.X());
+    parallel_for(range, body);
   }
 };
 
@@ -91,6 +230,7 @@ private:
 
   const JacobianConstraint     *_This;
   const FreeFormTransformation *_FFD;
+  const ImageAttributes        *_Domain;
   const Matrix                 *_AdjJacobian;
   const double                 *_DetJacobian;
   double                        _Penalty;
@@ -103,6 +243,7 @@ public:
   JacobianConstraintEvaluate(JacobianConstraintEvaluate &lhs, split)
   :
     _This(lhs._This), _FFD(lhs._FFD),
+    _Domain(lhs._Domain),
     _AdjJacobian(lhs._AdjJacobian),
     _DetJacobian(lhs._DetJacobian),
     _Penalty(0.), _N(0)
@@ -114,111 +255,127 @@ public:
     _N       += rhs._N;
   }
 
-  void operator()(const blocked_range<int> &re)
+  void operator()(const blocked_range3d<int> &re)
   {
-    double logdet;
-    for (int cp = re.begin(); cp != re.end(); ++cp) {
-      if (_This->ConstrainPassiveDoFs() || _FFD->IsActive(cp)) {
-        _Penalty += _This->Penalty(_DetJacobian[cp]);
-        ++_N;
+    int idx;
+    for (int l = 0; l < _Domain->T(); ++l) {
+      for (int k = re.pages().begin(); k != re.pages().end(); ++k)
+      for (int j = re.rows ().begin(); j != re.rows ().end(); ++j)
+      for (int i = re.cols ().begin(); i != re.cols ().end(); ++i) {
+        idx = _Domain->LatticeToIndex(i, j, k, l);
+        if (!IsNaN(_DetJacobian[idx])) {
+          _Penalty += _This->Penalty(_DetJacobian[idx]);
+          ++_N;
+        }
       }
     }
   }
 
   static void Run(const JacobianConstraint     *obj,
                   const FreeFormTransformation *ffd,
+                  const ImageAttributes        &domain,
                   const double                 *det,
                   const Matrix                 *adj,
-                  double                       &penalty,
-                  int                          &num)
+                  double                       &penalty)
   {
     JacobianConstraintEvaluate body;
     body._This        = obj;
     body._FFD         = ffd;
+    body._Domain      = &domain;
     body._AdjJacobian = adj;
     body._DetJacobian = det;
     body._Penalty     = 0.;
     body._N           = 0;
-    parallel_reduce(blocked_range<int>(0, ffd->NumberOfCPs()), body);
-    penalty += body._Penalty;
-    num     += body._N;
+    blocked_range3d<int> range(0, domain.Z(),
+                               0, domain.Y(),
+                               0, domain.X());
+    parallel_reduce(range, body);
+    if (body._N > 0) {
+      penalty += body._Penalty / body._N;
+    }
   }
 };
 
 // -----------------------------------------------------------------------------
 struct JacobianConstraintEvaluateGradient
 {
-  const JacobianConstraint              *_This;
-  const BSplineFreeFormTransformation3D *_FFD;
-  const double                          *_DetJacobian;
-  const Matrix                          *_AdjJacobian;
-  double                                *_Gradient;
-  double                                 _Weight;
+  const JacobianConstraint     *_This;
+  const FreeFormTransformation *_FFD;
+  const ImageAttributes        *_Domain;
+  const double                 *_DetJacobian;
+  const Matrix                 *_AdjJacobian;
+  double                       *_Gradient;
+  double                        _Weight;
 
   void operator()(const blocked_range3d<int> &re) const
   {
-    int    xdof, ydof, zdof, n, cp, i1, j1, k1, i2, j2, k2;
-    double pendrv, pengrad[3];
-    Matrix detdrv[3];
+    int    idx, xdof, ydof, zdof, cp, i1, j1, k1, l1, i2, j2, k2, l2;
+    double x, y, z, t, df, dp[3], gradient[3];
 
     // Loop over control points
-    for (int ck = re.pages().begin(); ck != re.pages().end(); ++ck)
-    for (int cj = re.rows ().begin(); cj != re.rows ().end(); ++cj)
-    for (int ci = re.cols ().begin(); ci != re.cols ().end(); ++ci) {
-      cp = _FFD->LatticeToIndex(ci, cj, ck);
-      if (_This->ConstrainPassiveDoFs() || _FFD->IsActive(cp)) {
-        _FFD->IndexToDOFs(cp, xdof, ydof, zdof);
+    for (int cl = 0; cl < _FFD->T(); ++cl) {
+      for (int ck = re.pages().begin(); ck != re.pages().end(); ++ck)
+      for (int cj = re.rows ().begin(); cj != re.rows ().end(); ++cj)
+      for (int ci = re.cols ().begin(); ci != re.cols ().end(); ++ci) {
+        cp = _FFD->LatticeToIndex(ci, cj, ck, cl);
+        if (_This->ConstrainPassiveDoFs() || _FFD->IsActive(cp)) {
+          if (_FFD->BoundingBox(*_Domain, cp, i1, j1, k1, l1, i2, j2, k2, l2)) {
 
-        i1 = (ci - 1 >         0 ? ci - 1 :             0);
-        j1 = (cj - 1 >         0 ? cj - 1 :             0);
-        k1 = (ck - 1 >         0 ? ck - 1 :             0);
-        i2 = (ci + 1 < _FFD->X() ? ci + 1 : _FFD->X() - 1);
-        j2 = (cj + 1 < _FFD->Y() ? cj + 1 : _FFD->Y() - 1);
-        k2 = (ck + 1 < _FFD->Z() ? ck + 1 : _FFD->Z() - 1);
+            gradient[0] = gradient[1] = gradient[2] = 0.;
 
-        pengrad[0] = pengrad[1] = pengrad[2] = .0;
+            // Loop over image domain
+            for (int l = l1; l <= l2; ++l)
+            for (int k = k1; k <= k2; ++k)
+            for (int j = j1; j <= j2; ++j)
+            for (int i = i1; i <= i2; ++i) {
 
-        for (int nk = k1; nk <= k2; ++nk)
-        for (int nj = j1; nj <= j2; ++nj)
-        for (int ni = i1; ni <= i2; ++ni) {
-          if (ni == ci && nj == cj && nk == ck) continue;
-          cp = _FFD->LatticeToIndex(ni, nj, nk);
+              // Lattice point index
+              idx = _Domain->LatticeToIndex(i, j, k, l);
 
-          // Derivative of penalty term w.r.t. Jacobian determinant
-          pendrv = _This->DerivativeWrtJacobianDet(_DetJacobian[cp]);
+              // Derivative of penalty term w.r.t. Jacobian determinant
+              df = _This->DerivativeWrtJacobianDet(_DetJacobian[idx]);
+              if (!AreEqual(df, 0.)) {
 
-          // Derivative of Jacobian determinant w.r.t. DoFs
-          _FFD->JacobianDetDerivative(detdrv, ni - ci, nj - cj, nk - ck);
+                // Derivatives of Jacobian determinant w.r.t. DoFs of control point
+                // (https://en.wikipedia.org/wiki/Jacobi's_formula)
+                x = i, y = j, z = k;
+                _Domain->LatticeToWorld(x, y, z);
+                t = _Domain->LatticeToTime(l);
+                if (_This->ConstrainJacobianOfParameterization()) {
+                  _FFD->FFDJacobianDetDerivative(dp, _AdjJacobian[idx], cp, x, y, z, t);
+                } else {
+                  _FFD->JacobianDetDerivative(dp, _AdjJacobian[idx], cp, x, y, z, t);
+                }
 
-          // Apply chain rule and Jacobi's formula
-          // (cf. https://en.wikipedia.org/wiki/Jacobi's_formula )
-          const Matrix &adj = _AdjJacobian[cp];
-          pengrad[0] += pendrv * (adj(0, 0) * detdrv[0](0, 0) +
-                                  adj(1, 0) * detdrv[0](0, 1) +
-                                  adj(2, 0) * detdrv[0](0, 2));
-          pengrad[1] += pendrv * (adj(0, 1) * detdrv[1](1, 0) +
-                                  adj(1, 1) * detdrv[1](1, 1) +
-                                  adj(2, 1) * detdrv[1](1, 2));
-          pengrad[2] += pendrv * (adj(0, 2) * detdrv[2](2, 0) +
-                                  adj(1, 2) * detdrv[2](2, 1) +
-                                  adj(2, 2) * detdrv[2](2, 2));
+                // Apply chain rule and add to sum of gradient vectors
+                gradient[0] += df * dp[0];
+                gradient[1] += df * dp[1];
+                gradient[2] += df * dp[2];
+              }
+            }
+
+            // Divide by size of support region
+            #if _USE_INNER_GRADIENT_SUM_NORM
+              int n = (i2 - i1 + 1) * (j2 - j1 + 1) * (k2 - k1 + 1) * (l2 - l1 + 1);
+              gradient[0] /= n;
+              gradient[1] /= n;
+              gradient[2] /= n;
+            #endif
+
+            // Add to total gradient
+            _FFD->IndexToDOFs(cp, xdof, ydof, zdof);
+            _Gradient[xdof] += _Weight * gradient[0];
+            _Gradient[ydof] += _Weight * gradient[1];
+            _Gradient[zdof] += _Weight * gradient[2];
+          }
         }
-
-        // Note: Not sure why the negative sign...
-        pengrad[0] = - pengrad[0];
-        pengrad[1] = - pengrad[1];
-        pengrad[2] = - pengrad[2];
-
-        n = (i2 - i1 + 1) * (j2 - j1 + 1) * (k2 - k1 + 1) - 1;
-        _Gradient[xdof] += _Weight * pengrad[0] / n;
-        _Gradient[ydof] += _Weight * pengrad[1] / n;
-        _Gradient[zdof] += _Weight * pengrad[2] / n;
       }
     }
   }
 
   static void Run(const JacobianConstraint     *obj,
                   const FreeFormTransformation *ffd,
+                  const ImageAttributes        &domain,
                   const double                 *det,
                   const Matrix                 *adj,
                   double                       *gradient,
@@ -226,17 +383,205 @@ struct JacobianConstraintEvaluateGradient
   {
     JacobianConstraintEvaluateGradient body;
     body._This        = obj;
-    body._FFD         = dynamic_cast<const BSplineFreeFormTransformation3D *>(ffd);
+    body._FFD         = ffd;
+    body._Domain      = &domain;
     body._DetJacobian = det;
     body._AdjJacobian = adj;
     body._Gradient    = gradient;
     body._Weight      = weight;
-    if (body._FFD == nullptr) {
-      Throw(ERR_LogicError, "JacobianConstraint::EvaluateGradient", "Only implemented for 3D B-spline (SV) FFD");
-    }
     parallel_for(blocked_range3d<int>(0, ffd->Z(), 0, ffd->Y(), 0, ffd->X()), body);
   }
 };
+
+// -----------------------------------------------------------------------------
+struct BSplineFFD3DJacobianConstraintEvaluateGradient
+{
+  const JacobianConstraint              *_This;
+  const BSplineFreeFormTransformation3D *_FFD;
+  const ImageAttributes                 *_Domain;
+  const double                          *_DetJacobian;
+  const Matrix                          *_AdjJacobian;
+  double                                *_Gradient;
+  double                                 _Weight;
+
+  void operator()(const blocked_range3d<int> &re) const
+  {
+    int    idx, xdof, ydof, zdof, cp, i1, j1, k1, i2, j2, k2;
+    double x, y, z, df, dp[3], gradient[3];
+
+    // Loop over control points
+    for (int ck = re.pages().begin(); ck != re.pages().end(); ++ck)
+    for (int cj = re.rows ().begin(); cj != re.rows ().end(); ++cj)
+    for (int ci = re.cols ().begin(); ci != re.cols ().end(); ++ci) {
+      cp = _FFD->LatticeToIndex(ci, cj, ck);
+      if (_This->ConstrainPassiveDoFs() || _FFD->IsActive(cp)) {
+        if (_FFD->BoundingBox(*_Domain, cp, i1, j1, k1, i2, j2, k2)) {
+
+          gradient[0] = gradient[1] = gradient[2] = 0.;
+
+          // Loop over image domain
+          for (int k = k1; k <= k2; ++k)
+          for (int j = j1; j <= j2; ++j)
+          for (int i = i1; i <= i2; ++i) {
+
+            // Lattice point index
+            idx = _Domain->LatticeToIndex(i, j, k);
+
+            // Derivative of penalty term w.r.t. Jacobian determinant
+            df = _This->DerivativeWrtJacobianDet(_DetJacobian[idx]);
+            if (!AreEqual(df, 0.)) {
+
+              // Derivatives of Jacobian determinant w.r.t. DoFs of control point
+              // (https://en.wikipedia.org/wiki/Jacobi's_formula)
+              x = i, y = j, z = k;
+              _Domain->LatticeToWorld(x, y, z);
+              _FFD->WorldToLattice(x, y, z);
+              _FFD->EvaluateJacobianDetDerivative(dp, _AdjJacobian[idx], x - ci, y - cj, z - ck);
+
+              // Apply chain rule and add to sum of gradient vectors
+              gradient[0] += df * dp[0];
+              gradient[1] += df * dp[1];
+              gradient[2] += df * dp[2];
+            }
+          }
+
+          // Divide by size of support region
+          #if _USE_INNER_GRADIENT_SUM_NORM
+            int n = (i2 - i1 + 1) * (j2 - j1 + 1) * (k2 - k1 + 1);
+            gradient[0] /= n;
+            gradient[1] /= n;
+            gradient[2] /= n;
+          #endif
+
+          // Add to total gradient
+          _FFD->IndexToDOFs(cp, xdof, ydof, zdof);
+          _Gradient[xdof] += _Weight * gradient[0];
+          _Gradient[ydof] += _Weight * gradient[1];
+          _Gradient[zdof] += _Weight * gradient[2];
+        }
+      }
+    }
+  }
+
+  static void Run(const JacobianConstraint              *obj,
+                  const BSplineFreeFormTransformation3D *ffd,
+                  const ImageAttributes                 &domain,
+                  const double                          *det,
+                  const Matrix                          *adj,
+                  double                                *gradient,
+                  double                                 weight)
+  {
+    BSplineFFD3DJacobianConstraintEvaluateGradient body;
+    body._This        = obj;
+    body._FFD         = ffd;
+    body._Domain      = &domain;
+    body._DetJacobian = det;
+    body._AdjJacobian = adj;
+    body._Gradient    = gradient;
+    body._Weight      = weight;
+    parallel_for(blocked_range3d<int>(0, ffd->Z(), 0, ffd->Y(), 0, ffd->X()), body);
+  }
+};
+
+// -----------------------------------------------------------------------------
+struct BSplineFFD3DJacobianConstraintEvaluateGradientLattice
+{
+  const JacobianConstraint              *_This;
+  const BSplineFreeFormTransformation3D *_FFD;
+  const ImageAttributes                 *_Domain;
+  const double                          *_DetJacobian;
+  const Matrix                          *_AdjJacobian;
+  double                                *_Gradient;
+  double                                 _Weight;
+
+  void operator()(const blocked_range3d<int> &re) const
+  {
+    int    idx, xdof, ydof, zdof, cp, i1, j1, k1, i2, j2, k2;
+    double df, dp[3], gradient[3];
+
+    // Loop over control points
+    for (int ck = re.pages().begin(); ck != re.pages().end(); ++ck)
+    for (int cj = re.rows ().begin(); cj != re.rows ().end(); ++cj)
+    for (int ci = re.cols ().begin(); ci != re.cols ().end(); ++ci) {
+      cp = _FFD->LatticeToIndex(ci, cj, ck);
+      if (_This->ConstrainPassiveDoFs() || _FFD->IsActive(cp)) {
+
+        gradient[0] = gradient[1] = gradient[2] = 0.;
+
+        i1 = max(ci - 1, 0);
+        j1 = max(cj - 1, 0);
+        k1 = max(ck - 1, 0);
+
+        i2 = min(ci + 1, _FFD->X() - 1);
+        j2 = min(cj + 1, _FFD->Y() - 1);
+        k2 = min(ck + 1, _FFD->Z() - 1);
+
+        // Loop over lattice domain
+        for (int k = k1; k <= k2; ++k)
+        for (int j = j1; j <= j2; ++j)
+        for (int i = i1; i <= i2; ++i) {
+
+          // Lattice point index
+          idx = _Domain->LatticeToIndex(i, j, k);
+
+          // Derivative of penalty term w.r.t. Jacobian determinant
+          df = _This->DerivativeWrtJacobianDet(_DetJacobian[idx]);
+          if (!AreEqual(df, 0.)) {
+
+            // Derivatives of Jacobian determinant w.r.t. DoFs of control point
+            // (https://en.wikipedia.org/wiki/Jacobi's_formula)
+            _FFD->EvaluateJacobianDetDerivative(dp, _AdjJacobian[idx], i - ci, j - cj, k - ck);
+
+            // Apply chain rule and add to sum of gradient vectors
+            gradient[0] += df * dp[0];
+            gradient[1] += df * dp[1];
+            gradient[2] += df * dp[2];
+          }
+        }
+
+        // Divide by size of support region
+        #if _USE_INNER_GRADIENT_SUM_NORM
+          int n = (i2 - i1 + 1) * (j2 - j1 + 1) * (k2 - k1 + 1);
+          gradient[0] /= n;
+          gradient[1] /= n;
+          gradient[2] /= n;
+        #endif
+
+        // Add to total gradient
+        _FFD->IndexToDOFs(cp, xdof, ydof, zdof);
+        _Gradient[xdof] += _Weight * gradient[0];
+        _Gradient[ydof] += _Weight * gradient[1];
+        _Gradient[zdof] += _Weight * gradient[2];
+      }
+    }
+  }
+
+  static void Run(const JacobianConstraint              *obj,
+                  const BSplineFreeFormTransformation3D *ffd,
+                  const ImageAttributes                 &domain,
+                  const double                          *det,
+                  const Matrix                          *adj,
+                  double                                *gradient,
+                  double                                 weight)
+  {
+    BSplineFFD3DJacobianConstraintEvaluateGradientLattice body;
+    body._This        = obj;
+    body._FFD         = ffd;
+    body._Domain      = &domain;
+    body._DetJacobian = det;
+    body._AdjJacobian = adj;
+    body._Gradient    = gradient;
+    body._Weight      = weight;
+    parallel_for(blocked_range3d<int>(0, ffd->Z(), 0, ffd->Y(), 0, ffd->X()), body);
+  }
+};
+
+// -----------------------------------------------------------------------------
+void WriteJacobianImage(const char *fname, const ImageAttributes &domain, const double *det)
+{
+  GenericImage<double> jac(domain, const_cast<double *>(det));
+  jac.Write(fname);
+}
 
 
 } // namespace
@@ -246,12 +591,13 @@ struct JacobianConstraintEvaluateGradient
 // =============================================================================
 
 // -----------------------------------------------------------------------------
-JacobianConstraint::JacobianConstraint(const char *name)
+JacobianConstraint::JacobianConstraint(const char *name, bool constrain_spline)
 :
   TransformationConstraint(name),
+  _SubDomain(SD_Lattice),
+  _ConstrainJacobianOfParameterization(constrain_spline),
   _DetJacobian(nullptr),
-  _AdjJacobian(nullptr),
-  _NumberOfCPs(0)
+  _AdjJacobian(nullptr)
 {
 }
 
@@ -263,43 +609,121 @@ JacobianConstraint::~JacobianConstraint()
 }
 
 // =============================================================================
+// Parameters
+// =============================================================================
+
+// -----------------------------------------------------------------------------
+bool JacobianConstraint::SetWithoutPrefix(const char *param, const char *value)
+{
+  if (strcmp(param, "Domain") == 0) {
+    return FromString(value, _SubDomain);
+  }
+  return TransformationConstraint::SetWithoutPrefix(param, value);
+}
+
+// -----------------------------------------------------------------------------
+ParameterList JacobianConstraint::Parameter() const
+{
+  ParameterList params = TransformationConstraint::Parameter();
+  InsertWithPrefix(params, "Domain", _SubDomain);
+  return params;
+}
+
+// =============================================================================
 // Evaluation
 // =============================================================================
 
 // -----------------------------------------------------------------------------
+void JacobianConstraint::Initialize()
+{
+  ImageAttributes domain;
+  const FreeFormTransformation   *ffd  = FFD();
+  const MultiLevelTransformation *mffd = MFFD();
+
+  _SubDomains.clear();
+  _MatW2L.clear();
+  _MatL2W.clear();
+  Deallocate(_DetJacobian);
+  Deallocate(_AdjJacobian);
+
+  if (ffd) {
+    _SubDomains.reserve(1);
+    if (_SubDomain == SD_Image) {
+      domain = _Domain;
+    } else {
+      domain = ffd->Attributes();
+      if (_SubDomain == SD_Shifted) {
+        ShiftDomain(domain);
+      } else if (_SubDomain == SD_SubDiv) {
+        SubdivDomain(domain);
+      }
+    }
+    _SubDomains.push_back(domain);
+  } else if (mffd) {
+    _SubDomains.reserve(mffd->NumberOfActiveLevels());
+    for (int n = 0; n < mffd->NumberOfLevels(); ++n) {
+      if (mffd->LocalTransformationIsActive(n)) {
+        if (_SubDomain == SD_Image) {
+          domain = _Domain;
+        } else {
+          domain = mffd->GetLocalTransformation(n)->Attributes();
+          if (_SubDomain == SD_Shifted) {
+            ShiftDomain(domain);
+          } else if (_SubDomain == SD_SubDiv) {
+            SubdivDomain(domain);
+          }
+        }
+        _SubDomains.push_back(domain);
+      }
+    }
+  }
+
+  if (!_SubDomains.empty()) {
+    int npts = 0;
+    _MatW2L.resize(_SubDomains.size());
+    _MatL2W.resize(_SubDomains.size());
+    for (size_t i = 0; i < _SubDomains.size(); ++i) {
+      npts += _SubDomains[i].NumberOfPoints();
+      _MatW2L[i] = _SubDomains[i].GetWorldToLatticeMatrix();
+      _MatL2W[i] = _SubDomains[i].GetLatticeToWorldMatrix();
+      _SubDomains[i]._w2i = &_MatW2L[i];
+      _SubDomains[i]._i2w = &_MatL2W[i];
+    }
+    if (npts > 0) {
+      _DetJacobian = Allocate<double>(npts);
+      _AdjJacobian = Allocate<Matrix>(npts);
+    }
+  }
+}
+
+// -----------------------------------------------------------------------------
 void JacobianConstraint::Update(bool)
 {
+  if (_SubDomains.empty()) {
+    return;
+  }
+
   typedef JacobianConstraintUpdate Body;
 
   const FreeFormTransformation   *ffd  = FFD();
   const MultiLevelTransformation *mffd = MFFD();
 
-  int ncps = 0;
-  if      (ffd)  ncps =  ffd->NumberOfCPs();
-  else if (mffd) ncps = mffd->NumberOfCPs(true);
-  if (ncps == 0) return;
-
-  if (ncps != _NumberOfCPs) {
-    Deallocate(_DetJacobian);
-    Deallocate(_AdjJacobian);
-    _NumberOfCPs = ncps;
-    _DetJacobian = Allocate<double>(ncps);
-    _AdjJacobian = Allocate<Matrix>(ncps);
-  }
-
   if (mffd) {
     double *det = _DetJacobian;
     Matrix *adj = _AdjJacobian;
+    auto domain = _SubDomains.begin();
     for (int n = 0; n < mffd->NumberOfLevels(); ++n) {
       if (mffd->LocalTransformationIsActive(n)) {
         ffd = mffd->GetLocalTransformation(n);
-        Body::Run(this, ffd, det, adj);
-        det += ffd->NumberOfCPs();
-        adj += ffd->NumberOfCPs();
+        Body::Run(this, ffd, *domain, det, adj);
+        auto npts = domain->NumberOfPoints();
+        det += npts;
+        adj += npts;
+        ++domain;
       }
     }
   } else if (ffd) {
-    Body::Run(this, ffd, _DetJacobian, _AdjJacobian);
+    Body::Run(this, ffd, _SubDomains[0], _DetJacobian, _AdjJacobian);
   }
 }
 
@@ -310,6 +734,10 @@ void JacobianConstraint::Update(bool)
 // -----------------------------------------------------------------------------
 double JacobianConstraint::Evaluate()
 {
+  if (_SubDomains.empty()) {
+    return 0.;
+  }
+
   typedef JacobianConstraintEvaluate Body;
 
   MIRTK_START_TIMING();
@@ -318,62 +746,117 @@ double JacobianConstraint::Evaluate()
   const MultiLevelTransformation *mffd = MFFD();
 
   double penalty = .0;
-  int    ncps    = 0;
 
   if (mffd) {
     double *det = _DetJacobian;
     Matrix *adj = _AdjJacobian;
+    auto domain = _SubDomains.begin();
     for (int n = 0; n < mffd->NumberOfLevels(); ++n) {
       if (mffd->LocalTransformationIsActive(n)) {
         ffd = mffd->GetLocalTransformation(n);
-        Body::Run(this, ffd, det, adj, penalty, ncps);
-        det += ffd->NumberOfCPs();
-        adj += ffd->NumberOfCPs();
+        Body::Run(this, ffd, *domain, det, adj, penalty);
+        auto npts = domain->NumberOfPoints();
+        det += npts;
+        adj += npts;
+        ++domain;
       }
     }
   } else if (ffd) {
-    Body::Run(this, ffd, _DetJacobian, _AdjJacobian, penalty, ncps);
+    Body::Run(this, ffd, _SubDomains[0], _DetJacobian, _AdjJacobian, penalty);
   }
 
-  if (ncps == 0) return .0;
   MIRTK_DEBUG_TIMING(2, (this->HasName() ? this->Name() : this->DefaultName()) << " evaluation");
-  return penalty / ncps;
+  return penalty / _SubDomains.size();
 }
 
 // -----------------------------------------------------------------------------
+// TODO: A more generic implementation would compute the voxel-wise gradient
+//       for each point of the discrete target image domain and then use
+//       the ParametricGradient function of the transformation similar to
+//       the ImageSimilarity::EvaluateGradient implementation. This could be
+//       implemented in the TransformationConstraint base class.
 void JacobianConstraint::EvaluateGradient(double *gradient, double, double weight)
 {
   typedef JacobianConstraintEvaluateGradient Body;
+
+  if (_SubDomains.empty()) {
+    return;
+  }
 
   MIRTK_START_TIMING();
 
   const FreeFormTransformation   *ffd  = FFD();
   const MultiLevelTransformation *mffd = MFFD();
-
-  int ncps = 0;
-  if (_ConstrainPassiveDoFs) {
-    if      (ffd)  ncps =  ffd->NumberOfCPs();
-    else if (mffd) ncps = mffd->NumberOfCPs();
-  } else {
-    if      (ffd)  ncps =  ffd->NumberOfActiveCPs();
-    else if (mffd) ncps = mffd->NumberOfActiveCPs();
-  }
-  if (ncps == 0) return;
+  const BSplineFreeFormTransformation3D *bffd3d;
+  const BSplineFreeFormTransformationSV *svffd;
+  double w;
 
   if (mffd) {
     double *det = _DetJacobian;
     Matrix *adj = _AdjJacobian;
+    auto domain = _SubDomains.begin();
     for (int n = 0; n < mffd->NumberOfLevels(); ++n) {
       if (mffd->LocalTransformationIsActive(n)) {
+        auto npts = domain->NumberOfPoints();
+        #if _DIVIDE_GRADIENT_BY_NPOINTS
+          w = weight / npts;
+        #else
+          w = weight;
+        #endif
         ffd = mffd->GetLocalTransformation(n);
-        Body::Run(this, ffd, det, adj, gradient, _Weight / ncps);
-        det += ffd->NumberOfCPs();
-        adj += ffd->NumberOfCPs();
+        bffd3d = dynamic_cast<const BSplineFreeFormTransformation3D *>(ffd);
+        if (bffd3d) {
+          if (_ConstrainJacobianOfParameterization) {
+            svffd = nullptr;
+          } else {
+            svffd = dynamic_cast<const BSplineFreeFormTransformationSV *>(ffd);
+          }
+          if (svffd) {
+            // Penalize Jacobian of displacement generated by SVF
+            Body::Run(this, ffd, *domain, det, adj, gradient, w);
+          } else if (_SubDomain == SD_Lattice) {
+            typedef BSplineFFD3DJacobianConstraintEvaluateGradientLattice Body;
+            Body::Run(this, bffd3d, *domain, det, adj, gradient, w);
+          } else {
+            typedef BSplineFFD3DJacobianConstraintEvaluateGradient Body;
+            Body::Run(this, bffd3d, *domain, det, adj, gradient, w);
+          }
+        } else {
+          Body::Run(this, ffd, *domain, det, adj, gradient, w);
+        }
         gradient += ffd->NumberOfDOFs();
+        det += npts;
+        adj += npts;
+        ++domain;
       }
     }
   } else if (ffd) {
-    Body::Run(this, ffd, _DetJacobian, _AdjJacobian, gradient, _Weight / ncps);
+    auto npts = _SubDomains[0].NumberOfPoints();
+    #if _DIVIDE_GRADIENT_BY_NPOINTS
+      w = weight / npts;
+    #else
+      w = weight;
+    #endif
+    bffd3d = dynamic_cast<const BSplineFreeFormTransformation3D *>(ffd);
+    if (bffd3d) {
+      if (_ConstrainJacobianOfParameterization) {
+        svffd = nullptr;
+      } else {
+        svffd = dynamic_cast<const BSplineFreeFormTransformationSV *>(ffd);
+      }
+      if (svffd) {
+        // Penalize Jacobian of displacement generated by SVF
+        Body::Run(this, ffd, _SubDomains[0], _DetJacobian, _AdjJacobian, gradient, w);
+      } else if (_SubDomain == SD_Lattice) {
+        typedef BSplineFFD3DJacobianConstraintEvaluateGradientLattice Body;
+        Body::Run(this, bffd3d, _SubDomains[0], _DetJacobian, _AdjJacobian, gradient, w);
+      } else {
+        typedef BSplineFFD3DJacobianConstraintEvaluateGradient Body;
+        Body::Run(this, bffd3d, _SubDomains[0], _DetJacobian, _AdjJacobian, gradient, w);
+      }
+    } else {
+      Body::Run(this, ffd, _SubDomains[0], _DetJacobian, _AdjJacobian, gradient, w);
+    }
   }
 
   MIRTK_DEBUG_TIMING(2, (this->HasName() ? this->Name() : this->DefaultName()) << " gradient computation");
@@ -384,17 +867,9 @@ void JacobianConstraint::EvaluateGradient(double *gradient, double, double weigh
 // =============================================================================
 
 // -----------------------------------------------------------------------------
-void JacobianConstraint
-::WriteJacobian(const char *fname, const FreeFormTransformation *ffd, const double *det) const
-{
-  GenericImage<double> jacobian(ffd->Attributes(), const_cast<double *>(det));
-  jacobian.Write(fname);
-}
-
-// -----------------------------------------------------------------------------
 void JacobianConstraint::WriteDataSets(const char *p, const char *suffix, bool) const
 {
-  if (debug < 3) return;
+  if (debug < 3 || _SubDomains.empty()) return;
 
   const int   sz = 1024;
   char        fname[sz];
@@ -406,6 +881,7 @@ void JacobianConstraint::WriteDataSets(const char *p, const char *suffix, bool) 
 
   if (mffd) {
     double *det = _DetJacobian;
+    auto domain = _SubDomains.begin();
     for (int n = 0; n < mffd->NumberOfLevels(); ++n) {
       if (mffd->LocalTransformationIsActive(n)) {
         ffd = mffd->GetLocalTransformation(n);
@@ -414,14 +890,51 @@ void JacobianConstraint::WriteDataSets(const char *p, const char *suffix, bool) 
         } else {
           snprintf(fname, sz, "%sjacobian_determinant_of_ffd_at_level_%d%s", prefix, n+1, suffix);
         }
-        WriteJacobian(fname, ffd, det);
-        det += ffd->NumberOfCPs();
+        WriteJacobianImage(fname, *domain, det);
+        det += domain->NumberOfPoints();
+        ++domain;
       }
     }
   } else if (ffd) {
     snprintf(fname, sz, "%sjacobian_determinant%s", prefix, suffix);
-    WriteJacobian(fname, ffd, _DetJacobian);
+    WriteJacobianImage(fname, _SubDomains[0], _DetJacobian);
   }
+}
+
+// -----------------------------------------------------------------------------
+void JacobianConstraint::WriteGradient(const char *p, const char *suffix) const
+{
+  if (_SubDomains.empty()) return;
+
+  const int   sz = 1024;
+  char        fname[sz];
+  string _prefix = Prefix(p);
+  const char  *prefix = _prefix.c_str();
+
+  const FreeFormTransformation   *ffd  = FFD();
+  const MultiLevelTransformation *mffd = MFFD();
+  double *gradient = CAllocate<double>(_Transformation->NumberOfDOFs());
+  const_cast<JacobianConstraint *>(this)->EvaluateGradient(gradient, 1., 1.);
+
+  if (mffd) {
+    for (int n = 0; n < mffd->NumberOfLevels(); ++n) {
+      if (mffd->LocalTransformationIsActive(n)) {
+        ffd = mffd->GetLocalTransformation(n);
+        if (mffd->NumberOfActiveLevels() == 1) {
+          snprintf(fname, sz, "%sgradient%s", prefix, suffix);
+        } else {
+          snprintf(fname, sz, "%sgradient_of_ffd_at_level_%d%s", prefix, n+1, suffix);
+        }
+        WriteFFDGradient(fname, ffd, gradient);
+        gradient += ffd->NumberOfDOFs();
+      }
+    }
+  } else if (ffd) {
+    snprintf(fname, sz, "%sgradient%s", prefix, suffix);
+    WriteFFDGradient(fname, ffd, gradient);
+  }
+
+  Deallocate(gradient);
 }
 
 

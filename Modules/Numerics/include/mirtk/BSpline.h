@@ -100,6 +100,17 @@ public:
   /// Returns the lookup table index for a given value in [0,1]
   static int VariableToIndex(TReal);
 
+  /// Returns the lookup table indices for any t value
+  ///
+  /// \param[in]  t Cubic B-spline function parameter.
+  /// \param[out] i First lookup table index in [0, LookupTableSize - 1].
+  /// \param[out] j Second lookup table index in [0, 3].
+  ///
+  /// \returns Whether t is within local support of cubic B-spline function.
+  ///          When the return value is false, lookup table indices corresponding
+  ///          to a boundary of the local support region is returned.
+  static bool VariableToIndex(TReal, int &i, int &j);
+
   /// Lookup table of B-spline function values
   MIRTK_Numerics_EXPORT static TReal WeightLookupTable[LookupTableSize];
 
@@ -257,10 +268,10 @@ inline TReal BSpline<TReal>::Weight(TReal t)
   t = fabs(t);
   if (t < 2.0) {
     if (t < 1.0) {
-      value = 2.0/3.0 + (0.5*t-1.0)*t*t;
+      value = 2.0/3.0 + (0.5*t-1.0)*t*t;  // B1
     } else {
       t -= 2.0;
-      value = -t*t*t/6.0;
+      value = -t*t*t/6.0;  // B3
     }
   }
   return static_cast<TReal>(value);
@@ -590,6 +601,26 @@ inline int BSpline<TReal>::VariableToIndex(TReal t)
   if      (t <  .0) return 0;
   else if (t > 1.0) return LookupTableSize-1;
   else              return iround(t * static_cast<TReal>(LookupTableSize-1));
+}
+
+// -----------------------------------------------------------------------------
+template <class TReal>
+inline bool BSpline<TReal>::VariableToIndex(TReal t, int &i, int &j)
+{
+  t = abs(t);
+  if (t >= 2.) {
+    i = 0;
+    j = 3;
+    return false;
+  }
+  if (t >= 1.) {
+    j = 3;
+    t = -(t - 2.);
+  } else {
+    j = 1;
+  }
+  i = iround(t * static_cast<TReal>(LookupTableSize - 1));
+  return true;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
