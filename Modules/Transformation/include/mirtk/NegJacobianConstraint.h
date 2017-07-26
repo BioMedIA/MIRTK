@@ -61,7 +61,7 @@ class NegJacobianConstraint : public JacobianConstraint
   /// with increasing smaller (i.e., negative) value
   ///
   /// The penalty implemented in IRTK can be used with _Epsilon set to a very
-  /// small value, -inf, or NaN.
+  /// negative value, i.e., negative with great magnitude, -inf, or NaN.
   mirtkPublicAttributeMacro(double, Epsilon);
 
   /// Jacobian determinant threshold below which penalty is non-zero
@@ -84,6 +84,9 @@ public:
   virtual ~NegJacobianConstraint();
 
 protected:
+
+  /// Set parameter value from string
+  virtual bool SetWithPrefix(const char *, const char *);
 
   /// Set parameter value from string
   virtual bool SetWithoutPrefix(const char *, const char *);
@@ -121,12 +124,9 @@ public:
   virtual double DerivativeWrtJacobianDet(double det) const
   {
     if (det >= _Gamma) return 0.;
+    if (det < _Epsilon) det = _Epsilon;
     double a = pow(_Gamma, _Power);
-    if (det < _Epsilon) {
-      return _Power * ((pow(_Epsilon, _Power - 1) / a) - (a / pow(_Epsilon, _Power + 1)));
-    } else {
-      return 2. * (pow(det, _Power - 1) / a - a / pow(det, _Power + 1));
-    }
+    return _Power * ((pow(det, _Power - 1) / a) - (a / pow(det, _Power + 1)));
   }
 
 };
