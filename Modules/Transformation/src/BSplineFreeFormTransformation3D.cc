@@ -1121,25 +1121,10 @@ void BSplineFreeFormTransformation3D
 ::EvaluateJacobianDetDerivative(double dJ[3], const Matrix &adj, double a, double b, double c) const
 {
   // Values of the B-spline basis functions and its 1st derivatives
-#if 0
-  int A, B, C, i, j, k;
-  Kernel::VariableToIndex(a, A, i);
-  Kernel::VariableToIndex(b, B, j);
-  Kernel::VariableToIndex(c, C, k);
-  double wa = Kernel::LookupTable  [A][i];
-  double wb = Kernel::LookupTable  [B][j];
-  double wc = Kernel::LookupTable  [C][k];
-  double da = Kernel::LookupTable_I[A][i];
-  double db = Kernel::LookupTable_I[B][j];
-  double dc = Kernel::LookupTable_I[C][k];
-#else
-  double wa = Kernel::B(a);
-  double wb = Kernel::B(b);
-  double wc = Kernel::B(c);
-  double da = Kernel::B_I(a);
-  double db = Kernel::B_I(b);
-  double dc = Kernel::B_I(c);
-#endif
+  // Note: Calling Kernel::B faster/not slower than Kernel::VariableToIndex + Kernel:LookupTable.
+  double wa = Kernel::B(a), da = Kernel::B_I(a);
+  double wb = Kernel::B(b), db = Kernel::B_I(b);
+  double wc = Kernel::B(c), dc = Kernel::B_I(c);
 
   // Derivatives of 3D cubic B-spline kernel w.r.t. lattice distance from control point
   double du = da * wb * wc;

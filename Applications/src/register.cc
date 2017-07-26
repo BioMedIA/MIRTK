@@ -116,10 +116,11 @@ void PrintHelp(const char* name)
   cout << "\n";
   cout << "  Energy function =      SIM[Image dissimilarity](I(1), I(2:end) o T)...\n";
   cout << "                  +      PDM[Point set distance](T o P(1), P(2:end))...\n";
-  cout << "                  + 1e-3 BE [Bending energy](T)...\n";
-  cout << "                  +    0 TP [Topology preservation](T)...\n";
-  cout << "                  +    0 VP [Volume preservation](T)...\n";
-  cout << "                  +    0 JAC[Jacobian penalty](T)...\n";
+  cout << "                  + 1e-3 BE[Bending energy](T)...\n";
+  cout << "                  +    0 TP[Topology preservation](T)...\n";
+  cout << "                  +    0 VP[Volume preservation](T)...\n";
+  cout << "                  +    0 LogJac[LogJac penalty](T)...\n";
+  cout << "                  +    0 NegJac[NegJac penalty](T)...\n";
   cout << "                  +    0 Sparsity(T)\n";
   cout << "\n";
   cout << "  where only energy terms with non-zero weights are active during the registration.\n";

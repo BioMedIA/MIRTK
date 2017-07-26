@@ -1,8 +1,8 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2013-2015 Imperial College London
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2013-2017 Imperial College London
+ * Copyright 2013-2017 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -39,6 +39,15 @@ namespace mirtk {
  * by classes implementing the irtkFreeFormTransformation interface using
  * a cubic B-spline basis to represent the displacement or velocity field,
  * respectively.
+ *
+ * The cubic B-spline pieces are indexed here in reverse order!
+ * This is especially important when using the derivatives, because otherwise
+ * the sign may be incorrect when the intervals are exchanged.
+ * Spline function B(t) consists of pieces:
+ * - B3(t + 2) for t in [-2, -1)
+ * - B2(t + 1) for t in [-1,  0)
+ * - B1(t - 0) for t in [ 0,  1)
+ * - B0(t - 1) for t in [ 1,  2]
  *
  * \note Though not explicitly enforced by protecting these members,
  *       do <b>not</b> modify the lookup tables of precomputed function
@@ -607,19 +616,33 @@ inline int BSpline<TReal>::VariableToIndex(TReal t)
 template <class TReal>
 inline bool BSpline<TReal>::VariableToIndex(TReal t, int &i, int &j)
 {
-  t = abs(t);
-  if (t >= 2.) {
-    i = 0;
-    j = 3;
-    return false;
-  }
-  if (t >= 1.) {
-    j = 3;
-    t = -(t - 2.);
+  if (t < 0.) {
+    if (t <= -2.) {
+      j = 3;
+      i = 0;
+      return false;
+    }
+    if (t < -1.) {
+      j = 3;
+      i = iround((t + 2.) * static_cast<TReal>(LookupTableSize - 1));
+    } else {
+      j = 2;
+      i = iround((t + 1.) * static_cast<TReal>(LookupTableSize - 1));
+    }
   } else {
-    j = 1;
+    if (t >= 2.) {
+      j = 0;
+      i = LookupTableSize - 1;
+      return false;
+    }
+    if (t < 1.) {
+      j = 1;
+      i = iround(t * static_cast<TReal>(LookupTableSize - 1));
+    } else {
+      j = 0;
+      i = iround((t - 1.) * static_cast<TReal>(LookupTableSize - 1));
+    }
   }
-  i = iround(t * static_cast<TReal>(LookupTableSize - 1));
   return true;
 }
 
