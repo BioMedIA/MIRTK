@@ -54,6 +54,13 @@ class LogJacobianConstraint : public JacobianConstraint
 {
   mirtkEnergyTermMacro(LogJacobianConstraint, EM_SqLogDetJac);
 
+  /// Small value below which Jacobian determinant is penalised linearly
+  /// with increasing smaller (i.e., negative) value
+  ///
+  /// The penalty implemented in IRTK can be used with _Epsilon set to a very
+  /// negative value, i.e., negative with great magnitude, -inf, or NaN.
+  mirtkPublicAttributeMacro(double, Epsilon);
+
 public:
 
   /// Constructor
@@ -62,19 +69,46 @@ public:
   /// Destructor
   virtual ~LogJacobianConstraint();
 
+protected:
+
+  /// Set parameter value from string
+  virtual bool SetWithPrefix(const char *, const char *);
+
+  /// Set parameter value from string
+  virtual bool SetWithoutPrefix(const char *, const char *);
+
+public:
+
+  // Import other overloads
+  using JacobianConstraint::Parameter;
+
+  /// Get parameter key/value as string map
+  virtual ParameterList Parameter() const;
+
+  // ---------------------------------------------------------------------------
+  // Penalty
+
+public:
+
   /// Evaluate penalty at control point location given Jacobian determinant value
   virtual double Penalty(double det) const
   {
-    if (det < 1e-4) det = 1e-4;
-    double logdet = log(det);
-    return logdet * logdet;
+    if (det < _Epsilon) {
+      double l = log(_Epsilon);
+      double m = 2. * log(_Epsilon) / _Epsilon;
+      double t = l * l - m * _Epsilon;
+      return m * det + t;
+    } else {
+      double l = log(det);
+      return l * l;
+    }
   }
 
   /// Evaluate penalty derivative at control point location w.r.t. Jacobian determinant value
   virtual double DerivativeWrtJacobianDet(double det) const
   {
-    if (det < 1e-4) det = 1e-4;
-    return 2.0 * log(det) / det;
+    if (det < _Epsilon) det = _Epsilon;
+    return 2. * log(det) / det;
   }
 
 };

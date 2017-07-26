@@ -34,13 +34,45 @@ mirtkAutoRegisterEnergyTermMacro(LogJacobianConstraint);
 // -----------------------------------------------------------------------------
 LogJacobianConstraint::LogJacobianConstraint(const char *name, bool constrain_spline)
 :
-  JacobianConstraint(name, constrain_spline)
+  JacobianConstraint(name, constrain_spline),
+  _Epsilon(.1)
 {
+  _ParameterPrefix.push_back("Jacobian penalty ");
 }
 
 // -----------------------------------------------------------------------------
 LogJacobianConstraint::~LogJacobianConstraint()
 {
+}
+
+// =============================================================================
+// Parameters
+// =============================================================================
+
+// -----------------------------------------------------------------------------
+bool LogJacobianConstraint::SetWithPrefix(const char *param, const char *value)
+{
+  if (strcmp(param, "Jacobian determinant epsilon") == 0) {
+    return FromString(value, _Epsilon);
+  }
+  return JacobianConstraint::SetWithPrefix(param, value);
+}
+
+// -----------------------------------------------------------------------------
+bool LogJacobianConstraint::SetWithoutPrefix(const char *param, const char *value)
+{
+  if (strcmp(param, "Epsilon") == 0) {
+    return FromString(value, _Epsilon);
+  }
+  return JacobianConstraint::SetWithoutPrefix(param, value);
+}
+
+// -----------------------------------------------------------------------------
+ParameterList LogJacobianConstraint::Parameter() const
+{
+  ParameterList params = JacobianConstraint::Parameter();
+  InsertWithPrefix(params, "Epsilon", _Epsilon);
+  return params;
 }
 
 
