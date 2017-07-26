@@ -82,6 +82,7 @@ using namespace GenericRegistrationLoggerUtils;
 // -----------------------------------------------------------------------------
 GenericRegistrationLogger::GenericRegistrationLogger(ostream *stream)
 :
+  _AlwaysReportRawValue(true),
   _Verbosity  (0),
   _Stream     (stream),
   _Color      (stdout_color),
@@ -192,8 +193,9 @@ void GenericRegistrationLogger::HandleEvent(Observable *obj, Event event, const 
         for (i = 0; i < reg->_Energy.NumberOfTerms(); ++i) {
           if (reg->_Energy.Term(i)->Weight() != .0) {
             w = 17; // 17 instead of 16 to fit often used "Bending energy" header
-            if (reg->_Energy.NumberOfActiveTerms() < 5 &&
-                reg->_Energy.Term(i)->DivideByInitialValue()) w += 10;
+            if (reg->_Energy.NumberOfActiveTerms() < 5 && (_AlwaysReportRawValue || reg->_Energy.Term(i)->DivideByInitialValue())) {
+              w += 10;
+            }
             name                   = reg->_Energy.Term(i)->Name();
             if (name.empty()) name = reg->_Energy.Term(i)->NameOfClass();
             if (name.length() > w-3) {
@@ -261,7 +263,7 @@ void GenericRegistrationLogger::HandleEvent(Observable *obj, Event event, const 
           if (reg->_Energy.IsActive(i)) {
             if (nterms > 1) {
               os << " = ";
-              if (reg->_Energy.Term(i)->DivideByInitialValue()) {
+              if (_AlwaysReportRawValue || reg->_Energy.Term(i)->DivideByInitialValue()) {
                 PrintNormalizedNumber(os, reg->_Energy.Value(i));
                 os << " (";
                 PrintNumber(os, reg->_Energy.RawValue(i));
@@ -289,7 +291,7 @@ void GenericRegistrationLogger::HandleEvent(Observable *obj, Event event, const 
               os << "+";
             }
             os << " ";
-            if (reg->_Energy.Term(i)->DivideByInitialValue()) {
+            if (_AlwaysReportRawValue || reg->_Energy.Term(i)->DivideByInitialValue()) {
               PrintNormalizedNumber(os, reg->_Energy.Value(i));
               os << " (";
               PrintNumber(os, reg->_Energy.RawValue(i));
@@ -323,7 +325,7 @@ void GenericRegistrationLogger::HandleEvent(Observable *obj, Event event, const 
                 } else {
                   os << " + ";
                 }
-                if (reg->_Energy.Term(i)->DivideByInitialValue()) {
+                if (_AlwaysReportRawValue || reg->_Energy.Term(i)->DivideByInitialValue()) {
                   PrintNormalizedNumber(os, reg->_Energy.Value(i));
                   os << " (";
                   PrintNumber(os, reg->_Energy.RawValue(i));
@@ -346,7 +348,7 @@ void GenericRegistrationLogger::HandleEvent(Observable *obj, Event event, const 
                 } else {
                   os << "   ";
                 }
-                if (reg->_Energy.Term(i)->DivideByInitialValue()) {
+                if (_AlwaysReportRawValue || reg->_Energy.Term(i)->DivideByInitialValue()) {
                   PrintNormalizedNumber(os, reg->_Energy.Value(i));
                   os << " (";
                   PrintNumber(os, reg->_Energy.RawValue(i));
@@ -374,7 +376,7 @@ void GenericRegistrationLogger::HandleEvent(Observable *obj, Event event, const 
                     os << " + ";
                   }
                 }
-                if (reg->_Energy.Term(i)->DivideByInitialValue()) {
+                if (_AlwaysReportRawValue || reg->_Energy.Term(i)->DivideByInitialValue()) {
                   PrintNormalizedNumber(os, reg->_Energy.Value(i));
                   os << " (";
                   PrintNumber(os, reg->_Energy.RawValue(i));
