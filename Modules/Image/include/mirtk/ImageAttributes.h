@@ -71,6 +71,48 @@ struct ImageAttributes
   /// (i.e., NumberOfLatticePoints if _dt != 0, otherwise NumberOfSpatialPoints)
   int NumberOfPoints() const;
 
+  /// Get number of lattice points in x dimension
+  int X() const;
+
+  /// Get number of lattice points in y dimension
+  int Y() const;
+
+  /// Get number of lattice points in z dimension
+  int Z() const;
+
+  /// Get number of lattice points in t dimension
+  int T() const;
+
+  /// Get number of lattice points in i-th dimension
+  int N(int) const;
+
+  /// Get spacing of lattice points in i-th dimension
+  double Spacing(int) const;
+
+  /// Get spacing of lattice points in x dimension
+  double XSpacing() const;
+
+  /// Get spacing of lattice points in y dimension
+  double YSpacing() const;
+
+  /// Get spacing of lattice points in z dimension
+  double ZSpacing() const;
+
+  /// Get spacing of lattice points in t dimension
+  double TSpacing() const;
+
+  /// Get voxel size/spacing of lattice points in x dimension
+  double XSize() const;
+
+  /// Get voxel size/spacing of lattice points in y dimension
+  double YSize() const;
+
+  /// Get voxel size/spacing of lattice points in z dimension
+  double ZSize() const;
+
+  /// Get voxel size/spacing of lattice points in t dimension
+  double TSize() const;
+
   // ---------------------------------------------------------------------------
   // Construction/Destruction
 
@@ -262,6 +304,98 @@ struct ImageAttributes
 ////////////////////////////////////////////////////////////////////////////////
 // Inline definitions
 ////////////////////////////////////////////////////////////////////////////////
+
+// -----------------------------------------------------------------------------
+inline int ImageAttributes::X() const
+{
+  return _x;
+}
+
+// -----------------------------------------------------------------------------
+inline int ImageAttributes::Y() const
+{
+  return _y;
+}
+
+// -----------------------------------------------------------------------------
+inline int ImageAttributes::Z() const
+{
+  return _z;
+}
+
+// -----------------------------------------------------------------------------
+inline int ImageAttributes::T() const
+{
+  return _t;
+}
+
+// -----------------------------------------------------------------------------
+inline int ImageAttributes::N(int i) const
+{
+  if (i == 0) return _x;
+  if (i == 1) return _y;
+  if (i == 2) return _z;
+  if (i == 3) return _t;
+  return 0;
+}
+
+// -----------------------------------------------------------------------------
+inline double ImageAttributes::Spacing(int i) const
+{
+  if (i == 0) return _dx;
+  if (i == 1) return _dy;
+  if (i == 2) return _dz;
+  if (i == 3) return _dt;
+  return 0.;
+}
+
+// -----------------------------------------------------------------------------
+inline double ImageAttributes::XSpacing() const
+{
+  return _dx;
+}
+
+// -----------------------------------------------------------------------------
+inline double ImageAttributes::YSpacing() const
+{
+  return _dy;
+}
+
+// -----------------------------------------------------------------------------
+inline double ImageAttributes::ZSpacing() const
+{
+  return _dz;
+}
+
+// -----------------------------------------------------------------------------
+inline double ImageAttributes::TSpacing() const
+{
+  return _dt;
+}
+
+// -----------------------------------------------------------------------------
+inline double ImageAttributes::XSize() const
+{
+  return _dx;
+}
+
+// -----------------------------------------------------------------------------
+inline double ImageAttributes::YSize() const
+{
+  return _dy;
+}
+
+// -----------------------------------------------------------------------------
+inline double ImageAttributes::ZSize() const
+{
+  return _dz;
+}
+
+// -----------------------------------------------------------------------------
+inline double ImageAttributes::TSize() const
+{
+  return _dt;
+}
 
 // -----------------------------------------------------------------------------
 inline ImageAttributes::operator bool() const

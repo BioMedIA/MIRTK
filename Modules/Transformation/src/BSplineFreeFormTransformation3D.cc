@@ -1118,46 +1118,79 @@ void BSplineFreeFormTransformation3D
 
 // -----------------------------------------------------------------------------
 void BSplineFreeFormTransformation3D
-::JacobianDetDerivative(Matrix *detdev, int x, int y, int z) const
+::EvaluateJacobianDetDerivative(double dJ[3], const Matrix &adj, double a, double b, double c) const
 {
-  // Values of the B-spline basis functions and its 1st derivative
-  const double *w[2] = {
-    Kernel::LatticeWeights,
-    Kernel::LatticeWeights_I
-  };
+  // Values of the B-spline basis functions and its 1st derivatives
+#if 0
+  int A, B, C, i, j, k;
+  Kernel::VariableToIndex(a, A, i);
+  Kernel::VariableToIndex(b, B, j);
+  Kernel::VariableToIndex(c, C, k);
+  double wa = Kernel::LookupTable  [A][i];
+  double wb = Kernel::LookupTable  [B][j];
+  double wc = Kernel::LookupTable  [C][k];
+  double da = Kernel::LookupTable_I[A][i];
+  double db = Kernel::LookupTable_I[B][j];
+  double dc = Kernel::LookupTable_I[C][k];
+#else
+  double wa = Kernel::B(a);
+  double wb = Kernel::B(b);
+  double wc = Kernel::B(c);
+  double da = Kernel::B_I(a);
+  double db = Kernel::B_I(b);
+  double dc = Kernel::B_I(c);
+#endif
 
-  // 1D B-splines
-  double x_0 = 0, y_0 = 0, z_0 = 0;
-  double x_1 = 0, y_1 = 0, z_1 = 0;
+  // Derivatives of 3D cubic B-spline kernel w.r.t. lattice distance from control point
+  double du = da * wb * wc;
+  double dv = wa * db * wc;
+  double dw = wa * wb * dc;
 
-  if (-1 <= x && x <= 1) {
-    x_0 = w[0][x + 1];
-    x_1 = w[1][x + 1];
+  // Apply chain rule for da/dx, db/dx, dc/dx and sum terms (same for y and z)
+  // to get the derivative of the 3D cubic B-spline kernel centered at this
+  // control point w.r.t. each spatial world coordinate
+  JacobianToWorld(du, dv, dw);
+
+  // Apply Jacobi's formula to get derivatives of Jacobian determinant
+  dJ[0] = adj(0, 0) * du + adj(1, 0) * dv + adj(2, 0) * dw;
+  dJ[1] = adj(0, 1) * du + adj(1, 1) * dv + adj(2, 1) * dw;
+  dJ[2] = adj(0, 2) * du + adj(1, 2) * dv + adj(2, 2) * dw;
+}
+
+// -----------------------------------------------------------------------------
+void BSplineFreeFormTransformation3D
+::EvaluateJacobianDetDerivative(double dJ[3], const Matrix &adj, int a, int b, int c) const
+{
+  // Values of the B-spline basis functions and its 1st derivatives at lattice points
+  // Note: The order of the cubic B-spline pieces is *not* B0, B1, B2, B3! Hence, the minus signs.
+  double wa, wb, wc, da, db, dc;
+  if (-1 <= a && a <= 1) {
+    wa = Kernel::LatticeWeights[a + 1];
+    da = - Kernel::LatticeWeights_I[a + 1];
   }
-  if (-1 <= y && y <= 1) {
-    y_0 = w[0][y + 1];
-    y_1 = w[1][y + 1];
+  if (-1 <= b && b <= 1) {
+    wb = Kernel::LatticeWeights[b + 1];
+    db = - Kernel::LatticeWeights_I[b + 1];
   }
-  if (-1 <= z && z <= 1) {
-    z_0 = w[0][z + 1];
-    z_1 = w[1][z + 1];
+  if (-1 <= c && c <= 1) {
+    wc = Kernel::LatticeWeights[c + 1];
+    dc = - Kernel::LatticeWeights_I[c + 1];
   }
 
-  // B-spline tensor product
-  double b_i = x_1 * y_0 * z_0;
-  double b_j = x_0 * y_1 * z_0;
-  double b_k = x_0 * y_0 * z_1;
+  // Product terms of 3D cubic B-spline kernel required for total derivative
+  double du = da * wb * wc;
+  double dv = wa * db * wc;
+  double dw = wa * wb * dc;
 
-  // Return
-  for (int i = 0; i < 3; ++i) {
-    detdev[i].Initialize(3, 3);
-    // w.r.t lattice coordinates
-    detdev[i](i, 0) = b_i;
-    detdev[i](i, 1) = b_j;
-    detdev[i](i, 2) = b_k;
-    // w.r.t world coordinates
-    JacobianToWorld(detdev[i]);
-  }
+  // Apply chain rule for da/dx, db/dx, dc/dx and sum terms (same for y and z)
+  // to get the derivative of the 3D cubic B-spline kernel centered at this
+  // control point w.r.t. each spatial coordinate
+  JacobianToWorld(du, dv, dw);
+
+  // Apply Jacobi's formula to get derivatives of Jacobian determinant
+  dJ[0] = adj(0, 0) * du + adj(1, 0) * dv + adj(2, 0) * dw;
+  dJ[1] = adj(0, 1) * du + adj(1, 1) * dv + adj(2, 1) * dw;
+  dJ[2] = adj(0, 2) * du + adj(1, 2) * dv + adj(2, 2) * dw;
 }
 
 // =============================================================================

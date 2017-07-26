@@ -20,7 +20,7 @@
 #ifndef MIRTK_TopologyPreservationConstraint_H
 #define MIRTK_TopologyPreservationConstraint_H
 
-#include "mirtk/JacobianConstraint.h"
+#include "mirtk/NegJacobianConstraint.h"
 
 
 namespace mirtk {
@@ -29,55 +29,20 @@ namespace mirtk {
 /**
  * Topology preservation constraint for deformable image registration
  *
- * Rueckert et al. (2006). Diffeomorphic registration using B-splines. MICCAI, 702–709.
+ * Unlike the base class, NegJacobianConstraint, this constraint is
+ * by default always applied to the Jacobian of the displacement field.
  */
-class TopologyPreservationConstraint : public JacobianConstraint
+class TopologyPreservationConstraint : public NegJacobianConstraint
 {
   mirtkEnergyTermMacro(TopologyPreservationConstraint, EM_TopologyPreservation);
-
-  /// Jacobian determinant threshold
-  mirtkPublicAttributeMacro(double, Gamma);
 
 public:
 
   /// Constructor
   TopologyPreservationConstraint(const char * = "");
 
-  // ---------------------------------------------------------------------------
-  // Parameters
-
-protected:
-
-  /// Set parameter value from string
-  virtual bool SetWithoutPrefix(const char *, const char *);
-
-public:
-
-  // Import other overloads
-  using JacobianConstraint::Parameter;
-
-  /// Get parameter key/value as string map
-  virtual ParameterList Parameter() const;
-
-  // ---------------------------------------------------------------------------
-  // Penalty
-
-public:
-
-  /// Evaluate penalty at control point location given Jacobian determinant value
-  virtual double Penalty(double det) const
-  {
-    if (det >= _Gamma) return 0.;
-    det *= 10. * det;
-    return det + (1. / det) - 2.;
-  }
-
-  /// Evaluate derivative of penalty w.r.t. Jacobian determinant value
-  virtual double DerivativeWrtJacobianDet(double det) const
-  {
-    if (det >= _Gamma) return 0.;
-    return 20. * det - 2. / (10. * det * det * det);
-  }
+  /// Destructor
+  virtual ~TopologyPreservationConstraint();
 
 };
 

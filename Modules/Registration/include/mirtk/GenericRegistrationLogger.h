@@ -36,6 +36,10 @@ class GenericRegistrationLogger : public Observer
   // ---------------------------------------------------------------------------
   // Attributes
 
+  /// Whether to always report raw, i.e., unweighted and unnormalized, energy term
+  /// value in parentheses after the weighted (and normalized) energy term value.
+  mirtkPublicAttributeMacro(bool, AlwaysReportRawValue);
+
   /// Verbosity level
   mirtkPublicAttributeMacro(int, Verbosity);
 

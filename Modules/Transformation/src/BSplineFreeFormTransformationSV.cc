@@ -1099,14 +1099,13 @@ void BSplineFreeFormTransformationSV
   if (!attr) return;
   // Copy input displacement field
   GenericImage<VoxelType> *din = (d ? new GenericImage<VoxelType>(*d) : NULL);
-  // TODO: Improve running time of ScalingAndSquaring filter. The previously
+  // TODO: Improve execution time of ScalingAndSquaring filter. The previously
   //       used VelocityToDisplacementFieldSS image filter has a considerably
-  //       shorter run time (e.g., single-threaded 12s vs 23s, and multi-threaded
-  //       3.3s vs 6.7s on MacBook Pro Retina Early 2013, 2.7 GHz Intel Core i7).
-  //       The most time consuming step (for the fast scaling and squaring) is
-  //       ScalingAndSquaring::Resample. Once the running time of the
-  //       ScalingAndSquaring filter is acceptable, remove the if block
-  //       and use the else block only.
+  //       shorter runtime (e.g., multi-threaded 6s vs 20-25s on MacBook Pro
+  //       Retina Early 2013, 2.7 GHz Intel Core i7).
+  //       The most time consuming step is ScalingAndSquaring::Resample.
+  //       When the execution time of the ScalingAndSquaring filter has been
+  //       reduced, remove the if block and use the else block only.
   if (d && !dx && !dj && !lj && !dv) {
 
     GenericImage<VoxelType> v;
@@ -1437,6 +1436,13 @@ void BSplineFreeFormTransformationSV::JacobianDOFs(TransformationJacobian &jac, 
       exit(1);
     }
   }
+}
+
+// -----------------------------------------------------------------------------
+inline void BSplineFreeFormTransformationSV
+::JacobianDetDerivative(double [3], const Matrix &, int, double, double, double, double, double) const
+{
+  Throw(ERR_NotImplemented, __FUNCTION__, "Not implemented");
 }
 
 namespace BSplineFreeFormTransformationSVUtils {

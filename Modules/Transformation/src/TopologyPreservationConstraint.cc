@@ -27,36 +27,21 @@ namespace mirtk {
 mirtkAutoRegisterEnergyTermMacro(TopologyPreservationConstraint);
 
 
+
+// =============================================================================
+// Construction/destruction
+// =============================================================================
+
 // -----------------------------------------------------------------------------
 TopologyPreservationConstraint::TopologyPreservationConstraint(const char *name)
 :
-  JacobianConstraint(name),
-  _Gamma(.3)
+  NegJacobianConstraint(name, false)
 {
-  _ConstrainPassiveDoFs = true;
-}
-
-
-// =============================================================================
-// Parameters
-// =============================================================================
-
-// -----------------------------------------------------------------------------
-bool TopologyPreservationConstraint::SetWithoutPrefix(const char *param, const char *value)
-{
-  if (strcmp(param, "Threshold") == 0 ||
-      strcmp(param, "Gamma")     == 0) {
-    return FromString(value, _Gamma);
-  }
-  return JacobianConstraint::SetWithoutPrefix(param, value);
 }
 
 // -----------------------------------------------------------------------------
-ParameterList TopologyPreservationConstraint::Parameter() const
+TopologyPreservationConstraint::~TopologyPreservationConstraint()
 {
-  ParameterList params = JacobianConstraint::Parameter();
-  InsertWithPrefix(params, "Threshold", _Gamma);
-  return params;
 }
 
 
