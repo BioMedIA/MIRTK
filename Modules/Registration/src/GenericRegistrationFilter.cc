@@ -2233,7 +2233,8 @@ void GenericRegistrationFilter::ParseEnergyFormula(int nimages, int npsets, int 
       formula +=     " BE[Bending energy]"
                  " + 0 TP[Topology preservation]"
                  " + 0 VP[Volume preservation]"
-                 " + 0 JAC[Jacobian penalty]"
+                 " + 0 LogJac[Jacobian penalty]"
+                 " + 0 NegJac[NegJac penalty]"
                  " + 0 Sparsity";
     }
     formula += " + 0 MSDE[Displacement error](T)";

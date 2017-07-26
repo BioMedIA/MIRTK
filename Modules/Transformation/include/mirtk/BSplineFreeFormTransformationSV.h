@@ -421,6 +421,16 @@ public:
   /// Calculates the Jacobian of the transformation w.r.t the transformation parameters
   virtual void JacobianDOFs(TransformationJacobian &, double, double, double, double = 0, double = NaN) const;
 
+  /// Calculates derivatives of the Jacobian determinant at world point w.r.t. DoFs of a control point
+  ///
+  /// \param[out] dJ  Partial derivatives of Jacobian determinant at (x, y, z) w.r.t. DoFs of control point.
+  /// \param[in]  cp  Index of control point w.r.t. whose DoFs the derivatives are computed.
+  /// \param[in]  x   World coordinate along x axis at which to evaluate derivatives.
+  /// \param[in]  y   World coordinate along y axis at which to evaluate derivatives.
+  /// \param[in]  z   World coordinate along z axis at which to evaluate derivatives.
+  /// \param[in]  adj Adjugate of Jacobian matrix evaluated at (x, y, z).
+  virtual void JacobianDetDerivative(double dJ[3], const Matrix &adj, int cp, double x, double y, double z, double = 0, double = NaN) const;
+
 protected:
 
   /// Evaluates the BCH formula s.t. u = log(exp(tau * v) o exp(eta * w))

@@ -32,9 +32,9 @@ mirtkAutoRegisterEnergyTermMacro(LogJacobianConstraint);
 // =============================================================================
 
 // -----------------------------------------------------------------------------
-LogJacobianConstraint::LogJacobianConstraint(const char *name)
+LogJacobianConstraint::LogJacobianConstraint(const char *name, bool constrain_spline)
 :
-  JacobianConstraint(name)
+  JacobianConstraint(name, constrain_spline)
 {
 }
 

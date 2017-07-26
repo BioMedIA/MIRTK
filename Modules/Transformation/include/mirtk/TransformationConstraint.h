@@ -102,6 +102,9 @@ protected:
   /// Get transformation as multi-level transformation or NULL if it is none
   const MultiLevelTransformation *MFFD() const;
 
+  /// Write gradient of penalty term w.r.t. control point parameters
+  void WriteFFDGradient(const char *, const FreeFormTransformation *, const double *) const;
+
 };
 
 ////////////////////////////////////////////////////////////////////////////////

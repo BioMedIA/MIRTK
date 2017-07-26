@@ -236,6 +236,49 @@ public:
   /// Calculates the Laplacian of the FFD at a point in lattice coordinates
   void EvaluateLaplacian(double &, double &, double &) const;
 
+  /// Calculate derivatives of Jacobian determinant w.r.t. DoFs of control point
+  ///
+  /// \param[out] dJ  Partial derivatives of Jacobian determinant w.r.t. DoFs of control point.
+  /// \param[in]  adj Adjugate of Jacobian matrix evaluated at (x, y, z).
+  /// \param[in]  a   Distance from control point along x axis of lattice in lattice units.
+  /// \param[in]  b   Distance from control point along y axis of lattice in lattice units.
+  /// \param[in]  c   Distance from control point along z axis of lattice in lattice units.
+  void EvaluateJacobianDetDerivative(double dJ[3], const Matrix &adj, double a, double b, double c) const;
+
+  /// Calculate derivatives of Jacobian determinant w.r.t. DoFs of control point
+  ///
+  /// \param[out] dJ  Partial derivatives of Jacobian determinant w.r.t. DoFs of control point.
+  /// \param[in]  adj Adjugate of Jacobian matrix evaluated at (x, y, z).
+  /// \param[in]  a   Distance from control point along x axis of lattice in lattice units.
+  /// \param[in]  b   Distance from control point along y axis of lattice in lattice units.
+  /// \param[in]  c   Distance from control point along z axis of lattice in lattice units.
+  void EvaluateJacobianDetDerivative(double dJ[3], const Matrix &adj, int a, int b, int c) const;
+
+  /// Calculate derivatives of Jacobian determinant w.r.t. DoFs of control point
+  ///
+  /// \param[out] dJ  Partial derivatives of Jacobian determinant w.r.t. DoFs of control point.
+  /// \param[in]  adj Adjugate of Jacobian matrix evaluated at (x, y, z).
+  /// \param[in]  i   Index of control point along x axis of lattice.
+  /// \param[in]  j   Index of control point along y axis of lattice.
+  /// \param[in]  k   Index of control point along z axis of lattice.
+  /// \param[in]  x   Point coordinate along x axis of lattice in lattice units.
+  /// \param[in]  y   Point coordinate along y axis of lattice in lattice units.
+  /// \param[in]  z   Point coordinate along z axis of lattice in lattice units.
+  void EvaluateJacobianDetDerivative(double dJ[3], const Matrix &adj,
+                                     int i, int j, int k,
+                                     double x, double y, double z) const;
+
+  /// Calculate derivatives of Jacobian determinant w.r.t. DoFs of control point
+  ///
+  /// \param[out] dJ  Partial derivatives of Jacobian determinant w.r.t. DoFs of control point.
+  /// \param[in]  adj Adjugate of Jacobian matrix evaluated at (x, y, z).
+  /// \param[in]  cp  Linear index of control point.
+  /// \param[in]  x   Point coordinate along x axis of lattice in lattice units.
+  /// \param[in]  y   Point coordinate along y axis of lattice in lattice units.
+  /// \param[in]  z   Point coordinate along z axis of lattice in lattice units.
+  void EvaluateJacobianDetDerivative(double dJ[3], const Matrix &adj, int cp,
+                                     double x, double y, double z) const;
+
   // ---------------------------------------------------------------------------
   // Point transformation
 
@@ -278,8 +321,19 @@ public:
   /// Calculates the Jacobian of the transformation w.r.t. the parameters of a control point
   virtual void JacobianDOFs(double [3], int, int, int, double, double, double) const;
 
-  /// Calculates the Jacobian of the local transformation
-  virtual void JacobianDetDerivative(Matrix *, int, int, int) const;
+  /// Calculates derivatives of the Jacobian determinant of spline function w.r.t. DoFs of a control point
+  ///
+  /// This function is identical to JacobianDetDerivative when the DoFs of the control points are displacements.
+  /// When the DoFs are velocities, however, this function computes the derivatives of the Jacobian determinant
+  /// of the velocity field instead.
+  ///
+  /// \param[out] dJ  Partial derivatives of Jacobian determinant at (x, y, z) w.r.t. DoFs of control point.
+  /// \param[in]  cp  Index of control point w.r.t. whose DoFs the derivatives are computed.
+  /// \param[in]  x   World coordinate along x axis at which to evaluate derivatives.
+  /// \param[in]  y   World coordinate along y axis at which to evaluate derivatives.
+  /// \param[in]  z   World coordinate along z axis at which to evaluate derivatives.
+  /// \param[in]  adj Adjugate of Jacobian matrix evaluated at (x, y, z).
+  virtual void FFDJacobianDetDerivative(double dJ[3], const Matrix &adj, int cp, double x, double y, double z, double = 0, double = NaN) const;
 
   /// Calculates the derivative of the Jacobian of the transformation (w.r.t. world coordinates) w.r.t. a transformation parameter
   virtual void DeriveJacobianWrtDOF(Matrix &, int, double, double, double, double = 0, double = NaN) const;
@@ -496,6 +550,32 @@ inline void BSplineFreeFormTransformation3D
   else         EvaluateDerivativeOfJacobianWrtDOF(dJdp, dof, x, y, z);
   // Convert derivatives to world coordinates
   JacobianToWorld(dJdp);
+}
+
+// -----------------------------------------------------------------------------
+inline void BSplineFreeFormTransformation3D
+::EvaluateJacobianDetDerivative(double dJ[3], const Matrix &adj, int i, int j, int k, double x, double y, double z) const
+{
+  EvaluateJacobianDetDerivative(dJ, adj, x - i, y - j, z - k);
+}
+
+// -----------------------------------------------------------------------------
+inline void BSplineFreeFormTransformation3D
+::EvaluateJacobianDetDerivative(double dJ[3], const Matrix &adj, int cp, double x, double y, double z) const
+{
+  int i, j, k;
+  this->IndexToLattice(cp, i, j, k);
+  EvaluateJacobianDetDerivative(dJ, adj, x - i, y - j, z - k);
+}
+
+// -----------------------------------------------------------------------------
+inline void BSplineFreeFormTransformation3D
+::FFDJacobianDetDerivative(double dJ[3], const Matrix &adj, int cp, double x, double y, double z, double, double) const
+{
+  int i, j, k;
+  this->IndexToLattice(cp, i, j, k);
+  this->WorldToLattice(x, y, z);
+  EvaluateJacobianDetDerivative(dJ, adj, x - i, y - j, z - k);
 }
 
 
