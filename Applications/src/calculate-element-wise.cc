@@ -1,8 +1,8 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2015-2016 Imperial College London
- * Copyright 2015-2016 Andreas Schuh
+ * Copyright 2015-2017 Imperial College London
+ * Copyright 2015-2017 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -279,6 +279,8 @@ void PrintHelp(const char *name)
   cout << "  -sum\n";
   cout << "      Print sum of values. Can be used to count values within a certain range using a thresholding\n";
   cout << "      followed by :option:`-set` 1 before summing these values. (default: off)\n";
+  cout << "  -count\n";
+  cout << "      Print number of values inside the mask, i.e., values not currently excluded. (default: off)\n";
   PrintCommonOptions(cout);
   cout << "\n";
   cout << "Examples:\n";
@@ -962,6 +964,8 @@ int main(int argc, char **argv)
       } while (HAS_ARGUMENT);
     } else if (OPTION("-sum")) {
       ops.push_back(UniquePtr<Op>(new Sum()));
+    } else if (OPTION("-count")) {
+      ops.push_back(UniquePtr<Op>(new Count()));
     } else if (OPTION("-delimiter") || OPTION("-delim") || OPTION("-d") || OPTION("-sep")) {
       delimiter = ARGUMENT;
     } else if (OPTION("-precision") || OPTION("-digits")) {

@@ -1,8 +1,8 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2013-2016 Imperial College London
- * Copyright 2013-2016 Andreas Schuh
+ * Copyright 2013-2017 Imperial College London
+ * Copyright 2013-2017 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -176,6 +176,69 @@ public:
 
 namespace statistic {
 
+
+// -----------------------------------------------------------------------------
+/// Count number of masked values (mask != false)
+class Count : public Statistic
+{
+public:
+
+  Count(const char *desc = "N", const Array<string> *names = nullptr)
+  :
+    Statistic(1, desc, names)
+  {
+    if (!names) _Names[0] = "N";
+  }
+
+  template <class T>
+  static double Calculate(int n, const T *data, const bool *mask = nullptr)
+  {
+    if (mask) {
+      int count = 0;
+      for (int i = 0; i < n; ++i) {
+        if (mask[i]) ++count;
+      }
+      return count;
+    } else {
+      return n;
+    }
+  }
+
+  void Evaluate(Array<double> &values, int n, const double *data, const bool *mask = nullptr) const
+  {
+    values.resize(1);
+    values[0] = Calculate(n, data, mask);
+  }
+
+  /// Print delimited statistic values to output stream
+  virtual void PrintValues(ostream &os = cout, int = 5, const char *delimiter = ",") const
+  {
+    for (size_t i = 0; i < _Values.size(); ++i) {
+      if (i > 0) os << delimiter;
+      os << int(_Values[i]);
+    }
+  }
+
+  /// Print statistic to output stream as "<desc> = <value>"
+  virtual void Print(ostream &os = cout, int = 5, const char *prefix = "") const
+  {
+    if (prefix && prefix[0] != '\0') {
+      os << prefix << ' ';
+      os << char(tolower(_Description[0]));
+      os << _Description.substr(1);
+    } else {
+      os << _Description;
+    }
+    os << " = ";
+    if (_Values.size() != 1) os << "[";
+    for (size_t i = 0; i < _Values.size(); ++i) {
+      if (i > 0) os << ", ";
+      os << int(_Values[i]);
+    }
+    if (_Values.size() != 1) os << "]";
+    os << endl;
+  }
+};
 
 // -----------------------------------------------------------------------------
 /// Get sum of values
