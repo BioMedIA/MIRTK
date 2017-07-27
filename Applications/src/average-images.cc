@@ -848,10 +848,6 @@ int main(int argc, char **argv)
     if (verbose) cout << "Reading sequence ... ", cout.flush();
     sequence.Read(image_name.front().c_str());
     nimages = sequence.T();
-    if (nimages < 2) {
-      if (verbose) cout << endl;
-      FatalError("Input sequence contains only one temporal frame!");
-    }
     if (verbose) cout << " done\n" << endl;
     image_weight.resize(nimages, 1.0);
   }
