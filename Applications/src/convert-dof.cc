@@ -781,16 +781,17 @@ Transformation *ReadF3D(const char *fname, const char *dofin_name = NULL,
                         F3DTransformationType type = F3D_TYPE_UNKNOWN)
 {
   #if MIRTK_IO_WITH_NIfTI
-    if (NiftiImageReader::CheckHeader(fname)) {
-      FatalError("Input file is not a F3D output NIfTI image file!");
+    if (!NiftiImageReader::CheckHeader(fname)) {
+      FatalError("Input file is not a NIfTI image file, cannot be a NiftyReg F3D output -cpp file!");
     }
 
     // Read NIfTI header
     NiftiImageInfo hdr(fname);
     if (type == F3D_TYPE_UNKNOWN) {
-      if (hdr.intent_code == NIFTI_INTENT_VECTOR &&
-          hdr.intent_name == "NREG_TRANS") {
+      if (hdr.intent_code == NIFTI_INTENT_VECTOR && hdr.intent_name == "NREG_TRANS") {
         type = static_cast<F3DTransformationType>(static_cast<int>(hdr.intent_p1));
+      } else if (hdr.intent_code == NIFTI_INTENT_VECTOR && hdr.intent_name == "NREG_CPP_FILE") {
+        type = F3D_SPLINE_GRID; // v1.3.9
       } else {
         FatalError("Cannot determine format of input F3D vector field from NIfTI intent code!");
       }
