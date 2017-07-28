@@ -1,8 +1,8 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2013-2015 Imperial College London
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2013-2017 Imperial College London
+ * Copyright 2013-2017 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -170,10 +170,13 @@ namespace mirtk {
 // Auxiliaries
 // =============================================================================
 
+namespace  {
+
+
 // -----------------------------------------------------------------------------
 static inline Matrix ToMatrix(const nifti_dmat44 &mat)
 {
-  Matrix m;
+  Matrix m(4, 4);
   for (int i = 0; i < 4; ++i)
   for (int j = 0; j < 4; ++j) {
     m(i, j) = mat.m[i][j];
@@ -181,60 +184,8 @@ static inline Matrix ToMatrix(const nifti_dmat44 &mat)
   return m;
 }
 
-// -----------------------------------------------------------------------------
-inline NiftiImageInfo ToNiftiImageInfo(const nifti_image *nim)
-{
-  NiftiImageInfo info;
-  info.ndim           = static_cast<int>(nim->ndim);
-  info.nx             = static_cast<int>(nim->nx);
-  info.ny             = static_cast<int>(nim->ny);
-  info.nz             = static_cast<int>(nim->nz);
-  info.nt             = static_cast<int>(nim->nt);
-  info.nu             = static_cast<int>(nim->nu);
-  info.nv             = static_cast<int>(nim->nv);
-  info.nw             = static_cast<int>(nim->nw);
-  info.nvox           = static_cast<int>(nim->nvox);
-  info.nbyper         = nim->nbyper;
-  info.datatype       = nim->datatype;
-  info.dx             = nim->dx;
-  info.dy             = nim->dy;
-  info.dz             = nim->dz;
-  info.dt             = nim->dt;
-  info.du             = nim->du;
-  info.dv             = nim->dv;
-  info.dw             = nim->dw;
-  info.scl_slope      = nim->scl_slope;
-  info.scl_inter      = nim->scl_inter;
-  info.cal_min        = nim->cal_min;
-  info.cal_max        = nim->cal_max;
-  info.slice_code     = nim->slice_code;
-  info.slice_start    = static_cast<int>(nim->slice_start);
-  info.slice_end      = static_cast<int>(nim->slice_end);
-  info.slice_duration = nim->slice_duration;
-  info.qform_code     = nim->qform_code;
-  info.qto_xyz        = ToMatrix(nim->qto_xyz);
-  info.qto_ijk        = ToMatrix(nim->qto_ijk);
-  info.sform_code     = nim->sform_code;
-  info.sto_xyz        = ToMatrix(nim->sto_xyz);
-  info.sto_ijk        = ToMatrix(nim->sto_ijk);
-  info.toffset        = nim->toffset;
-  info.xyz_units      = nim->xyz_units;
-  info.time_units     = nim->time_units;
-  info.nifti_type     = nim->nifti_type;
-  info.intent_code    = nim->intent_code;
-  info.intent_p1      = nim->intent_p1;
-  info.intent_p2      = nim->intent_p2;
-  info.intent_p3      = nim->intent_p3;
-  info.intent_name    = nim->intent_name;
-  info.descrip        = nim->descrip;
-  info.aux_file       = nim->aux_file;
-  info.fname          = nim->fname;
-  info.iname          = nim->iname;
-  info.iname_offset   = static_cast<int>(nim->iname_offset);
-  info.swapsize       = nim->swapsize;
-  info.byteorder      = nim->byteorder;
-  return info;
-}
+
+} // namespace
 
 // =============================================================================
 // Construction/Destruction
@@ -250,7 +201,54 @@ NiftiImageInfo::NiftiImageInfo(const char *fname)
   } else {
     nim = nifti_simple_init_nim();
   }
-  *this = ToNiftiImageInfo(nim);
+  ndim           = static_cast<int>(nim->ndim);
+  nx             = static_cast<int>(nim->nx);
+  ny             = static_cast<int>(nim->ny);
+  nz             = static_cast<int>(nim->nz);
+  nt             = static_cast<int>(nim->nt);
+  nu             = static_cast<int>(nim->nu);
+  nv             = static_cast<int>(nim->nv);
+  nw             = static_cast<int>(nim->nw);
+  nvox           = static_cast<int>(nim->nvox);
+  nbyper         = nim->nbyper;
+  datatype       = nim->datatype;
+  dx             = nim->dx;
+  dy             = nim->dy;
+  dz             = nim->dz;
+  dt             = nim->dt;
+  du             = nim->du;
+  dv             = nim->dv;
+  dw             = nim->dw;
+  scl_slope      = nim->scl_slope;
+  scl_inter      = nim->scl_inter;
+  cal_min        = nim->cal_min;
+  cal_max        = nim->cal_max;
+  slice_code     = nim->slice_code;
+  slice_start    = static_cast<int>(nim->slice_start);
+  slice_end      = static_cast<int>(nim->slice_end);
+  slice_duration = nim->slice_duration;
+  qform_code     = nim->qform_code;
+  qto_xyz        = ToMatrix(nim->qto_xyz);
+  qto_ijk        = ToMatrix(nim->qto_ijk);
+  sform_code     = nim->sform_code;
+  sto_xyz        = ToMatrix(nim->sto_xyz);
+  sto_ijk        = ToMatrix(nim->sto_ijk);
+  toffset        = nim->toffset;
+  xyz_units      = nim->xyz_units;
+  time_units     = nim->time_units;
+  nifti_type     = nim->nifti_type;
+  intent_code    = nim->intent_code;
+  intent_p1      = nim->intent_p1;
+  intent_p2      = nim->intent_p2;
+  intent_p3      = nim->intent_p3;
+  intent_name    = nim->intent_name;
+  descrip        = nim->descrip;
+  aux_file       = nim->aux_file;
+  fname          = nim->fname;
+  iname          = nim->iname;
+  iname_offset   = static_cast<int>(nim->iname_offset);
+  swapsize       = nim->swapsize;
+  byteorder      = nim->byteorder;
   nifti_image_free(nim);
 }
 
