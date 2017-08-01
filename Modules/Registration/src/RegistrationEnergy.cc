@@ -265,6 +265,12 @@ bool RegistrationEnergy::IsConstraint(int i) const
 }
 
 // -----------------------------------------------------------------------------
+bool RegistrationEnergy::IsSparsityConstraint(int i) const
+{
+  return dynamic_cast<const SparsityConstraint *>(_Term[i]) != nullptr;
+}
+
+// -----------------------------------------------------------------------------
 int RegistrationEnergy::NumberOfActiveTerms() const
 {
   int nactive = 0;
@@ -544,8 +550,10 @@ double RegistrationEnergy::Value(int i)
 // -----------------------------------------------------------------------------
 void RegistrationEnergy::NormalizeGradient(double *gradient)
 {
-  const MultiLevelTransformation *mffd = NULL;
-  const FreeFormTransformation   *affd = NULL;
+  if (_Preconditioning <= 0.) return;
+
+  const MultiLevelTransformation *mffd = nullptr;
+  const FreeFormTransformation   *affd = nullptr;
 
   (mffd = dynamic_cast<const MultiLevelTransformation *>(_Transformation)) ||
   (affd = dynamic_cast<const FreeFormTransformation   *>(_Transformation));
@@ -583,12 +591,11 @@ void RegistrationEnergy::NormalizeGradient(double *gradient)
 }
 
 // -----------------------------------------------------------------------------
-void RegistrationEnergy::Gradient(double *gradient, double step, bool *sgn_chg)
+void RegistrationEnergy::DataFidelityGradient(double *gradient, double step, bool *sgn_chg)
 {
   MIRTK_START_TIMING();
 
   const int ndofs = _Transformation->NumberOfDOFs();
-  SparsityConstraint *sparsity;
 
   // Use default step length if none specified
   if (step <= .0) step = _StepLength;
@@ -601,25 +608,20 @@ void RegistrationEnergy::Gradient(double *gradient, double step, bool *sgn_chg)
     }
   }
 
-  // Sum (normalized) gradients of (weighted) energy term
-  // excl. sparsity constraint which has to be added last,
-  // such that it can determine whether or not the sparsity
-  // gradient changes the sign of the energy gradient.
+  // Sum (normalized) gradients of (weighted) data fidelity terms
   if (_NormalizeGradients) {
     double W = .0;
     for (int i = 0; i < NumberOfTerms(); ++i) {
-      sparsity = dynamic_cast<SparsityConstraint *>(_Term[i]);
-      if (sparsity) continue;
-      W += abs(_Term[i]->Weight());
+      if (!IsSparsityConstraint(i)) {
+        W += abs(_Term[i]->Weight());
+      }
     }
     if (W == .0) {
       cerr << "RegistrationEnergy::Gradient: All energy terms have zero weight!" << endl;
       exit(1);
     }
     for (int i = 0; i < NumberOfTerms(); ++i) {
-      if (IsActive(i)) {
-        sparsity = dynamic_cast<SparsityConstraint *>(_Term[i]);
-        if (sparsity) continue;
+      if (IsActive(i) && IsDataTerm(i)) {
         const double w = _Term[i]->Weight();
         _Term[i]->Weight(w / W);
         _Term[i]->NormalizedGradient(gradient, step);
@@ -628,9 +630,52 @@ void RegistrationEnergy::Gradient(double *gradient, double step, bool *sgn_chg)
     }
   } else {
     for (int i = 0; i < NumberOfTerms(); ++i) {
-      if (IsActive(i)) {
-        sparsity = dynamic_cast<SparsityConstraint *>(_Term[i]);
-        if (sparsity) continue;
+      if (IsActive(i) && IsDataTerm(i)) {
+        _Term[i]->Gradient(gradient, step);
+      }
+    }
+  }
+
+  // Precondition data fidelity gradient if enabled
+  this->NormalizeGradient(gradient);
+
+  MIRTK_DEBUG_TIMING(3, "evaluation of data fidelity gradient");
+}
+
+// -----------------------------------------------------------------------------
+void RegistrationEnergy::AddConstraintGradient(double *gradient, double step, bool *sgn_chg)
+{
+  MIRTK_START_TIMING();
+
+  // Use default step length if none specified
+  if (step <= .0) step = _StepLength;
+
+  // Sum (normalized) gradients of (weighted) constraints excl. sparsity constraint
+  //
+  // Sparsity constraint has to be added last, such that it can determine whether
+  // or not the sparsity gradient changes the sign of the total energy gradient.
+  if (_NormalizeGradients) {
+    double W = .0;
+    for (int i = 0; i < NumberOfTerms(); ++i) {
+      if (!IsSparsityConstraint(i)) {
+        W += abs(_Term[i]->Weight());
+      }
+    }
+    if (W == .0) {
+      cerr << "RegistrationEnergy::Gradient: All energy terms have zero weight!" << endl;
+      exit(1);
+    }
+    for (int i = 0; i < NumberOfTerms(); ++i) {
+      if (IsActive(i) && IsConstraint(i) && !IsSparsityConstraint(i)) {
+        const double w = _Term[i]->Weight();
+        _Term[i]->Weight(w / W);
+        _Term[i]->NormalizedGradient(gradient, step);
+        _Term[i]->Weight(w);
+      }
+    }
+  } else {
+    for (int i = 0; i < NumberOfTerms(); ++i) {
+      if (IsActive(i) && IsConstraint(i) && !IsSparsityConstraint(i)) {
         _Term[i]->Gradient(gradient, step);
       }
     }
@@ -639,7 +684,7 @@ void RegistrationEnergy::Gradient(double *gradient, double step, bool *sgn_chg)
   // Add sparsity constraint gradient
   for (int i = 0; i < NumberOfTerms(); ++i) {
     if (IsActive(i)) {
-      sparsity = dynamic_cast<SparsityConstraint *>(_Term[i]);
+      auto sparsity = dynamic_cast<SparsityConstraint *>(_Term[i]);
       if (sparsity) {
         sparsity->Gradient(gradient, step, sgn_chg);
         break; // Ignore additional sparsity terms
@@ -647,27 +692,14 @@ void RegistrationEnergy::Gradient(double *gradient, double step, bool *sgn_chg)
     }
   }
 
-  // Normalize energy gradient
-  if (_Preconditioning > .0) this->NormalizeGradient(gradient);
+  MIRTK_DEBUG_TIMING(3, "evaluation of constraint gradient");
+}
 
-  // Set gradient of passive DoFs to zero (deprecated)
-  //
-  // This is no longer enforced since IRTK ireg version 3.2 (MIRTK register v1.0)
-  // which allows passive DoFs/CPs to be moved still by energy terms which
-  // regularize the smoothness of the transformation. Such regularization may
-  // propagate outwards from the image foreground to the boundary of the image domain.
-  // The status of the DoFs should be taken into consideration by each individual
-  // energy term, such that forces resulting from image dissimilarity measures
-  // do not move passive DoFs/CPs.
-#if 0
-  for (int dof = 0; dof < ndofs; ++dof) {
-    if (_Transformation->GetStatus(dof) == Passive) {
-      gradient[dof] = .0;
-    }
-  }
-#endif
-
-  MIRTK_DEBUG_TIMING(3, "evaluation of energy gradient");
+// -----------------------------------------------------------------------------
+void RegistrationEnergy::Gradient(double *gradient, double step, bool *sgn_chg)
+{
+  this->DataFidelityGradient(gradient, step, sgn_chg);
+  this->AddConstraintGradient(gradient, step, sgn_chg);
 }
 
 // -----------------------------------------------------------------------------
@@ -690,7 +722,7 @@ void RegistrationEnergy::GradientStep(const double *dx, double &min, double &max
 double RegistrationEnergy::Evaluate(double *dx, double step, bool *sgn_chg)
 {
   // Update energy function
-  if (_Transformation->Changed()) this->Update(dx != NULL);
+  if (_Transformation->Changed()) this->Update(dx != nullptr);
 
   // Evaluate gradient
   if (dx) this->Gradient(dx, step, sgn_chg);
