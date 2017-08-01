@@ -184,12 +184,12 @@ void NormalizedMutualImageInformation::Update(bool gradient)
   HistogramImageSimilarity::Update(gradient);
 
   // Update marginal histograms
-  _Histogram->HistogramX(_TargetHistogram);
-  _Histogram->HistogramY(_SourceHistogram);
+  _Histogram.HistogramX(_TargetHistogram);
+  _Histogram.HistogramY(_SourceHistogram);
 
   _TargetEntropy = _TargetHistogram.Entropy();
   _SourceEntropy = _SourceHistogram.Entropy();
-  _JointEntropy  = _Histogram->JointEntropy();
+  _JointEntropy  = _Histogram.JointEntropy();
 }
 
 // -----------------------------------------------------------------------------
@@ -220,12 +220,12 @@ bool NormalizedMutualImageInformation
   // Swap target and source if similarity derived w.r.t transformed "target"
   if (image == Target()) {
     fixed = Source();
-    jhist = _Histogram->Transposed();
+    jhist = _Histogram.Transposed();
     xhist = _SourceHistogram;
     yhist = _TargetHistogram;
   } else {
     fixed = Target();
-    jhist = *_Histogram;
+    jhist = _Histogram;
     xhist = _TargetHistogram;
     yhist = _SourceHistogram;
   }
@@ -237,7 +237,7 @@ bool NormalizedMutualImageInformation
 
   // Evaluate similarity gradient w.r.t given transformed image
   CalculateGradient eval(this, jhist, xhist, yhist,
-     /* denominator = */ - _JointEntropy * _Histogram->NumberOfSamples(),
+     /* denominator = */ - _JointEntropy * _Histogram.NumberOfSamples(),
      /* NMI         = */ (_TargetEntropy + _SourceEntropy) / _JointEntropy);
   memset(gradient->Data(), 0, _NumberOfVoxels * sizeof(GradientType));
   ParallelForEachVoxel(fixed, image, gradient, eval);

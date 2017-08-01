@@ -1,8 +1,9 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2008-2015 Imperial College London
+ * Copyright 2008-2017 Imperial College London
  * Copyright 2008-2015 Daniel Rueckert, Julia Schnabel
+ * Copyright 2015-2017 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -909,6 +910,29 @@ void Histogram2D<HistogramType>::Smooth()
 
   // Free tmp memory
   Deallocate(tmp);
+}
+
+// -----------------------------------------------------------------------------
+template <class HistogramType>
+Histogram2D<HistogramType> Histogram2D<HistogramType>::Smoothed(bool pad)
+{
+  Histogram2D<HistogramType> hist;
+  if (pad) {
+    const int m = 2; // smoothing kernel size - 1
+    double mx = m * _width_x;
+    double my = m * _width_y;
+    hist.Initialize(_min_x - mx, _max_x + mx, _width_x,
+                    _min_y - my, _max_y + my, _width_y);
+    for (int j = 0; j < _nbins_y; ++j)
+    for (int i = 0; i < _nbins_x; ++i) {
+      hist._bins[j + m][i + m] = _bins[j][i];
+    }
+    hist._nsamp = _nsamp;
+  } else {
+    hist.Reset(*this);
+  }
+  hist.Smooth();
+  return hist;
 }
 
 // -----------------------------------------------------------------------------

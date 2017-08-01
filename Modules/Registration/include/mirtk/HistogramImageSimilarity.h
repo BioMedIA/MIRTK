@@ -1,8 +1,8 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2013-2015 Imperial College London
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2013-2017 Imperial College London
+ * Copyright 2013-2017 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -79,10 +79,13 @@ public:
   mirtkLooseComponentMacro(JointHistogramType, Samples);
 
   /// Joint histogram of image intensities (cubic B-spline Parzen windows)
-  mirtkComponentMacro(JointHistogramType, Histogram);
+  mirtkAttributeMacro(JointHistogramType, Histogram);
 
   /// Whether to use a Parzen window function
   mirtkPublicAttributeMacro(bool, UseParzenWindow);
+
+  /// Whether to pad histogram when performing Parzen window estimation
+  mirtkPublicAttributeMacro(bool, PadHistogram);
 
   /// Number of histogram bins for target image intensities
   mirtkPublicAttributeMacro(int, NumberOfTargetBins);
@@ -148,8 +151,15 @@ public:
   /// the transformed image is updated.
   virtual void Include(const blocked_range3d<int> &);
 
+protected:
+
+  /// Update estimated joint histogram after raw samples histogram has changed
+  virtual void UpdateHistogram();
+
   // ---------------------------------------------------------------------------
   // Debugging
+
+public:
 
   /// Print debug information
   virtual void Print(Indent = 0) const;
