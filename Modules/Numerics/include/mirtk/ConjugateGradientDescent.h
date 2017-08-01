@@ -43,6 +43,12 @@ class ConjugateGradientDescent : public GradientDescent
   /// gradient descent is converged. Call Run after setting ConjugateGradientOff.
   mirtkPublicAttributeMacro(bool, UseConjugateGradient);
 
+  /// Whether to compute conjugate gradient of total energy gradient
+  ///
+  /// When disabled, only the gradient of the data fidelity term is conjugated
+  /// before adding the gradient of the model constraint term.
+  mirtkPublicAttributeMacro(bool, ConjugateTotalGradient);
+
 protected:
 
   double *_g;
@@ -69,13 +75,30 @@ public:
   virtual ~ConjugateGradientDescent();
 
   // ---------------------------------------------------------------------------
+  // Parameters
+  using GradientDescent::Parameter;
+
+  /// Set parameter value from string
+  virtual bool Set(const char *, const char *);
+
+  /// Get parameters as key/value as string map
+  virtual ParameterList Parameter() const;
+
+  // ---------------------------------------------------------------------------
   // Optimization
 
   /// Reset conjugate gradient to objective function gradient
   void ResetConjugateGradient();
 
-  /// Enable conjugation of objective function gradient
+  /// Enable conjugation of data fidelity gradient
   void ConjugateGradientOn();
+
+  /// Enable conjugation of objective function gradient
+  void ConjugateTotalGradientOn();
+
+  /// Disable conjugation of objective function gradient
+  /// When conjugation was enabled before, the data fidelity gradient is still conjugated
+  void ConjugateTotalGradientOff();
 
   /// Disable conjugation of objective function gradient
   void ConjugateGradientOff();
@@ -104,13 +127,26 @@ protected:
 inline void ConjugateGradientDescent::ResetConjugateGradient()
 {
   // Set g[0] to NaN to indicate that vectors _g and _h are uninitialized
-  if (_g) _g[0] = numeric_limits<double>::quiet_NaN();
+  if (_g) _g[0] = NaN;
 }
 
 // -----------------------------------------------------------------------------
 inline void ConjugateGradientDescent::ConjugateGradientOn()
 {
   this->UseConjugateGradient(true);
+}
+
+// -----------------------------------------------------------------------------
+inline void ConjugateGradientDescent::ConjugateTotalGradientOn()
+{
+  this->UseConjugateGradient(true);
+  this->ConjugateTotalGradient(true);
+}
+
+// -----------------------------------------------------------------------------
+inline void ConjugateGradientDescent::ConjugateTotalGradientOff()
+{
+  this->ConjugateTotalGradient(false);
 }
 
 // -----------------------------------------------------------------------------

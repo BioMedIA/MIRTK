@@ -1,8 +1,8 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2013-2015 Imperial College London
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2013-2017 Imperial College London
+ * Copyright 2013-2017 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -40,14 +40,16 @@ ConjugateGradientDescent::ConjugateGradientDescent(ObjectiveFunction *f)
 :
   GradientDescent(f),
   _UseConjugateGradient(true),
-  _g(NULL), _h(NULL)
+  _ConjugateTotalGradient(true),
+  _g(nullptr), _h(nullptr)
 {
 }
 
 // -----------------------------------------------------------------------------
 void ConjugateGradientDescent::CopyAttributes(const ConjugateGradientDescent &other)
 {
-  _UseConjugateGradient = other._UseConjugateGradient;
+  _UseConjugateGradient   = other._UseConjugateGradient;
+  _ConjugateTotalGradient = other._ConjugateTotalGradient;
 
   Deallocate(_g);
   if (other._g && _Function) {
@@ -66,7 +68,7 @@ void ConjugateGradientDescent::CopyAttributes(const ConjugateGradientDescent &ot
 ConjugateGradientDescent::ConjugateGradientDescent(const ConjugateGradientDescent &other)
 :
   GradientDescent(other),
-  _g(NULL), _h(NULL)
+  _g(nullptr), _h(nullptr)
 {
   CopyAttributes(other);
 }
@@ -86,6 +88,35 @@ ConjugateGradientDescent::~ConjugateGradientDescent()
 {
   Deallocate(_g);
   Deallocate(_h);
+}
+
+// =============================================================================
+// Parameters
+// =============================================================================
+
+// -----------------------------------------------------------------------------
+bool ConjugateGradientDescent::Set(const char *name, const char *value)
+{
+  if (strcmp(name, "Conjugate total energy gradient") == 0 ||
+      strcmp(name, "Conjugate total gradient") == 0) {
+    return FromString(value, _ConjugateTotalGradient);
+  }
+  return GradientDescent::Set(name, value);
+}
+
+// -----------------------------------------------------------------------------
+ParameterList ConjugateGradientDescent::Parameter() const
+{
+  ParameterList params = LocalOptimizer::Parameter();
+  if (_LineSearch && _LineSearch->Strategy() == _LineSearchStrategy) {
+    Insert(params, _LineSearch->Parameter());
+  }
+  Insert(params, _LineSearchParameter);
+  Insert(params, "Conjugate total energy gradient", _ConjugateTotalGradient);
+  Insert(params, "Maximum no. of restarts",         _NumberOfRestarts);
+  Insert(params, "Maximum no. of failed restarts",  _NumberOfFailedRestarts);
+  Insert(params, "Line search strategy",            _LineSearchStrategy);
+  return params;
 }
 
 // =============================================================================
@@ -113,11 +144,22 @@ void ConjugateGradientDescent::Finalize()
 void ConjugateGradientDescent::Gradient(double *gradient, double step, bool *sgn_chg)
 {
   // Compute gradient of objective function
-  GradientDescent::Gradient(gradient, step, sgn_chg);
+  Function()->DataFidelityGradient(gradient, step, sgn_chg);
+  if (!_UseConjugateGradient || _ConjugateTotalGradient) {
+    Function()->AddConstraintGradient(gradient, step, sgn_chg);
+  }
 
-  // Update gradient to be conjugate
-  if (_UseConjugateGradient) ConjugateGradient(gradient);
-  else ResetConjugateGradient();
+  // Conjugate gradient
+  if (_UseConjugateGradient) {
+    ConjugateGradient(gradient);
+  } else {
+    ResetConjugateGradient();
+  }
+
+  // Add non-conjugated constraint gradient
+  if (_UseConjugateGradient && !_ConjugateTotalGradient) {
+    Function()->AddConstraintGradient(gradient, step, sgn_chg);
+  }
 }
 
 // -----------------------------------------------------------------------------

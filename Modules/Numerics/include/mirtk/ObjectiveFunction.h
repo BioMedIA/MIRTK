@@ -119,13 +119,39 @@ public:
   /// Evaluate objective function value
   virtual double Value() = 0;
 
+  /// Evaluate data fidelity gradient of objective function w.r.t its DoFs
+  ///
+  /// \param[in]  step    Step length for finite differences.
+  /// \param[out] dx      Data fidelity gradient of objective function.
+  /// \param[out] sgn_chg Whether function parameter value is allowed to
+  ///                     change sign when stepping along the computed gradient.
+  virtual void DataFidelityGradient(double *dx, double step = .0, bool *sgn_chg = nullptr);
+
+  /// Add model constraint gradient of objective function w.r.t its DoFs
+  ///
+  /// \param[in]  step    Step length for finite differences.
+  /// \param[out] dx      Gradient of objective function, e.g., either initialised to zero or
+  ///                     the data fidelity gradient computed beforehand using DataFidelityGradient.
+  /// \param[out] sgn_chg Whether function parameter value is allowed to
+  ///                     change sign when stepping along the computed gradient.
+  virtual void AddConstraintGradient(double *dx, double step = .0, bool *sgn_chg = nullptr);
+
   /// Evaluate gradient of objective function w.r.t its DoFs
+  ///
+  /// When the data fidelity and/or gradient of model constraints need to be
+  /// evaluated separately, use the following code instead:
+  /// \code
+  /// double *gradient;        // allocate with number of DoFs
+  /// ObjectiveFunction *func; // pointer to objective function instance
+  /// func->DataFideltiyGradient(gradient);
+  /// func->AddConstraintGradient(gradient);
+  /// \endcode
   ///
   /// \param[in]  step    Step length for finite differences.
   /// \param[out] dx      Gradient of objective function.
   /// \param[out] sgn_chg Whether function parameter value is allowed to
   ///                     change sign when stepping along the computed gradient.
-  virtual void Gradient(double *dx, double step = .0, bool *sgn_chg = NULL) = 0;
+  virtual void Gradient(double *dx, double step = .0, bool *sgn_chg = nullptr) = 0;
 
   /// Compute norm of gradient of objective function
   ///
@@ -187,6 +213,19 @@ inline bool ObjectiveFunction::Upgrade()
 inline void ObjectiveFunction::GradientStep(const double *, double &, double &) const
 {
   // By default, step length range chosen by user/optimizer
+}
+
+// -----------------------------------------------------------------------------
+inline void ObjectiveFunction::DataFidelityGradient(double *dx, double step, bool *sgn_chg)
+{
+  // By default, objective function is not separated into data fidelity and constraint terms.
+  this->Gradient(dx, step, sgn_chg);
+}
+
+// -----------------------------------------------------------------------------
+inline void ObjectiveFunction::AddConstraintGradient(double *, double, bool *)
+{
+  // By default, already included in DataFidelityGradient
 }
 
 // -----------------------------------------------------------------------------
