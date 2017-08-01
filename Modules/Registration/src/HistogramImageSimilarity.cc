@@ -1,8 +1,8 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2013-2015 Imperial College London
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2013-2017 Imperial College London
+ * Copyright 2013-2017 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -107,8 +107,9 @@ void HistogramImageSimilarity::CopyAttributes(const HistogramImageSimilarity &ot
   if (_SamplesOwner) delete _Samples;
   _Samples            = (other._SamplesOwner ? new JointHistogramType(*other._Samples) : other._Samples);
   _SamplesOwner       = other._SamplesOwner;
-  _Histogram          = other._Histogram ? new JointHistogramType(*other._Histogram) : nullptr;
+  _Histogram          = other._Histogram;
   _UseParzenWindow    = other._UseParzenWindow;
+  _PadHistogram       = other._PadHistogram;
   _NumberOfTargetBins = other._NumberOfTargetBins;
   _NumberOfSourceBins = other._NumberOfSourceBins;
 }
@@ -117,9 +118,9 @@ void HistogramImageSimilarity::CopyAttributes(const HistogramImageSimilarity &ot
 HistogramImageSimilarity::HistogramImageSimilarity(const char *name, double weight)
 :
   ImageSimilarity(name, weight),
-  _Samples  (new JointHistogramType()), _SamplesOwner(true),
-  _Histogram(nullptr),
+  _Samples(new JointHistogramType()), _SamplesOwner(true),
   _UseParzenWindow(true),
+  _PadHistogram(false),
   _NumberOfTargetBins(0),
   _NumberOfSourceBins(0)
 {
@@ -129,8 +130,7 @@ HistogramImageSimilarity::HistogramImageSimilarity(const char *name, double weig
 HistogramImageSimilarity::HistogramImageSimilarity(const HistogramImageSimilarity &other)
 :
   ImageSimilarity(other),
-  _Samples  (nullptr),
-  _Histogram(nullptr)
+  _Samples(nullptr)
 {
   CopyAttributes(other);
 }
@@ -149,7 +149,6 @@ HistogramImageSimilarity &HistogramImageSimilarity::operator =(const HistogramIm
 HistogramImageSimilarity::~HistogramImageSimilarity()
 {
   if (_SamplesOwner) Delete(_Samples);
-  Delete(_Histogram);
 }
 
 // =============================================================================
@@ -170,6 +169,13 @@ bool HistogramImageSimilarity::SetWithPrefix(const char *param, const char *valu
   if (strcmp(param, "No. of source bins") == 0) {
     return FromString(value, _NumberOfSourceBins) && _NumberOfSourceBins > 0;
   }
+  if (strcmp(param, "Use Parzen window estimation") == 0) {
+    return FromString(value, _UseParzenWindow);
+  }
+  if (strcmp(param, "Pad Parzen window estimation") == 0 ||
+      strcmp(param, "Parzen window estimation with padding") == 0) {
+    return FromString(value, _PadHistogram);
+  }
   return ImageSimilarity::SetWithPrefix(param, value);
 }
 
@@ -183,6 +189,8 @@ ParameterList HistogramImageSimilarity::Parameter() const
     Insert(params, "No. of target bins", _NumberOfTargetBins);
     Insert(params, "No. of source bins", _NumberOfSourceBins);
   }
+  Insert(params, "Use Parzen window estimation", _UseParzenWindow);
+  Insert(params, "Pad Parzen window estimation", _PadHistogram);
   return params;
 }
 
@@ -245,6 +253,9 @@ void HistogramImageSimilarity::Initialize()
     _NumberOfSourceBins = _Samples->NumberOfBinsY();
   }
 
+  // Initialize joint histogram
+  this->UpdateHistogram();
+
   // Broadcast attributes of joint histogram
   ostringstream os;
   if (this->HasPrefix()) os << this->DefaultPrefix();
@@ -255,9 +266,6 @@ void HistogramImageSimilarity::Initialize()
   os << "  Source image: Intensity range = [" << _Samples->MinY() << ", " << _Samples->MaxY() << "]"
      << ", #bins = " << _Samples->NumberOfBinsY() << ", bin width = " << _Samples->WidthY() << "\n";
   Broadcast(LogEvent, os.str().c_str());
-
-  // Initialize joint histogram
-  if (!_Histogram) _Histogram = new JointHistogramType(*_Samples);
 }
 
 // -----------------------------------------------------------------------------
@@ -281,8 +289,10 @@ void HistogramImageSimilarity::Update(bool gradient)
   // Note that the _Samples cannot be smoothed directly because of the
   // Include/Exclude functions needed for the (optional) finite difference
   // approximation of the gradient.
-  _Histogram->Reset(*_Samples);
-  if (_UseParzenWindow) _Histogram->Smooth();
+  //
+  // Also, this allows us to increase the size of the histogram during the
+  // smoothing as to include also smoothed values at the boundary.
+  this->UpdateHistogram();
 
   MIRTK_DEBUG_TIMING(2, "update of joint histogram");
 }
@@ -314,8 +324,17 @@ void HistogramImageSimilarity::Include(const blocked_range3d<int> &region)
     }
   }
   if (changed) {
-    _Histogram->Reset(*_Samples);
-    _Histogram->Smooth();
+    UpdateHistogram();
+  }
+}
+
+// -----------------------------------------------------------------------------
+void HistogramImageSimilarity::UpdateHistogram()
+{
+  if (_UseParzenWindow) {
+    _Histogram = _Samples->Smoothed(_PadHistogram);
+  } else {
+    _Histogram = *_Samples;
   }
 }
 
@@ -351,9 +370,12 @@ void HistogramImageSimilarity::WriteDataSets(const char *p, const char *suffix, 
   string _prefix = Prefix(p);
   const char  *prefix = _prefix.c_str();
 
+  if (_UseParzenWindow) {
+    snprintf(fname, sz, "%sjoint_samples%s", prefix, suffix);
+    _Samples->WriteAsImage(fname);
+  }
   snprintf(fname, sz, "%sjoint_histogram%s", prefix, suffix);
-  if (_Histogram) _Histogram->WriteAsImage(fname);
-  else            _Samples  ->WriteAsImage(fname);
+  _Histogram.WriteAsImage(fname);
 }
 
 

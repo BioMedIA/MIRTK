@@ -1,8 +1,9 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2008-2015 Imperial College London
+ * Copyright 2008-2017 Imperial College London
  * Copyright 2008-2015 Daniel Rueckert, Julia Schnabel
+ * Copyright 2015-2017 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -234,6 +235,9 @@ public:
 
   /// Smooth histogram
   void Smooth();
+
+  /// Get smoothed histogram, optionally with padded boundaries
+  Histogram2D<HistogramType> Smoothed(bool = false);
 
   /// Calculate joint probability p(x, y)
   double JointProbability(int, int) const;

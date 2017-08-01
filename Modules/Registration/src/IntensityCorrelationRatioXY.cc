@@ -1,8 +1,8 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2016 Imperial College London
- * Copyright 2016 Andreas Schuh
+ * Copyright 2016-2017 Imperial College London
+ * Copyright 2016-2017 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -61,7 +61,7 @@ IntensityCorrelationRatioXY::~IntensityCorrelationRatioXY()
 // -----------------------------------------------------------------------------
 double IntensityCorrelationRatioXY::Evaluate()
 {
-  return _Histogram->CorrelationRatioXY();
+  return _Histogram.CorrelationRatioXY();
 }
 
 
