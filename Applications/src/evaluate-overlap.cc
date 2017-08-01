@@ -92,7 +92,16 @@ void PrintHelp(const char *name)
   cout << "      segmentation. By default, the output to STDIN with verbosity 0\n";
   cout << "      is the transpose table and excludes a table header. (default: off)\n";
   cout << "  -[no]header [on|off]\n";
-  cout << "      Whether to output a header row when :option:`-table` option is used. (default: on)\n";
+  cout << "      Whether to output a header row when :option:`-table` is used. (default: on)\n";
+  cout << "  -id [<name>]\n";
+  cout << "      Print ID column with given <name> when :option:`-table` is used and multiple source\n";
+  cout << "      images are given. When only one image is given, the table is normally transposed with\n";
+  cout << "      the label value in the first column. With this option, the table is always such that\n";
+  cout << "      each row corresponds to one input source image, also when only one is given. (default: off)\n";
+  cout << "  -noid\n";
+  cout << "      Do not print ID column when :option:`-table` is used.\n";
+  cout << "  -[no]id-path [on|off]\n";
+  cout << "      Use full input source image file path as ID column entry. (default: off)\n";
   PrintCommonOptions(cout);
   cout << endl;
 }
@@ -391,6 +400,8 @@ int main(int argc, char **argv)
   const char *table_name  = nullptr;
   const char *image_list  = nullptr;
   const char *image_delim = nullptr;
+  const char *idcol_name  = nullptr;
+  bool        idcol_path  = false;
   GreyPixel   padding     = MIN_GREY;
   bool        header      = true;
   const char *delim       = ",";
@@ -453,6 +464,21 @@ int main(int argc, char **argv)
         pbmap_min = NaN;
       }
     }
+    else if (OPTION("-id")) {
+      if (HAS_ARGUMENT) {
+        idcol_name = ARGUMENT;
+        bool flag;
+        if (FromString(idcol_name, flag)) {
+          idcol_name = (flag ? "ID" : nullptr);
+        }
+      } else {
+        idcol_name = "ID";
+      }
+    }
+    else if (OPTION("-noid")) {
+      idcol_name = nullptr;
+    }
+    else HANDLE_BOOLEAN_OPTION("id-path", idcol_path);
     else HANDLE_BOOL_OPTION(header);
     else HANDLE_COMMON_OR_UNKNOWN_OPTION();
   }
@@ -624,13 +650,18 @@ int main(int argc, char **argv)
         os = &ofs;
       }
 
+      bool transposed = (!idcol_name && source_name.size() == 1);
+
       if (table_name && header) {
+        if (idcol_name) {
+          *os << idcol_name << delim;
+        }
         if (pbmaps) {
           for (size_t m = 0; m < metrics.size(); ++m) {
             if (m > 0) *os << delim;
             *os << Abbreviation(metrics[m]);
           }
-        } else if (source_name.size() == 1) {
+        } else if (transposed) {
           *os << "Label";
           for (size_t m = 0; m < metrics.size(); ++m) {
             *os << delim << Abbreviation(metrics[m]);
@@ -659,6 +690,15 @@ int main(int argc, char **argv)
 
       for (size_t n = 0; n < source_name.size(); ++n) {
 
+        // Print source image ID
+        if (idcol_name) {
+          if (idcol_path) {
+            *os << source_name[n] << delim;
+          } else {
+            *os << FileName(source_name[n]) << delim;
+          }
+        }
+
         // Read source image and extract region of interest
         UniquePtr<BaseImage> source(BaseImage::New(source_name[n].c_str()));
         if (source->Attributes() != target_attributes) {
@@ -685,7 +725,7 @@ int main(int argc, char **argv)
           for (size_t roi = 0; roi < segments.size(); ++roi) {
             // Print segment ID
             const auto &labels = segments[roi];
-            if (source_name.size() == 1) {
+            if (transposed) {
               for (auto it = labels.begin(); it != labels.end(); ++it) {
                 if (it != labels.begin()) *os << "+";
                 *os << *it;
@@ -705,7 +745,7 @@ int main(int argc, char **argv)
             }
             // Compute overlap metrics
             for (size_t m = 0; m < metrics.size(); ++m) {
-              if (source_name.size() == 1 || roi > 0 || m > 0) {
+              if (transposed || roi > 0 || m > 0) {
                 *os << delim;
               }
               switch (metrics[m]) {
@@ -726,10 +766,10 @@ int main(int argc, char **argv)
               }
             }
 
-            if (source_name.size() == 1) *os << "\n";
+            if (transposed) *os << "\n";
           }
         }
-        if (source_name.size() > 1) *os << "\n";
+        if (!transposed) *os << "\n";
       }
 
     } else {
