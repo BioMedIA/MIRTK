@@ -130,6 +130,9 @@ public:
   /// Whether the n-th energy term is a penalty term
   bool IsConstraint(int) const;
 
+  /// Whether the n-th energy term is a sparsity term
+  bool IsSparsityConstraint(int) const;
+
   /// Number of energy terms
   int NumberOfTerms() const;
 
@@ -250,6 +253,23 @@ public:
   /// Scheme for Difference Measures in Deformable Registration. In ICCV 2011.
   void NormalizeGradient(double *dx);
 
+  /// Evaluate data fidelity gradient of objective function w.r.t its DoFs
+  ///
+  /// \param[in]  step    Step length for finite differences.
+  /// \param[out] dx      Data fidelity gradient of objective function.
+  /// \param[out] sgn_chg Whether function parameter value is allowed to
+  ///                     change sign when stepping along the computed gradient.
+  virtual void DataFidelityGradient(double *dx, double step = .0, bool *sgn_chg = nullptr);
+
+  /// Add model constraint gradient of objective function w.r.t its DoFs
+  ///
+  /// \param[in]  step    Step length for finite differences.
+  /// \param[out] dx      Gradient of objective function, e.g., either initialised to zero or
+  ///                     the data fidelity gradient computed beforehand using DataFidelityGradient.
+  /// \param[out] sgn_chg Whether function parameter value is allowed to
+  ///                     change sign when stepping along the computed gradient.
+  virtual void AddConstraintGradient(double *dx, double step = .0, bool *sgn_chg = nullptr);
+
   /// Evaluate gradient of registration energy
   ///
   /// Note that this gradient need not necessarily correspond to the analytic
@@ -264,7 +284,7 @@ public:
   /// \param[in]  step    Step length for finite differences.
   /// \param[out] sgn_chg Whether function parameter value is allowed to
   ///                     change sign when stepping along the computed gradient.
-  void Gradient(double *dx, double step = .0, bool *sgn_chg = NULL);
+  void Gradient(double *dx, double step = .0, bool *sgn_chg = nullptr);
 
   /// Compute norm of gradient of registration energy
   ///
