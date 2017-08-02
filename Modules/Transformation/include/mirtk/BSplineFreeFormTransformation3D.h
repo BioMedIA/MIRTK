@@ -58,6 +58,9 @@ public:
 
 protected:
 
+  /// Whether to compute parametric gradient using cubic B-spline convolution
+  mirtkPublicAttributeMacro(bool, UseCubicBSplineConvolution);
+
   /// Interpolates control point values at arbitrary lattice locations
   Interpolator _FFD;
 
@@ -95,6 +98,18 @@ public:
 
   /// Destructor
   virtual ~BSplineFreeFormTransformation3D();
+
+  // ---------------------------------------------------------------------------
+  // Parameters (non-DoFs)
+
+  // Import other Parameter overloads
+  using FreeFormTransformation3D::Parameter;
+
+  /// Set named (non-DoF) parameter from value as string
+  virtual bool Set(const char *, const char *);
+
+  /// Get (non-DoF) parameters as key/value as string map
+  virtual ParameterList Parameter() const;
 
   // ---------------------------------------------------------------------------
   // Approximation/Interpolation
@@ -265,6 +280,7 @@ public:
   using FreeFormTransformation3D::LocalJacobian;
   using FreeFormTransformation3D::LocalHessian;
   using FreeFormTransformation3D::JacobianDOFs;
+  using FreeFormTransformation3D::ParametricGradient;
 
   /// Calculates the Jacobian of the transformation w.r.t either control point displacements or velocities
   virtual void FFDJacobianWorld(Matrix &, double, double, double, double = 0, double = NaN) const;
@@ -283,6 +299,13 @@ public:
 
   /// Calculates the derivative of the Jacobian of the transformation (w.r.t. world coordinates) w.r.t. a transformation parameter
   virtual void DeriveJacobianWrtDOF(Matrix &, int, double, double, double, double = 0, double = NaN) const;
+
+    /// Applies the chain rule to convert spatial non-parametric gradient
+  /// to a gradient w.r.t the parameters of this transformation
+  virtual void ParametricGradient(const GenericImage<double> *, double *,
+                                  const WorldCoordsImage *,
+                                  const WorldCoordsImage *,
+                                  double = NaN, double = 1) const;
 
   // ---------------------------------------------------------------------------
   // Properties
