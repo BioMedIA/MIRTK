@@ -1,9 +1,9 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2008-2015 Imperial College London
+ * Copyright 2008-2017 Imperial College London
  * Copyright 2008-2013 Daniel Rueckert, Julia Schnabel
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2013-2017 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,8 +21,7 @@
 #ifndef MIRTK_GaussianBlurring_H
 #define MIRTK_GaussianBlurring_H
 
-#include "mirtk/GenericImage.h"
-#include "mirtk/ImageToImage.h"
+#include "mirtk/SeparableConvolution.h"
 
 
 namespace mirtk {
@@ -42,9 +41,14 @@ namespace mirtk {
  * standard deviation for the Gaussian kernel has been set.
  */
 template <class TVoxel>
-class GaussianBlurring : public ImageToImage<TVoxel>
+class GaussianBlurring : public SeparableConvolution<TVoxel>
 {
   mirtkInPlaceImageFilterMacro(GaussianBlurring, TVoxel);
+
+protected:
+
+  /// Type of convolution kernels
+  typedef typename SeparableConvolution<TVoxel>::KernelType KernelType;
 
   /// Standard deviation of Gaussian kernel in x
   mirtkAttributeMacro(double, SigmaX);
@@ -60,49 +64,37 @@ class GaussianBlurring : public ImageToImage<TVoxel>
 
 protected:
 
-  /// Gaussian convolution kernel
-  GenericImage<RealPixel> *_Kernel;
+  // Base class setters unused, should not be called by user
+  virtual void KernelX(const KernelType *) {}
+  virtual void KernelY(const KernelType *) {}
+  virtual void KernelZ(const KernelType *) {}
+  virtual void KernelT(const KernelType *) {}
+
+  // Instantiated Gaussian kernels
+  UniquePtr<KernelType> _GaussianKernel[4];
+
+  /// Initialize 1D Gaussian kernel with sigma given in voxel units
+  UniquePtr<KernelType> InitializeKernel(double);
 
   /// Initialize filter
   virtual void Initialize();
 
-  /// Initialize 1D Gaussian kernel with sigma given in voxel units
-  virtual void InitializeKernel(double);
-
-  /// Finalize filter
-  virtual void Finalize();
-
 public:
 
   /// Constructor
-  GaussianBlurring(double = 1.0);
+  GaussianBlurring(double = 1.);
 
   /// Constructor
-  GaussianBlurring(double, double, double = .0, double = .0);
+  GaussianBlurring(double, double, double = 0., double = 0.);
 
   /// Destructor
   ~GaussianBlurring();
-
-  /// Run Gaussian blurring
-  virtual void Run();
-
-  /// Run Gaussian blurring along x only
-  virtual void RunX();
-
-  /// Run Gaussian blurring along y only
-  virtual void RunY();
-
-  /// Run Gaussian blurring along z only
-  virtual void RunZ();
-
-  /// Run Gaussian blurring along t only
-  virtual void RunT();
 
   /// Set sigma
   virtual void SetSigma(double);
 
   /// Set sigma
-  virtual void SetSigma(double, double, double = .0, double = .0);
+  virtual void SetSigma(double, double, double = 0., double = 0.);
 
   /// Kernel size used for a given sigma (divided by voxel size)
   static int KernelSize(double);

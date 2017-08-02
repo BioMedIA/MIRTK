@@ -45,6 +45,7 @@ set(HEADERS
   ConstGenericImageIterator.h
   ConstImageIterator.h
   ConvolutionFunction.h
+  CubicBSplineConvolution.h
   CSplineInterpolateImageFunction.h
   CSplineInterpolateImageFunction.hxx
   CSplineInterpolateImageFunction2D.h
@@ -157,6 +158,7 @@ set(HEADERS
   ResamplingWithPadding.h
   ScalarFunctionToImage.h
   ScalingAndSquaring.h
+  SeparableConvolution.h
   ShapeBasedInterpolateImageFunction.h
   SincInterpolateImageFunction.h
   SincInterpolateImageFunction.hxx
@@ -187,6 +189,7 @@ set(SOURCES
   DisplacementToVelocityFieldBCH.cc
   Closing.cc
   ConnectedComponents.cc
+  CubicBSplineConvolution.cc
   Downsampling.cc
   Erosion.cc
   EuclideanDistanceTransform.cc
@@ -217,6 +220,7 @@ set(SOURCES
   ResamplingWithPadding.cc
   ScalarFunctionToImage.cc
   ScalingAndSquaring.cc
+  SeparableConvolution.cc
   ShapeBasedInterpolateImageFunction.cc
   VelocityToDisplacementField.cc
   VelocityToDisplacementFieldEuler.cc

@@ -447,7 +447,7 @@ bool FreeFormTransformation::Set(const char *name, const char *value)
 // -----------------------------------------------------------------------------
 ParameterList FreeFormTransformation::Parameter() const
 {
-  ParameterList params;
+  ParameterList params = Transformation::Parameter();
   Insert(params, "Transformation extrapolation", ToString(_ExtrapolationMode));
   Insert(params, "Speedup factor",               ToString(_SpeedupFactor));
   return params;

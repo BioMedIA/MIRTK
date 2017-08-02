@@ -1,9 +1,9 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2008-2015 Imperial College London
+ * Copyright 2008-2017 Imperial College London
  * Copyright 2008-2013 Daniel Rueckert, Julia Schnabel
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2013-2017 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,7 +23,9 @@
 #include "mirtk/Math.h"
 #include "mirtk/Memory.h"
 #include "mirtk/Profiling.h"
+#include "mirtk/LinearInterpolateImageFunction3D.h"
 #include "mirtk/ImageToInterpolationCoefficients.h"
+#include "mirtk/CubicBSplineConvolution.h"
 
 
 namespace mirtk {
@@ -36,7 +38,8 @@ namespace mirtk {
 // -----------------------------------------------------------------------------
 BSplineFreeFormTransformation3D::BSplineFreeFormTransformation3D()
 :
-  FreeFormTransformation3D(_FFD, &_FFD2D)
+  FreeFormTransformation3D(_FFD, &_FFD2D),
+  _UseCubicBSplineConvolution(false)
 {
 }
 
@@ -47,7 +50,8 @@ BSplineFreeFormTransformation3D
                                   double dx, double dy, double dz,
                                   double *xaxis, double *yaxis, double *zaxis)
 :
-  FreeFormTransformation3D(_FFD, &_FFD2D)
+  FreeFormTransformation3D(_FFD, &_FFD2D),
+  _UseCubicBSplineConvolution(false)
 {
   Initialize(DefaultAttributes(x1, y1, z1, x2, y2, z2, dx, dy, dz, xaxis, yaxis, zaxis));
 }
@@ -56,7 +60,8 @@ BSplineFreeFormTransformation3D
 BSplineFreeFormTransformation3D
 ::BSplineFreeFormTransformation3D(const ImageAttributes &attr, double dx, double dy, double dz)
 :
-  FreeFormTransformation3D(_FFD, &_FFD2D)
+  FreeFormTransformation3D(_FFD, &_FFD2D),
+  _UseCubicBSplineConvolution(false)
 {
   Initialize(attr, dx, dy, dz);
 }
@@ -65,7 +70,8 @@ BSplineFreeFormTransformation3D
 BSplineFreeFormTransformation3D
 ::BSplineFreeFormTransformation3D(const BaseImage &target, double dx, double dy, double dz)
 :
-  FreeFormTransformation3D(_FFD, &_FFD2D)
+  FreeFormTransformation3D(_FFD, &_FFD2D),
+  _UseCubicBSplineConvolution(false)
 {
   Initialize(target.Attributes(), dx, dy, dz);
 }
@@ -74,7 +80,8 @@ BSplineFreeFormTransformation3D
 BSplineFreeFormTransformation3D
 ::BSplineFreeFormTransformation3D(const GenericImage<double> &image, bool disp)
 :
-  FreeFormTransformation3D(_FFD, &_FFD2D)
+  FreeFormTransformation3D(_FFD, &_FFD2D),
+  _UseCubicBSplineConvolution(false)
 {
   Initialize(image, disp);
 }
@@ -83,7 +90,8 @@ BSplineFreeFormTransformation3D
 BSplineFreeFormTransformation3D
 ::BSplineFreeFormTransformation3D(const BSplineFreeFormTransformation3D &ffd)
 :
-  FreeFormTransformation3D(ffd, _FFD, &_FFD2D)
+  FreeFormTransformation3D(ffd, _FFD, &_FFD2D),
+  _UseCubicBSplineConvolution(false)
 {
   if (_NumberOfDOFs > 0) InitializeInterpolator();
 }
@@ -91,6 +99,29 @@ BSplineFreeFormTransformation3D
 // -----------------------------------------------------------------------------
 BSplineFreeFormTransformation3D::~BSplineFreeFormTransformation3D()
 {
+}
+
+// =============================================================================
+// Parameters (non-DoFs)
+// =============================================================================
+
+// -----------------------------------------------------------------------------
+bool BSplineFreeFormTransformation3D::Set(const char *name, const char *value)
+{
+  if (strcmp(name, "Compute BSplineFFD gradient using convolution")   == 0 ||
+      strcmp(name, "Compute BSpline FFD gradient using convolution")  == 0 ||
+      strcmp(name, "Compute B-spline FFD gradient using convolution") == 0) {
+    return FromString(value, _UseCubicBSplineConvolution);
+  }
+  return FreeFormTransformation3D::Set(name, value);
+}
+
+// -----------------------------------------------------------------------------
+ParameterList BSplineFreeFormTransformation3D::Parameter() const
+{
+  ParameterList params = FreeFormTransformation3D::Parameter();
+  Insert(params, "Compute BSplineFFD gradient using convolution", _UseCubicBSplineConvolution);
+  return params;
 }
 
 // =============================================================================
@@ -1115,6 +1146,83 @@ void BSplineFreeFormTransformation3D
 // =============================================================================
 // Derivatives
 // =============================================================================
+
+namespace {
+
+
+template <class TReal>
+class SampleGradientImage
+{
+public:
+
+  typedef GenericImage<TReal>                                      GradientImage;
+  typedef GenericLinearInterpolateImageFunction3D<GradientImage>   GradientFunction;
+
+  const BSplineFreeFormTransformation3D *_FFD;
+  const GradientFunction                *_Gradient;
+  double                                *_Output;
+
+  void operator ()(const blocked_range3d<int> &re) const
+  {
+    double g[3], x, y, z;
+    int cp, xdof, ydof, zdof;
+    BSplineFreeFormTransformation3D::DOFStatus status_x, status_y, status_z;
+    for (int ck = re.pages().begin(); ck != re.pages().end(); ++ck)
+    for (int cj = re.rows ().begin(); cj != re.rows ().end(); ++cj)
+    for (int ci = re.cols ().begin(); ci != re.cols ().end(); ++ci) {
+      _FFD->GetStatus(ci, cj, ck, status_x, status_y, status_z);
+      if (status_x == Active || status_y == Active || status_z == Active) {
+        cp = _FFD->LatticeToIndex(ci, cj, ck);
+        x = ci, y = cj, z = ck;
+        _FFD->LatticeToWorld(x, y, z);
+        _Gradient->WorldToImage(x, y, z);
+        _Gradient->Evaluate(g, x, y, z);
+        _FFD->IndexToDOFs(cp, xdof, ydof, zdof);
+        if (status_x == Active) _Output[xdof] = g[0];
+        if (status_y == Active) _Output[ydof] = g[1];
+        if (status_z == Active) _Output[zdof] = g[2];
+      }
+    }
+  }
+};
+
+
+}
+
+
+// -----------------------------------------------------------------------------
+void BSplineFreeFormTransformation3D
+::ParametricGradient(const GenericImage<double> *in, double *out,
+                     const WorldCoordsImage *i2w, const WorldCoordsImage *wc,
+                     double t0, double w) const
+{
+  if (_UseCubicBSplineConvolution && wc == nullptr) {
+    MIRTK_START_TIMING();
+
+    typedef SampleGradientImage<double>        GradientSampler;
+    typedef GradientSampler::GradientFunction  GradientFunction;
+
+    GenericImage<double> tmp(*in);
+    CubicBSplineConvolution<double> conv(_dx, _dy, _dz);
+    conv.Input(in);
+    conv.Output(&tmp);
+    conv.Run();
+
+    GradientFunction grad;
+    grad.Input(conv.Output());
+    grad.Initialize();
+
+    GradientSampler sample;
+    sample._FFD      = this;
+    sample._Gradient = &grad;
+    sample._Output   = out;
+    parallel_for(blocked_range3d<int>(0, _z, 0, _y, 0, _x), sample);
+
+    MIRTK_DEBUG_TIMING(2, "parametric gradient computation (3D BSplineFFD)");
+  } else {
+    FreeFormTransformation3D::ParametricGradient(in, out, i2w, wc, t0, w);
+  }
+}
 
 // -----------------------------------------------------------------------------
 void BSplineFreeFormTransformation3D
