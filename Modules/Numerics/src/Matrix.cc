@@ -1527,6 +1527,9 @@ void MatrixToAffineParameters(const Matrix &m,
   sxy = atan(tansxy);
   sxz = atan(tansxz);
   syz = atan(tansyz);
+  if (AreEqual(sxy, 0.)) sxy = 0.;
+  if (AreEqual(sxz, 0.)) sxz = 0.;
+  if (AreEqual(syz, 0.)) syz = 0.;
 
   // Now get the rigid transformation parameters.
   // Put the rotation matrix components into the upper left 3x3 submatrix.
