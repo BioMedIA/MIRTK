@@ -97,6 +97,20 @@ void PrintHelp(const char *name)
   cout << "      Set upper 3x3 (rotation) matrix entries" << endl;
   cout << "      (e.g., image orientation from image info output)." << endl;
   cout << endl;
+  cout << "  -image-reset <file>" << endl;
+  cout << "      Set transformation to difference between spatial image to world mapping" << endl;
+  cout << "      of given image and the default lattice with axes parallel to the axes of" << endl;
+  cout << "      the world coordinate system and image center at the origin. The affine" << endl;
+  cout << "      output transformation maps points of the unoriented world system with" << endl;
+  cout << "      origin at the image center to the world coordinates of the input image." << endl;
+  cout << "  -image-rotation <file>" << endl;
+  cout << "      Set transformation to difference between spatial image to world mapping" << endl;
+  cout << "      of given image and an image lattice with axes parallel to the axes of" << endl;
+  cout << "      the world coordinate system. The affine output transformation maps points" << endl;
+  cout << "      of the unoriented world system to the world coordinates of the input image." << endl;
+  cout << "      Hence, the domain of the map is the same as the world domain of the image," << endl;
+  cout << "      except that the orientation matrix is equal the identity matrix." << endl;
+  cout << endl;
   cout << "  -tx <tx>          Translation along x axis in mm.             (default: 0)" << endl;
   cout << "  -ty <ty>          Translation along y axis in mm.             (default: 0)" << endl;
   cout << "  -tz <tz>          Translation along z axis in mm.             (default: 0)" << endl;
@@ -274,6 +288,8 @@ int main(int argc, char **argv)
   double      target_padding = numeric_limits<double>::quiet_NaN();
   double      source_padding = numeric_limits<double>::quiet_NaN();
   bool        align_top      = false; // Align top slice of target and source
+  bool        align_centers  = false; // Align image centers of target and source
+  bool        align_cogs     = false; // Align foreground centers of mass of target and source
   double      sx             = .0;    // Control point spacing in x = voxel size by default
   double      sy             = .0;    // Control point spacing in y = voxel size by default
   double      sz             = .0;    // Control point spacing in z = voxel size by default
@@ -338,6 +354,34 @@ int main(int argc, char **argv)
       }
       dof.PutMatrix(m);
     }
+    else if (OPTION("-image-reset")) {
+      BinaryImage image(ARGUMENT);
+      ImageAttributes attr;
+      attr._x  = image.X();
+      attr._y  = image.Y();
+      attr._z  = image.Z();
+      attr._t  = image.T();
+      attr._dx = image.XSize();
+      attr._dy = image.YSize();
+      attr._dz = image.ZSize();
+      attr._dt = image.TSize();
+      attr._torigin = image.GetTOrigin();
+      dof.PutMatrix(image.GetImageToWorldMatrix() * attr.GetWorldToImageMatrix());
+    }
+    else if (OPTION("-image-rotation")) {
+      BinaryImage image(ARGUMENT);
+      ImageAttributes attr = image.Attributes();
+      attr._xaxis[0] = 1.;
+      attr._xaxis[1] = 0.;
+      attr._xaxis[2] = 0.;
+      attr._yaxis[0] = 0.;
+      attr._yaxis[1] = 1.;
+      attr._yaxis[2] = 0.;
+      attr._zaxis[0] = 0.;
+      attr._zaxis[1] = 0.;
+      attr._zaxis[2] = 1.;
+      dof.PutMatrix(image.GetImageToWorldMatrix() * attr.GetWorldToImageMatrix());
+    }
     // Read affine parameters from input transformation
     else if (OPTION("-dofin")) {
       Transformation *dofin = Transformation::New(ARGUMENT);
@@ -401,7 +445,15 @@ int main(int argc, char **argv)
     else if (OPTION("-sxz")) dof.PutShearXZ     (atof(ARGUMENT));
     else if (OPTION("-syz")) dof.PutShearYZ     (atof(ARGUMENT));
     // Common pre-alignments
-    else if (OPTION("-align-top")) align_top = true;
+    else if (OPTION("-align-centers") || OPTION("-align-centres")) {
+      align_centers = true;
+    }
+    else if (OPTION("-align-cog") || OPTION("-align-cogs")) {
+      align_cogs = true;
+    }
+    else if (OPTION("-align-top")) {
+      align_top = true;
+    }
     // Input displacements (unstructured)
     else if (OPTION("-approximate") || OPTION("-approx")) {
       PointSetPair p;
@@ -447,33 +499,61 @@ int main(int argc, char **argv)
 
   // ---------------------------------------------------------------------------
   // Usage 1) Common preset alignments
-  if (align_top) {
+  if (align_top || align_centers || align_cogs) {
 
     if (!target_name || !source_name) {
-      cerr << "Target and source image required for -align-top" << endl;
+      cerr << "Target and source image required for -align-* options" << endl;
       exit(1);
     }
     if (!psets.empty()) {
-      cerr << "Warning: Ignoring input point sets when using -align-top" << endl;
+      cerr << "Warning: Ignoring input point sets when using -align-* options" << endl;
     }
     RealImage source(source_name);
     const ImageAttributes &sattr = source.Attributes();
-    double x1 =  attr._x / 2, y1 =  attr._y / 2, z1 =  attr._z - .5;
-    double x2 = sattr._x / 2, y2 = sattr._y / 2, z2 = sattr._z - .5;
-    attr .LatticeToWorld(x1, y1, z1);
-    sattr.LatticeToWorld(x2, y2, z2);
-    if (dof.IsIdentity()) {
+
+    if (align_centers || align_cogs) {
+      Matrix T(4, 4);
+      T.Ident();
+      Point tcenter, scenter;
+      if (!align_cogs || IsNaN(target_padding) || target.CenterOfForeground(tcenter, target_padding) == 0) {
+        tcenter = Point(attr._xorigin, attr._yorigin, attr._zorigin);
+      }
+      if (!align_cogs || IsNaN(source_padding) || source.CenterOfForeground(scenter, source_padding) == 0) {
+        scenter = Point(sattr._xorigin, sattr._yorigin, sattr._zorigin);
+      }
+      dof.Transform(tcenter);
+      T(0, 3) = scenter._x - tcenter._x;
+      T(1, 3) = scenter._y - tcenter._y;
+      T(2, 3) = scenter._z - tcenter._z;
+      dof.PutMatrix(T * dof.GetMatrix());
+    }
+
+    if (align_top) {
+      // Target center point of top slice
       Point tcenter, scenter;
       if (IsNaN(target_padding) || target.CenterOfForeground(tcenter, target_padding) == 0) {
         tcenter = Point(attr._xorigin, attr._yorigin, attr._zorigin);
       }
+      target.WorldToImage(tcenter);
+      tcenter._z = target.Z() - .5;
+      target.ImageToWorld(tcenter);
+      dof.Transform(tcenter);
+      // Source center point of top slice
       if (IsNaN(source_padding) || source.CenterOfForeground(scenter, source_padding) == 0) {
         scenter = Point(sattr._xorigin, sattr._yorigin, sattr._zorigin);
       }
-      dof.PutTranslationX(scenter._x - tcenter._x);
-      dof.PutTranslationY(scenter._y - tcenter._y);
+      target.WorldToImage(tcenter);
+      tcenter._z = target.Z() - .5;
+      target.ImageToWorld(tcenter);
+      // Compose with translation to align top centers
+      Matrix T(4, 4);
+      T.Ident();
+      T(0, 3) = scenter._x - tcenter._x;
+      T(1, 3) = scenter._y - tcenter._y;
+      T(2, 3) = scenter._z - tcenter._z;
+      dof.PutMatrix(T * dof.GetMatrix());
     }
-    dof.PutTranslationZ(z2 - z1);
+
     if (verbose) dof.Print();
     dof.Write(dofout_name);
 
