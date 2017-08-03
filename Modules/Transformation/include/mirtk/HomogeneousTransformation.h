@@ -339,8 +339,20 @@ inline double HomogeneousTransformation::Update(const DOFValue *dx)
 // -----------------------------------------------------------------------------
 inline void HomogeneousTransformation::PutMatrix(const Matrix &matrix)
 {
-  _matrix = matrix;
-  _matrix(3, 0) = _matrix(3, 1) = _matrix(3, 2) = .0, _matrix(3, 3) = 1.0;
+  if (matrix.Rows() == 3 && matrix.Cols() == 3) {
+    for (int c = 0; c < 3; ++c)
+    for (int r = 0; r < 3; ++r) {
+      _matrix(r, c) = matrix(r, c);
+    }
+    for (int r = 0; r < 3; ++r) {
+      _matrix(r, 3) = 0.;
+    }
+  } else if (matrix.Rows() == 4 && matrix.Cols() == 4) {
+    _matrix = matrix;
+  } else {
+    Throw(ERR_InvalidArgument, __FUNCTION__, "Transformation matrix must be 3x3 or 4x4");
+  }
+  _matrix(3, 0) = _matrix(3, 1) = _matrix(3, 2) = 0., _matrix(3, 3) = 1.;
   this->Update(DOFS_MATRIX); // also updates _inverse
 }
 
