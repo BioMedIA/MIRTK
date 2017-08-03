@@ -546,46 +546,77 @@ void ImageAttributes::PutAffineMatrix(const Matrix &m, bool apply)
   if (m.IsIdentity()) {
     _smat.Ident();
   } else if (apply) {
-    // Split transformation into composition of affine 9 DoF transformation
-    // without shearing which is applied directly to the image attributes,
-    // and a residual shearing transformation stored as additional transformation
+
+    // Lattice to world matrix is: A * T * R * S * T0
+    const Matrix B = GetLatticeToWorldMatrix();
+
+    // T0: Translate image origin
+    Matrix T0(4, 4);
+    T0.Ident();
+    T0(0, 3) = - (_x - 1) / 2.;
+    T0(1, 3) = - (_y - 1) / 2.;
+    T0(2, 3) = - (_z - 1) / 2.;
+
+    // Get new lattice to world matrix, excluding T0
+    Matrix C = m * B * T0.Inverse();
+
+    // Decompose C into T * R * S * K components
+    // (K: shear, S: scale, R: rotation, T: translation)
     double tx, ty, tz, rx, ry, rz, sx, sy, sz, sxy, sxz, syz;
-    MatrixToAffineParameters(m, tx, ty, tz, rx, ry, rz, sx, sy, sz, sxy, sxz, syz);
-    Matrix A = AffineParametersToMatrix(tx, ty, tz, rx, ry, rz, sx, sy, sz);
-    if (fequal(sxy, .0) && fequal(sxz, .0) && fequal(syz, .0)) {
-      _smat.Ident();
-    } else {
-      _smat = m * A.Inverse();
+    MatrixToAffineParameters(C, tx, ty, tz, rx, ry, rz, sx, sy, sz, sxy, sxz, syz);
+
+    // Remove shearing part
+    const Matrix K = AffineParametersToMatrix(0., 0., 0., 0., 0., 0., 1., 1., 1, sxy, sxz, syz);
+    const bool has_shearing = !K.IsIdentity();
+    if (has_shearing) {
+      C = C * K.Inverse();
     }
 
-    // Origin of image coordinate system:
-    Transform(A, _xorigin, _yorigin, _zorigin);
+    // Decompose again, this time without shearing
+    MatrixToAffineParameters(C, tx, ty, tz, rx, ry, rz, sx, sy, sz, sxy, sxz, syz);
 
-    // Voxel size:
-    Vector u, v(3);
-    u.Initialize(3); // zero
+    // Voxel size must be positive
+    Matrix flip(4, 4);
+    flip.Ident();
+    if (sx < 0.) {
+      flip(0, 0) = -1.;
+      sx = -sx;
+    }
+    if (sy < 0.) {
+      flip(1, 1) = -1.;
+      sy = -sy;
+    }
+    if (sz < 0.) {
+      flip(2, 2) = -1.;
+      sz = -sz;
+    }
 
-    Transform(A, u(0), u(1), u(2));
-    for (int i = 0; i < 3; i++) v(i) = _xaxis[i];
-    Transform(A, v(0), v(1), v(2));
-    v = v - u;
-    _dx *= v.Norm();
+    // Set new lattice attributes
+    _dx = sx;
+    _dy = sy;
+    _dz = sz;
 
-    for (int i = 0; i < 3; i++) v(i) = _yaxis[i];
-    Transform(A, v(0), v(1), v(2));
-    v = v - u;
-    _dy *= v.Norm();
+    // R: Orientation
+    const Matrix R = RigidParametersToMatrix(0., 0., 0., rx, ry, rz) * flip;
+    _xaxis[0] = R(0, 0);
+    _xaxis[1] = R(1, 0);
+    _xaxis[2] = R(2, 0);
+    _yaxis[0] = R(0, 1);
+    _yaxis[1] = R(1, 1);
+    _yaxis[2] = R(2, 1);
+    _zaxis[0] = R(0, 2);
+    _zaxis[1] = R(1, 2);
+    _zaxis[2] = R(2, 2);
 
-    for (int i = 0; i < 3; i++) v(i) = _zaxis[i];
-    Transform(A, v(0), v(1), v(2));
-    v = v - u;
-    _dz *= v.Norm();
+    // T: Translate world origin
+    _xorigin = tx;
+    _yorigin = ty;
+    _zorigin = tz;
 
-    // Orientation of coordinate axes:
-    Matrix R = RigidParametersToMatrix(.0, .0, .0, rx, ry, rz);
-    Transform(R, _xaxis[0], _xaxis[1], _xaxis[2]);
-    Transform(R, _yaxis[0], _yaxis[1], _yaxis[2]);
-    Transform(R, _zaxis[0], _zaxis[1], _zaxis[2]);
+    // Set remaining difference due to shearing as post-image to world mapping
+    if (has_shearing) {
+      _smat = C * K * T0 * GetWorldToLatticeMatrix();
+    }
   } else {
     _smat = m;
   }
