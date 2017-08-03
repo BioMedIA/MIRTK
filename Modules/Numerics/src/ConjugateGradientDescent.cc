@@ -107,15 +107,8 @@ bool ConjugateGradientDescent::Set(const char *name, const char *value)
 // -----------------------------------------------------------------------------
 ParameterList ConjugateGradientDescent::Parameter() const
 {
-  ParameterList params = LocalOptimizer::Parameter();
-  if (_LineSearch && _LineSearch->Strategy() == _LineSearchStrategy) {
-    Insert(params, _LineSearch->Parameter());
-  }
-  Insert(params, _LineSearchParameter);
+  ParameterList params = GradientDescent::Parameter();
   Insert(params, "Conjugate total energy gradient", _ConjugateTotalGradient);
-  Insert(params, "Maximum no. of restarts",         _NumberOfRestarts);
-  Insert(params, "Maximum no. of failed restarts",  _NumberOfFailedRestarts);
-  Insert(params, "Line search strategy",            _LineSearchStrategy);
   return params;
 }
 
