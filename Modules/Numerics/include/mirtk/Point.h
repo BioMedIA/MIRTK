@@ -64,10 +64,10 @@ public:
   Point(const Point &);
 
   /// Constructor with Vector
-  Point(const Vector3 &);
+  explicit Point(const Vector3 &);
 
   /// Constructor with Vector
-  Point(const Vector &);
+  explicit Point(const Vector &);
 
   /// Default destructor
   virtual ~Point();
