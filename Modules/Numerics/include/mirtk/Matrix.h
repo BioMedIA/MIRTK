@@ -1170,9 +1170,7 @@ inline void Transform(const Matrix &m, double  x,  double  y,  double  z,
 /// Muliply point by homogeneous transformation matrix
 inline void Transform(const Matrix &m, double &x, double &y, double &z)
 {
-  double mx, my, mz;
-  Transform(m, x, y, z, mx, my, mz);
-  x = mx, y = my, z = mz;
+  Transform(m, x, y, z, x, y, z);
 }
 
 /// Muliply point by homogeneous transformation matrix
@@ -1181,6 +1179,35 @@ inline Point Transform(const Matrix &m, const Point &p)
   Point p2;
   Transform(m, p._x, p._y, p._z, p2._x, p2._y, p2._z);
   return p2;
+}
+
+/// Muliply vector by 3x3 transformation matrix
+inline void TransformVector(const Matrix &m, double  x,  double  y,  double  z,
+                                             double &mx, double &my, double &mz)
+{
+  mx = m(0, 0) * x + m(0, 1) * y + m(0, 2) * z;
+  my = m(1, 0) * x + m(1, 1) * y + m(1, 2) * z;
+  mz = m(2, 0) * x + m(2, 1) * y + m(2, 2) * z;
+}
+
+/// Muliply vector by 3x3 transformation matrix
+inline void TransformVector(const Matrix &m, double &x, double &y, double &z)
+{
+  TransformVector(m, x, y, z, x, y, z);
+}
+
+/// Muliply vector by 3x3 transformation matrix
+inline void TransformVector(const Matrix &m, Vector &v)
+{
+  TransformVector(m, v(0), v(1), v(2));
+}
+
+/// Muliply vector by 3x3 transformation matrix
+inline Vector TransformVector(const Matrix &m, const Vector &v)
+{
+  Vector u(v);
+  TransformVector(m, u);
+  return u;
 }
 
 /// Construct 4x4 homogeneous coordinate transformation matrix from rigid
