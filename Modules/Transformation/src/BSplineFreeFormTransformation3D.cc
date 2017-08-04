@@ -28,6 +28,13 @@
 #include "mirtk/CubicBSplineConvolution.h"
 
 
+// The approximation of B-spline coefficients using parallel_reduce gives slightly
+// different results depending on the number of threads; also, it did not demonstrate
+// to be faster than a single-threaded execution. Thus, this code is disabled here,
+// but kept for future reference.
+#define _MIRTK_BSPLINEFFD_PARALLEL_APPROXIMATION 0
+
+
 namespace mirtk {
 
 
@@ -39,7 +46,7 @@ namespace mirtk {
 BSplineFreeFormTransformation3D::BSplineFreeFormTransformation3D()
 :
   FreeFormTransformation3D(_FFD, &_FFD2D),
-  _UseCubicBSplineConvolution(false)
+  _ParametricGradientCalculation(PG_Default)
 {
 }
 
@@ -51,7 +58,7 @@ BSplineFreeFormTransformation3D
                                   double *xaxis, double *yaxis, double *zaxis)
 :
   FreeFormTransformation3D(_FFD, &_FFD2D),
-  _UseCubicBSplineConvolution(false)
+  _ParametricGradientCalculation(PG_Default)
 {
   Initialize(DefaultAttributes(x1, y1, z1, x2, y2, z2, dx, dy, dz, xaxis, yaxis, zaxis));
 }
@@ -61,7 +68,7 @@ BSplineFreeFormTransformation3D
 ::BSplineFreeFormTransformation3D(const ImageAttributes &attr, double dx, double dy, double dz)
 :
   FreeFormTransformation3D(_FFD, &_FFD2D),
-  _UseCubicBSplineConvolution(false)
+  _ParametricGradientCalculation(PG_Default)
 {
   Initialize(attr, dx, dy, dz);
 }
@@ -71,7 +78,7 @@ BSplineFreeFormTransformation3D
 ::BSplineFreeFormTransformation3D(const BaseImage &target, double dx, double dy, double dz)
 :
   FreeFormTransformation3D(_FFD, &_FFD2D),
-  _UseCubicBSplineConvolution(false)
+  _ParametricGradientCalculation(PG_Default)
 {
   Initialize(target.Attributes(), dx, dy, dz);
 }
@@ -81,7 +88,7 @@ BSplineFreeFormTransformation3D
 ::BSplineFreeFormTransformation3D(const GenericImage<double> &image, bool disp)
 :
   FreeFormTransformation3D(_FFD, &_FFD2D),
-  _UseCubicBSplineConvolution(false)
+  _ParametricGradientCalculation(PG_Default)
 {
   Initialize(image, disp);
 }
@@ -91,7 +98,7 @@ BSplineFreeFormTransformation3D
 ::BSplineFreeFormTransformation3D(const BSplineFreeFormTransformation3D &ffd)
 :
   FreeFormTransformation3D(ffd, _FFD, &_FFD2D),
-  _UseCubicBSplineConvolution(false)
+  _ParametricGradientCalculation(PG_Default)
 {
   if (_NumberOfDOFs > 0) InitializeInterpolator();
 }
@@ -108,10 +115,10 @@ BSplineFreeFormTransformation3D::~BSplineFreeFormTransformation3D()
 // -----------------------------------------------------------------------------
 bool BSplineFreeFormTransformation3D::Set(const char *name, const char *value)
 {
-  if (strcmp(name, "Compute BSplineFFD gradient using convolution")   == 0 ||
-      strcmp(name, "Compute BSpline FFD gradient using convolution")  == 0 ||
-      strcmp(name, "Compute B-spline FFD gradient using convolution") == 0) {
-    return FromString(value, _UseCubicBSplineConvolution);
+  if (strcmp(name, "BSplineFFD gradient calculation")   == 0 ||
+      strcmp(name, "BSpline FFD gradient calculation")  == 0 ||
+      strcmp(name, "B-spline FFD gradient calculation") == 0) {
+    return FromString(value, _ParametricGradientCalculation);
   }
   return FreeFormTransformation3D::Set(name, value);
 }
@@ -120,7 +127,7 @@ bool BSplineFreeFormTransformation3D::Set(const char *name, const char *value)
 ParameterList BSplineFreeFormTransformation3D::Parameter() const
 {
   ParameterList params = FreeFormTransformation3D::Parameter();
-  Insert(params, "Compute BSplineFFD gradient using convolution", _UseCubicBSplineConvolution);
+  Insert(params, "B-spline FFD gradient calculationn", _ParametricGradientCalculation);
   return params;
 }
 
@@ -128,11 +135,350 @@ ParameterList BSplineFreeFormTransformation3D::Parameter() const
 // Approximation/Interpolation
 // =============================================================================
 
+#if _MIRTK_BSPLINEFFD_PARALLEL_APPROXIMATION
+namespace {
+
+/// 2D cubic B-spline scattered data approximation
+template <class Kernel>
+class ApproximateSplineCoefficients2D
+{
+  typedef BSplineFreeFormTransformation3D::Vector Vector;
+
+  // Scattered data to approximate
+  int _NumberOfPoints;
+  const double *_PointX;
+  const double *_PointY;
+  const double *_PointZ;
+  const double *_ValueX;
+  const double *_ValueY;
+  const double *_ValueZ;
+
+  // Cubic B-spline function
+  const ImageAttributes  *_Attr;
+  Vector                **_Data;
+  double                **_Norm;
+
+public:
+
+  /// Default constructor
+  ApproximateSplineCoefficients2D(const ImageAttributes *attr,
+                                  const double *wx, const double *wy, const double *wz,
+                                  const double *dx, const double *dy, const double *dz, int no)
+  :
+    _NumberOfPoints(no),
+    _PointX(wx), _PointY(wy), _PointZ(wz),
+    _ValueX(dx), _ValueY(dy), _ValueZ(dz),
+    _Attr(attr)
+  {
+    _Data = CAllocate<Vector>(_Attr->X(), _Attr->Y());
+    _Norm = CAllocate<double>(_Attr->X(), _Attr->Y());
+  }
+
+  /// Split constructor
+  ApproximateSplineCoefficients2D(const ApproximateSplineCoefficients2D &rhs, split)
+  :
+    _NumberOfPoints(rhs._NumberOfPoints),
+    _PointX(rhs._PointX), _PointY(rhs._PointY), _PointZ(rhs._PointZ),
+    _ValueX(rhs._ValueX), _ValueY(rhs._ValueY), _ValueZ(rhs._ValueZ),
+    _Attr(rhs._Attr)
+  {
+    _Data = CAllocate<Vector>(_Attr->X(), _Attr->Y());
+    _Norm = CAllocate<double>(_Attr->X(), _Attr->Y());
+  }
+
+  /// Destructor
+  ~ApproximateSplineCoefficients2D()
+  {
+    Deallocate(_Data);
+    Deallocate(_Norm);
+  }
+
+  /// Joint results of parallel reduction
+  void join(const ApproximateSplineCoefficients2D &rhs)
+  {
+    for (int j = 0; j < _Attr->Y(); ++j)
+    for (int i = 0; i < _Attr->X(); ++i) {
+      _Data[j][i] += rhs._Data[j][i];
+      _Norm[j][i] += rhs._Norm[j][i];
+    }
+  }
+
+  /// Add coefficients approximating subset of values
+  void operator ()(const blocked_range<int> &re)
+  {
+    int    i, j, ci, cj, A, B;
+    double x, y, z, w[2], basis, sum;
+
+    const double *wx = _PointX + re.begin();
+    const double *wy = _PointY + re.begin();
+    const double *wz = _PointZ + re.begin();
+
+    const double *dx = _ValueX + re.begin();
+    const double *dy = _ValueY + re.begin();
+    const double *dz = _ValueZ + re.begin();
+
+    for (int n = re.begin(); n != re.end(); ++n, ++wx, ++wy, ++wz, ++dx, ++dy, ++dz) {
+      if (AreEqual(*dx, 0.) && AreEqual(*dy, 0.) && AreEqual(*dz, 0.)) continue;
+
+      x = *wx, y = *wy, z = *wz;
+      _Attr->WorldToLattice(x, y, z);
+
+      i = ifloor(x);
+      j = ifloor(y);
+
+      A = Kernel::VariableToIndex(x - i);
+      B = Kernel::VariableToIndex(y - j);
+      --i, --j;
+
+      sum = 0.;
+      for (int b = 0; b <= 3; ++b) {
+        w[1] = Kernel::LookupTable[B][b];
+        for (int a = 0; a <= 3; ++a) {
+          w[0] = Kernel::LookupTable[A][a] * w[1];
+          sum += w[0] * w[0];
+        }
+      }
+
+      for (int b = 0; b <= 3; ++b) {
+        cj = j + b;
+        if (cj < 0 || cj >= _Attr->Y()) continue;
+        w[1] = Kernel::LookupTable[B][b];
+        for (int a = 0; a <= 3; ++a) {
+          ci = i + a;
+          if (ci < 0 || ci >= _Attr->X()) continue;
+          w[0]  = Kernel::LookupTable[A][a] * w[1];
+          basis = w[0] * w[0];
+          _Norm[cj][ci] += basis;
+          basis *= w[0] / sum;
+          _Data[cj][ci]._x += basis * (*dx);
+          _Data[cj][ci]._y += basis * (*dy);
+          _Data[cj][ci]._z += basis * (*dz);
+        }
+      }
+    }
+  }
+
+  void Approximate()
+  {
+    parallel_reduce(blocked_range<int>(0, _NumberOfPoints, _NumberOfPoints / 4), *this);
+    for (int j = 0; j < _Attr->Y(); ++j)
+    for (int i = 0; i < _Attr->X(); ++i) {
+      if (!AreEqual(_Norm[j][i], 0.)) {
+        _Data[j][i] /= _Norm[j][i];
+      }
+    }
+  }
+
+  const Vector &Get(int cp) const
+  {
+    return *(_Data[0] + cp);
+  }
+
+  const Vector &Get(int i, int j) const
+  {
+    return *(_Data[j][i]);
+  }
+};
+
+/// 3D cubic B-spline scattered data approximation
+template <class Kernel>
+class ApproximateSplineCoefficients3D
+{
+  typedef BSplineFreeFormTransformation3D::Vector Vector;
+
+  // Scattered data to approximate
+  int _NumberOfPoints;
+  const double *_PointX;
+  const double *_PointY;
+  const double *_PointZ;
+  const double *_ValueX;
+  const double *_ValueY;
+  const double *_ValueZ;
+
+  // Cubic B-spline function
+  const ImageAttributes   *_Attr;
+  Vector                ***_Data;
+  double                ***_Norm;
+
+public:
+
+  /// Default constructor
+  ApproximateSplineCoefficients3D(const ImageAttributes *attr,
+                                  const double *wx, const double *wy, const double *wz,
+                                  const double *dx, const double *dy, const double *dz, int no)
+  :
+    _NumberOfPoints(no),
+    _PointX(wx), _PointY(wy), _PointZ(wz),
+    _ValueX(dx), _ValueY(dy), _ValueZ(dz),
+    _Attr(attr)
+  {
+    _Data = CAllocate<Vector>(_Attr->X(), _Attr->Y(), _Attr->Z());
+    _Norm = CAllocate<double>(_Attr->X(), _Attr->Y(), _Attr->Z());
+  }
+
+  /// Split constructor
+  ApproximateSplineCoefficients3D(const ApproximateSplineCoefficients3D &rhs, split)
+  :
+    _NumberOfPoints(rhs._NumberOfPoints),
+    _PointX(rhs._PointX), _PointY(rhs._PointY), _PointZ(rhs._PointZ),
+    _ValueX(rhs._ValueX), _ValueY(rhs._ValueY), _ValueZ(rhs._ValueZ),
+    _Attr(rhs._Attr)
+  {
+    _Data = CAllocate<Vector>(_Attr->X(), _Attr->Y(), _Attr->Z());
+    _Norm = CAllocate<double>(_Attr->X(), _Attr->Y(), _Attr->Z());
+  }
+
+  /// Destructor
+  ~ApproximateSplineCoefficients3D()
+  {
+    Deallocate(_Data);
+    Deallocate(_Norm);
+  }
+
+  /// Joint results of parallel reduction
+  void join(const ApproximateSplineCoefficients3D &rhs)
+  {
+    for (int k = 0; k < _Attr->Z(); ++k)
+    for (int j = 0; j < _Attr->Y(); ++j)
+    for (int i = 0; i < _Attr->X(); ++i) {
+      _Data[k][j][i] += rhs._Data[k][j][i];
+      _Norm[k][j][i] += rhs._Norm[k][j][i];
+    }
+  }
+
+  /// Add coefficients approximating subset of values
+  void operator ()(const blocked_range<int> &re)
+  {
+    int    i, j, k, ci, cj, ck, A, B, C;
+    double x, y, z, w[3], basis, sum;
+
+    const double *wx = _PointX + re.begin();
+    const double *wy = _PointY + re.begin();
+    const double *wz = _PointZ + re.begin();
+
+    const double *dx = _ValueX + re.begin();
+    const double *dy = _ValueY + re.begin();
+    const double *dz = _ValueZ + re.begin();
+
+    for (int n = re.begin(); n != re.end(); ++n, ++wx, ++wy, ++wz, ++dx, ++dy, ++dz) {
+      if (AreEqual(*dx, 0.) && AreEqual(*dy, 0.) && AreEqual(*dz, 0.)) continue;
+
+      x = *wx, y = *wy, z = *wz;
+      _Attr->WorldToLattice(x, y, z);
+
+      i = ifloor(x);
+      j = ifloor(y);
+      k = ifloor(z);
+
+      A = Kernel::VariableToIndex(x - i);
+      B = Kernel::VariableToIndex(y - j);
+      C = Kernel::VariableToIndex(z - k);
+      --i, --j, --k;
+
+      sum = 0.;
+      for (int c = 0; c <= 3; ++c) {
+        w[2] = Kernel::LookupTable[C][c];
+        for (int b = 0; b <= 3; ++b) {
+          w[1] = Kernel::LookupTable[B][b] * w[2];
+          for (int a = 0; a <= 3; ++a) {
+            w[0] = Kernel::LookupTable[A][a] * w[1];
+            sum += w[0] * w[0];
+          }
+        }
+      }
+
+      for (int c = 0; c <= 3; ++c) {
+        ck = k + c;
+        if (ck < 0 || ck >= _Attr->Z()) continue;
+        w[2] = Kernel::LookupTable[C][c];
+        for (int b = 0; b <= 3; ++b) {
+          cj = j + b;
+          if (cj < 0 || cj >= _Attr->Y()) continue;
+          w[1] = Kernel::LookupTable[B][b] * w[2];
+          for (int a = 0; a <= 3; ++a) {
+            ci = i + a;
+            if (ci < 0 || ci >= _Attr->X()) continue;
+            w[0]  = Kernel::LookupTable[A][a] * w[1];
+            basis = w[0] * w[0];
+            _Norm[ck][cj][ci] += basis;
+            basis *= w[0] / sum;
+            _Data[ck][cj][ci]._x += basis * (*dx);
+            _Data[ck][cj][ci]._y += basis * (*dy);
+            _Data[ck][cj][ci]._z += basis * (*dz);
+          }
+        }
+      }
+    }
+  }
+
+  void Approximate()
+  {
+    parallel_reduce(blocked_range<int>(0, _NumberOfPoints, _NumberOfPoints / 4), *this);
+    for (int k = 0; k < _Attr->Z(); ++k)
+    for (int j = 0; j < _Attr->Y(); ++j)
+    for (int i = 0; i < _Attr->X(); ++i) {
+      if (!AreEqual(_Norm[k][j][i], 0.)) {
+        _Data[k][j][i] /= _Norm[k][j][i];
+      }
+    }
+  }
+
+  const Vector &Get(int cp) const
+  {
+    return *(_Data[0][0] + cp);
+  }
+
+  const Vector &Get(int i, int j, int k) const
+  {
+    return *(_Data[k][j][i]);
+  }
+};
+
+} // namespace
+
 // -----------------------------------------------------------------------------
 void BSplineFreeFormTransformation3D
-::ApproximateDOFs(const double *wx, const double *wy, const double *wz, const double *,
-                  const double *dx, const double *dy, const double *dz, int no)
+::AddApproximateSplineCoefficients(const double *wx, const double *wy, const double *wz,
+                                   const double *dx, const double *dy, const double *dz,
+                                   int no, double *gradient, double weight, bool incl_passive) const
 {
+  if (AreEqual(weight, 0.)) return;
+  int xdof, ydof, zdof;
+  if (_z == 1) {
+    ApproximateSplineCoefficients2D<Kernel> spline(&_attr, wx, wy, wz, dx, dy, dz, no);
+    spline.Approximate();
+    for (int cp = 0; cp < NumberOfCPs(); ++cp) {
+      if (incl_passive || IsActive(cp)) {
+        auto &coeff = spline.Get(cp);
+        this->IndexToDOFs(cp, xdof, ydof, zdof);
+        gradient[xdof] += weight * coeff._x;
+        gradient[ydof] += weight * coeff._y;
+        gradient[zdof] += weight * coeff._z;
+      }
+    }
+  } else {
+    ApproximateSplineCoefficients3D<Kernel> spline(&_attr, wx, wy, wz, dx, dy, dz, no);
+    spline.Approximate();
+    for (int cp = 0; cp < NumberOfCPs(); ++cp) {
+      if (incl_passive || IsActive(cp)) {
+        auto &coeff = spline.Get(cp);
+        this->IndexToDOFs(cp, xdof, ydof, zdof);
+        gradient[xdof] += weight * coeff._x;
+        gradient[ydof] += weight * coeff._y;
+        gradient[zdof] += weight * coeff._z;
+      }
+    }
+  }
+}
+#else // _MIRTK_BSPLINEFFD_PARALLEL_APPROXIMATION
+// -----------------------------------------------------------------------------
+void BSplineFreeFormTransformation3D
+::AddApproximateSplineCoefficients(const double *wx, const double *wy, const double *wz,
+                                   const double *dx, const double *dy, const double *dz,
+                                   int no, double *gradient, double weight, bool incl_passive) const
+{
+  if (AreEqual(weight, 0.)) return;
+
   int    i, j, k, ci, cj, ck, A, B, C;
   double x, y, z, w[3], basis, sum;
 
@@ -142,7 +488,7 @@ void BSplineFreeFormTransformation3D
 
   // Initial loop: Calculate change of control points
   for (int idx = 0; idx < no; ++idx) {
-    if (dx[idx] == .0 && dy[idx] == .0 && dz[idx] == .0) continue;
+    if (AreEqual(dx[idx], 0.) && AreEqual(dy[idx], 0.) && AreEqual(dz[idx], 0.)) continue;
 
     x = wx[idx], y = wy[idx], z = wz[idx];
     this->WorldToLattice(x, y, z);
@@ -228,20 +574,33 @@ void BSplineFreeFormTransformation3D
   }
 
   // Final loop: Calculate new control points
-  const Vector zero(.0);
+  int xdof, ydof, zdof;
 
   Vector *in  = data[0][0];
   double *div = norm[0][0];
-  Vector *out = _CPImage.Data();
 
-  for (int cp = 0; cp < NumberOfCPs(); ++cp, ++out, ++in, ++div) {
-    (*out) = ((*div) ? ((*in) / (*div)) : zero);
+  for (int cp = 0; cp < NumberOfCPs(); ++cp, ++in, ++div) {
+    if ((incl_passive || IsActive(cp)) && !AreEqual(*div, 0.)) {
+      this->IndexToDOFs(cp, xdof, ydof, zdof);
+      gradient[xdof] += weight * in->_x / (*div);
+      gradient[ydof] += weight * in->_y / (*div);
+      gradient[zdof] += weight * in->_z / (*div);
+    }
   }
 
   // Deallocate memory
   Deallocate(data);
   Deallocate(norm);
+}
+#endif // _MIRTK_BSPLINEFFD_PARALLEL_APPROXIMATION
 
+// -----------------------------------------------------------------------------
+void BSplineFreeFormTransformation3D
+::ApproximateDOFs(const double *wx, const double *wy, const double *wz, const double *,
+                  const double *dx, const double *dy, const double *dz, int no)
+{
+  memset(_Param, 0, _NumberOfDOFs * sizeof(double));
+  AddApproximateSplineCoefficients(wx, wy, wz, dx, dy, dz, no, _Param);
   this->Changed(true);
 }
 
@@ -1196,31 +1555,60 @@ void BSplineFreeFormTransformation3D
                      const WorldCoordsImage *i2w, const WorldCoordsImage *wc,
                      double t0, double w) const
 {
-  if (_UseCubicBSplineConvolution && wc == nullptr) {
-    MIRTK_START_TIMING();
+  switch (_ParametricGradientCalculation) {
+    case PG_Default:
+    case PG_Analytic: {
+      FreeFormTransformation3D::ParametricGradient(in, out, i2w, wc, t0, w);
+    } break;
 
-    typedef SampleGradientImage<double>        GradientSampler;
-    typedef GradientSampler::GradientFunction  GradientFunction;
+    case PG_Convolution: {
+      if (wc != nullptr) {
+        Throw(ERR_NotImplemented, __FUNCTION__, "Convolution-based B-spline FFD gradient calculation not implemented for wc != nullptr, i.e., 'Fluid' MFFD!");
+      }
 
-    GenericImage<double> tmp(*in);
-    CubicBSplineConvolution<double> conv(_dx, _dy, _dz);
-    conv.Input(in);
-    conv.Output(&tmp);
-    conv.Run();
+      MIRTK_START_TIMING();
 
-    GradientFunction grad;
-    grad.Input(conv.Output());
-    grad.Initialize();
+      typedef SampleGradientImage<double>        GradientSampler;
+      typedef GradientSampler::GradientFunction  GradientFunction;
 
-    GradientSampler sample;
-    sample._FFD      = this;
-    sample._Gradient = &grad;
-    sample._Output   = out;
-    parallel_for(blocked_range3d<int>(0, _z, 0, _y, 0, _x), sample);
+      GenericImage<double> tmp(*in);
+      CubicBSplineConvolution<double> conv(_dx, _dy, _dz);
+      conv.Input(in);
+      conv.Output(&tmp);
+      conv.Run();
 
-    MIRTK_DEBUG_TIMING(2, "parametric gradient computation (3D BSplineFFD)");
-  } else {
-    FreeFormTransformation3D::ParametricGradient(in, out, i2w, wc, t0, w);
+      GradientFunction grad;
+      grad.Input(conv.Output());
+      grad.Initialize();
+
+      GradientSampler sample;
+      sample._FFD      = this;
+      sample._Gradient = &grad;
+      sample._Output   = out;
+      parallel_for(blocked_range3d<int>(0, _z, 0, _y, 0, _x), sample);
+
+      MIRTK_DEBUG_TIMING(2, "parametric gradient computation (3D B-spline convolution)");
+    } break;
+
+    case PG_Approximation: {
+      MIRTK_START_TIMING();
+
+      UniquePtr<WorldCoordsImage> _wc;
+      if (wc == nullptr) {
+        if (i2w == nullptr) {
+          _wc.reset(new WorldCoordsImage(in->Attributes(), 3));
+          in->ImageToWorld(*_wc.get());
+          wc = _wc.get();
+        } else {
+          wc = i2w;
+        }
+      }
+      AddApproximateSplineCoefficients(wc->Data(0, 0, 0, 0), wc->Data(0, 0, 0, 1), wc->Data(0, 0, 0, 2),
+                                       in->Data(0, 0, 0, 0), in->Data(0, 0, 0, 1), in->Data(0, 0, 0, 2),
+                                       in->NumberOfSpatialVoxels(), out, w);
+
+      MIRTK_DEBUG_TIMING(2, "parametric gradient computation (3D B-spline DMFFD)");
+    } break;
   }
 }
 
