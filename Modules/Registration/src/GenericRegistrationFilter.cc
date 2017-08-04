@@ -3947,58 +3947,74 @@ void GenericRegistrationFilter::InitializeOutput()
       if (tn > 0) _TargetOffset /= tn;
       if (sn > 0) _SourceOffset /= sn;
 
-      // Translate origin of images such that
-      for (int n = 0; n < NumberOfImages(); ++n) {
-        Point origin = _Image[_CurrentLevel][n].GetOrigin();
-        if (IsTargetImage(n)) {
-          _Image[_CurrentLevel][n].PutOrigin(origin - _TargetOffset);
-        } else {
-          _Image[_CurrentLevel][n].PutOrigin(origin - _SourceOffset);
-        }
+      // No translation in dimensions where this is disabled
+      if (lin->GetStatus(TX) == Passive) {
+        _TargetOffset._x = _SourceOffset._x = 0.;
       }
-      if (_Mask[_CurrentLevel]) {
-        Point origin = _Mask[_CurrentLevel]->GetOrigin();
-        _Mask[_CurrentLevel]->PutOrigin(origin - _TargetOffset);
+      if (lin->GetStatus(TY) == Passive) {
+        _TargetOffset._y = _SourceOffset._y = 0.;
       }
+      if (lin->GetStatus(TZ) == Passive) {
+        _TargetOffset._z = _SourceOffset._z = 0.;
+      }
+      if (AreEqual(_TargetOffset.Distance(), 0.) &&
+          AreEqual(_SourceOffset.Distance(), 0.)) {
+        _TargetOffset = _SourceOffset = 0.;
+      } else {
 
-      // Translates points of point sets
-      #if MIRTK_Registration_WITH_PointSet
-        for (int n = 0; n < NumberOfPointSets(); ++n) {
-          double p[3], offset[3];
-          if (IsTargetPointSet(n)) {
-            offset[0] = _TargetOffset._x;
-            offset[1] = _TargetOffset._y;
-            offset[2] = _TargetOffset._z;
+        // Translate origin of images such that
+        for (int n = 0; n < NumberOfImages(); ++n) {
+          Point origin = _Image[_CurrentLevel][n].GetOrigin();
+          if (IsTargetImage(n)) {
+            _Image[_CurrentLevel][n].PutOrigin(origin - _TargetOffset);
           } else {
-            offset[0] = _SourceOffset._x;
-            offset[1] = _SourceOffset._y;
-            offset[2] = _SourceOffset._z;
-          }
-          vtkPoints *points = _PointSet[_CurrentLevel][n]->GetPoints();
-          for (vtkIdType ptId = 0; ptId < points->GetNumberOfPoints(); ++ptId) {
-            points->GetPoint(ptId, p);
-            p[0] -= offset[0];
-            p[1] -= offset[1];
-            p[2] -= offset[2];
-            points->SetPoint(ptId, p);
+            _Image[_CurrentLevel][n].PutOrigin(origin - _SourceOffset);
           }
         }
-      #endif // MIRTK_Registration_WITH_PointSet
+        if (_Mask[_CurrentLevel]) {
+          Point origin = _Mask[_CurrentLevel]->GetOrigin();
+          _Mask[_CurrentLevel]->PutOrigin(origin - _TargetOffset);
+        }
 
-      // Adjust linear transformation
-      Matrix pre(4, 4);
-      pre.Ident();
-      pre(0, 3)  = + _TargetOffset._x;
-      pre(1, 3)  = + _TargetOffset._y;
-      pre(2, 3)  = + _TargetOffset._z;
+        // Translates points of point sets
+        #if MIRTK_Registration_WITH_PointSet
+          for (int n = 0; n < NumberOfPointSets(); ++n) {
+            double p[3], offset[3];
+            if (IsTargetPointSet(n)) {
+              offset[0] = _TargetOffset._x;
+              offset[1] = _TargetOffset._y;
+              offset[2] = _TargetOffset._z;
+            } else {
+              offset[0] = _SourceOffset._x;
+              offset[1] = _SourceOffset._y;
+              offset[2] = _SourceOffset._z;
+            }
+            vtkPoints *points = _PointSet[_CurrentLevel][n]->GetPoints();
+            for (vtkIdType ptId = 0; ptId < points->GetNumberOfPoints(); ++ptId) {
+              points->GetPoint(ptId, p);
+              p[0] -= offset[0];
+              p[1] -= offset[1];
+              p[2] -= offset[2];
+              points->SetPoint(ptId, p);
+            }
+          }
+        #endif // MIRTK_Registration_WITH_PointSet
 
-      Matrix post(4, 4);
-      post.Ident();
-      post(0, 3) = - _SourceOffset._x;
-      post(1, 3) = - _SourceOffset._y;
-      post(2, 3) = - _SourceOffset._z;
+        // Adjust linear transformation
+        Matrix pre(4, 4);
+        pre.Ident();
+        pre(0, 3)  = + _TargetOffset._x;
+        pre(1, 3)  = + _TargetOffset._y;
+        pre(2, 3)  = + _TargetOffset._z;
 
-      lin->PutMatrix(post * lin->GetMatrix() * pre);
+        Matrix post(4, 4);
+        post.Ident();
+        post(0, 3) = - _SourceOffset._x;
+        post(1, 3) = - _SourceOffset._y;
+        post(2, 3) = - _SourceOffset._z;
+
+        lin->PutMatrix(post * lin->GetMatrix() * pre);
+      }
     }
   }
 
