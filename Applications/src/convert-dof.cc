@@ -86,6 +86,7 @@ void PrintHelp(const char *name)
   cout << "  f3d_disp_vel_field          Nifty Reg reg_f3d output image displacement field as stationary velocity field.\n";
   cout << "  f3d_spline_vel_grid         Nifty Reg reg_f3d output control point velocity field.\n";
   cout << "  elastix|elastix_ffd         Elastix BSplineTransform parameters text file.\n";
+  cout << "  dramms                      DRAMMS deformation field.\n";
   cout << "  star_ccm                    Output file suitable for import in STAR CCM+.\n";
   cout << "  star_ccm_table              Point displacements as STAR CCM+ XYZ Table.\n";
   cout << "  star_ccm_table_xyz          Transformed points  as STAR CCM+ XYZ Table.\n";
@@ -215,6 +216,8 @@ enum TransformationFileFormat
   Format_MNI,
   Format_MNI_XFM,
   Format_MNI_M3Z,
+  // DRAMMS
+  Format_DRAMMS,
   // STAR-CCM+
   Format_STAR_CCM,
   Format_STAR_CCM_Table,
@@ -276,6 +279,7 @@ inline string ToString(const TransformationFileFormat &format, int w, char c, bo
     case Format_MNI_M3Z:                  str = "mni_m3z"; break;
     case Format_Elastix:                  str = "elastix"; break;
     case Format_Elastix_FFD:              str = "elastix_ffd"; break;
+    case Format_DRAMMS:                   str = "dramms"; break;
     case Format_STAR_CCM:                 str = "star_ccm"; break;
     case Format_STAR_CCM_Table:           str = "star_ccm_table"; break;
     case Format_STAR_CCM_Table_XYZ:       str = "star_ccm_table_xyz"; break;
@@ -2607,6 +2611,11 @@ int main(int argc, char *argv[])
     // FreeSurfer
     case Format_MNI_XFM: {
       dof.reset(ReadXFM(input_name));
+    } break;
+
+    // DRAMMS
+    case Format_DRAMMS: {
+      dof.reset(ReadDRAMMS(input_name));
     } break;
 
     // STAR-CCM+
