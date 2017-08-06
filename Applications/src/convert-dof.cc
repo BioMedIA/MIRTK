@@ -1159,6 +1159,33 @@ Transformation *ReadElastix(const char *fname, const ImageAttributes &target)
   return dof.release();
 }
 
+// =============================================================================
+// DRAMMS
+// =============================================================================
+
+// -----------------------------------------------------------------------------
+/// Read transformation from displacement field image written by DRAMMS
+Transformation *ReadDRAMMS(const char *fname)
+{
+  // DRAMMS data order is yxzyxzyxz... instead of xxx...yyy...zzz..., but the
+  // header information still relates to the respective x, y, and z axes
+  GenericImage<double> in(fname);
+  GenericImage<double> disp(in.Attributes());
+  double *data = in.Data();
+  for (int k = 0; k < in.Z(); ++k)
+  for (int j = 0; j < in.Y(); ++j)
+  for (int i = 0; i < in.X(); ++i, data += 3) {
+    disp(i, j, k, 0) = data[1];
+    disp(i, j, k, 1) = data[0];
+    disp(i, j, k, 2) = data[2];
+  }
+  in.Clear();
+  // Convert to physical displacements
+  ConvertVoxelToWorldDisplacement(disp);
+  // Convert to linear FFD
+  return ToLinearFFD(disp);
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // Write transformation
 ////////////////////////////////////////////////////////////////////////////////
