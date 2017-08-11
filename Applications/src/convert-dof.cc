@@ -798,16 +798,39 @@ Transformation *ReadF3D(const char *fname, const char *dofin_name = NULL,
     // Read NIfTI header
     NiftiImageInfo hdr(fname);
     if (type == F3D_TYPE_UNKNOWN) {
-      if (hdr.intent_code == NIFTI_INTENT_VECTOR && hdr.intent_name == "NREG_TRANS") {
-        type = static_cast<F3DTransformationType>(static_cast<int>(hdr.intent_p1));
-      } else if (hdr.intent_code == NIFTI_INTENT_VECTOR && hdr.intent_name == "NREG_CPP_FILE") {
-        type = F3D_SPLINE_GRID; // v1.3.9
-      } else {
+      if (hdr.intent_code == NIFTI_INTENT_VECTOR) {
+        // latest
+        if (hdr.intent_name == "NREG_TRANS") {
+          type = static_cast<F3DTransformationType>(static_cast<int>(hdr.intent_p1));
+        // v1.3.9
+        } else if (hdr.intent_name == "NREG_CPP_FILE") {
+          if (hdr.descrip == "Control point position from NiftyReg (reg_f3d)") {
+            // reg_f3d without -vel option
+            type = F3D_SPLINE_GRID;
+          } else if (hdr.descrip == "Velocity field grid from NiftyReg (reg_f3d2)") {
+            // reg_f3d with -vel and -sym options
+            type = F3D_SPLINE_VEL_GRID;
+          }
+        } else if (hdr.intent_name == "NREG_VEL_STEP") {
+          // reg_f3d with -vel option, but without -sym
+          if (hdr.descrip == "Velocity field grid from NiftyReg (reg_f3d2)") {
+            type = F3D_SPLINE_VEL_GRID;
+          }
+        }
+      }
+      if (type == F3D_TYPE_UNKNOWN) {
         FatalError("Cannot determine format of input F3D vector field from NIfTI intent code!");
       }
     }
     if (steps == 0) {
-      steps = static_cast<int>(hdr.intent_p2);
+      if (hdr.intent_name == "NREG_VEL_STEP") {
+        steps = static_cast<int>(hdr.intent_p1);
+      } else if (hdr.intent_name == "NREG_TRANS") {
+        steps = static_cast<int>(hdr.intent_p2);
+      }
+      if (steps == 0) {
+        steps = 6;
+      }
     }
 
     bool displacement = (type == F3D_DISP_FIELD || type == F3D_DISP_VEL_FIELD);
