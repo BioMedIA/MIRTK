@@ -1117,9 +1117,10 @@ Transformation *ReadElastix(const char *fname, const ImageAttributes &target)
   // Deal with itk::NiftiImageIO::SetNIfTIOrientationFromImageIO nonsense
   grid._xorigin *= -1.;
   grid._yorigin *= -1.;
-  for (int i = 0; i < 3; ++i) {
+  for (int i = 0; i < 2; ++i) {
     grid._xaxis[i] *= -1.;
     grid._yaxis[i] *= -1.;
+    grid._zaxis[i] *= -1.;
   }
   // Move origin to grid center
   double tx = .5 * (grid._x - 1) * grid._dx;
