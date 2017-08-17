@@ -1104,21 +1104,9 @@ void BSplineFreeFormTransformationSV
   if (d && !dx && !dj && !lj && !dv) {
 
     GenericImage<VoxelType> v;
-    // Use only vector fields defined at control points with B-spline interpolation.
-    // This results in an approximate solution due to the error at each squaring.
     if (fast) {
       v.Initialize(this->Attributes(), 3);
-      VoxelType *vx = v.Data(0, 0, 0, 0);
-      VoxelType *vy = v.Data(0, 0, 0, 1);
-      VoxelType *vz = v.Data(0, 0, 0, 2);
-      const Vector *vp = _CPImage.Data();
-      for (int idx = 0; idx < _CPImage.NumberOfVoxels(); ++idx, ++vx, ++vy, ++vz, ++vp) {
-        *vx = static_cast<VoxelType>(vp->_x);
-        *vy = static_cast<VoxelType>(vp->_y);
-        *vz = static_cast<VoxelType>(vp->_z);
-      }
-    // Evaluate velocities at output voxels beforehand and use
-    // linear interpolation of dense vector fields during squaring
+      ParallelForEachVoxel(EvaluateBSplineSVFFD3D(this, &v), this->Attributes(), v);
     } else {
       v.Initialize(attr, 3);
       ParallelForEachVoxel(EvaluateBSplineSVFFD3D(this, &v), attr, v);
@@ -1128,12 +1116,11 @@ void BSplineFreeFormTransformationSV
     exp.UpperIntegrationLimit(T);
     exp.NumberOfSteps(NumberOfStepsForIntervalLength(T));
     exp.MaxScaledVelocity(static_cast<VoxelType>(_MaxScaledVelocity));
-    exp.Interpolation(fast ? Interpolation_FastCubicBSpline : Interpolation_Linear);
+    exp.Interpolation(Interpolation_Linear);
     exp.Upsample(false);  // better, but too expensive
     exp.Input(0, &v);     // velocity field to be exponentiated
     exp.Input(1, din);    // input displacement field (may be zero)
     exp.Output(d);        // result is exp(v) o d
-    exp.ComputeInterpolationCoefficients(!fast);
     exp.Run();
 
   } else {
@@ -1155,7 +1142,6 @@ void BSplineFreeFormTransformationSV
     exp.UpperIntegrationLimit(T);
     exp.NumberOfSteps(NumberOfStepsForIntervalLength(T));
     exp.MaxScaledVelocity(_MaxScaledVelocity);
-    exp.Interpolation(fast ? Interpolation_FastCubicBSpline : Interpolation_Linear);
     exp.InterimAttributes(fast ? this->Attributes() : attr);
     exp.OutputAttributes(attr);
     exp.Upsample(false);           // better, but too computationally expensive
