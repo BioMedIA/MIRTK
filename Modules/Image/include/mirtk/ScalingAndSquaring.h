@@ -51,11 +51,8 @@ public:
   /// Image type of input, output, and intermediate images
   typedef GenericImage<TReal> ImageType;
 
-  /// Type of displacement field interpolator
-  typedef GenericInterpolateImageFunction<ImageType> DisplacementField;
-
-  /// Type of Jacobian field interpolator
-  typedef GenericInterpolateImageFunction<ImageType> JacobianField;
+  /// Type of vector field interpolator
+  typedef GenericInterpolateImageFunction<ImageType> VectorField;
 
   /// Type of input velocity field interpolator
   typedef GenericFastCubicBSplineInterpolateImageFunction<ImageType>  VelocityField;
@@ -78,34 +75,19 @@ private:
   // Interim
 
   /// Intermediate displacement field
-  mirtkComponentMacro(ImageType, InterimDisplacement);
+  mirtkReadOnlyAttributeMacro(UniquePtr<ImageType>, InterimDisplacement);
 
   /// Intermediate Jacobian w.r.t. x
-  mirtkComponentMacro(ImageType, InterimJacobian);
+  mirtkReadOnlyAttributeMacro(UniquePtr<ImageType>, InterimJacobian);
 
   /// Intermediate determinant of Jacobian w.r.t. x
-  mirtkComponentMacro(ImageType, InterimDetJacobian);
+  mirtkReadOnlyAttributeMacro(UniquePtr<ImageType>, InterimDetJacobian);
 
   /// Intermediate log of determinant of Jacobian w.r.t. x
-  mirtkComponentMacro(ImageType, InterimLogJacobian);
+  mirtkReadOnlyAttributeMacro(UniquePtr<ImageType>, InterimLogJacobian);
 
   /// Intermediate Jacobian w.r.t. v
-  mirtkComponentMacro(ImageType, InterimJacobianDOFs);
-
-  /// Interpolator of intermediate displacement field
-  mirtkComponentMacro(DisplacementField, Displacement);
-
-  /// Interpolator of intermediate Jacobian w.r.t. x
-  mirtkComponentMacro(JacobianField, Jacobian);
-
-  /// Interpolator of intermediate determinant of Jacobian w.r.t. x
-  mirtkComponentMacro(JacobianField, DetJacobian);
-
-  /// Interpolator of intermediate log of determinant of Jacobian w.r.t. x
-  mirtkComponentMacro(JacobianField, LogJacobian);
-
-  /// Interpolator of intermediate Jacobian w.r.t. v
-  mirtkComponentMacro(JacobianField, JacobianDOFs);
+  mirtkReadOnlyAttributeMacro(UniquePtr<ImageType>, InterimJacobianDOFs);
 
   // ---------------------------------------------------------------------------
   // Output
@@ -199,7 +181,7 @@ protected:
   virtual void Finalize();
 
   /// Resample intermediate filter output
-  template <class TInterpolator> void Resample(ImageType *, TInterpolator *);
+  void Resample(const ImageType *, ImageType *);
 
 public:
 
