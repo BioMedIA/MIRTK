@@ -1571,8 +1571,10 @@ void BSplineFreeFormTransformation3D
       typedef SampleGradientImage<double>        GradientSampler;
       typedef GradientSampler::GradientFunction  GradientFunction;
 
-      GenericImage<double> tmp(*in);
+      // Note: in may have more components that are unused here, see SVFFD subclass
+      GenericImage<double> tmp;
       CubicBSplineConvolution<double> conv(_dx, _dy, _dz);
+      conv.Components(3);
       conv.Input(in);
       conv.Output(&tmp);
       conv.Run();

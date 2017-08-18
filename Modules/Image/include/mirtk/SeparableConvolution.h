@@ -82,6 +82,17 @@ protected:
   /// Padding value
   mirtkPublicAttributeMacro(double, PaddingValue);
 
+  /// Number of vector components of input image to convolve
+  ///
+  /// By default, when the input image as temporal voxel size 0, each
+  /// vector component stored in the temporal dimension is convolved
+  /// separately. When this attribute is set to a positive value,
+  /// only the first vector components up to the specified number
+  /// of components are being convolved, and the output image may
+  /// have less vector components stored in the temporal dimension
+  /// than the input image.
+  mirtkPublicAttributeMacro(int, Components);
+
 protected:
 
   /// Initialize filter
