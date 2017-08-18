@@ -47,7 +47,8 @@ SeparableConvolution<TVoxel, TKernel>
   _UseBackgroundMask(false),
   _UseBackgroundValue(false),
   _UsePaddingValue(false),
-  _PaddingValue(NaN)
+  _PaddingValue(NaN),
+  _Components(0)
 {
 }
 
@@ -78,7 +79,12 @@ template <class TVoxel, class TKernel>
 void SeparableConvolution<TVoxel, TKernel>::Initialize()
 {
   // Initialize base class
-  ImageToImage<TVoxel>::Initialize();
+  ImageToImage<TVoxel>::Initialize(false);
+
+  // Allocate output image
+  if (this->Input() != this->Output()) {
+    this->Output()->Initialize(this->Input()->Attributes(), _Components);
+  }
 
   // Check arguments
   if (_KernelX && !CheckKernel(_KernelX)) {
@@ -107,11 +113,14 @@ void SeparableConvolution<TVoxel, TKernel>::Run()
   ImageType *input  = const_cast<ImageType *>(this->Input());
   ImageType *output = this->Output();
 
-  const ImageAttributes &attr = input->Attributes();
+  ImageAttributes attr = input->Attributes();
 
   // Number of vector components
   int N = 1;
-  if (attr._t == 1) {
+  if (_Components > 0) {
+    N = _Components;
+    attr._dt = 0.;
+  } else if (attr._t == 1) {
     if (attr._z > 1 && AreEqual(attr._dz, 0.)) {
       N = attr._z;
     }
