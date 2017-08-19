@@ -79,6 +79,7 @@ BSplineFreeFormTransformationSV
   _NumberOfSteps    (64),
   _MaxScaledVelocity(-1.0),
   _IntegrationMethod(FFDIM_FastSS),
+  _UseDenseBCHGrid  (false),
   _LieDerivative    (false),
   _NumberOfBCHTerms (4),
   _JacobianDOFs     (NULL),
@@ -97,6 +98,7 @@ BSplineFreeFormTransformationSV
   _NumberOfSteps    (64),
   _MaxScaledVelocity(-1.0),
   _IntegrationMethod(FFDIM_FastSS),
+  _UseDenseBCHGrid  (false),
   _LieDerivative    (false),
   _NumberOfBCHTerms (4),
   _JacobianDOFs     (NULL),
@@ -116,6 +118,7 @@ BSplineFreeFormTransformationSV
   _NumberOfSteps    (64),
   _MaxScaledVelocity(-1.0),
   _IntegrationMethod(FFDIM_FastSS),
+  _UseDenseBCHGrid  (false),
   _LieDerivative    (false),
   _NumberOfBCHTerms (4),
   _JacobianDOFs     (NULL),
@@ -134,6 +137,7 @@ BSplineFreeFormTransformationSV
   _NumberOfSteps    (64),
   _MaxScaledVelocity(-1.0),
   _IntegrationMethod(FFDIM_FastSS),
+  _UseDenseBCHGrid  (false),
   _LieDerivative    (false),
   _NumberOfBCHTerms (4),
   _JacobianDOFs     (NULL),
@@ -152,6 +156,7 @@ BSplineFreeFormTransformationSV
   _NumberOfSteps    (ffd._NumberOfSteps),
   _MaxScaledVelocity(ffd._MaxScaledVelocity),
   _IntegrationMethod(ffd._IntegrationMethod),
+  _UseDenseBCHGrid  (ffd._UseDenseBCHGrid),
   _LieDerivative    (ffd._LieDerivative),
   _NumberOfBCHTerms (ffd._NumberOfBCHTerms),
   _JacobianDOFs     (NULL),
@@ -359,6 +364,57 @@ public:
     *u -= MatrixProduct(jac, vel);
   }
 };
+
+// -----------------------------------------------------------------------------
+template <class TReal>
+void EvaluateBCHFormulaDense(int nterms, GenericImage<TReal> &u,
+                             const GenericImage<TReal> &v,
+                             const GenericImage<TReal> &w,
+                             bool minus_v, bool usejac)
+{
+  MIRTK_START_TIMING();
+
+  GenericImage<TReal> l1, l2, l3, l4;
+  if (nterms >= 3) {
+    // - [v, w]
+    liebracket(&l1, &v, &w, usejac);
+    if (nterms >= 4) {
+      // - [v, [v, w]]
+      liebracket(&l2, &v, &l1, usejac);
+      if (nterms >= 5) {
+        // - [w, [w, v]] = [[v, w], w]
+        liebracket(&l3, &l1, &w, usejac);
+        if (nterms >= 6) {
+          // - [[v, [v, w]], w]
+          liebracket(&l4, &l2, &w, usejac);
+          // - [[w, [v, w]], v] == [[v, [v, w]], w]
+        }
+      }
+    }
+  }
+
+  // Evaluate BCH formula given all pre-computed terms and their respective weights
+  const double weight1[] = {0.0, 1.0, 1.0/2.0, 1.0/12.0, 1.0/12.0, 1.0/48.0, 1.0/48.0};
+  const double weight2[] = {1.0, 1.0, 1.0/2.0, 1.0/12.0, 1.0/12.0, 1.0/48.0, 1.0/48.0};
+
+  NaryVoxelFunction::VoxelWiseWeightedSum bch;
+  if (minus_v) bch._Weight = weight1;
+  else         bch._Weight = weight2;
+
+  switch (nterms) {
+    case 1: { if (minus_v) { u = .0; } else { u = v; }                 break; }
+    case 2: { ParallelForEachScalar(v, w,                     u, bch); break; }
+    case 3: { ParallelForEachScalar(v, w, l1,                 u, bch); break; }
+    case 4: { ParallelForEachScalar(v, w, l1, l2,             u, bch); break; }
+    case 5: { ParallelForEachScalar(v, w, l1, l2, l3,         u, bch); break; }
+    case 6: { ParallelForEachScalar(v, w, l1, l2, l3, l4,     u, bch); break; }
+    case 7: { ParallelForEachScalar(v, w, l1, l2, l3, l4, l4, u, bch); break; }
+    default:
+      cerr << "BSplineFreeFormTransformationSV::EvaluateBCHFormulaDense: Invalid number of terms " << nterms << endl;
+      exit(1);
+  };
+  MIRTK_DEBUG_TIMING(3, "evaluation of BCH formula (dense)");
+}
 
 // -----------------------------------------------------------------------------
 void BSplineFreeFormTransformationSV
@@ -970,9 +1026,10 @@ bool BSplineFreeFormTransformationSV::Set(const char *name, const char *value)
     }
   } else if (strcmp(name, "Maximum scaled velocity") == 0) {
     return FromString(value, _MaxScaledVelocity);
-
   } else if (strcmp(name, "Use Lie derivative") == 0) {
     return FromString(value, _LieDerivative);
+  } else if (strcmp(name, "Use dense BCH lattice") == 0) {
+    return FromString(value, _UseDenseBCHGrid);
   } else if (strcmp(name,    "No. of BCH terms")    == 0 ||
              strcmp(name, "Number of BCH terms") == 0) {
     return FromString(value, _NumberOfBCHTerms) && _NumberOfBCHTerms <= 6;
@@ -1005,13 +1062,14 @@ bool BSplineFreeFormTransformationSV::Set(const char *name, const char *value)
 ParameterList BSplineFreeFormTransformationSV::Parameter() const
 {
   ParameterList params = BSplineFreeFormTransformation3D::Parameter();
-  Insert(params, "Integration method",                ToString(_IntegrationMethod));
-  Insert(params, "Cross-sectional time interval",     ToString(_T));
-  Insert(params, "Time unit of integration interval", ToString(_TimeUnit));
-  Insert(params, "No. of integration steps",          ToString(_NumberOfSteps));
-  Insert(params, "Maximum scaled velocity",           ToString(_MaxScaledVelocity));
-  Insert(params, "Use Lie derivative",                ToString(_LieDerivative));
-  Insert(params, "No. of BCH terms",                  ToString(_NumberOfBCHTerms));
+  Insert(params, "Integration method",                _IntegrationMethod);
+  Insert(params, "Cross-sectional time interval",     _T);
+  Insert(params, "Time unit of integration interval", _TimeUnit);
+  Insert(params, "No. of integration steps",          _NumberOfSteps);
+  Insert(params, "Maximum scaled velocity",           _MaxScaledVelocity);
+  Insert(params, "Use Lie derivative",                _LieDerivative);
+  Insert(params, "Use dense BCH lattice",             _UseDenseBCHGrid);
+  Insert(params, "No. of BCH terms",                  _NumberOfBCHTerms);
   return params;
 }
 
@@ -1545,22 +1603,29 @@ void BSplineFreeFormTransformationSV
   if (_NumberOfBCHTerms > 1) {
 
     MIRTK_START_TIMING();
-    // Compute spline coefficients of update velocity field
-    CPImage u(this->Attributes());
-    DOFValue * const grd = reinterpret_cast<DOFValue *>(u.Data());
-    BSplineFreeFormTransformation3D::ParametricGradient(in, grd, i2w, wc, t0, 1.);
-    // Approximate velocity spline coefficients of composite transformation
-    // using Baker-Campbell-Hausdorff (BCH) formula and subtract current coefficients
-    EvaluateBCHFormula(_NumberOfBCHTerms, u, T, _CPImage, 1., u, true);
-    // Adjust weight as update field is computed for tau * v, i.e.,
-    //   exp(tau * v_{i+1}) = exp(tau v_i) o exp(\delta u)
-    //   ==> v_{i+1} = log(exp(tau * v_{i+1})) / tau
-    w /= T;
-    // Add weighted gradient to total energy gradient
-    for (int dof = 0; dof < this->NumberOfDOFs(); ++dof) {
-      if (_Status[dof] == Active) out[dof] += w * grd[dof];
+    if (_UseDenseBCHGrid && _NumberOfBCHTerms > 2) {
+      GenericImage<double> v(in->Attributes(), 3);
+      this->Velocity(v);
+      EvaluateBCHFormulaDense<double>(_NumberOfBCHTerms, v, v, *in, true, _LieDerivative);
+      BSplineFreeFormTransformation3D::ParametricGradient(&v, out, i2w, wc, t0, w / T);
+   } else {
+      // Compute spline coefficients of update velocity field
+      CPImage u(this->Attributes());
+      DOFValue * const grd = reinterpret_cast<DOFValue *>(u.Data());
+      BSplineFreeFormTransformation3D::ParametricGradient(in, grd, i2w, wc, t0, 1.);
+      // Approximate velocity spline coefficients of composite transformation
+      // using Baker-Campbell-Hausdorff (BCH) formula and subtract current coefficients
+      EvaluateBCHFormula(_NumberOfBCHTerms, u, T, _CPImage, 1., u, true);
+      // Adjust weight as update field is computed for tau * v, i.e.,
+      //   exp(tau * v_{i+1}) = exp(tau v_i) o exp(\delta u)
+      //   ==> v_{i+1} = log(exp(tau * v_{i+1})) / tau
+      w /= T;
+      // Add weighted gradient to total energy gradient
+      for (int dof = 0; dof < this->NumberOfDOFs(); ++dof) {
+        if (_Status[dof] == Active) out[dof] += w * grd[dof];
+      }
     }
-    MIRTK_DEBUG_TIMING(2, "parametric gradient computation (BCH)");
+    MIRTK_DEBUG_TIMING(2, "parametric gradient computation (BCH, dense=" << (_UseDenseBCHGrid ? "yes" : "no") << ")");
 
   // ---------------------------------------------------------------------------
   // Scaling and squaring based gradient computation

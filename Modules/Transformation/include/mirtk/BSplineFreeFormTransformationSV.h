@@ -76,6 +76,10 @@ class BSplineFreeFormTransformationSV : public BSplineFreeFormTransformation3D
   /// Integration method used to obtain displacement from velocities
   mirtkPublicAttributeMacro(FFDIntegrationMethod, IntegrationMethod);
 
+  /// Whether to evaluate BCH formulat for parametric gradient calculation
+  /// on dense image lattice of non-parametric gradient using linear interpolation
+  mirtkPublicAttributeMacro(bool, UseDenseBCHGrid);
+
   /// Use Lie derivative definition of Lie bracket based on vector field
   /// Jacobian matrices instead of difference of vector field composition
   mirtkPublicAttributeMacro(bool, LieDerivative);
