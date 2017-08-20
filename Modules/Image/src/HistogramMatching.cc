@@ -25,6 +25,10 @@
 namespace mirtk {
 
 
+// =============================================================================
+// Construction/Destruction
+// =============================================================================
+
 // -----------------------------------------------------------------------------
 template <class VoxelType>
 HistogramMatching<VoxelType>::HistogramMatching()
@@ -34,6 +38,10 @@ HistogramMatching<VoxelType>::HistogramMatching()
   _CutOff(.01)
 {
 }
+
+// =============================================================================
+// Execution
+// =============================================================================
 
 // ---------------------------------------------------------------------------
 template <class VoxelType>
@@ -140,17 +148,20 @@ void HistogramMatching<VoxelType>::Run()
     output->PutBackgroundValueAsDouble(bg);
   }
   if (input->HasMask()) {
-    if (input->OwnsMask()) {
-      output->PutMask(new BinaryImage(*input->GetMask()), true);
-    } else {
-      output->PutMask(input->GetMask(), false);
-    }
+    output->PutMask(new BinaryImage(*input->GetMask()), true);
   }
 
   this->Finalize();
 
   MIRTK_DEBUG_TIMING(5, this->NameOfClass());
 }
+
+// =============================================================================
+// Explicit template instantiations
+// =============================================================================
+
+template class HistogramMatching<float>;
+template class HistogramMatching<double>;
 
 
 } // namespace mirtk
