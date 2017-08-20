@@ -83,7 +83,7 @@ int main(int argc, char **argv)
     if      (OPTION("-Tp")) PARSE_ARGUMENT(target_padding);
     else if (OPTION("-Sp")) PARSE_ARGUMENT(source_padding);
     else if (OPTION("-dtype")) PARSE_ARGUMENT(dtype);
-    else HANDLE_STANDARD_OR_UNKNOWN_OPTION();
+    else HANDLE_COMMON_OR_UNKNOWN_OPTION();
   }
 
   if (verbose) cout << "Reading target image ... ", cout.flush();
