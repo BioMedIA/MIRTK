@@ -55,8 +55,10 @@ void PrintHelp(const char *name)
   cout << "  unknown                     Unknown, try to guess it from file header/type.\n";
   cout << "  disp_world|disp|image       Dense displacement field image with world space displacement vectors [mm].\n";
   cout << "  disp_voxel                  Dense displacement field image with target space displacement vectors [voxel].\n";
+  cout << "  disp_itk|itk_disp           Dense displacement field image in ITK format [mm].\n";
   cout << "  svf_world|svf               Dense velocity field image with world space vectors [mm]. Requires input SVFFD.\n";
   cout << "  svf_voxel                   Dense velocity field image with target space vectors [voxel]. Requires input SVFFD.\n";
+  cout << "  svf_itk|itk_svf             Dense velocity field image in ITK format (e.g., LogDemons) [mm]\n";
   cout << "  mirtk                       MIRTK transformation file format.\n";
   cout << "  mirtk_rigid|rigid           Rigid MIRTK transformation file format (6 DoFs).\n";
   cout << "  mirtk_similarity            Similarity MIRTK transformation file format (7 DoFs).\n";
@@ -173,6 +175,9 @@ enum TransformationFileFormat
   Format_VoxelDisplacement, ///< Displacement vectors in voxel units
   Format_WorldSVF,          ///< Stationary velocity field in world units (mm)
   Format_VoxelSVF,          ///< Stationary velocity field in voxel units
+  // ITK
+  Format_ITKDisplacement,
+  Format_ITKSVF,
   // MIRTK
   Format_MIRTK,
   Format_MIRTK_Rigid,
@@ -242,6 +247,8 @@ inline string ToString(const TransformationFileFormat &format, int w, char c, bo
     case Format_VoxelDisplacement:        str = "disp_voxel"; break;
     case Format_WorldSVF:                 str = "svf_world"; break;
     case Format_VoxelSVF:                 str = "svf_voxel"; break;
+    case Format_ITKDisplacement:          str = "itk_disp"; break;
+    case Format_ITKSVF:                   str = "itk_svf"; break;
     case Format_MIRTK:                    str = "mirtk"; break;
     case Format_MIRTK_Rigid:              str = "mirtk_rigid"; break;
     case Format_MIRTK_Similarity:         str = "mirtk_similarity"; break;
@@ -303,6 +310,8 @@ inline bool FromString(const char *str, TransformationFileFormat &format)
   // Alternative format names
   if      (format_name == "disp" || format_name == "image") format = Format_WorldDisplacement;
   else if (format_name == "svf") format = Format_WorldSVF;
+  else if (format_name == "disp_itk") format = Format_ITKDisplacement;
+  else if (format_name == "svf_itk") format = Format_ITKSVF;
   else if (format_name == "rigid") format = Format_MIRTK_Rigid;
   else if (format_name == "similarity") format = Format_MIRTK_Similarity;
   else if (format_name == "affine") format = Format_MIRTK_Affine;
@@ -585,8 +594,8 @@ Transformation *ToLinearFFD(const GenericImage<double> &disp,
 
 // -----------------------------------------------------------------------------
 /// Convert dense stationary velocity field to cubic B-spline SVFFD
-Transformation *ToBSplineSVFFD(GenericImage<double> &velo,
-                               double dx = .0, double dy = .0, double dz = .0)
+BSplineFreeFormTransformationSV *ToBSplineSVFFD(GenericImage<double> &velo,
+                                                double dx = .0, double dy = .0, double dz = .0)
 {
   if (dx <= .0) dx = velo.XSize();
   if (dy <= .0) dy = velo.YSize();
@@ -682,6 +691,68 @@ Transformation *ReadVoxelSVF(const char *dx_name, const char *dy_name, const cha
   GenericImage<double> velo = ConcatenateWorldDisplacement(dx_name, dy_name, dz_name);
   ConvertVoxelToWorldDisplacement(velo);
   return ToBSplineSVFFD(velo);
+}
+
+// =============================================================================
+// ITK
+// =============================================================================
+
+// -----------------------------------------------------------------------------
+/// Convert dense vector field from ITK to MIRTK format
+/// \sa itk::NiftiImageIO::SetNIfTIOrientationFromImageIO
+void ITKToMIRTKVectorField(GenericImage<double> &vf)
+{
+  if (vf.T() != 2 && vf.T() != 3) {
+    Throw(ERR_InvalidArgument, __FUNCTION__, "Can only convert 2D/3D vector fields");
+  }
+  for (int l = 0; l < 2; ++l)
+  for (int k = 0; k < vf.Z(); ++k)
+  for (int j = 0; j < vf.Y(); ++j)
+  for (int i = 0; i < vf.X(); ++i) {
+    vf(i, j, k, l) *= -1.;
+  }
+}
+
+// -----------------------------------------------------------------------------
+/// Read displacement field from image written by ITK
+Transformation *ReadITKDisplacement(const char *fname)
+{
+  GenericImage<double> disp(fname);
+  ITKToMIRTKVectorField(disp);
+  return ToLinearFFD(disp);
+}
+
+// -----------------------------------------------------------------------------
+/// Read displacement field from component images written by ITK
+Transformation *ReadITKDisplacement(const char *dx_name, const char *dy_name, const char *dz_name)
+{
+  auto disp = ConcatenateWorldDisplacement(dx_name, dy_name, dz_name);
+  ITKToMIRTKVectorField(disp);
+  return ToLinearFFD(disp);
+}
+
+// -----------------------------------------------------------------------------
+/// Read stationary velocity field from image written by ITK
+Transformation *ReadITKSVF(const char *fname)
+{
+  GenericImage<double> velo(fname);
+  ITKToMIRTKVectorField(velo);
+  // FIXME: Use LinearFreeFormTransformationSV
+  UniquePtr<BSplineFreeFormTransformationSV> svffd(ToBSplineSVFFD(velo));
+  svffd->NumberOfSteps(16);
+  return svffd.release();
+}
+
+// -----------------------------------------------------------------------------
+/// Read stationary velocity field from component images written by ITK
+Transformation *ReadITKSVF(const char *dx_name, const char *dy_name, const char *dz_name)
+{
+  auto velo = ConcatenateWorldDisplacement(dx_name, dy_name, dz_name);
+  ITKToMIRTKVectorField(velo);
+  // FIXME: Use LinearFreeFormTransformationSV
+  UniquePtr<BSplineFreeFormTransformationSV> svffd(ToBSplineSVFFD(velo));
+  svffd->NumberOfSteps(16);
+  return svffd.release();
 }
 
 // =============================================================================
@@ -2556,7 +2627,9 @@ int main(int argc, char *argv[])
   const char *dy_input = nullptr;
   const char *dz_input = nullptr;
 
-  if (format_in == Format_WorldDisplacement || format_in == Format_VoxelDisplacement || format_in == Format_WorldSVF || format_in == Format_VoxelSVF) {
+  if (format_in == Format_WorldDisplacement || format_in == Format_VoxelDisplacement ||
+      format_in == Format_WorldSVF || format_in == Format_VoxelSVF ||
+      format_in == Format_ITKDisplacement || format_in == Format_ITKSVF) {
     if (NUM_POSARGS == 4 || NUM_POSARGS == 6) {
       dx_input    = POSARG(1);
       dy_input    = POSARG(2);
@@ -2589,6 +2662,13 @@ int main(int argc, char *argv[])
         dof.reset(ReadVoxelDisplacement(dx_input, dy_input, dz_input));
       }
     } break;
+    case Format_ITKDisplacement: {
+      if (input_name) {
+        dof.reset(ReadITKDisplacement(input_name));
+      } else {
+        dof.reset(ReadITKDisplacement(dx_input, dy_input, dz_input));
+      }
+    } break;
 
     // Dense stationary velocity field
     case Format_WorldSVF: {
@@ -2603,6 +2683,13 @@ int main(int argc, char *argv[])
         dof.reset(ReadVoxelSVF(input_name));
       } else {
         dof.reset(ReadVoxelSVF(dx_input, dy_input, dz_input));
+      }
+    } break;
+    case Format_ITKSVF: {
+      if (input_name) {
+        dof.reset(ReadITKSVF(input_name));
+      } else {
+        dof.reset(ReadITKSVF(dx_input, dy_input, dz_input));
       }
     } break;
 
