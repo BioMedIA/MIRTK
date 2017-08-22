@@ -67,12 +67,13 @@ void PrintHelp(const char *name)
   cout << "      Region of interest upper index threshold in z dimension.\n";
   cout << "  -Tp <value>\n";
   cout << "      Padding value in target.\n";
-  cout << "  -label <int>...\n";
+  cout << "  -label, -segment <value|lower..upper>...\n";
   cout << "      Segmentation labels. When more than one specified, the segments are merged.\n";
   cout << "      This option can be given multiple times to evaluate the overlap of more than\n";
-  cout << "      one (merged) segment at once. (default: none)\n";
+  cout << "      one (merged) segment at once. Use '-label 0' to evaluate overlap of all labels\n";
+  cout << "      merged into one segment (i.e., union of all labels). (default: none)\n";
   cout << "  -labels\n";
-  cout << "      All (positive) segmentation labels individually.\n";
+  cout << "      All (positive) segmentation labels individually. Can be combined with :option:`-label`.\n";
   cout << "  -probs [<threshold>]\n";
   cout << "      Evaluate overlap of class probability maps (fuzzy membership functions).\n";
   cout << "      The values of the input images are rescaled to [0, 1]. When no <threshold>\n";
@@ -423,11 +424,28 @@ int main(int argc, char **argv)
   for (ARGUMENTS_AFTER(nposarg)) {
     if (OPTION("-Tp")) PARSE_ARGUMENT(padding);
     else if (OPTION("-label") || OPTION("-segment")) {
-      GreyPixel label;
+      GreyPixel a, b;
       OrderedSet<GreyPixel> segment;
       do {
-        PARSE_ARGUMENT(label);
-        segment.insert(label);
+        const char *arg = ARGUMENT;
+        const Array<string> parts = Split(arg, "..");
+        if (parts.size() == 1) {
+          if (!FromString(parts[0], a)) a = NaN;
+          b = a;
+        } else if (parts.size() == 2) {
+          if (!FromString(parts[0], a) || !FromString(parts[1], b)) {
+            a = b = NaN;
+          }
+        } else {
+          a = b = NaN;
+        }
+        if (IsNaN(a) || IsNaN(b)) {
+          FatalError("Invalid -label, -segment argument: " << arg);
+        }
+        if (a > b) swap(a, b);
+        for (GreyPixel label = a; label < b; ++label) {
+          segment.insert(label);
+        }
       } while (HAS_ARGUMENT);
       segments.push_back(segment);
     }
@@ -733,15 +751,28 @@ int main(int argc, char **argv)
             }
             // Determine TP, FP, TN, FN
             int tp = 0, fp = 0, tn = 0, fn = 0;
-            for (int idx = 0; idx < num; ++idx) {
-              const auto tgt = voxel_cast<GreyPixel>(target->GetAsDouble(idx));
-              const auto src = voxel_cast<GreyPixel>(source->GetAsDouble(idx));
-              if (labels.find(tgt) != labels.end()) {
-                if (labels.find(src) != labels.end()) ++tp;
-                else                                  ++fn;
+            if (labels.size() == 0 && (*labels.begin()) == 0) {
+              for (int idx = 0; idx < num; ++idx) {
+                auto tgt = voxel_cast<GreyPixel>(target->GetAsDouble(idx));
+                auto src = voxel_cast<GreyPixel>(source->GetAsDouble(idx));
+                tgt = (tgt > 0 ? 1 : 0);
+                src = (src > 0 ? 1 : 0);
+                if      (tgt == 1 && src == 1) ++tp;
+                else if (tgt == 1 && src == 0) ++fn;
+                else if (tgt == 0 && src == 1) ++fp;
+                else                           ++tn;
               }
-              else if (labels.find(src) != labels.end()) ++fp;
-              else                                       ++tn;
+            } else {
+              for (int idx = 0; idx < num; ++idx) {
+                auto tgt = voxel_cast<GreyPixel>(target->GetAsDouble(idx));
+                auto src = voxel_cast<GreyPixel>(source->GetAsDouble(idx));
+                if (labels.find(tgt) != labels.end()) {
+                  if (labels.find(src) != labels.end()) ++tp;
+                  else                                  ++fn;
+                }
+                else if (labels.find(src) != labels.end()) ++fp;
+                else                                       ++tn;
+              }
             }
             // Compute overlap metrics
             for (size_t m = 0; m < metrics.size(); ++m) {
@@ -845,14 +876,27 @@ int main(int argc, char **argv)
 
           // Determine TP, FP, TN, FN
           int tp = 0, fp = 0, tn = 0, fn = 0;
-          for (int idx = 0; idx < num; ++idx) {
-            const auto tgt = voxel_cast<GreyPixel>(target->GetAsDouble(idx));
-            if (labels.find(tgt) != labels.end()) {
-              if (labels.find(source(idx)) != labels.end()) ++tp;
-              else                                          ++fn;
+          if (labels.size() == 0 && (*labels.begin()) == 0) {
+            for (int idx = 0; idx < num; ++idx) {
+              auto tgt = voxel_cast<GreyPixel>(target->GetAsDouble(idx));
+              auto src = source(idx);
+              tgt = (tgt > 0 ? 1 : 0);
+              src = (src > 0 ? 1 : 0);
+              if      (tgt == 1 && src == 1) ++tp;
+              else if (tgt == 1 && src == 0) ++fn;
+              else if (tgt == 0 && src == 1) ++fp;
+              else                           ++tn;
             }
-            else if (labels.find(source(idx)) != labels.end()) ++fp;
-            else                                               ++tn;
+          } else {
+            for (int idx = 0; idx < num; ++idx) {
+              auto tgt = voxel_cast<GreyPixel>(target->GetAsDouble(idx));
+              if (labels.find(tgt) != labels.end()) {
+                if (labels.find(source(idx)) != labels.end()) ++tp;
+                else                                          ++fn;
+              }
+              else if (labels.find(source(idx)) != labels.end()) ++fp;
+              else                                               ++tn;
+            }
           }
 
           // Compute overlap metrics
