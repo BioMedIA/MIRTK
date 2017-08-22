@@ -432,10 +432,13 @@ int main(int argc, char **argv)
           FatalError("Invalid -label, -segment argument: " << arg);
         }
         if (a > b) swap(a, b);
-        for (GreyPixel label = a; label < b; ++label) {
+        for (GreyPixel label = a; label <= b; ++label) {
           segment.insert(label);
         }
       } while (HAS_ARGUMENT);
+      if (segment.size() == 0) {
+        FatalError("Failed to parse -label, -segment option argument");
+      }
       segments.push_back(segment);
     }
     else if (OPTION("-table")) {
