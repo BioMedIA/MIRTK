@@ -85,10 +85,6 @@ class BSplineFreeFormTransformationSV : public BSplineFreeFormTransformation3D
   /// integration method instead.
   mirtkPublicAttributeMacro(int, NumberOfBCHTerms);
 
-  /// Cached derivatives of transformation T = exp(v) w.r.t. v
-  mutable GenericImage<double> *_JacobianDOFs;
-  mutable double                _JacobianDOFsIntervalLength;
-
   // ---------------------------------------------------------------------------
   // Construction/Destruction
 
@@ -203,14 +199,6 @@ public:
   virtual void Invert();
 
   // ---------------------------------------------------------------------------
-  // Parameters (DoFs)
-
-  using BSplineFreeFormTransformation3D::Changed;
-
-  /// Set whether object has changed and should notify observers upon request
-  virtual void Changed(bool);
-
-  // ---------------------------------------------------------------------------
   // Parameters (non-DoFs)
 
   using BSplineFreeFormTransformation3D::Parameter;
@@ -319,7 +307,6 @@ public:
   /// \param[out]    dx   Partial derivatives of corresponding transformation w.r.t. x.
   /// \param[out]    dj   Determinant of Jacobian w.r.t. x, i.e., det(jac(\p dx)).
   /// \param[out]    lj   Log of determinant of Jacobian w.r.t. x, i.e., log(det(jac(\p dx))).
-  /// \param[out]    dv   Partial derivatives of corresponding transformation w.r.t. v.
   /// \param[in]     T    Upper integration limit, i.e., length of time interval.
   /// \param[in]     wc   Pre-computed world coordinates of image voxels.
   template <class VoxelType>
@@ -328,7 +315,6 @@ public:
                           GenericImage<VoxelType> *dx,
                           GenericImage<VoxelType> *dj = NULL,
                           GenericImage<VoxelType> *lj = NULL,
-                          GenericImage<VoxelType> *dv = NULL,
                           double T = 1.0, const WorldCoordsImage *wc = NULL) const;
 
   /// Whether the caching of the transformation displacements is required

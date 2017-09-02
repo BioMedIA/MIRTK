@@ -1,8 +1,8 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2013-2015 Imperial College London
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2013-2017 Imperial College London
+ * Copyright 2013-2017 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@
 #include "mirtk/Math.h"
 #include "mirtk/VoxelFunction.h"
 #include "mirtk/InterpolateImageFunction.hxx"
+#include "mirtk/LinearInterpolateImageFunction.hxx"
 #include "mirtk/GaussianBlurring.h"
 #include "mirtk/Matrix.h"
 #include "mirtk/Parallel.h"
@@ -38,8 +39,33 @@ namespace mirtk {
 // Auxiliary voxel functions for parallel execution
 // =============================================================================
 
-namespace ScalingAndSquaringUtils {
+namespace {
 
+
+// -----------------------------------------------------------------------------
+/// Multiply vector from left with matrix
+class InPlaceMatrixVectorProduct : public VoxelFunction
+{
+  const Matrix *_Matrix;
+
+public:
+
+  InPlaceMatrixVectorProduct(const Matrix *m) : _Matrix(m) {}
+
+  template <class TImage, class TReal>
+  void operator ()(const TImage &im, int, TReal *x)
+  {
+    const Matrix &m = *_Matrix;
+    const int n = im.NumberOfSpatialVoxels();
+    auto y = x + n, z = y + n;
+    double u = m(0, 0) * (*x) + m(0, 1) * (*y) + m(0, 2) * (*z);
+    double v = m(1, 0) * (*x) + m(1, 1) * (*y) + m(1, 2) * (*z);
+    double w = m(2, 0) * (*x) + m(2, 1) * (*y) + m(2, 2) * (*z);
+    (*x) = static_cast<TReal>(u);
+    (*y) = static_cast<TReal>(v);
+    (*z) = static_cast<TReal>(w);
+  }
+};
 
 // -----------------------------------------------------------------------------
 template <class TReal>
@@ -82,58 +108,6 @@ struct ConvertToDeformation3D : public VoxelFunction
     d[_x] = static_cast<TReal>(x) + u[_x];
     d[_y] = static_cast<TReal>(y) + u[_y];
     d[_z] = static_cast<TReal>(z) + u[_z];
-  }
-};
-
-// -----------------------------------------------------------------------------
-template <class TReal>
-struct ConvertToVoxelUnits3D : public VoxelFunction
-{
-  const int              _x, _y, _z;
-  const ImageAttributes &_Domain;
-
-  ConvertToVoxelUnits3D(const ImageAttributes &domain)
-  :
-    _x(0), _y(domain.NumberOfSpatialPoints()), _z(2 * _y), _Domain(domain)
-  {}
-
-  void operator()(int i, int j, int k, int, const TReal *d, TReal *u)
-  {
-    double x = i, y = j, z = k;
-    _Domain.LatticeToWorld(x, y, z);
-    x += static_cast<double>(d[_x]);
-    y += static_cast<double>(d[_y]);
-    z += static_cast<double>(d[_z]);
-    _Domain.WorldToLattice(x, y, z);
-    u[_x] = static_cast<TReal>(x - i);
-    u[_y] = static_cast<TReal>(y - j);
-    u[_z] = static_cast<TReal>(z - k);
-  }
-};
-
-// -----------------------------------------------------------------------------
-template <class TReal>
-struct ConvertToWorldUnits3D : public VoxelFunction
-{
-  const int              _x, _y, _z;
-  const ImageAttributes &_Domain;
-
-  ConvertToWorldUnits3D(const ImageAttributes &domain)
-  :
-    _x(0), _y(domain.NumberOfSpatialPoints()), _z(2 * _y), _Domain(domain)
-  {}
-
-  void operator()(int i, int j, int k, int, const TReal *u, TReal *d)
-  {
-    double x1 = i, y1 = j, z1 = k;
-    _Domain.LatticeToWorld(x1, y1, z1);
-    double x2 = i + u[_x];
-    double y2 = j + u[_y];
-    double z2 = k + u[_z];
-    _Domain.LatticeToWorld(x2, y2, z2);
-    d[_x] = static_cast<TReal>(x2 - x1);
-    d[_y] = static_cast<TReal>(y2 - y1);
-    d[_z] = static_cast<TReal>(z2 - z1);
   }
 };
 
@@ -336,7 +310,7 @@ struct UpdateDisplacement : public VoxelFunction
     _Displacement(f)
   {}
 
-  void operator()(int i, int j, int k, int, const TReal *in, TReal *out)
+  void operator ()(int i, int j, int k, int, const TReal *in, TReal *out)
   {
     double u[3] = {.0, .0, .0};
     _Displacement->Evaluate(u, static_cast<double>(i + in[_x]),
@@ -345,6 +319,125 @@ struct UpdateDisplacement : public VoxelFunction
     out[_x] = in[_x] + static_cast<TReal>(u[0]);
     out[_y] = in[_y] + static_cast<TReal>(u[1]);
     out[_z] = in[_z] + static_cast<TReal>(u[2]);
+  }
+};
+
+// -----------------------------------------------------------------------------
+/// Voxel function for update of gradient image at each squaring step
+template <class TDispInterpolator, class TGradInterpolator>
+class UpdateGradientVoxelFunction : public VoxelFunction
+{
+protected:
+
+  typedef typename TGradInterpolator::VoxelType TGradient;
+
+  int _x, _y, _z;
+  const TDispInterpolator *_Displacement;
+  const TGradInterpolator *_Gradient;
+
+  /// Initialize voxel function attributes
+  void Initialize(const TDispInterpolator *u, const TGradInterpolator *g)
+  {
+    _x = 0;
+    _y = g->Attributes().NumberOfSpatialPoints();
+    _z = 2 * _y;
+    _Displacement = u;
+    _Gradient = g;
+  }
+
+  /// Transform displacement field lattice point using interpolated displacement field
+  inline void Transform(double &u, double &v, double &w) const
+  {
+    double d[3];
+    _Displacement->Evaluate(d, u, v, w);
+    u += d[0], v += d[1], w += d[2];
+  }
+
+  /// Evaluate first order derivatives of deformation field at given lattice point
+  inline void EvaluateJacobian(Matrix &jac, double x, double y, double z) const
+  {
+    _Displacement->Jacobian3D(jac, x, y, z);
+  }
+
+  /// Update gradient vector at current voxel given interpolated values
+  inline void EvaluateGradient(TGradient *out, const TGradient *in, const Matrix &jac, double x, double y, double z) const
+  {
+    double g[3];
+    _Gradient->Evaluate(g, x, y, z);
+    out[_x] = in[_x] + jac(0, 0) * g[0] + jac(0, 1) * g[1] + jac(0, 2) * g[2];
+    out[_y] = in[_y] + jac(1, 0) * g[0] + jac(1, 1) * g[1] + jac(1, 2) * g[2];
+    out[_z] = in[_z] + jac(2, 0) * g[0] + jac(2, 1) * g[1] + jac(2, 2) * g[2];
+  }
+};
+
+// -----------------------------------------------------------------------------
+/// Voxel function for update of gradient image at each squaring step
+template <class TDispInterpolator, class TGradInterpolator>
+struct UpdateGradientWithEqualOutputLattice
+: public UpdateGradientVoxelFunction<TDispInterpolator, TGradInterpolator>
+{
+  typedef typename TGradInterpolator::VoxelType TGradient;
+
+  // ---------------------------------------------------------------------------
+  /// Initialize voxel function attributes
+  UpdateGradientWithEqualOutputLattice(const TDispInterpolator *u, const TGradInterpolator *g)
+  {
+    if (!u->Attributes().EqualInSpace(g->Attributes())) {
+      Throw(ERR_InvalidArgument, __FUNCTION__, "Lattice attributes of displacement field and gradient image must be identical");
+    }
+    this->Initialize(u, g);
+  }
+
+  // ---------------------------------------------------------------------------
+  void operator ()(int i, int j, int k, int, const TGradient *in, TGradient *out)
+  {
+    Matrix jac;
+    double x = i, y = j, z = k;
+    this->EvaluateJacobian(jac, x, y, z);
+    this->Transform(x, y, z);
+    this->EvaluateGradient(out, in, jac, x, y, z);
+  }
+};
+
+// -----------------------------------------------------------------------------
+/// Voxel function for update of gradient image at each squaring step
+template <class TDispInterpolator, class TGradInterpolator>
+struct UpdateGradientWithDifferentOutputLattice
+: public UpdateGradientVoxelFunction<TDispInterpolator, TGradInterpolator>
+{
+  typedef typename TGradInterpolator::VoxelType TGradient;
+
+  // ---------------------------------------------------------------------------
+  /// Initialize voxel function attributes
+  UpdateGradientWithDifferentOutputLattice(const TDispInterpolator *u, const TGradInterpolator *g)
+  {
+    this->Initialize(u, g);
+  }
+
+  /// Map coordinates from gradient image voxel to displacement field lattice
+  inline void MapFromGradientImageToDisplacementField(double &u, double &v, double &w) const
+  {
+    this->_Gradient->ImageToWorld(u, v, w);
+    this->_Displacement->WorldToImage(u, v, w);
+  }
+
+  /// Map coordinates from displacement field lattice to gradient image voxel
+  inline void MapFromDisplacementFieldToGradientImage(double &u, double &v, double &w) const
+  {
+    this->_Displacement->ImageToWorld(u, v, w);
+    this->_Gradient->WorldToImage(u, v, w);
+  }
+
+  // ---------------------------------------------------------------------------
+  void operator ()(int i, int j, int k, int, const TGradient *in, TGradient *out)
+  {
+    Matrix jac;
+    double x = i, y = j, z = k;
+    this->MapFromGradientImageToDisplacementField(x, y, z);
+    this->EvaluateJacobian(jac, x, y, z);
+    this->Transform(x, y, z);
+    this->MapFromDisplacementFieldToGradientImage(x, y, z);
+    this->EvaluateGradient(out, in, jac, x, y, z);
   }
 };
 
@@ -481,47 +574,6 @@ struct UpdateJacobianBase : public VoxelFunction
     y += static_cast<double>(u[_y]);
     z += static_cast<double>(u[_z]);
   }
-
-  // ---------------------------------------------------------------------------
-  inline void UpdateJacDOFs(const Matrix &jac, const double jacdof[9], int i, int j, int k, const TReal *u, const TReal *in, TReal *out)
-  {
-    out[_xx] = static_cast<TReal>(jac(0, 0)) * in[_xx]
-             + static_cast<TReal>(jac(0, 1)) * in[_yx]
-             + static_cast<TReal>(jac(0, 2)) * in[_zx]
-             + static_cast<TReal>(jacdof[0]);
-    out[_xy] = static_cast<TReal>(jac(0, 0)) * in[_xy]
-             + static_cast<TReal>(jac(0, 1)) * in[_yy]
-             + static_cast<TReal>(jac(0, 2)) * in[_zy]
-             + static_cast<TReal>(jacdof[1]);
-    out[_xz] = static_cast<TReal>(jac(0, 0)) * in[_xz]
-             + static_cast<TReal>(jac(0, 1)) * in[_yz]
-             + static_cast<TReal>(jac(0, 2)) * in[_zz]
-             + static_cast<TReal>(jacdof[2]);
-    out[_yx] = static_cast<TReal>(jac(1, 0)) * in[_xx]
-             + static_cast<TReal>(jac(1, 1)) * in[_yx]
-             + static_cast<TReal>(jac(1, 2)) * in[_zx]
-             + static_cast<TReal>(jacdof[3]);
-    out[_yy] = static_cast<TReal>(jac(1, 0)) * in[_xy]
-             + static_cast<TReal>(jac(1, 1)) * in[_yy]
-             + static_cast<TReal>(jac(1, 2)) * in[_zy]
-             + static_cast<TReal>(jacdof[4]);
-    out[_yz] = static_cast<TReal>(jac(1, 0)) * in[_xz]
-             + static_cast<TReal>(jac(1, 1)) * in[_yz]
-             + static_cast<TReal>(jac(1, 2)) * in[_zz]
-             + static_cast<TReal>(jacdof[5]);
-    out[_zx] = static_cast<TReal>(jac(2, 0)) * in[_xx]
-             + static_cast<TReal>(jac(2, 1)) * in[_yx]
-             + static_cast<TReal>(jac(2, 2)) * in[_zx]
-             + static_cast<TReal>(jacdof[6]);
-    out[_zy] = static_cast<TReal>(jac(2, 0)) * in[_xy]
-             + static_cast<TReal>(jac(2, 1)) * in[_yy]
-             + static_cast<TReal>(jac(2, 2)) * in[_zy]
-             + static_cast<TReal>(jacdof[7]);
-    out[_zz] = static_cast<TReal>(jac(2, 0)) * in[_xz]
-             + static_cast<TReal>(jac(2, 1)) * in[_yz]
-             + static_cast<TReal>(jac(2, 2)) * in[_zz]
-             + static_cast<TReal>(jacdof[8]);
-  }
 };
 
 // -----------------------------------------------------------------------------
@@ -620,86 +672,81 @@ struct UpdateJacobianAndDetAndLog : public UpdateJacobianBase<TReal>
 };
 
 // -----------------------------------------------------------------------------
-/// Voxel function for update of Jacobian w.r.t. v at each squaring step
-template <class TInterpolator>
-struct UpdateJacobianDOFs : public UpdateJacobianBase<typename TInterpolator::VoxelType>
-{
-  typedef typename TInterpolator::VoxelType TReal;
-
-  const TInterpolator *_JacobianDOFs;
-
-  UpdateJacobianDOFs(const TInterpolator *g)
-  :
-    _JacobianDOFs(g)
-  {
-    this->Initialize(g->Input()->Attributes());
-  }
-
-  void operator()(int i, int j, int k, int, const TReal *u, const TReal *in, TReal *out)
-  {
-    Matrix jac;
-    double x = i, y = j, z = k, jacdof[9];
-    this->EvaluateJac(jac, i, j, k, u);
-    this->Transform(x, y, z, u);
-    _JacobianDOFs->Evaluate(jacdof, x, y, z);
-    this->UpdateJacDOFs(jac, jacdof, i, j, k, u, in, out);
-  }
-};
-
-// -----------------------------------------------------------------------------
 /// Voxel function for composition of output displacement with input displacement
 template <class TInterpolator>
-struct ApplyInputDisplacement : public VoxelFunction
+class ApplyInputDisplacement : public VoxelFunction
 {
   typedef typename TInterpolator::VoxelType TReal;
+  const TInterpolator *_OutputDisplacement;
 
-  const int              _x, _y, _z;
-  const ImageAttributes &_Domain;
-  const TInterpolator   *_Image;
-  const int              _NumberOfComponents;
+public:
 
-  ApplyInputDisplacement(const ImageAttributes &domain, const TInterpolator *f)
+  ApplyInputDisplacement(const TInterpolator *disp)
   :
-    _x(0), _y(domain.NumberOfSpatialPoints()), _z(2 * _y),
-    _Domain(domain), _Image(f), _NumberOfComponents(_Image->Input()->T())
+    _OutputDisplacement(disp)
   {}
 
-  void operator()(int i, int j, int k, int, const TReal *d, TReal *out)
+  void operator ()(int i, int j, int k, int, const TReal *din, TReal *out)
   {
+    // Get world coordinates of this voxel
     double x = i, y = j, z = k;
-    _Domain.LatticeToWorld(x, y, z);
-    x += d[_x], y += d[_y], z += d[_z];
-    _Image->Input()->WorldToImage(x, y, z);
-    for (int l = 0; l < _NumberOfComponents; ++l, out += _y /* =X*Y*Z */) {
-      (*out) = static_cast<TReal>(_Image->Evaluate(x, y, z, l));
-    }
+    _Domain->LatticeToWorld(x, y, z);
+    // Add input displacements
+    const int n = _Domain->NumberOfSpatialPoints();
+    x += (*din), din += n;
+    y += (*din), din += n;
+    z += (*din);
+    // Evaluate output displacement at mapped point
+    double v[3];
+    _OutputDisplacement->WorldToImage(x, y, z);
+    _OutputDisplacement->Evaluate(v, x, y, z);
+    (*out) = static_cast<TReal>(v[0]), out += n;
+    (*out) = static_cast<TReal>(v[1]), out += n;
+    (*out) = static_cast<TReal>(v[2]);
   }
 };
 
 // -----------------------------------------------------------------------------
 /// Voxel function for composition of output displacement with input deformation
 template <class TInterpolator>
-struct ApplyInputDeformation : public VoxelFunction
+class ApplyInputDeformation : public VoxelFunction
 {
   typedef typename TInterpolator::VoxelType TReal;
+  const TInterpolator *_OutputDisplacement;
 
-  const int            _x, _y, _z;
-  const TInterpolator *_Image;
-  const int            _NumberOfComponents;
+  void Apply(const TReal *def, TReal *out) const
+  {
+    const int n = _Domain->NumberOfSpatialPoints();
+    // Get mapped world coordinates of this voxel
+    double x, y, z;
+    x = static_cast<double>(*def), def += n;
+    y = static_cast<double>(*def), def += n;
+    z = static_cast<double>(*def);
+    // Evaluate output displacement at mapped point
+    double v[3];
+    _OutputDisplacement->WorldToImage(x, y, z);
+    _OutputDisplacement->Evaluate(v, x, y, z);
+    (*out) = static_cast<TReal>(v[0]), out += n;
+    (*out) = static_cast<TReal>(v[1]), out += n;
+    (*out) = static_cast<TReal>(v[2]);
+  }
 
-  ApplyInputDeformation(const ImageAttributes &domain, const TInterpolator *f)
+public:
+
+  ApplyInputDeformation(const TInterpolator *disp)
   :
-    _x(0), _y(domain.NumberOfSpatialPoints()), _z(2 * _y),
-    _Image(f), _NumberOfComponents(_Image->Input()->T())
+    _OutputDisplacement(disp)
   {}
 
-  void operator()(int, int, int, int, const TReal *pos, TReal *out)
+  template <class TImage>
+  void operator ()(const TImage &, int, const TReal *def, TReal *out)
   {
-    double x = pos[_x], y = pos[_y], z = pos[_z];
-    _Image->Input()->WorldToImage(x, y, z);
-    for (int l = 0; l < _NumberOfComponents; ++l, out += _y /* =X*Y*Z */) {
-      (*out) = static_cast<TReal>(_Image->Evaluate(x, y, z, l));
-    }
+    Apply(def, out);
+  }
+
+  void operator ()(int, int, int, int, const TReal *def, TReal *out)
+  {
+    Apply(def, out);
   }
 };
 
@@ -743,8 +790,7 @@ ExtrapolationMode GetExtrapolationMode(InterpolationMode imode)
 }
 
 
-} // namespace ScalingAndSquaringUtils
-using namespace ScalingAndSquaringUtils;
+} // anonymous namespace
 
 // =============================================================================
 // Construction/Destruction
@@ -757,12 +803,13 @@ ScalingAndSquaring<TReal>::ScalingAndSquaring()
   _InputVelocity(nullptr),
   _InputDisplacement(nullptr),
   _InputDeformation(nullptr),
+  _InputGradient(nullptr),
   _OutputDisplacement(nullptr),
   _OutputDeformation(nullptr),
   _OutputJacobian(nullptr),
   _OutputDetJacobian(nullptr),
   _OutputLogJacobian(nullptr),
-  _OutputJacobianDOFs(nullptr),
+  _OutputGradient(nullptr),
   _Interpolation(Interpolation_Linear),
   _ComputeInterpolationCoefficients(true),
   _ComputeInverse(false),
@@ -783,7 +830,6 @@ void ScalingAndSquaring<TReal>::Clear()
   _InterimJacobian.reset();
   _InterimDetJacobian.reset();
   _InterimLogJacobian.reset();
-  _InterimJacobianDOFs.reset();
 }
 
 // -----------------------------------------------------------------------------
@@ -815,11 +861,20 @@ void ScalingAndSquaring<TReal>::Initialize()
   }
   _OutputAttributes._t = 1, _OutputAttributes._dt = .0;
   if (_InputDisplacement && !_InputDisplacement->Attributes().EqualInSpace(_OutputAttributes)) {
-    cerr << "ScalingAndSquaring::Initialize: Output attributes due not match those of input displacement field" << endl;
+    cerr << "ScalingAndSquaring::Initialize: Output attributes do not match those of input displacement field" << endl;
     exit(1);
   }
   if (_InputDeformation && !_InputDeformation->Attributes().EqualInSpace(_OutputAttributes)) {
-    cerr << "ScalingAndSquaring::Initialize: Output attributes due not match those of input deformation field" << endl;
+    cerr << "ScalingAndSquaring::Initialize: Output attributes do not match those of input deformation field" << endl;
+    exit(1);
+  }
+  if (_InputGradient) {
+    if (_InputGradient->T() != 3) {
+      cerr << "ScalingAndSquaring::Initialize: Input gradient field must have 3 vector components (_t)" << endl;
+      exit(1);
+    }
+  } else if (_OutputGradient) {
+    cerr << "ScalingAndSquaring::Initialize: Input gradient field not specified, but output gradient image is set" << endl;
     exit(1);
   }
   // Check settings
@@ -827,9 +882,6 @@ void ScalingAndSquaring<TReal>::Initialize()
     cerr << "ScalingAndSquaring::Initialize: Either number of integration or squaring steps or maximum scaled velocity must be positive!" << endl;
     exit(1);
   }
-
-  // Leave no potential memory leaks
-  Clear();
 
   // Initialize input interpolator
   VelocityField velocity;
@@ -868,8 +920,10 @@ void ScalingAndSquaring<TReal>::Initialize()
 
   // Initialize deformation field and increase number of squaring steps if needed
   // Note that input image may contain precomputed interpolation coefficients!
-  _InterimDisplacement.reset(new ImageType(attr, 3));
-  velocity.Evaluate(*_InterimDisplacement);
+  {
+    _InterimDisplacement.reset(new ImageType(attr, 3));
+    velocity.Evaluate(*_InterimDisplacement);
+  }
 
   TReal  vmax(0);
   TReal  scale = static_cast<TReal>(_UpperIntegrationLimit / pow(2.0, _NumberOfSquaringSteps));
@@ -898,71 +952,85 @@ void ScalingAndSquaring<TReal>::Initialize()
   // Update number of steps
   _NumberOfSteps = static_cast<int>(pow(2, _NumberOfSquaringSteps));
 
+  // Convert scaled displacements to voxel units
+  {
+    const Matrix m = _InterimAttributes.GetWorldToImageMatrix();
+    ParallelForEachVoxel(InPlaceMatrixVectorProduct(&m), _InterimDisplacement.get());
+  }
+
   // Compute derivatives of initial deformation w.r.t. x and/or its (log) determinant
   int jac_mode = 0;
-  if (_OutputJacobian || _OutputJacobianDOFs) jac_mode += 1;
-  if (_OutputDetJacobian                    ) jac_mode += 2;
-  if (_OutputLogJacobian                    ) jac_mode += 4;
+  if (_OutputJacobian)    jac_mode += 1;
+  if (_OutputDetJacobian) jac_mode += 2;
+  if (_OutputLogJacobian) jac_mode += 4;
 
-  if (jac_mode & 1) {
-    _InterimJacobian.reset(new ImageType(attr, 9));
-  }
-  if (jac_mode & 2) {
-    _InterimDetJacobian.reset(new ImageType(attr));
-  }
-  if (jac_mode & 4) {
-    _InterimLogJacobian.reset(new ImageType(attr));
-  }
-
-  switch (jac_mode) {
-    case 1: {
-      EvaluateJacobian<TReal> eval;
-      eval.Initialize(attr, &velocity, scale);
-      ParallelForEachVoxel(attr, _InterimJacobian.get(), eval);
-    } break;
-    case 2: {
-      EvaluateDetJacobian<TReal> eval;
-      eval.Initialize(attr, &velocity, scale);
-      ParallelForEachVoxel(attr, _InterimDetJacobian.get(), eval);
-    } break;
-    case 3: {
-      EvaluateJacobianAndDet<TReal> eval;
-      eval.Initialize(attr, &velocity, scale);
-      ParallelForEachVoxel(attr, _InterimJacobian.get(), _InterimDetJacobian.get(), eval);
-    } break;
-    case 4: {
-      EvaluateLogJacobian<TReal> eval;
-      eval.Initialize(attr, &velocity, scale);
-      ParallelForEachVoxel(attr, _InterimLogJacobian.get(), eval);
-    } break;
-    case 5: {
-      EvaluateJacobianAndLog<TReal> eval;
-      eval.Initialize(attr, &velocity, scale);
-      ParallelForEachVoxel(attr, _InterimJacobian.get(), _InterimLogJacobian.get(), eval);
-    } break;
-    case 6: {
-      EvaluateDetJacobianAndLog<TReal> eval;
-      eval.Initialize(attr, &velocity, scale);
-      ParallelForEachVoxel(attr, _InterimDetJacobian.get(), _InterimLogJacobian.get(), eval);
-    } break;
-    case 7: {
-      EvaluateJacobianAndDetAndLog<TReal> eval;
-      eval.Initialize(attr, &velocity, scale);
-      ParallelForEachVoxel(attr, _InterimJacobian.get(), _InterimDetJacobian.get(), _InterimLogJacobian.get(), eval);
-    } break;
-  }
-
-  // Compute derivatives of initial deformation w.r.t. v
-  if (_OutputJacobianDOFs) {
-    _InterimJacobianDOFs.reset(new ImageType);
-    _InterimJacobianDOFs->Initialize(attr, 9);
-    TReal *dxx = _InterimJacobianDOFs->Data(0, 0, 0, 0);
-    TReal *dyy = _InterimJacobianDOFs->Data(0, 0, 0, 4);
-    TReal *dzz = _InterimJacobianDOFs->Data(0, 0, 0, 8);
-    const int n = attr.NumberOfSpatialPoints();
-    for (int i = 0; i < n; ++i) {
-      dxx[i] = dyy[i] = dzz[i] = scale;
+  if (jac_mode > 0) {
+    if (jac_mode & 1) {
+      _InterimJacobian.reset(new ImageType(attr, 9));
+    } else {
+      _InterimJacobian.reset();
     }
+    if (jac_mode & 2) {
+      _InterimDetJacobian.reset(new ImageType(attr));
+    } else {
+      _InterimDetJacobian.reset();
+    }
+    if (jac_mode & 4) {
+      _InterimLogJacobian.reset(new ImageType(attr));
+    } else {
+      _InterimLogJacobian.reset();
+    }
+    switch (jac_mode) {
+      case 1: {
+        EvaluateJacobian<TReal> eval;
+        eval.Initialize(attr, &velocity, scale);
+        ParallelForEachVoxel(attr, _InterimJacobian.get(), eval);
+      } break;
+      case 2: {
+        EvaluateDetJacobian<TReal> eval;
+        eval.Initialize(attr, &velocity, scale);
+        ParallelForEachVoxel(attr, _InterimDetJacobian.get(), eval);
+      } break;
+      case 3: {
+        EvaluateJacobianAndDet<TReal> eval;
+        eval.Initialize(attr, &velocity, scale);
+        ParallelForEachVoxel(attr, _InterimJacobian.get(), _InterimDetJacobian.get(), eval);
+      } break;
+      case 4: {
+        EvaluateLogJacobian<TReal> eval;
+        eval.Initialize(attr, &velocity, scale);
+        ParallelForEachVoxel(attr, _InterimLogJacobian.get(), eval);
+      } break;
+      case 5: {
+        EvaluateJacobianAndLog<TReal> eval;
+        eval.Initialize(attr, &velocity, scale);
+        ParallelForEachVoxel(attr, _InterimJacobian.get(), _InterimLogJacobian.get(), eval);
+      } break;
+      case 6: {
+        EvaluateDetJacobianAndLog<TReal> eval;
+        eval.Initialize(attr, &velocity, scale);
+        ParallelForEachVoxel(attr, _InterimDetJacobian.get(), _InterimLogJacobian.get(), eval);
+      } break;
+      case 7: {
+        EvaluateJacobianAndDetAndLog<TReal> eval;
+        eval.Initialize(attr, &velocity, scale);
+        ParallelForEachVoxel(attr, _InterimJacobian.get(), _InterimDetJacobian.get(), _InterimLogJacobian.get(), eval);
+      } break;
+    }
+  } else {
+    _InterimJacobian.reset();
+    _InterimDetJacobian.reset();
+    _InterimLogJacobian.reset();
+  }
+
+  // Initialize exponentiated output gradient
+  if (_OutputGradient) {
+    _OutputGradient->Initialize(_InputGradient->Attributes(), _InputGradient->T());
+    _OutputGradient->CopyFrom(_InputGradient->Data());
+    // Convert input gradient to derivatives w.r.t. displacement field lattice
+    Matrix m = _InterimAttributes.GetWorldToImageMatrix();
+    m *= scale; // pre-multiply matrix elements with scaling factor
+    ParallelForEachVoxel(InPlaceMatrixVectorProduct(&m), _OutputGradient);
   }
 
   // Use output deformation field as temporary output displacement field
@@ -976,52 +1044,52 @@ template <class TReal>
 void ScalingAndSquaring<TReal>
 ::Resample(const ImageType *interim, ImageType *output)
 {
-  // Do nothing if output is not requested
-  if (!output) return;
-
-  typedef GenericInterpolateImageFunction<ImageType> VectorField;
-  UniquePtr<VectorField> interp(VectorField::New(_Interpolation, GetExtrapolationMode(_Interpolation), interim));
-
-  // Attributes of final output images
-  const ImageAttributes &attr = _OutputAttributes;
-
-  // Either apply input deformation field while resampling output...
-  if (_InputDeformation) {
-    interp->Initialize();
-    output->Initialize(attr, interim->T());
-    ApplyInputDeformation<VectorField> warp(attr, interp.get());
-    ParallelForEachVoxel(attr, _InputDeformation, output, warp);
-  // ...or apply input displacement field while resampling output
-  } else if (_InputDisplacement) {
-    interp->Initialize();
-    output->Initialize(attr, interim->T());
-    ApplyInputDisplacement<VectorField> warp(attr, interp.get());
-    ParallelForEachVoxel(attr, _InputDisplacement, output, warp);
-  // ...or resample intermediate output if necessary
-  } else if (attr != _InterimAttributes) {
-    if (_SmoothBeforeDownsampling) {
-      const double sx = (attr._dx > interim->XSize()) ? attr._dx / 2.0 : .0;
-      const double sy = (attr._dy > interim->YSize()) ? attr._dy / 2.0 : .0;
-      const double sz = (attr._dz > interim->ZSize()) ? attr._dz / 2.0 : .0;
-      if (sx || sy || sz) {
-        GaussianBlurring<TReal> blurring(sx, sy, sz);
-        blurring.Input (interim);
-        blurring.Output(const_cast<ImageType *>(interim));
-        blurring.Run();
+  if (output) {
+    // Attributes of final output images
+    const ImageAttributes &attr = _OutputAttributes;
+    if (_InputDisplacement || _InputDeformation || attr != _InterimAttributes) {
+      // Initialize interim vector field interpolator
+      UniquePtr<VectorField> interp;
+      interp.reset(VectorField::New(_Interpolation, GetExtrapolationMode(_Interpolation), interim));
+      // Either apply input deformation field while resampling output...
+      if (_InputDeformation) {
+        interp->Initialize();
+        output->Initialize(attr, interim->T());
+        ApplyInputDeformation<VectorField> warp(interp.get());
+        ParallelForEachVoxel(_InputDeformation, output, warp);
+      // ...or apply input displacement field while resampling output
+      } else if (_InputDisplacement) {
+        interp->Initialize();
+        output->Initialize(attr, interim->T());
+        ApplyInputDisplacement<VectorField> warp(interp.get());
+        ParallelForEachVoxel(attr, _InputDisplacement, output, warp);
+      // ...or resample intermediate output if necessary
+      } else {
+        if (_SmoothBeforeDownsampling) {
+          const double sx = (attr._dx > interim->XSize()) ? attr._dx / 2.0 : .0;
+          const double sy = (attr._dy > interim->YSize()) ? attr._dy / 2.0 : .0;
+          const double sz = (attr._dz > interim->ZSize()) ? attr._dz / 2.0 : .0;
+          if (sx || sy || sz) {
+            GaussianBlurring<TReal> blurring(sx, sy, sz);
+            blurring.Input (interim);
+            blurring.Output(const_cast<ImageType *>(interim));
+            blurring.Run();
+          }
+        }
+        interp->Initialize();
+        output->Initialize(attr, interim->T());
+        ResampleOutput<VectorField> resample(attr, interp.get());
+        ParallelForEachVoxel(attr, output, resample);
+        TReal min_val, max_val;
+        interim->GetMinMax(min_val, max_val);
+        for (int vox = 0; vox < output->NumberOfVoxels(); ++vox) {
+          output->Put(vox, clamp(output->Get(vox), min_val, max_val));
+        }
       }
+    } else {
+      // Otherwise, just copy intermediate output
+      (*output) = (*interim);
     }
-    interp->Initialize();
-    output->Initialize(attr, interim->T());
-    ResampleOutput<VectorField> resample(attr, interp.get());
-    ParallelForEachVoxel(attr, output, resample);
-    TReal min_val, max_val;
-    interim->GetMinMax(min_val, max_val);
-    for (int vox = 0; vox < output->NumberOfVoxels(); ++vox) {
-      output->Put(vox, clamp(output->Get(vox), min_val, max_val));
-    }
-  // Otherwise, just copy intermediate output
-  } else {
-    (*output) = (*interim);
   }
 }
 
@@ -1031,12 +1099,18 @@ void ScalingAndSquaring<TReal>::Finalize()
 {
   MIRTK_START_TIMING();
 
-  // Finalize output displacement field and its derivatives
-  Resample(_InterimDisplacement.get(), _OutputDisplacement);
+  if (_OutputDisplacement) {
+    // Convert final displacements back to world units if output requested
+    const Matrix m = _InterimAttributes.GetImageToWorldMatrix();
+    ParallelForEachVoxel(InPlaceMatrixVectorProduct(&m), _InterimDisplacement.get());
+    // Resample final displacement field to requested output size
+    Resample(_InterimDisplacement.get(), _OutputDisplacement);
+  }
+
+  // Resample final output fields to requested output size
   Resample(_InterimJacobian.get(),     _OutputJacobian);
   Resample(_InterimDetJacobian.get(),  _OutputDetJacobian);
   Resample(_InterimLogJacobian.get(),  _OutputLogJacobian);
-  Resample(_InterimJacobianDOFs.get(), _OutputJacobianDOFs);
 
   // Compute output deformation field
   if (_OutputDeformation) {
@@ -1055,6 +1129,12 @@ void ScalingAndSquaring<TReal>::Finalize()
     cerr << "WARNING: ScalingAndSquaring::Finalize: Output Jacobian does not include the input deformation!" << endl;
     cerr << "         Be aware that this may be fixed in the future and thus change the output." << endl;
     exit(1);
+  }
+
+  // Convert output gradients back to world vectors
+  if (_OutputGradient) {
+    Matrix A = _InterimAttributes.GetImageToWorldMatrix();
+    ParallelForEachVoxel(InPlaceMatrixVectorProduct(&A), _OutputGradient);
   }
 
   // Free allocated memory
@@ -1085,7 +1165,6 @@ void ScalingAndSquaring<TReal>::Run()
   ImageType *jac3x3 = nullptr;
   ImageType *detjac = nullptr;
   ImageType *logjac = nullptr;
-  ImageType *dofjac = nullptr;
 
   UniquePtr<ImageType> t_disp;
   if (!disp) {
@@ -1128,34 +1207,26 @@ void ScalingAndSquaring<TReal>::Run()
     logjac->Initialize(attr, 1);
   }
 
-  UniquePtr<ImageType> t_dofjac;
-  UniquePtr<VectorField> f_dofjac;
-  if (_InterimJacobianDOFs) {
-    if (_OutputJacobianDOFs) {
-      dofjac = _OutputJacobianDOFs;
-    } else {
-      dofjac = new ImageType;
-      t_dofjac.reset(dofjac);
-    }
-    dofjac->Initialize(attr, 9);
-    f_dofjac.reset(VectorField::New(_Interpolation, GetExtrapolationMode(_Interpolation), _InterimJacobianDOFs.get()));
+  UniquePtr<ImageType> grad;
+  UniquePtr<VectorField> f_grad;
+  bool grad_attr_equal_interim_attr = false;
+  if (_OutputGradient) {
+    grad.reset(new ImageType(_OutputGradient->Attributes()));
+    f_grad.reset(VectorField::New(_Interpolation, Extrapolation_Const, grad.get()));
+    grad_attr_equal_interim_attr = _OutputGradient->Attributes().EqualInSpace(attr);
   }
-
-  // Convert scaled displacements to voxel units
-  ConvertToVoxelUnits3D<TReal> w2i(attr);
-  ParallelForEachVoxel(attr, _InterimDisplacement.get(), _InterimDisplacement.get(), w2i);
 
   // Do the squaring steps
   int n = _NumberOfSquaringSteps;
   while (n--) {
     // (Re-)initialize interpolators
     f_disp->Initialize();
-    if (f_dofjac) f_dofjac->Initialize();
-    // Compute updates
+    // Compose displacement field with itself
     {
       UpdateDisplacement<VectorField> update(f_disp.get());
       ParallelForEachVoxel(attr, _InterimDisplacement.get(), disp, update);
     }
+    // Update Jacobian and/or determinants
     switch (jac_mode) {
       case 1: {
         UpdateJacobian<TReal> update;
@@ -1193,22 +1264,30 @@ void ScalingAndSquaring<TReal>::Run()
         ParallelForEachVoxel(attr, _InterimDisplacement.get(), _InterimJacobian.get(), _InterimDetJacobian.get(), _InterimLogJacobian.get(), jac3x3, detjac, logjac, update);
       } break;
     }
-    if (_InterimJacobianDOFs) {
-      UpdateJacobianDOFs<VectorField> update(f_dofjac.get());
-      ParallelForEachVoxel(attr, _InterimDisplacement.get(), _InterimJacobianDOFs.get(), dofjac, update);
+    // Propage input gradient using current deformation
+    if (_OutputGradient && n >= 0) {
+      typedef GenericLinearInterpolateImageFunction<ImageType> DispInterpolator;
+      UniquePtr<DispInterpolator> f_disp(new DispInterpolator());
+      f_disp->Input(_InterimDisplacement.get());
+      f_disp->Initialize();
+      typedef GenericLinearInterpolateImageFunction<ImageType> GradInterpolator;
+      UniquePtr<GradInterpolator> f_grad(new GradInterpolator());
+      f_grad->Input(_OutputGradient);
+      f_grad->Initialize();
+      if (grad_attr_equal_interim_attr) {
+        UpdateGradientWithEqualOutputLattice<DispInterpolator, GradInterpolator> update(f_disp.get(), f_grad.get());
+        ParallelForEachVoxel(attr, _OutputGradient, grad.get(), update);
+      } else {
+        UpdateGradientWithDifferentOutputLattice<DispInterpolator, GradInterpolator> update(f_disp.get(), f_grad.get());
+        ParallelForEachVoxel(_OutputGradient->Attributes(), _OutputGradient, grad.get(), update);
+      }
+      _OutputGradient->CopyFrom(grad->Data());
     }
     // Update intermediate output images
-    _InterimDisplacement                          ->CopyFrom(disp  ->Data());
-    if (_InterimJacobian    ) _InterimJacobian    ->CopyFrom(jac3x3->Data());
-    if (_InterimDetJacobian ) _InterimDetJacobian ->CopyFrom(detjac->Data());
-    if (_InterimLogJacobian ) _InterimLogJacobian ->CopyFrom(logjac->Data());
-    if (_InterimJacobianDOFs) _InterimJacobianDOFs->CopyFrom(dofjac->Data());
-  }
-
-  // Convert final displacements back to world units if output requested
-  if (_OutputDisplacement) {
-    ConvertToWorldUnits3D<TReal> i2w(attr);
-    ParallelForEachVoxel(attr, _InterimDisplacement.get(), _InterimDisplacement.get(), i2w);
+    _InterimDisplacement                        ->CopyFrom(disp  ->Data());
+    if (_InterimJacobian   ) _InterimJacobian   ->CopyFrom(jac3x3->Data());
+    if (_InterimDetJacobian) _InterimDetJacobian->CopyFrom(detjac->Data());
+    if (_InterimLogJacobian) _InterimLogJacobian->CopyFrom(logjac->Data());
   }
 
   MIRTK_DEBUG_TIMING(5, "squaring steps"
@@ -1216,7 +1295,7 @@ void ScalingAndSquaring<TReal>::Run()
                         << ", J="    << (_OutputJacobian     ? "on" : "off")
                         << ", detJ=" << (_OutputDetJacobian  ? "on" : "off")
                         << ", logJ=" << (_OutputLogJacobian  ? "on" : "off")
-                        << ", dv="   << (_OutputJacobianDOFs ? "on" : "off") << ")");
+                        << ", grad=" << (_OutputGradient     ? "on" : "off") << ")");
 
   this->Finalize();
 }
