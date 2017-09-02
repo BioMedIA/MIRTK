@@ -1,8 +1,8 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2013-2015 Imperial College London
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2013-2017 Imperial College London
+ * Copyright 2013-2017 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -55,17 +55,19 @@ void PrintHelp(const char *name)
   cout << "  dof      Input transformation." << endl;
   cout << endl;
   cout << "Optional arguments:" << endl;
-  cout << "  -total               Total jacobian. (default)" << endl;
-  cout << "  -local               Local jacobian only." << endl;
-  cout << "  -global              Global jacobian only." << endl;
-  cout << "  -relative            Local jacobian divided by global Jacobian." << endl;
-  cout << "  -log                 Log of total jacobian." << endl;
+  cout << "  -total               Total Jacobian. (default)" << endl;
+  cout << "  -local               Local Jacobian only." << endl;
+  cout << "  -global              Global Jacobian only." << endl;
+  cout << "  -relative            Local Jacobian divided by global Jacobian." << endl;
+  cout << "  -log                 Log of total Jacobian." << endl;
   cout << "  -padding <value>     Target padding value. (default: none)" << endl;
   cout << "  -outside <value>     Outside determinant value. (default: 0)" << endl;
   cout << "  -Tt <value>          Temporal origin of target image. (default: _torigin)" << endl;
   cout << "  -St <value>          Temporal origin of source image. (default: _torigin + _dt)" << endl;
   cout << "  -ss [fast]           Force use of scaling-and-squaring for SV FFD. (default: SV FFD integration method)" << endl;
   cout << "  -noss                Do not use scaling-and-squaring for SV FFD." << endl;
+  cout << "  -disp [on|off]       Evaluate Jacobian of linearly interpolated displacement field. (default: off)" << endl;
+  cout << "  -velo [on|off]       Evaluate Jacobian of velocity field parameterization for SV/TD FFD. (default: off)" << endl;
   cout << "  -float               Output values as single-precision floating point." << endl;
   cout << "  -double              Output values as double-precision floating point." << endl;
   cout << "  -real                Output values as floating point with default precision." << endl;
@@ -277,21 +279,26 @@ struct JacobianImpl : public VoxelReduction
       const int xx = 0 * _nvox, xy = 1 * _nvox, xz = 2 * _nvox;
       const int yx = 3 * _nvox, yy = 4 * _nvox, yz = 5 * _nvox;
       const int zx = 6 * _nvox, zy = 7 * _nvox, zz = 8 * _nvox;
+      double jac;
       for (int idx = 0; idx < _nvox; ++idx) {
-        if (_mask->Get(idx) == 0) continue;
-        double jac = d(xx + idx) * d(yy + idx) * d(zz + idx)
-                   + d(xy + idx) * d(yz + idx) * d(zx + idx)
-                   + d(xz + idx) * d(yx + idx) * d(zy + idx)
-                   - d(xz + idx) * d(yy + idx) * d(zx + idx)
-                   - d(xy + idx) * d(yx + idx) * d(zz + idx)
-                   - d(xx + idx) * d(yz + idx) * d(zy + idx);
-        _m++; if (jac < .0) _n++;
-        if (_mode == LogJacobian) {
-          jac = fabs(log(max(jac, _threshold)));
-        } else if (_mode == TotalAndLogJacobian) {
-          _jacobian->PutAsDouble(_nvox + idx, 100.0 * log(max(jac, _threshold)));
+        if (_mask->Get(idx) != 0) {
+          jac = d(xx + idx) * d(yy + idx) * d(zz + idx)
+              + d(xy + idx) * d(yz + idx) * d(zx + idx)
+              + d(xz + idx) * d(yx + idx) * d(zy + idx)
+              - d(xz + idx) * d(yy + idx) * d(zx + idx)
+              - d(xy + idx) * d(yx + idx) * d(zz + idx)
+              - d(xx + idx) * d(yz + idx) * d(zy + idx);
+          _m++; if (jac < .0) _n++;
+          if (_mode == LogJacobian) {
+            jac = fabs(log(max(jac, _threshold)));
+          } else if (_mode == TotalAndLogJacobian) {
+            _jacobian->PutAsDouble(_nvox + idx, 100.0 * log(max(jac, _threshold)));
+          }
+          jac *= 100.;
+        } else {
+          jac = _outside;
         }
-        _jacobian->PutAsDouble(idx, 100.0 * jac);
+        _jacobian->PutAsDouble(idx, jac);
       }
       MIRTK_DEBUG_TIMING(1, "computation of det(Jac)");
 #else
@@ -308,6 +315,8 @@ struct JacobianImpl : public VoxelReduction
             if (_mask->Get(idx) != 0) {
               _jacobian->PutAsDouble(idx, 100.0 * lj(idx));
               ++_m;
+            } else {
+              _jacobian->PutAsDouble(idx, _outside);
             }
           }
         } break;
@@ -321,20 +330,24 @@ struct JacobianImpl : public VoxelReduction
             if (_mask->Get(idx) != 0) {
               _jacobian->PutAsDouble(idx, 100.0 * fabs(lj(idx)));
               ++_m;
+            } else {
+              _jacobian->PutAsDouble(idx, _outside);
             }
           }
         } break;
         case TotalAndLogJacobian: {
-          if (verbose) cout << "Computing det(Jac) using scaling and squaring" << endl;
+          if (verbose) cout << "Computing det(Jac) and its log using scaling and squaring" << endl;
           GenericImage<double> dj, lj;
           MIRTK_START_TIMING();
           svffd->ScalingAndSquaring<double>(attr, nullptr, nullptr, &dj, &lj, nullptr, T);
-          MIRTK_DEBUG_TIMING(1, "computation of det(Jac) and log using scaling and squaring");
+          MIRTK_DEBUG_TIMING(1, "computation of det(Jac) and its log using scaling and squaring");
           for (int idx = 0; idx < _nvox; ++idx) {
             if (_mask->Get(idx) != 0) {
               _jacobian->PutAsDouble(idx, 100.0 * dj(idx));
               _jacobian->PutAsDouble(idx + _nvox, 100.0 * lj(idx));
               ++_m, _n += (dj(idx) < .0 ? 1 : 0);
+            } else {
+              _jacobian->PutAsDouble(idx, _outside);
             }
           }
         } break;
@@ -348,6 +361,8 @@ struct JacobianImpl : public VoxelReduction
             if (_mask->Get(idx) != 0) {
               _jacobian->PutAsDouble(idx, 100.0 * dj(idx));
               ++_m, _n += (dj(idx) < .0 ? 1 : 0);
+            } else {
+              _jacobian->PutAsDouble(idx, _outside);
             }
           }
         } break;
@@ -399,9 +414,8 @@ int main(int argc, char **argv)
   UniquePtr<Transformation> dof(Transformation::New(dofin_name));
 
   JacobianImpl impl;
-  impl._image    = target.get();
-  impl._jacobian = target.get();
-  impl._dof      = dof.get();
+  bool asdisp = false;
+  bool asvelo = false;
 
   for (ALL_OPTIONS) {
     if (OPTION("-padding")) {
@@ -441,12 +455,51 @@ int main(int argc, char **argv)
         }
       }
     }
+    else if (OPTION("-disp")) {
+      asdisp = true;
+      if (HAS_ARGUMENT) {
+        PARSE_ARGUMENT(asdisp);
+      }
+    }
+    else if (OPTION("-velo")) {
+      asvelo = true;
+      if (HAS_ARGUMENT) {
+        PARSE_ARGUMENT(asvelo);
+      }
+    }
     else if (OPTION("-noss"))   impl._noss  = 0;
     else if (OPTION("-float"))  impl._dtype = MIRTK_VOXEL_FLOAT;
     else if (OPTION("-double")) impl._dtype = MIRTK_VOXEL_DOUBLE;
     else if (OPTION("-real"))   impl._dtype = MIRTK_VOXEL_REAL;
     else HANDLE_COMMON_OR_UNKNOWN_OPTION();
   }
+
+  if (asvelo) {
+    BSplineFreeFormTransformationSV *svffd = nullptr;
+    BSplineFreeFormTransformationTD *tdffd = nullptr;
+    svffd = dynamic_cast<BSplineFreeFormTransformationSV *>(dof.get());
+    tdffd = dynamic_cast<BSplineFreeFormTransformationTD *>(dof.get());
+    if (svffd) {
+      svffd->ScaleVelocities(svffd->T() / svffd->NumberOfSteps());
+      dof.reset(new BSplineFreeFormTransformation3D(*svffd));
+    } else if (tdffd) {
+      dof.reset(new BSplineFreeFormTransformation4D(*tdffd));
+    } else {
+      FatalError("Input must be SV/TD FFD when -velo option is used");
+    }
+  }
+  if (asdisp && impl._mode != GlobalJacobian) {
+    if (impl._mode == LocalJacobian) {
+      FatalError("Option -disp not implemented for -local Jacobian");
+    }
+    GenericImage<double> disp(target->Attributes(), 3);
+    dof->Displacement(disp, impl._t, impl._t0);
+    dof.reset(new LinearFreeFormTransformation3D(disp));
+  }
+
+  impl._image    = target.get();
+  impl._jacobian = target.get();
+  impl._dof      = dof.get();
 
   const int nvox = target->NumberOfSpatialVoxels();
 
