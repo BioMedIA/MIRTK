@@ -478,6 +478,58 @@ public:
   template <class TVoxel>
   void Evaluate(GenericImage<TVoxel> &) const;
 
+  // ---------------------------------------------------------------------------
+  // Derivatives
+
+  /// Get 1st order derivatives of given image at arbitrary location (in pixels)
+  ///
+  /// When the image has scalar data type and stores vector components in the
+  /// fourth dimension, the derivatives of all components are evaluated when
+  /// the t coordinate is set to NaN. Otherwise, only the derivatives of the
+  /// specified t component are evaluated.
+  virtual void EvaluateJacobianInside(Matrix &, double, double, double = 0, double = NaN) const;
+
+  /// Get 1st order derivatives of given image at arbitrary location (in pixels)
+  ///
+  /// When the image has scalar data type and stores vector components in the
+  /// fourth dimension, the derivatives of all components are evaluated when
+  /// the t coordinate is set to NaN. Otherwise, only the derivatives of the
+  /// specified t component are evaluated.
+  virtual void EvaluateJacobianOutside(Matrix &, double, double, double = 0, double = NaN) const;
+
+  /// Get 1st order derivatives of given image at arbitrary location (in pixels)
+  ///
+  /// When the image has scalar data type and stores vector components in the
+  /// fourth dimension, the derivatives of all components are evaluated when
+  /// the t coordinate is set to NaN. Otherwise, only the derivatives of the
+  /// specified t component are evaluated.
+  void EvaluateJacobian(Matrix &, double, double, double = 0, double = NaN) const;
+
+
+  /// Get 1st order derivatives of given image at arbitrary location (in pixels)
+  ///
+  /// When the image has scalar data type and stores vector components in the
+  /// fourth dimension, the derivatives of all components are evaluated when
+  /// the t coordinate is set to NaN. Otherwise, only the derivatives of the
+  /// specified t component are evaluated.
+  virtual void EvaluateJacobianWithPaddingInside(Matrix &, double, double, double = 0, double = NaN) const;
+
+  /// Get 1st order derivatives of given image at arbitrary location (in pixels)
+  ///
+  /// When the image has scalar data type and stores vector components in the
+  /// fourth dimension, the derivatives of all components are evaluated when
+  /// the t coordinate is set to NaN. Otherwise, only the derivatives of the
+  /// specified t component are evaluated.
+  virtual void EvaluateJacobianWithPaddingOutside(Matrix &, double, double, double = 0, double = NaN) const;
+
+  /// Get 1st order derivatives of given image at arbitrary location (in pixels)
+  ///
+  /// When the image has scalar data type and stores vector components in the
+  /// fourth dimension, the derivatives of all components are evaluated when
+  /// the t coordinate is set to NaN. Otherwise, only the derivatives of the
+  /// specified t component are evaluated.
+  void EvaluateJacobianWithPadding(Matrix &, double, double, double = 0, double = NaN) const;
+
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1185,6 +1237,54 @@ inline void InterpolateImageFunction::Evaluate(GenericImage<TVoxel> &output) con
     UnaryVoxelFunction::InterpolateImage<InterpolateImageFunction> eval(this, &output);
     ParallelForEachVoxel(output.Attributes(), output, eval);
   }
+}
+
+// =============================================================================
+// Derivatives
+// =============================================================================
+
+// -----------------------------------------------------------------------------
+inline void InterpolateImageFunction
+::EvaluateJacobianInside(Matrix &, double, double, double, double) const
+{
+  Throw(ERR_NotImplemented, __FUNCTION__, "Not implemented");
+}
+
+// -----------------------------------------------------------------------------
+inline void InterpolateImageFunction
+::EvaluateJacobianOutside(Matrix &, double, double, double, double) const
+{
+  Throw(ERR_NotImplemented, __FUNCTION__, "Not implemented");
+}
+
+// -----------------------------------------------------------------------------
+inline void InterpolateImageFunction
+::EvaluateJacobian(Matrix &jac, double x, double y, double z, double t) const
+{
+  if (this->IsInside(x, y, z, t)) this->EvaluateJacobianInside (jac, x, y, z, t);
+  else                            this->EvaluateJacobianOutside(jac, x, y, z, t);
+}
+
+// -----------------------------------------------------------------------------
+inline void InterpolateImageFunction
+::EvaluateJacobianWithPaddingInside(Matrix &, double, double, double, double) const
+{
+  Throw(ERR_NotImplemented, __FUNCTION__, "Not implemented");
+}
+
+// -----------------------------------------------------------------------------
+inline void InterpolateImageFunction
+::EvaluateJacobianWithPaddingOutside(Matrix &, double, double, double, double) const
+{
+  Throw(ERR_NotImplemented, __FUNCTION__, "Not implemented");
+}
+
+// -----------------------------------------------------------------------------
+inline void InterpolateImageFunction
+::EvaluateJacobianWithPadding(Matrix &jac, double x, double y, double z, double t) const
+{
+  if (this->IsInside(x, y, z, t)) this->EvaluateJacobianWithPaddingInside (jac, x, y, z, t);
+  else                            this->EvaluateJacobianWithPaddingOutside(jac, x, y, z, t);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
