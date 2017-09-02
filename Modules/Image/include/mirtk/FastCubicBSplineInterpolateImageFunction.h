@@ -344,13 +344,10 @@ public:
   void Jacobian(Matrix &, const TOtherImage *, double, double, double = 0, double = 0) const;
 
   /// Get 1st order derivatives of given image at arbitrary location (in pixels)
-  void EvaluateJacobianInside(Matrix &, double, double, double = 0, double = 0) const;
+  virtual void EvaluateJacobianInside(Matrix &, double, double, double = 0, double = 0) const;
 
   /// Get 1st order derivatives of given image at arbitrary location (in pixels)
-  void EvaluateJacobianOutside(Matrix &, double, double, double = 0, double = 0) const;
-
-  /// Get 1st order derivatives of given image at arbitrary location (in pixels)
-  void EvaluateJacobian(Matrix &, double, double, double = 0, double = 0) const;
+  virtual void EvaluateJacobianOutside(Matrix &, double, double, double = 0, double = 0) const;
 
 };
 

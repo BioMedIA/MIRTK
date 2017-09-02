@@ -49,7 +49,7 @@ GenericFastLinearImageGradientFunction<TImage>
 template <class TImage>
 void GenericFastLinearImageGradientFunction<TImage>::Initialize(bool coeff)
 {
-  /// Initialize base class
+  // Initialize base class
   Superclass::Initialize(coeff);
 
   // Domain on which linear interpolation is defined: [0, x)

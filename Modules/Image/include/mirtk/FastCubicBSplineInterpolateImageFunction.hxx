@@ -1261,15 +1261,6 @@ void GenericFastCubicBSplineInterpolateImageFunction<TImage>
   Jacobian(jac, _InfiniteCoefficient, x, y, z, t);
 }
 
-// -----------------------------------------------------------------------------
-template <class TImage>
-void GenericFastCubicBSplineInterpolateImageFunction<TImage>
-::EvaluateJacobian(Matrix &jac, double x, double y, double z, double t) const
-{
-  if (this->IsInside(x, y, z, t)) this->EvaluateJacobianInside (jac, x, y, z, t);
-  else                            this->EvaluateJacobianOutside(jac, x, y, z, t);
-}
-
 
 } // namespace mirtk
 

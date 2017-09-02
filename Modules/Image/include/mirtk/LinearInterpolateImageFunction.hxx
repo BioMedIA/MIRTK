@@ -800,6 +800,765 @@ GenericLinearInterpolateImageFunction<TImage>
   }
 }
 
+// =============================================================================
+// Evaluation of derivatives
+// =============================================================================
+
+// -----------------------------------------------------------------------------
+template <class TImage>
+void GenericLinearInterpolateImageFunction<TImage>
+::EvaluateJacobianInside(Matrix &jac, double x, double y, double z, double t) const
+{
+  Jacobian(jac, this->Input(), x, y, z, t);
+}
+
+// -----------------------------------------------------------------------------
+template <class TImage>
+void GenericLinearInterpolateImageFunction<TImage>
+::EvaluateJacobianOutside(Matrix &jac, double x, double y, double z, double t) const
+{
+  if (this->Extrapolator()) {
+    Jacobian(jac, this->Extrapolator(), x, y, z, t);
+  } else {
+    Jacobian(jac, x, y, z, t);
+  }
+}
+
+// -----------------------------------------------------------------------------
+template <class TImage>
+void GenericLinearInterpolateImageFunction<TImage>
+::EvaluateJacobianWithPaddingInside(Matrix &jac, double x, double y, double z, double t) const
+{
+  JacobianWithPadding(jac, x, y, z, t);
+}
+
+// -----------------------------------------------------------------------------
+template <class TImage>
+void GenericLinearInterpolateImageFunction<TImage>
+::EvaluateJacobianWithPaddingOutside(Matrix &jac, double x, double y, double z, double t) const
+{
+  JacobianWithPadding(jac, x, y, z, t);
+}
+
+// -----------------------------------------------------------------------------
+// without use of extrapolation
+// -----------------------------------------------------------------------------
+
+// -----------------------------------------------------------------------------
+template <class TImage>
+void GenericLinearInterpolateImageFunction<TImage>
+::Jacobian2D(Matrix &jac, double x, double y, double z, double t) const
+{
+  const TImage * const input = this->Input();
+
+  const int i = ifloor(x);
+  const int j = ifloor(y);
+  const int k = iround(z);
+
+  Real wx[2], wy[2], wd[2] = {Real(-1), Real(1)};
+  wx[1] = Real(x - i); wx[0] = Real(1) - wx[1];
+  wy[1] = Real(y - j); wy[0] = Real(1) - wy[1];
+
+  if (IsNaN(t) && IsZero(input->TSize()) && input->N() == 1) {
+
+    jac.Initialize(input->T(), 2);
+
+    if (i < 0 || i >= input->X() - 1 ||
+        j < 0 || j >= input->Y() - 1 ||
+        k < 0 || k >= input->Z()) {
+      return; // zero
+    }
+
+    Real dv, w[2];
+    int ia, jb;
+    for (int b = 0; b <= 1; ++b) {
+      jb = j + b;
+      for (int a = 0; a <= 1; ++a) {
+        ia = i + a;
+        w[0] = wd[a] * wy[b];
+        w[1] = wx[a] * wd[b];
+        for (int l = 0; l < input->T(); ++l) {
+          dv = voxel_cast<Real>(input->Get(ia, jb, k, l));
+          jac(l, 0) += w[0] * dv;
+          jac(l, 1) += w[1] * dv;
+        }
+      }
+    }
+
+  } else {
+
+    jac.Initialize(input->N(), 2);
+
+    const int l = (IsNaN(t) ? 0 : iround(t));
+    if (i < 0 || i >= input->X() - 1 ||
+        j < 0 || j >= input->Y() - 1 ||
+        k < 0 || k >= input->Z() ||
+        l < 0 || l >= input->T()) {
+      return; // zero
+    }
+
+    RealType dv; // input value at discrete point
+    RealType dx = voxel_cast<RealType>(0); // derivative(s) w.r.t. x
+    RealType dy = voxel_cast<RealType>(0); // derivative(s) w.r.t. y
+
+    int ia, jb;
+    for (int b = 0; b <= 1; ++b) {
+      jb = j + b;
+      for (int a = 0; a <= 1; ++a) {
+        ia = i + a;
+        dv = voxel_cast<RealType>(input->Get(ia, jb, k, l));
+        dx += (wd[a] * wy[b]) * dv;
+        dy += (wx[a] * wd[b]) * dv;
+      }
+    }
+
+    for (int r = 0; r < input->N(); ++r) {
+      jac(r, 0) = get(dx, r);
+      jac(r, 1) = get(dy, r);
+    }
+
+  }
+}
+
+// -----------------------------------------------------------------------------
+template <class TImage>
+void GenericLinearInterpolateImageFunction<TImage>
+::Jacobian3D(Matrix &jac, double x, double y, double z, double t) const
+{
+  const TImage * const input = this->Input();
+
+  const int i = ifloor(x);
+  const int j = ifloor(y);
+  const int k = ifloor(z);
+
+  Real wx[2], wy[2], wz[2], wd[2] = {Real(-1), Real(1)};
+  wx[1] = Real(x - i); wx[0] = Real(1) - wx[1];
+  wy[1] = Real(y - j); wy[0] = Real(1) - wy[1];
+  wz[1] = Real(z - k); wz[0] = Real(1) - wz[1];
+
+  if (IsNaN(t) && IsZero(input->TSize()) && input->N() == 1) {
+
+    jac.Initialize(input->T(), 3);
+
+    if (i < 0 || i >= input->X() - 1 ||
+        j < 0 || j >= input->Y() - 1 ||
+        k < 0 || k >= input->Z() - 1) {
+      return; // zero
+    }
+
+    Real w[3], dv;
+    int ia, jb, kc;
+    for (int c = 0; c <= 1; ++c) {
+      kc = k + c;
+      for (int b = 0; b <= 1; ++b) {
+        jb = j + b;
+        for (int a = 0; a <= 1; ++a) {
+          ia = i + a;
+          w[0] = wd[a] * wy[b] * wz[c];
+          w[1] = wx[a] * wd[b] * wz[c];
+          w[2] = wx[a] * wy[b] * wd[c];
+          for (int l = 0; l < input->T(); ++l) {
+            dv = voxel_cast<Real>(input->Get(ia, jb, kc, l));
+            jac(l, 0) += w[0] * dv;
+            jac(l, 1) += w[1] * dv;
+            jac(l, 2) += w[2] * dv;
+          }
+        }
+      }
+    }
+
+  } else {
+
+    jac.Initialize(input->N(), 3);
+
+    const int l = iround(t);
+    if (i < 0 || i >= input->X() - 1 ||
+        j < 0 || j >= input->Y() - 1 ||
+        k < 0 || k >= input->Z() - 1 ||
+        l < 0 || l >= input->T()) {
+      return; // zero
+    }
+
+    RealType dv; // input value at discrete point
+    RealType dx = voxel_cast<RealType>(0); // derivative(s) w.r.t. x
+    RealType dy = voxel_cast<RealType>(0); // derivative(s) w.r.t. y
+    RealType dz = voxel_cast<RealType>(0); // derivative(s) w.r.t. z
+
+    int ia, jb, kc;
+    for (int c = 0; c <= 1; ++c) {
+      kc = k + c;
+      for (int b = 0; b <= 1; ++b) {
+        jb = j + b;
+        for (int a = 0; a <= 1; ++a) {
+          ia = i + a;
+          dv = voxel_cast<RealType>(input->Get(ia, jb, kc, l));
+          dx += (wd[a] * wy[b] * wz[c]) * dv;
+          dy += (wx[a] * wd[b] * wz[c]) * dv;
+          dz += (wx[a] * wy[b] * wd[c]) * dv;
+        }
+      }
+    }
+
+    for (int r = 0; r < input->N(); ++r) {
+      jac(r, 0) = get(dx, r);
+      jac(r, 1) = get(dy, r);
+      jac(r, 2) = get(dz, r);
+    }
+
+  }
+}
+
+// -----------------------------------------------------------------------------
+template <class TImage>
+void GenericLinearInterpolateImageFunction<TImage>
+::Jacobian4D(Matrix &jac, double x, double y, double z, double t) const
+{
+  const TImage * const input = this->Input();
+
+  jac.Initialize(input->N(), 4);
+
+  if (IsNaN(t)) t = 0.;
+  const int i = ifloor(x);
+  const int j = ifloor(y);
+  const int k = ifloor(z);
+  const int l = ifloor(t);
+
+  if (i < 0 || i >= input->X() - 1 ||
+      j < 0 || j >= input->Y() - 1 ||
+      k < 0 || k >= input->Z() - 1 ||
+      l < 0 || l >= input->T() - 1) {
+    return; // zero
+  }
+
+  Real wx[2], wy[2], wz[2], wt[2], wd[2] = {Real(-1), Real(1)};
+  wx[1] = Real(x - i); wx[0] = Real(1) - wx[1];
+  wy[1] = Real(y - j); wy[0] = Real(1) - wy[1];
+  wz[1] = Real(z - k); wz[0] = Real(1) - wz[1];
+  wt[1] = Real(t - l); wt[0] = Real(1) - wt[1];
+
+  RealType dv; // input value at discrete point
+  RealType dx = voxel_cast<RealType>(0); // derivative(s) w.r.t. x
+  RealType dy = voxel_cast<RealType>(0); // derivative(s) w.r.t. y
+  RealType dz = voxel_cast<RealType>(0); // derivative(s) w.r.t. z
+  RealType dt = voxel_cast<RealType>(0); // derivative(s) w.r.t. t
+
+  int ia, jb, kc, ld;
+  for (int d = 0; d <= 1; ++d) {
+    ld = l + d;
+    for (int c = 0; c <= 1; ++c) {
+      kc = k + c;
+      for (int b = 0; b <= 1; ++b) {
+        jb = j + b;
+        for (int a = 0; a <= 1; ++a) {
+          ia = i + a;
+          dv = voxel_cast<RealType>(input->Get(ia, jb, kc, ld));
+          dx += (wd[a] * wy[b] * wz[c] * wt[d]) * dv;
+          dy += (wx[a] * wd[b] * wz[c] * wt[d]) * dv;
+          dz += (wx[a] * wy[b] * wd[c] * wt[d]) * dv;
+          dt += (wx[a] * wy[b] * wz[c] * wd[d]) * dv;
+        }
+      }
+    }
+  }
+
+  for (int r = 0; r < input->N(); ++r) {
+    jac(r, 0) = get(dx, r);
+    jac(r, 1) = get(dy, r);
+    jac(r, 2) = get(dz, r);
+    jac(r, 3) = get(dt, r);
+  }
+}
+
+// -----------------------------------------------------------------------------
+template <class TImage>
+void GenericLinearInterpolateImageFunction<TImage>
+::Jacobian(Matrix &jac, double x, double y, double z, double t) const
+{
+  switch (this->NumberOfDimensions()) {
+    case 3:  return Jacobian3D(jac, x, y, z, t);
+    case 2:  return Jacobian2D(jac, x, y, z, t);
+    default: return Jacobian4D(jac, x, y, z, t);
+  }
+}
+
+
+// -----------------------------------------------------------------------------
+// without use of extrapolation, inside image foreground
+// -----------------------------------------------------------------------------
+
+// -----------------------------------------------------------------------------
+template <class TImage>
+void GenericLinearInterpolateImageFunction<TImage>
+::JacobianWithPadding2D(Matrix &jac, double x, double y, double z, double t) const
+{
+  const TImage * const input = this->Input();
+
+  const int i = ifloor(x);
+  const int j = ifloor(y);
+  const int k = iround(z);
+
+  Real wx[2], wy[2], wd[2] = {Real(-1), Real(1)};
+  wx[1] = Real(x - i); wx[0] = Real(1) - wx[1];
+  wy[1] = Real(y - j); wy[0] = Real(1) - wy[1];
+
+  if (IsNaN(t) && IsZero(input->TSize()) && input->N() == 1) {
+
+    jac.Initialize(input->T(), 2);
+
+    if (i < 0 || i >= input->X() - 1 ||
+        j < 0 || j >= input->Y() - 1 ||
+        k < 0 || k >= input->Z()) {
+      return; // zero
+    }
+
+    Real w[2], dv;
+    int ia, jb;
+    for (int b = 0; b <= 1; ++b) {
+      jb = j + b;
+      for (int a = 0; a <= 1; ++a) {
+        ia = i + a;
+        if (!input->IsForeground(ia, jb, k)) {
+          jac.Initialize(input->T(), 2);
+          return; // zero
+        }
+        w[0] = wd[a] * wy[b];
+        w[1] = wx[a] * wd[b];
+        for (int l = 0; l < input->T(); ++l) {
+          dv = voxel_cast<Real>(input->Get(ia, jb, k, l));
+          jac(l, 0) += w[0] * dv;
+          jac(l, 1) += w[1] * dv;
+        }
+      }
+    }
+
+  } else {
+
+    jac.Initialize(input->N(), 2);
+
+    const int l = (IsNaN(t) ? 0 : iround(t));
+    if (i < 0 || i >= input->X() - 1 ||
+        j < 0 || j >= input->Y() - 1 ||
+        k < 0 || k >= input->Z() ||
+        l < 0 || l >= input->T()) {
+      return; // zero
+    }
+
+    RealType dv; // input value at discrete point
+    RealType dx = voxel_cast<RealType>(0); // derivative(s) w.r.t. x
+    RealType dy = voxel_cast<RealType>(0); // derivative(s) w.r.t. y
+
+    int ia, jb;
+    for (int b = 0; b <= 1; ++b) {
+      jb = j + b;
+      for (int a = 0; a <= 1; ++a) {
+        ia = i + a;
+        if (!input->IsForeground(ia, jb, k, l)) {
+          return; // zero
+        }
+        dv = voxel_cast<RealType>(input->Get(ia, jb, k, l));
+        dx += (wd[a] * wy[b]) * dv;
+        dy += (wx[a] * wd[b]) * dv;
+      }
+    }
+
+    for (int r = 0; r < input->N(); ++r) {
+      jac(r, 0) = get(dx, r);
+      jac(r, 1) = get(dy, r);
+    }
+
+  }
+}
+
+// -----------------------------------------------------------------------------
+template <class TImage>
+void GenericLinearInterpolateImageFunction<TImage>
+::JacobianWithPadding3D(Matrix &jac, double x, double y, double z, double t) const
+{
+  const TImage * const input = this->Input();
+
+  const int i = ifloor(x);
+  const int j = ifloor(y);
+  const int k = ifloor(z);
+
+  Real wx[2], wy[2], wz[2], wd[2] = {Real(-1), Real(1)};
+  wx[1] = Real(x - i); wx[0] = Real(1) - wx[1];
+  wy[1] = Real(y - j); wy[0] = Real(1) - wy[1];
+  wz[1] = Real(z - k); wz[0] = Real(1) - wz[1];
+
+  if (IsNaN(t) && IsZero(input->TSize()) && input->N() == 1) {
+
+    jac.Initialize(input->T(), 3);
+
+    if (i < 0 || i >= input->X() - 1 ||
+        j < 0 || j >= input->Y() - 1 ||
+        k < 0 || k >= input->Z() - 1) {
+      return; // zero
+    }
+
+    Real w[3], dv;
+    int ia, jb, kc;
+    for (int c = 0; c <= 1; ++c) {
+      kc = k + c;
+      for (int b = 0; b <= 1; ++b) {
+        jb = j + b;
+        for (int a = 0; a <= 1; ++a) {
+          ia = i + a;
+          if (!input->IsForeground(ia, jb, kc)) {
+            jac.Initialize(input->T(), 3);
+            return; // zero
+          }
+          w[0] = wd[a] * wy[b] * wz[c];
+          w[1] = wx[a] * wd[b] * wz[c];
+          w[2] = wx[a] * wy[b] * wd[c];
+          for (int l = 0; l < input->T(); ++l) {
+            dv = voxel_cast<Real>(input->Get(ia, jb, kc, l));
+            jac(l, 0) += w[0] * dv;
+            jac(l, 1) += w[1] * dv;
+            jac(l, 2) += w[2] * dv;
+          }
+        }
+      }
+    }
+
+  } else {
+
+    jac.Initialize(input->N(), 3);
+
+    const int l = (IsNaN(t) ? 0 : iround(t));
+    if (i < 0 || i >= input->X() - 1 ||
+        j < 0 || j >= input->Y() - 1 ||
+        k < 0 || k >= input->Z() - 1 ||
+        l < 0 || l >= input->T()) {
+      return; // zero
+    }
+
+    RealType dv; // input value at discrete point
+    RealType dx = voxel_cast<RealType>(0); // derivative(s) w.r.t. x
+    RealType dy = voxel_cast<RealType>(0); // derivative(s) w.r.t. y
+    RealType dz = voxel_cast<RealType>(0); // derivative(s) w.r.t. z
+
+    int ia, jb, kc;
+    for (int c = 0; c <= 1; ++c) {
+      kc = k + c;
+      for (int b = 0; b <= 1; ++b) {
+        jb = j + b;
+        for (int a = 0; a <= 1; ++a) {
+          ia = i + a;
+          if (!input->IsForeground(ia, jb, kc, l)) {
+            return; // zero
+          }
+          dv = voxel_cast<RealType>(input->Get(ia, jb, kc, l));
+          dx += (wd[a] * wy[b] * wz[c]) * dv;
+          dy += (wx[a] * wd[b] * wz[c]) * dv;
+          dz += (wx[a] * wy[b] * wd[c]) * dv;
+        }
+      }
+    }
+
+    for (int r = 0; r < input->N(); ++r) {
+      jac(r, 0) = get(dx, r);
+      jac(r, 1) = get(dy, r);
+      jac(r, 2) = get(dz, r);
+    }
+
+  }
+}
+
+// -----------------------------------------------------------------------------
+template <class TImage>
+void GenericLinearInterpolateImageFunction<TImage>
+::JacobianWithPadding4D(Matrix &jac, double x, double y, double z, double t) const
+{
+  const TImage * const input = this->Input();
+
+  jac.Initialize(input->N(), 4);
+
+  if (IsNaN(t)) t = 0.;
+  const int i = ifloor(x);
+  const int j = ifloor(y);
+  const int k = ifloor(z);
+  const int l = ifloor(t);
+
+  if (i < 0 || i >= input->X() - 1 ||
+      j < 0 || j >= input->Y() - 1 ||
+      k < 0 || k >= input->Z() - 1 ||
+      l < 0 || l >= input->T() - 1) {
+    return; // zero
+  }
+
+  Real wx[2], wy[2], wz[2], wt[2], wd[2] = {Real(-1), Real(1)};
+  wx[1] = Real(x - i); wx[0] = Real(1) - wx[1];
+  wy[1] = Real(y - j); wy[0] = Real(1) - wy[1];
+  wz[1] = Real(z - k); wz[0] = Real(1) - wz[1];
+  wt[1] = Real(t - l); wt[0] = Real(1) - wt[1];
+
+  RealType dv; // input value at discrete point
+  RealType dx = voxel_cast<RealType>(0); // derivative(s) w.r.t. x
+  RealType dy = voxel_cast<RealType>(0); // derivative(s) w.r.t. y
+  RealType dz = voxel_cast<RealType>(0); // derivative(s) w.r.t. z
+  RealType dt = voxel_cast<RealType>(0); // derivative(s) w.r.t. t
+
+  int ia, jb, kc, ld;
+  for (int d = 0; d <= 1; ++d) {
+    ld = l + d;
+    for (int c = 0; c <= 1; ++c) {
+      kc = k + c;
+      for (int b = 0; b <= 1; ++b) {
+        jb = j + b;
+        for (int a = 0; a <= 1; ++a) {
+          ia = i + a;
+          if (!input->IsForeground(ia, jb, kc, ld)) {
+            return; // zero
+          }
+          dv = voxel_cast<RealType>(input->Get(ia, jb, kc, ld));
+          dx += (wd[a] * wy[b] * wz[c] * wt[d]) * dv;
+          dy += (wx[a] * wd[b] * wz[c] * wt[d]) * dv;
+          dz += (wx[a] * wy[b] * wd[c] * wt[d]) * dv;
+          dt += (wx[a] * wy[b] * wz[c] * wd[d]) * dv;
+        }
+      }
+    }
+  }
+
+  for (int r = 0; r < input->N(); ++r) {
+    jac(r, 0) = get(dx, r);
+    jac(r, 1) = get(dy, r);
+    jac(r, 2) = get(dz, r);
+    jac(r, 3) = get(dt, r);
+  }
+}
+
+// -----------------------------------------------------------------------------
+template <class TImage>
+void GenericLinearInterpolateImageFunction<TImage>
+::JacobianWithPadding(Matrix &jac, double x, double y, double z, double t) const
+{
+  switch (this->NumberOfDimensions()) {
+    case 3:  return JacobianWithPadding3D(jac, x, y, z, t);
+    case 2:  return JacobianWithPadding2D(jac, x, y, z, t);
+    default: return JacobianWithPadding4D(jac, x, y, z, t);
+  }
+}
+
+
+// -----------------------------------------------------------------------------
+// inside image domain or with extrapolation function
+// -----------------------------------------------------------------------------
+
+// -----------------------------------------------------------------------------
+template <class TImage> template <class TOtherImage>
+void GenericLinearInterpolateImageFunction<TImage>
+::Jacobian2D(Matrix &jac, const TOtherImage *input, double x, double y, double z, double t) const
+{
+  const int i = ifloor(x);
+  const int j = ifloor(y);
+  const int k = iround(z);
+
+  Real wx[2], wy[2], wd[2] = {Real(-1), Real(1)};
+  wx[1] = Real(x - i); wx[0] = Real(1) - wx[1];
+  wy[1] = Real(y - j); wy[0] = Real(1) - wy[1];
+
+  if (IsNaN(t) && IsZero(input->TSize()) && input->N() == 1) {
+
+    jac.Initialize(input->T(), 2);
+
+    if (k < 0 || k >= input->Z()) {
+      return; // zero
+    }
+
+    Real w[2], dv;
+    int ia, jb;
+    for (int b = 0; b <= 1; ++b) {
+      jb = j + b;
+      for (int a = 0; a <= 1; ++a) {
+        ia = i + a;
+        w[0] = wd[a] * wy[b];
+        w[1] = wx[a] * wd[b];
+        for (int l = 0; l < input->T(); ++l) {
+          dv = voxel_cast<Real>(input->Get(ia, jb, k, l));
+          jac(l, 0) += w[0] * dv;
+          jac(l, 1) += w[1] * dv;
+        }
+      }
+    }
+
+  } else {
+
+    jac.Initialize(input->N(), 2);
+
+    const int l = (IsNaN(t) ? 0 : iround(t));
+    if (k < 0 || k >= input->Z() ||
+        l < 0 || l >= input->T()) {
+      return; // zero
+    }
+
+    RealType dv; // input value at discrete point
+    RealType dx = voxel_cast<RealType>(0); // derivative(s) w.r.t. x
+    RealType dy = voxel_cast<RealType>(0); // derivative(s) w.r.t. y
+
+    int ia, jb;
+    for (int b = 0; b <= 1; ++b) {
+      jb = j + b;
+      for (int a = 0; a <= 1; ++a) {
+        ia = i + a;
+        dv = voxel_cast<RealType>(input->Get(ia, jb, k, l));
+        dx += (wd[a] * wy[b]) * dv;
+        dy += (wx[a] * wd[b]) * dv;
+      }
+    }
+
+    for (int r = 0; r < input->N(); ++r) {
+      jac(r, 0) = get(dx, r);
+      jac(r, 1) = get(dy, r);
+    }
+
+  }
+}
+
+// -----------------------------------------------------------------------------
+template <class TImage> template <class TOtherImage>
+void GenericLinearInterpolateImageFunction<TImage>
+::Jacobian3D(Matrix &jac, const TOtherImage *input,
+             double x, double y, double z, double t) const
+{
+  const int i = ifloor(x);
+  const int j = ifloor(y);
+  const int k = ifloor(z);
+
+  Real wx[2], wy[2], wz[2], wd[2] = {Real(-1), Real(1)};
+  wx[1] = Real(x - i); wx[0] = Real(1) - wx[1];
+  wy[1] = Real(y - j); wy[0] = Real(1) - wy[1];
+  wz[1] = Real(z - k); wz[0] = Real(1) - wz[1];
+
+  if (IsNaN(t) && IsZero(input->TSize()) && input->N() == 1) {
+
+    jac.Initialize(input->T(), 3);
+
+    Real w[3], dv;
+    int ia, jb, kc;
+    for (int c = 0; c <= 1; ++c) {
+      kc = k + c;
+      for (int b = 0; b <= 1; ++b) {
+        jb = j + b;
+        for (int a = 0; a <= 1; ++a) {
+          ia = i + a;
+          w[0] = wd[a] * wy[b] * wz[c];
+          w[1] = wx[a] * wd[b] * wz[c];
+          w[2] = wx[a] * wy[b] * wd[c];
+          for (int l = 0; l < input->T(); ++l) {
+            dv = voxel_cast<Real>(input->Get(ia, jb, kc, l));
+            jac(l, 0) += w[0] * dv;
+            jac(l, 1) += w[1] * dv;
+            jac(l, 2) += w[2] * dv;
+          }
+        }
+      }
+    }
+
+  } else {
+
+    jac.Initialize(input->N(), 3);
+
+    const int l = (IsNaN(t) ? 0 : iround(t));
+    if (l < 0 || l >= input->T()) {
+      return; // zero
+    }
+
+    RealType dv; // input value at discrete point
+    RealType dx = voxel_cast<RealType>(0); // derivative(s) w.r.t. x
+    RealType dy = voxel_cast<RealType>(0); // derivative(s) w.r.t. y
+    RealType dz = voxel_cast<RealType>(0); // derivative(s) w.r.t. z
+
+    int ia, jb, kc;
+    for (int c = 0; c <= 1; ++c) {
+      kc = k + c;
+      for (int b = 0; b <= 1; ++b) {
+        jb = j + b;
+        for (int a = 0; a <= 1; ++a) {
+          ia = i + a;
+          dv = voxel_cast<RealType>(input->Get(ia, jb, kc, l));
+          dx += (wd[a] * wy[b] * wz[c]) * dv;
+          dy += (wx[a] * wd[b] * wz[c]) * dv;
+          dz += (wx[a] * wy[b] * wd[c]) * dv;
+        }
+      }
+    }
+
+    for (int r = 0; r < input->N(); ++r) {
+      jac(r, 0) = get(dx, r);
+      jac(r, 1) = get(dy, r);
+      jac(r, 2) = get(dz, r);
+    }
+
+  }
+}
+
+// -----------------------------------------------------------------------------
+template <class TImage> template <class TOtherImage>
+void GenericLinearInterpolateImageFunction<TImage>
+::Jacobian4D(Matrix &jac, const TOtherImage *input,
+             double x, double y, double z, double t) const
+{
+  jac.Initialize(input->N(), 4);
+
+  if (IsNaN(t)) t = 0.;
+  const int i = ifloor(x);
+  const int j = ifloor(y);
+  const int k = ifloor(z);
+  const int l = ifloor(t);
+
+  Real wx[2], wy[2], wz[2], wt[2], wd[2] = {Real(-1), Real(1)};
+  wx[1] = Real(x - i); wx[0] = Real(1) - wx[1];
+  wy[1] = Real(y - j); wy[0] = Real(1) - wy[1];
+  wz[1] = Real(z - k); wz[0] = Real(1) - wz[1];
+  wt[1] = Real(t - l); wt[0] = Real(1) - wt[1];
+
+  RealType dv; // input value at discrete point
+  RealType dx = voxel_cast<RealType>(0); // derivative(s) w.r.t. x
+  RealType dy = voxel_cast<RealType>(0); // derivative(s) w.r.t. y
+  RealType dz = voxel_cast<RealType>(0); // derivative(s) w.r.t. z
+  RealType dt = voxel_cast<RealType>(0); // derivative(s) w.r.t. t
+
+  int ia, jb, kc, ld;
+  for (int d = 0; d <= 1; ++d) {
+    ld = l + d;
+    for (int c = 0; c <= 1; ++c) {
+      kc = k + c;
+      for (int b = 0; b <= 1; ++b) {
+        jb = j + b;
+        for (int a = 0; a <= 1; ++a) {
+          ia = i + a;
+          dv = voxel_cast<RealType>(input->Get(ia, jb, kc, ld));
+          dx += (wd[a] * wy[b] * wz[c] * wt[d]) * dv;
+          dy += (wx[a] * wd[b] * wz[c] * wt[d]) * dv;
+          dz += (wx[a] * wy[b] * wd[c] * wt[d]) * dv;
+          dt += (wx[a] * wy[b] * wz[c] * wd[d]) * dv;
+        }
+      }
+    }
+  }
+
+  for (int r = 0; r < input->N(); ++r) {
+    jac(r, 0) = get(dx, r);
+    jac(r, 1) = get(dy, r);
+    jac(r, 2) = get(dz, r);
+    jac(r, 3) = get(dt, r);
+  }
+}
+
+// -----------------------------------------------------------------------------
+template <class TImage> template <class TOtherImage>
+void GenericLinearInterpolateImageFunction<TImage>
+::Jacobian(Matrix &jac, const TOtherImage *input,
+           double x, double y, double z, double t) const
+{
+  switch (this->NumberOfDimensions()) {
+    case 3:  return Jacobian3D(jac, input, x, y, z, t);
+    case 2:  return Jacobian2D(jac, input, x, y, z, t);
+    default: return Jacobian4D(jac, input, x, y, z, t);
+  }
+}
+
 
 } // namespace mirtk
 
