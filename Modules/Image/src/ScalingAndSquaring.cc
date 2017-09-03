@@ -475,9 +475,9 @@ struct UpdateJacobianBase : public VoxelFunction
     i = ifloor(x);
     j = ifloor(y);
     k = ifloor(z);
-    if (0 <= i && i < _Domain->X() - 1 &&
-        0 <= j && j < _Domain->Y() - 1 &&
-        0 <= k && k < _Domain->Z() - 1) {
+    if (0 <= i && i < _Domain->_x - 1 &&
+        0 <= j && j < _Domain->_y - 1 &&
+        0 <= k && k < _Domain->_z - 1) {
       double w[3], wx[2], wy[2], wz[2], wd[2] = {-1., +1.};
       wx[1] = x - static_cast<double>(i), wx[0] = 1. - wx[1];
       wy[1] = y - static_cast<double>(j), wy[0] = 1. - wy[1];
