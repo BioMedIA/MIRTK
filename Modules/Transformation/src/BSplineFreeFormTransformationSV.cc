@@ -1070,15 +1070,10 @@ void BSplineFreeFormTransformationSV
   if (!attr) return;
   // Copy input displacement field
   UniquePtr<GenericImage<VoxelType> > din(d ? new GenericImage<VoxelType>(*d) : nullptr);
-  // TODO: Improve execution time of ScalingAndSquaring filter. The previously
-  //       used VelocityToDisplacementFieldSS image filter has a considerably
-  //       shorter runtime (e.g., multi-threaded 6s vs 20-25s on MacBook Pro
-  //       Retina Early 2013, 2.7 GHz Intel Core i7).
-  //       The most time consuming step is ScalingAndSquaring::Resample.
-  //       When the execution time of the ScalingAndSquaring filter has been
-  //       reduced, remove the if block and use the else block only.
-  if (false && d && !dx && !dj && !lj) {
-
+  // TODO: The runtime of the ScalingAndSquaring filter has been greatly improved
+  //       to almost match the old VelocityToDisplacementFieldSS implementation.
+  //       However, the latter is still about 15% faster...
+  if (d && !dx && !dj && !lj) {
     GenericImage<VoxelType> v;
     if (_IntegrationMethod == FFDIM_FastSS) {
       v.Initialize(this->Attributes(), 3);
@@ -1098,9 +1093,7 @@ void BSplineFreeFormTransformationSV
     exp.Input(1, din.get()); // input displacement field (may be nullptr)
     exp.Output(d);           // result is exp(v) o d
     exp.Run();
-
   } else {
-
     // Copy B-spline coefficients of velocity field
     GenericImage<VoxelType> v(this->Attributes(), 3);
     VoxelType *vx = v.Data(0, 0, 0, 0);
@@ -1119,16 +1112,15 @@ void BSplineFreeFormTransformationSV
     exp.MaxScaledVelocity(_MaxScaledVelocity);
     exp.InterimAttributes(_IntegrationMethod == FFDIM_FastSS ? this->Attributes() : attr);
     exp.OutputAttributes(attr);
-    exp.Upsample(false);                // better, but too expensive
-    exp.InputVelocity(&v);              // velocity field to be exponentiated
-    exp.InputDisplacement(din.get());   // input displacement field (may be zero)
-    exp.OutputDisplacement(d);          // i.e., d = exp(v) o din
-    exp.OutputJacobian(dx);             // i.e., Jacobian
-    exp.OutputDetJacobian(dj);          // i.e., det(Jacobian)
-    exp.OutputLogJacobian(lj);          // i.e., log(det(Jacobian)
+    exp.Upsample(false);                         // better, but too expensive
     exp.ComputeInterpolationCoefficients(false); // v contains B-spline coefficients
+    exp.InputVelocity(&v);                       // velocity field to be exponentiated
+    exp.InputDisplacement(din.get());            // input displacement field (may be zero)
+    exp.OutputDisplacement(d);                   // i.e., d = exp(v) o din
+    exp.OutputJacobian(dx);                      // i.e., Jacobian
+    exp.OutputDetJacobian(dj);                   // i.e., det(Jacobian)
+    exp.OutputLogJacobian(lj);                   // i.e., log(det(Jacobian)
     exp.Run();
-
   }
 }
 
