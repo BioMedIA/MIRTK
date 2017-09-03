@@ -336,6 +336,9 @@ protected:
   inline void EvaluateJacobian(Matrix &jac, double x, double y, double z) const
   {
     _Displacement->Jacobian3D(jac, x, y, z);
+    jac(0, 0) += 1.;
+    jac(1, 1) += 1.;
+    jac(2, 2) += 1.;
   }
 
   /// Update gradient vector at current voxel given interpolated values
@@ -737,10 +740,10 @@ ScalingAndSquaring<TReal>::ScalingAndSquaring()
   _OutputGradient(nullptr),
   _ComputeInterpolationCoefficients(true),
   _ComputeInverse(false),
-  _UpperIntegrationLimit(1.0),
+  _UpperIntegrationLimit(1.),
   _NumberOfSteps(0),
   _NumberOfSquaringSteps(0),
-  _MaxScaledVelocity(.0),
+  _MaxScaledVelocity(0.),
   _Upsample(false),
   _SmoothBeforeDownsampling(false)
 {
@@ -748,19 +751,8 @@ ScalingAndSquaring<TReal>::ScalingAndSquaring()
 
 // -----------------------------------------------------------------------------
 template <class TReal>
-void ScalingAndSquaring<TReal>::Clear()
-{
-  _InterimDisplacement.reset();
-  _InterimJacobian.reset();
-  _InterimDetJacobian.reset();
-  _InterimLogJacobian.reset();
-}
-
-// -----------------------------------------------------------------------------
-template <class TReal>
 ScalingAndSquaring<TReal>::~ScalingAndSquaring()
 {
-  Clear();
 }
 
 // =============================================================================
@@ -775,8 +767,7 @@ void ScalingAndSquaring<TReal>::Initialize()
 
   // Check input/output
   if (!_InputVelocity) {
-    cerr << "ScalingAndSquaring::Initialize: Missing input velocity field!" << endl;
-    exit(1);
+    Throw(ERR_InvalidArgument, __FUNCTION__, "Missing input velocity field");
   }
   if (!_OutputAttributes) {
     if      (_InputDisplacement) _OutputAttributes = _InputDisplacement->Attributes();
@@ -785,26 +776,17 @@ void ScalingAndSquaring<TReal>::Initialize()
   }
   _OutputAttributes._t = 1, _OutputAttributes._dt = .0;
   if (_InputDisplacement && !_InputDisplacement->Attributes().EqualInSpace(_OutputAttributes)) {
-    cerr << "ScalingAndSquaring::Initialize: Output attributes do not match those of input displacement field" << endl;
-    exit(1);
+    Throw(ERR_InvalidArgument, __FUNCTION__, "Output attributes do not match those of input displacement field");
   }
   if (_InputDeformation && !_InputDeformation->Attributes().EqualInSpace(_OutputAttributes)) {
-    cerr << "ScalingAndSquaring::Initialize: Output attributes do not match those of input deformation field" << endl;
-    exit(1);
+    Throw(ERR_InvalidArgument, __FUNCTION__, "Output attributes do not match those of input deformation field");
   }
   if (_InputGradient) {
     if (_InputGradient->T() != 3) {
-      cerr << "ScalingAndSquaring::Initialize: Input gradient field must have 3 vector components (_t)" << endl;
-      exit(1);
+      Throw(ERR_InvalidArgument, __FUNCTION__, "Input gradient field must have 3 vector components (_t)");
     }
   } else if (_OutputGradient) {
-    cerr << "ScalingAndSquaring::Initialize: Input gradient field not specified, but output gradient image is set" << endl;
-    exit(1);
-  }
-  // Check settings
-  if (_NumberOfSteps <= 0 && _NumberOfSquaringSteps <= 0 && _MaxScaledVelocity <= .0) {
-    cerr << "ScalingAndSquaring::Initialize: Either number of integration or squaring steps or maximum scaled velocity must be positive!" << endl;
-    exit(1);
+    Throw(ERR_InvalidArgument, __FUNCTION__, "Input gradient field not specified, but output gradient image is set");
   }
 
   // Initialize input interpolator
@@ -835,11 +817,11 @@ void ScalingAndSquaring<TReal>::Initialize()
   }
 
   // Number of squaring steps
-  if (_NumberOfSquaringSteps <= 0) {
+  if (_NumberOfSquaringSteps <= 0 && _NumberOfSteps > 0) {
     _NumberOfSquaringSteps = iceil(log(static_cast<double>(_NumberOfSteps)) / log(2.0));
   }
   if (_NumberOfSquaringSteps < 0) {
-    _NumberOfSquaringSteps = 0; // i.e., 1 integration step only
+    _NumberOfSquaringSteps = (_MaxScaledVelocity > 0. ? 0 : 6);
   }
 
   // Initialize deformation field and increase number of squaring steps if needed
@@ -860,7 +842,7 @@ void ScalingAndSquaring<TReal>::Initialize()
 
   // Continue halfing input velocities as long as maximum absolute velocity
   // exceeds the specified maximum; skip if fixed number of steps
-  if (_MaxScaledVelocity > .0) {
+  if (_MaxScaledVelocity > 0.) {
     TReal s(1);
     while ((vmax * s) > _MaxScaledVelocity) {
       s *= TReal(.5);
@@ -972,9 +954,9 @@ void ScalingAndSquaring<TReal>
     (*output) = (*interim);
   } else {
     if (_SmoothBeforeDownsampling) {
-      const double sx = (_OutputAttributes._dx > interim->XSize()) ? _OutputAttributes._dx / 2. : .0;
-      const double sy = (_OutputAttributes._dy > interim->YSize()) ? _OutputAttributes._dy / 2. : .0;
-      const double sz = (_OutputAttributes._dz > interim->ZSize()) ? _OutputAttributes._dz / 2. : .0;
+      const double sx = (_OutputAttributes._dx > interim->XSize()) ? _OutputAttributes._dx / 2. : 0.;
+      const double sy = (_OutputAttributes._dy > interim->YSize()) ? _OutputAttributes._dy / 2. : 0.;
+      const double sz = (_OutputAttributes._dz > interim->ZSize()) ? _OutputAttributes._dz / 2. : 0.;
       if (sx || sy || sz) {
         GaussianBlurring<TReal> blurring(sx, sy, sz);
         blurring.Input (interim);
@@ -1027,6 +1009,7 @@ void ScalingAndSquaring<TReal>::FinalizeDisplacement()
     // Otherwise, resample intermediate image to output size
     Resample(_InterimDisplacement.get(), _OutputDisplacement);
   }
+  _InterimDisplacement.reset();
 }
 
 // -----------------------------------------------------------------------------
@@ -1036,8 +1019,10 @@ void ScalingAndSquaring<TReal>::FinalizeJacobian()
   if (_InputDisplacement || _InputDeformation) {
     // TODO: Multiply with Jacobian of input deformation
     Throw(ERR_NotImplemented, __FUNCTION__, "Evaluation of Jacobian of composite transformation currently not supported");
+  } else {
+    Resample(_InterimJacobian.get(), _OutputJacobian);
   }
-  Resample(_InterimJacobian.get(), _OutputJacobian);
+  _InterimJacobian.reset();
 }
 
 // -----------------------------------------------------------------------------
@@ -1047,8 +1032,10 @@ void ScalingAndSquaring<TReal>::FinalizeDetJacobian()
   if (_InputDisplacement || _InputDeformation) {
     // TODO: Multiply by determinant of input deformation Jacobian
     Throw(ERR_NotImplemented, __FUNCTION__, "Evaluation of Jacobian determinant of composite transformation currently not supported");
+  } else {
+    Resample(_InterimDetJacobian.get(), _OutputDetJacobian, true);
   }
-  Resample(_InterimDetJacobian.get(), _OutputDetJacobian, true);
+  _InterimDetJacobian.reset();
 }
 
 // -----------------------------------------------------------------------------
@@ -1058,8 +1045,10 @@ void ScalingAndSquaring<TReal>::FinalizeLogJacobian()
   if (_InputDisplacement || _InputDeformation) {
     // TODO: Add log of input deformation Jacobian
     Throw(ERR_NotImplemented, __FUNCTION__, "Evaluation of log-transformed Jacobian determinant of composite transformation currently not supported");
+  } else {
+    Resample(_InterimLogJacobian.get(), _OutputLogJacobian, true);
   }
-  Resample(_InterimLogJacobian.get(), _OutputLogJacobian, true);
+  _InterimLogJacobian.reset();
 }
 
 // -----------------------------------------------------------------------------
@@ -1089,9 +1078,6 @@ void ScalingAndSquaring<TReal>::Finalize()
     Matrix A = _InterimAttributes.GetImageToWorldMatrix();
     ParallelForEachVoxel(InPlaceMatrixVectorProduct(&A), _OutputGradient);
   }
-
-  // Free allocated memory
-  Clear();
 
   MIRTK_DEBUG_TIMING(5, "finalization of scaling and squaring");
 }
@@ -1128,6 +1114,7 @@ void ScalingAndSquaring<TReal>::Run()
   UniquePtr<VectorField> f_disp(new VectorField());
   f_disp->Extrapolator(new Extrapolator(), true);
   f_disp->Input(_InterimDisplacement.get());
+  f_disp->Initialize();
 
   UniquePtr<ImageType> t_jac3x3;
   if (_InterimJacobian) {
@@ -1169,18 +1156,16 @@ void ScalingAndSquaring<TReal>::Run()
     grad_attr_equal_interim_attr = _OutputGradient->Attributes().EqualInSpace(attr);
     grad.reset(new ImageType(_OutputGradient->Attributes()));
     f_grad.reset(new VectorField());
-    f_grad->Input(grad.get());
+    f_grad->Input(_OutputGradient);
+    f_grad->Initialize();
   }
 
   // Do the squaring steps
   int n = _NumberOfSquaringSteps;
   while (n--) {
     // Compose displacement field with itself
-    {
-      f_disp->Initialize();
-      UpdateDisplacement<VectorField> update(f_disp.get());
-      ParallelForEachVoxel(attr, _InterimDisplacement.get(), disp, update);
-    }
+    UpdateDisplacement<VectorField> update(f_disp.get());
+    ParallelForEachVoxel(attr, _InterimDisplacement.get(), disp, update);
     // Update Jacobian and/or determinants
     switch (jac_mode) {
       case 1: {
@@ -1220,8 +1205,7 @@ void ScalingAndSquaring<TReal>::Run()
       } break;
     }
     // Propagate input gradient using current deformation
-    if (_OutputGradient && n >= 0) {
-      f_grad->Initialize();
+    if (_OutputGradient) {
       if (grad_attr_equal_interim_attr) {
         UpdateGradientWithEqualOutputLattice<VectorField> update(f_disp.get(), f_grad.get());
         ParallelForEachVoxel(attr, _OutputGradient, grad.get(), update);
@@ -1236,6 +1220,11 @@ void ScalingAndSquaring<TReal>::Run()
     if (_InterimJacobian   ) _InterimJacobian   ->CopyFrom(jac3x3->Data());
     if (_InterimDetJacobian) _InterimDetJacobian->CopyFrom(detjac->Data());
     if (_InterimLogJacobian) _InterimLogJacobian->CopyFrom(logjac->Data());
+    // Update interpolators for next iteration
+    if (n > 0) {
+      f_disp->Update();
+      f_grad->Update();
+    }
   }
 
   MIRTK_DEBUG_TIMING(5, "squaring steps"

@@ -187,9 +187,6 @@ private:
   // ---------------------------------------------------------------------------
   // Construction/Destruction
 
-  /// Free allocated memory
-  void Clear();
-
 public:
 
   /// Constructor
