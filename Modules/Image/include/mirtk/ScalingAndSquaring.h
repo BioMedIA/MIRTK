@@ -23,6 +23,7 @@
 #include "mirtk/Object.h"
 #include "mirtk/GenericImage.h"
 #include "mirtk/InterpolateImageFunction.h"
+#include "mirtk/LinearInterpolateImageFunction.h"
 #include "mirtk/FastCubicBSplineInterpolateImageFunction.h"
 
 
@@ -58,10 +59,13 @@ class ScalingAndSquaring : public Object
 public:
 
   /// Image type of input, output, and intermediate images
-  typedef GenericImage<TReal> ImageType;
+  typedef GenericImage<TReal>   ImageType;
+
+  /// Type of image extrapolation function
+  typedef GenericNearestNeighborExtrapolateImageFunction<ImageType>   Extrapolator;
 
   /// Type of vector field interpolator
-  typedef GenericInterpolateImageFunction<ImageType> VectorField;
+  typedef GenericLinearInterpolateImageFunction<ImageType>   VectorField;
 
   /// Type of input velocity field interpolator
   typedef GenericFastCubicBSplineInterpolateImageFunction<ImageType>  VelocityField;
@@ -127,12 +131,6 @@ private:
 
   /// Attributes of output images, defaults to input attributes
   mirtkPublicAttributeMacro(ImageAttributes, OutputAttributes);
-
-  /// Interpolation used for each squaring step
-  ///
-  /// \todo Not all functionality of this filter works for any interpolation
-  ///       mode. Use the default linear interpolation for now.
-  mirtkPublicAttributeMacro(InterpolationMode, Interpolation);
 
   /// Whether to compute interpolation coefficients from the given input.
   /// Set to \c false if the input is the coefficient image.
@@ -212,7 +210,19 @@ protected:
   virtual void Finalize();
 
   /// Resample intermediate filter output
-  void Resample(const ImageType *, ImageType *);
+  void Resample(ImageType *, ImageType *, bool = false);
+
+  /// Finalize output displacement field
+  void FinalizeDisplacement();
+
+  /// Finalize output Jacobian field
+  void FinalizeJacobian();
+
+  /// Finalize output Jacobian determinants
+  void FinalizeDetJacobian();
+
+  /// Finalize log-transformed output Jacobian determinants
+  void FinalizeLogJacobian();
 
 public:
 
