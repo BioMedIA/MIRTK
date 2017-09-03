@@ -698,37 +698,21 @@ struct ResampleOutput : public VoxelFunction
 {
   typedef typename TInterpolator::VoxelType TReal;
 
-  const ImageAttributes &_Domain;
-  const TInterpolator   *_Image;
-  const int              _NumberOfVoxels;
-  const int              _NumberOfComponents;
+  const TInterpolator *_Image;
+  ResampleOutput(const TInterpolator *f) : _Image(f) {}
 
-  ResampleOutput(const ImageAttributes &domain, const TInterpolator *f)
-  :
-    _Domain(domain), _Image(f),
-    _NumberOfVoxels(domain.NumberOfSpatialPoints()),
-    _NumberOfComponents(_Image->Input()->T())
-  {}
-
-  void operator()(int i, int j, int k, int, TReal *value)
+  void operator ()(int i, int j, int k, int, TReal *value)
   {
-    double x = i, y = j, z = k;
-    _Domain.LatticeToWorld(x, y, z);
-    _Image->Input()->WorldToImage(x, y, z);
-    for (int l = 0; l < _NumberOfComponents; ++l, value += _NumberOfVoxels) {
-      (*value) = static_cast<TReal>(_Image->Evaluate(x, y, z, l));
+    const int n = _Domain->NumberOfSpatialPoints();
+    double x = i, y = j, z = k, v[9];
+    _Domain->LatticeToWorld(x, y, z);
+    _Image->WorldToImage(x, y, z);
+    _Image->Evaluate(v, x, y, z);
+    for (int l = 0; l < _Image->T(); ++l, value += n) {
+      (*value) = static_cast<TReal>(v[l]);
     }
   }
 };
-
-// -----------------------------------------------------------------------------
-ExtrapolationMode GetExtrapolationMode(InterpolationMode imode)
-{
-  return (imode == Interpolation_BSpline ||
-          imode == Interpolation_CubicBSpline ||
-          imode == Interpolation_FastCubicBSpline)
-         ? Extrapolation_Mirror : Extrapolation_NN;
-}
 
 
 } // anonymous namespace
@@ -1003,7 +987,7 @@ void ScalingAndSquaring<TReal>
     interp->Input(interim);
     interp->Initialize();
     output->Initialize(_OutputAttributes, interim->T());
-    ResampleOutput<VectorField> resample(_OutputAttributes, interp.get());
+    ResampleOutput<VectorField> resample(interp.get());
     ParallelForEachVoxel(_OutputAttributes, output, resample);
     if (keep_range) {
       // avoid negative Jacobian determinants introduced by resampling
