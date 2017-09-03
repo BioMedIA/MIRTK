@@ -87,25 +87,13 @@ void GenericFastCubicBSplineInterpolateImageFunction<TImage>
   }
 
   // Initialize coefficient image
-  if (coeff && this->Input()->GetDataType() == voxel_info<RealType>::type()) {
-    _Coefficient.Initialize(this->Input()->Attributes(),
-                            reinterpret_cast<RealType *>(
-                            const_cast<void *>(this->Input()->GetDataPointer())));
-  } else {
-    _Coefficient = *(this->Input());
-    if (!coeff) {
-      Real pole;
-      int  unused;
-      SplinePoles(3, &pole, unused);
-      FillBackgroundBeforeConversionToSplineCoefficients(_Coefficient);
-      switch (this->NumberOfDimensions()) {
-        case 4:  ConvertToInterpolationCoefficientsT(_Coefficient, &pole, 1);
-        case 3:  ConvertToInterpolationCoefficientsZ(_Coefficient, &pole, 1);
-        default: ConvertToInterpolationCoefficientsY(_Coefficient, &pole, 1);
-                 ConvertToInterpolationCoefficientsX(_Coefficient, &pole, 1);
-      }
-    }
+  RealType *data = nullptr;
+  _UseInputCoefficients = coeff;
+  if (_UseInputCoefficients && this->Input()->GetDataType() == voxel_info<RealType>::type()) {
+    data = reinterpret_cast<RealType *>(const_cast<void *>(this->Input()->GetDataPointer()));
   }
+  _Coefficient.Initialize(this->Input()->Attributes(), data);
+  this->Update();
 
   // Initialize infinite coefficient image (i.e., extrapolator)
   if (!_InfiniteCoefficient || _InfiniteCoefficient->ExtrapolationMode() != this->ExtrapolationMode()) {
@@ -122,6 +110,27 @@ void GenericFastCubicBSplineInterpolateImageFunction<TImage>
   _s2 =  this->Input()->X() - 4;
   _s3 = (this->Input()->Y() - 4) * this->Input()->X();
   _s4 = (this->Input()->Z() - 4) * this->Input()->Y() * this->Input()->X();
+}
+
+// -----------------------------------------------------------------------------
+template <class TImage>
+void GenericFastCubicBSplineInterpolateImageFunction<TImage>::Update()
+{
+  if (_Coefficient.GetDataPointer() != this->Input()->GetDataPointer()) {
+    _Coefficient = *(this->Input());
+    if (!_UseInputCoefficients) {
+      Real poles[2];
+      int  npoles;
+      SplinePoles(3, poles, npoles);
+      FillBackgroundBeforeConversionToSplineCoefficients(_Coefficient);
+      switch (this->NumberOfDimensions()) {
+        case 4:  ConvertToInterpolationCoefficientsT(_Coefficient, poles, npoles);
+        case 3:  ConvertToInterpolationCoefficientsZ(_Coefficient, poles, npoles);
+        default: ConvertToInterpolationCoefficientsY(_Coefficient, poles, npoles);
+                 ConvertToInterpolationCoefficientsX(_Coefficient, poles, npoles);
+      }
+    }
+  }
 }
 
 // =============================================================================

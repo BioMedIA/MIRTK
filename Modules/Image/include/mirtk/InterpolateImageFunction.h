@@ -139,6 +139,13 @@ public:
   ///                  compute these coefficients from the input intensities.
   virtual void Initialize(bool coeff);
 
+  /// Update internal state when input image content has changed
+  ///
+  /// When the attributes of the input have changed, call Initialize instead.
+  /// This function is used for example by B-spline based interpolation functions
+  /// to re-compute the spline coefficients that interpolate the input image.
+  virtual void Update();
+
   // ---------------------------------------------------------------------------
   // Lattice
 
@@ -817,6 +824,11 @@ inline const BaseImage *InterpolateImageFunction::Input() const
 inline void InterpolateImageFunction::Initialize()
 {
   this->Initialize(false);
+}
+
+// -----------------------------------------------------------------------------
+inline void InterpolateImageFunction::Update()
+{
 }
 
 // -----------------------------------------------------------------------------
