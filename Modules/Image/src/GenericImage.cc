@@ -2186,11 +2186,15 @@ template class GenericImage<unsigned int>;
 template class GenericImage<float>;
 template class GenericImage<float2>;
 template class GenericImage<float3>;
+template class GenericImage<Float3>;
 template class GenericImage<float4>;
+template class GenericImage<Float9>;
 template class GenericImage<double>;
 template class GenericImage<double2>;
 template class GenericImage<double3>;
+template class GenericImage<Double3>;
 template class GenericImage<double4>;
+template class GenericImage<Double9>;
 template class GenericImage<float3x3>;
 template class GenericImage<double3x3>;
 
@@ -2245,18 +2249,17 @@ template GenericImage<double>::GenericImage(const GenericImage<float> &);
 
 template GenericImage<float2  >::GenericImage(const GenericImage<double2  > &);
 template GenericImage<float3  >::GenericImage(const GenericImage<double3  > &);
+template GenericImage<Float3  >::GenericImage(const GenericImage<Double3  > &);
 template GenericImage<float4  >::GenericImage(const GenericImage<double4  > &);
+template GenericImage<Float9  >::GenericImage(const GenericImage<Double9  > &);
 template GenericImage<float3x3>::GenericImage(const GenericImage<double3x3> &);
 
 template GenericImage<double2  >::GenericImage(const GenericImage<float2  > &);
 template GenericImage<double3  >::GenericImage(const GenericImage<float3  > &);
+template GenericImage<Double3  >::GenericImage(const GenericImage<Float3  > &);
 template GenericImage<double4  >::GenericImage(const GenericImage<float4  > &);
+template GenericImage<Double9  >::GenericImage(const GenericImage<Float9  > &);
 template GenericImage<double3x3>::GenericImage(const GenericImage<float3x3> &);
-
-// TODO: Remove deprecated template instantiations below
-template class GenericImage<Vector3D<float>  >;
-template class GenericImage<Vector3D<double> >;
-template GenericImage<Vector3D<double> >::GenericImage(const GenericImage<Vector3D<float> > &);
 
 
 } // namespace mirtk

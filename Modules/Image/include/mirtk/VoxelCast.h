@@ -65,6 +65,11 @@ struct VoxelCaster<T, T>
   }
 };
 
+
+// =============================================================================
+// Scalar types
+// =============================================================================
+
 // -----------------------------------------------------------------------------
 template <>
 struct VoxelCaster<float, float>
@@ -166,6 +171,186 @@ struct VoxelCaster<TIn, float1>
 };
 
 // -----------------------------------------------------------------------------
+template <class TIn>
+struct VoxelCaster<TIn, double1>
+{
+  static double1 Convert(const TIn &value)
+  {
+    return make_double1(static_cast<double>(value));
+  }
+};
+
+// -----------------------------------------------------------------------------
+template <class TIn>
+struct VoxelCaster<TIn, float2>
+{
+  static float2 Convert(const TIn &value)
+  {
+    return make_float2(static_cast<float>(value));
+  }
+};
+
+// -----------------------------------------------------------------------------
+template <class TIn>
+struct VoxelCaster<TIn, double2>
+{
+  static double2 Convert(const TIn &value)
+  {
+    return make_double2(value);
+  }
+};
+
+// -----------------------------------------------------------------------------
+template <class TIn>
+struct VoxelCaster<TIn, float3>
+{
+  static float3 Convert(const TIn &value)
+  {
+    return make_float3(static_cast<float>(value));
+  }
+};
+
+// -----------------------------------------------------------------------------
+template <class TIn>
+struct VoxelCaster<TIn, double3>
+{
+  static double3 Convert(const TIn &value)
+  {
+    return make_double3(static_cast<double>(value));
+  }
+};
+
+// -----------------------------------------------------------------------------
+template <class TIn>
+struct VoxelCaster<TIn, Vector>
+{
+  static Vector Convert(const TIn &value)
+  {
+    return Vector(1, VoxelCaster<TIn, double>::Convert(value));
+  }
+};
+
+// -----------------------------------------------------------------------------
+template <class TOut>
+struct VoxelCaster<int, Vector3D<TOut> >
+{
+  static Vector3D<TOut> Convert(const int &value)
+  {
+    return Vector3D<TOut>(VoxelCaster<int, TOut>::Convert(value));
+  }
+};
+
+// -----------------------------------------------------------------------------
+template <class TIn>
+struct VoxelCaster<TIn, float4>
+{
+  static float4 Convert(const TIn &value)
+  {
+    return make_float4(static_cast<float>(value));
+  }
+};
+
+// -----------------------------------------------------------------------------
+template <class TIn>
+struct VoxelCaster<TIn, double4>
+{
+  static double4 Convert(const TIn &value)
+  {
+    return make_double4(static_cast<double>(value));
+  }
+};
+
+// -----------------------------------------------------------------------------
+template <class TIn>
+struct VoxelCaster<TIn, float3x3>
+{
+  static float3x3 Convert(const TIn &value)
+  {
+    return make_float3x3(static_cast<float>(value));
+  }
+};
+
+// -----------------------------------------------------------------------------
+template <class TIn>
+struct VoxelCaster<TIn, double3x3>
+{
+  static double3x3 Convert(const TIn &value)
+  {
+    return make_double3x3(static_cast<double>(value));
+  }
+};
+
+// -----------------------------------------------------------------------------
+template <class TOut>
+struct VoxelCaster<int, VectorND<9, TOut> >
+{
+  static VectorND<9, TOut> Convert(const int &value)
+  {
+    return VectorND<9, TOut>(VoxelCaster<int, TOut>::Convert(value));
+  }
+};
+
+// -----------------------------------------------------------------------------
+template <class TOut>
+struct VoxelCaster<double, VectorND<9, TOut> >
+{
+  static VectorND<9, TOut> Convert(const double &value)
+  {
+    return VectorND<9, TOut>(VoxelCaster<double, TOut>::Convert(value));
+  }
+};
+
+// -----------------------------------------------------------------------------
+template <>
+struct VoxelCaster<float, Vector>
+{
+  static Vector Convert(const float &value)
+  {
+    return Vector(1, static_cast<double>(value));
+  }
+};
+
+// -----------------------------------------------------------------------------
+template <>
+struct VoxelCaster<double, Vector>
+{
+  static Vector Convert(const double &value)
+  {
+    return Vector(1, value);
+  }
+};
+
+// -----------------------------------------------------------------------------
+template <class TOut>
+struct VoxelCaster<double, Vector3D<TOut> >
+{
+  static Vector3D<TOut> Convert(const double &value)
+  {
+    return Vector3D<TOut>(VoxelCaster<double, TOut>::Convert(value));
+  }
+};
+
+// -----------------------------------------------------------------------------
+template <class TOut>
+struct VoxelCaster<int, Vector4D<TOut> >
+{
+  static Vector4D<TOut> Convert(const int &value)
+  {
+    return Vector4D<TOut>(VoxelCaster<int, TOut>::Convert(value));
+  }
+};
+
+// -----------------------------------------------------------------------------
+template <class TOut>
+struct VoxelCaster<double, Vector4D<TOut> >
+{
+  static Vector4D<TOut> Convert(const double &value)
+  {
+    return Vector4D<TOut>(VoxelCaster<double, TOut>::Convert(value));
+  }
+};
+
+// -----------------------------------------------------------------------------
 template <class TOut>
 struct VoxelCaster<float1, TOut>
 {
@@ -196,138 +381,14 @@ struct VoxelCaster<float1, double1>
 };
 
 // -----------------------------------------------------------------------------
-template <class TIn>
-struct VoxelCaster<TIn, float2>
-{
-  static float2 Convert(const TIn &value)
-  {
-    return make_float2(static_cast<float>(value));
-  }
-};
-
-// -----------------------------------------------------------------------------
-template <class TOut>
-struct VoxelCaster<float2, TOut>
-{
-  static TOut Convert(const float2 &)
-  {
-    cerr << "Cannot cast 2D vector to a scalar!" << endl;
-    cerr << "Set breakpoint in " << __FILE__ << ":" << __LINE__ << " to debug." << endl;
-    exit(1);
-  }
-};
-
-// -----------------------------------------------------------------------------
 template <>
-struct VoxelCaster<float2, float2>
+struct VoxelCaster<float1, Vector>
 {
-  static float2 Convert(const float2 &value)
+  static Vector Convert(const float1 &value)
   {
-    return value;
-  }
-};
-
-// -----------------------------------------------------------------------------
-template <>
-struct VoxelCaster<float2, double2>
-{
-  static double2 Convert(const float2 &value)
-  {
-    return make_double2(value);
-  }
-};
-
-// -----------------------------------------------------------------------------
-template <class TIn>
-struct VoxelCaster<TIn, float3>
-{
-  static float3 Convert(const TIn &value)
-  {
-    return make_float3(static_cast<float>(value));
-  }
-};
-
-// -----------------------------------------------------------------------------
-template <class TOut>
-struct VoxelCaster<float3, TOut>
-{
-  static TOut Convert(const float3 &)
-  {
-    cerr << "Cannot cast 3D vector to a scalar!" << endl;
-    cerr << "Set breakpoint in " << __FILE__ << ":" << __LINE__ << " to debug." << endl;
-    exit(1);
-  }
-};
-
-// -----------------------------------------------------------------------------
-template <>
-struct VoxelCaster<float3, float3>
-{
-  static float3 Convert(const float3 &value)
-  {
-    return value;
-  }
-};
-
-// -----------------------------------------------------------------------------
-template <>
-struct VoxelCaster<float3, double3>
-{
-  static double3 Convert(const float3 &value)
-  {
-    return make_double3(value);
-  }
-};
-
-// -----------------------------------------------------------------------------
-template <class TIn>
-struct VoxelCaster<TIn, float4>
-{
-  static float4 Convert(const TIn &value)
-  {
-    return make_float4(static_cast<float>(value));
-  }
-};
-
-// -----------------------------------------------------------------------------
-template <class TOut>
-struct VoxelCaster<float4, TOut>
-{
-  static TOut Convert(const float4 &)
-  {
-    cerr << "Cannot cast 4D vector to a scalar!" << endl;
-    cerr << "Set breakpoint in " << __FILE__ << ":" << __LINE__ << " to debug." << endl;
-    exit(1);
-  }
-};
-
-// -----------------------------------------------------------------------------
-template <>
-struct VoxelCaster<float4, float4>
-{
-  static float4 Convert(const float4 &value)
-  {
-    return value;
-  }
-};
-
-// -----------------------------------------------------------------------------
-template <>
-struct VoxelCaster<float4, double4>
-{
-  static double4 Convert(const float4 &value)
-  {
-    return make_double4(value);
-  }
-};
-
-// -----------------------------------------------------------------------------
-template <class TIn>
-struct VoxelCaster<TIn, double1>
-{
-  static double1 Convert(const TIn &value)
-  {
-    return make_double1(static_cast<double>(value));
+    Vector v(1);
+    v(0) = value.x;
+    return v;
   }
 };
 
@@ -362,130 +423,21 @@ struct VoxelCaster<double1, double1>
 };
 
 // -----------------------------------------------------------------------------
-template <class TIn>
-struct VoxelCaster<TIn, double2>
-{
-  static double2 Convert(const TIn &value)
-  {
-    return make_double2(value);
-  }
-};
-
-// -----------------------------------------------------------------------------
-template <class TOut>
-struct VoxelCaster<double2, TOut>
-{
-  static TOut Convert(const double2 &)
-  {
-    cerr << "Cannot cast 2D vector to a scalar!" << endl;
-    cerr << "Set breakpoint in " << __FILE__ << ":" << __LINE__ << " to debug." << endl;
-    exit(1);
-  }
-};
-
-// -----------------------------------------------------------------------------
 template <>
-struct VoxelCaster<double2, float2>
+struct VoxelCaster<double1, Vector>
 {
-  static float2 Convert(const double2 &value)
+  static Vector Convert(const double1 &value)
   {
-    return make_float2(value);
+    Vector v(1);
+    v(0) = value.x;
+    return v;
   }
 };
 
-// -----------------------------------------------------------------------------
-template <>
-struct VoxelCaster<double2, double2>
-{
-  static double2 Convert(const double2 &value)
-  {
-    return value;
-  }
-};
 
-// -----------------------------------------------------------------------------
-template <class TIn>
-struct VoxelCaster<TIn, double3>
-{
-  static double3 Convert(const TIn &value)
-  {
-    return make_double3(static_cast<double>(value));
-  }
-};
-
-// -----------------------------------------------------------------------------
-template <class TOut>
-struct VoxelCaster<double3, TOut>
-{
-  static TOut Convert(const double3 &)
-  {
-    cerr << "Cannot cast 3D vector to a scalar!" << endl;
-    cerr << "Set breakpoint in " << __FILE__ << ":" << __LINE__ << " to debug." << endl;
-    exit(1);
-  }
-};
-
-// -----------------------------------------------------------------------------
-template <>
-struct VoxelCaster<double3, float3>
-{
-  static float3 Convert(const double3 &value)
-  {
-    return make_float3(value);
-  }
-};
-
-// -----------------------------------------------------------------------------
-template <>
-struct VoxelCaster<double3, double3>
-{
-  static double3 Convert(const double3 &value)
-  {
-    return value;
-  }
-};
-
-// -----------------------------------------------------------------------------
-template <class TIn>
-struct VoxelCaster<TIn, double4>
-{
-  static double4 Convert(const TIn &value)
-  {
-    return make_double4(static_cast<double>(value));
-  }
-};
-
-// -----------------------------------------------------------------------------
-template <class TOut>
-struct VoxelCaster<double4, TOut>
-{
-  static TOut Convert(const double4 &)
-  {
-    cerr << "Cannot cast 4D vector to a scalar!" << endl;
-    cerr << "Set breakpoint in " << __FILE__ << ":" << __LINE__ << " to debug." << endl;
-    exit(1);
-  }
-};
-
-// -----------------------------------------------------------------------------
-template <>
-struct VoxelCaster<double4, float4>
-{
-  static float4 Convert(const double4 &value)
-  {
-    return make_float4(value);
-  }
-};
-
-// -----------------------------------------------------------------------------
-template <>
-struct VoxelCaster<double4, double4>
-{
-  static double4 Convert(const double4 &value)
-  {
-    return value;
-  }
-};
+// =============================================================================
+// Vector for generic BaseImage interface
+// =============================================================================
 
 // -----------------------------------------------------------------------------
 template <class TOut>
@@ -497,36 +449,6 @@ struct VoxelCaster<Vector, TOut>
     cerr << "Can only cast vector with exactly one element to a scalar!" << endl;
     cerr << "Set breakpoint in " << __FILE__ << ":" << __LINE__ << " to debug." << endl;
     exit(1);
-  }
-};
-
-// -----------------------------------------------------------------------------
-template <class TIn>
-struct VoxelCaster<TIn, Vector>
-{
-  static Vector Convert(const TIn &value)
-  {
-    return Vector(1, VoxelCaster<TIn, double>::Convert(value));
-  }
-};
-
-// -----------------------------------------------------------------------------
-template <>
-struct VoxelCaster<float, Vector>
-{
-  static Vector Convert(const float &value)
-  {
-    return Vector(1, static_cast<double>(value));
-  }
-};
-
-// -----------------------------------------------------------------------------
-template <>
-struct VoxelCaster<double, Vector>
-{
-  static Vector Convert(const double &value)
-  {
-    return Vector(1, value);
   }
 };
 
@@ -555,13 +477,14 @@ struct VoxelCaster<Vector, float1>
 
 // -----------------------------------------------------------------------------
 template <>
-struct VoxelCaster<float1, Vector>
+struct VoxelCaster<Vector, double1>
 {
-  static Vector Convert(const float1 &value)
+  static double1 Convert(const Vector &value)
   {
-    Vector v(1);
-    v(0) = value.x;
-    return v;
+    if (value.Rows() == 1) return make_double1(value(0));
+    cerr << "Can only cast vector with exactly one element to a 1D vector!" << endl;
+    cerr << "Set breakpoint in " << __FILE__ << ":" << __LINE__ << " to debug." << endl;
+    exit(1);
   }
 };
 
@@ -580,14 +503,14 @@ struct VoxelCaster<Vector, float2>
 
 // -----------------------------------------------------------------------------
 template <>
-struct VoxelCaster<float2, Vector>
+struct VoxelCaster<Vector, double2>
 {
-  static Vector Convert(const float2 &value)
+  static double2 Convert(const Vector &value)
   {
-    Vector v(2);
-    v(0) = value.x;
-    v(1) = value.y;
-    return v;
+    if (value.Rows() == 2) return make_double2(value(0), value(1));
+    cerr << "Can only cast vector with exactly two elements to a 2D vector!" << endl;
+    cerr << "Set breakpoint in " << __FILE__ << ":" << __LINE__ << " to debug." << endl;
+    exit(1);
   }
 };
 
@@ -606,15 +529,31 @@ struct VoxelCaster<Vector, float3>
 
 // -----------------------------------------------------------------------------
 template <>
-struct VoxelCaster<float3, Vector>
+struct VoxelCaster<Vector, double3>
 {
-  static Vector Convert(const float3 &value)
+  static double3 Convert(const Vector &value)
   {
-    Vector v(3);
-    v(0) = value.x;
-    v(1) = value.y;
-    v(2) = value.z;
-    return v;
+    if (value.Rows() == 3) return make_double3(value(0), value(1), value(2));
+    cerr << "Can only cast vector with exactly three elements to a 3D vector!" << endl;
+    cerr << "Set breakpoint in " << __FILE__ << ":" << __LINE__ << " to debug." << endl;
+    exit(1);
+  }
+};
+
+// -----------------------------------------------------------------------------
+template <class TOut>
+struct VoxelCaster<Vector, Vector3D<TOut> >
+{
+  static Vector3D<TOut> Convert(const Vector &value)
+  {
+    if (value.Rows() == 3) {
+      return Vector3D<TOut>(VoxelCaster<double, TOut>::Convert(value(0)),
+                            VoxelCaster<double, TOut>::Convert(value(1)),
+                            VoxelCaster<double, TOut>::Convert(value(2)));
+    }
+    cerr << "Can only cast vector with exactly three elements to a 3D vector!" << endl;
+    cerr << "Set breakpoint in " << __FILE__ << ":" << __LINE__ << " to debug." << endl;
+    exit(1);
   }
 };
 
@@ -633,157 +572,12 @@ struct VoxelCaster<Vector, float4>
 
 // -----------------------------------------------------------------------------
 template <>
-struct VoxelCaster<float4, Vector>
-{
-  static Vector Convert(const float4 &value)
-  {
-    Vector v(4);
-    v(0) = value.x;
-    v(1) = value.y;
-    v(2) = value.z;
-    v(3) = value.w;
-    return v;
-  }
-};
-
-// -----------------------------------------------------------------------------
-template <>
-struct VoxelCaster<Vector, double1>
-{
-  static double1 Convert(const Vector &value)
-  {
-    if (value.Rows() == 1) return make_double1(value(0));
-    cerr << "Can only cast vector with exactly one element to a 1D vector!" << endl;
-    cerr << "Set breakpoint in " << __FILE__ << ":" << __LINE__ << " to debug." << endl;
-    exit(1);
-  }
-};
-
-// -----------------------------------------------------------------------------
-template <>
-struct VoxelCaster<double1, Vector>
-{
-  static Vector Convert(const double1 &value)
-  {
-    Vector v(1);
-    v(0) = value.x;
-    return v;
-  }
-};
-
-// -----------------------------------------------------------------------------
-template <>
-struct VoxelCaster<Vector, double2>
-{
-  static double2 Convert(const Vector &value)
-  {
-    if (value.Rows() == 2) return make_double2(value(0), value(1));
-    cerr << "Can only cast vector with exactly two elements to a 2D vector!" << endl;
-    cerr << "Set breakpoint in " << __FILE__ << ":" << __LINE__ << " to debug." << endl;
-    exit(1);
-  }
-};
-
-// -----------------------------------------------------------------------------
-template <>
-struct VoxelCaster<double2, Vector>
-{
-  static Vector Convert(const double2 &value)
-  {
-    Vector v(2);
-    v(0) = value.x;
-    v(1) = value.y;
-    return v;
-  }
-};
-
-// -----------------------------------------------------------------------------
-template <>
-struct VoxelCaster<Vector, double3>
-{
-  static double3 Convert(const Vector &value)
-  {
-    if (value.Rows() == 3) return make_double3(value(0), value(1), value(2));
-    cerr << "Can only cast vector with exactly three elements to a 3D vector!" << endl;
-    cerr << "Set breakpoint in " << __FILE__ << ":" << __LINE__ << " to debug." << endl;
-    exit(1);
-  }
-};
-
-// -----------------------------------------------------------------------------
-template <>
-struct VoxelCaster<double3, Vector>
-{
-  static Vector Convert(const double3 &value)
-  {
-    Vector v(3);
-    v(0) = value.x;
-    v(1) = value.y;
-    v(2) = value.z;
-    return v;
-  }
-};
-
-// -----------------------------------------------------------------------------
-template <>
 struct VoxelCaster<Vector, double4>
 {
   static double4 Convert(const Vector &value)
   {
     if (value.Rows() == 4) return make_double4(value(0), value(1), value(2), value(3));
     cerr << "Can only cast vector with exactly four elements to a 4D vector!" << endl;
-    cerr << "Set breakpoint in " << __FILE__ << ":" << __LINE__ << " to debug." << endl;
-    exit(1);
-  }
-};
-
-// -----------------------------------------------------------------------------
-template <>
-struct VoxelCaster<double4, Vector>
-{
-  static Vector Convert(const double4 &value)
-  {
-    Vector v(4);
-    v(0) = value.x;
-    v(1) = value.y;
-    v(2) = value.z;
-    v(3) = value.w;
-    return v;
-  }
-};
-
-// -----------------------------------------------------------------------------
-template <class TOut>
-struct VoxelCaster<int, Vector3D<TOut> >
-{
-  static Vector3D<TOut> Convert(const int &value)
-  {
-    return Vector3D<TOut>(VoxelCaster<int, TOut>::Convert(value));
-  }
-};
-
-// -----------------------------------------------------------------------------
-template <class TOut>
-struct VoxelCaster<double, Vector3D<TOut> >
-{
-  static Vector3D<TOut> Convert(const double &value)
-  {
-    return Vector3D<TOut>(VoxelCaster<double, TOut>::Convert(value));
-  }
-};
-
-// -----------------------------------------------------------------------------
-template <class TOut>
-struct VoxelCaster<Vector, Vector3D<TOut> >
-{
-  static Vector3D<TOut> Convert(const Vector &value)
-  {
-    if (value.Rows() == 3) {
-      return Vector3D<TOut>(VoxelCaster<double, TOut>::Convert(value(0)),
-                            VoxelCaster<double, TOut>::Convert(value(1)),
-                            VoxelCaster<double, TOut>::Convert(value(2)));
-    }
-    cerr << "Can only cast vector with exactly three elements to a 3D vector!" << endl;
     cerr << "Set breakpoint in " << __FILE__ << ":" << __LINE__ << " to debug." << endl;
     exit(1);
   }
@@ -808,239 +602,21 @@ struct VoxelCaster<Vector, Vector4D<TOut> >
 };
 
 // -----------------------------------------------------------------------------
-template <class TIn, class TOut>
-struct VoxelCaster<Vector3D<TIn>, TOut>
+template <class TOut>
+struct VoxelCaster<Vector, VectorND<9, TOut> >
 {
-  static TOut Convert(const Vector3D<TIn> &)
+  static VectorND<9, TOut> Convert(const Vector &value)
   {
-    cerr << "Cannot cast 3D vector to a scalar!" << endl;
+    if (value.Rows() == 9) {
+      VectorND<9, TOut> v;
+      for (int i = 0; i < 9; ++i) {
+        v(i) = VoxelCaster<double, TOut>::Convert(value(i));
+      }
+      return v;
+    }
+    cerr << "Can only cast vector with exactly nine elements to a 9D vector!" << endl;
     cerr << "Set breakpoint in " << __FILE__ << ":" << __LINE__ << " to debug." << endl;
     exit(1);
-  }
-};
-
-// -----------------------------------------------------------------------------
-template <class TIn, class TOut>
-struct VoxelCaster<Vector3D<TIn>, Vector3D<TOut> >
-{
-  static Vector3D<TOut> Convert(const Vector3D<TIn> &value)
-  {
-    return Vector3D<TOut>(VoxelCaster<TIn, TOut>::Convert(value._x),
-                          VoxelCaster<TIn, TOut>::Convert(value._y),
-                          VoxelCaster<TIn, TOut>::Convert(value._z));
-  }
-};
-
-// -----------------------------------------------------------------------------
-template <class T>
-struct VoxelCaster<Vector3D<T>, Vector3D<T> >
-{
-  static Vector3D<T> Convert(const Vector3D<T> &value)
-  {
-    return value;
-  }
-};
-
-// -----------------------------------------------------------------------------
-template <class TIn>
-struct VoxelCaster<Vector3D<TIn>, Vector>
-{
-  static Vector Convert(const Vector3D<TIn> &value)
-  {
-    Vector v(3);
-    v.Put(value);
-    return v;
-  }
-};
-
-// -----------------------------------------------------------------------------
-template <class TOut>
-struct VoxelCaster<int, Vector4D<TOut> >
-{
-  static Vector4D<TOut> Convert(const int &value)
-  {
-    return Vector4D<TOut>(VoxelCaster<int, TOut>::Convert(value));
-  }
-};
-
-// -----------------------------------------------------------------------------
-template <class TOut>
-struct VoxelCaster<double, Vector4D<TOut> >
-{
-  static Vector4D<TOut> Convert(const double &value)
-  {
-    return Vector4D<TOut>(VoxelCaster<double, TOut>::Convert(value));
-  }
-};
-
-// -----------------------------------------------------------------------------
-template <class TIn, class TOut>
-struct VoxelCaster<Vector4D<TIn>, TOut>
-{
-  static TOut Convert(const Vector4D<TIn> &)
-  {
-    cerr << "Cannot cast 4D vector to a scalar!" << endl;
-    cerr << "Set breakpoint in " << __FILE__ << ":" << __LINE__ << " to debug." << endl;
-    exit(1);
-  }
-};
-
-// -----------------------------------------------------------------------------
-template <class TIn, class TOut>
-struct VoxelCaster<Vector4D<TIn>, Vector4D<TOut> >
-{
-  static Vector4D<TOut> Convert(const Vector4D<TIn> &value)
-  {
-    return Vector4D<TOut>(VoxelCaster<TIn, TOut>::Convert(value._x),
-                          VoxelCaster<TIn, TOut>::Convert(value._y),
-                          VoxelCaster<TIn, TOut>::Convert(value._z),
-                          VoxelCaster<TIn, TOut>::Convert(value._t));
-  }
-};
-
-// -----------------------------------------------------------------------------
-template <class T>
-struct VoxelCaster<Vector4D<T>, Vector4D<T> >
-{
-  static Vector4D<T> Convert(const Vector4D<T> &value)
-  {
-    return value;
-  }
-};
-
-// -----------------------------------------------------------------------------
-template <class TIn>
-struct VoxelCaster<Vector4D<TIn>, Vector>
-{
-  static Vector Convert(const Vector4D<TIn> &value)
-  {
-    Vector v(4);
-    v.Put(value);
-    return v;
-  }
-};
-
-// -----------------------------------------------------------------------------
-template <>
-struct VoxelCaster<double3x3, float3x3>
-{
-  static float3x3 Convert(const double3x3 &value)
-  {
-    return make_float3x3(value);
-  }
-};
-
-// -----------------------------------------------------------------------------
-template <>
-struct VoxelCaster<float3x3, double3x3>
-{
-  static double3x3 Convert(const float3x3 &value)
-  {
-    return make_double3x3(value);
-  }
-};
-
-// -----------------------------------------------------------------------------
-template <>
-struct VoxelCaster<float3x3, float3x3>
-{
-  static float3x3 Convert(const float3x3 &value)
-  {
-    return value;
-  }
-};
-
-// -----------------------------------------------------------------------------
-template <>
-struct VoxelCaster<double3x3, double3x3>
-{
-  static double3x3 Convert(const double3x3 &value)
-  {
-    return value;
-  }
-};
-
-// -----------------------------------------------------------------------------
-template <class TOut>
-struct VoxelCaster<float3x3, TOut>
-{
-  static TOut Convert(const float3x3 &)
-  {
-    cerr << "Cannot cast 3x3 matrix to a scalar!" << endl;
-    cerr << "Set breakpoint in " << __FILE__ << ":" << __LINE__ << " to debug." << endl;
-    exit(1);
-  }
-};
-
-// -----------------------------------------------------------------------------
-template <class TOut>
-struct VoxelCaster<double3x3, TOut>
-{
-  static TOut Convert(const double3x3 &)
-  {
-    cerr << "Cannot cast 3x3 matrix to a scalar!" << endl;
-    cerr << "Set breakpoint in " << __FILE__ << ":" << __LINE__ << " to debug." << endl;
-    exit(1);
-  }
-};
-
-// -----------------------------------------------------------------------------
-template <>
-struct VoxelCaster<float3x3, Vector>
-{
-  static Vector Convert(const float3x3 &value)
-  {
-    Vector v(9);
-    v(0) = value.a.x;
-    v(1) = value.a.y;
-    v(2) = value.a.z;
-    v(3) = value.b.x;
-    v(4) = value.b.y;
-    v(5) = value.b.z;
-    v(6) = value.c.x;
-    v(7) = value.c.y;
-    v(8) = value.c.z;
-    return v;
-  }
-};
-
-// -----------------------------------------------------------------------------
-template <>
-struct VoxelCaster<double3x3, Vector>
-{
-  static Vector Convert(const double3x3 &value)
-  {
-    Vector v(9);
-    v(0) = value.a.x;
-    v(1) = value.a.y;
-    v(2) = value.a.z;
-    v(3) = value.b.x;
-    v(4) = value.b.y;
-    v(5) = value.b.z;
-    v(6) = value.c.x;
-    v(7) = value.c.y;
-    v(8) = value.c.z;
-    return v;
-  }
-};
-
-// -----------------------------------------------------------------------------
-template <class TIn>
-struct VoxelCaster<TIn, float3x3>
-{
-  static float3x3 Convert(const TIn &value)
-  {
-    return make_float3x3(static_cast<float>(value));
-  }
-};
-
-// -----------------------------------------------------------------------------
-template <class TIn>
-struct VoxelCaster<TIn, double3x3>
-{
-  static double3x3 Convert(const TIn &value)
-  {
-    return make_double3x3(static_cast<double>(value));
   }
 };
 
@@ -1115,6 +691,639 @@ struct VoxelCaster<Vector, double3x3>
     return m;
   }
 };
+
+
+// =============================================================================
+// 2D vector types
+// =============================================================================
+
+// -----------------------------------------------------------------------------
+template <class TOut>
+struct VoxelCaster<float2, TOut>
+{
+  static TOut Convert(const float2 &)
+  {
+    cerr << "Cannot cast 2D vector to a scalar!" << endl;
+    cerr << "Set breakpoint in " << __FILE__ << ":" << __LINE__ << " to debug." << endl;
+    exit(1);
+  }
+};
+
+// -----------------------------------------------------------------------------
+template <>
+struct VoxelCaster<float2, float2>
+{
+  static float2 Convert(const float2 &value)
+  {
+    return value;
+  }
+};
+
+// -----------------------------------------------------------------------------
+template <>
+struct VoxelCaster<float2, double2>
+{
+  static double2 Convert(const float2 &value)
+  {
+    return make_double2(value);
+  }
+};
+
+// -----------------------------------------------------------------------------
+template <>
+struct VoxelCaster<float2, Vector>
+{
+  static Vector Convert(const float2 &value)
+  {
+    Vector v(2);
+    v(0) = value.x;
+    v(1) = value.y;
+    return v;
+  }
+};
+
+// -----------------------------------------------------------------------------
+template <class TOut>
+struct VoxelCaster<double2, TOut>
+{
+  static TOut Convert(const double2 &)
+  {
+    cerr << "Cannot cast 2D vector to a scalar!" << endl;
+    cerr << "Set breakpoint in " << __FILE__ << ":" << __LINE__ << " to debug." << endl;
+    exit(1);
+  }
+};
+
+// -----------------------------------------------------------------------------
+template <>
+struct VoxelCaster<double2, float2>
+{
+  static float2 Convert(const double2 &value)
+  {
+    return make_float2(value);
+  }
+};
+
+// -----------------------------------------------------------------------------
+template <>
+struct VoxelCaster<double2, double2>
+{
+  static double2 Convert(const double2 &value)
+  {
+    return value;
+  }
+};
+
+// -----------------------------------------------------------------------------
+template <>
+struct VoxelCaster<double2, Vector>
+{
+  static Vector Convert(const double2 &value)
+  {
+    Vector v(2);
+    v(0) = value.x;
+    v(1) = value.y;
+    return v;
+  }
+};
+
+
+// =============================================================================
+// 3D vector types
+// =============================================================================
+
+// -----------------------------------------------------------------------------
+template <class TOut>
+struct VoxelCaster<float3, TOut>
+{
+  static TOut Convert(const float3 &)
+  {
+    cerr << "Cannot cast 3D vector to a scalar!" << endl;
+    cerr << "Set breakpoint in " << __FILE__ << ":" << __LINE__ << " to debug." << endl;
+    exit(1);
+  }
+};
+
+// -----------------------------------------------------------------------------
+template <>
+struct VoxelCaster<float3, float3>
+{
+  static float3 Convert(const float3 &value)
+  {
+    return value;
+  }
+};
+
+// -----------------------------------------------------------------------------
+template <>
+struct VoxelCaster<float3, double3>
+{
+  static double3 Convert(const float3 &value)
+  {
+    return make_double3(value);
+  }
+};
+
+// -----------------------------------------------------------------------------
+template <>
+struct VoxelCaster<float3, Vector>
+{
+  static Vector Convert(const float3 &value)
+  {
+    Vector v(3);
+    v(0) = value.x;
+    v(1) = value.y;
+    v(2) = value.z;
+    return v;
+  }
+};
+
+// -----------------------------------------------------------------------------
+template <class TOut>
+struct VoxelCaster<double3, TOut>
+{
+  static TOut Convert(const double3 &)
+  {
+    cerr << "Cannot cast 3D vector to a scalar!" << endl;
+    cerr << "Set breakpoint in " << __FILE__ << ":" << __LINE__ << " to debug." << endl;
+    exit(1);
+  }
+};
+
+// -----------------------------------------------------------------------------
+template <>
+struct VoxelCaster<double3, float3>
+{
+  static float3 Convert(const double3 &value)
+  {
+    return make_float3(value);
+  }
+};
+
+// -----------------------------------------------------------------------------
+template <>
+struct VoxelCaster<double3, double3>
+{
+  static double3 Convert(const double3 &value)
+  {
+    return value;
+  }
+};
+
+// -----------------------------------------------------------------------------
+template <>
+struct VoxelCaster<double3, Vector>
+{
+  static Vector Convert(const double3 &value)
+  {
+    Vector v(3);
+    v(0) = value.x;
+    v(1) = value.y;
+    v(2) = value.z;
+    return v;
+  }
+};
+
+// -----------------------------------------------------------------------------
+template <class TIn>
+struct VoxelCaster<Vector3D<TIn>, Vector>
+{
+  static Vector Convert(const Vector3D<TIn> &value)
+  {
+    Vector v(3);
+    v.Put(value);
+    return v;
+  }
+};
+
+// -----------------------------------------------------------------------------
+template <class TIn, class TOut>
+struct VoxelCaster<Vector3D<TIn>, TOut>
+{
+  static TOut Convert(const Vector3D<TIn> &)
+  {
+    cerr << "Cannot cast 3D vector to a scalar!" << endl;
+    cerr << "Set breakpoint in " << __FILE__ << ":" << __LINE__ << " to debug." << endl;
+    exit(1);
+  }
+};
+
+// -----------------------------------------------------------------------------
+template <class TIn, class TOut>
+struct VoxelCaster<Vector3D<TIn>, Vector3D<TOut> >
+{
+  static Vector3D<TOut> Convert(const Vector3D<TIn> &value)
+  {
+    return Vector3D<TOut>(VoxelCaster<TIn, TOut>::Convert(value._x),
+                          VoxelCaster<TIn, TOut>::Convert(value._y),
+                          VoxelCaster<TIn, TOut>::Convert(value._z));
+  }
+};
+
+// -----------------------------------------------------------------------------
+template <class T>
+struct VoxelCaster<Vector3D<T>, Vector3D<T> >
+{
+  static Vector3D<T> Convert(const Vector3D<T> &value)
+  {
+    return value;
+  }
+};
+
+
+// =============================================================================
+// 4D vector types
+// =============================================================================
+
+// -----------------------------------------------------------------------------
+template <class TOut>
+struct VoxelCaster<float4, TOut>
+{
+  static TOut Convert(const float4 &)
+  {
+    cerr << "Cannot cast 4D vector to a scalar!" << endl;
+    cerr << "Set breakpoint in " << __FILE__ << ":" << __LINE__ << " to debug." << endl;
+    exit(1);
+  }
+};
+
+// -----------------------------------------------------------------------------
+template <>
+struct VoxelCaster<float4, float4>
+{
+  static float4 Convert(const float4 &value)
+  {
+    return value;
+  }
+};
+
+// -----------------------------------------------------------------------------
+template <>
+struct VoxelCaster<float4, double4>
+{
+  static double4 Convert(const float4 &value)
+  {
+    return make_double4(value);
+  }
+};
+
+// -----------------------------------------------------------------------------
+template <>
+struct VoxelCaster<float4, Vector>
+{
+  static Vector Convert(const float4 &value)
+  {
+    Vector v(4);
+    v(0) = value.x;
+    v(1) = value.y;
+    v(2) = value.z;
+    v(3) = value.w;
+    return v;
+  }
+};
+
+// -----------------------------------------------------------------------------
+template <class TOut>
+struct VoxelCaster<double4, TOut>
+{
+  static TOut Convert(const double4 &)
+  {
+    cerr << "Cannot cast 4D vector to a scalar!" << endl;
+    cerr << "Set breakpoint in " << __FILE__ << ":" << __LINE__ << " to debug." << endl;
+    exit(1);
+  }
+};
+
+// -----------------------------------------------------------------------------
+template <>
+struct VoxelCaster<double4, float4>
+{
+  static float4 Convert(const double4 &value)
+  {
+    return make_float4(value);
+  }
+};
+
+// -----------------------------------------------------------------------------
+template <>
+struct VoxelCaster<double4, double4>
+{
+  static double4 Convert(const double4 &value)
+  {
+    return value;
+  }
+};
+
+// -----------------------------------------------------------------------------
+template <>
+struct VoxelCaster<double4, Vector>
+{
+  static Vector Convert(const double4 &value)
+  {
+    Vector v(4);
+    v(0) = value.x;
+    v(1) = value.y;
+    v(2) = value.z;
+    v(3) = value.w;
+    return v;
+  }
+};
+
+// -----------------------------------------------------------------------------
+template <class TIn, class TOut>
+struct VoxelCaster<Vector4D<TIn>, TOut>
+{
+  static TOut Convert(const Vector4D<TIn> &)
+  {
+    cerr << "Cannot cast 4D vector to a scalar!" << endl;
+    cerr << "Set breakpoint in " << __FILE__ << ":" << __LINE__ << " to debug." << endl;
+    exit(1);
+  }
+};
+
+// -----------------------------------------------------------------------------
+template <class TIn, class TOut>
+struct VoxelCaster<Vector4D<TIn>, Vector4D<TOut> >
+{
+  static Vector4D<TOut> Convert(const Vector4D<TIn> &value)
+  {
+    return Vector4D<TOut>(VoxelCaster<TIn, TOut>::Convert(value._x),
+                          VoxelCaster<TIn, TOut>::Convert(value._y),
+                          VoxelCaster<TIn, TOut>::Convert(value._z),
+                          VoxelCaster<TIn, TOut>::Convert(value._t));
+  }
+};
+
+// -----------------------------------------------------------------------------
+template <class T>
+struct VoxelCaster<Vector4D<T>, Vector4D<T> >
+{
+  static Vector4D<T> Convert(const Vector4D<T> &value)
+  {
+    return value;
+  }
+};
+
+// -----------------------------------------------------------------------------
+template <class TIn>
+struct VoxelCaster<Vector4D<TIn>, Vector>
+{
+  static Vector Convert(const Vector4D<TIn> &value)
+  {
+    Vector v(4);
+    v.Put(value);
+    return v;
+  }
+};
+
+
+// =============================================================================
+// 9D vector types
+// =============================================================================
+
+// -----------------------------------------------------------------------------
+template <class TIn, class TOut>
+struct VoxelCaster<VectorND<9, TIn>, TOut>
+{
+  static TOut Convert(const VectorND<9, TIn> &)
+  {
+    cerr << "Cannot cast 9D vector to a scalar!" << endl;
+    cerr << "Set breakpoint in " << __FILE__ << ":" << __LINE__ << " to debug." << endl;
+    exit(1);
+  }
+};
+
+// -----------------------------------------------------------------------------
+template <class TIn, class TOut>
+struct VoxelCaster<VectorND<9, TIn>, VectorND<9, TOut> >
+{
+  static VectorND<9, TOut> Convert(const VectorND<9, TIn> &value)
+  {
+    VectorND<9, TOut> v;
+    for (int i = 0; i < 9; ++i) {
+      v(i) = VoxelCaster<TIn, TOut>::Convert(value(i));
+    }
+    return v;
+  }
+};
+
+// -----------------------------------------------------------------------------
+template <class T>
+struct VoxelCaster<VectorND<9, T>, VectorND<9, T> >
+{
+  static VectorND<9, T> Convert(const VectorND<9, T> &value)
+  {
+    return value;
+  }
+};
+
+// -----------------------------------------------------------------------------
+template <class TIn>
+struct VoxelCaster<VectorND<9, TIn>, Vector>
+{
+  static Vector Convert(const VectorND<9, TIn> &value)
+  {
+    Vector v(9);
+    for (int i = 0; i < 9; ++i) {
+      v(i) = VoxelCaster<TIn, double>::Convert(value(i));
+    }
+    return v;
+  }
+};
+
+// -----------------------------------------------------------------------------
+template <class TIn>
+struct VoxelCaster<VectorND<9, TIn>, float3x3>
+{
+  static float3x3 Convert(const VectorND<9, TIn> &v)
+  {
+    float3x3 m;
+    m.a.x = VoxelCaster<TIn, float>::Convert(v(0));
+    m.a.y = VoxelCaster<TIn, float>::Convert(v(1));
+    m.a.z = VoxelCaster<TIn, float>::Convert(v(2));
+    m.b.x = VoxelCaster<TIn, float>::Convert(v(3));
+    m.b.y = VoxelCaster<TIn, float>::Convert(v(4));
+    m.b.z = VoxelCaster<TIn, float>::Convert(v(5));
+    m.c.x = VoxelCaster<TIn, float>::Convert(v(6));
+    m.c.y = VoxelCaster<TIn, float>::Convert(v(7));
+    m.c.z = VoxelCaster<TIn, float>::Convert(v(8));
+    return m;
+  }
+};
+
+// -----------------------------------------------------------------------------
+template <class TIn>
+struct VoxelCaster<VectorND<9, TIn>, double3x3>
+{
+  static double3x3 Convert(const VectorND<9, TIn> &v)
+  {
+    double3x3 m;
+    m.a.x = VoxelCaster<TIn, double>::Convert(v(0));
+    m.a.y = VoxelCaster<TIn, double>::Convert(v(1));
+    m.a.z = VoxelCaster<TIn, double>::Convert(v(2));
+    m.b.x = VoxelCaster<TIn, double>::Convert(v(3));
+    m.b.y = VoxelCaster<TIn, double>::Convert(v(4));
+    m.b.z = VoxelCaster<TIn, double>::Convert(v(5));
+    m.c.x = VoxelCaster<TIn, double>::Convert(v(6));
+    m.c.y = VoxelCaster<TIn, double>::Convert(v(7));
+    m.c.z = VoxelCaster<TIn, double>::Convert(v(8));
+    return m;
+  }
+};
+
+
+// =============================================================================
+// Matrix types
+// =============================================================================
+
+// -----------------------------------------------------------------------------
+template <class TOut>
+struct VoxelCaster<float3x3, TOut>
+{
+  static TOut Convert(const float3x3 &)
+  {
+    cerr << "Cannot cast 3x3 matrix to a scalar!" << endl;
+    cerr << "Set breakpoint in " << __FILE__ << ":" << __LINE__ << " to debug." << endl;
+    exit(1);
+  }
+};
+
+// -----------------------------------------------------------------------------
+template <>
+struct VoxelCaster<float3x3, float3x3>
+{
+  static float3x3 Convert(const float3x3 &value)
+  {
+    return value;
+  }
+};
+
+// -----------------------------------------------------------------------------
+template <>
+struct VoxelCaster<float3x3, double3x3>
+{
+  static double3x3 Convert(const float3x3 &value)
+  {
+    return make_double3x3(value);
+  }
+};
+
+// -----------------------------------------------------------------------------
+template <class TOut>
+struct VoxelCaster<float3x3, VectorND<9, TOut> >
+{
+  static VectorND<9, TOut> Convert(const float3x3 &value)
+  {
+    VectorND<9, TOut> v;
+    v(0) = VoxelCaster<float, TOut>::Convert(value.a.x);
+    v(1) = VoxelCaster<float, TOut>::Convert(value.a.y);
+    v(2) = VoxelCaster<float, TOut>::Convert(value.a.z);
+    v(3) = VoxelCaster<float, TOut>::Convert(value.b.x);
+    v(4) = VoxelCaster<float, TOut>::Convert(value.b.y);
+    v(5) = VoxelCaster<float, TOut>::Convert(value.b.z);
+    v(6) = VoxelCaster<float, TOut>::Convert(value.c.x);
+    v(7) = VoxelCaster<float, TOut>::Convert(value.c.y);
+    v(8) = VoxelCaster<float, TOut>::Convert(value.c.z);
+    return v;
+  }
+};
+
+// -----------------------------------------------------------------------------
+template <>
+struct VoxelCaster<float3x3, Vector>
+{
+  static Vector Convert(const float3x3 &value)
+  {
+    Vector v(9);
+    v(0) = value.a.x;
+    v(1) = value.a.y;
+    v(2) = value.a.z;
+    v(3) = value.b.x;
+    v(4) = value.b.y;
+    v(5) = value.b.z;
+    v(6) = value.c.x;
+    v(7) = value.c.y;
+    v(8) = value.c.z;
+    return v;
+  }
+};
+
+// -----------------------------------------------------------------------------
+template <class TOut>
+struct VoxelCaster<double3x3, TOut>
+{
+  static TOut Convert(const double3x3 &)
+  {
+    cerr << "Cannot cast 3x3 matrix to a scalar!" << endl;
+    cerr << "Set breakpoint in " << __FILE__ << ":" << __LINE__ << " to debug." << endl;
+    exit(1);
+  }
+};
+
+// -----------------------------------------------------------------------------
+template <>
+struct VoxelCaster<double3x3, float3x3>
+{
+  static float3x3 Convert(const double3x3 &value)
+  {
+    return make_float3x3(value);
+  }
+};
+
+// -----------------------------------------------------------------------------
+template <>
+struct VoxelCaster<double3x3, double3x3>
+{
+  static double3x3 Convert(const double3x3 &value)
+  {
+    return value;
+  }
+};
+
+// -----------------------------------------------------------------------------
+template <class TOut>
+struct VoxelCaster<double3x3, VectorND<9, TOut> >
+{
+  static VectorND<9, TOut> Convert(const double3x3 &value)
+  {
+    VectorND<9, TOut> v;
+    v(0) = VoxelCaster<double, TOut>::Convert(value.a.x);
+    v(1) = VoxelCaster<double, TOut>::Convert(value.a.y);
+    v(2) = VoxelCaster<double, TOut>::Convert(value.a.z);
+    v(3) = VoxelCaster<double, TOut>::Convert(value.b.x);
+    v(4) = VoxelCaster<double, TOut>::Convert(value.b.y);
+    v(5) = VoxelCaster<double, TOut>::Convert(value.b.z);
+    v(6) = VoxelCaster<double, TOut>::Convert(value.c.x);
+    v(7) = VoxelCaster<double, TOut>::Convert(value.c.y);
+    v(8) = VoxelCaster<double, TOut>::Convert(value.c.z);
+    return v;
+  }
+};
+
+// -----------------------------------------------------------------------------
+template <>
+struct VoxelCaster<double3x3, Vector>
+{
+  static Vector Convert(const double3x3 &value)
+  {
+    Vector v(9);
+    v(0) = value.a.x;
+    v(1) = value.a.y;
+    v(2) = value.a.z;
+    v(3) = value.b.x;
+    v(4) = value.b.y;
+    v(5) = value.b.z;
+    v(6) = value.c.x;
+    v(7) = value.c.y;
+    v(8) = value.c.z;
+    return v;
+  }
+};
+
+
+// =============================================================================
+// voxel_cast function
+// =============================================================================
 
 // -----------------------------------------------------------------------------
 template <class TOut, class TIn>

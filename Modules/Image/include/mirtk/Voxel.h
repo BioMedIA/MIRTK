@@ -1,9 +1,9 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2008-2015 Imperial College London
+ * Copyright 2008-2017 Imperial College London
  * Copyright 2008-2013 Daniel Rueckert, Julia Schnabel
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2013-2017 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@
 #include "mirtk/Math.h"
 #include "mirtk/Vector3D.h"
 #include "mirtk/Vector4D.h"
+#include "mirtk/VectorND.h"
 #include "mirtk/String.h"
 
 #ifdef HAVE_VTK 
@@ -54,10 +55,12 @@ enum ImageDataType
   MIRTK_VOXEL_FLOAT2,
   MIRTK_VOXEL_FLOAT3,
   MIRTK_VOXEL_FLOAT4,
+  MIRTK_VOXEL_FLOAT9,
   MIRTK_VOXEL_DOUBLE1, // unused
   MIRTK_VOXEL_DOUBLE2,
   MIRTK_VOXEL_DOUBLE3,
   MIRTK_VOXEL_DOUBLE4,
+  MIRTK_VOXEL_DOUBLE9,
   MIRTK_VOXEL_FLOAT1x1, // unused
   MIRTK_VOXEL_FLOAT2x2,
   MIRTK_VOXEL_FLOAT3x3,
@@ -80,6 +83,7 @@ enum ImageDataType
   MIRTK_VOXEL_REAL2   = MIRTK_VOXEL_FLOAT2,
   MIRTK_VOXEL_REAL3   = MIRTK_VOXEL_FLOAT3,
   MIRTK_VOXEL_REAL4   = MIRTK_VOXEL_FLOAT4,
+  MIRTK_VOXEL_REAL9   = MIRTK_VOXEL_FLOAT9,
   MIRTK_VOXEL_REAL1x1 = MIRTK_VOXEL_FLOAT1x1,
   MIRTK_VOXEL_REAL2x2 = MIRTK_VOXEL_FLOAT2x2,
   MIRTK_VOXEL_REAL3x3 = MIRTK_VOXEL_FLOAT3x3,
@@ -91,6 +95,7 @@ enum ImageDataType
   MIRTK_VOXEL_REAL2   = MIRTK_VOXEL_DOUBLE2,
   MIRTK_VOXEL_REAL3   = MIRTK_VOXEL_DOUBLE3,
   MIRTK_VOXEL_REAL4   = MIRTK_VOXEL_DOUBLE4,
+  MIRTK_VOXEL_REAL9   = MIRTK_VOXEL_DOUBLE9,
   MIRTK_VOXEL_REAL1x1 = MIRTK_VOXEL_DOUBLE1x1,
   MIRTK_VOXEL_REAL2x2 = MIRTK_VOXEL_DOUBLE2x2,
   MIRTK_VOXEL_REAL3x3 = MIRTK_VOXEL_DOUBLE3x3,
@@ -154,11 +159,12 @@ typedef unsigned char BytePixel;
 typedef short         GreyPixel;
 typedef realt         RealPixel;
 
-// TODO: Remove, and use float3, float4, double3, double4 instead
-typedef Vector3D<float>  Float3;
-typedef Vector4D<float>  Float4;
-typedef Vector3D<double> Double3;
-typedef Vector4D<double> Double4;
+typedef Vector3D<float>     Float3;
+typedef Vector4D<float>     Float4;
+typedef VectorND<9, float>  Float9;
+typedef Vector3D<double>    Double3;
+typedef Vector4D<double>    Double4;
+typedef VectorND<9, double> Double9;
 
 // =============================================================================
 // Voxel type limits
@@ -347,45 +353,67 @@ template <> struct voxel_limits<double3x3>
 };
 
 // -----------------------------------------------------------------------------
-template <> struct voxel_limits<Vector3D<float> >
+template <> struct voxel_limits<Float3>
 {
-  static Vector3D<float> min_value() throw()
-  { return Vector3D<float>(voxel_limits<float>::min_value()); }
-  static Vector3D<float> max_value() throw()
-  { return Vector3D<float>(voxel_limits<float>::max_value()); }
+  static Float3 min_value() throw()
+  { return Float3(voxel_limits<float>::min_value()); }
+  static Float3 max_value() throw()
+  { return Float3(voxel_limits<float>::max_value()); }
   static double min() throw() { return voxel_limits<float>::min(); }
   static double max() throw() { return voxel_limits<float>::max(); }
 };
 
 // -----------------------------------------------------------------------------
-template <> struct voxel_limits<Vector3D<double> >
+template <> struct voxel_limits<Double3>
 {
-  static Vector3D<double> min_value() throw()
-  { return Vector3D<double>(voxel_limits<double>::min_value()); }
-  static Vector3D<double> max_value() throw()
-  { return Vector3D<double>(voxel_limits<double>::max_value()); }
+  static Double3 min_value() throw()
+  { return Double3(voxel_limits<double>::min_value()); }
+  static Double3 max_value() throw()
+  { return Double3(voxel_limits<double>::max_value()); }
   static double min() throw() { return voxel_limits<double>::min(); }
   static double max() throw() { return voxel_limits<double>::max(); }
 };
 
 // -----------------------------------------------------------------------------
-template <> struct voxel_limits<Vector4D<float> >
+template <> struct voxel_limits<Float4>
 {
-  static Vector4D<float> min_value() throw()
-  { return Vector4D<float>(voxel_limits<float>::min_value()); }
-  static Vector4D<float> max_value() throw()
-  { return Vector4D<float>(voxel_limits<float>::max_value()); }
+  static Float4 min_value() throw()
+  { return Float4(voxel_limits<float>::min_value()); }
+  static Float4 max_value() throw()
+  { return Float4(voxel_limits<float>::max_value()); }
   static double min() throw() { return voxel_limits<float>::min(); }
   static double max() throw() { return voxel_limits<float>::max(); }
 };
 
 // -----------------------------------------------------------------------------
-template <> struct voxel_limits<Vector4D<double> >
+template <> struct voxel_limits<Double4>
 {
-  static Vector4D<double> min_value() throw()
-  { return Vector4D<double>(voxel_limits<double>::min_value()); }
-  static Vector4D<double> max_value() throw()
-  { return Vector4D<double>(voxel_limits<double>::max_value()); }
+  static Double4 min_value() throw()
+  { return Double4(voxel_limits<double>::min_value()); }
+  static Double4 max_value() throw()
+  { return Double4(voxel_limits<double>::max_value()); }
+  static double min() throw() { return voxel_limits<double>::min(); }
+  static double max() throw() { return voxel_limits<double>::max(); }
+};
+
+// -----------------------------------------------------------------------------
+template <> struct voxel_limits<Float9>
+{
+  static Float9 min_value() throw()
+  { return Float9(voxel_limits<float>::min_value()); }
+  static Float9 max_value() throw()
+  { return Float9(voxel_limits<float>::max_value()); }
+  static double min() throw() { return voxel_limits<float>::min(); }
+  static double max() throw() { return voxel_limits<float>::max(); }
+};
+
+// -----------------------------------------------------------------------------
+template <> struct voxel_limits<Double9>
+{
+  static Double9 min_value() throw()
+  { return Double9(voxel_limits<double>::min_value()); }
+  static Double9 max_value() throw()
+  { return Double9(voxel_limits<double>::max_value()); }
   static double min() throw() { return voxel_limits<double>::min(); }
   static double max() throw() { return voxel_limits<double>::max(); }
 };
@@ -667,41 +695,61 @@ template <> struct voxel_info<Vector>
 };
 
 // -----------------------------------------------------------------------------
-template <> struct voxel_info<Vector3D<float> >
+template <> struct voxel_info<Float3>
 {
-  typedef float           ScalarType;
-  typedef Vector3D<float> RealType;
+  typedef float  ScalarType;
+  typedef Float3 RealType;
   static int vector_size()  throw() { return 3; }
   static int element_type() throw() { return MIRTK_VOXEL_FLOAT; }
   static int type()         throw() { return MIRTK_VOXEL_FLOAT3; }
 };
 
 // -----------------------------------------------------------------------------
-template <> struct voxel_info<Vector3D<double> >
+template <> struct voxel_info<Double3>
 {
-  typedef double           ScalarType;
-  typedef Vector3D<double> RealType;
+  typedef double  ScalarType;
+  typedef Double3 RealType;
   static int vector_size()  throw() { return 3; }
   static int element_type() throw() { return MIRTK_VOXEL_DOUBLE; }
   static int type()         throw() { return MIRTK_VOXEL_DOUBLE3; }
 };
 
 // -----------------------------------------------------------------------------
-template <> struct voxel_info<Vector4D<float> >
+template <> struct voxel_info<Float4>
 {
-  typedef float           ScalarType;
-  typedef Vector4D<float> RealType;
+  typedef float  ScalarType;
+  typedef Float4 RealType;
   static int vector_size()  throw() { return 4; }
   static int element_type() throw() { return MIRTK_VOXEL_FLOAT; }
   static int type()         throw() { return MIRTK_VOXEL_FLOAT4; }
 };
 
 // -----------------------------------------------------------------------------
-template <> struct voxel_info<Vector4D<double> >
+template <> struct voxel_info<Double4>
 {
-  typedef double           ScalarType;
-  typedef Vector4D<double> RealType;
+  typedef double  ScalarType;
+  typedef Double4 RealType;
   static int vector_size()  throw() { return 4; }
+  static int element_type() throw() { return MIRTK_VOXEL_DOUBLE; }
+  static int type()         throw() { return MIRTK_VOXEL_DOUBLE4; }
+};
+
+// -----------------------------------------------------------------------------
+template <> struct voxel_info<Float9>
+{
+  typedef float  ScalarType;
+  typedef Float9 RealType;
+  static int vector_size()  throw() { return 9; }
+  static int element_type() throw() { return MIRTK_VOXEL_FLOAT; }
+  static int type()         throw() { return MIRTK_VOXEL_FLOAT4; }
+};
+
+// -----------------------------------------------------------------------------
+template <> struct voxel_info<Double9>
+{
+  typedef double  ScalarType;
+  typedef Double9 RealType;
+  static int vector_size()  throw() { return 9; }
   static int element_type() throw() { return MIRTK_VOXEL_DOUBLE; }
   static int type()         throw() { return MIRTK_VOXEL_DOUBLE4; }
 };
