@@ -451,7 +451,7 @@ struct UpdateJacobianBase : public VoxelFunction
     double x = static_cast<double>(i) + static_cast<double>(u[_x]);
     double y = static_cast<double>(j) + static_cast<double>(u[_y]);
     double z = static_cast<double>(k) + static_cast<double>(u[_z]);
-    _Displacement->Jacobian3D(jac, x, y, z, 0.);
+    _Displacement->Jacobian3D(jac, x, y, z);
     jac(0, 0) += 1.;
     jac(1, 1) += 1.;
     jac(2, 2) += 1.;
