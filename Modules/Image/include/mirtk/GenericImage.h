@@ -858,6 +858,148 @@ inline const VoxelType *GenericImage<VoxelType>::GetPointerToVoxels(int x, int y
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+// Convert between (deprecated) 3D+t vector field and vector-valued 3D images
+////////////////////////////////////////////////////////////////////////////////
+
+// -----------------------------------------------------------------------------
+template <class T>
+inline void Copy(const GenericImage<Vector3D<T> > &in, GenericImage<T> &out)
+{
+  if (in.T() != 1) {
+    Throw(ERR_InvalidArgument, __FUNCTION__, "Input image must be 3D without temporal components");
+  }
+  if (out.Attributes().EqualInSpace(in.Attributes()) && out.T() == 3) {
+    out.PutTSize(0.);
+  } else {
+    out.Initialize(in.Attributes(), 3);
+  }
+  const Vector3D<T> *v = in.Data();
+  T *x = out.Data(0, 0, 0, 0);
+  T *y = out.Data(0, 0, 0, 1);
+  T *z = out.Data(0, 0, 0, 2);
+  const int nvox = in.NumberOfVoxels();
+  for (int idx = 0; idx < nvox; ++idx, ++x, ++y, ++z, ++v) {
+    (*x) = v->_x;
+    (*y) = v->_y;
+    (*z) = v->_z;
+  }
+}
+
+// -----------------------------------------------------------------------------
+template <class T>
+inline void Copy(const GenericImage<Vector4D<T> > &in, GenericImage<T> &out)
+{
+  if (in.T() != 1) {
+    Throw(ERR_InvalidArgument, __FUNCTION__, "Input image must be 3D without temporal components");
+  }
+  if (out.Attributes().EqualInSpace(in.Attributes()) && out.T() == 4) {
+    out.PutTSize(0.);
+  } else {
+    out.Initialize(in.Attributes(), 4);
+  }
+  const Vector4D<T> *v = in.Data();
+  T *x = out.Data(0, 0, 0, 0);
+  T *y = out.Data(0, 0, 0, 1);
+  T *z = out.Data(0, 0, 0, 2);
+  T *t = out.Data(0, 0, 0, 3);
+  const int nvox = in.NumberOfVoxels();
+  for (int idx = 0; idx < nvox; ++idx, ++x, ++y, ++z, ++t, ++v) {
+    (*x) = v->_x;
+    (*y) = v->_y;
+    (*z) = v->_z;
+    (*t) = v->_t;
+  }
+}
+
+// -----------------------------------------------------------------------------
+template <int N, class T>
+inline void Copy(const GenericImage<VectorND<N, T> > &in, GenericImage<T> &out)
+{
+  if (in.T() != 1) {
+    Throw(ERR_InvalidArgument, __FUNCTION__, "Input image must be 3D without temporal components");
+  }
+  if (out.Attributes().EqualInSpace(in.Attributes()) && out.T() == N) {
+    out.PutTSize(0.);
+  } else {
+    out.Initialize(in.Attributes(), N);
+  }
+  const VectorND<N, T> *v = in.Data();
+  const int nvox = in.NumberOfVoxels();
+  for (int idx = 0; idx < nvox; ++idx, ++v) {
+    const T *c = v->_v;
+    T *p = out.Data(idx);
+    for (int i = 0; i < N; ++i, p += nvox, ++c) {
+      (*p) = (*c);
+    }
+  }
+}
+
+// -----------------------------------------------------------------------------
+template <class T>
+inline void Copy(const GenericImage<T> &in, GenericImage<Vector3D<T> > &out)
+{
+  if (in.T() != 3) {
+    Throw(ERR_InvalidArgument, __FUNCTION__, "Input image must have 3 components in the temporal dimension");
+  }
+  if (!out.Attributes().EqualInSpace(in.Attributes()) || out.T() != 1) {
+    out.Initialize(in.Attributes(), 1);
+  }
+  const T *x = in.Data(0, 0, 0, 0);
+  const T *y = in.Data(0, 0, 0, 1);
+  const T *z = in.Data(0, 0, 0, 2);
+  Vector3D<T> *v = out.Data();
+  for (int idx = 0; idx < out.NumberOfVoxels(); ++idx, ++x, ++y, ++z, ++v) {
+    v->_x = (*x);
+    v->_y = (*y);
+    v->_z = (*z);
+  }
+}
+
+// -----------------------------------------------------------------------------
+template <class T>
+inline void Copy(const GenericImage<T> &in, GenericImage<Vector4D<T> > &out)
+{
+  if (in.T() != 4) {
+    Throw(ERR_InvalidArgument, __FUNCTION__, "Input image must have 4 components in the temporal dimension");
+  }
+  if (!out.Attributes().EqualInSpace(in.Attributes()) || out.T() != 1) {
+    out.Initialize(in.Attributes(), 1);
+  }
+  const T *x = in.Data(0, 0, 0, 0);
+  const T *y = in.Data(0, 0, 0, 1);
+  const T *z = in.Data(0, 0, 0, 2);
+  const T *t = in.Data(0, 0, 0, 3);
+  Vector4D<T> *v = out.Data();
+  for (int idx = 0; idx < out.NumberOfVoxels(); ++idx, ++x, ++y, ++z, ++t, ++v) {
+    v->_x = (*x);
+    v->_y = (*y);
+    v->_z = (*z);
+    v->_t = (*t);
+  }
+}
+
+// -----------------------------------------------------------------------------
+template <int N, class T>
+inline void Copy(const GenericImage<T> &in, GenericImage<VectorND<N, T> > &out)
+{
+  if (in.T() != N) {
+    Throw(ERR_InvalidArgument, __FUNCTION__, "Input image must have ", N, " components in the temporal dimension");
+  }
+  if (!out.Attributes().EqualInSpace(in.Attributes()) || out.T() != 1) {
+    out.Initialize(in.Attributes(), 1);
+  }
+  Vector3D<T> *v = out.Data();
+  const int nvox = out.NumberOfVoxels();
+  for (int idx = 0; idx < nvox; ++idx, ++v) {
+    const T *p = in.Data(idx);
+    T *c = v->_v;
+    for (int i = 0; i < N; ++i, p += nvox, ++c) {
+      (*c) = (*p);
+    }
+  }
+}
+
+////////////////////////////////////////////////////////////////////////////////
 // Common specializations
 ////////////////////////////////////////////////////////////////////////////////
 
