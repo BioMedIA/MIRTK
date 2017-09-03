@@ -1225,7 +1225,7 @@ template <class TVoxel>
 inline void InterpolateImageFunction::Evaluate(GenericImage<TVoxel> &output) const
 {
   // Interpolate multi-channel image (or 3D+t vector image)
-  if (output.TSize() == .0) {
+  if (output.T() > 1 && IsZero(output.TSize())) {
     UnaryVoxelFunction::InterpolateMultiChannelImage<InterpolateImageFunction> eval(this, &output);
     ParallelForEachVoxel(output.Attributes(), output, eval);
   // Interpolate scalar image
