@@ -81,9 +81,7 @@ BSplineFreeFormTransformationSV
   _IntegrationMethod(FFDIM_FastSS),
   _UseDenseBCHGrid  (false),
   _LieDerivative    (false),
-  _NumberOfBCHTerms (4),
-  _JacobianDOFs     (NULL),
-  _JacobianDOFsIntervalLength(.0)
+  _NumberOfBCHTerms (4)
 {
   _ExtrapolationMode = Extrapolation_NN;
 }
@@ -100,9 +98,7 @@ BSplineFreeFormTransformationSV
   _IntegrationMethod(FFDIM_FastSS),
   _UseDenseBCHGrid  (false),
   _LieDerivative    (false),
-  _NumberOfBCHTerms (4),
-  _JacobianDOFs     (NULL),
-  _JacobianDOFsIntervalLength(.0)
+  _NumberOfBCHTerms (4)
 {
   _ExtrapolationMode = Extrapolation_NN;
   Initialize(attr, dx, dy, dz);
@@ -120,9 +116,7 @@ BSplineFreeFormTransformationSV
   _IntegrationMethod(FFDIM_FastSS),
   _UseDenseBCHGrid  (false),
   _LieDerivative    (false),
-  _NumberOfBCHTerms (4),
-  _JacobianDOFs     (NULL),
-  _JacobianDOFsIntervalLength(.0)
+  _NumberOfBCHTerms (4)
 {
   _ExtrapolationMode = Extrapolation_NN;
   Initialize(target.Attributes(), dx, dy, dz);
@@ -139,9 +133,7 @@ BSplineFreeFormTransformationSV
   _IntegrationMethod(FFDIM_FastSS),
   _UseDenseBCHGrid  (false),
   _LieDerivative    (false),
-  _NumberOfBCHTerms (4),
-  _JacobianDOFs     (NULL),
-  _JacobianDOFsIntervalLength(.0)
+  _NumberOfBCHTerms (4)
 {
   Initialize(image, disp);
 }
@@ -158,9 +150,7 @@ BSplineFreeFormTransformationSV
   _IntegrationMethod(ffd._IntegrationMethod),
   _UseDenseBCHGrid  (ffd._UseDenseBCHGrid),
   _LieDerivative    (ffd._LieDerivative),
-  _NumberOfBCHTerms (ffd._NumberOfBCHTerms),
-  _JacobianDOFs     (NULL),
-  _JacobianDOFsIntervalLength(.0)
+  _NumberOfBCHTerms (ffd._NumberOfBCHTerms)
 {
 }
 
@@ -168,7 +158,6 @@ BSplineFreeFormTransformationSV
 BSplineFreeFormTransformationSV
 ::~BSplineFreeFormTransformationSV()
 {
-  delete _JacobianDOFs;
 }
 
 // -----------------------------------------------------------------------------
@@ -182,8 +171,6 @@ void BSplineFreeFormTransformationSV::Initialize(const ImageAttributes &attr)
     _T = attr._t * attr._dt;
   }
   if (_MaxScaledVelocity < .0) _MaxScaledVelocity = DefaultMaximumScaledVelocity(_dx, _dy, _dz);
-  Delete(_JacobianDOFs);
-  _JacobianDOFsIntervalLength = .0;
 }
 
 // -----------------------------------------------------------------------------
@@ -207,13 +194,6 @@ void BSplineFreeFormTransformationSV::Subdivide(bool subdivide_x, bool subdivide
 {
   BSplineFreeFormTransformation3D::Subdivide(subdivide_x, subdivide_y, subdivide_z, subdivide_t);
   if (_MaxScaledVelocity > .0) _MaxScaledVelocity /= 2;
-}
-
-// -----------------------------------------------------------------------------
-void BSplineFreeFormTransformationSV::Changed(bool changed)
-{
-  BSplineFreeFormTransformation3D::Changed(changed);
-  if (changed) _JacobianDOFsIntervalLength = .0;
 }
 
 // =============================================================================
@@ -1121,7 +1101,7 @@ void BSplineFreeFormTransformationSV
 ::ScalingAndSquaring(GenericImage<VoxelType> *d,
                      double T, const WorldCoordsImage *wc) const
 {
-  ScalingAndSquaring<VoxelType>(d->Attributes(), d, NULL, NULL, NULL, NULL, T, wc);
+  ScalingAndSquaring<VoxelType>(d->Attributes(), d, nullptr, nullptr, nullptr, T, wc);
 }
 
 template void BSplineFreeFormTransformationSV
@@ -1140,11 +1120,8 @@ void BSplineFreeFormTransformationSV
                      GenericImage<VoxelType> *dx,
                      GenericImage<VoxelType> *dj,
                      GenericImage<VoxelType> *lj,
-                     GenericImage<VoxelType> *dv,
                      double T, const WorldCoordsImage *) const
 {
-  // Whether to perform a fast scaling-and-squaring on the control point lattice
-  const bool fast = (_IntegrationMethod == FFDIM_FastSS);
   // Attributes of output images
   ImageAttributes attr(a);
   if (!attr) {
@@ -1152,23 +1129,17 @@ void BSplineFreeFormTransformationSV
     else if (dx) attr = dx->Attributes();
     else if (dj) attr = dj->Attributes();
     else if (lj) attr = lj->Attributes();
-    else if (dv) attr = dv->Attributes();
   }
   attr._t = 1, attr._dt = .0;
   if (!attr) return;
   // Copy input displacement field
-  GenericImage<VoxelType> *din = (d ? new GenericImage<VoxelType>(*d) : NULL);
-  // TODO: Improve execution time of ScalingAndSquaring filter. The previously
-  //       used VelocityToDisplacementFieldSS image filter has a considerably
-  //       shorter runtime (e.g., multi-threaded 6s vs 20-25s on MacBook Pro
-  //       Retina Early 2013, 2.7 GHz Intel Core i7).
-  //       The most time consuming step is ScalingAndSquaring::Resample.
-  //       When the execution time of the ScalingAndSquaring filter has been
-  //       reduced, remove the if block and use the else block only.
-  if (d && !dx && !dj && !lj && !dv) {
-
+  UniquePtr<GenericImage<VoxelType> > din(d ? new GenericImage<VoxelType>(*d) : nullptr);
+  // TODO: The runtime of the ScalingAndSquaring filter has been greatly improved
+  //       to almost match the old VelocityToDisplacementFieldSS implementation.
+  //       However, the latter is still about 15% faster...
+  if (d && !dx && !dj && !lj) {
     GenericImage<VoxelType> v;
-    if (fast) {
+    if (_IntegrationMethod == FFDIM_FastSS) {
       v.Initialize(this->Attributes(), 3);
       ParallelForEachVoxel(EvaluateBSplineSVFFD3D(this, &v), this->Attributes(), v);
     } else {
@@ -1181,17 +1152,14 @@ void BSplineFreeFormTransformationSV
     exp.NumberOfSteps(NumberOfStepsForIntervalLength(T));
     exp.MaxScaledVelocity(static_cast<VoxelType>(_MaxScaledVelocity));
     exp.Interpolation(Interpolation_Linear);
-    exp.Upsample(false);  // better, but too expensive
-    exp.Input(0, &v);     // velocity field to be exponentiated
-    exp.Input(1, din);    // input displacement field (may be zero)
-    exp.Output(d);        // result is exp(v) o d
+    exp.Upsample(false);     // better, but too expensive
+    exp.Input(0, &v);        // velocity field to be exponentiated
+    exp.Input(1, din.get()); // input displacement field (may be nullptr)
+    exp.Output(d);           // result is exp(v) o d
     exp.Run();
-
   } else {
-
     // Copy B-spline coefficients of velocity field
-    GenericImage<VoxelType> v;
-    v.Initialize(this->Attributes(), 3);
+    GenericImage<VoxelType> v(this->Attributes(), 3);
     VoxelType *vx = v.Data(0, 0, 0, 0);
     VoxelType *vy = v.Data(0, 0, 0, 1);
     VoxelType *vz = v.Data(0, 0, 0, 2);
@@ -1206,22 +1174,18 @@ void BSplineFreeFormTransformationSV
     exp.UpperIntegrationLimit(T);
     exp.NumberOfSteps(NumberOfStepsForIntervalLength(T));
     exp.MaxScaledVelocity(_MaxScaledVelocity);
-    exp.InterimAttributes(fast ? this->Attributes() : attr);
+    exp.InterimAttributes(_IntegrationMethod == FFDIM_FastSS ? this->Attributes() : attr);
     exp.OutputAttributes(attr);
-    exp.Upsample(false);           // better, but too computationally expensive
-    exp.InputVelocity(&v);         // velocity field to be exponentiated
-    exp.InputDisplacement(din);    // input displacement field (may be zero)
-    exp.OutputDisplacement(d);     // i.e., d = exp(v) o din
-    exp.OutputJacobian(dx);        // i.e., Jacobian
-    exp.OutputDetJacobian(dj);     // i.e., det(Jacobian)
-    exp.OutputLogJacobian(lj);     // i.e., log(det(Jacobian)
-    exp.OutputJacobianDOFs(dv);    // i.e., Jacobian w.r.t. v
+    exp.Upsample(false);                         // better, but too expensive
     exp.ComputeInterpolationCoefficients(false); // v contains B-spline coefficients
+    exp.InputVelocity(&v);                       // velocity field to be exponentiated
+    exp.InputDisplacement(din.get());            // input displacement field (may be zero)
+    exp.OutputDisplacement(d);                   // i.e., d = exp(v) o din
+    exp.OutputJacobian(dx);                      // i.e., Jacobian
+    exp.OutputDetJacobian(dj);                   // i.e., det(Jacobian)
+    exp.OutputLogJacobian(lj);                   // i.e., log(det(Jacobian)
     exp.Run();
-
   }
-  // Free copy of input displacement field
-  Delete(din);
 }
 
 template void BSplineFreeFormTransformationSV
@@ -1230,12 +1194,10 @@ template void BSplineFreeFormTransformationSV
                      GenericImage<float> *,
                      GenericImage<float> *,
                      GenericImage<float> *,
-                     GenericImage<float> *,
                      double, const WorldCoordsImage *) const;
 
 template void BSplineFreeFormTransformationSV
 ::ScalingAndSquaring(const ImageAttributes &,
-                     GenericImage<double> *,
                      GenericImage<double> *,
                      GenericImage<double> *,
                      GenericImage<double> *,
@@ -1515,75 +1477,6 @@ struct MultiplyDerivatives : public VoxelFunction
   }
 };
 
-// -----------------------------------------------------------------------------
-template <class TInterpolator>
-struct MultiplyApproximateDerivatives : public VoxelFunction
-{
-  enum { xx, xy, xz, yx, yy, yz, zx, zy, zz }; // offsets
-  const int x, y, z;                           // offsets
-
-  GenericImage<double> *_Output;
-  const TInterpolator  *_JacobianDOFs;
-
-  MultiplyApproximateDerivatives(const TInterpolator  *dv,
-                                 GenericImage<double> *out)
-  :
-    x(0), y(x+out->NumberOfSpatialVoxels()), z(y+out->NumberOfSpatialVoxels()),
-    _Output(out), _JacobianDOFs(dv)
-  {}
-
-  void operator ()(int i, int j, int k, int, const double *in, double *out) const
-  {
-    Point p;
-    double d[9];
-    p._x = i, p._y = j, p._z = k;
-    _Output      ->ImageToWorld(p);
-    _JacobianDOFs->WorldToImage(p);
-    _JacobianDOFs->Evaluate(d,  p._x, p._y, p._z);
-    out[x] = in[x] * d[xx] + in[x] * d[xy] + in[x] * d[xz];
-    out[y] = in[y] * d[yx] + in[y] * d[yy] + in[y] * d[yz];
-    out[z] = in[z] * d[zx] + in[z] * d[zy] + in[z] * d[zz];
-  }
-
-  template <class TCoord>
-  void operator ()(int i, int j, int k, int, const TCoord *wc, const double *in, double *out) const
-  {
-    Point p;
-    double d[9];
-    p._x = wc[x], p._y = wc[y], p._z = wc[z];
-    _JacobianDOFs->WorldToImage(p);
-    _JacobianDOFs->Evaluate(d,  p._x, p._y, p._z);
-    out[x] = in[x] * d[xx] + in[x] * d[xy] + in[x] * d[xz];
-    out[y] = in[y] * d[yx] + in[y] * d[yy] + in[y] * d[yz];
-    out[z] = in[z] * d[zx] + in[z] * d[zy] + in[z] * d[zz];
-  }
-};
-
-// -----------------------------------------------------------------------------
-template <class TInterpolator>
-struct MultiplyPointWiseDerivatives
-{
-  enum { xx, xy, xz, yx, yy, yz, zx, zy, zz };
-
-  const PointSet         *_PointSet;
-  const Vector3D<double> *_Input;
-  Vector3D<double>       *_Output;
-  const TInterpolator    *_JacobianDOFs;
-
-  void operator ()(const blocked_range<int> &ids) const
-  {
-    Point p;
-    double d[9];
-    for (int id = ids.begin(); id != ids.end(); ++id) {
-      _PointSet->GetPoint(id, p);
-      _JacobianDOFs->WorldToImage(p);
-      _JacobianDOFs->Evaluate(d, p._x, p._y, p._z);
-      _Output[id]._x = _Input[id]._x * d[xx] + _Input[id]._x * d[xy] + _Input[id]._x * d[xz];
-      _Output[id]._y = _Input[id]._y * d[yx] + _Input[id]._y * d[yy] + _Input[id]._y * d[yz];
-      _Output[id]._z = _Input[id]._z * d[zx] + _Input[id]._z * d[zy] + _Input[id]._z * d[zz];
-    }
-  }
-};
 
 } // namespace BSplineFreeFormTransformationSVUtils
 using namespace BSplineFreeFormTransformationSVUtils;
@@ -1596,7 +1489,7 @@ void BSplineFreeFormTransformationSV
 {
   // Upper integration limit for given interval
   const double T = UpperIntegrationLimit(t, t0);
-  if (AreEqual(T, 0.)) return;
+  if (IsZero(T)) return;
 
   // ---------------------------------------------------------------------------
   // BCH based velocity update computation
@@ -1629,48 +1522,45 @@ void BSplineFreeFormTransformationSV
 
   // ---------------------------------------------------------------------------
   // Scaling and squaring based gradient computation
-  } else if (_IntegrationMethod == FFDIM_FastSS) {
+  } else if (_IntegrationMethod == FFDIM_SS || _IntegrationMethod == FFDIM_FastSS) {
 
     MIRTK_START_TIMING();
 
-    // Compute derivative of transformation T = exp(v) w.r.t. v
-    if (!AreEqual(_JacobianDOFsIntervalLength, T) || !_JacobianDOFs) {
-      if (!_JacobianDOFs) _JacobianDOFs = new GenericImage<double>();
-      ScalingAndSquaring<double>(_attr, nullptr, nullptr, nullptr, nullptr, _JacobianDOFs, T);
-      _JacobianDOFsIntervalLength = T;
+    // Copy B-spline coefficients of velocity field
+    GenericImage<double> v(this->Attributes(), 3);
+    double *vx = v.Data(0, 0, 0, 0);
+    double *vy = v.Data(0, 0, 0, 1);
+    double *vz = v.Data(0, 0, 0, 2);
+    const Vector *vp = _CPImage.Data();
+    for (int idx = 0; idx < _CPImage.NumberOfVoxels(); ++idx, ++vx, ++vy, ++vz, ++vp) {
+      *vx = vp->_x;
+      *vy = vp->_y;
+      *vz = vp->_z;
     }
 
-    // Initialize interpolator for evaluation of derivatives at non-CP locations
-    typedef GenericLinearInterpolateImageFunction<GenericImage<double> > TJacobianDOFs;
-    TJacobianDOFs dTdv;
-    dTdv.Input(_JacobianDOFs);
-    dTdv.Initialize();
-
-    // Multiply input derivatives w.r.t. T by the derivative of T w.r.t. v
-    GenericImage<double> dv(in->Attributes());
-    MultiplyApproximateDerivatives<TJacobianDOFs> mul(&dTdv, &dv);
-    if (wc) ParallelForEachVoxel(in->Attributes(), wc, in, &dv, mul);
-    else    ParallelForEachVoxel(in->Attributes(),     in, &dv, mul);
-
-    // Multiply resulting vectors by derivative of v w.r.t. the DoFs
-    BSplineFreeFormTransformation3D::ParametricGradient(&dv, out, i2w, wc, t0, w);
-    MIRTK_DEBUG_TIMING(2, "parametric gradient computation (FastSS)");
-
-  } else if (_IntegrationMethod == FFDIM_SS) {
-
-    MIRTK_START_TIMING();
-
-    // Compute derivative of transformation T = exp(v) w.r.t. v
+    // Exponentiate non-parametric gradient using inverse mapping
+    // (cf. Modat et al., "Parametric non-rigid registration using a stationary velocity field", MMBIA, 145–150, 2012)
     GenericImage<double> dv;
-    ScalingAndSquaring<double>(in->Attributes(), nullptr, nullptr, nullptr, nullptr, &dv, T, wc);
+    mirtk::ScalingAndSquaring<double> exp;
+    exp.UpperIntegrationLimit(T);
+    exp.ComputeInverse(true);
+    exp.NumberOfSteps(NumberOfStepsForIntervalLength(T));
+    exp.MaxScaledVelocity(_MaxScaledVelocity);
+    exp.InterimAttributes(_IntegrationMethod == FFDIM_FastSS ? this->Attributes() : in->Attributes());
+    exp.OutputAttributes(exp.InterimAttributes());
+    exp.InputVelocity(&v);
+    exp.ComputeInterpolationCoefficients(false);
+    exp.InputGradient(in);
+    exp.OutputGradient(&dv);
+    exp.Run();
 
-    // Multiply input derivatives w.r.t. T by the derivative of T w.r.t. v
-    MultiplyDerivatives mul(in->NumberOfSpatialVoxels());
-    ParallelForEachVoxel(in, &dv, &dv, mul);
+    // Free copy of velocity coefficients
+    v.Clear();
 
     // Multiply resulting vectors by derivative of v w.r.t. the DoFs
     BSplineFreeFormTransformation3D::ParametricGradient(&dv, out, i2w, wc, t0, w);
-    MIRTK_DEBUG_TIMING(2, "parametric gradient computation (SS)");
+
+    MIRTK_DEBUG_TIMING(2, "parametric gradient computation" << (_IntegrationMethod == FFDIM_FastSS ? " (FastSS)" : " (SS)"));
 
   // ---------------------------------------------------------------------------
   // Runge-Kutta integration based gradient computation similar to TD FFD
@@ -1688,68 +1578,9 @@ void BSplineFreeFormTransformationSV
 ::ParametricGradient(const PointSet &pos, const Vector3D<double> *in,
                      double *out, double t, double t0, double w) const
 {
-  // ---------------------------------------------------------------------------
-  // Scaling and squaring based gradient computation for dense point clouds
-  if (_IntegrationMethod == FFDIM_FastSS || _IntegrationMethod == FFDIM_SS) {
-
-    MIRTK_START_TIMING();
- 
-    // Upper integration limit for given interval
-    const double T = UpperIntegrationLimit(t, t0);
-    if (AreEqual(T, 0.)) return;
-
-    // Compute derivative of transformation T = exp(v) w.r.t. v
-    if (!AreEqual(_JacobianDOFsIntervalLength, T) || !_JacobianDOFs) {
-      ImageAttributes attr = _attr;
-      if (_IntegrationMethod == FFDIM_SS) {
-        // FIXME: Should be more adaptive and not specific to typical image
-        //        resolution and size encountered in MR brain imaging
-        attr._dx = (_dx > 1.0 ? 1.0 : .0);
-        attr._dy = (_dy > 1.0 ? 1.0 : .0);
-        attr._dz = (_dz > 1.0 ? 1.0 : .0);
-        attr._x  = (attr._dx > .0 ? iceil(_x * _dx / attr._dx) : 1);
-        attr._y  = (attr._dy > .0 ? iceil(_y * _dy / attr._dy) : 1);
-        attr._z  = (attr._dz > .0 ? iceil(_z * _dz / attr._dz) : 1);
-        if (attr._x > 256) attr._x = 256;
-        if (attr._y > 256) attr._y = 256;
-        if (attr._z > 256) attr._z = 256;
-        attr._dx = (_x * _dx / attr._x);
-        attr._dy = (_y * _dy / attr._y);
-        attr._dz = (_z * _dz / attr._z);
-      }
-      if (!_JacobianDOFs) _JacobianDOFs = new GenericImage<double>();
-      _JacobianDOFsIntervalLength = T;
-      ScalingAndSquaring<double>(attr, nullptr, nullptr, nullptr, nullptr, _JacobianDOFs, T);
-    }
-
-    // Initialize interpolator for evaluation of derivatives at non-CP locations
-    typedef GenericLinearInterpolateImageFunction<GenericImage<double> > TJacobianDOFs;
-    TJacobianDOFs dTdv;
-    dTdv.Input(_JacobianDOFs);
-    dTdv.Initialize();
- 
-    // Multiply input derivatives w.r.t. T by the derivative of T w.r.t. v
-    UniquePtr<Vector3D<double>[]> res(new Vector3D<double>[pos.Size()]);
-    MultiplyPointWiseDerivatives<TJacobianDOFs> mul;
-    mul._PointSet     = &pos;
-    mul._Input        = in;
-    mul._JacobianDOFs = &dTdv;
-    mul._Output       = res.get();
-    parallel_for(blocked_range<int>(0, pos.Size()), mul);
-
-    // Multiply resulting vectors by derivative of v w.r.t. the DoFs
-    BSplineFreeFormTransformation3D::ParametricGradient(pos, mul._Output, out, t, t0, w);
-
-    MIRTK_DEBUG_TIMING(2, "point-wise parametric gradient computation (" << ToString(_IntegrationMethod) << ")");
-
-  // ---------------------------------------------------------------------------
   // Runge-Kutta integration based gradient computation similar to TD FFD
   // transformation parameterized by non-stationary velocity field
-  } else {
-
-    FreeFormTransformation::ParametricGradient(pos, in, out, t, t0, w);
-
-  }
+  FreeFormTransformation::ParametricGradient(pos, in, out, t, t0, w);
 }
 
 // =============================================================================

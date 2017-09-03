@@ -271,7 +271,7 @@ struct JacobianImpl : public VoxelReduction
       if (verbose) cout << "Computing Jac using scaling and squaring" << endl;
       GenericImage<double> d;
       MIRTK_START_TIMING();
-      svffd->ScalingAndSquaring<double>(attr, nullptr, &d, nullptr, nullptr, nullptr, svffd->UpperIntegrationLimit(_t, _t0));
+      svffd->ScalingAndSquaring<double>(attr, nullptr, &d, nullptr, nullptr, svffd->UpperIntegrationLimit(_t, _t0));
       MIRTK_DEBUG_TIMING(1, "computation of Jac using scaling and squaring");
       // Compute determinants of Jacobian matrices
       if (verbose) cout << "Computing det(Jac)" << endl;
@@ -309,7 +309,7 @@ struct JacobianImpl : public VoxelReduction
           if (verbose) cout << "Computing log(det(Jac)) using scaling and squaring" << endl;
           GenericImage<double> lj;
           MIRTK_START_TIMING();
-          svffd->ScalingAndSquaring<double>(attr, nullptr, nullptr, nullptr, &lj, nullptr, T);
+          svffd->ScalingAndSquaring<double>(attr, nullptr, nullptr, nullptr, &lj, T);
           MIRTK_DEBUG_TIMING(1, "computation of log(det(Jac)) using scaling and squaring");
           for (int idx = 0; idx < _nvox; ++idx) {
             if (_mask->Get(idx) != 0) {
@@ -324,7 +324,7 @@ struct JacobianImpl : public VoxelReduction
           if (verbose) cout << "Computing log(det(Jac)) using scaling and squaring" << endl;
           GenericImage<double> lj;
           MIRTK_START_TIMING();
-          svffd->ScalingAndSquaring<double>(attr, nullptr, nullptr, nullptr, &lj, nullptr, T);
+          svffd->ScalingAndSquaring<double>(attr, nullptr, nullptr, nullptr, &lj, T);
           MIRTK_DEBUG_TIMING(1, "computation of log(det(Jac)) using scaling and squaring");
           for (int idx = 0; idx < _nvox; ++idx) {
             if (_mask->Get(idx) != 0) {
@@ -339,7 +339,7 @@ struct JacobianImpl : public VoxelReduction
           if (verbose) cout << "Computing det(Jac) and its log using scaling and squaring" << endl;
           GenericImage<double> dj, lj;
           MIRTK_START_TIMING();
-          svffd->ScalingAndSquaring<double>(attr, nullptr, nullptr, &dj, &lj, nullptr, T);
+          svffd->ScalingAndSquaring<double>(attr, nullptr, nullptr, &dj, &lj, T);
           MIRTK_DEBUG_TIMING(1, "computation of det(Jac) and its log using scaling and squaring");
           for (int idx = 0; idx < _nvox; ++idx) {
             if (_mask->Get(idx) != 0) {
@@ -355,7 +355,7 @@ struct JacobianImpl : public VoxelReduction
           if (verbose) cout << "Computing det(Jac) using scaling and squaring" << endl;
           GenericImage<double> dj;
           MIRTK_START_TIMING();
-          svffd->ScalingAndSquaring<double>(attr, nullptr, nullptr, &dj, nullptr, nullptr, T);
+          svffd->ScalingAndSquaring<double>(attr, nullptr, nullptr, &dj, nullptr, T);
           MIRTK_DEBUG_TIMING(1, "computation of det(Jac) using scaling and squaring");
           for (int idx = 0; idx < _nvox; ++idx) {
             if (_mask->Get(idx) != 0) {

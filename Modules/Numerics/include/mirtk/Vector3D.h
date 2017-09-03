@@ -964,7 +964,7 @@ inline T get(const mirtk::Vector3D<T> &v, int n)
 
 // -----------------------------------------------------------------------------
 template <class T>
-inline T put(mirtk::Vector3D<T> &v, int n, const T &value)
+inline void put(mirtk::Vector3D<T> &v, int n, const T &value)
 {
   switch (n) {
     case 0: v._x = value;

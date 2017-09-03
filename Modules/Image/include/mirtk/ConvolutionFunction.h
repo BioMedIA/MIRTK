@@ -103,6 +103,7 @@ struct ConvolveInX : public VoxelFunction
   template <class T1, class T2>
   void operator ()(int i, int, int, int, const T1 *in, T2 *out) const
   {
+    typedef typename voxel_info<T2>::RealType AccType;
     // Convolve l-th vector component
     in += _Offset, out += _Offset;
     // Go to start of input and end of kernel
@@ -112,15 +113,18 @@ struct ConvolveInX : public VoxelFunction
     // Outside left boundary
     if (i < 0) n += i, in -= i, i = 0;
     // Inside image domain
-    double acc = .0, sum = .0;
+    AccType v, acc(0.);
+    double  w, sum = .0;
     while (i < _X && n >= 0) {
-      acc += static_cast<double>(_Kernel[n]) * static_cast<double>(*in);
-      sum += static_cast<double>(_Kernel[n]);
+      w = static_cast<double>(_Kernel[n]);
+      v = voxel_cast<AccType>(*in);
+      acc += (v *= w);
+      sum += w;
       ++i, ++in, --n;
     }
     // Output result of convolution
     if (_Normalize && !AreEqual(sum, 0., Epsilon())) acc /= sum;
-    *out = static_cast<T2>(acc);
+    *out = voxel_cast<T2>(acc);
   }
 };
 
@@ -145,6 +149,7 @@ struct ConvolveInY : public VoxelFunction
   template <class T1, class T2>
   void operator ()(int, int j, int, int, const T1 *in, T2 *out) const
   {
+    typedef typename voxel_info<T2>::RealType AccType;
     // Convolve l-th vector component
     in += _Offset, out += _Offset;
     // Go to start of input and end of kernel
@@ -154,15 +159,18 @@ struct ConvolveInY : public VoxelFunction
     // Outside left boundary
     if (j < 0) n += j, in -= j * _X, j = 0;
     // Inside image domain
-    double acc = .0, sum = .0;
+    AccType v, acc = 0.;
+    double  w, sum = 0.;
     while (j < _Y && n >= 0) {
-      acc += static_cast<double>(_Kernel[n]) * static_cast<double>(*in);
-      sum += static_cast<double>(_Kernel[n]);
+      w = static_cast<double>(_Kernel[n]);
+      v = voxel_cast<AccType>(*in);
+      acc += (v *= w);
+      sum += w;
       ++j, in += _X, --n;
     }
     // Output result of convolution
     if (_Normalize && !AreEqual(sum, 0., Epsilon())) acc /= sum;
-    *out = static_cast<T2>(acc);
+    *out = voxel_cast<T2>(acc);
   }
 };
 
@@ -187,6 +195,7 @@ struct ConvolveInZ : public VoxelFunction
   template <class T1, class T2>
   void operator ()(int, int, int k, int, const T1 *in, T2 *out) const
   {
+    typedef typename voxel_info<T2>::RealType AccType;
     // Convolve l-th vector component
     in += _Offset, out += _Offset;
     // Go to start of input and end of kernel
@@ -196,15 +205,18 @@ struct ConvolveInZ : public VoxelFunction
     // Outside left boundary
     if (k < 0) n += k, in -= k * _XY, k = 0;
     // Inside image domain
-    double acc = .0, sum = .0;
+    AccType v, acc = 0.;
+    double  w, sum = 0.;
     while (k < _Z && n >= 0) {
-      acc += static_cast<double>(_Kernel[n]) * static_cast<double>(*in);
-      sum += static_cast<double>(_Kernel[n]);
+      w = static_cast<double>(_Kernel[n]);
+      v = voxel_cast<AccType>(*in);
+      acc += (v *= w);
+      sum += w;
       ++k, in += _XY, --n;
     }
     // Output result of convolution
     if (_Normalize && !AreEqual(sum, 0., Epsilon())) acc /= sum;
-    *out = static_cast<T2>(acc);
+    *out = voxel_cast<T2>(acc);
   }
 };
 
@@ -228,7 +240,7 @@ struct ConvolveInT : public VoxelFunction
   template <class T1, class T2>
   void operator ()(int, int, int, int l, const T1 *in, T2 *out) const
   {
-    double acc = .0, sum = .0;
+    typedef typename voxel_info<T2>::RealType AccType;
     // Go to start of input and end of kernel
     l    -= _Radius;
     in   -= _Radius * _XYZ;
@@ -236,14 +248,18 @@ struct ConvolveInT : public VoxelFunction
     // Outside left boundary
     if (l < 0) n += l, in -= l * _XYZ, l = 0;
     // Inside image domain
+    AccType v, acc = 0.;
+    double  w, sum = 0.;
     while (l < _T && n >= 0) {
-      acc += static_cast<double>(_Kernel[n]) * static_cast<double>(*in);
-      sum += static_cast<double>(_Kernel[n]);
+      w = static_cast<double>(_Kernel[n]);
+      v = voxel_cast<AccType>(*in);
+      acc += (v *= w);
+      sum += w;
       ++l, in += _XYZ, --n;
     }
     // Output result of convolution
     if (_Normalize && !AreEqual(sum, 0., Epsilon())) acc /= sum;
-    *out = static_cast<T2>(acc);
+    *out = voxel_cast<T2>(acc);
   }
 };
 
@@ -272,6 +288,7 @@ struct ConvolveForegroundInX : public VoxelFunction
   template <class T1, class T2>
   void operator ()(int i, int j, int k, int l, const T1 *in, T2 *out) const
   {
+    typedef typename voxel_info<T2>::RealType AccType;
     // Convolve l-th vector component
     in += _Offset, out += _Offset;
     // Go to start of input and end of kernel
@@ -281,17 +298,20 @@ struct ConvolveForegroundInX : public VoxelFunction
     // Outside left boundary
     if (i < 0) n += i, in -= i, i = 0;
     // Inside image domain
-    double acc = .0, sum = .0;
+    AccType v, acc = 0.;
+    double  w, sum = 0.;
     while (i < _X && n >= 0) {
       if (_Image->IsForeground(i, j, k, l)) {
-        acc += static_cast<double>(_Kernel[n]) * static_cast<double>(*in);
-        sum += static_cast<double>(_Kernel[n]);
+        w = static_cast<double>(_Kernel[n]);
+        v = voxel_cast<AccType>(*in);
+        acc += (v += w);
+        sum += w;
       }
       ++i, ++in, --n;
     }
     // Output result of convolution
     if (_Normalize && !AreEqual(sum, 0., Epsilon())) acc /= sum;
-    *out = static_cast<T2>(acc);
+    *out = voxel_cast<T2>(acc);
   }
 };
 
@@ -317,6 +337,7 @@ struct ConvolveForegroundInY : public VoxelFunction
   template <class T1, class T2>
   void operator ()(int i, int j, int k, int l, const T1 *in, T2 *out) const
   {
+    typedef typename voxel_info<T2>::RealType AccType;
     // Convolve l-th vector component
     in += _Offset, out += _Offset;
     // Go to start of input and end of kernel
@@ -326,17 +347,20 @@ struct ConvolveForegroundInY : public VoxelFunction
     // Outside left boundary
     if (j < 0) n += j, in -= j * _X, j = 0;
     // Inside image domain
-    double acc = .0, sum = .0;
+    AccType v, acc = 0.;
+    double  w, sum = 0.;
     while (j < _Y && n >= 0) {
       if (_Image->IsForeground(i, j, k, l)) {
-        acc += static_cast<double>(_Kernel[n]) * static_cast<double>(*in);
-        sum += static_cast<double>(_Kernel[n]);
+        w = static_cast<double>(_Kernel[n]);
+        v = voxel_cast<AccType>(*in);
+        acc += (v *= w);
+        sum += w;
       }
       ++j, in += _X, --n;
     }
     // Output result of convolution
     if (_Normalize && !AreEqual(sum, 0., Epsilon())) acc /= sum;
-    *out = static_cast<T2>(acc);
+    *out = voxel_cast<T2>(acc);
   }
 };
 
@@ -362,6 +386,7 @@ struct ConvolveForegroundInZ : public VoxelFunction
   template <class T1, class T2>
   void operator ()(int i, int j, int k, int l, const T1 *in, T2 *out) const
   {
+    typedef typename voxel_info<T2>::RealType AccType;
     // Convolve l-th vector component
     in += _Offset, out += _Offset;
     // Go to start of input and end of kernel
@@ -371,17 +396,20 @@ struct ConvolveForegroundInZ : public VoxelFunction
     // Outside left boundary
     if (k < 0) n += k, in -= k * _XY, k = 0;
     // Inside image domain
-    double acc = .0, sum = .0;
+    AccType v, acc = 0.;
+    double  w, sum = 0.;
     while (k < _Z && n >= 0) {
       if (_Image->IsForeground(i, j, k, l)) {
-        acc += static_cast<double>(_Kernel[n]) * static_cast<double>(*in);
-        sum += static_cast<double>(_Kernel[n]);
+        w = static_cast<double>(_Kernel[n]);
+        v = voxel_cast<AccType>(*in);
+        acc += (v *= w);
+        sum += w;
       }
       ++k, in += _XY, --n;
     }
     // Output result of convolution
     if (_Normalize && !AreEqual(sum, 0., Epsilon())) acc /= sum;
-    *out = static_cast<T2>(acc);
+    *out = voxel_cast<T2>(acc);
   }
 };
 
@@ -406,7 +434,7 @@ struct ConvolveForegroundInT : public VoxelFunction
   template <class T1, class T2>
   void operator ()(int i, int j, int k, int l, const T1 *in, T2 *out) const
   {
-    double acc = .0, sum = .0;
+    typedef typename voxel_info<T2>::RealType AccType;
     // Go to start of input and end of kernel
     l    -= _Radius;
     in   -= _Radius * _XYZ;
@@ -414,16 +442,20 @@ struct ConvolveForegroundInT : public VoxelFunction
     // Outside left boundary
     if (l < 0) n += l, in -= l * _XYZ, l = 0;
     // Inside image domain
+    AccType v, acc = 0.;
+    double  w, sum = 0.;
     while (l < _T && n >= 0) {
       if (_Image->IsForeground(i, j, k, l)) {
-        acc += static_cast<double>(_Kernel[n]) * static_cast<double>(*in);
-        sum += static_cast<double>(_Kernel[n]);
+        w = static_cast<double>(_Kernel[n]);
+        v = voxel_cast<AccType>(*in);
+        acc += (v *= w);
+        sum += w;
       }
       ++l, in += _XYZ, --n;
     }
     // Output result of convolution
     if (_Normalize && !AreEqual(sum, 0., Epsilon())) acc /= sum;
-    *out = static_cast<T2>(acc);
+    *out = voxel_cast<T2>(acc);
   }
 };
 

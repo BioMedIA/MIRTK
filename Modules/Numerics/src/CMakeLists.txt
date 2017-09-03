@@ -62,6 +62,7 @@ set(HEADERS
   Vector3.h
   Vector3D.h
   Vector4D.h
+  VectorND.h
   # private headers -- TODO: Exclude from installation
   Arpack.h
   Umfpack.h

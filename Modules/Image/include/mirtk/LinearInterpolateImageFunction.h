@@ -252,6 +252,149 @@ public:
   /// is returned.
   virtual VoxelType GetWithPaddingOutside(double, double, double = 0, double = 0) const;
 
+  // ---------------------------------------------------------------------------
+  // Derivative evaluation
+
+  /// Get 1st order derivatives of given image at arbitrary location (in pixels)
+  ///
+  /// When the image has scalar data type and stores vector components in the
+  /// fourth dimension, the derivatives of all components are evaluated when
+  /// the t coordinate is set to NaN. Otherwise, only the derivatives of the
+  /// specified t component are evaluated.
+  virtual void EvaluateJacobianInside(Matrix &, double, double, double = 0, double = NaN) const;
+
+  /// Get 1st order derivatives of given image at arbitrary location (in pixels)
+  ///
+  /// When the image has scalar data type and stores vector components in the
+  /// fourth dimension, the derivatives of all components are evaluated when
+  /// the t coordinate is set to NaN. Otherwise, only the derivatives of the
+  /// specified t component are evaluated.
+  virtual void EvaluateJacobianOutside(Matrix &, double, double, double = 0, double = NaN) const;
+
+  /// Get 1st order derivatives of given image at arbitrary location (in pixels)
+  ///
+  /// When the image has scalar data type and stores vector components in the
+  /// fourth dimension, the derivatives of all components are evaluated when
+  /// the t coordinate is set to NaN. Otherwise, only the derivatives of the
+  /// specified t component are evaluated.
+  virtual void EvaluateJacobianWithPaddingInside(Matrix &, double, double, double = 0, double = NaN) const;
+
+  /// Get 1st order derivatives of given image at arbitrary location (in pixels)
+  ///
+  /// When the image has scalar data type and stores vector components in the
+  /// fourth dimension, the derivatives of all components are evaluated when
+  /// the t coordinate is set to NaN. Otherwise, only the derivatives of the
+  /// specified t component are evaluated.
+  virtual void EvaluateJacobianWithPaddingOutside(Matrix &, double, double, double = 0, double = NaN) const;
+
+  /// Get 1st order derivatives of given 3D image at arbitrary location (in pixels)
+  ///
+  /// This function is used when no extrapolator was set.
+  ///
+  /// When the image has scalar data type and stores vector components in the
+  /// fourth dimension, the derivatives of all components are evaluated when
+  /// the t coordinate is set to NaN. Otherwise, only the derivatives of the
+  /// specified t component are evaluated.
+  void Jacobian2D(Matrix &, double, double, double = 0., double = NaN) const;
+
+  /// Get 1st order derivatives of given 3D image at arbitrary location (in pixels)
+  ///
+  /// This function is used when no extrapolator was set.
+  ///
+  /// When the image has scalar data type and stores vector components in the
+  /// fourth dimension, the derivatives of all components are evaluated when
+  /// the t coordinate is set to NaN. Otherwise, only the derivatives of the
+  /// specified t component are evaluated.
+  void Jacobian3D(Matrix &, double, double, double = 0., double = NaN) const;
+
+  /// Get 1st order derivatives of given 4D image at arbitrary location (in pixels)
+  ///
+  /// This function is used when no extrapolator was set.
+  void Jacobian4D(Matrix &, double, double, double = 0., double = NaN) const;
+
+  /// Get 1st order derivatives of given image at arbitrary location (in pixels)
+  void Jacobian(Matrix &, double, double, double = 0., double = NaN) const;
+
+
+  /// Get 1st order derivatives of given 3D image at arbitrary location (in pixels)
+  ///
+  /// Set derivatives to zero outside the image foreground.
+  ///
+  /// When the image has scalar data type and stores vector components in the
+  /// fourth dimension, the derivatives of all components are evaluated when
+  /// the t coordinate is set to NaN. Otherwise, only the derivatives of the
+  /// specified t component are evaluated.
+  void JacobianWithPadding2D(Matrix &, double, double, double = 0., double = NaN) const;
+
+  /// Get 1st order derivatives of given 3D image at arbitrary location (in pixels)
+  ///
+  /// Set derivatives to zero outside the image foreground.
+  ///
+  /// When the image has scalar data type and stores vector components in the
+  /// fourth dimension, the derivatives of all components are evaluated when
+  /// the t coordinate is set to NaN. Otherwise, only the derivatives of the
+  /// specified t component are evaluated.
+  void JacobianWithPadding3D(Matrix &, double, double, double = 0., double = NaN) const;
+
+  /// Get 1st order derivatives of given 4D image at arbitrary location (in pixels)
+  ///
+  /// Set derivatives to zero outside the image foreground.
+  void JacobianWithPadding4D(Matrix &, double, double, double = 0., double = NaN) const;
+
+  /// Get 1st order derivatives of given image at arbitrary location (in pixels)
+  void JacobianWithPadding(Matrix &, double, double, double = 0, double = NaN) const;
+
+
+  /// Get 1st order derivatives of given 3D image at arbitrary location (in pixels)
+  ///
+  /// If the location is inside the finite domain of the image, an actual image
+  /// instance can be passed as first argument directly such as an instance of
+  /// GenericImage. Otherwise, an image function which extends the finite
+  /// image domain to an infinite lattice is needed, i.e., an instance of a
+  /// subclass of ExtrapolateImageFunction.
+  ///
+  /// When the image has scalar data type and stores vector components in the
+  /// fourth dimension, the derivatives of all components are evaluated when
+  /// the t coordinate is set to NaN. Otherwise, only the derivatives of the
+  /// specified t component are evaluated.
+  template <class TOtherImage>
+  void Jacobian2D(Matrix &, const TOtherImage *, double, double, double = 0., double = NaN) const;
+
+  /// Get 1st order derivatives of given 3D image at arbitrary location (in pixels)
+  ///
+  /// If the location is inside the finite domain of the image, an actual image
+  /// instance can be passed as first argument directly such as an instance of
+  /// GenericImage. Otherwise, an image function which extends the finite
+  /// image domain to an infinite lattice is needed, i.e., an instance of a
+  /// subclass of ExtrapolateImageFunction.
+  ///
+  /// When the image has scalar data type and stores vector components in the
+  /// fourth dimension, the derivatives of all components are evaluated when
+  /// the t coordinate is set to NaN. Otherwise, only the derivatives of the
+  /// specified t component are evaluated.
+  template <class TOtherImage>
+  void Jacobian3D(Matrix &, const TOtherImage *, double, double, double = 0., double = NaN) const;
+
+  /// Get 1st order derivatives of given 4D image at arbitrary location (in pixels)
+  ///
+  /// If the location is inside the finite domain of the image, an actual image
+  /// instance can be passed as first argument directly such as an instance of
+  /// GenericImage. Otherwise, an image function which extends the finite
+  /// image domain to an infinite lattice is needed, i.e., an instance of a
+  /// subclass of ExtrapolateImageFunction.
+  template <class TOtherImage>
+  void Jacobian4D(Matrix &, const TOtherImage *, double, double, double = 0., double = NaN) const;
+
+  /// Get 1st order derivatives of given image at arbitrary location (in pixels)
+  ///
+  /// If the location is inside the finite domain of the image, an actual image
+  /// instance can be passed as first argument directly such as an instance of
+  /// GenericImage. Otherwise, an image function which extends the finite
+  /// image domain to an infinite lattice is needed, i.e., an instance of a
+  /// subclass of ExtrapolateImageFunction.
+  template <class TOtherImage>
+  void Jacobian(Matrix &, const TOtherImage *, double, double, double = 0., double = NaN) const;
+
 };
 
 
