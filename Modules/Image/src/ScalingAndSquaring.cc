@@ -1223,7 +1223,7 @@ void ScalingAndSquaring<TReal>::Run()
     // Update interpolators for next iteration
     if (n > 0) {
       f_disp->Update();
-      f_grad->Update();
+      if (f_grad) f_grad->Update();
     }
   }
 
