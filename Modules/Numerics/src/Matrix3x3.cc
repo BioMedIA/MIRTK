@@ -1,7 +1,7 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2008-2015 Imperial College London
+ * Copyright 2008-2017 Imperial College London
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -866,6 +866,60 @@ void Matrix3x3::Orthonormalize()
   m_aafEntry[0][2] *= fInvLength;
   m_aafEntry[1][2] *= fInvLength;
   m_aafEntry[2][2] *= fInvLength;
+}
+
+/*---------------------------------------------------------------------------*/
+/*! polar decomposition of a 3x3 matrix
+
+   This finds the closest orthogonal matrix to input A
+   (in both the Frobenius and L2 norms).
+
+   Algorithm is that from NJ Higham, SIAM J Sci Stat Comput, 7:1160-1174.
+   Copied from NIfTI library, nifti_mat33_polar.
+*//*-------------------------------------------------------------------------*/
+Matrix3x3 Matrix3x3::PolarDecomposition() const
+{
+  Matrix3x3 X, Y, Z;
+  double alp, bet, gam, gmi, dif = 1.;
+
+  X = *this;
+  gam = X.Determinant();
+  while (gam == 0.) {
+    gam = .00001 * (.001 + X.MaxRowNorm());
+    X.m_aafEntry[0][0] += gam;
+    X.m_aafEntry[1][1] += gam;
+    X.m_aafEntry[2][2] += gam ;
+    gam = X.Determinant();
+  }
+  for (int k = 0; k < 100; ++k) {
+    Y = X.Inverse();
+    if (dif > .3) {
+      alp = sqrt(X.MaxRowNorm() * X.MaxColNorm());
+      bet = sqrt(Y.MaxRowNorm() * Y.MaxColNorm());
+      gam = sqrt(bet / alp);
+      gmi = 1. / gam;
+    } else {
+      gam = gmi = 1.;
+    }
+    Z.m_aafEntry[0][0] = 0.5 * (gam * X.m_aafEntry[0][0] + gmi * Y.m_aafEntry[0][0]);
+    Z.m_aafEntry[0][1] = 0.5 * (gam * X.m_aafEntry[0][1] + gmi * Y.m_aafEntry[1][0]);
+    Z.m_aafEntry[0][2] = 0.5 * (gam * X.m_aafEntry[0][2] + gmi * Y.m_aafEntry[2][0]);
+    Z.m_aafEntry[1][0] = 0.5 * (gam * X.m_aafEntry[1][0] + gmi * Y.m_aafEntry[0][1]);
+    Z.m_aafEntry[1][1] = 0.5 * (gam * X.m_aafEntry[1][1] + gmi * Y.m_aafEntry[1][1]);
+    Z.m_aafEntry[1][2] = 0.5 * (gam * X.m_aafEntry[1][2] + gmi * Y.m_aafEntry[2][1]);
+    Z.m_aafEntry[2][0] = 0.5 * (gam * X.m_aafEntry[2][0] + gmi * Y.m_aafEntry[0][2]);
+    Z.m_aafEntry[2][1] = 0.5 * (gam * X.m_aafEntry[2][1] + gmi * Y.m_aafEntry[1][2]);
+    Z.m_aafEntry[2][2] = 0.5 * (gam * X.m_aafEntry[2][2] + gmi * Y.m_aafEntry[2][2]);
+    dif = abs(Z.m_aafEntry[0][0] - X.m_aafEntry[0][0]) + abs(Z.m_aafEntry[0][1] - X.m_aafEntry[0][1])
+        + abs(Z.m_aafEntry[0][2] - X.m_aafEntry[0][2]) + abs(Z.m_aafEntry[1][0] - X.m_aafEntry[1][0])
+        + abs(Z.m_aafEntry[1][1] - X.m_aafEntry[1][1]) + abs(Z.m_aafEntry[1][2] - X.m_aafEntry[1][2])
+        + abs(Z.m_aafEntry[2][0] - X.m_aafEntry[2][0]) + abs(Z.m_aafEntry[2][1] - X.m_aafEntry[2][1])
+        + abs(Z.m_aafEntry[2][2] - X.m_aafEntry[2][2]);
+    if (dif < 3.e-6) break;
+    X = Z;
+  }
+
+  return Z;
 }
 
 //----------------------------------------------------------------------------

@@ -22,6 +22,7 @@
 
 #ifndef MIRTK_AUTO_REGISTER
   #include "mirtk/SmoothnessConstraint.h"
+  #include "mirtk/LinearElasticityConstraint.h"
   #include "mirtk/LogJacobianConstraint.h"
   #include "mirtk/NegJacobianConstraint.h"
   #include "mirtk/TopologyPreservationConstraint.h"
@@ -38,6 +39,7 @@ static void RegisterTransformationConstraints()
 {
   #ifndef MIRTK_AUTO_REGISTER
     mirtkRegisterEnergyTermMacro(SmoothnessConstraint);
+    mirtkRegisterEnergyTermMacro(LinearElasticityConstraint);
     mirtkRegisterEnergyTermMacro(LogJacobianConstraint);
     mirtkRegisterEnergyTermMacro(NegJacobianConstraint);
     mirtkRegisterEnergyTermMacro(TopologyPreservationConstraint);

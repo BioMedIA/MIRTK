@@ -1,7 +1,7 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2008-2015 Imperial College London
+ * Copyright 2008-2017 Imperial College London
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@
 #include "mirtk/NumericsExport.h"
 
 #include "mirtk/Vector3.h"
+#include "mirtk/Math.h"
 
 
 namespace mirtk {
@@ -120,6 +121,28 @@ public:
   void QDUDecomposition (Matrix3x3& rkQ, Vector3& rkD,
                          Vector3& rkU) const;
 
+  // Polar decomposition of a 3x3 matrix
+  //
+  // This finds the closest orthogonal matrix to input A
+  // (in both the Frobenius and L2 norms).
+  //
+  // Algorithm is that from NJ Higham, SIAM J Sci Stat Comput, 7:1160-1174.
+  //
+  // \sa nifti_mat33_polar
+  Matrix3x3 PolarDecomposition() const;
+
+  // p=1 norm of specified row
+  double RowNorm(int) const;
+
+  // p=1 norm of specified column
+  double ColNorm(int) const;
+
+  // Maximum p=1 row norm
+  double MaxRowNorm() const;
+
+  // Maximum p=1 col norm
+  double MaxColNorm() const;
+
   double SpectralNorm () const;
 
   // matrix must be orthonormal
@@ -172,6 +195,34 @@ protected:
 
   double m_aafEntry[3][3];
 };
+
+//////////////////////////////////////////////////////////////////////////////
+// Inline definitions
+//////////////////////////////////////////////////////////////////////////////
+
+//----------------------------------------------------------------------------
+inline double Matrix3x3::RowNorm(int r) const
+{
+  return abs(m_aafEntry[r][0]) + abs(m_aafEntry[r][1]) + abs(m_aafEntry[r][2]);
+}
+
+//----------------------------------------------------------------------------
+inline double Matrix3x3::MaxRowNorm() const
+{
+  return max(max(RowNorm(0), RowNorm(1)), RowNorm(2));
+}
+
+//----------------------------------------------------------------------------
+inline double Matrix3x3::ColNorm(int c) const
+{
+  return abs(m_aafEntry[0][c]) + abs(m_aafEntry[1][c]) + abs(m_aafEntry[2][c]);
+}
+
+//----------------------------------------------------------------------------
+inline double Matrix3x3::MaxColNorm() const
+{
+  return max(max(ColNorm(0), ColNorm(1)), ColNorm(2));
+}
 
 
 } // namespace mirtk

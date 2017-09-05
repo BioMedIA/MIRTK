@@ -28,6 +28,7 @@
 #include "mirtk/Pair.h"
 #include "mirtk/Indent.h"
 #include "mirtk/Cfstream.h"
+#include "mirtk/Matrix3x3.h"
 
 
 namespace mirtk {
@@ -91,6 +92,9 @@ public:
   /// Copy constructor
   Matrix(const Matrix &);
 
+  /// Construct from 3x3 matrix
+  explicit Matrix(const Matrix3x3 &);
+
   /// Destructor
   ~Matrix();
 
@@ -99,6 +103,9 @@ public:
 
   /// Assignment operator
   Matrix& operator =(const Matrix &);
+
+  /// Assignment operator
+  Matrix& operator =(const Matrix3x3 &);
 
   /// Initialize matrix with number of rows and columns
   void Initialize(int, int = -1, double * = NULL);
@@ -364,6 +371,9 @@ public:
   /// Calculate determinant of a 3x3 matrix
   double Det3x3() const;
 
+  /// Get upper left 3x3 sub-matrix
+  Matrix3x3 To3x3() const;
+
   /// Set to identity matrix
   Matrix &Ident();
 
@@ -490,6 +500,40 @@ public:
 
 
 namespace mirtk {
+
+// =============================================================================
+// Construction
+// =============================================================================
+
+// -----------------------------------------------------------------------------
+inline Matrix::Matrix(const Matrix3x3 &m)
+:
+  _rows(3),
+  _cols(3),
+  _owner(true)
+{
+  Allocate(_matrix, 3, 3);
+  for (int c = 0; c < 3; ++c)
+  for (int r = 0; r < 3; ++r) {
+    _matrix[c][r] = m[r][c];
+  }
+}
+
+// -----------------------------------------------------------------------------
+inline Matrix &Matrix::operator =(const Matrix3x3 &m)
+{
+  if (_rows != 3 || _cols != 3) {
+    Clear();
+    Allocate(_matrix, 3, 3);
+    _rows = _cols = 3;
+    _owner = true;
+  }
+  for (int c = 0; c < 3; ++c)
+  for (int r = 0; r < 3; ++r) {
+    _matrix[c][r] = m[r][c];
+  }
+  return *this;
+}
 
 // =============================================================================
 // Indexing
@@ -636,6 +680,26 @@ inline void Matrix::Put(int r, int c, double v)
 inline double Matrix::Get(int r, int c) const
 {
   return this->operator()(r, c);
+}
+
+// -----------------------------------------------------------------------------
+inline Matrix3x3 Matrix::To3x3() const
+{
+  Matrix3x3 m;
+  for (int r = 0; r < 3; ++r) {
+    if (r < _rows) {
+      for (int c = 0; c < 3; ++c) {
+        if (c < _cols) {
+          m[r][c] = _matrix[c][r];
+        } else {
+          m[r][c] = 0.;
+        }
+      }
+    } else {
+      memset(m[r], 0, 3 * sizeof(double));
+    }
+  }
+  return m;
 }
 
 // =============================================================================

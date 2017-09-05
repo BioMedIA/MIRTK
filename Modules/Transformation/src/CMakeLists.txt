@@ -42,6 +42,7 @@ set(HEADERS
   ImageTransformation.h
   InverseAffineTransformation.h
   JacobianConstraint.h
+  LinearElasticityConstraint.h
   LinearFreeFormTransformation3D.h
   LinearFreeFormTransformation4D.h
   LinearFreeFormTransformationTD.h
@@ -89,6 +90,7 @@ set(SOURCES
   ImageTransformation.cc
   InverseAffineTransformation.cc
   JacobianConstraint.cc
+  LinearElasticityConstraint.cc
   LinearFreeFormTransformation3D.cc
   LinearFreeFormTransformation4D.cc
   LinearFreeFormTransformationTD.cc

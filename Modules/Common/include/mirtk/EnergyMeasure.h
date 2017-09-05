@@ -99,6 +99,7 @@ enum EnergyMeasure
     EM_TopologyPreservation,    ///< Topology preservation constraint
     EM_Sparsity,                ///< Default sparsity constraint
     EM_BendingEnergy,           ///< Thin-plate spline bending energy
+    EM_LinearElasticity,        ///< Linear elastic energy
     EM_L0Norm,                  ///< Sparsity constraint based on l0-norm
     EM_L1Norm,                  ///< Sparsity constraint based on l1-norm
     EM_L2Norm,                  ///< Sparsity constraint based on l2-norm
@@ -172,6 +173,7 @@ inline string ToString(const EnergyMeasure &value, int w, char c, bool left)
     // -------------------------------------------------------------------------
     // Transformation constraints
     case EM_BendingEnergy:        str = "BE"; break;
+    case EM_LinearElasticity:     str = "LE"; break;
     case EM_VolumePreservation:   str = "VP"; break;
     case EM_TopologyPreservation: str = "TP"; break;
     case EM_Sparsity:             str = "Sparsity"; break;
@@ -247,6 +249,7 @@ inline string ToPrettyString(const EnergyMeasure &value, int w = 0, char c = ' '
     // -------------------------------------------------------------------------
     // Transformation constraints
     case EM_BendingEnergy:        str = "Bending energy"; break;
+    case EM_LinearElasticity:     str = "Linear elasticity"; break;
     case EM_VolumePreservation:   str = "Volume preservation"; break;
     case EM_TopologyPreservation: str = "Topology preservation"; break;
     case EM_Sparsity:             str = "Sparsity constraint"; break;
@@ -330,9 +333,10 @@ inline bool FromString(const char *str, EnergyMeasure &value)
   // ---------------------------------------------------------------------------
   // Alternative names for transformation regularization terms
   if (value == EM_Unknown) {
-    if      (lstr == "jac")    value = EM_SqLogDetJac;
+    if      (lstr == "jac") value = EM_SqLogDetJac;
     else if (lstr == "logjac") value = EM_SqLogDetJac;
     else if (lstr == "negjac") value = EM_NegDetJac;
+    else if (lstr == "elasticity") value = EM_LinearElasticity;
   }
 
   // ---------------------------------------------------------------------------
