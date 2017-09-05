@@ -1902,7 +1902,7 @@ void BSplineFreeFormTransformation3D::BendingEnergyGradient(double *gradient, do
   MIRTK_START_TIMING();
 
   // Pre-multiply weight by derivative of square function (2) and normalization factor
-  const int ncps = this->NumberOfActiveCPs();
+  const int ncps = (incl_passive ? this->NumberOfCPs() : this->NumberOfActiveCPs());
   if (ncps == 0) return;
   weight *= 2.0 / ncps;
 
