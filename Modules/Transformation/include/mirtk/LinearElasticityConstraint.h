@@ -37,6 +37,9 @@ class LinearElasticityConstraint : public TransformationConstraint
 {
   mirtkEnergyTermMacro(SmoothnessConstraint, EM_LinearElasticity);
 
+  /// Whether to integrate linear elasticity energy over control point lattice only
+  mirtkPublicAttributeMacro(bool, Approximate);
+
   /// Whether to evaluate first order derivatives and constraint gradient
   /// with respect to the axes of the world coordinate system
   mirtkPublicAttributeMacro(bool, WrtWorld);
