@@ -37,6 +37,10 @@ class LinearElasticityConstraint : public TransformationConstraint
 {
   mirtkEnergyTermMacro(SmoothnessConstraint, EM_LinearElasticity);
 
+  /// Whether to evaluate first order derivatives and constraint gradient
+  /// with respect to the axes of the world coordinate system
+  mirtkPublicAttributeMacro(bool, WrtWorld);
+
   /// Whether to include rotation component (default: true)
   mirtkPublicAttributeMacro(bool, ConstrainRotation);
 
