@@ -41,34 +41,41 @@ namespace  {
 
 
 /// Allocate Jacobian matrices in neighborhood of active control points
-void AllocateJacobianMatrices(Matrix *jac, const FreeFormTransformation *ffd)
+void AllocateJacobianMatrices(Matrix *jac, const FreeFormTransformation *ffd, bool incl_passive_cps)
 {
-  // Mark active control points
-  int cp, nc, ncps = ffd->NumberOfCPs();
-  Array<bool> mask(ncps);
-  for (cp = 0; cp < ncps; ++cp) {
-    mask[cp] = ffd->IsActive(cp);
-  }
-  // Dilate mask to include control points next to an active control point
-  for (int ck = 0; ck < ffd->Z(); ++ck)
-  for (int cj = 0; cj < ffd->Y(); ++cj)
-  for (int ci = 0; ci < ffd->X(); ++ci) {
-    cp = ffd->LatticeToIndex(ci, cj, ck);
-    for (int nk = ck - 1; nk <= ck + 1; ++nk)
-    for (int nj = cj - 1; nj <= cj + 1; ++nj)
-    for (int ni = ci - 1; ni <= ci + 1; ++ni) {
-      nc = ffd->LatticeToIndex(ni, nj, nk);
-      if (0 <= nc && nc < ncps && mask[nc]) {
-        mask[cp] = true;
-        nj += 2, nk += 2;
-        break;
+  const int ncps = ffd->NumberOfCPs();
+  if (incl_passive_cps) {
+    for (int cp = 0; cp < ncps; ++cp) {
+      jac[cp].Initialize(3, 3);
+    }
+  } else {
+    // Mark active control points
+    int cp, nc;
+    Array<bool> mask(ncps);
+    for (cp = 0; cp < ncps; ++cp) {
+      mask[cp] = ffd->IsActive(cp);
+    }
+    // Dilate mask to include control points next to an active control point
+    for (int ck = 0; ck < ffd->Z(); ++ck)
+    for (int cj = 0; cj < ffd->Y(); ++cj)
+    for (int ci = 0; ci < ffd->X(); ++ci) {
+      cp = ffd->LatticeToIndex(ci, cj, ck);
+      for (int nk = ck - 1; nk <= ck + 1; ++nk)
+      for (int nj = cj - 1; nj <= cj + 1; ++nj)
+      for (int ni = ci - 1; ni <= ci + 1; ++ni) {
+        nc = ffd->LatticeToIndex(ni, nj, nk);
+        if (0 <= nc && nc < ncps && mask[nc]) {
+          mask[cp] = true;
+          nj += 2, nk += 2;
+          break;
+        }
       }
     }
-  }
-  // Allocate Jacobian matrices for masked control points
-  for (int cp = 0; cp < ncps; ++cp) {
-    if (mask[cp]) jac[cp].Initialize(3, 3);
-    else          jac[cp].Clear();
+    // Allocate Jacobian matrices for masked control points
+    for (cp = 0; cp < ncps; ++cp) {
+      if (mask[cp]) jac[cp].Initialize(3, 3);
+      else          jac[cp].Clear();
+    }
   }
 }
 
@@ -383,13 +390,13 @@ void LinearElasticityConstraint::Initialize()
     for (int l = 0; l < mffd->NumberOfLevels(); ++l) {
       if (!mffd->LocalTransformationIsActive(l)) continue;
       ffd = mffd->GetLocalTransformation(l);
-      AllocateJacobianMatrices(jac, ffd);
+      AllocateJacobianMatrices(jac, ffd, _ConstrainPassiveDoFs);
       jac += ffd->NumberOfCPs();
     }
   } else if (ffd) {
     ncps = ffd->NumberOfCPs();
     _Jacobian.resize(ncps);
-    AllocateJacobianMatrices(_Jacobian.data(), ffd);
+    AllocateJacobianMatrices(_Jacobian.data(), ffd, _ConstrainPassiveDoFs);
   }
 }
 
