@@ -324,7 +324,7 @@ LinearElasticityConstraint::LinearElasticityConstraint(const char *name, double 
 // -----------------------------------------------------------------------------
 bool LinearElasticityConstraint::SetWithoutPrefix(const char *param, const char *value)
 {
-  if (strcmp(param, "with respect to world") == 0 || strcmp(param, "wrt world") == 0 || strcmp(param, "w.r.t. world") == 0) {
+  if (strcmp(param, "With respect to world") == 0 || strcmp(param, "Wrt world") == 0 || strcmp(param, "W.r.t. world") == 0 || strcmp(param, "World") == 0) {
     return FromString(value, _WrtWorld);
   }
   if (strcmp(param, "Rotation") == 0 || strcmp(param, "Constrain rotation") == 0) {
