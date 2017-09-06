@@ -24,8 +24,14 @@
 #include "mirtk/Parallel.h"
 #include "mirtk/Profiling.h"
 
+#include "mirtk/CommonExport.h"
+
 
 namespace mirtk {
+
+
+// Global "debug" flag (cf. mirtk/Options.h)
+MIRTK_Common_EXPORT extern int debug;
 
 
 // =============================================================================
@@ -293,6 +299,9 @@ void HistogramImageSimilarity::Update(bool gradient)
   // Also, this allows us to increase the size of the histogram during the
   // smoothing as to include also smoothed values at the boundary.
   this->UpdateHistogram();
+  if (debug > 0 && _Histogram.NumberOfSamples() == 0) {
+    Broadcast(LogEvent, "WARNING: No samples in joint histogram\n");
+  }
 
   MIRTK_DEBUG_TIMING(2, "update of joint histogram");
 }

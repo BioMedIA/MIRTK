@@ -869,12 +869,7 @@ double Histogram2D<HistogramType>::Kappa() const
 template <class HistogramType>
 void Histogram2D<HistogramType>::Smooth()
 {
-  if (_nsamp == 0) {
-    if (debug) {
-      cerr << "Histogram2D<HistogramType>::Smooth: No samples in Histogram" << endl;
-    }
-    return;
-  }
+  if (_nsamp == 0) return;
 
   // Smoothing kernel
   double kernel[3] = { 1.0/6.0, 2.0/3.0, 1.0/6.0 };
