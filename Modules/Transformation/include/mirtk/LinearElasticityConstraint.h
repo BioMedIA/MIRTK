@@ -37,13 +37,17 @@ class LinearElasticityConstraint : public TransformationConstraint
 {
   mirtkEnergyTermMacro(SmoothnessConstraint, EM_LinearElasticity);
 
-  /// Whether to exclude rotation component from constraint
-  mirtkPublicAttributeMacro(bool, RotationInvariant);
+  /// Whether to include rotation component (default: true)
+  mirtkPublicAttributeMacro(bool, ConstrainRotation);
 
-  /// Lame's first parameter
+  /// Lame's first parameter (default: 0)
+  ///
+  /// This parameter is multiplied with the constraint weight.
   mirtkPublicAttributeMacro(double, Lambda);
 
-  /// Lame's second parameter
+  /// Lame's second parameter (default: 1)
+  ///
+  /// This parameter is multiplied with the constraint weight.
   mirtkPublicAttributeMacro(double, Mu);
 
   /// Jacobian matrices of transformation
