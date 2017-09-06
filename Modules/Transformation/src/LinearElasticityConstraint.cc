@@ -78,6 +78,7 @@ class EvaluateCubicBSplineFFDJacobian
 {
   const BSplineFreeFormTransformation3D *_FFD;
   Matrix                                *_Jacobian;
+  bool                                   _WrtWorld;
   bool                                   _NoRotation;
 
 public:
@@ -93,7 +94,9 @@ public:
       Matrix &jac = _Jacobian[cp];
       if (jac.Rows() > 0) {
         _FFD->EvaluateJacobian(jac, ci, cj, ck);
-        _FFD->JacobianToWorld(jac);
+        if (_WrtWorld) {
+          _FFD->JacobianToWorld(jac);
+        }
         if (_NoRotation) {
           J = jac.To3x3();
           J[0][0] += 1.;
@@ -109,11 +112,13 @@ public:
     }
   }
 
-  static void Run(const BSplineFreeFormTransformation3D *ffd, Matrix *jac, bool rotation)
+  static void Run(const BSplineFreeFormTransformation3D *ffd, Matrix *jac,
+                  bool rotation, bool wrt_world)
   {
     EvaluateCubicBSplineFFDJacobian eval;
     eval._FFD        = ffd;
     eval._Jacobian   = jac;
+    eval._WrtWorld   = wrt_world;
     eval._NoRotation = !rotation;
     parallel_for(blocked_range3d<int>(0, ffd->Z(), 0, ffd->Y(), 0, ffd->X()), eval);
   }
@@ -194,6 +199,7 @@ class AddCubicBSplineFFDGradient
   double                                 _Mu;
   double                                 _Lambda;
   bool                                   _ConstrainPassiveDoFs;
+  bool                                   _WrtToWorld;
 
   /// Initialize lookup table of cubic B-spline first order derivatives
   void InitializeLookupTable()
@@ -212,9 +218,15 @@ class AddCubicBSplineFFDGradient
       double dx = w[1][a] * w[0][b] * w[0][c];
       double dy = w[0][a] * w[1][b] * w[0][c];
       double dz = w[0][a] * w[0][b] * w[1][c];
-      LookupTable_3D[n][0] = dx * w2l(0, 0) + dy * w2l(1, 0) + dz * w2l(2, 0);
-      LookupTable_3D[n][1] = dx * w2l(0, 1) + dy * w2l(1, 1) + dz * w2l(2, 1);
-      LookupTable_3D[n][2] = dx * w2l(0, 2) + dy * w2l(1, 2) + dz * w2l(2, 2);
+      if (_WrtToWorld) {
+        LookupTable_3D[n][0] = dx * w2l(0, 0) + dy * w2l(1, 0) + dz * w2l(2, 0);
+        LookupTable_3D[n][1] = dx * w2l(0, 1) + dy * w2l(1, 1) + dz * w2l(2, 1);
+        LookupTable_3D[n][2] = dx * w2l(0, 2) + dy * w2l(1, 2) + dz * w2l(2, 2);
+      } else {
+        LookupTable_3D[n][0] = dx;
+        LookupTable_3D[n][1] = dy;
+        LookupTable_3D[n][2] = dz;
+      }
     }
   }
 
@@ -271,7 +283,7 @@ public:
 
   static void Run(double *gradient,
                   const BSplineFreeFormTransformation3D *ffd, const Matrix *jac,
-                  double mu, double lambda, bool incl_passive_cps)
+                  double mu, double lambda, bool incl_passive_cps, bool wrt_world)
   {
     const int ncps = (incl_passive_cps ? ffd->NumberOfCPs() : ffd->NumberOfActiveCPs());
     AddCubicBSplineFFDGradient eval;
@@ -280,6 +292,7 @@ public:
     eval._Mu                   = mu / ncps;
     eval._Lambda               = lambda / ncps;
     eval._ConstrainPassiveDoFs = incl_passive_cps;
+    eval._WrtToWorld           = wrt_world;
     eval._Gradient             = gradient;
     eval.InitializeLookupTable();
     parallel_for(blocked_range3d<int>(0, ffd->Z(), 0, ffd->Y(), 0, ffd->X()), eval);
@@ -297,7 +310,7 @@ public:
 LinearElasticityConstraint::LinearElasticityConstraint(const char *name, double weight)
 :
   TransformationConstraint(name, weight),
-  _ConstrainRotation(true), _Lambda(0.), _Mu(1.)
+  _WrtWorld(true), _ConstrainRotation(true), _Lambda(0.), _Mu(1.)
 {
   _ParameterPrefix.push_back("Linear elasticity ");
   _ParameterPrefix.push_back("Linear energy ");
@@ -311,6 +324,9 @@ LinearElasticityConstraint::LinearElasticityConstraint(const char *name, double 
 // -----------------------------------------------------------------------------
 bool LinearElasticityConstraint::SetWithoutPrefix(const char *param, const char *value)
 {
+  if (strcmp(param, "with respect to world") == 0 || strcmp(param, "wrt world") == 0 || strcmp(param, "w.r.t. world") == 0) {
+    return FromString(value, _WrtWorld);
+  }
   if (strcmp(param, "Rotation") == 0 || strcmp(param, "Constrain rotation") == 0) {
     return FromString(value, _ConstrainRotation);
   }
@@ -327,6 +343,7 @@ bool LinearElasticityConstraint::SetWithoutPrefix(const char *param, const char 
 ParameterList LinearElasticityConstraint::Parameter() const
 {
   ParameterList params = TransformationConstraint::Parameter();
+  InsertWithPrefix(params, "w.r.t. world", _WrtWorld);
   InsertWithPrefix(params, "Rotation", _ConstrainRotation);
   InsertWithPrefix(params, "Lambda", _Lambda);
   InsertWithPrefix(params, "Mu", _Mu);
@@ -398,7 +415,7 @@ void LinearElasticityConstraint::Update(bool gradient)
       if (!bffd) {
         Throw(ERR_NotImplemented, __FUNCTION__, "Currently only implemented for 3D cubic BSpline FFD");
       }
-      EvaluateCubicBSplineFFDJacobian::Run(bffd, jac, _ConstrainRotation);
+      EvaluateCubicBSplineFFDJacobian::Run(bffd, jac, _ConstrainRotation, _WrtWorld);
       jac += ffd->NumberOfCPs();
     }
   } else if (ffd) {
@@ -406,7 +423,7 @@ void LinearElasticityConstraint::Update(bool gradient)
     if (!bffd) {
       Throw(ERR_NotImplemented, __FUNCTION__, "Currently only implemented for 3D cubic BSpline FFD");
     }
-    EvaluateCubicBSplineFFDJacobian::Run(bffd, _Jacobian.data(), _ConstrainRotation);
+    EvaluateCubicBSplineFFDJacobian::Run(bffd, _Jacobian.data(), _ConstrainRotation, _WrtWorld);
   }
 }
 
@@ -459,7 +476,7 @@ void LinearElasticityConstraint::EvaluateGradient(double *gradient, double, doub
       if (!bffd) {
         Throw(ERR_NotImplemented, __FUNCTION__, "Currently only implemented for 3D cubic BSpline FFD");
       }
-      AddCubicBSplineFFDGradient::Run(gradient, bffd, jac, mu, lambda, _ConstrainPassiveDoFs);
+      AddCubicBSplineFFDGradient::Run(gradient, bffd, jac, mu, lambda, _ConstrainPassiveDoFs, _WrtWorld);
       jac += ffd->NumberOfCPs();
       gradient += ffd->NumberOfDOFs();
     }
@@ -468,7 +485,7 @@ void LinearElasticityConstraint::EvaluateGradient(double *gradient, double, doub
     if (!bffd) {
       Throw(ERR_NotImplemented, __FUNCTION__, "Currently only implemented for 3D cubic BSpline FFD");
     }
-    AddCubicBSplineFFDGradient::Run(gradient, bffd, _Jacobian.data(), mu, lambda, _ConstrainPassiveDoFs);
+    AddCubicBSplineFFDGradient::Run(gradient, bffd, _Jacobian.data(), mu, lambda, _ConstrainPassiveDoFs, _WrtWorld);
   }
 }
 
@@ -503,7 +520,7 @@ void LinearElasticityConstraint::WriteGradient(const char *p, const char *suffix
       }
       gradient.resize(ffd->NumberOfDOFs());
       memset(gradient.data(), 0, ffd->NumberOfDOFs() * sizeof(double));
-      AddCubicBSplineFFDGradient::Run(gradient.data(), bffd, jac, _Mu, _Lambda, _ConstrainPassiveDoFs);
+      AddCubicBSplineFFDGradient::Run(gradient.data(), bffd, jac, _Mu, _Lambda, _ConstrainPassiveDoFs, _WrtWorld);
       jac += ffd->NumberOfCPs();
       if (mffd->NumberOfActiveLevels() == 1) {
         snprintf(fname, sz, "%sgradient%s", prefix, suffix);
@@ -518,7 +535,7 @@ void LinearElasticityConstraint::WriteGradient(const char *p, const char *suffix
       snprintf(fname, sz, "%sgradient%s", prefix, suffix);
       gradient.resize(ffd->NumberOfDOFs());
       memset(gradient.data(), 0, ffd->NumberOfDOFs() * sizeof(double));
-      AddCubicBSplineFFDGradient::Run(gradient.data(), bffd, _Jacobian.data(), _Mu, _Lambda, _ConstrainPassiveDoFs);
+      AddCubicBSplineFFDGradient::Run(gradient.data(), bffd, _Jacobian.data(), _Mu, _Lambda, _ConstrainPassiveDoFs, _WrtWorld);
       WriteFFDGradient(fname, ffd, gradient.data());
     }
   }
