@@ -40,31 +40,61 @@ mirtkAutoRegisterEnergyTermMacro(LinearElasticityConstraint);
 namespace  {
 
 
+/// Allocate Jacobian matrices in neighborhood of active control points
+void AllocateJacobianMatrices(Matrix *jac, const FreeFormTransformation *ffd)
+{
+  // Mark active control points
+  int cp, nc, ncps = ffd->NumberOfCPs();
+  Array<bool> mask(ncps);
+  for (cp = 0; cp < ncps; ++cp) {
+    mask[cp] = ffd->IsActive(cp);
+  }
+  // Dilate mask to include control points next to an active control point
+  for (int ck = 0; ck < ffd->Z(); ++ck)
+  for (int cj = 0; cj < ffd->Y(); ++cj)
+  for (int ci = 0; ci < ffd->X(); ++ci) {
+    cp = ffd->LatticeToIndex(ci, cj, ck);
+    for (int nk = ck - 1; nk <= ck + 1; ++nk)
+    for (int nj = cj - 1; nj <= cj + 1; ++nj)
+    for (int ni = ci - 1; ni <= ci + 1; ++ni) {
+      nc = ffd->LatticeToIndex(ni, nj, nk);
+      if (0 <= nc && nc < ncps && mask[nc]) {
+        mask[cp] = true;
+        nj += 2, nk += 2;
+        break;
+      }
+    }
+  }
+  // Allocate Jacobian matrices for masked control points
+  for (int cp = 0; cp < ncps; ++cp) {
+    if (mask[cp]) jac[cp].Initialize(3, 3);
+    else          jac[cp].Clear();
+  }
+}
+
+
 /// Evaluate Jacobian matrices of cubic B-spline FFD at control points
 class EvaluateCubicBSplineFFDJacobian
 {
   const BSplineFreeFormTransformation3D *_FFD;
   Matrix                                *_Jacobian;
-  bool                                   _ConstrainPassiveDoFs;
-  bool                                   _RotationInvariant;
+  bool                                   _NoRotation;
 
 public:
 
   void operator ()(const blocked_range3d<int> &re) const
   {
-    Matrix3x3 J;
-    FreeFormTransformation::CPStatus status;
     int cp;
+    Matrix3x3 J;
     for (int ck = re.pages().begin(); ck != re.pages().end(); ++ck)
     for (int cj = re.rows ().begin(); cj != re.rows ().end(); ++cj)
     for (int ci = re.cols ().begin(); ci != re.cols ().end(); ++ci) {
       cp = _FFD->LatticeToIndex(ci, cj, ck);
-      _FFD->GetStatus(cp, status);
-      if (_ConstrainPassiveDoFs || (status._x == Active || status._y == Active || status._z == Active)) {
-        auto &jac = _Jacobian[cp];
+      Matrix &jac = _Jacobian[cp];
+      if (jac.Rows() > 0) {
         _FFD->EvaluateJacobian(jac, ci, cj, ck);
         _FFD->JacobianToWorld(jac);
-        if (_RotationInvariant) {
+        if (_NoRotation) {
           J = jac.To3x3();
           J[0][0] += 1.;
           J[1][1] += 1.;
@@ -75,19 +105,16 @@ public:
           J[2][2] -= 1.;
           jac = J;
         }
-      } else {
-        _Jacobian[cp].Clear();
       }
     }
   }
 
-  static void Run(const BSplineFreeFormTransformation3D *ffd, Matrix *jac, bool incl_passive_cps, bool rotation_invariant)
+  static void Run(const BSplineFreeFormTransformation3D *ffd, Matrix *jac, bool rotation)
   {
     EvaluateCubicBSplineFFDJacobian eval;
-    eval._FFD = ffd;
-    eval._Jacobian = jac;
-    eval._ConstrainPassiveDoFs = incl_passive_cps;
-    eval._RotationInvariant = rotation_invariant;
+    eval._FFD        = ffd;
+    eval._Jacobian   = jac;
+    eval._NoRotation = !rotation;
     parallel_for(blocked_range3d<int>(0, ffd->Z(), 0, ffd->Y(), 0, ffd->X()), eval);
   }
 };
@@ -96,17 +123,16 @@ public:
 /// Evaluate linear elastic energy
 class EvaluateLinearElasticEnergy
 {
+  const FreeFormTransformation *_FFD;
+  bool                          _ConstrainPassiveDoFs;
+
   const Matrix *_Jacobian;
   double        _Mu;
   double        _Lambda;
   double        _Energy;
   int           _Count;
 
-  EvaluateLinearElasticEnergy(const Matrix *jac, double mu, double lambda)
-  :
-    _Jacobian(jac), _Mu(mu), _Lambda(lambda), _Energy(0.), _Count(0)
-  {}
-
+  EvaluateLinearElasticEnergy() : _Energy(0.), _Count(0) {}
   EvaluateLinearElasticEnergy(const EvaluateLinearElasticEnergy &) = default;
 
 public:
@@ -129,26 +155,29 @@ public:
   {
     double a, b;
     for (size_t cp = re.begin(); cp != re.end(); ++cp) {
-      const Matrix &jac = _Jacobian[cp];
-      const int d = jac.Rows();
-      if (d > 0) {
-        a = b = 0.;
-        for (int j = 0; j < d; ++j) {
-          b += jac(j, j);
-          for (int k = 0; k < d; ++k) {
-            a += pow(.5 * (jac(j, k) + jac(k, j)), 2);
-          }
-        }
+      if (_ConstrainPassiveDoFs || _FFD->IsActive(cp)) {
+        const Matrix &jac = _Jacobian[cp];
+        a = pow(jac(0, 0), 2) + pow(jac(1, 1), 2) + pow(jac(2, 2), 2)
+          + pow(.5 * (jac(0, 1) + jac(1, 0)), 2)
+          + pow(.5 * (jac(0, 2) + jac(2, 0)), 2)
+          + pow(.5 * (jac(1, 2) + jac(2, 1)), 2);
+        b = jac(0, 0) + jac(1, 1) + jac(2, 2);
         _Energy += .5 * _Mu * a + _Lambda * b * b;
         ++_Count;
       }
     }
   }
 
-  static double Run(const Matrix *jac, int ncps, double mu, double lambda)
+  static double Run(const FreeFormTransformation *ffd, const Matrix *jac,
+                    double mu, double lambda, bool incl_passive_cps)
   {
-    EvaluateLinearElasticEnergy eval(jac, mu, lambda);
-    parallel_reduce(blocked_range<size_t>(0, ncps), eval);
+    EvaluateLinearElasticEnergy eval;
+    eval._FFD                  = ffd;
+    eval._ConstrainPassiveDoFs = incl_passive_cps;
+    eval._Jacobian             = jac;
+    eval._Mu                   = mu;
+    eval._Lambda               = lambda;
+    parallel_reduce(blocked_range<size_t>(0, ffd->NumberOfCPs()), eval);
     return (eval._Count > 0 ? eval._Energy / eval._Count : 0.);
   }
 };
@@ -193,27 +222,23 @@ public:
 
   void operator ()(const blocked_range3d<int> &re) const
   {
-    FreeFormTransformation::CPStatus status;
     Vector3D<double> g1, g2, gb;
-    int cp, n, idx, xdof, ydof, zdof;
+    int cp, nc, n, xdof, ydof, zdof;
     double div;
-
-    const Matrix &w2l = *_FFD->Attributes()._w2i;
 
     const int ncps = _FFD->NumberOfCPs();
     for (int ck = re.pages().begin(); ck != re.pages().end(); ++ck)
     for (int cj = re.rows ().begin(); cj != re.rows ().end(); ++cj)
     for (int ci = re.cols ().begin(); ci != re.cols ().end(); ++ci) {
       cp = _FFD->LatticeToIndex(ci, cj, ck);
-      _FFD->GetStatus(cp, status);
-      if (_ConstrainPassiveDoFs || (status._x == Active || status._y == Active || status._z == Active)) {
+      if (_ConstrainPassiveDoFs || _FFD->IsActive(cp)) {
         n = 0, g1 = g2 = 0.;
-        for (int k = ck - 1; k <= ck + 1; ++k)
-        for (int j = cj - 1; j <= cj + 1; ++j)
-        for (int i = ci - 1; i <= ci + 1; ++i, ++n) {
-          idx = _FFD->LatticeToIndex(i, j, k);
-          if (0 <= idx && idx < ncps) {
-            auto &jac = _Jacobian[idx];
+        for (int nk = ck - 1; nk <= ck + 1; ++nk)
+        for (int nj = cj - 1; nj <= cj + 1; ++nj)
+        for (int ni = ci - 1; ni <= ci + 1; ++ni, ++n) {
+          nc = _FFD->LatticeToIndex(ni, nj, nk);
+          if (0 <= nc && nc < ncps) {
+            auto &jac = _Jacobian[nc];
             gb._x = LookupTable_3D[n][0];
             gb._y = LookupTable_3D[n][1];
             gb._z = LookupTable_3D[n][2];
@@ -272,7 +297,7 @@ public:
 LinearElasticityConstraint::LinearElasticityConstraint(const char *name, double weight)
 :
   TransformationConstraint(name, weight),
-  _RotationInvariant(false), _Lambda(0.), _Mu(1.)
+  _ConstrainRotation(true), _Lambda(0.), _Mu(1.)
 {
   _ParameterPrefix.push_back("Linear elasticity ");
   _ParameterPrefix.push_back("Linear energy ");
@@ -286,13 +311,8 @@ LinearElasticityConstraint::LinearElasticityConstraint(const char *name, double 
 // -----------------------------------------------------------------------------
 bool LinearElasticityConstraint::SetWithoutPrefix(const char *param, const char *value)
 {
-  if (strcmp(param, "Rotation invariant") == 0) {
-    return FromString(value, _RotationInvariant);
-  }
-  if (strcmp(param, "Rotation") == 0) {
-    if (!FromString(value, _RotationInvariant)) return false;
-    _RotationInvariant = !_RotationInvariant;
-    return true;
+  if (strcmp(param, "Rotation") == 0 || strcmp(param, "Constrain rotation") == 0) {
+    return FromString(value, _ConstrainRotation);
   }
   if (strcmp(param, "Lambda") == 0) {
     return FromString(value, _Lambda);
@@ -307,7 +327,7 @@ bool LinearElasticityConstraint::SetWithoutPrefix(const char *param, const char 
 ParameterList LinearElasticityConstraint::Parameter() const
 {
   ParameterList params = TransformationConstraint::Parameter();
-  InsertWithPrefix(params, "Rotation", !_RotationInvariant);
+  InsertWithPrefix(params, "Rotation", _ConstrainRotation);
   InsertWithPrefix(params, "Lambda", _Lambda);
   InsertWithPrefix(params, "Mu", _Mu);
   return params;
@@ -322,6 +342,10 @@ void LinearElasticityConstraint::Initialize()
 {
   // Initialize base class
   TransformationConstraint::Initialize();
+  if (IsZero(_Weight) || (IsZero(_Mu) && IsZero(_Lambda))) {
+    _Jacobian.clear();
+    return;
+  }
 
   // Allocate memory for Jacobian matrices
   int ncps = 0;
@@ -337,11 +361,19 @@ void LinearElasticityConstraint::Initialize()
       ffd = mffd->GetLocalTransformation(l);
       ncps += ffd->NumberOfCPs();
     }
+    _Jacobian.resize(ncps);
+    Matrix *jac = _Jacobian.data();
+    for (int l = 0; l < mffd->NumberOfLevels(); ++l) {
+      if (!mffd->LocalTransformationIsActive(l)) continue;
+      ffd = mffd->GetLocalTransformation(l);
+      AllocateJacobianMatrices(jac, ffd);
+      jac += ffd->NumberOfCPs();
+    }
   } else if (ffd) {
-    ncps += ffd->NumberOfCPs();
+    ncps = ffd->NumberOfCPs();
+    _Jacobian.resize(ncps);
+    AllocateJacobianMatrices(_Jacobian.data(), ffd);
   }
-
-  _Jacobian.resize(ncps);
 }
 
 // -----------------------------------------------------------------------------
@@ -349,11 +381,11 @@ void LinearElasticityConstraint::Update(bool gradient)
 {
   // Update base class
   TransformationConstraint::Update(gradient);
+  if (IsZero(_Weight) || (IsZero(_Mu) && IsZero(_Lambda))) return;
 
   // Evaluate Jacobian matrices
   const MultiLevelTransformation *mffd = nullptr;
   const FreeFormTransformation   *ffd  = nullptr;
-  const BSplineFreeFormTransformation3D *bffd;
 
   (mffd = MFFD()) || (ffd = FFD());
 
@@ -362,25 +394,27 @@ void LinearElasticityConstraint::Update(bool gradient)
     for (int l = 0; l < mffd->NumberOfLevels(); ++l) {
       if (!mffd->LocalTransformationIsActive(l)) continue;
       ffd = mffd->GetLocalTransformation(l);
-      bffd = dynamic_cast<const BSplineFreeFormTransformation3D *>(ffd);
+      auto bffd = dynamic_cast<const BSplineFreeFormTransformation3D *>(ffd);
       if (!bffd) {
-        Throw(ERR_NotImplemented, __FUNCTION__, "Currently only implemented for cubic BSpline FFD");
+        Throw(ERR_NotImplemented, __FUNCTION__, "Currently only implemented for 3D cubic BSpline FFD");
       }
-      EvaluateCubicBSplineFFDJacobian::Run(bffd, jac, _ConstrainPassiveDoFs, _RotationInvariant);
+      EvaluateCubicBSplineFFDJacobian::Run(bffd, jac, _ConstrainRotation);
       jac += ffd->NumberOfCPs();
     }
   } else if (ffd) {
-    bffd = dynamic_cast<const BSplineFreeFormTransformation3D *>(ffd);
+    auto bffd = dynamic_cast<const BSplineFreeFormTransformation3D *>(ffd);
     if (!bffd) {
-      Throw(ERR_NotImplemented, __FUNCTION__, "Currently only implemented for cubic BSpline FFD");
+      Throw(ERR_NotImplemented, __FUNCTION__, "Currently only implemented for 3D cubic BSpline FFD");
     }
-    EvaluateCubicBSplineFFDJacobian::Run(bffd, _Jacobian.data(), _ConstrainPassiveDoFs, _RotationInvariant);
+    EvaluateCubicBSplineFFDJacobian::Run(bffd, _Jacobian.data(), _ConstrainRotation);
   }
 }
 
 // -----------------------------------------------------------------------------
 double LinearElasticityConstraint::Evaluate()
 {
+  if (IsZero(_Weight) || (IsZero(_Mu) && IsZero(_Lambda))) return 0.;
+
   double energy = 0.;
 
   const MultiLevelTransformation *mffd = nullptr;
@@ -393,11 +427,11 @@ double LinearElasticityConstraint::Evaluate()
     for (int l = 0; l < mffd->NumberOfLevels(); ++l) {
       if (!mffd->LocalTransformationIsActive(l)) continue;
       ffd = mffd->GetLocalTransformation(l);
-      energy += EvaluateLinearElasticEnergy::Run(jac, ffd->NumberOfCPs(), _Mu, _Lambda);
+      energy += EvaluateLinearElasticEnergy::Run(ffd, jac, _Mu, _Lambda, _ConstrainPassiveDoFs);
       jac += ffd->NumberOfCPs();
     }
   } else if (ffd) {
-    energy = EvaluateLinearElasticEnergy::Run(_Jacobian.data(), ffd->NumberOfCPs(), _Mu, _Lambda);
+    energy = EvaluateLinearElasticEnergy::Run(ffd, _Jacobian.data(), _Mu, _Lambda, _ConstrainPassiveDoFs);
   }
 
   return energy;
@@ -406,9 +440,10 @@ double LinearElasticityConstraint::Evaluate()
 // -----------------------------------------------------------------------------
 void LinearElasticityConstraint::EvaluateGradient(double *gradient, double, double weight)
 {
+  if (IsZero(_Weight) || (IsZero(_Mu) && IsZero(_Lambda))) return;
+
   const MultiLevelTransformation *mffd = nullptr;
   const FreeFormTransformation   *ffd  = nullptr;
-  const BSplineFreeFormTransformation3D *bffd;
 
   (mffd = MFFD()) || (ffd = FFD());
 
@@ -416,22 +451,22 @@ void LinearElasticityConstraint::EvaluateGradient(double *gradient, double, doub
   double lambda = weight * _Lambda;
 
   if (mffd) {
-    Matrix *jac = _Jacobian.data();
+    const Matrix *jac = _Jacobian.data();
     for (int l = 0; l < mffd->NumberOfLevels(); ++l) {
       if (!mffd->LocalTransformationIsActive(l)) continue;
       ffd = mffd->GetLocalTransformation(l);
-      bffd = dynamic_cast<const BSplineFreeFormTransformation3D *>(ffd);
+      auto bffd = dynamic_cast<const BSplineFreeFormTransformation3D *>(ffd);
       if (!bffd) {
-        Throw(ERR_NotImplemented, __FUNCTION__, "Currently only implemented for cubic BSpline FFD");
+        Throw(ERR_NotImplemented, __FUNCTION__, "Currently only implemented for 3D cubic BSpline FFD");
       }
       AddCubicBSplineFFDGradient::Run(gradient, bffd, jac, mu, lambda, _ConstrainPassiveDoFs);
       jac += ffd->NumberOfCPs();
       gradient += ffd->NumberOfDOFs();
     }
   } else if (ffd) {
-    bffd = dynamic_cast<const BSplineFreeFormTransformation3D *>(ffd);
+    auto bffd = dynamic_cast<const BSplineFreeFormTransformation3D *>(ffd);
     if (!bffd) {
-      Throw(ERR_NotImplemented, __FUNCTION__, "Currently only implemented for cubic BSpline FFD");
+      Throw(ERR_NotImplemented, __FUNCTION__, "Currently only implemented for 3D cubic BSpline FFD");
     }
     AddCubicBSplineFFDGradient::Run(gradient, bffd, _Jacobian.data(), mu, lambda, _ConstrainPassiveDoFs);
   }
@@ -444,6 +479,8 @@ void LinearElasticityConstraint::EvaluateGradient(double *gradient, double, doub
 // -----------------------------------------------------------------------------
 void LinearElasticityConstraint::WriteGradient(const char *p, const char *suffix) const
 {
+  if (_Jacobian.empty()) return;
+
   const int   sz = 1024;
   char        fname[sz];
   string _prefix = Prefix(p);
@@ -451,7 +488,7 @@ void LinearElasticityConstraint::WriteGradient(const char *p, const char *suffix
 
   const MultiLevelTransformation *mffd = nullptr;
   const FreeFormTransformation   *ffd  = nullptr;
-  const BSplineFreeFormTransformation3D *bffd;
+  Array<double> gradient;
 
   (mffd = MFFD()) || (ffd = FFD());
 
@@ -460,31 +497,30 @@ void LinearElasticityConstraint::WriteGradient(const char *p, const char *suffix
     for (int l = 0; l < mffd->NumberOfLevels(); ++l) {
       if (!mffd->LocalTransformationIsActive(l)) continue;
       ffd = mffd->GetLocalTransformation(l);
-      bffd = dynamic_cast<const BSplineFreeFormTransformation3D *>(ffd);
+      auto bffd = dynamic_cast<const BSplineFreeFormTransformation3D *>(ffd);
       if (!bffd) {
-        Throw(ERR_NotImplemented, __FUNCTION__, "Currently only implemented for cubic BSpline FFD");
+        Throw(ERR_NotImplemented, __FUNCTION__, "Currently only implemented for 3D cubic BSpline FFD");
       }
-      double *gradient = CAllocate<double>(ffd->NumberOfDOFs());
-      AddCubicBSplineFFDGradient::Run(gradient, bffd, jac, _Mu, _Lambda, _ConstrainPassiveDoFs);
+      gradient.resize(ffd->NumberOfDOFs());
+      memset(gradient.data(), 0, ffd->NumberOfDOFs() * sizeof(double));
+      AddCubicBSplineFFDGradient::Run(gradient.data(), bffd, jac, _Mu, _Lambda, _ConstrainPassiveDoFs);
+      jac += ffd->NumberOfCPs();
       if (mffd->NumberOfActiveLevels() == 1) {
         snprintf(fname, sz, "%sgradient%s", prefix, suffix);
       } else {
         snprintf(fname, sz, "%sgradient_of_ffd_at_level_%d%s", prefix, l+1, suffix);
       }
-      WriteFFDGradient(fname, ffd, gradient);
-      Deallocate(gradient);
-      jac += ffd->NumberOfCPs();
+      WriteFFDGradient(fname, ffd, gradient.data());
     }
   } else if (ffd) {
-    bffd = dynamic_cast<const BSplineFreeFormTransformation3D *>(ffd);
-    if (!bffd) {
-      Throw(ERR_NotImplemented, __FUNCTION__, "Currently only implemented for cubic BSpline FFD");
+    auto bffd = dynamic_cast<const BSplineFreeFormTransformation3D *>(ffd);
+    if (bffd) {
+      snprintf(fname, sz, "%sgradient%s", prefix, suffix);
+      gradient.resize(ffd->NumberOfDOFs());
+      memset(gradient.data(), 0, ffd->NumberOfDOFs() * sizeof(double));
+      AddCubicBSplineFFDGradient::Run(gradient.data(), bffd, _Jacobian.data(), _Mu, _Lambda, _ConstrainPassiveDoFs);
+      WriteFFDGradient(fname, ffd, gradient.data());
     }
-    snprintf(fname, sz, "%sgradient%s", prefix, suffix);
-    double *gradient = CAllocate<double>(ffd->NumberOfDOFs());
-    AddCubicBSplineFFDGradient::Run(gradient, bffd, _Jacobian.data(), _Mu, _Lambda, _ConstrainPassiveDoFs);
-    WriteFFDGradient(fname, ffd, gradient);
-    Deallocate(gradient);
   }
 }
 
