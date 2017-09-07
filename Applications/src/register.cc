@@ -256,8 +256,12 @@ void PrintHelp(const char* name)
   cout << "      \"Topology preservation weight\" of free-form deformation. (default: 0)\n";
   cout << "  -vp <w>\n";
   cout << "      \"Volume preservation weight\" of free-form deformation. (default: 0)\n";
-  cout << "  -jl, -jac <w>\n";
-  cout << "      \"Jacobian penalty weight\" of free-form deformation. For a classic FFD transformation model\n";
+  cout << "  -lj, -jl, -log-jac, -jac <w>\n";
+  cout << "      \"LogJac penalty weight\" of free-form deformation. For a classic FFD transformation model\n";
+  cout << "      this penalty term is equivalent to the volume preservation term. When applied to the SVFFD\n";
+  cout << "      model, however, this penalty applies to the Jacobian determinant of the velocity field. (default: 0)\n";
+  cout << "  -nj, -neg-jac <w>\n";
+  cout << "      \"NegJac penalty weight\" of free-form deformation. For a classic FFD transformation model\n";
   cout << "      this penalty term is equivalent to the volume preservation term. When applied to the SVFFD\n";
   cout << "      model, however, this penalty applies to the Jacobian determinant of the velocity field. (default: 0)\n";
   cout << "  -parout <file>\n";
@@ -848,10 +852,15 @@ int main(int argc, char **argv)
       PARSE_ARGUMENT(w);
       Insert(params, "Topology preservation weight", w);
     }
-    else if (OPTION("-jl") || OPTION("-jac")) {
+    else if (OPTION("-lj") || OPTION("-jl") || OPTION("-logjac") || OPTION("-log-jac") || OPTION("-jac")) {
       double w;
       PARSE_ARGUMENT(w);
-      Insert(params, "Jacobian penalty weight", w);
+      Insert(params, "LogJac penalty weight", w);
+    }
+    else if (OPTION("-nj") || OPTION("-negjac") || OPTION("-neg-jac")) {
+      double w;
+      PARSE_ARGUMENT(w);
+      Insert(params, "NegJac penalty weight", w);
     }
     else if (OPTION("-padding") || OPTION("-bg") || OPTION("-background")) {
       double v;

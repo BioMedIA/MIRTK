@@ -32,7 +32,7 @@
 
 // The sum of the individual contributions to the gradient w.r.t. a control point
 // has been normalized by dividing by the number of terms. It is disabled with this flag.
-#define _USE_INNER_GRADIENT_SUM_NORM 1
+#define _USE_INNER_GRADIENT_SUM_NORM 0
 
 // Whether to divide gradient vectors by number of points in (sub-)domain.
 // This was done in the IRTK nreg2 implementation, but the gradient magnitude is too
@@ -41,7 +41,7 @@
 // without dividing the gradient vectors by the number of sub-domain points.
 // Instead, the sum of gradient contributions is divided by the number of sub-domain
 // points within the local support of the respective control point.
-#define _DIVIDE_GRADIENT_BY_NPOINTS 0
+#define _DIVIDE_GRADIENT_BY_NPOINTS 1
 
 
 namespace mirtk {
@@ -831,9 +831,8 @@ void JacobianConstraint::EvaluateGradient(double *gradient, double, double weigh
       }
     }
   } else if (ffd) {
-    auto npts = _SubDomains[0].NumberOfPoints();
     #if _DIVIDE_GRADIENT_BY_NPOINTS
-      w = weight / npts;
+      w = weight / _SubDomains[0].NumberOfPoints();
     #else
       w = weight;
     #endif
