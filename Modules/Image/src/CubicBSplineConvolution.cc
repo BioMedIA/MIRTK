@@ -83,13 +83,11 @@ UniquePtr<typename CubicBSplineConvolution<VoxelType>::KernelType>
 CubicBSplineConvolution<VoxelType>::InitializeKernel(double rv)
 {
   UniquePtr<KernelType> kernel(new KernelType(KernelSize(rv), 1, 1));
-
-  double t  = -2.;
   double dt = 4. / kernel->X();
+  double t  = - (kernel->X() / 2) * dt;
   for (int i = 0; i < kernel->X(); ++i, t += dt) {
     kernel->Put(i, BSpline<typename KernelType::VoxelType>::B(t));
   }
-
   return kernel;
 }
 

@@ -220,7 +220,7 @@ const TReal BSpline<TReal>::LatticeWeights[4] = {
 };
 
 template <class TReal>
-const TReal BSpline<TReal>::LatticeWeights_I [4] = {
+const TReal BSpline<TReal>::LatticeWeights_I[4] = {
   TReal(-0.5), TReal(0.0), TReal(0.5), TReal(0.0)
 };
 
