@@ -1520,26 +1520,29 @@ public:
   const BSplineFreeFormTransformation3D *_FFD;
   const GradientFunction                *_Gradient;
   double                                *_Output;
+  const Matrix                          *_CoordMap;
+  double                                 _Weight;
 
   void operator ()(const blocked_range3d<int> &re) const
   {
     double g[3], x, y, z;
     int cp, xdof, ydof, zdof;
     BSplineFreeFormTransformation3D::DOFStatus status_x, status_y, status_z;
+    const Matrix &m = *_CoordMap;
     for (int ck = re.pages().begin(); ck != re.pages().end(); ++ck)
     for (int cj = re.rows ().begin(); cj != re.rows ().end(); ++cj)
     for (int ci = re.cols ().begin(); ci != re.cols ().end(); ++ci) {
       _FFD->GetStatus(ci, cj, ck, status_x, status_y, status_z);
       if (status_x == Active || status_y == Active || status_z == Active) {
-        cp = _FFD->LatticeToIndex(ci, cj, ck);
-        x = ci, y = cj, z = ck;
-        _FFD->LatticeToWorld(x, y, z);
-        _Gradient->WorldToImage(x, y, z);
+        x = m(0, 0) * ci + m(0, 1) * cj + m(0, 2) * ck + m(0, 3);
+        y = m(1, 0) * ci + m(1, 1) * cj + m(1, 2) * ck + m(1, 3);
+        z = m(2, 0) * ci + m(2, 1) * cj + m(2, 2) * ck + m(2, 3);
         _Gradient->Evaluate(g, x, y, z);
+        cp = _FFD->LatticeToIndex(ci, cj, ck);
         _FFD->IndexToDOFs(cp, xdof, ydof, zdof);
-        if (status_x == Active) _Output[xdof] = g[0];
-        if (status_y == Active) _Output[ydof] = g[1];
-        if (status_z == Active) _Output[zdof] = g[2];
+        if (status_x == Active) _Output[xdof] += _Weight * g[0];
+        if (status_y == Active) _Output[ydof] += _Weight * g[1];
+        if (status_z == Active) _Output[zdof] += _Weight * g[2];
       }
     }
   }
@@ -1571,10 +1574,9 @@ void BSplineFreeFormTransformation3D
       typedef SampleGradientImage<double>        GradientSampler;
       typedef GradientSampler::GradientFunction  GradientFunction;
 
-      // Note: in may have more components that are unused here, see SVFFD subclass
       GenericImage<double> tmp;
-      CubicBSplineConvolution<double> conv(_dx, _dy, _dz);
-      conv.Components(3);
+      CubicBSplineConvolution<double> conv(2. * _dx, 2. * _dy, 2. * _dz);
+      conv.Components(3); // Note: in may have more components that are unused here, see SVFFD subclass
       conv.Input(in);
       conv.Output(&tmp);
       conv.Run();
@@ -1583,10 +1585,17 @@ void BSplineFreeFormTransformation3D
       grad.Input(conv.Output());
       grad.Initialize();
 
+      if (_x > 1) w *= _dx / in->XSize();
+      if (_y > 1) w *= _dy / in->YSize();
+      if (_z > 1) w *= _dz / in->ZSize();
+
+      Matrix coord_map = tmp.GetWorldToImageMatrix() * _CPImage.GetImageToWorldMatrix();
       GradientSampler sample;
       sample._FFD      = this;
       sample._Gradient = &grad;
       sample._Output   = out;
+      sample._CoordMap = &coord_map;
+      sample._Weight   = w;
       parallel_for(blocked_range3d<int>(0, _z, 0, _y, 0, _x), sample);
 
       MIRTK_DEBUG_TIMING(2, "parametric gradient computation (3D B-spline convolution)");
