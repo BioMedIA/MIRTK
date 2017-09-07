@@ -59,8 +59,8 @@ class CalculateGradient : public VoxelFunction
   const Histogram2D<BinType>             &_LogJointHistogram;
   const Histogram1D<BinType>             &_LogMarginalXHistogram;
   const Histogram1D<BinType>             &_LogMarginalYHistogram;
-  double                                  _JointEntropy;
   double                                  _NormalizedMutualInformation;
+  double                                  _NormalizedJointEntropy;
 
 public:
 
@@ -68,13 +68,13 @@ public:
                     const Histogram2D<BinType> &logJointHistogram,
                     const Histogram1D<BinType> &logMarginalXHistogram,
                     const Histogram1D<BinType> &logMarginalYHistogram,
-                    double je, double nmi)
+                    double je_norm, double nmi)
   :
     _This(_this),
     _LogJointHistogram(logJointHistogram),
     _LogMarginalXHistogram(logMarginalXHistogram),
     _LogMarginalYHistogram(logMarginalYHistogram),
-    _JointEntropy(je),
+    _NormalizedJointEntropy(je_norm),
     _NormalizedMutualInformation(nmi)
   {}
 
@@ -111,7 +111,7 @@ public:
         sourceEntropyGrad += w * static_cast<double>(_LogMarginalYHistogram(s));
       }
 
-      (*deriv) = (targetEntropyGrad + sourceEntropyGrad - _NormalizedMutualInformation * jointEntropyGrad) / _JointEntropy;
+      (*deriv) = (targetEntropyGrad + sourceEntropyGrad - _NormalizedMutualInformation * jointEntropyGrad) / _NormalizedJointEntropy;
     }
   }
 };
@@ -235,10 +235,14 @@ bool NormalizedMutualImageInformation
   xhist.Log();
   yhist.Log();
 
+  // Normalized mutual information value
+  double nmi = (_TargetEntropy + _SourceEntropy) / _JointEntropy;
+
+  // Joint entropy value times normalisation factor, including negative sign
+  double je_norm = - _JointEntropy * _Histogram.NumberOfSamples();
+
   // Evaluate similarity gradient w.r.t given transformed image
-  CalculateGradient eval(this, jhist, xhist, yhist,
-     /* denominator = */ - _JointEntropy * _Histogram.NumberOfSamples(),
-     /* NMI         = */ (_TargetEntropy + _SourceEntropy) / _JointEntropy);
+  CalculateGradient eval(this, jhist, xhist, yhist, je_norm, nmi);
   memset(gradient->Data(), 0, _NumberOfVoxels * sizeof(GradientType));
   ParallelForEachVoxel(fixed, image, gradient, eval);
 
