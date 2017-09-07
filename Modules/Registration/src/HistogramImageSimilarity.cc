@@ -229,8 +229,8 @@ void HistogramImageSimilarity::Initialize()
 
   // Initialize joint histogram
   if (_SamplesOwner) {
-    double tmin = numeric_limits<double>::quiet_NaN(), tmax;
-    double smin = numeric_limits<double>::quiet_NaN(), smax;
+    double tmin = NaN, tmax;
+    double smin = NaN, smax;
     // Set default number of bins
     if (_NumberOfTargetBins <= 0) {
       Target()->InputImage()->GetMinMaxAsDouble(&tmin, &tmax);
