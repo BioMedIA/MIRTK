@@ -87,16 +87,17 @@ struct EvaluateSumOfSquaredDifferences : public VoxelReduction
 struct EvaluateSumOfSquaredDifferencesGradient : public VoxelFunction
 {
   SumOfSquaredIntensityDifferences *_Sim;
+  double                            _Scale;
 
-  EvaluateSumOfSquaredDifferencesGradient(SumOfSquaredIntensityDifferences *sim)
+  EvaluateSumOfSquaredDifferencesGradient(SumOfSquaredIntensityDifferences *sim, double scale = 1.)
   :
-    _Sim(sim)
+    _Sim(sim), _Scale(2. * scale)
   {}
 
   void operator ()(int i, int j, int k, int, const VoxelType *t, const VoxelType *s, GradientType *g)
   {
     if (_Sim->IsForeground(i, j, k)) {
-      *g = -2.0 * static_cast<double>(*t - *s);
+      *g = -_Scale * static_cast<double>(*t - *s);
     } else {
       *g = .0;
     }
@@ -225,12 +226,18 @@ double SumOfSquaredIntensityDifferences::Evaluate()
 bool SumOfSquaredIntensityDifferences
 ::NonParametricGradient(const RegisteredImage *image, GradientImageType *gradient)
 {
-  // Compute gradient of similarity w.r.t given moving image
-  EvaluateSumOfSquaredDifferencesGradient eval(this);
-  ParallelForEachVoxel(_Domain, (image == Target() ? Source() : Target()), image, gradient, eval);
-  if (_NumberOfForegroundVoxels > 0) {
-    *gradient /= _NumberOfForegroundVoxels * _MaxSqDiff;
+  // Gradient is zero when input has no foreground
+  if (_NumberOfForegroundVoxels <= 0) {
+    *gradient = 0.;
+    return true;
   }
+
+  // Normalization factor
+  double norm = 1. / (_NumberOfForegroundVoxels * _MaxSqDiff);
+
+  // Compute gradient of similarity w.r.t given moving image
+  EvaluateSumOfSquaredDifferencesGradient eval(this, norm);
+  ParallelForEachVoxel(_Domain, (image == Target() ? Source() : Target()), image, gradient, eval);
 
   // Apply chain rule to obtain gradient w.r.t y = T(x)
   MultiplyByImageGradient(image, gradient);

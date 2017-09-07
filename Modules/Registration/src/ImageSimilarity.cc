@@ -65,14 +65,15 @@ class MultiplySimilarityGradientByImageGradient : public VoxelFunction
 {
 private:
 
+  double _Scale;
   int _NumberOfVoxels;
   int _dx, _dy, _dz;
 
 public:
 
-  MultiplySimilarityGradientByImageGradient(const RegisteredImage *image)
+  MultiplySimilarityGradientByImageGradient(const RegisteredImage *image, double scale = 1.)
   :
-    _NumberOfVoxels(image->NumberOfVoxels()),
+    _Scale(scale), _NumberOfVoxels(image->NumberOfVoxels()),
     _dx            (image->Offset(RegisteredImage::Dx)),
     _dy            (image->Offset(RegisteredImage::Dy)),
     _dz            (image->Offset(RegisteredImage::Dz))
@@ -81,9 +82,9 @@ public:
   template <class Image, class TScalar, class TReal>
   void operator ()(const Image &, int, const TScalar *dI, TReal *gradient)
   {
-    (*gradient) *= static_cast<TReal>(dI[_dx]); gradient += _NumberOfVoxels;
-    (*gradient) *= static_cast<TReal>(dI[_dy]); gradient += _NumberOfVoxels;
-    (*gradient) *= static_cast<TReal>(dI[_dz]);
+    (*gradient) *= static_cast<TReal>(_Scale * dI[_dx]); gradient += _NumberOfVoxels;
+    (*gradient) *= static_cast<TReal>(_Scale * dI[_dy]); gradient += _NumberOfVoxels;
+    (*gradient) *= static_cast<TReal>(_Scale * dI[_dz]);
   }
 };
 
@@ -290,9 +291,10 @@ ImageSimilarity::ImageSimilarity(const char *name, double weight)
   _GradientWrtSource       (nullptr),
   _Gradient                (nullptr),
   _NumberOfVoxels          (0),
+  _NormalizeImageGradient  (true),
   _UseApproximateGradient  (false),
-  _VoxelWisePreconditioning(.0),
-  _NodeBasedPreconditioning(.0),
+  _VoxelWisePreconditioning(0.),
+  _NodeBasedPreconditioning(0.),
   _SkipTargetInitialization(false),
   _SkipSourceInitialization(false),
   _InitialUpdate           (false)
@@ -324,6 +326,7 @@ void ImageSimilarity::CopyAttributes(const ImageSimilarity &other)
   _Foreground               = other._Foreground;
   _Mask                     = other._Mask;
   _NumberOfVoxels           = other._NumberOfVoxels;
+  _NormalizeImageGradient   = other._NormalizeImageGradient;
   _UseApproximateGradient   = other._UseApproximateGradient;
   _VoxelWisePreconditioning = other._VoxelWisePreconditioning;
   _NodeBasedPreconditioning = other._NodeBasedPreconditioning;
@@ -424,6 +427,10 @@ bool ImageSimilarity::SetWithoutPrefix(const char *param, const char *value)
   if (strcmp(param, "Foreground") == 0 || strcmp(param, "Foreground region") == 0) {
     return FromString(value, _Foreground);
   }
+  if (strcmp(param, "Normalize image gradient") == 0 ||
+      strcmp(param, "Normalise image gradient") == 0) {
+    return FromString(value, _NormalizeImageGradient);
+  }
   if (strcmp(param, "Approximate gradient") == 0) {
     return FromString(value, _UseApproximateGradient);
   }
@@ -477,6 +484,7 @@ ParameterList ImageSimilarity::Parameter() const
 {
   ParameterList params = DataFidelity::Parameter();
   InsertWithPrefix(params, "Foreground region",            _Foreground);
+  InsertWithPrefix(params, "Normalize image gradient",     _NormalizeImageGradient);
   InsertWithPrefix(params, "Approximate gradient",         _UseApproximateGradient);
   InsertWithPrefix(params, "Preconditioning (voxel-wise)", _VoxelWisePreconditioning);
   InsertWithPrefix(params, "Preconditioning (node-based)", _NodeBasedPreconditioning);
@@ -522,9 +530,21 @@ void ImageSimilarity::MultiplyByImageGradient(const RegisteredImage *image,
   GradientType *gx = gradient->GetPointerToVoxels();
   memcpy(gradient->GetPointerToVoxels(0, 0, 0, 1), gx, nbytes);
   memcpy(gradient->GetPointerToVoxels(0, 0, 0, 2), gx, nbytes);
+  // Scale transformed image gradient as if it were computed from an image
+  // with an intensity range of [0, 10]. This allows penalty weights of
+  // comparable magnitude to be used with both NMI and LNCC (and possibly
+  // other similarity measures if scaled appropriately).
+  double scale = 1.;
+  if (_NormalizeImageGradient) {
+    double min_intensity = image->MinIntensity();
+    double max_intensity = image->MaxIntensity();
+    if (IsNaN(min_intensity)) min_intensity = image->MinInputIntensity();
+    if (IsNaN(max_intensity)) max_intensity = image->MaxInputIntensity();
+    scale = 10. / (max_intensity - min_intensity);
+  }
   // Apply chain rule (dSimilarity / dy) = (dSimilarity / dI) * (dI / dy)
   // where y = T(x) to obtain the non-parametric similarity gradient
-  MultiplySimilarityGradientByImageGradient times_dIdx(image);
+  MultiplySimilarityGradientByImageGradient times_dIdx(image, scale);
   ParallelForEachVoxel(image, gradient, times_dIdx);
 }
 

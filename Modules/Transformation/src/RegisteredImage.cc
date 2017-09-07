@@ -162,6 +162,8 @@ RegisteredImage::RegisteredImage()
   _CacheFixedDisplacement(false), // by default, only if required by transformation
   _CacheDisplacement     (false), // (c.f. Transformation::RequiresCachingOfDisplacements)
   _SelfUpdate            (true),
+  _MinInputIntensity     (NaN),
+  _MaxInputIntensity     (NaN),
   _MinIntensity          (NaN),
   _MaxIntensity          (NaN),
   _GradientSigma         (0.),
@@ -194,6 +196,8 @@ RegisteredImage::RegisteredImage(const RegisteredImage &other)
   _CacheFixedDisplacement(other._CacheFixedDisplacement),
   _CacheDisplacement     (other._CacheDisplacement),
   _SelfUpdate            (other._SelfUpdate),
+  _MinInputIntensity     (other._MinInputIntensity),
+  _MaxInputIntensity     (other._MaxInputIntensity),
   _MinIntensity          (other._MinIntensity),
   _MaxIntensity          (other._MaxIntensity),
   _GradientSigma         (other._GradientSigma),
@@ -226,6 +230,8 @@ RegisteredImage &RegisteredImage::operator =(const RegisteredImage &other)
   _CacheFixedDisplacement = other._CacheFixedDisplacement;
   _CacheDisplacement      = other._CacheDisplacement;
   _SelfUpdate             = other._SelfUpdate;
+  _MinInputIntensity      = other._MinInputIntensity;
+  _MaxInputIntensity      = other._MaxInputIntensity;
   _MinIntensity           = other._MinIntensity;
   _MaxIntensity           = other._MaxIntensity;
   _GradientSigma          = other._GradientSigma;
@@ -291,6 +297,9 @@ void RegisteredImage::Initialize(const ImageAttributes &attr, int t)
     Throw(ERR_InvalidArgument, __FUNCTION__, "Number of registered image channels must be either 1, 4, 10 or 13");
   }
   GenericImage<VoxelType>::Initialize(attr, t);
+
+  // Determine input intensity range
+  _InputImage->GetMinMaxAsDouble(_MinInputIntensity, _MaxInputIntensity);
 
   // Pre-compute world coordinates
   if (_WorldCoordinates) {
@@ -914,7 +923,8 @@ public:
     New<IntensityFunction>(_IntensityFunction, f, interp, o->ExtrapolationMode(), f_bg, f_bg);
     New<GradientFunction >(_GradientFunction,  g, interp, Extrapolation_Default,  g_bg, 0.);
     New<HessianFunction  >(_HessianFunction,   h, interp, Extrapolation_Default,  h_bg, 0.);
-    f->GetMinMaxAsDouble(_MinIntensity, _MaxIntensity);
+    _MinIntensity           = o->MinInputIntensity();
+    _MaxIntensity           = o->MaxInputIntensity();
     _PrecomputedDerivatives = o->PrecomputeDerivatives();
     _NumberOfChannels       = o->T();
     _NumberOfVoxels         = o->X() * o->Y() * o->Z();
@@ -1027,7 +1037,7 @@ public:
     } else {
       value = _OutsideValue;
     }
-    *o = static_cast<VoxelType>(value);
+    (*o) = static_cast<VoxelType>(value);
     // Pass inside/outside check result on to derivative interpolation
     // functions such that these boundary checks are only done once.
     // This requires the same interpolation mode for all channels.
@@ -1047,6 +1057,9 @@ private:
         } else {
           _GradientFunction->EvaluateInside(o, x, y, z, stride);
         }
+        for (int c = 1; c <= 3; ++c, o += stride) {
+          (*o) *= _RescaleSlope;
+        }
       } break;
       // Boundary
       case 0: {
@@ -1055,10 +1068,15 @@ private:
         } else {
           _GradientFunction->EvaluateOutside(o, x, y, z, stride);
         }
+        for (int c = 1; c <= 3; ++c, o += stride) {
+          (*o) *= _RescaleSlope;
+        }
       } break;
       // Outside
       default: {
-        for (int c = 1; c <= 3; ++c, o += stride) *o = 0.;
+        for (int c = 1; c <= 3; ++c, o += stride) {
+          (*o) = 0.;
+        }
       } break;
     }
   }
@@ -1074,6 +1092,9 @@ private:
         } else {
           _HessianFunction->EvaluateInside(o, x, y, z, stride);
         }
+        for (int c = 4; c <= _NumberOfChannels; ++c, o += stride) {
+          (*o) *= _RescaleSlope;
+        }
       } break;
       // Boundary
       case 0: {
@@ -1082,10 +1103,15 @@ private:
         } else {
           _HessianFunction->EvaluateOutside(o, x, y, z, stride);
         }
+        for (int c = 4; c <= _NumberOfChannels; ++c, o += stride) {
+          (*o) *= _RescaleSlope;
+        }
       } break;
       // Outside
       default: {
-        for (int c = 4; c < _NumberOfChannels; ++c, o += stride) *o = 0.;
+        for (int c = 4; c < _NumberOfChannels; ++c, o += stride) {
+          (*o) = 0.;
+        }
       } break;
     }
   }
