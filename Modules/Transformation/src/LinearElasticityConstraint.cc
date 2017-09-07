@@ -81,7 +81,7 @@ void AllocateJacobianMatrices(Matrix *jac, const FreeFormTransformation *ffd, bo
 
 
 /// Allocate Jacobian matrices in neighborhood of active control points
-void AllocateJacobianMatricesAtImageVoxels(const ImageAttributes *domain, Matrix *jac, const FreeFormTransformation *ffd, bool incl_passive_cps)
+void AllocateJacobianMatrices(const ImageAttributes *domain, Matrix *jac, const FreeFormTransformation *ffd, bool incl_passive_cps)
 {
   const int nvox = domain->NumberOfSpatialPoints();
   if (incl_passive_cps) {
@@ -112,7 +112,7 @@ void AllocateJacobianMatricesAtImageVoxels(const ImageAttributes *domain, Matrix
 
 
 /// Evaluate Jacobian matrices of cubic B-spline FFD at control points
-class EvaluateCubicBSplineFFDJacobian
+class EvaluateCubicBSplineFFDJacobianAtCPs
 {
   const BSplineFreeFormTransformation3D *_FFD;
   Matrix                                *_Jacobian;
@@ -153,7 +153,7 @@ public:
   static void Run(const BSplineFreeFormTransformation3D *ffd, Matrix *jac,
                   bool rotation, bool wrt_world)
   {
-    EvaluateCubicBSplineFFDJacobian eval;
+    EvaluateCubicBSplineFFDJacobianAtCPs eval;
     eval._FFD        = ffd;
     eval._Jacobian   = jac;
     eval._WrtWorld   = wrt_world;
@@ -164,7 +164,7 @@ public:
 
 
 /// Evaluate Jacobian matrices of cubic B-spline FFD at image voxels
-class EvaluateCubicBSplineFFDJacobianAtImageVoxels
+class EvaluateCubicBSplineFFDJacobianAtVoxels
 {
   const ImageAttributes                 *_Domain;
   const Matrix                          *_CoordMap;
@@ -173,14 +173,6 @@ class EvaluateCubicBSplineFFDJacobianAtImageVoxels
   bool                                   _WrtWorld;
   bool                                   _NoRotation;
 
-  inline void MapVoxelToFFDLattice(int i, int j, int k, double &u, double &v, double &w) const
-  {
-    const Matrix &m = *_CoordMap;
-    u = m(0, 0) * i + m(0, 1) * j + m(0, 2) * k + m(0, 3);
-    v = m(1, 0) * i + m(1, 1) * j + m(1, 2) * k + m(1, 3);
-    w = m(2, 0) * i + m(2, 1) * j + m(2, 2) * k + m(2, 3);
-  }
-
 public:
 
   void operator ()(const blocked_range3d<int> &re) const
@@ -188,13 +180,16 @@ public:
     int vox;
     Matrix3x3 J;
     double u, v, w;
+    const Matrix &m = *_CoordMap;
     for (int k = re.pages().begin(); k != re.pages().end(); ++k)
     for (int j = re.rows ().begin(); j != re.rows ().end(); ++j) {
       vox = _Domain->LatticeToIndex(re.cols().begin(), j, k);
       for (int i = re.cols().begin(); i != re.cols().end(); ++i, ++vox) {
         Matrix &jac = _Jacobian[vox];
         if (jac.Rows() > 0) {
-          MapVoxelToFFDLattice(i, j, k, u, v, w);
+          u = m(0, 0) * i + m(0, 1) * j + m(0, 2) * k + m(0, 3);
+          v = m(1, 0) * i + m(1, 1) * j + m(1, 2) * k + m(1, 3);
+          w = m(2, 0) * i + m(2, 1) * j + m(2, 2) * k + m(2, 3);
           _FFD->EvaluateJacobian(jac, u, v, w);
           if (_WrtWorld) {
             _FFD->JacobianToWorld(jac);
@@ -220,7 +215,7 @@ public:
                   bool rotation, bool wrt_world)
   {
     Matrix coord_map = ffd->Attributes().GetWorldToLatticeMatrix() * domain->GetLatticeToWorldMatrix();
-    EvaluateCubicBSplineFFDJacobianAtImageVoxels eval;
+    EvaluateCubicBSplineFFDJacobianAtVoxels eval;
     eval._Domain     = domain;
     eval._CoordMap   = &coord_map;
     eval._FFD        = ffd;
@@ -232,12 +227,72 @@ public:
 };
 
 
-/// Evaluate linear elastic energy
-class EvaluateLinearElasticEnergy
+/// Evaluate linear elastic energy at control points
+class ApproximateLinearElasticEnergy
 {
   const FreeFormTransformation *_FFD;
   bool                          _ConstrainPassiveDoFs;
 
+  const Matrix *_Jacobian;
+  double        _Mu;
+  double        _Lambda;
+  double        _Energy;
+  int           _Count;
+
+  ApproximateLinearElasticEnergy() : _Energy(0.), _Count(0) {}
+  ApproximateLinearElasticEnergy(const ApproximateLinearElasticEnergy &) = default;
+
+public:
+
+  ApproximateLinearElasticEnergy(const ApproximateLinearElasticEnergy &other, split)
+  :
+    ApproximateLinearElasticEnergy(other)
+  {
+    _Energy = 0.;
+    _Count  = 0;
+  }
+
+  void join(const ApproximateLinearElasticEnergy &other)
+  {
+    _Energy += other._Energy;
+    _Count  += other._Count;
+  }
+
+  void operator ()(const blocked_range<size_t> &re)
+  {
+    double a, b;
+    for (size_t cp = re.begin(); cp != re.end(); ++cp) {
+      if (_ConstrainPassiveDoFs || _FFD->IsActive(cp)) {
+        const Matrix &jac = _Jacobian[cp];
+        a = pow(jac(0, 0), 2) + pow(jac(1, 1), 2) + pow(jac(2, 2), 2)
+          + pow(.5 * (jac(0, 1) + jac(1, 0)), 2)
+          + pow(.5 * (jac(0, 2) + jac(2, 0)), 2)
+          + pow(.5 * (jac(1, 2) + jac(2, 1)), 2);
+        b = jac(0, 0) + jac(1, 1) + jac(2, 2);
+        _Energy += .5 * _Mu * a + _Lambda * b * b;
+        ++_Count;
+      }
+    }
+  }
+
+  static double Run(const FreeFormTransformation *ffd, const Matrix *jac,
+                    double mu, double lambda, bool incl_passive_cps)
+  {
+    ApproximateLinearElasticEnergy eval;
+    eval._FFD                  = ffd;
+    eval._ConstrainPassiveDoFs = incl_passive_cps;
+    eval._Jacobian             = jac;
+    eval._Mu                   = mu;
+    eval._Lambda               = lambda;
+    parallel_reduce(blocked_range<size_t>(0, ffd->NumberOfCPs()), eval);
+    return (eval._Count > 0 ? eval._Energy / eval._Count : 0.);
+  }
+};
+
+
+/// Evaluate linear elastic energy at image voxels
+class EvaluateLinearElasticEnergy
+{
   const Matrix *_Jacobian;
   double        _Mu;
   double        _Lambda;
@@ -266,66 +321,6 @@ public:
   void operator ()(const blocked_range<size_t> &re)
   {
     double a, b;
-    for (size_t cp = re.begin(); cp != re.end(); ++cp) {
-      if (_ConstrainPassiveDoFs || _FFD->IsActive(cp)) {
-        const Matrix &jac = _Jacobian[cp];
-        a = pow(jac(0, 0), 2) + pow(jac(1, 1), 2) + pow(jac(2, 2), 2)
-          + pow(.5 * (jac(0, 1) + jac(1, 0)), 2)
-          + pow(.5 * (jac(0, 2) + jac(2, 0)), 2)
-          + pow(.5 * (jac(1, 2) + jac(2, 1)), 2);
-        b = jac(0, 0) + jac(1, 1) + jac(2, 2);
-        _Energy += .5 * _Mu * a + _Lambda * b * b;
-        ++_Count;
-      }
-    }
-  }
-
-  static double Run(const FreeFormTransformation *ffd, const Matrix *jac,
-                    double mu, double lambda, bool incl_passive_cps)
-  {
-    EvaluateLinearElasticEnergy eval;
-    eval._FFD                  = ffd;
-    eval._ConstrainPassiveDoFs = incl_passive_cps;
-    eval._Jacobian             = jac;
-    eval._Mu                   = mu;
-    eval._Lambda               = lambda;
-    parallel_reduce(blocked_range<size_t>(0, ffd->NumberOfCPs()), eval);
-    return (eval._Count > 0 ? eval._Energy / eval._Count : 0.);
-  }
-};
-
-
-/// Evaluate linear elastic energy
-class EvaluateLinearElasticEnergyAtImageVoxels
-{
-  const Matrix *_Jacobian;
-  double        _Mu;
-  double        _Lambda;
-  double        _Energy;
-  int           _Count;
-
-  EvaluateLinearElasticEnergyAtImageVoxels() : _Energy(0.), _Count(0) {}
-  EvaluateLinearElasticEnergyAtImageVoxels(const EvaluateLinearElasticEnergyAtImageVoxels &) = default;
-
-public:
-
-  EvaluateLinearElasticEnergyAtImageVoxels(const EvaluateLinearElasticEnergyAtImageVoxels &other, split)
-  :
-    EvaluateLinearElasticEnergyAtImageVoxels(other)
-  {
-    _Energy = 0.;
-    _Count  = 0;
-  }
-
-  void join(const EvaluateLinearElasticEnergyAtImageVoxels &other)
-  {
-    _Energy += other._Energy;
-    _Count  += other._Count;
-  }
-
-  void operator ()(const blocked_range<size_t> &re)
-  {
-    double a, b;
     for (size_t vox = re.begin(); vox != re.end(); ++vox) {
       const Matrix &jac = _Jacobian[vox];
       if (jac.Rows() > 0) {
@@ -342,7 +337,7 @@ public:
 
   static double Run(const ImageAttributes *domain, const Matrix *jac, double mu, double lambda)
   {
-    EvaluateLinearElasticEnergyAtImageVoxels eval;
+    EvaluateLinearElasticEnergy eval;
     eval._Jacobian             = jac;
     eval._Mu                   = mu;
     eval._Lambda               = lambda;
@@ -353,7 +348,7 @@ public:
 
 
 /// Evaluate gradient of linear elastic energy w.r.t. cubic B-spline FFD coefficients
-class AddCubicBSplineFFDGradient
+class AddApproximateCubicBSplineFFDGradient
 {
   double LookupTable[27][3];
 
@@ -433,9 +428,9 @@ public:
           }
         }
         _FFD->IndexToDOFs(cp, xdof, ydof, zdof);
-        _Gradient[xdof] += _Mu * g1._x + 2. * _Lambda * g2._x;
-        _Gradient[ydof] += _Mu * g1._y + 2. * _Lambda * g2._y;
-        _Gradient[zdof] += _Mu * g1._z + 2. * _Lambda * g2._z;
+        _Gradient[xdof] -= _Mu * g1._x + 2. * _Lambda * g2._x;
+        _Gradient[ydof] -= _Mu * g1._y + 2. * _Lambda * g2._y;
+        _Gradient[zdof] -= _Mu * g1._z + 2. * _Lambda * g2._z;
       }
     }
   }
@@ -445,7 +440,7 @@ public:
                   double mu, double lambda, bool incl_passive_cps, bool wrt_world)
   {
     const int ncps = (incl_passive_cps ? ffd->NumberOfCPs() : ffd->NumberOfActiveCPs());
-    AddCubicBSplineFFDGradient eval;
+    AddApproximateCubicBSplineFFDGradient eval;
     eval._FFD                  = ffd;
     eval._Jacobian             = jac;
     eval._Mu                   = mu / ncps;
@@ -460,7 +455,7 @@ public:
 
 
 /// Evaluate gradient of linear elastic energy w.r.t. cubic B-spline FFD coefficients
-class AddCubicBSplineFFDGradientIntegratedOverImageVoxels
+class AddCubicBSplineFFDGradient
 {
   typedef BSplineFreeFormTransformation3D::Kernel Kernel;
 
@@ -474,14 +469,6 @@ class AddCubicBSplineFFDGradientIntegratedOverImageVoxels
   bool                                   _ConstrainPassiveDoFs;
   bool                                   _WrtToWorld;
 
-  inline void MapVoxelToFFDLattice(int i, int j, int k, double &x, double &y, double &z) const
-  {
-    const Matrix &m = *_CoordMap;
-    x = m(0, 0) * i + m(0, 1) * j + m(0, 2) * k + m(0, 3);
-    y = m(1, 0) * i + m(1, 1) * j + m(1, 2) * k + m(1, 3);
-    z = m(2, 0) * i + m(2, 1) * j + m(2, 2) * k + m(2, 3);
-  }
-
 public:
 
   void operator ()(const blocked_range3d<int> &re) const
@@ -490,6 +477,7 @@ public:
     double div, w[3], x, y, z;
     Vector3D<double> g1, g2;
 
+    const Matrix &m = *_CoordMap;
     for (int ck = re.pages().begin(); ck != re.pages().end(); ++ck)
     for (int cj = re.rows ().begin(); cj != re.rows ().end(); ++cj)
     for (int ci = re.cols ().begin(); ci != re.cols ().end(); ++ci) {
@@ -499,7 +487,9 @@ public:
         for (int k = k1; k <= k2; ++k)
         for (int j = j1; j <= j2; ++j)
         for (int i = i1; i <= i2; ++i) {
-          MapVoxelToFFDLattice(i, j, k, x, y, z);
+          x = m(0, 0) * i + m(0, 1) * j + m(0, 2) * k + m(0, 3);
+          y = m(1, 0) * i + m(1, 1) * j + m(1, 2) * k + m(1, 3);
+          z = m(2, 0) * i + m(2, 1) * j + m(2, 2) * k + m(2, 3);
           x -= ci, y -= cj, z -= ck;
           w[0] = Kernel::B_I(x) * Kernel::B(y) * Kernel::B(z);
           w[1] = Kernel::B(x) * Kernel::B_I(y) * Kernel::B(z);
@@ -521,9 +511,9 @@ public:
           g2._z += w[2] * div;
         }
         _FFD->IndexToDOFs(cp, xdof, ydof, zdof);
-        _Gradient[xdof] += _Mu * g1._x + 2. * _Lambda * g2._x;
-        _Gradient[ydof] += _Mu * g1._y + 2. * _Lambda * g2._y;
-        _Gradient[zdof] += _Mu * g1._z + 2. * _Lambda * g2._z;
+        _Gradient[xdof] -= _Mu * g1._x + 2. * _Lambda * g2._x;
+        _Gradient[ydof] -= _Mu * g1._y + 2. * _Lambda * g2._y;
+        _Gradient[zdof] -= _Mu * g1._z + 2. * _Lambda * g2._z;
       }
     }
   }
@@ -532,15 +522,15 @@ public:
                   const BSplineFreeFormTransformation3D *ffd, const Matrix *jac,
                   double mu, double lambda, bool incl_passive_cps, bool wrt_world)
   {
-    const int nvox = domain->NumberOfSpatialPoints();
+    const int npts = domain->NumberOfSpatialPoints();
     Matrix coord_map = ffd->Attributes().GetWorldToLatticeMatrix() * domain->GetLatticeToWorldMatrix();
-    AddCubicBSplineFFDGradientIntegratedOverImageVoxels eval;
+    AddCubicBSplineFFDGradient eval;
     eval._Domain               = domain;
     eval._CoordMap             = &coord_map;
     eval._FFD                  = ffd;
     eval._Jacobian             = jac;
-    eval._Mu                   = mu / nvox;
-    eval._Lambda               = lambda / nvox;
+    eval._Mu                   = mu / npts;
+    eval._Lambda               = lambda / npts;
     eval._ConstrainPassiveDoFs = incl_passive_cps;
     eval._WrtToWorld           = wrt_world;
     eval._Gradient             = gradient;
@@ -655,12 +645,12 @@ void LinearElasticityConstraint::Initialize()
       for (int l = 0; l < mffd->NumberOfLevels(); ++l) {
         if (!mffd->LocalTransformationIsActive(l)) continue;
         ffd = mffd->GetLocalTransformation(l);
-        AllocateJacobianMatricesAtImageVoxels(&_Domain, jac, ffd, _ConstrainPassiveDoFs);
+        AllocateJacobianMatrices(&_Domain, jac, ffd, _ConstrainPassiveDoFs);
         jac += _Domain.NumberOfSpatialPoints();
       }
     } else if (ffd) {
       _Jacobian.resize(_Domain.NumberOfSpatialPoints());
-      AllocateJacobianMatricesAtImageVoxels(&_Domain, _Jacobian.data(), ffd, _ConstrainPassiveDoFs);
+      AllocateJacobianMatrices(&_Domain, _Jacobian.data(), ffd, _ConstrainPassiveDoFs);
     }
 
   }
@@ -689,10 +679,10 @@ void LinearElasticityConstraint::Update(bool gradient)
         Throw(ERR_NotImplemented, __FUNCTION__, "Currently only implemented for 3D cubic BSpline FFD");
       }
       if (_Approximate) {
-        EvaluateCubicBSplineFFDJacobian::Run(bffd, jac, _ConstrainRotation, _WrtWorld);
+        EvaluateCubicBSplineFFDJacobianAtCPs::Run(bffd, jac, _ConstrainRotation, _WrtWorld);
         jac += ffd->NumberOfCPs();
       } else {
-        EvaluateCubicBSplineFFDJacobianAtImageVoxels::Run(&_Domain, bffd, jac, _ConstrainRotation, _WrtWorld);
+        EvaluateCubicBSplineFFDJacobianAtVoxels::Run(&_Domain, bffd, jac, _ConstrainRotation, _WrtWorld);
         jac += _Domain.NumberOfSpatialPoints();
       }
     }
@@ -702,9 +692,9 @@ void LinearElasticityConstraint::Update(bool gradient)
       Throw(ERR_NotImplemented, __FUNCTION__, "Currently only implemented for 3D cubic BSpline FFD");
     }
     if (_Approximate) {
-      EvaluateCubicBSplineFFDJacobian::Run(bffd, _Jacobian.data(), _ConstrainRotation, _WrtWorld);
+      EvaluateCubicBSplineFFDJacobianAtCPs::Run(bffd, _Jacobian.data(), _ConstrainRotation, _WrtWorld);
     } else {
-      EvaluateCubicBSplineFFDJacobianAtImageVoxels::Run(&_Domain, bffd, _Jacobian.data(), _ConstrainRotation, _WrtWorld);
+      EvaluateCubicBSplineFFDJacobianAtVoxels::Run(&_Domain, bffd, _Jacobian.data(), _ConstrainRotation, _WrtWorld);
     }
   }
 }
@@ -727,18 +717,18 @@ double LinearElasticityConstraint::Evaluate()
       if (!mffd->LocalTransformationIsActive(l)) continue;
       ffd = mffd->GetLocalTransformation(l);
       if (_Approximate) {
-        energy += EvaluateLinearElasticEnergy::Run(ffd, jac, _Mu, _Lambda, _ConstrainPassiveDoFs);
+        energy += ApproximateLinearElasticEnergy::Run(ffd, jac, _Mu, _Lambda, _ConstrainPassiveDoFs);
         jac += ffd->NumberOfCPs();
       } else {
-        energy += EvaluateLinearElasticEnergyAtImageVoxels::Run(&_Domain, jac, _Mu, _Lambda);
+        energy += EvaluateLinearElasticEnergy::Run(&_Domain, jac, _Mu, _Lambda);
         jac += _Domain.NumberOfSpatialPoints();
       }
     }
   } else if (ffd) {
     if (_Approximate) {
-      energy = EvaluateLinearElasticEnergy::Run(ffd, _Jacobian.data(), _Mu, _Lambda, _ConstrainPassiveDoFs);
+      energy = ApproximateLinearElasticEnergy::Run(ffd, _Jacobian.data(), _Mu, _Lambda, _ConstrainPassiveDoFs);
     } else {
-      energy = EvaluateLinearElasticEnergyAtImageVoxels::Run(&_Domain, _Jacobian.data(), _Mu, _Lambda);
+      energy = EvaluateLinearElasticEnergy::Run(&_Domain, _Jacobian.data(), _Mu, _Lambda);
     }
   }
 
@@ -768,10 +758,10 @@ void LinearElasticityConstraint::EvaluateGradient(double *gradient, double, doub
         Throw(ERR_NotImplemented, __FUNCTION__, "Currently only implemented for 3D cubic BSpline FFD");
       }
       if (_Approximate) {
-        AddCubicBSplineFFDGradient::Run(gradient, bffd, jac, mu, lambda, _ConstrainPassiveDoFs, _WrtWorld);
+        AddApproximateCubicBSplineFFDGradient::Run(gradient, bffd, jac, mu, lambda, _ConstrainPassiveDoFs, _WrtWorld);
         jac += ffd->NumberOfCPs();
       } else {
-        AddCubicBSplineFFDGradientIntegratedOverImageVoxels::Run(gradient, &_Domain, bffd, jac, mu, lambda, _ConstrainPassiveDoFs, _WrtWorld);
+        AddCubicBSplineFFDGradient::Run(gradient, &_Domain, bffd, jac, mu, lambda, _ConstrainPassiveDoFs, _WrtWorld);
         jac += _Domain.NumberOfSpatialPoints();
       }
       gradient += ffd->NumberOfDOFs();
@@ -782,9 +772,9 @@ void LinearElasticityConstraint::EvaluateGradient(double *gradient, double, doub
       Throw(ERR_NotImplemented, __FUNCTION__, "Currently only implemented for 3D cubic BSpline FFD");
     }
     if (_Approximate) {
-      AddCubicBSplineFFDGradient::Run(gradient, bffd, _Jacobian.data(), mu, lambda, _ConstrainPassiveDoFs, _WrtWorld);
+      AddApproximateCubicBSplineFFDGradient::Run(gradient, bffd, _Jacobian.data(), mu, lambda, _ConstrainPassiveDoFs, _WrtWorld);
     } else {
-      AddCubicBSplineFFDGradientIntegratedOverImageVoxels::Run(gradient, &_Domain, bffd, _Jacobian.data(), mu, lambda, _ConstrainPassiveDoFs, _WrtWorld);
+      AddCubicBSplineFFDGradient::Run(gradient, &_Domain, bffd, _Jacobian.data(), mu, lambda, _ConstrainPassiveDoFs, _WrtWorld);
     }
   }
 }
@@ -821,10 +811,10 @@ void LinearElasticityConstraint::WriteGradient(const char *p, const char *suffix
       gradient.resize(ffd->NumberOfDOFs());
       memset(gradient.data(), 0, ffd->NumberOfDOFs() * sizeof(double));
       if (_Approximate) {
-        AddCubicBSplineFFDGradient::Run(gradient.data(), bffd, jac, _Mu, _Lambda, _ConstrainPassiveDoFs, _WrtWorld);
+        AddApproximateCubicBSplineFFDGradient::Run(gradient.data(), bffd, jac, _Mu, _Lambda, _ConstrainPassiveDoFs, _WrtWorld);
         jac += ffd->NumberOfCPs();
       } else {
-        AddCubicBSplineFFDGradientIntegratedOverImageVoxels::Run(gradient.data(), &_Domain, bffd, jac, _Mu, _Lambda, _ConstrainPassiveDoFs, _WrtWorld);
+        AddCubicBSplineFFDGradient::Run(gradient.data(), &_Domain, bffd, jac, _Mu, _Lambda, _ConstrainPassiveDoFs, _WrtWorld);
         jac += _Domain.NumberOfSpatialPoints();
       }
       if (mffd->NumberOfActiveLevels() == 1) {
@@ -841,9 +831,9 @@ void LinearElasticityConstraint::WriteGradient(const char *p, const char *suffix
       gradient.resize(ffd->NumberOfDOFs());
       memset(gradient.data(), 0, ffd->NumberOfDOFs() * sizeof(double));
       if (_Approximate) {
-        AddCubicBSplineFFDGradient::Run(gradient.data(), bffd, _Jacobian.data(), _Mu, _Lambda, _ConstrainPassiveDoFs, _WrtWorld);
+        AddApproximateCubicBSplineFFDGradient::Run(gradient.data(), bffd, _Jacobian.data(), _Mu, _Lambda, _ConstrainPassiveDoFs, _WrtWorld);
       } else {
-        AddCubicBSplineFFDGradientIntegratedOverImageVoxels::Run(gradient.data(), &_Domain, bffd, _Jacobian.data(), _Mu, _Lambda, _ConstrainPassiveDoFs, _WrtWorld);
+        AddCubicBSplineFFDGradient::Run(gradient.data(), &_Domain, bffd, _Jacobian.data(), _Mu, _Lambda, _ConstrainPassiveDoFs, _WrtWorld);
       }
       WriteFFDGradient(fname, ffd, gradient.data());
     }

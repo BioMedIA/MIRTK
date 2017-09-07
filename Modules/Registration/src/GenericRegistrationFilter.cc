@@ -2230,12 +2230,13 @@ void GenericRegistrationFilter::ParseEnergyFormula(int nimages, int npsets, int 
       if (!formula.empty()) formula += " + ";
       const double be_w = ((nimages >= 2) ? 0.001 : .0);
       formula += ToString(be_w);
-      formula +=     " BE[Bending energy]"
-                 " + 0 TP[Topology preservation]"
-                 " + 0 VP[Volume preservation]"
-                 " + 0 LogJac[LogJac penalty]"
-                 " + 0 NegJac[NegJac penalty]"
-                 " + 0 Sparsity";
+      formula +=     " BE[Bending energy](T)"
+                 " + 0 LE[Linear energy](T)"
+                 " + 0 TP[Topology preservation](T)"
+                 " + 0 VP[Volume preservation](T)"
+                 " + 0 LogJac[LogJac penalty](T)"
+                 " + 0 NegJac[NegJac penalty](T)"
+                 " + 0 Sparsity(T)";
     }
     formula += " + 0 MSDE[Displacement error](T)";
   }
