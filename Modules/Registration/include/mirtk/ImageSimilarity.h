@@ -124,6 +124,9 @@ public:
   /// Number of voxels per registered image
   mirtkPublicAttributeMacro(int, NumberOfVoxels);
 
+  /// Divide transformed image gradient by input intensity range
+  mirtkPublicAttributeMacro(bool, NormalizeImageGradient);
+
   /// Approximate gradient using finite differences even if the similarity
   /// measure implements the NonParametricGradient function
   mirtkPublicAttributeMacro(bool, UseApproximateGradient);
