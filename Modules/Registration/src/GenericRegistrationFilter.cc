@@ -518,12 +518,12 @@ public:
       double dz = (_Image[1][n].Z() > 1 ? _Image[1][n].ZSize() : .0);
       Vector3D<double> var(.0);
       for (int l = 2; l <= _Level; ++l) {
-        var._x +=  pow(0.7 * dx, 2);
-        var._y +=  pow(0.7 * dy, 2);
-        var._z +=  pow(0.7 * dz, 2);
-        dx *= 2.0, dy *= 2.0, dz *= 2.0;
+        var._x +=  pow(0.7355 * dx, 2);
+        var._y +=  pow(0.7355 * dy, 2);
+        var._z +=  pow(0.7355 * dz, 2);
+        dx *= 2., dy *= 2., dz *= 2.;
       }
-      const Vector3D<double> sigma(sqrt(var._x), sqrt(var._y), sqrt(var._z));
+      Vector3D<double> sigma(sqrt(var._x), sqrt(var._y), sqrt(var._z));
       // Determine minimal lattice containing foreground voxels
       ImageAttributes attr;
       if (_CropPad) {
@@ -538,14 +538,28 @@ public:
       } else {
         attr = _Image[1][n].Attributes();
       }
-      // Calculate number of voxels preserving the image size
-      attr._x = (dx ? iceil(attr._x * attr._dx / dx) : 1);
-      attr._y = (dy ? iceil(attr._y * attr._dy / dy) : 1);
-      attr._z = (dz ? iceil(attr._z * attr._dz / dz) : 1);
       // Ensure lattice can be divided by 2, given that dx = 2^n * attr._dx
       if (attr._x % 2 != 0) attr._x += 1, attr._xorigin += .5 * attr._dx;
       if (attr._y % 2 != 0) attr._y += 1, attr._yorigin += .5 * attr._dy;
       if (attr._z % 2 != 0) attr._z += 1, attr._zorigin += .5 * attr._dz;
+      // Calculate number of voxels preserving the image size
+      for (int l = 2; l <= _Level; ++l) {
+        if (attr._x < 64) {
+          dx *= .5;
+        } else {
+          attr._x /= 2;
+        }
+        if (attr._y < 64) {
+          dy *= .5;
+        } else {
+          attr._y /= 2;
+        }
+        if (attr._z < 64) {
+          dz *= .5;
+        } else {
+          attr._z /= 2;
+        }
+      }
       // If background value set, consider foreground only
       if (_Padding) {
         typedef GaussianBlurringWithPadding<VoxelType> BlurFilter;
