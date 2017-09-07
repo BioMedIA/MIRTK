@@ -1027,7 +1027,7 @@ public:
     } else {
       value = _OutsideValue;
     }
-    *o = static_cast<VoxelType>(value);
+    (*o) = static_cast<VoxelType>(value);
     // Pass inside/outside check result on to derivative interpolation
     // functions such that these boundary checks are only done once.
     // This requires the same interpolation mode for all channels.
@@ -1047,6 +1047,9 @@ private:
         } else {
           _GradientFunction->EvaluateInside(o, x, y, z, stride);
         }
+        for (int c = 1; c <= 3; ++c, o += stride) {
+          (*o) *= _RescaleSlope;
+        }
       } break;
       // Boundary
       case 0: {
@@ -1055,10 +1058,15 @@ private:
         } else {
           _GradientFunction->EvaluateOutside(o, x, y, z, stride);
         }
+        for (int c = 1; c <= 3; ++c, o += stride) {
+          (*o) *= _RescaleSlope;
+        }
       } break;
       // Outside
       default: {
-        for (int c = 1; c <= 3; ++c, o += stride) *o = 0.;
+        for (int c = 1; c <= 3; ++c, o += stride) {
+          (*o) = 0.;
+        }
       } break;
     }
   }
@@ -1074,6 +1082,9 @@ private:
         } else {
           _HessianFunction->EvaluateInside(o, x, y, z, stride);
         }
+        for (int c = 4; c <= _NumberOfChannels; ++c, o += stride) {
+          (*o) *= _RescaleSlope;
+        }
       } break;
       // Boundary
       case 0: {
@@ -1082,10 +1093,15 @@ private:
         } else {
           _HessianFunction->EvaluateOutside(o, x, y, z, stride);
         }
+        for (int c = 4; c <= _NumberOfChannels; ++c, o += stride) {
+          (*o) *= _RescaleSlope;
+        }
       } break;
       // Outside
       default: {
-        for (int c = 4; c < _NumberOfChannels; ++c, o += stride) *o = 0.;
+        for (int c = 4; c < _NumberOfChannels; ++c, o += stride) {
+          (*o) = 0.;
+        }
       } break;
     }
   }
