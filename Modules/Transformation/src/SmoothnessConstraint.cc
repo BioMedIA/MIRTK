@@ -37,7 +37,7 @@ mirtkAutoRegisterEnergyTermMacro(SmoothnessConstraint);
 SmoothnessConstraint::SmoothnessConstraint(const char *name, double weight)
 :
   TransformationConstraint(name, weight),
-  _WithRespectToWorld(false),
+  _WithRespectToWorld(true),
   _AnnealingRate(.0), _AnnealingWeight(1.0)
 {
   _ParameterPrefix.push_back("Smoothness ");
@@ -64,7 +64,7 @@ bool SmoothnessConstraint::SetWithoutPrefix(const char *param, const char *value
 ParameterList SmoothnessConstraint::Parameter() const
 {
   ParameterList params = TransformationConstraint::Parameter();
-  InsertWithPrefix(params, "W.r.t. world (experimental)",   _WithRespectToWorld);
+  InsertWithPrefix(params, "W.r.t. world", _WithRespectToWorld);
   InsertWithPrefix(params, "Annealing rate (experimental)", _AnnealingRate);
   return params;
 }
