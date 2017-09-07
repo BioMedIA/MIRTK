@@ -117,6 +117,7 @@ void PrintHelp(const char* name)
   cout << "  Energy function =      SIM[Image dissimilarity](I(1), I(2:end) o T)...\n";
   cout << "                  +      PDM[Point set distance](T o P(1), P(2:end))...\n";
   cout << "                  + 1e-3 BE [Bending energy](T)...\n";
+  cout << "                  +    0 LE[Linear energy](T)...\n";
   cout << "                  +    0 TP [Topology preservation](T)...\n";
   cout << "                  +    0 VP [Volume preservation](T)...\n";
   cout << "                  +    0 JAC[Jacobian penalty](T)...\n";
@@ -248,6 +249,8 @@ void PrintHelp(const char* name)
   cout << "      \"Control point spacing\" of free-form deformation on highest resolution level. (default: 4x min voxel size)\n";
   cout << "  -be <w>\n";
   cout << "      \"Bending energy weight\" of free-form deformation. (default: 0.001)\n";
+  cout << "  -le <w> [<lambda>]\n";
+  cout << "      \"Linear energy weight\" of free-form deformation. (default: 0)\n";
   cout << "  -tp <w>\n";
   cout << "      \"Topology preservation weight\" of free-form deformation. (default: 0)\n";
   cout << "  -vp <w>\n";
@@ -823,6 +826,16 @@ int main(int argc, char **argv)
       double w;
       PARSE_ARGUMENT(w);
       Insert(params, "Bending energy weight", w);
+    }
+    else if (OPTION("-le")) {
+      double w;
+      PARSE_ARGUMENT(w);
+      Insert(params, "Linear energy weight", w);
+      if (HAS_ARGUMENT) {
+        double lambda;
+        PARSE_ARGUMENT(lambda);
+        Insert(params, "Linear energy lambda", lambda / w);
+      }
     }
     else if (OPTION("-vp")) {
       double w;
