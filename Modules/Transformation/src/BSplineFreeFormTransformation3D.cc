@@ -1458,8 +1458,6 @@ void BSplineFreeFormTransformation3D::BendingEnergyGradient(double *gradient, do
     Evaluate2ndOrderBSplineFFDDerivatives3D eval(this, wrt_world);
     ParallelForEachVoxel(attr, dxx, dxy, dxz, dyy, dyz, dzz, eval);
 
-    static int call = 0; ++call;
-
     // Compute derivative of bending energy w.r.t each control point
     Vector g;
     int n, cp, xdof, ydof, zdof;
