@@ -117,14 +117,12 @@ class EvaluateCubicBSplineFFDJacobianAtCPs
   const BSplineFreeFormTransformation3D *_FFD;
   Matrix                                *_Jacobian;
   bool                                   _WrtWorld;
-  bool                                   _NoRotation;
 
 public:
 
   void operator ()(const blocked_range3d<int> &re) const
   {
     int cp;
-    Matrix3x3 J;
     for (int ck = re.pages().begin(); ck != re.pages().end(); ++ck)
     for (int cj = re.rows ().begin(); cj != re.rows ().end(); ++cj)
     for (int ci = re.cols ().begin(); ci != re.cols ().end(); ++ci) {
@@ -135,29 +133,16 @@ public:
         if (_WrtWorld) {
           _FFD->JacobianToWorld(jac);
         }
-        if (_NoRotation) {
-          J = jac.To3x3();
-          J[0][0] += 1.;
-          J[1][1] += 1.;
-          J[2][2] += 1.;
-          J = J.PolarDecomposition().Inverse() * J;
-          J[0][0] -= 1.;
-          J[1][1] -= 1.;
-          J[2][2] -= 1.;
-          jac = J;
-        }
       }
     }
   }
 
-  static void Run(const BSplineFreeFormTransformation3D *ffd, Matrix *jac,
-                  bool rotation, bool wrt_world)
+  static void Run(const BSplineFreeFormTransformation3D *ffd, Matrix *jac, bool wrt_world)
   {
     EvaluateCubicBSplineFFDJacobianAtCPs eval;
     eval._FFD        = ffd;
     eval._Jacobian   = jac;
     eval._WrtWorld   = wrt_world;
-    eval._NoRotation = !rotation;
     parallel_for(blocked_range3d<int>(0, ffd->Z(), 0, ffd->Y(), 0, ffd->X()), eval);
   }
 };
@@ -171,14 +156,12 @@ class EvaluateCubicBSplineFFDJacobianAtVoxels
   const BSplineFreeFormTransformation3D *_FFD;
   Matrix                                *_Jacobian;
   bool                                   _WrtWorld;
-  bool                                   _NoRotation;
 
 public:
 
   void operator ()(const blocked_range3d<int> &re) const
   {
     int vox;
-    Matrix3x3 J;
     double u, v, w;
     const Matrix &m = *_CoordMap;
     for (int k = re.pages().begin(); k != re.pages().end(); ++k)
@@ -194,17 +177,6 @@ public:
           if (_WrtWorld) {
             _FFD->JacobianToWorld(jac);
           }
-          if (_NoRotation) {
-            J = jac.To3x3();
-            J[0][0] += 1.;
-            J[1][1] += 1.;
-            J[2][2] += 1.;
-            J = J.PolarDecomposition().Inverse() * J;
-            J[0][0] -= 1.;
-            J[1][1] -= 1.;
-            J[2][2] -= 1.;
-            jac = J;
-          }
         }
       }
     }
@@ -212,7 +184,7 @@ public:
 
   static void Run(const ImageAttributes *domain,
                   const BSplineFreeFormTransformation3D *ffd, Matrix *jac,
-                  bool rotation, bool wrt_world)
+                  bool wrt_world)
   {
     Matrix coord_map = ffd->Attributes().GetWorldToLatticeMatrix() * domain->GetLatticeToWorldMatrix();
     EvaluateCubicBSplineFFDJacobianAtVoxels eval;
@@ -221,8 +193,40 @@ public:
     eval._FFD        = ffd;
     eval._Jacobian   = jac;
     eval._WrtWorld   = wrt_world;
-    eval._NoRotation = !rotation;
     parallel_for(blocked_range3d<int>(0, domain->Z(), 0, domain->Y(), 0, domain->X()), eval);
+  }
+};
+
+
+/// Remove rotation components from Jacobian matrices
+struct RemoveRotation
+{
+  Matrix *_Jacobian;
+
+  void operator ()(const blocked_range<size_t> &re) const
+  {
+    Matrix3x3 J;
+    for (size_t i = re.begin(); i != re.end(); ++i) {
+      Matrix &jac = _Jacobian[i];
+      if (jac.Rows() > 0) {
+        J = jac.To3x3();
+        J[0][0] += 1.;
+        J[1][1] += 1.;
+        J[2][2] += 1.;
+        J = J.PolarDecomposition().Inverse() * J;
+        J[0][0] -= 1.;
+        J[1][1] -= 1.;
+        J[2][2] -= 1.;
+        jac = J;
+      }
+    }
+  }
+
+  static void Run(Array<Matrix> &jac)
+  {
+    RemoveRotation eval;
+    eval._Jacobian = jac.data();
+    parallel_for(blocked_range<size_t>(0, jac.size()), eval);
   }
 };
 
@@ -361,9 +365,9 @@ class AddApproximateCubicBSplineFFDGradient
   double                                *_Gradient;
   double                                 _Mu;
   double                                 _Lambda;
+  bool                                   _ConstrainRotation;
   bool                                   _ConstrainPassiveDoFs;
   bool                                   _WrtWorld;
-  bool                                   _NoRotation;
 
   /// Initialize lookup table of cubic B-spline first order derivatives
   void InitializeLookupTable()
@@ -415,31 +419,55 @@ public:
       if (_ConstrainPassiveDoFs || _FFD->IsActive(cp)) {
         // Sum non-zero gradient contributions within 3x3x3 support region of control point
         n = 0, g1 = g2 = 0.;
-        for (int nk = ck - 1; nk <= ck + 1; ++nk)
-        for (int nj = cj - 1; nj <= cj + 1; ++nj)
-        for (int ni = ci - 1; ni <= ci + 1; ++ni, ++n) {
-          nc = _FFD->LatticeToIndex(ni, nj, nk);
-          if (0 <= nc && nc < ncps) {
-            // First order derivatives at this neighboring control point
-            const Matrix &jac = _Jacobian[nc];
-            // Get pre-computed derivatives of cubic B-spline kernel centered at current control point (index cp)
-            dB._x = LookupTable[n][0];
-            dB._y = LookupTable[n][1];
-            dB._z = LookupTable[n][2];
-            // Apply chain rule to compute derivatives of energy terms w.r.t. coefficients
-            g1._x += (jac(0, 0) + jac(0, 0)) * dB._x;
-            g1._x += (jac(0, 1) + jac(1, 0)) * dB._y;
-            g1._x += (jac(0, 2) + jac(2, 0)) * dB._z;
-            g1._y += (jac(1, 0) + jac(0, 1)) * dB._x;
-            g1._y += (jac(1, 1) + jac(1, 1)) * dB._y;
-            g1._y += (jac(1, 2) + jac(2, 1)) * dB._z;
-            g1._z += (jac(2, 0) + jac(0, 2)) * dB._x;
-            g1._z += (jac(2, 1) + jac(1, 2)) * dB._y;
-            g1._z += (jac(2, 2) + jac(2, 2)) * dB._z;
-            div = jac(0, 0) + jac(1, 1) + jac(2, 2);
-            g2._x += div * dB._x;
-            g2._y += div * dB._y;
-            g2._z += div * dB._z;
+        if (_ConstrainRotation) {
+          for (int nk = ck - 1; nk <= ck + 1; ++nk)
+          for (int nj = cj - 1; nj <= cj + 1; ++nj)
+          for (int ni = ci - 1; ni <= ci + 1; ++ni, ++n) {
+            nc = _FFD->LatticeToIndex(ni, nj, nk);
+            if (0 <= nc && nc < ncps) {
+              // First order derivatives at this neighboring control point
+              const Matrix &jac = _Jacobian[nc];
+              // Get pre-computed derivatives of cubic B-spline kernel centered at current control point (index cp)
+              dB._x = LookupTable[n][0];
+              dB._y = LookupTable[n][1];
+              dB._z = LookupTable[n][2];
+              // Apply chain rule to compute derivatives of energy terms w.r.t. coefficients
+              g1._x += (jac(0, 0) + jac(0, 0)) * dB._x;
+              g1._x += (jac(0, 1) + jac(1, 0)) * dB._y;
+              g1._x += (jac(0, 2) + jac(2, 0)) * dB._z;
+              g1._y += (jac(1, 0) + jac(0, 1)) * dB._x;
+              g1._y += (jac(1, 1) + jac(1, 1)) * dB._y;
+              g1._y += (jac(1, 2) + jac(2, 1)) * dB._z;
+              g1._z += (jac(2, 0) + jac(0, 2)) * dB._x;
+              g1._z += (jac(2, 1) + jac(1, 2)) * dB._y;
+              g1._z += (jac(2, 2) + jac(2, 2)) * dB._z;
+              div = jac(0, 0) + jac(1, 1) + jac(2, 2);
+              g2._x += div * dB._x;
+              g2._y += div * dB._y;
+              g2._z += div * dB._z;
+            }
+          }
+        } else {
+          for (int nk = ck - 1; nk <= ck + 1; ++nk)
+          for (int nj = cj - 1; nj <= cj + 1; ++nj)
+          for (int ni = ci - 1; ni <= ci + 1; ++ni, ++n) {
+            nc = _FFD->LatticeToIndex(ni, nj, nk);
+            if (0 <= nc && nc < ncps) {
+              // First order derivatives at this neighboring control point
+              const Matrix &jac = _Jacobian[nc];
+              // Get pre-computed derivatives of cubic B-spline kernel centered at current control point (index cp)
+              dB._x = LookupTable[n][0];
+              dB._y = LookupTable[n][1];
+              dB._z = LookupTable[n][2];
+              // Apply chain rule to compute derivatives of energy terms w.r.t. coefficients
+              g1._x += 2. * jac(0, 0) * dB._x;
+              g1._y += 2. * jac(1, 1) * dB._y;
+              g1._z += 2. * jac(2, 2) * dB._z;
+              div = jac(0, 0) + jac(1, 1) + jac(2, 2);
+              g2._x += div * dB._x;
+              g2._y += div * dB._y;
+              g2._z += div * dB._z;
+            }
           }
         }
         _FFD->IndexToDOFs(cp, xdof, ydof, zdof);
@@ -452,7 +480,7 @@ public:
 
   static void Run(double *gradient,
                   const BSplineFreeFormTransformation3D *ffd, const Matrix *jac,
-                  double mu, double lambda, bool incl_passive_cps, bool wrt_world)
+                  double mu, double lambda, bool incl_rotation, bool incl_passive_cps, bool wrt_world)
   {
     const int ncps = (incl_passive_cps ? ffd->NumberOfCPs() : ffd->NumberOfActiveCPs());
     AddApproximateCubicBSplineFFDGradient eval;
@@ -460,6 +488,7 @@ public:
     eval._Jacobian             = jac;
     eval._Mu                   = 2. * mu / ncps;
     eval._Lambda               = 2. * lambda / ncps;
+    eval._ConstrainRotation    = incl_rotation;
     eval._ConstrainPassiveDoFs = incl_passive_cps;
     eval._WrtWorld             = wrt_world;
     eval._Gradient             = gradient;
@@ -481,6 +510,7 @@ class AddCubicBSplineFFDGradient
   double                                *_Gradient;
   double                                 _Mu;
   double                                 _Lambda;
+  bool                                   _ConstrainRotation;
   bool                                   _ConstrainPassiveDoFs;
   bool                                   _WrtWorld;
 
@@ -500,36 +530,64 @@ public:
       if ((_ConstrainPassiveDoFs || _FFD->IsActive(cp)) && _FFD->BoundingBox(*_Domain, cp, i1, j1, k1, i2, j2, k2)) {
         // Sum non-zero gradient contributions over support region of control point
         g1 = g2 = 0.;
-        for (int k = k1; k <= k2; ++k)
-        for (int j = j1; j <= j2; ++j)
-        for (int i = i1; i <= i2; ++i) {
-          // First order spatial derivatives of displacement field
-          vox = _Domain->LatticeToIndex(i, j, k);
-          const Matrix &jac = _Jacobian[vox];
-          // Derivatives of cubic B-spline kernel centered at this control point
-          r._x = m(0, 0) * i + m(0, 1) * j + m(0, 2) * k + m(0, 3) - ci;
-          r._y = m(1, 0) * i + m(1, 1) * j + m(1, 2) * k + m(1, 3) - cj;
-          r._z = m(2, 0) * i + m(2, 1) * j + m(2, 2) * k + m(2, 3) - ck;
-          dB._x = Kernel::B_I(r._x) * Kernel::B(r._y) * Kernel::B(r._z);
-          dB._y = Kernel::B(r._x) * Kernel::B_I(r._y) * Kernel::B(r._z);
-          dB._z = Kernel::B(r._x) * Kernel::B(r._y) * Kernel::B_I(r._z);
-          if (_WrtWorld) {
-            _FFD->JacobianToWorld(dB._x, dB._y, dB._z);
+        if (_ConstrainRotation) {
+          for (int k = k1; k <= k2; ++k)
+          for (int j = j1; j <= j2; ++j)
+          for (int i = i1; i <= i2; ++i) {
+            // First order spatial derivatives of displacement field
+            vox = _Domain->LatticeToIndex(i, j, k);
+            const Matrix &jac = _Jacobian[vox];
+            // Derivatives of cubic B-spline kernel centered at this control point
+            r._x = m(0, 0) * i + m(0, 1) * j + m(0, 2) * k + m(0, 3) - ci;
+            r._y = m(1, 0) * i + m(1, 1) * j + m(1, 2) * k + m(1, 3) - cj;
+            r._z = m(2, 0) * i + m(2, 1) * j + m(2, 2) * k + m(2, 3) - ck;
+            dB._x = Kernel::B_I(r._x) * Kernel::B(r._y) * Kernel::B(r._z);
+            dB._y = Kernel::B(r._x) * Kernel::B_I(r._y) * Kernel::B(r._z);
+            dB._z = Kernel::B(r._x) * Kernel::B(r._y) * Kernel::B_I(r._z);
+            if (_WrtWorld) {
+              _FFD->JacobianToWorld(dB._x, dB._y, dB._z);
+            }
+            // Apply chain rule to compute derivatives of energy terms w.r.t. coefficients
+            g1._x += (jac(0, 0) + jac(0, 0)) * dB._x;
+            g1._x += (jac(0, 1) + jac(1, 0)) * dB._y;
+            g1._x += (jac(0, 2) + jac(2, 0)) * dB._z;
+            g1._y += (jac(1, 0) + jac(0, 1)) * dB._x;
+            g1._y += (jac(1, 1) + jac(1, 1)) * dB._y;
+            g1._y += (jac(1, 2) + jac(2, 1)) * dB._z;
+            g1._z += (jac(2, 0) + jac(0, 2)) * dB._x;
+            g1._z += (jac(2, 1) + jac(1, 2)) * dB._y;
+            g1._z += (jac(2, 2) + jac(2, 2)) * dB._z;
+            div = jac(0, 0) + jac(1, 1) + jac(2, 2);
+            g2._x += div * dB._x;
+            g2._y += div * dB._y;
+            g2._z += div * dB._z;
           }
-          // Apply chain rule to compute derivatives of energy terms w.r.t. coefficients
-          g1._x += (jac(0, 0) + jac(0, 0)) * dB._x;
-          g1._x += (jac(0, 1) + jac(1, 0)) * dB._y;
-          g1._x += (jac(0, 2) + jac(2, 0)) * dB._z;
-          g1._y += (jac(1, 0) + jac(0, 1)) * dB._x;
-          g1._y += (jac(1, 1) + jac(1, 1)) * dB._y;
-          g1._y += (jac(1, 2) + jac(2, 1)) * dB._z;
-          g1._z += (jac(2, 0) + jac(0, 2)) * dB._x;
-          g1._z += (jac(2, 1) + jac(1, 2)) * dB._y;
-          g1._z += (jac(2, 2) + jac(2, 2)) * dB._z;
-          div = jac(0, 0) + jac(1, 1) + jac(2, 2);
-          g2._x += div * dB._x;
-          g2._y += div * dB._y;
-          g2._z += div * dB._z;
+        } else {
+          for (int k = k1; k <= k2; ++k)
+          for (int j = j1; j <= j2; ++j)
+          for (int i = i1; i <= i2; ++i) {
+            // First order spatial derivatives of displacement field
+            vox = _Domain->LatticeToIndex(i, j, k);
+            const Matrix &jac = _Jacobian[vox];
+            // Derivatives of cubic B-spline kernel centered at this control point
+            r._x = m(0, 0) * i + m(0, 1) * j + m(0, 2) * k + m(0, 3) - ci;
+            r._y = m(1, 0) * i + m(1, 1) * j + m(1, 2) * k + m(1, 3) - cj;
+            r._z = m(2, 0) * i + m(2, 1) * j + m(2, 2) * k + m(2, 3) - ck;
+            dB._x = Kernel::B_I(r._x) * Kernel::B(r._y) * Kernel::B(r._z);
+            dB._y = Kernel::B(r._x) * Kernel::B_I(r._y) * Kernel::B(r._z);
+            dB._z = Kernel::B(r._x) * Kernel::B(r._y) * Kernel::B_I(r._z);
+            if (_WrtWorld) {
+              _FFD->JacobianToWorld(dB._x, dB._y, dB._z);
+            }
+            // Apply chain rule to compute derivatives of energy terms w.r.t. coefficients
+            g1._x += (jac(0, 0) + jac(0, 0)) * dB._x;
+            g1._y += (jac(1, 1) + jac(1, 1)) * dB._y;
+            g1._z += (jac(2, 2) + jac(2, 2)) * dB._z;
+            div = jac(0, 0) + jac(1, 1) + jac(2, 2);
+            g2._x += div * dB._x;
+            g2._y += div * dB._y;
+            g2._z += div * dB._z;
+          }
         }
         _FFD->IndexToDOFs(cp, xdof, ydof, zdof);
         _Gradient[xdof] += _Mu * g1._x + _Lambda * g2._x;
@@ -541,7 +599,7 @@ public:
 
   static void Run(double *gradient, const ImageAttributes *domain,
                   const BSplineFreeFormTransformation3D *ffd, const Matrix *jac,
-                  double mu, double lambda, bool incl_passive_cps, bool wrt_world)
+                  double mu, double lambda, bool incl_rotation, bool incl_passive_cps, bool wrt_world)
   {
     const int npts = domain->NumberOfSpatialPoints();
     Matrix coord_map = ffd->Attributes().GetWorldToLatticeMatrix() * domain->GetLatticeToWorldMatrix();
@@ -552,6 +610,7 @@ public:
     eval._Jacobian             = jac;
     eval._Mu                   = 2. * mu / npts;
     eval._Lambda               = 2. * lambda / npts;
+    eval._ConstrainRotation    = incl_rotation;
     eval._ConstrainPassiveDoFs = incl_passive_cps;
     eval._WrtWorld             = wrt_world;
     eval._Gradient             = gradient;
@@ -587,7 +646,7 @@ bool LinearElasticityConstraint::SetWithoutPrefix(const char *param, const char 
   if (strcmp(param, "Approximate") == 0) {
     return FromString(value, _Approximate);
   }
-  if (strcmp(param, "With respect to world") == 0 || strcmp(param, "Wrt world") == 0 || strcmp(param, "W.r.t. world") == 0 || strcmp(param, "World") == 0) {
+  if (strcmp(param, "With respect to world") == 0 || strcmp(param, "Wrt world") == 0 || strcmp(param, "W.r.t. world") == 0) {
     return FromString(value, _WrtWorld);
   }
   if (strcmp(param, "Rotation") == 0 || strcmp(param, "Constrain rotation") == 0) {
@@ -697,26 +756,31 @@ void LinearElasticityConstraint::Update(bool gradient)
       ffd = mffd->GetLocalTransformation(l);
       auto bffd = dynamic_cast<const BSplineFreeFormTransformation3D *>(ffd);
       if (!bffd) {
-        Throw(ERR_NotImplemented, __FUNCTION__, "Currently only implemented for 3D cubic BSpline FFD");
+        Throw(ERR_NotImplemented, __FUNCTION__, "Currently only implemented for 3D cubic BSpline (SV)FFD");
       }
       if (_Approximate) {
-        EvaluateCubicBSplineFFDJacobianAtCPs::Run(bffd, jac, _ConstrainRotation, _WrtWorld);
+        EvaluateCubicBSplineFFDJacobianAtCPs::Run(bffd, jac, _WrtWorld);
         jac += ffd->NumberOfCPs();
       } else {
-        EvaluateCubicBSplineFFDJacobianAtVoxels::Run(&_Domain, bffd, jac, _ConstrainRotation, _WrtWorld);
+        EvaluateCubicBSplineFFDJacobianAtVoxels::Run(&_Domain, bffd, jac, _WrtWorld);
         jac += _Domain.NumberOfSpatialPoints();
       }
     }
   } else if (ffd) {
     auto bffd = dynamic_cast<const BSplineFreeFormTransformation3D *>(ffd);
     if (!bffd) {
-      Throw(ERR_NotImplemented, __FUNCTION__, "Currently only implemented for 3D cubic BSpline FFD");
+      Throw(ERR_NotImplemented, __FUNCTION__, "Currently only implemented for 3D cubic BSpline (SV)FFD");
     }
     if (_Approximate) {
-      EvaluateCubicBSplineFFDJacobianAtCPs::Run(bffd, _Jacobian.data(), _ConstrainRotation, _WrtWorld);
+      EvaluateCubicBSplineFFDJacobianAtCPs::Run(bffd, _Jacobian.data(), _WrtWorld);
     } else {
-      EvaluateCubicBSplineFFDJacobianAtVoxels::Run(&_Domain, bffd, _Jacobian.data(), _ConstrainRotation, _WrtWorld);
+      EvaluateCubicBSplineFFDJacobianAtVoxels::Run(&_Domain, bffd, _Jacobian.data(), _WrtWorld);
     }
+  }
+
+  // Remove rotation components
+  if (!_ConstrainRotation) {
+    RemoveRotation::Run(_Jacobian);
   }
 }
 
@@ -776,13 +840,13 @@ void LinearElasticityConstraint::EvaluateGradient(double *gradient, double, doub
       ffd = mffd->GetLocalTransformation(l);
       auto bffd = dynamic_cast<const BSplineFreeFormTransformation3D *>(ffd);
       if (!bffd) {
-        Throw(ERR_NotImplemented, __FUNCTION__, "Currently only implemented for 3D cubic BSpline FFD");
+        Throw(ERR_NotImplemented, __FUNCTION__, "Currently only implemented for 3D cubic BSpline (SV)FFD");
       }
       if (_Approximate) {
-        AddApproximateCubicBSplineFFDGradient::Run(gradient, bffd, jac, mu, lambda, _ConstrainPassiveDoFs, _WrtWorld);
+        AddApproximateCubicBSplineFFDGradient::Run(gradient, bffd, jac, mu, lambda, _ConstrainRotation, _ConstrainPassiveDoFs, _WrtWorld);
         jac += ffd->NumberOfCPs();
       } else {
-        AddCubicBSplineFFDGradient::Run(gradient, &_Domain, bffd, jac, mu, lambda, _ConstrainPassiveDoFs, _WrtWorld);
+        AddCubicBSplineFFDGradient::Run(gradient, &_Domain, bffd, jac, mu, lambda, _ConstrainRotation, _ConstrainPassiveDoFs, _WrtWorld);
         jac += _Domain.NumberOfSpatialPoints();
       }
       gradient += ffd->NumberOfDOFs();
@@ -790,12 +854,12 @@ void LinearElasticityConstraint::EvaluateGradient(double *gradient, double, doub
   } else if (ffd) {
     auto bffd = dynamic_cast<const BSplineFreeFormTransformation3D *>(ffd);
     if (!bffd) {
-      Throw(ERR_NotImplemented, __FUNCTION__, "Currently only implemented for 3D cubic BSpline FFD");
+      Throw(ERR_NotImplemented, __FUNCTION__, "Currently only implemented for 3D cubic BSpline (SV)FFD");
     }
     if (_Approximate) {
-      AddApproximateCubicBSplineFFDGradient::Run(gradient, bffd, _Jacobian.data(), mu, lambda, _ConstrainPassiveDoFs, _WrtWorld);
+      AddApproximateCubicBSplineFFDGradient::Run(gradient, bffd, _Jacobian.data(), mu, lambda, _ConstrainRotation, _ConstrainPassiveDoFs, _WrtWorld);
     } else {
-      AddCubicBSplineFFDGradient::Run(gradient, &_Domain, bffd, _Jacobian.data(), mu, lambda, _ConstrainPassiveDoFs, _WrtWorld);
+      AddCubicBSplineFFDGradient::Run(gradient, &_Domain, bffd, _Jacobian.data(), mu, lambda, _ConstrainRotation, _ConstrainPassiveDoFs, _WrtWorld);
     }
   }
 }
@@ -826,24 +890,23 @@ void LinearElasticityConstraint::WriteGradient(const char *p, const char *suffix
       if (!mffd->LocalTransformationIsActive(l)) continue;
       ffd = mffd->GetLocalTransformation(l);
       auto bffd = dynamic_cast<const BSplineFreeFormTransformation3D *>(ffd);
-      if (!bffd) {
-        Throw(ERR_NotImplemented, __FUNCTION__, "Currently only implemented for 3D cubic BSpline FFD");
+      if (bffd) {
+        gradient.resize(ffd->NumberOfDOFs());
+        memset(gradient.data(), 0, ffd->NumberOfDOFs() * sizeof(double));
+        if (_Approximate) {
+          AddApproximateCubicBSplineFFDGradient::Run(gradient.data(), bffd, jac, _Mu, _Lambda, _ConstrainRotation, _ConstrainPassiveDoFs, _WrtWorld);
+          jac += ffd->NumberOfCPs();
+        } else {
+          AddCubicBSplineFFDGradient::Run(gradient.data(), &_Domain, bffd, jac, _Mu, _Lambda, _ConstrainRotation, _ConstrainPassiveDoFs, _WrtWorld);
+          jac += _Domain.NumberOfSpatialPoints();
+        }
+        if (mffd->NumberOfActiveLevels() == 1) {
+          snprintf(fname, sz, "%sgradient%s", prefix, suffix);
+        } else {
+          snprintf(fname, sz, "%sgradient_of_ffd_at_level_%d%s", prefix, l+1, suffix);
+        }
+        WriteFFDGradient(fname, ffd, gradient.data());
       }
-      gradient.resize(ffd->NumberOfDOFs());
-      memset(gradient.data(), 0, ffd->NumberOfDOFs() * sizeof(double));
-      if (_Approximate) {
-        AddApproximateCubicBSplineFFDGradient::Run(gradient.data(), bffd, jac, _Mu, _Lambda, _ConstrainPassiveDoFs, _WrtWorld);
-        jac += ffd->NumberOfCPs();
-      } else {
-        AddCubicBSplineFFDGradient::Run(gradient.data(), &_Domain, bffd, jac, _Mu, _Lambda, _ConstrainPassiveDoFs, _WrtWorld);
-        jac += _Domain.NumberOfSpatialPoints();
-      }
-      if (mffd->NumberOfActiveLevels() == 1) {
-        snprintf(fname, sz, "%sgradient%s", prefix, suffix);
-      } else {
-        snprintf(fname, sz, "%sgradient_of_ffd_at_level_%d%s", prefix, l+1, suffix);
-      }
-      WriteFFDGradient(fname, ffd, gradient.data());
     }
   } else if (ffd) {
     auto bffd = dynamic_cast<const BSplineFreeFormTransformation3D *>(ffd);
@@ -852,9 +915,9 @@ void LinearElasticityConstraint::WriteGradient(const char *p, const char *suffix
       gradient.resize(ffd->NumberOfDOFs());
       memset(gradient.data(), 0, ffd->NumberOfDOFs() * sizeof(double));
       if (_Approximate) {
-        AddApproximateCubicBSplineFFDGradient::Run(gradient.data(), bffd, _Jacobian.data(), _Mu, _Lambda, _ConstrainPassiveDoFs, _WrtWorld);
+        AddApproximateCubicBSplineFFDGradient::Run(gradient.data(), bffd, _Jacobian.data(), _Mu, _Lambda, _ConstrainRotation, _ConstrainPassiveDoFs, _WrtWorld);
       } else {
-        AddCubicBSplineFFDGradient::Run(gradient.data(), &_Domain, bffd, _Jacobian.data(), _Mu, _Lambda, _ConstrainPassiveDoFs, _WrtWorld);
+        AddCubicBSplineFFDGradient::Run(gradient.data(), &_Domain, bffd, _Jacobian.data(), _Mu, _Lambda, _ConstrainRotation, _ConstrainPassiveDoFs, _WrtWorld);
       }
       WriteFFDGradient(fname, ffd, gradient.data());
     }
