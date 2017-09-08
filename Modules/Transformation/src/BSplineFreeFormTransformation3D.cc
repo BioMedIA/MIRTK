@@ -1296,6 +1296,8 @@ public:
       *dxy += _CPValue->Get(I, J) * LookupTable[n][1];
       *dyy += _CPValue->Get(I, J) * LookupTable[n][2];
     }
+    // Pre-multiply mixed 2nd order derivatives by factor 2
+    (*dxy) *= 2.;
   }
 };
 
@@ -1365,6 +1367,10 @@ public:
       *dyz += _CPValue->Get(I, J, K) * LookupTable[n][4];
       *dzz += _CPValue->Get(I, J, K) * LookupTable[n][5];
     }
+    // Pre-multiply mixed 2nd order derivatives by factor 2
+    (*dxy) *= 2.;
+    (*dxz) *= 2.;
+    (*dyz) *= 2.;
   }
 };
 
@@ -1408,12 +1414,20 @@ void BSplineFreeFormTransformation3D::BendingEnergyGradient(double *gradient, do
         // Derivatives were evaluated on a lattice that has an
         // additional boundary margin of one voxel. Therefore,
         // indices i and j are shifted by an offset of +1.
-        n = 0, g = 0.;
+        //
+        // Iterate n in reverse order because LatticeWeight_I[0]
+        // corresponds to neighbor with offset +1, not -1!
+        // Note, however, that because of the product of 1st order
+        // derivatives for mixed terms, the negative signs cancel
+        // out and the kernel weights are symmetric. Hence, the
+        // iteration order of n does not really matter here.
+        n = 8, g = 0.;
         for (int j = cj; j <= cj+2; ++j)
-        for (int i = ci; i <= ci+2; ++i, ++n) {
+        for (int i = ci; i <= ci+2; ++i, --n) {
           const double *w = eval.LookupTable[n];
+          // Note: Mixed derivatives are pre-multiplied by factor 2 by above voxel function!
           g += dxx(i, j) * w[0];
-          g += dxy(i, j) * w[1] * 2.; // dxy and dyx
+          g += dxy(i, j) * w[1]; // dxy + dyx
           g += dyy(i, j) * w[2];
         }
         cp = this->LatticeToIndex(ci, cj);
@@ -1444,6 +1458,8 @@ void BSplineFreeFormTransformation3D::BendingEnergyGradient(double *gradient, do
     Evaluate2ndOrderBSplineFFDDerivatives3D eval(this, wrt_world);
     ParallelForEachVoxel(attr, dxx, dxy, dxz, dyy, dyz, dzz, eval);
 
+    static int call = 0; ++call;
+
     // Compute derivative of bending energy w.r.t each control point
     Vector g;
     int n, cp, xdof, ydof, zdof;
@@ -1456,16 +1472,24 @@ void BSplineFreeFormTransformation3D::BendingEnergyGradient(double *gradient, do
         // Derivatives were evaluated on a lattice that has an
         // additional boundary margin of one voxel. Therefore,
         // indices i, j and k are shifted by an offset of +1.
-        n = 0, g = 0.;
+        //
+        // Iterate n in reverse order because LatticeWeight_I[0]
+        // corresponds to neighbor with offset +1, not -1!
+        // Note, however, that because of the product of 1st order
+        // derivatives for mixed terms, the negative signs cancel
+        // out and the kernel weights are symmetric. Hence, the
+        // iteration order of n does not really matter here.
+        n = 26, g = 0.;
         for (int k = ck; k <= ck+2; ++k)
         for (int j = cj; j <= cj+2; ++j)
-        for (int i = ci; i <= ci+2; ++i, ++n) {
+        for (int i = ci; i <= ci+2; ++i, --n) {
           const double *w = eval.LookupTable[n];
+          // Note: Mixed derivatives are pre-multiplied by factor 2 by above voxel function!
           g += dxx(i, j, k) * w[0];
-          g += dxy(i, j, k) * w[1] * 2.; // dxy and dyx
-          g += dxz(i, j, k) * w[2] * 2.; // dxz and dzx
+          g += dxy(i, j, k) * w[1]; // dxy + dyx
+          g += dxz(i, j, k) * w[2]; // dxz + dzx
           g += dyy(i, j, k) * w[3];
-          g += dyz(i, j, k) * w[4] * 2.; // dyz and dzy
+          g += dyz(i, j, k) * w[4]; // dyz + dzy
           g += dzz(i, j, k) * w[5];
         }
         cp = this->LatticeToIndex(ci, cj, ck);
