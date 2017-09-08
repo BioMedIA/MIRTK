@@ -284,8 +284,8 @@ public:
     eval._FFD                  = ffd;
     eval._ConstrainPassiveDoFs = incl_passive_cps;
     eval._Jacobian             = jac;
-    eval._Mu                   = .25 * mu;
-    eval._Lambda               = .50 * lambda;
+    eval._Mu                   = .5 * mu;
+    eval._Lambda               = lambda;
     parallel_reduce(blocked_range<size_t>(0, ffd->NumberOfCPs()), eval);
     return (eval._Count > 0 ? eval._Energy / eval._Count : 0.);
   }
@@ -343,8 +343,8 @@ public:
   {
     EvaluateLinearElasticEnergy eval;
     eval._Jacobian             = jac;
-    eval._Mu                   = .25 * mu;
-    eval._Lambda               = .50 * lambda;
+    eval._Mu                   = .5 * mu;
+    eval._Lambda               = lambda;
     parallel_reduce(blocked_range<size_t>(0, domain->NumberOfSpatialPoints()), eval);
     return (eval._Count > 0 ? eval._Energy / eval._Count : 0.);
   }
@@ -458,8 +458,8 @@ public:
     AddApproximateCubicBSplineFFDGradient eval;
     eval._FFD                  = ffd;
     eval._Jacobian             = jac;
-    eval._Mu                   = mu / ncps;
-    eval._Lambda               = lambda / ncps;
+    eval._Mu                   = 2. * mu / ncps;
+    eval._Lambda               = 2. * lambda / ncps;
     eval._ConstrainPassiveDoFs = incl_passive_cps;
     eval._WrtWorld             = wrt_world;
     eval._Gradient             = gradient;
@@ -550,8 +550,8 @@ public:
     eval._CoordMap             = &coord_map;
     eval._FFD                  = ffd;
     eval._Jacobian             = jac;
-    eval._Mu                   = mu / npts;
-    eval._Lambda               = lambda / npts;
+    eval._Mu                   = 2. * mu / npts;
+    eval._Lambda               = 2. * lambda / npts;
     eval._ConstrainPassiveDoFs = incl_passive_cps;
     eval._WrtWorld             = wrt_world;
     eval._Gradient             = gradient;
