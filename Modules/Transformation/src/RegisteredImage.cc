@@ -1118,7 +1118,7 @@ private:
 
 public:
 
-  /// Interpolate 2nd order derivatives of input intensity function
+  /// Interpolate 1st order derivatives of input intensity function
   void Gradient(double x, double y, double z, VoxelType *o, int mode = 0) const
   {
     double gradient[3];
