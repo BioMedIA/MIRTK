@@ -1183,43 +1183,64 @@ double BSplineFreeFormTransformation4D::BendingEnergy(const ImageAttributes &att
 }
 
 
-namespace BSplineFreeFormTransformation4DUtils {
+namespace {
 
-// -----------------------------------------------------------------------------
-/// Voxel function which evaluates the 2nd order derivatives of one component
-/// of a B-spline FFD at control point lattice coordinates
-struct Evaluate2ndOrderBSplineFFDDerivatives : public VoxelFunction
+/// Voxel function for evaluation of 2nd order derivatives of 3D cubic B-spline kernel centered at a control point
+class Evaluate2ndOrderBSplineFFDDerivatives4D : public VoxelFunction
 {
   typedef BSplineFreeFormTransformation4D::CPExtrapolator Extrapolator;
   typedef BSplineFreeFormTransformation4D::Vector         Vector;
   typedef BSplineFreeFormTransformation4D::Kernel         Kernel;
 
-  const BSplineFreeFormTransformation4D *_Transformation; ///< B-spline free-form deformation
-  const Extrapolator                    *_CPValue;        ///< Coefficients of B-spline FFD
-  bool                                   _WrtWorld;       ///< Whether to compute derivatives
-                                                              ///< w.r.t world or lattice coordinates
+  const BSplineFreeFormTransformation4D *_FFD;      ///< B-spline free-form deformation
+  const Extrapolator                    *_CPValue;  ///< Coefficients of B-spline FFD
 
-  /// Derivatives of 2nd order derivatives w.r.t control point parameters
-  static double LookupTable[81][6];
+  /// Initialize static lookup tables of 2nd order derivatives w.r.t control
+  /// point parameters evaluated for each voxel in the 3D kernel support region
+  void InitializeLookupTable(bool wrt_world)
+  {
+    const double *w[3] = {
+      Kernel::LatticeWeights,
+      Kernel::LatticeWeights_I,
+      Kernel::LatticeWeights_II
+    };
 
-  /// Initialize 4D lookup table of 2nd order derivatives w.r.t control point
-  /// parameter for each voxel in the support region of a basis kernel
-  static void InitializeLookupTable();
+    int n = 0;
+    for (int d = 0; d < 3; ++d)
+    for (int c = 0; c < 3; ++c)
+    for (int b = 0; b < 3; ++b)
+    for (int a = 0; a < 3; ++a, ++n) {
+      double *g = LookupTable[n];
+      g[0] = w[2][a] * w[0][b] * w[0][c] * w[0][d];
+      g[1] = w[1][a] * w[1][b] * w[0][c] * w[0][d];
+      g[2] = w[1][a] * w[0][b] * w[1][c] * w[0][d];
+      g[3] = w[0][a] * w[2][b] * w[0][c] * w[0][d];
+      g[4] = w[0][a] * w[1][b] * w[1][c] * w[0][d];
+      g[5] = w[0][a] * w[0][b] * w[2][c] * w[0][d];
+      if (wrt_world) {
+        _FFD->HessianToWorld(g[0], g[1], g[2], g[3], g[4], g[5]);
+      }
+    }
+  }
+
+public:
+
+  /// 2nd order derivatives of cubic B-spline kernel within 3x3x3x3 support region
+  double LookupTable[81][6];
 
   /// Constructor
-  Evaluate2ndOrderBSplineFFDDerivatives(const BSplineFreeFormTransformation4D *ffd,
-                                        bool wrt_world = false)
+  Evaluate2ndOrderBSplineFFDDerivatives4D(const BSplineFreeFormTransformation4D *ffd, bool wrt_world = false)
   :
-    _Transformation(ffd), _CPValue(ffd->Extrapolator()), _WrtWorld(wrt_world)
-  {}
+    _FFD(ffd), _CPValue(ffd->Extrapolator())
+  {
+    InitializeLookupTable(wrt_world);
+  }
 
   /// Evaluate 2nd order derivatives of 4D FFD at given lattice coordinate
-  void operator()(int i, int j, int k, int l,
-                  Vector *dxx, Vector *dxy, Vector *dxz, Vector *dyy, Vector *dyz, Vector *dzz)
+  void operator()(int i, int j, int k, int l, Vector *dxx, Vector *dxy, Vector *dxz, Vector *dyy, Vector *dyz, Vector *dzz)
   {
-    // Note: Derivatives are evaluated on a lattice that has an
-    //       additional boundary margin of one voxel. Therefore,
-    //       CP indices I, J, K, and L are shifted by an offset of -1.
+    // Note: Derivatives are evaluated on a lattice that has an additional boundary margin of one voxel.
+    //       Therefore, CP indices I, J, K, and L are shifted by an offset of -1.
     int n = 0;
     for (int L = l-2; L <= l; ++L)
     for (int K = k-2; K <= k; ++K)
@@ -1232,64 +1253,24 @@ struct Evaluate2ndOrderBSplineFFDDerivatives : public VoxelFunction
       *dyz += _CPValue->Get(I, J, K, L) * LookupTable[n][4];
       *dzz += _CPValue->Get(I, J, K, L) * LookupTable[n][5];
     }
-    // Apply product and chain rule to convert derivatives to ones w.r.t the world
-    if (_WrtWorld) {
-      _Transformation->HessianToWorld(dxx->_x, dxy->_x, dxz->_x, dyy->_x, dyz->_x, dzz->_x);
-      _Transformation->HessianToWorld(dxx->_y, dxy->_y, dxz->_y, dyy->_y, dyz->_y, dzz->_y);
-      _Transformation->HessianToWorld(dxx->_z, dxy->_z, dxz->_z, dyy->_z, dyz->_z, dzz->_z);
-    }
+    // Pre-multiply mixed 2nd order derivatives by factor 2
+    (*dxy) *= 2.;
+    (*dxz) *= 2.;
+    (*dyz) *= 2.;
   }
 };
 
-// -----------------------------------------------------------------------------
-double Evaluate2ndOrderBSplineFFDDerivatives::LookupTable[81][6] = {{.0}};
-void Evaluate2ndOrderBSplineFFDDerivatives::InitializeLookupTable()
-{
-  static bool initialized = false;
-  if (initialized) return;
-
-  const double *w[3] = {
-    Kernel::LatticeWeights,
-    Kernel::LatticeWeights_I,
-    Kernel::LatticeWeights_II
-  };
-
-  int n = 0;
-  for (int d = 0; d < 3; ++d)
-  for (int c = 0; c < 3; ++c)
-  for (int b = 0; b < 3; ++b)
-  for (int a = 0; a < 3; ++a, ++n) {
-    LookupTable[n][0] = w[2][a] * w[0][b] * w[0][c] * w[0][d];
-    LookupTable[n][1] = w[1][a] * w[1][b] * w[0][c] * w[0][d];
-    LookupTable[n][2] = w[1][a] * w[0][b] * w[1][c] * w[0][d];
-    LookupTable[n][3] = w[0][a] * w[2][b] * w[0][c] * w[0][d];
-    LookupTable[n][4] = w[0][a] * w[1][b] * w[1][c] * w[0][d];
-    LookupTable[n][5] = w[0][a] * w[0][b] * w[2][c] * w[0][d];
-  }
-
-  initialized = true;
-}
-
-
-} // namespace BSplineFreeFormTransformation4DUtils
+} // nanonymous namespace
 
 // -----------------------------------------------------------------------------
 void BSplineFreeFormTransformation4D::BendingEnergyGradient(double *gradient, double weight, bool incl_passive, bool wrt_world) const
 {
-  using namespace BSplineFreeFormTransformation4DUtils;
-
-  Vector sum;
-  int    m, n;
-
   MIRTK_START_TIMING();
 
   // Pre-multiply weight by derivative of square function (2) and normalization factor
-  const int ncps = this->NumberOfActiveCPs();
+  const int ncps = (incl_passive ? this->NumberOfCPs() : this->NumberOfActiveCPs());
   if (ncps == 0) return;
-  weight *= 2.0 / ncps;
-
-  // Initialize static lookup table
-  Evaluate2ndOrderBSplineFFDDerivatives::InitializeLookupTable();
+  weight *= 2. / ncps;
 
   // Add a layer of boundary voxels to avoid additional boundary conditions
   ImageAttributes attr = this->Attributes();
@@ -1304,81 +1285,48 @@ void BSplineFreeFormTransformation4D::BendingEnergyGradient(double *gradient, do
   GenericImage<Vector> dyz(attr);
   GenericImage<Vector> dzz(attr);
 
-  Evaluate2ndOrderBSplineFFDDerivatives eval(this, wrt_world);
+  Evaluate2ndOrderBSplineFFDDerivatives4D eval(this, wrt_world);
   ParallelForEachVoxel(attr, dxx, dxy, dxz, dyy, dyz, dzz, eval);
 
-  // Compute 3rd order derivatives, twice w.r.t. lattice or world coordinate
-  // and once w.r.t. transformation parameters of control point
-  double w[81][9];
-  if (wrt_world) {
-    // Loop over support region (3x3x3x3) of a control point
-    //
-    // Note that the following terms are independent of the transformation
-    // parameters and therefore can be pre-computed here as they are identical for
-    // all control point positions at which the bending gradient is evaluated.
-    for (n = 0; n < 81; ++n) {
-      m = 0; // index of 2nd order derivative ( d^2 T(x[n]) / dx_i dx_j )
-             // which is multiplied by weight w[n][m] according to the chain rule
-      for (int i = 0; i < 3; ++i)
-      for (int j = 0; j < 3; ++j, ++m) {
-        w[n][m]  = Evaluate2ndOrderBSplineFFDDerivatives::LookupTable[n][0] * _matW2L(0, i) * _matW2L(0, j); // ( d^3 T(x[n]) / dudu dPhi ) * du/dx_i * du/dx_j
-        w[n][m] += Evaluate2ndOrderBSplineFFDDerivatives::LookupTable[n][1] * _matW2L(0, i) * _matW2L(1, j); // ( d^3 T(x[n]) / dudv dPhi ) * du/dx_i * dv/dx_j
-        w[n][m] += Evaluate2ndOrderBSplineFFDDerivatives::LookupTable[n][2] * _matW2L(0, i) * _matW2L(2, j); // ( d^3 T(x[n]) / dudw dPhi ) * du/dx_i * dw/dx_j
-        w[n][m] += Evaluate2ndOrderBSplineFFDDerivatives::LookupTable[n][1] * _matW2L(1, i) * _matW2L(0, j); // ( d^3 T(x[n]) / dvdu dPhi ) * dv/dx_i * du/dx_j
-        w[n][m] += Evaluate2ndOrderBSplineFFDDerivatives::LookupTable[n][3] * _matW2L(1, i) * _matW2L(1, j); // ( d^3 T(x[n]) / dvdv dPhi ) * dv/dx_i * dv/dx_j
-        w[n][m] += Evaluate2ndOrderBSplineFFDDerivatives::LookupTable[n][4] * _matW2L(1, i) * _matW2L(2, j); // ( d^3 T(x[n]) / dvdw dPhi ) * dv/dx_i * dw/dx_j
-        w[n][m] += Evaluate2ndOrderBSplineFFDDerivatives::LookupTable[n][2] * _matW2L(2, i) * _matW2L(0, j); // ( d^3 T(x[n]) / dwdu dPhi ) * dw/dx_i * du/dx_j
-        w[n][m] += Evaluate2ndOrderBSplineFFDDerivatives::LookupTable[n][4] * _matW2L(2, i) * _matW2L(1, j); // ( d^3 T(x[n]) / dwdv dPhi ) * dw/dx_i * dv/dx_j
-        w[n][m] += Evaluate2ndOrderBSplineFFDDerivatives::LookupTable[n][5] * _matW2L(2, i) * _matW2L(2, j); // ( d^3 T(x[n]) / dwdw dPhi ) * dw/dx_i * dw/dx_j
-      }
-      // Add weights of ( d^2 T(x[n]) / dx_i dx_j ) and ( d^2 T(x[n]) / dx_j dx_i )
-      // for i != j as these derivatives are identical and re-order remaining weights.
-      w[n][1] = w[n][1] + w[n][3];
-      w[n][2] = w[n][2] + w[n][6];
-      w[n][3] = w[n][4];
-      w[n][4] = w[n][5] + w[n][7];
-      w[n][5] = w[n][8];
-    }
-  } else {
-    for (n = 0; n < 81; ++n) {
-      w[n][0] =       Evaluate2ndOrderBSplineFFDDerivatives::LookupTable[n][0];
-      w[n][1] = 2.0 * Evaluate2ndOrderBSplineFFDDerivatives::LookupTable[n][1];
-      w[n][2] = 2.0 * Evaluate2ndOrderBSplineFFDDerivatives::LookupTable[n][2];
-      w[n][3] =       Evaluate2ndOrderBSplineFFDDerivatives::LookupTable[n][3];
-      w[n][4] = 2.0 * Evaluate2ndOrderBSplineFFDDerivatives::LookupTable[n][4];
-      w[n][5] =       Evaluate2ndOrderBSplineFFDDerivatives::LookupTable[n][5];
-    }
-  }
-
   // Compute derivative of bending energy w.r.t each control point
-  int xdof, ydof, zdof;
+  Vector g;
+  int n, cp, xdof, ydof, zdof;
   for (int cl = 0; cl < _t; ++cl)
   for (int ck = 0; ck < _z; ++ck)
   for (int cj = 0; cj < _y; ++cj)
   for (int ci = 0; ci < _x; ++ci) {
-    if (incl_passive || IsActive(ci, cj, ck, cl)) {
-      sum = .0;
+    if (incl_passive || IsActive(ci, cj, ck)) {
       // Loop over support region (3x3x3x3) of control point
       //
-      // Note: Derivatives were evaluated on a lattice that has an
-      //       additional boundary margin of one voxel. Therefore,
-      //       indices i, j, k, and l are shifted by an offset of +1.
-      n = 0;
+      // Derivatives were evaluated on a lattice that has an
+      // additional boundary margin of one voxel. Therefore,
+      // indices i, j, k, and l are shifted by an offset of +1.
+      //
+      // Iterate n in reverse order because LatticeWeight_I[0]
+      // corresponds to neighbor with offset +1, not -1!
+      // Note, however, that because of the product of 1st order
+      // derivatives for mixed terms, the negative signs cancel
+      // out and the kernel weights are symmetric. Hence, the
+      // iteration order of n does not really matter here.
+      n = 80, g = 0.;
       for (int l = cl; l <= cl+2; ++l)
       for (int k = ck; k <= ck+2; ++k)
       for (int j = cj; j <= cj+2; ++j)
-      for (int i = ci; i <= ci+2; ++i, ++n) {
-        sum += dxx(i, j, k, l) * w[n][0];
-        sum += dxy(i, j, k, l) * w[n][1];
-        sum += dxz(i, j, k, l) * w[n][2];
-        sum += dyy(i, j, k, l) * w[n][3];
-        sum += dyz(i, j, k, l) * w[n][4];
-        sum += dzz(i, j, k, l) * w[n][5];
+      for (int i = ci; i <= ci+2; ++i, --n) {
+        const double *w = eval.LookupTable[n];
+        // Note: Mixed derivatives are pre-multiplied by factor 2 by above voxel function!
+        g += dxx(i, j, k, l) * w[0];
+        g += dxy(i, j, k, l) * w[1]; // dxy + dyx
+        g += dxz(i, j, k, l) * w[2]; // dxz + dzx
+        g += dyy(i, j, k, l) * w[3];
+        g += dyz(i, j, k, l) * w[4]; // dyz + dzy
+        g += dzz(i, j, k, l) * w[5];
       }
-      this->IndexToDOFs(this->LatticeToIndex(ci, cj, ck, cl), xdof, ydof, zdof);
-      gradient[xdof] += weight * sum._x;
-      gradient[ydof] += weight * sum._y;
-      gradient[zdof] += weight * sum._z;
+      cp = this->LatticeToIndex(ci, cj, ck);
+      this->IndexToDOFs(cp, xdof, ydof, zdof);
+      gradient[xdof] += weight * g._x;
+      gradient[ydof] += weight * g._y;
+      gradient[zdof] += weight * g._z;
     }
   }
 
