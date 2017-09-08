@@ -264,12 +264,14 @@ public:
     for (size_t cp = re.begin(); cp != re.end(); ++cp) {
       if (_ConstrainPassiveDoFs || _FFD->IsActive(cp)) {
         const Matrix &jac = _Jacobian[cp];
-        a = pow(jac(0, 0), 2) + pow(jac(1, 1), 2) + pow(jac(2, 2), 2)
-          + pow(.5 * (jac(0, 1) + jac(1, 0)), 2)
-          + pow(.5 * (jac(0, 2) + jac(2, 0)), 2)
-          + pow(.5 * (jac(1, 2) + jac(2, 1)), 2);
+        a = pow(jac(0, 0) + jac(0, 0), 2)
+          + pow(jac(0, 1) + jac(1, 0), 2) * 2.
+          + pow(jac(0, 2) + jac(2, 0), 2) * 2.
+          + pow(jac(1, 1) + jac(1, 1), 2)
+          + pow(jac(1, 2) + jac(2, 1), 2) * 2.
+          + pow(jac(2, 2) + jac(2, 2), 2);
         b = jac(0, 0) + jac(1, 1) + jac(2, 2);
-        _Energy += .5 * _Mu * a + _Lambda * b * b;
+        _Energy += _Mu * a + _Lambda * b * b;
         ++_Count;
       }
     }
@@ -282,8 +284,8 @@ public:
     eval._FFD                  = ffd;
     eval._ConstrainPassiveDoFs = incl_passive_cps;
     eval._Jacobian             = jac;
-    eval._Mu                   = mu;
-    eval._Lambda               = lambda;
+    eval._Mu                   = .25 * mu;
+    eval._Lambda               = .50 * lambda;
     parallel_reduce(blocked_range<size_t>(0, ffd->NumberOfCPs()), eval);
     return (eval._Count > 0 ? eval._Energy / eval._Count : 0.);
   }
@@ -324,12 +326,14 @@ public:
     for (size_t vox = re.begin(); vox != re.end(); ++vox) {
       const Matrix &jac = _Jacobian[vox];
       if (jac.Rows() > 0) {
-        a = pow(jac(0, 0), 2) + pow(jac(1, 1), 2) + pow(jac(2, 2), 2)
-          + pow(.5 * (jac(0, 1) + jac(1, 0)), 2)
-          + pow(.5 * (jac(0, 2) + jac(2, 0)), 2)
-          + pow(.5 * (jac(1, 2) + jac(2, 1)), 2);
+        a = pow(jac(0, 0) + jac(0, 0), 2)
+          + pow(jac(0, 1) + jac(1, 0), 2) * 2.
+          + pow(jac(0, 2) + jac(2, 0), 2) * 2.
+          + pow(jac(1, 1) + jac(1, 1), 2)
+          + pow(jac(1, 2) + jac(2, 1), 2) * 2.
+          + pow(jac(2, 2) + jac(2, 2), 2);
         b = jac(0, 0) + jac(1, 1) + jac(2, 2);
-        _Energy += .5 * _Mu * a + _Lambda * b * b;
+        _Energy += _Mu * a + _Lambda * b * b;
         ++_Count;
       }
     }
@@ -339,8 +343,8 @@ public:
   {
     EvaluateLinearElasticEnergy eval;
     eval._Jacobian             = jac;
-    eval._Mu                   = mu;
-    eval._Lambda               = lambda;
+    eval._Mu                   = .25 * mu;
+    eval._Lambda               = .50 * lambda;
     parallel_reduce(blocked_range<size_t>(0, domain->NumberOfSpatialPoints()), eval);
     return (eval._Count > 0 ? eval._Energy / eval._Count : 0.);
   }
@@ -358,12 +362,17 @@ class AddApproximateCubicBSplineFFDGradient
   double                                 _Mu;
   double                                 _Lambda;
   bool                                   _ConstrainPassiveDoFs;
-  bool                                   _WrtToWorld;
+  bool                                   _WrtWorld;
   bool                                   _NoRotation;
 
   /// Initialize lookup table of cubic B-spline first order derivatives
   void InitializeLookupTable()
   {
+    // Note: Order of cubic B-spline pieces is *not* B0, B1, B2, B3!
+    //       Therefore, LatticeWeights_I[0] corresponds to an offset
+    //       of +1, not -1 as may be expected. Hence the reversed
+    //       iteration over the support region.
+
     const double *w[2] = {
       BSplineFreeFormTransformation3D::Kernel::LatticeWeights,
       BSplineFreeFormTransformation3D::Kernel::LatticeWeights_I,
@@ -372,13 +381,13 @@ class AddApproximateCubicBSplineFFDGradient
     const Matrix &m = *_FFD->Attributes()._w2i;
 
     int n = 0;
-    for (int c = 0; c < 3; ++c)
-    for (int b = 0; b < 3; ++b)
-    for (int a = 0; a < 3; ++a, ++n) {
+    for (int c = 2; c >= 0; --c)
+    for (int b = 2; b >= 0; --b)
+    for (int a = 2; a >= 0; --a, ++n) {
       double dx = w[1][a] * w[0][b] * w[0][c];
       double dy = w[0][a] * w[1][b] * w[0][c];
       double dz = w[0][a] * w[0][b] * w[1][c];
-      if (_WrtToWorld) {
+      if (_WrtWorld) {
         LookupTable[n][0] = dx * m(0, 0) + dy * m(1, 0) + dz * m(2, 0);
         LookupTable[n][1] = dx * m(0, 1) + dy * m(1, 1) + dz * m(2, 1);
         LookupTable[n][2] = dx * m(0, 2) + dy * m(1, 2) + dz * m(2, 2);
@@ -395,7 +404,7 @@ public:
   void operator ()(const blocked_range3d<int> &re) const
   {
     double div;
-    Vector3D<double> g1, g2;
+    Vector3D<double> g1, g2, dB;
     int cp, nc, n, xdof, ydof, zdof;
 
     const int ncps = _FFD->NumberOfCPs();
@@ -404,33 +413,39 @@ public:
     for (int ci = re.cols ().begin(); ci != re.cols ().end(); ++ci) {
       cp = _FFD->LatticeToIndex(ci, cj, ck);
       if (_ConstrainPassiveDoFs || _FFD->IsActive(cp)) {
+        // Sum non-zero gradient contributions within 3x3x3 support region of control point
         n = 0, g1 = g2 = 0.;
         for (int nk = ck - 1; nk <= ck + 1; ++nk)
         for (int nj = cj - 1; nj <= cj + 1; ++nj)
         for (int ni = ci - 1; ni <= ci + 1; ++ni, ++n) {
           nc = _FFD->LatticeToIndex(ni, nj, nk);
           if (0 <= nc && nc < ncps) {
+            // First order derivatives at this neighboring control point
             const Matrix &jac = _Jacobian[nc];
-            const double *w   = LookupTable[n];
-            g1._x += w[0] * jac(0, 0) * 2.;
-            g1._x += w[1] * (jac(0, 1) + jac(1, 0));
-            g1._x += w[2] * (jac(0, 2) + jac(2, 0));
-            g1._y += w[0] * (jac(0, 1) + jac(1, 0));
-            g1._y += w[1] * jac(1, 1) * 2.;
-            g1._y += w[2] * (jac(2, 1) + jac(1, 2));
-            g1._z += w[0] * (jac(0, 2) + jac(2, 0));
-            g1._z += w[1] * (jac(2, 1) + jac(1, 2));
-            g1._z += w[2] * jac(2, 2) * 2.;
+            // Get pre-computed derivatives of cubic B-spline kernel centered at current control point (index cp)
+            dB._x = LookupTable[n][0];
+            dB._y = LookupTable[n][1];
+            dB._z = LookupTable[n][2];
+            // Apply chain rule to compute derivatives of energy terms w.r.t. coefficients
+            g1._x += (jac(0, 0) + jac(0, 0)) * dB._x;
+            g1._x += (jac(0, 1) + jac(1, 0)) * dB._y;
+            g1._x += (jac(0, 2) + jac(2, 0)) * dB._z;
+            g1._y += (jac(1, 0) + jac(0, 1)) * dB._x;
+            g1._y += (jac(1, 1) + jac(1, 1)) * dB._y;
+            g1._y += (jac(1, 2) + jac(2, 1)) * dB._z;
+            g1._z += (jac(2, 0) + jac(0, 2)) * dB._x;
+            g1._z += (jac(2, 1) + jac(1, 2)) * dB._y;
+            g1._z += (jac(2, 2) + jac(2, 2)) * dB._z;
             div = jac(0, 0) + jac(1, 1) + jac(2, 2);
-            g2._x += w[0] * div;
-            g2._y += w[1] * div;
-            g2._z += w[2] * div;
+            g2._x += div * dB._x;
+            g2._y += div * dB._y;
+            g2._z += div * dB._z;
           }
         }
         _FFD->IndexToDOFs(cp, xdof, ydof, zdof);
-        _Gradient[xdof] -= _Mu * g1._x + 2. * _Lambda * g2._x;
-        _Gradient[ydof] -= _Mu * g1._y + 2. * _Lambda * g2._y;
-        _Gradient[zdof] -= _Mu * g1._z + 2. * _Lambda * g2._z;
+        _Gradient[xdof] += _Mu * g1._x + _Lambda * g2._x;
+        _Gradient[ydof] += _Mu * g1._y + _Lambda * g2._y;
+        _Gradient[zdof] += _Mu * g1._z + _Lambda * g2._z;
       }
     }
   }
@@ -446,7 +461,7 @@ public:
     eval._Mu                   = mu / ncps;
     eval._Lambda               = lambda / ncps;
     eval._ConstrainPassiveDoFs = incl_passive_cps;
-    eval._WrtToWorld           = wrt_world;
+    eval._WrtWorld             = wrt_world;
     eval._Gradient             = gradient;
     eval.InitializeLookupTable();
     parallel_for(blocked_range3d<int>(0, ffd->Z(), 0, ffd->Y(), 0, ffd->X()), eval);
@@ -467,15 +482,15 @@ class AddCubicBSplineFFDGradient
   double                                 _Mu;
   double                                 _Lambda;
   bool                                   _ConstrainPassiveDoFs;
-  bool                                   _WrtToWorld;
+  bool                                   _WrtWorld;
 
 public:
 
   void operator ()(const blocked_range3d<int> &re) const
   {
+    Vector3D<double> g1, g2, dB, r;
     int cp, xdof, ydof, zdof, i1, j1, k1, i2, j2, k2, vox;
-    double div, w[3], x, y, z;
-    Vector3D<double> g1, g2;
+    double div;
 
     const Matrix &m = *_CoordMap;
     for (int ck = re.pages().begin(); ck != re.pages().end(); ++ck)
@@ -483,37 +498,43 @@ public:
     for (int ci = re.cols ().begin(); ci != re.cols ().end(); ++ci) {
       cp = _FFD->LatticeToIndex(ci, cj, ck);
       if ((_ConstrainPassiveDoFs || _FFD->IsActive(cp)) && _FFD->BoundingBox(*_Domain, cp, i1, j1, k1, i2, j2, k2)) {
+        // Sum non-zero gradient contributions over support region of control point
         g1 = g2 = 0.;
         for (int k = k1; k <= k2; ++k)
         for (int j = j1; j <= j2; ++j)
         for (int i = i1; i <= i2; ++i) {
-          x = m(0, 0) * i + m(0, 1) * j + m(0, 2) * k + m(0, 3);
-          y = m(1, 0) * i + m(1, 1) * j + m(1, 2) * k + m(1, 3);
-          z = m(2, 0) * i + m(2, 1) * j + m(2, 2) * k + m(2, 3);
-          x -= ci, y -= cj, z -= ck;
-          w[0] = Kernel::B_I(x) * Kernel::B(y) * Kernel::B(z);
-          w[1] = Kernel::B(x) * Kernel::B_I(y) * Kernel::B(z);
-          w[2] = Kernel::B(x) * Kernel::B(y) * Kernel::B_I(z);
+          // First order spatial derivatives of displacement field
           vox = _Domain->LatticeToIndex(i, j, k);
           const Matrix &jac = _Jacobian[vox];
-          g1._x += w[0] * jac(0, 0) * 2.;
-          g1._x += w[1] * (jac(0, 1) + jac(1, 0));
-          g1._x += w[2] * (jac(0, 2) + jac(2, 0));
-          g1._y += w[0] * (jac(0, 1) + jac(1, 0));
-          g1._y += w[1] * jac(1, 1) * 2.;
-          g1._y += w[2] * (jac(2, 1) + jac(1, 2));
-          g1._z += w[0] * (jac(0, 2) + jac(2, 0));
-          g1._z += w[1] * (jac(2, 1) + jac(1, 2));
-          g1._z += w[2] * jac(2, 2) * 2.;
+          // Derivatives of cubic B-spline kernel centered at this control point
+          r._x = m(0, 0) * i + m(0, 1) * j + m(0, 2) * k + m(0, 3) - ci;
+          r._y = m(1, 0) * i + m(1, 1) * j + m(1, 2) * k + m(1, 3) - cj;
+          r._z = m(2, 0) * i + m(2, 1) * j + m(2, 2) * k + m(2, 3) - ck;
+          dB._x = Kernel::B_I(r._x) * Kernel::B(r._y) * Kernel::B(r._z);
+          dB._y = Kernel::B(r._x) * Kernel::B_I(r._y) * Kernel::B(r._z);
+          dB._z = Kernel::B(r._x) * Kernel::B(r._y) * Kernel::B_I(r._z);
+          if (_WrtWorld) {
+            _FFD->JacobianToWorld(dB._x, dB._y, dB._z);
+          }
+          // Apply chain rule to compute derivatives of energy terms w.r.t. coefficients
+          g1._x += (jac(0, 0) + jac(0, 0)) * dB._x;
+          g1._x += (jac(0, 1) + jac(1, 0)) * dB._y;
+          g1._x += (jac(0, 2) + jac(2, 0)) * dB._z;
+          g1._y += (jac(1, 0) + jac(0, 1)) * dB._x;
+          g1._y += (jac(1, 1) + jac(1, 1)) * dB._y;
+          g1._y += (jac(1, 2) + jac(2, 1)) * dB._z;
+          g1._z += (jac(2, 0) + jac(0, 2)) * dB._x;
+          g1._z += (jac(2, 1) + jac(1, 2)) * dB._y;
+          g1._z += (jac(2, 2) + jac(2, 2)) * dB._z;
           div = jac(0, 0) + jac(1, 1) + jac(2, 2);
-          g2._x += w[0] * div;
-          g2._y += w[1] * div;
-          g2._z += w[2] * div;
+          g2._x += div * dB._x;
+          g2._y += div * dB._y;
+          g2._z += div * dB._z;
         }
         _FFD->IndexToDOFs(cp, xdof, ydof, zdof);
-        _Gradient[xdof] -= _Mu * g1._x + 2. * _Lambda * g2._x;
-        _Gradient[ydof] -= _Mu * g1._y + 2. * _Lambda * g2._y;
-        _Gradient[zdof] -= _Mu * g1._z + 2. * _Lambda * g2._z;
+        _Gradient[xdof] += _Mu * g1._x + _Lambda * g2._x;
+        _Gradient[ydof] += _Mu * g1._y + _Lambda * g2._y;
+        _Gradient[zdof] += _Mu * g1._z + _Lambda * g2._z;
       }
     }
   }
@@ -532,7 +553,7 @@ public:
     eval._Mu                   = mu / npts;
     eval._Lambda               = lambda / npts;
     eval._ConstrainPassiveDoFs = incl_passive_cps;
-    eval._WrtToWorld           = wrt_world;
+    eval._WrtWorld             = wrt_world;
     eval._Gradient             = gradient;
     parallel_for(blocked_range3d<int>(0, ffd->Z(), 0, ffd->Y(), 0, ffd->X()), eval);
   }
