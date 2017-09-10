@@ -989,13 +989,13 @@ public:
                (!_HessianFunction  || _HessianFunction ->IsInside(x, y, z));
     }
     if (inside && check_value && _InterpolateWithPadding) {
-      double value = _IntensityFunction->EvaluateWithPadding(x, y, z);
+      double value = _IntensityFunction->EvaluateWithPaddingInside(x, y, z);
       if (IsNaN(value) || AreEqual(value, _IntensityFunction->DefaultValue(), 1e-6)) inside = false;
     }
     if (inside) return 1;
-    if (0. <= x && x <= _InputSize._x - 1. &&
-        0. <= y && y <= _InputSize._y - 1. &&
-        0. <= z && z <= _InputSize._z - 1.) return 0;
+    if (-.5 < x && x < _InputSize._x - .5 &&
+        -.5 < y && y < _InputSize._y - .5 &&
+        -.5 < z && z < _InputSize._z - .5) return 0;
     return -1;
   }
 
