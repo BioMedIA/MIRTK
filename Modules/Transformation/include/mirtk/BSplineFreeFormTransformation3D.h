@@ -413,7 +413,7 @@ public:
 
   /// Approximates and adds the gradient of the bending energy on the control point
   /// lattice w.r.t the transformation parameters using the given weight
-  virtual void BendingEnergyGradient(double *, double = 1, bool = false, bool = true) const;
+  virtual void BendingEnergyGradient(double *, double = 1, bool = false, bool = true, bool = true) const;
 
   // ---------------------------------------------------------------------------
   // I/O

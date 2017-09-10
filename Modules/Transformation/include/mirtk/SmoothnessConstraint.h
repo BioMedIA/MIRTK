@@ -1,8 +1,8 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2013-2015 Imperial College London
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2013-2017 Imperial College London
+ * Copyright 2013-2017 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,12 +37,13 @@ class SmoothnessConstraint : public TransformationConstraint
 {
   mirtkEnergyTermMacro(SmoothnessConstraint, EM_BendingEnergy);
 
-  /// Whether to evaluate smoothness w.r.t world coordinates.
-  /// Otherwise, the smoothness penalty is evaluated w.r.t the local lattice
-  /// coordinates of the free-form deformation.
+  /// Whether to evaluate derivatives of smoothness term w.r.t. world coordinates.
   ///
-  /// \attention The use of this option is experimental!
+  /// When \c false, the smoothness penalty is evaluated w.r.t the local lattice coordinates
   mirtkPublicAttributeMacro(bool, WithRespectToWorld);
+
+  /// Whether to use control point spacing when derivatives are computed w.r.t. world coordinates
+  mirtkPublicAttributeMacro(bool, UseLatticeSpacing);
 
   /// Smoothness penalty annealing rate.
   /// Used in conjuction with RobustPointMatch.

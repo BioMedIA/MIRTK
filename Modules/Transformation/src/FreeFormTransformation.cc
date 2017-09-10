@@ -1309,7 +1309,7 @@ double FreeFormTransformation
 }
 
 // -----------------------------------------------------------------------------
-void FreeFormTransformation::BendingEnergyGradient(double *, double, bool, bool) const
+void FreeFormTransformation::BendingEnergyGradient(double *, double, bool, bool, bool) const
 {
   cerr << this->NameOfClass() << "::BendingEnergyGradient: Not implemented" << endl;
   exit(1);

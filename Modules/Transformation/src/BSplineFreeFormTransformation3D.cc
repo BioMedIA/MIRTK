@@ -1785,9 +1785,32 @@ class Evaluate2ndOrderBSplineFFDDerivatives2D : public VoxelFunction
   const BSplineFreeFormTransformation3D *_FFD;      ///< B-spline free-form deformation
   const Extrapolator                    *_CPValue;  ///< Coefficients of B-spline FFD
 
+  /// Apply world to lattice reorientation (and scaling) matrix
+  inline void Reorient(const Matrix &orient, double &duu, double &duv, double &dvv) const
+  {
+    // The derivatives of the world to lattice coordinate transformation
+    // w.r.t the world coordinates which are needed for the chain rule below
+    const double dudx = orient(0, 0);
+    const double dudy = orient(0, 1);
+    const double dvdx = orient(1, 0);
+    const double dvdy = orient(1, 1);
+    // Expression computed here is transpose(R) * Hessian * R = transpose(Hessian * R) * R
+    // where R is the 2x2 world to lattice reorientation and scaling matrix
+    double du, dv, dxx, dxy, dyy;
+    du  = duu * dudx + duv * dvdx;
+    dv  = duv * dudx + dvv * dvdx;
+    dxx = du  * dudx + dv  * dvdx;
+    dxy = du  * dudy + dv  * dvdy;
+    du  = duu * dudy + duv * dvdy;
+    dv  = duv * dudy + dvv * dvdy;
+    dyy = du  * dudy + dv  * dvdy;
+    // Return computed derivatives
+    duu = dxx, duv = dxy, dvv = dyy;
+  }
+
   /// Initialize static lookup tables of 2nd order derivatives w.r.t control
   /// point parameters evaluated for each voxel in the 2D kernel support region
-  void InitializeLookupTable(bool wrt_world)
+  void InitializeLookupTable(const Matrix *orient)
   {
     const double *w[3] = {
       Kernel::LatticeWeights,
@@ -1802,9 +1825,7 @@ class Evaluate2ndOrderBSplineFFDDerivatives2D : public VoxelFunction
       g[0] = w[2][a] * w[0][b];
       g[1] = w[1][a] * w[1][b];
       g[2] = w[0][a] * w[2][b];
-      if (wrt_world) {
-        _FFD->HessianToWorld(g[0], g[1], g[2]);
-      }
+      if (orient) Reorient(*orient, g[0], g[1], g[2]);
     }
   }
 
@@ -1814,11 +1835,11 @@ public:
   double LookupTable[9][3];
 
   /// Constructor
-  Evaluate2ndOrderBSplineFFDDerivatives2D(const BSplineFreeFormTransformation3D *ffd, bool wrt_world = false)
+  Evaluate2ndOrderBSplineFFDDerivatives2D(const BSplineFreeFormTransformation3D *ffd, const Matrix *orient = nullptr)
   :
     _FFD(ffd), _CPValue(ffd->Extrapolator())
   {
-    InitializeLookupTable(wrt_world);
+    InitializeLookupTable(orient);
   }
 
   /// Evaluate 2nd order derivatives of 3D FFD at given lattice coordinate
@@ -1848,9 +1869,48 @@ class Evaluate2ndOrderBSplineFFDDerivatives3D : public VoxelFunction
   const BSplineFreeFormTransformation3D *_FFD;      ///< B-spline free-form deformation
   const Extrapolator                    *_CPValue;  ///< Coefficients of B-spline FFD
 
+  /// Apply world to lattice reorientation (and scaling) matrix
+  inline void Reorient(const Matrix &orient,
+                       double &duu, double &duv, double &duw,
+                                    double &dvv, double &dvw,
+                                                 double &dww) const
+  {
+    // The derivatives of the world to lattice coordinate transformation
+    // w.r.t the world coordinates which are needed for the chain rule below
+    const double dudx = orient(0, 0);
+    const double dudy = orient(0, 1);
+    const double dudz = orient(0, 2);
+    const double dvdx = orient(1, 0);
+    const double dvdy = orient(1, 1);
+    const double dvdz = orient(1, 2);
+    const double dwdx = orient(2, 0);
+    const double dwdy = orient(2, 1);
+    const double dwdz = orient(2, 2);
+    // Expression computed here is transpose(R) * Hessian * R = transpose(Hessian * R) * R
+    // where R is the 3x3 world to lattice reorientation and scaling matrix
+    double du, dv, dw, dxx, dxy, dxz, dyy, dyz, dzz;
+    du  = duu * dudx + duv * dvdx + duw * dwdx;
+    dv  = duv * dudx + dvv * dvdx + dvw * dwdx;
+    dw  = duw * dudx + dvw * dvdx + dww * dwdx;
+    dxx = du  * dudx + dv  * dvdx + dw  * dwdx;
+    dxy = du  * dudy + dv  * dvdy + dw  * dwdy;
+    dxz = du  * dudz + dv  * dvdz + dw  * dwdz;
+    du  = duu * dudy + duv * dvdy + duw * dwdy;
+    dv  = duv * dudy + dvv * dvdy + dvw * dwdy;
+    dw  = duw * dudy + dvw * dvdy + dww * dwdy;
+    dyy = du  * dudy + dv  * dvdy + dw  * dwdy;
+    dyz = du  * dudz + dv  * dvdz + dw  * dwdz;
+    du  = duu * dudz + duv * dvdz + duw * dwdz;
+    dv  = duv * dudz + dvv * dvdz + dvw * dwdz;
+    dw  = duw * dudz + dvw * dvdz + dww * dwdz;
+    dzz = du  * dudz + dv  * dvdz + dw  * dwdz;
+    // Return computed derivatives
+    duu = dxx, duv = dxy, duw = dxz, dvv = dyy, dvw = dyz, dww = dzz;
+  }
+
   /// Initialize static lookup tables of 2nd order derivatives w.r.t control
   /// point parameters evaluated for each voxel in the 3D kernel support region
-  void InitializeLookupTable(bool wrt_world)
+  void InitializeLookupTable(const Matrix *orient)
   {
     const double *w[3] = {
       Kernel::LatticeWeights,
@@ -1869,9 +1929,7 @@ class Evaluate2ndOrderBSplineFFDDerivatives3D : public VoxelFunction
       g[3] = w[0][a] * w[2][b] * w[0][c];
       g[4] = w[0][a] * w[1][b] * w[1][c];
       g[5] = w[0][a] * w[0][b] * w[2][c];
-      if (wrt_world) {
-        _FFD->HessianToWorld(g[0], g[1], g[2], g[3], g[4], g[5]);
-      }
+      if (orient) Reorient(*orient, g[0], g[1], g[2], g[3], g[4], g[5]);
     }
   }
 
@@ -1881,11 +1939,24 @@ public:
   double LookupTable[27][6];
 
   /// Constructor
-  Evaluate2ndOrderBSplineFFDDerivatives3D(const BSplineFreeFormTransformation3D *ffd, bool wrt_world = false)
+  Evaluate2ndOrderBSplineFFDDerivatives3D(const BSplineFreeFormTransformation3D *ffd, const Matrix *orient = nullptr)
   :
     _FFD(ffd), _CPValue(ffd->Extrapolator())
   {
-    InitializeLookupTable(wrt_world);
+    InitializeLookupTable(orient);
+#if 0
+    static int call = 0; ++call;
+    if (call == 1) {
+      for (int n = 0; n < 27; ++n) {
+        cout << "BE LookupTable n=" << n << " =";
+        for (int i = 0; i < 6; ++i) {
+          cout << " " << LookupTable[n][i];
+        }
+        cout << "\n";
+      }
+      cout.flush();
+    }
+#endif
   }
 
   /// Evaluate 2nd order derivatives of 3D FFD at given lattice coordinate
@@ -1914,7 +1985,8 @@ public:
 } // anonymous namespace
 
 // -----------------------------------------------------------------------------
-void BSplineFreeFormTransformation3D::BendingEnergyGradient(double *gradient, double weight, bool incl_passive, bool wrt_world) const
+void BSplineFreeFormTransformation3D
+::BendingEnergyGradient(double *gradient, double weight, bool incl_passive, bool wrt_world, bool use_spacing) const
 {
   MIRTK_START_TIMING();
 
@@ -1922,6 +1994,16 @@ void BSplineFreeFormTransformation3D::BendingEnergyGradient(double *gradient, do
   const int ncps = (incl_passive ? this->NumberOfCPs() : this->NumberOfActiveCPs());
   if (ncps == 0) return;
   weight *= 2. / ncps;
+
+  // World to lattice mapping used to reorient and scale derivatives
+  UniquePtr<Matrix> orient;
+  if (wrt_world) {
+    if (use_spacing) {
+      orient.reset(new Matrix(this->Attributes().GetWorldToLatticeMatrix()));
+    } else {
+      orient.reset(new Matrix(this->Attributes().GetWorldToLatticeOrientation()));
+    }
+  }
 
   // ---------------------------------------------------------------------------
   // Bending energy of 2D FFD
@@ -1937,7 +2019,7 @@ void BSplineFreeFormTransformation3D::BendingEnergyGradient(double *gradient, do
     GenericImage<Vector> dxy(attr);
     GenericImage<Vector> dyy(attr);
 
-    Evaluate2ndOrderBSplineFFDDerivatives2D eval(this, wrt_world);
+    Evaluate2ndOrderBSplineFFDDerivatives2D eval(this, orient.get());
     ParallelForEachVoxel(attr, dxx, dxy, dyy, eval);
 
     // Compute derivative of bending energy w.r.t each control point
@@ -1961,11 +2043,11 @@ void BSplineFreeFormTransformation3D::BendingEnergyGradient(double *gradient, do
         n = 8, g = 0.;
         for (int j = cj; j <= cj+2; ++j)
         for (int i = ci; i <= ci+2; ++i, --n) {
-          const double *w = eval.LookupTable[n];
+          const double *dB = eval.LookupTable[n];
           // Note: Mixed derivatives are pre-multiplied by factor 2 by above voxel function!
-          g += dxx(i, j) * w[0];
-          g += dxy(i, j) * w[1]; // dxy + dyx
-          g += dyy(i, j) * w[2];
+          g += dxx(i, j) * dB[0];
+          g += dxy(i, j) * dB[1]; // dxy + dyx
+          g += dyy(i, j) * dB[2];
         }
         cp = this->LatticeToIndex(ci, cj);
         this->IndexToDOFs(cp, xdof, ydof, zdof);
@@ -1992,7 +2074,7 @@ void BSplineFreeFormTransformation3D::BendingEnergyGradient(double *gradient, do
     GenericImage<Vector> dyz(attr);
     GenericImage<Vector> dzz(attr);
 
-    Evaluate2ndOrderBSplineFFDDerivatives3D eval(this, wrt_world);
+    Evaluate2ndOrderBSplineFFDDerivatives3D eval(this, orient.get());
     ParallelForEachVoxel(attr, dxx, dxy, dxz, dyy, dyz, dzz, eval);
 
     // Compute derivative of bending energy w.r.t each control point
