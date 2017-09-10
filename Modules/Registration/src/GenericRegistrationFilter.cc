@@ -278,6 +278,11 @@ public:
     for (int n = re.begin(); n != re.end(); ++n) {
       // Determine minimal lattice containing foreground voxels
       auto attr = ForegroundDomain(_Input[n], _Background[n], _Resolution[n], _Blurring[n], false);
+      // Add extra margin for derivatives computation
+      const int margin = 1;
+      if (attr._x > 1) attr._x += 2 * margin;
+      if (attr._y > 1) attr._y += 2 * margin;
+      if (attr._z > 1) attr._z += 2 * margin;
       // Resample input image on foreground lattice
       // (interpolation not required as voxel centers should still match)
       _Output[n].Initialize(attr, 1);
@@ -527,6 +532,7 @@ public:
       // Determine minimal lattice containing foreground voxels
       ImageAttributes attr;
       if (_CropPad) {
+        // Crop image with extra margin for Gaussian filtering
         const auto res = Vector3D<double>(dx, dy, dz);
         auto blurring = sigma;
         if (_Blurring) {
@@ -546,6 +552,13 @@ public:
       if (attr._x % 2 != 0) attr._x += 1, attr._xorigin += .5 * attr._dx;
       if (attr._y % 2 != 0) attr._y += 1, attr._yorigin += .5 * attr._dy;
       if (attr._z % 2 != 0) attr._z += 1, attr._zorigin += .5 * attr._dz;
+      // Add extra margin for derivatives computation
+      if (_CropPad) {
+        const int margin = 1;
+        if (attr._x > 1) attr._x += 2 * margin;
+        if (attr._y > 1) attr._y += 2 * margin;
+        if (attr._z > 1) attr._z += 2 * margin;
+      }
       // If background value set, consider foreground only
       if (_Padding) {
         typedef GaussianBlurringWithPadding<VoxelType> BlurFilter;
