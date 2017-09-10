@@ -238,46 +238,58 @@ public:
 
   /// Calculate derivatives of Jacobian determinant w.r.t. DoFs of control point
   ///
-  /// \param[out] dJ  Partial derivatives of Jacobian determinant w.r.t. DoFs of control point.
-  /// \param[in]  adj Adjugate of Jacobian matrix evaluated at (x, y, z).
-  /// \param[in]  a   Distance from control point along x axis of lattice in lattice units.
-  /// \param[in]  b   Distance from control point along y axis of lattice in lattice units.
-  /// \param[in]  c   Distance from control point along z axis of lattice in lattice units.
-  void EvaluateJacobianDetDerivative(double dJ[3], const Matrix &adj, double a, double b, double c) const;
+  /// \param[out] dJ           Partial derivatives of Jacobian determinant w.r.t. DoFs of control point.
+  /// \param[in]  adj          Adjugate of Jacobian matrix evaluated at (x, y, z).
+  /// \param[in]  a            Distance from control point along x axis of lattice in lattice units.
+  /// \param[in]  b            Distance from control point along y axis of lattice in lattice units.
+  /// \param[in]  c            Distance from control point along z axis of lattice in lattice units.
+  /// \param[in]  wrt_world    Whether derivatives are computed w.r.t. world coordinate system.
+  /// \param[in]  use_spacing  Whether to use grid spacing when \p wrt_world is \c true.
+  void EvaluateJacobianDetDerivative(double dJ[3], const Matrix &adj, double a, double b, double c,
+                                     bool wrt_world = true, bool use_spacing = true) const;
 
   /// Calculate derivatives of Jacobian determinant w.r.t. DoFs of control point
   ///
-  /// \param[out] dJ  Partial derivatives of Jacobian determinant w.r.t. DoFs of control point.
-  /// \param[in]  adj Adjugate of Jacobian matrix evaluated at (x, y, z).
-  /// \param[in]  a   Distance from control point along x axis of lattice in lattice units.
-  /// \param[in]  b   Distance from control point along y axis of lattice in lattice units.
-  /// \param[in]  c   Distance from control point along z axis of lattice in lattice units.
-  void EvaluateJacobianDetDerivative(double dJ[3], const Matrix &adj, int a, int b, int c) const;
+  /// \param[out] dJ           Partial derivatives of Jacobian determinant w.r.t. DoFs of control point.
+  /// \param[in]  adj          Adjugate of Jacobian matrix evaluated at (x, y, z).
+  /// \param[in]  a            Distance from control point along x axis of lattice in lattice units.
+  /// \param[in]  b            Distance from control point along y axis of lattice in lattice units.
+  /// \param[in]  c            Distance from control point along z axis of lattice in lattice units.
+  /// \param[in]  wrt_world    Whether derivatives are computed w.r.t. world coordinate system.
+  /// \param[in]  use_spacing  Whether to use grid spacing when \p wrt_world is \c true.
+  void EvaluateJacobianDetDerivative(double dJ[3], const Matrix &adj, int a, int b, int c,
+                                     bool wrt_world = true, bool use_spacing = true) const;
 
   /// Calculate derivatives of Jacobian determinant w.r.t. DoFs of control point
   ///
-  /// \param[out] dJ  Partial derivatives of Jacobian determinant w.r.t. DoFs of control point.
-  /// \param[in]  adj Adjugate of Jacobian matrix evaluated at (x, y, z).
-  /// \param[in]  i   Index of control point along x axis of lattice.
-  /// \param[in]  j   Index of control point along y axis of lattice.
-  /// \param[in]  k   Index of control point along z axis of lattice.
-  /// \param[in]  x   Point coordinate along x axis of lattice in lattice units.
-  /// \param[in]  y   Point coordinate along y axis of lattice in lattice units.
-  /// \param[in]  z   Point coordinate along z axis of lattice in lattice units.
+  /// \param[out] dJ           Partial derivatives of Jacobian determinant w.r.t. DoFs of control point.
+  /// \param[in]  adj          Adjugate of Jacobian matrix evaluated at (x, y, z).
+  /// \param[in]  i            Index of control point along x axis of lattice.
+  /// \param[in]  j            Index of control point along y axis of lattice.
+  /// \param[in]  k            Index of control point along z axis of lattice.
+  /// \param[in]  x            Point coordinate along x axis of lattice in lattice units.
+  /// \param[in]  y            Point coordinate along y axis of lattice in lattice units.
+  /// \param[in]  z            Point coordinate along z axis of lattice in lattice units.
+  /// \param[in]  wrt_world    Whether derivatives are computed w.r.t. world coordinate system.
+  /// \param[in]  use_spacing  Whether to use grid spacing when \p wrt_world is \c true.
   void EvaluateJacobianDetDerivative(double dJ[3], const Matrix &adj,
                                      int i, int j, int k,
-                                     double x, double y, double z) const;
+                                     double x, double y, double z,
+                                     bool wrt_world = true, bool use_spacing = true) const;
 
   /// Calculate derivatives of Jacobian determinant w.r.t. DoFs of control point
   ///
-  /// \param[out] dJ  Partial derivatives of Jacobian determinant w.r.t. DoFs of control point.
-  /// \param[in]  adj Adjugate of Jacobian matrix evaluated at (x, y, z).
-  /// \param[in]  cp  Linear index of control point.
-  /// \param[in]  x   Point coordinate along x axis of lattice in lattice units.
-  /// \param[in]  y   Point coordinate along y axis of lattice in lattice units.
-  /// \param[in]  z   Point coordinate along z axis of lattice in lattice units.
+  /// \param[out] dJ           Partial derivatives of Jacobian determinant w.r.t. DoFs of control point.
+  /// \param[in]  adj          Adjugate of Jacobian matrix evaluated at (x, y, z).
+  /// \param[in]  cp           Linear index of control point.
+  /// \param[in]  x            Point coordinate along x axis of lattice in lattice units.
+  /// \param[in]  y            Point coordinate along y axis of lattice in lattice units.
+  /// \param[in]  z            Point coordinate along z axis of lattice in lattice units.
+  /// \param[in]  wrt_world    Whether derivatives are computed w.r.t. world coordinate system.
+  /// \param[in]  use_spacing  Whether to use grid spacing when \p wrt_world is \c true.
   void EvaluateJacobianDetDerivative(double dJ[3], const Matrix &adj, int cp,
-                                     double x, double y, double z) const;
+                                     double x, double y, double z,
+                                     bool wrt_world = true, bool use_spacing = true) const;
 
   // ---------------------------------------------------------------------------
   // Point transformation
@@ -333,7 +345,11 @@ public:
   /// \param[in]  y   World coordinate along y axis at which to evaluate derivatives.
   /// \param[in]  z   World coordinate along z axis at which to evaluate derivatives.
   /// \param[in]  adj Adjugate of Jacobian matrix evaluated at (x, y, z).
-  virtual void FFDJacobianDetDerivative(double dJ[3], const Matrix &adj, int cp, double x, double y, double z, double = 0, double = NaN) const;
+  /// \param[in]  wrt_world    Whether derivatives are computed w.r.t. world coordinate system.
+  /// \param[in]  use_spacing  Whether to use grid spacing when \p wrt_world is \c true.
+  virtual void FFDJacobianDetDerivative(double dJ[3], const Matrix &adj,
+                                        int cp, double x, double y, double z, double = 0, double = NaN,
+                                        bool wrt_world = true, bool use_spacing = true) const;
 
   /// Calculates the derivative of the Jacobian of the transformation (w.r.t. world coordinates) w.r.t. a transformation parameter
   virtual void DeriveJacobianWrtDOF(Matrix &, int, double, double, double, double = 0, double = NaN) const;
@@ -554,28 +570,34 @@ inline void BSplineFreeFormTransformation3D
 
 // -----------------------------------------------------------------------------
 inline void BSplineFreeFormTransformation3D
-::EvaluateJacobianDetDerivative(double dJ[3], const Matrix &adj, int i, int j, int k, double x, double y, double z) const
+::EvaluateJacobianDetDerivative(double dJ[3], const Matrix &adj,
+                                int i, int j, int k, double x, double y, double z,
+                                bool wrt_world, bool use_spacing) const
 {
-  EvaluateJacobianDetDerivative(dJ, adj, x - i, y - j, z - k);
+  EvaluateJacobianDetDerivative(dJ, adj, x - i, y - j, z - k, wrt_world, use_spacing);
 }
 
 // -----------------------------------------------------------------------------
 inline void BSplineFreeFormTransformation3D
-::EvaluateJacobianDetDerivative(double dJ[3], const Matrix &adj, int cp, double x, double y, double z) const
+::EvaluateJacobianDetDerivative(double dJ[3], const Matrix &adj,
+                                int cp, double x, double y, double z,
+                                bool wrt_world, bool use_spacing) const
 {
   int i, j, k;
   this->IndexToLattice(cp, i, j, k);
-  EvaluateJacobianDetDerivative(dJ, adj, x - i, y - j, z - k);
+  EvaluateJacobianDetDerivative(dJ, adj, x - i, y - j, z - k, wrt_world, use_spacing);
 }
 
 // -----------------------------------------------------------------------------
 inline void BSplineFreeFormTransformation3D
-::FFDJacobianDetDerivative(double dJ[3], const Matrix &adj, int cp, double x, double y, double z, double, double) const
+::FFDJacobianDetDerivative(double dJ[3], const Matrix &adj,
+                           int cp, double x, double y, double z, double, double,
+                           bool wrt_world, bool use_spacing) const
 {
   int i, j, k;
   this->IndexToLattice(cp, i, j, k);
   this->WorldToLattice(x, y, z);
-  EvaluateJacobianDetDerivative(dJ, adj, x - i, y - j, z - k);
+  EvaluateJacobianDetDerivative(dJ, adj, x - i, y - j, z - k, wrt_world, use_spacing);
 }
 
 

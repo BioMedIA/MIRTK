@@ -69,7 +69,15 @@ public:
   /// This option has no effect when the FFD parameters are displacements.
   /// In case of a velocity based FFD model, it applies the constraint to
   /// the velocity field instead of the corresponding displacement field.
-  mirtkReadOnlyAttributeMacro(bool, ConstrainJacobianOfParameterization);
+  mirtkReadOnlyAttributeMacro(bool, ConstrainParameterization);
+
+  /// Whether to evaluate derivatives of smoothness term w.r.t. world coordinates.
+  ///
+  /// When \c false, the smoothness penalty is evaluated w.r.t the local lattice coordinates
+  mirtkPublicAttributeMacro(bool, WithRespectToWorld);
+
+  /// Whether to use control point spacing when derivatives are computed w.r.t. world coordinates
+  mirtkPublicAttributeMacro(bool, UseLatticeSpacing);
 
 protected:
 

@@ -1118,7 +1118,7 @@ void BSplineFreeFormTransformation3D
 
 // -----------------------------------------------------------------------------
 void BSplineFreeFormTransformation3D
-::EvaluateJacobianDetDerivative(double dJ[3], const Matrix &adj, double a, double b, double c) const
+::EvaluateJacobianDetDerivative(double dJ[3], const Matrix &adj, double a, double b, double c, bool wrt_world, bool use_spacing) const
 {
   // Values of the B-spline basis functions and its 1st derivatives
   // Note: Calling Kernel::B faster/not slower than Kernel::VariableToIndex + Kernel:LookupTable.
@@ -1134,7 +1134,13 @@ void BSplineFreeFormTransformation3D
   // Apply chain rule for da/dx, db/dx, dc/dx and sum terms (same for y and z)
   // to get the derivative of the 3D cubic B-spline kernel centered at this
   // control point w.r.t. each spatial world coordinate
-  JacobianToWorld(du, dv, dw);
+  if (wrt_world) {
+    if (use_spacing) {
+      JacobianToWorld(du, dv, dw);
+    } else {
+      JacobianToWorldOrientation(du, dv, dw);
+    }
+  }
 
   // Apply Jacobi's formula to get derivatives of Jacobian determinant
   dJ[0] = adj(0, 0) * du + adj(1, 0) * dv + adj(2, 0) * dw;
@@ -1144,7 +1150,7 @@ void BSplineFreeFormTransformation3D
 
 // -----------------------------------------------------------------------------
 void BSplineFreeFormTransformation3D
-::EvaluateJacobianDetDerivative(double dJ[3], const Matrix &adj, int a, int b, int c) const
+::EvaluateJacobianDetDerivative(double dJ[3], const Matrix &adj, int a, int b, int c, bool wrt_world, bool use_spacing) const
 {
   // Values of the B-spline basis functions and its 1st derivatives at lattice points
   // Note: The order of the cubic B-spline pieces is *not* B0, B1, B2, B3! Hence, the minus signs.
@@ -1170,7 +1176,13 @@ void BSplineFreeFormTransformation3D
   // Apply chain rule for da/dx, db/dx, dc/dx and sum terms (same for y and z)
   // to get the derivative of the 3D cubic B-spline kernel centered at this
   // control point w.r.t. each spatial coordinate
-  JacobianToWorld(du, dv, dw);
+  if (wrt_world) {
+    if (use_spacing) {
+      JacobianToWorld(du, dv, dw);
+    } else {
+      JacobianToWorldOrientation(du, dv, dw);
+    }
+  }
 
   // Apply Jacobi's formula to get derivatives of Jacobian determinant
   dJ[0] = adj(0, 0) * du + adj(1, 0) * dv + adj(2, 0) * dw;
