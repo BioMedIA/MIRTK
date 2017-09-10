@@ -389,7 +389,7 @@ inline bool FromString(const char *str, BSplineFreeFormTransformation3D::Paramet
   string lstr = ToLower(str);
   if (lstr == "default") {
     value = BSplineFreeFormTransformation3D::PG_Default;
-  } else if (lstr == "analytic") {
+  } else if (lstr == "analytic" || lstr == "exact") {
     value = BSplineFreeFormTransformation3D::PG_Analytic;
   } else if (lstr == "convolution") {
     value = BSplineFreeFormTransformation3D::PG_Convolution;
