@@ -998,6 +998,17 @@ bool JacobianConstraint::SetWithoutPrefix(const char *param, const char *value)
   if (strcmp(param, "Domain") == 0) {
     return FromString(value, _SubDomain);
   }
+  if (strstr(param, "W.r.t world"          ) == param ||
+      strstr(param, "W.r.t. world"         ) == param ||
+      strstr(param, "Wrt world"            ) == param ||
+      strstr(param, "With respect to world") == param) {
+    return FromString(value, _WithRespectToWorld);
+  }
+  if (strcmp(param, "Use lattice spacing") == 0 ||
+      strcmp(param, "Use grid spacing")    == 0 ||
+      strcmp(param, "Use spacing")         == 0) {
+    return FromString(value, _UseLatticeSpacing);
+  }
   return TransformationConstraint::SetWithoutPrefix(param, value);
 }
 
@@ -1006,6 +1017,8 @@ ParameterList JacobianConstraint::Parameter() const
 {
   ParameterList params = TransformationConstraint::Parameter();
   InsertWithPrefix(params, "Domain", _SubDomain);
+  InsertWithPrefix(params, "W.r.t. world", _WithRespectToWorld);
+  InsertWithPrefix(params, "Use lattice spacing", _UseLatticeSpacing);
   return params;
 }
 
