@@ -1604,6 +1604,10 @@ void BSplineFreeFormTransformation3D
     case PG_Approximation: {
       MIRTK_START_TIMING();
 
+      if (_x > 1) w *= _dx / in->XSize();
+      if (_y > 1) w *= _dy / in->YSize();
+      if (_z > 1) w *= _dz / in->ZSize();
+
       UniquePtr<WorldCoordsImage> _wc;
       if (wc == nullptr) {
         if (i2w == nullptr) {
@@ -1614,6 +1618,7 @@ void BSplineFreeFormTransformation3D
           wc = i2w;
         }
       }
+
       AddApproximateSplineCoefficients(wc->Data(0, 0, 0, 0), wc->Data(0, 0, 0, 1), wc->Data(0, 0, 0, 2),
                                        in->Data(0, 0, 0, 0), in->Data(0, 0, 0, 1), in->Data(0, 0, 0, 2),
                                        in->NumberOfSpatialVoxels(), out, w);
