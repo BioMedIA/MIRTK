@@ -1236,7 +1236,7 @@ void FreeFormTransformation
 
 // -----------------------------------------------------------------------------
 void FreeFormTransformation
-::FFDJacobianDetDerivative(double [3], const Matrix &, int, double, double, double, double, double) const
+::FFDJacobianDetDerivative(double [3], const Matrix &, int, double, double, double, double, double, bool, bool) const
 {
   Throw(ERR_NotImplemented, __FUNCTION__, "Not implemented");
 }

@@ -641,6 +641,12 @@ public:
   /// derivatives w.r.t world coordinates
   void JacobianToWorld(Matrix &) const;
 
+  /// Reorient 1st order derivatives computed w.r.t 2D lattice coordinates
+  void JacobianToWorldOrientation(double &, double &) const;
+
+  /// Reorient 1st order derivatives computed w.r.t 2D lattice coordinates
+  void JacobianToWorldOrientation(double &, double &, double &) const;
+
   /// Convert 2nd order derivatives computed w.r.t 2D lattice coordinates to
   /// derivatives w.r.t world coordinates
   void HessianToWorld(double &, double &, double &) const;
@@ -684,25 +690,33 @@ public:
   /// When the DoFs are velocities, however, this function computes the derivatives of the Jacobian determinant
   /// of the velocity field instead.
   ///
-  /// \param[out] dJ  Partial derivatives of Jacobian determinant at (x, y, z) w.r.t. DoFs of control point.
-  /// \param[in]  cp  Index of control point w.r.t. whose DoFs the derivatives are computed.
-  /// \param[in]  x   World coordinate along x axis at which to evaluate derivatives.
-  /// \param[in]  y   World coordinate along y axis at which to evaluate derivatives.
-  /// \param[in]  z   World coordinate along z axis at which to evaluate derivatives.
-  /// \param[in]  adj Adjugate of Jacobian matrix evaluated at (x, y, z).
-  virtual void FFDJacobianDetDerivative(double dJ[3], const Matrix &adj, int cp, double x, double y, double z, double = 0, double = NaN) const;
+  /// \param[out] dJ           Partial derivatives of Jacobian determinant at (x, y, z) w.r.t. DoFs of control point.
+  /// \param[in]  cp           Index of control point w.r.t. whose DoFs the derivatives are computed.
+  /// \param[in]  x            World coordinate along x axis at which to evaluate derivatives.
+  /// \param[in]  y            World coordinate along y axis at which to evaluate derivatives.
+  /// \param[in]  z            World coordinate along z axis at which to evaluate derivatives.
+  /// \param[in]  adj          Adjugate of Jacobian matrix evaluated at (x, y, z).
+  /// \param[in]  wrt_world    Whether derivatives are computed w.r.t. world coordinate system.
+  /// \param[in]  use_spacing  Whether to use grid spacing when \p wrt_world is \c true.
+  virtual void FFDJacobianDetDerivative(double dJ[3], const Matrix &adj,
+                                        int cp, double x, double y, double z, double = 0, double = NaN,
+                                        bool wrt_world = true, bool use_spacing = true) const;
 
   /// Calculates derivatives of the Jacobian determinant at world point w.r.t. DoFs of a control point
   ///
-  /// \param[out] dJ  Partial derivatives of Jacobian determinant w.r.t. DoFs of control point.
-  /// \param[in]  adj Pre-computed adjugate of Jacobian matrix at this world point.
-  /// \param[in]  cp  Index of control point w.r.t. whose DoFs the derivatives are computed.
-  /// \param[in]  x   World coordinate along x axis at which to evaluate derivatives.
-  /// \param[in]  y   World coordinate along y axis at which to evaluate derivatives.
-  /// \param[in]  z   World coordinate along z axis at which to evaluate derivatives.
-  /// \param[in]  t   Temporal coordinate of point at which to evaluate derivatives.
-  /// \param[in]  t0  Temporal coordinate of co-domain (target). Used by velocity-based models.
-  virtual void JacobianDetDerivative(double dJ[3], const Matrix &adj, int cp, double x, double y, double z, double t = 0, double t0 = NaN) const;
+  /// \param[out] dJ           Partial derivatives of Jacobian determinant w.r.t. DoFs of control point.
+  /// \param[in]  adj          Pre-computed adjugate of Jacobian matrix at this world point.
+  /// \param[in]  cp           Index of control point w.r.t. whose DoFs the derivatives are computed.
+  /// \param[in]  x            World coordinate along x axis at which to evaluate derivatives.
+  /// \param[in]  y            World coordinate along y axis at which to evaluate derivatives.
+  /// \param[in]  z            World coordinate along z axis at which to evaluate derivatives.
+  /// \param[in]  t            Temporal coordinate of point at which to evaluate derivatives.
+  /// \param[in]  t0           Temporal coordinate of co-domain (target). Used by velocity-based models.
+  /// \param[in]  wrt_world    Whether derivatives are computed w.r.t. world coordinate system.
+  /// \param[in]  use_spacing  Whether to use grid spacing when \p wrt_world is \c true.
+  virtual void JacobianDetDerivative(double dJ[3], const Matrix &adj,
+                                     int cp, double x, double y, double z, double t = 0, double t0 = NaN,
+                                     bool wrt_world = true, bool use_spacing = true) const;
 
   /// Applies the chain rule to convert spatial non-parametric gradient
   /// to a gradient w.r.t the parameters of this transformation.
@@ -1555,6 +1569,23 @@ inline void FreeFormTransformation::JacobianToWorld(Matrix &jac) const
 }
 
 // -----------------------------------------------------------------------------
+inline void FreeFormTransformation::JacobianToWorldOrientation(double &du, double &dv) const
+{
+  double dx = du * _attr._xaxis[0] + dv * _attr._yaxis[0];
+  double dy = du * _attr._xaxis[1] + dv * _attr._yaxis[1];
+  du = dx, dv = dy;
+}
+
+// -----------------------------------------------------------------------------
+inline void FreeFormTransformation::JacobianToWorldOrientation(double &du, double &dv, double &dw) const
+{
+  double dx = du * _attr._xaxis[0] + dv * _attr._yaxis[0] + dw * _attr._zaxis[0];
+  double dy = du * _attr._xaxis[1] + dv * _attr._yaxis[1] + dw * _attr._zaxis[1];
+  double dz = du * _attr._xaxis[2] + dv * _attr._yaxis[2] + dw * _attr._zaxis[2];
+  du = dx, dv = dy, dw = dz;
+}
+
+// -----------------------------------------------------------------------------
 inline void
 FreeFormTransformation::HessianToWorld(double &duu, double &duv, double &dvv) const
 {
@@ -1755,9 +1786,11 @@ inline void FreeFormTransformation::JacobianDOFs(TransformationJacobian &jac, do
 
 // -----------------------------------------------------------------------------
 inline void FreeFormTransformation
-::JacobianDetDerivative(double dJ[3], const Matrix &adj, int cp, double x, double y, double z, double t, double t0) const
+::JacobianDetDerivative(double dJ[3], const Matrix &adj,
+                        int cp, double x, double y, double z, double t, double t0,
+                        bool wrt_world, bool use_spacing) const
 {
-  this->FFDJacobianDetDerivative(dJ, adj, cp, x, y, z, t, t0);
+  this->FFDJacobianDetDerivative(dJ, adj, cp, x, y, z, t, t0, wrt_world, use_spacing);
 }
 
 // =============================================================================
