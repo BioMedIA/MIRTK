@@ -1,9 +1,9 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2008-2015 Imperial College London
+ * Copyright 2008-2017 Imperial College London
  * Copyright 2008-2013 Daniel Rueckert, Julia Schnabel
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2013-2017 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -702,7 +702,7 @@ public:
 
   /// Approximates the gradient of the bending energy on the control point
   /// lattice w.r.t the transformation parameters and adds it with the given weight
-  virtual void BendingEnergyGradient(double *, double = 1.0, bool = false, bool = true) const;
+  virtual void BendingEnergyGradient(double *, double = 1.0, bool = false, bool = true, bool = true) const;
 
   // ---------------------------------------------------------------------------
   // I/O
@@ -1116,7 +1116,7 @@ inline void FreeFormTransformation::BoundingBox(double &t1, double &t2) const
 
 // -----------------------------------------------------------------------------
 inline void FreeFormTransformation::BoundingBox(double &x1, double &y1, double &z1,
-                                                    double &x2, double &y2, double &z2) const
+                                                double &x2, double &y2, double &z2) const
 {
   x1 = y1 = z1 = .0;
   this->LatticeToWorld(x1, y1, z1);
@@ -1135,7 +1135,7 @@ inline void FreeFormTransformation::BoundingBox(Point &p1, Point &p2) const
 
 // -----------------------------------------------------------------------------
 inline void FreeFormTransformation::BoundingBox(double &x1, double &y1, double &z1, double &t1,
-                                                    double &x2, double &y2, double &z2, double &t2) const
+                                                double &x2, double &y2, double &z2, double &t2) const
 {
   BoundingBox(x1, y1, z1, x2, y2, z2);
   BoundingBox(t1, t2);
@@ -1157,7 +1157,7 @@ inline void FreeFormTransformation::BoundingBox(int, double &t1, double &t2, dou
 
 // -----------------------------------------------------------------------------
 inline void FreeFormTransformation::BoundingBox(int, double &x1, double &y1, double &z1,
-                                                         double &x2, double &y2, double &z2, double) const
+                                                     double &x2, double &y2, double &z2, double) const
 {
   x1 = 0,      y1 = 0,      z1 = 0;
   x2 = _x - 1, y2 = _y - 1, z2 = _z - 1;
@@ -1170,8 +1170,8 @@ inline void FreeFormTransformation::BoundingBox(int, double &x1, double &y1, dou
 
 // -----------------------------------------------------------------------------
 inline void FreeFormTransformation::BoundingBox(int cp, double &x1, double &y1, double &z1, double &t1,
-                                                            double &x2, double &y2, double &z2, double &t2,
-                                                            double fraction) const
+                                                        double &x2, double &y2, double &z2, double &t2,
+                                                        double fraction) const
 {
   this->BoundingBox(cp, x1, y1, z1, x2, y2, z2, fraction);
   this->BoundingBox(cp, t1, t2,                 fraction);
