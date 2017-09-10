@@ -30,7 +30,7 @@ namespace mirtk {
  * Linear elasticity constraint
  *
  * \todo Generalize implementation and extend FreeFormTransformation API such that this
- *       constrain can be used with any deformable transformation model. The current
+ *       constraint can be used with any deformable transformation model. The current
  *       implementation is specific to the 3D cubic B-spline FFD.
  */
 class LinearElasticityConstraint : public TransformationConstraint
@@ -40,9 +40,13 @@ class LinearElasticityConstraint : public TransformationConstraint
   /// Whether to integrate linear elasticity energy over control point lattice only
   mirtkPublicAttributeMacro(bool, Approximate);
 
-  /// Whether to evaluate first order derivatives and constraint gradient
-  /// with respect to the axes of the world coordinate system
-  mirtkPublicAttributeMacro(bool, WrtWorld);
+  /// Whether to evaluate derivatives of smoothness term w.r.t. world coordinates.
+  ///
+  /// When \c false, the smoothness penalty is evaluated w.r.t the local lattice coordinates
+  mirtkPublicAttributeMacro(bool, WithRespectToWorld);
+
+  /// Whether to use control point spacing when derivatives are computed w.r.t. world coordinates
+  mirtkPublicAttributeMacro(bool, UseLatticeSpacing);
 
   /// Whether to include rotation component (default: true)
   mirtkPublicAttributeMacro(bool, ConstrainRotation);
