@@ -827,7 +827,12 @@ void Matrix::LU(Matrix &lu, Matrix &perm, double &sign) const
   perm = EigenToMatrix(ppiv_lu.permutationP());
   // Trick to determine the sign (either 1 or -1) of the LU decomposition
   // since the PartialPivLU class interface does not provide a way to get it
-  sign = ppiv_lu.determinant() / ppiv_lu.matrixLU().diagonal().prod();
+  sign = ppiv_lu.matrixLU().diagonal().prod();
+  if (AreEqual(sign, 0.)) {
+    sign = 1.;
+  } else {
+    sign = ppiv_lu.determinant() / sign;
+  }
 }
 
 // -----------------------------------------------------------------------------
