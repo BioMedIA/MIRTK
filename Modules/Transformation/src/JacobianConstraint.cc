@@ -145,6 +145,28 @@ inline bool IsActiveLattice(const FreeFormTransformation3D *ffd, double x, doubl
 /// Check if lattice point is within local support of an active control point
 inline bool IsActiveLattice(const FreeFormTransformation3D *ffd, int ci, int cj, int ck)
 {
+  const int r = ffd->KernelRadius();
+
+  int i1 = max(0, ci - r);
+  int j1 = max(0, cj - r);
+  int k1 = max(0, ck - r);
+
+  int i2 = min(ci + r, ffd->X() - 1);
+  int j2 = min(cj + r, ffd->Y() - 1);
+  int k2 = min(ck + r, ffd->Z() - 1);
+
+  for (int k = k1; k <= k2; ++k)
+  for (int j = j1; j <= j2; ++j)
+  for (int i = i1; i <= i2; ++i) {
+    if (ffd->IsActive(i, j, k)) return true;
+  }
+  return false;
+}
+
+// -----------------------------------------------------------------------------
+/// Check if lattice point is within local support of an active control point
+inline bool IsActiveBSplineLatticePoint(const BSplineFreeFormTransformation3D *ffd, int ci, int cj, int ck)
+{
   int i1 = max(0, ci - 1);
   int j1 = max(0, cj - 1);
   int k1 = max(0, ck - 1);
@@ -226,12 +248,26 @@ public:
             x = i, y = j, z = k;
             _Domain->LatticeToWorld(x, y, z);
             idx = _Domain->LatticeToIndex(i, j, k, l);
-            _FFD->FFDJacobianWorld(_AdjJacobian[idx], x, y, z, t);
+            Matrix &jac = _AdjJacobian[idx];
+            _FFD->FFDJacobianWorld(jac, x, y, z, t);
             if (_Orient) {
-              if (_FFD->Z() == 1) MultiplyRight2x2(_AdjJacobian[idx], *_Orient);
-              else                MultiplyRight3x3(_AdjJacobian[idx], *_Orient);
+              if (_FFD->Z() == 1) {
+                jac(0, 0) -= 1.;
+                jac(1, 1) -= 1.;
+                MultiplyRight2x2(jac, *_Orient);
+                jac(0, 0) += 1.;
+                jac(1, 1) += 1.;
+              } else {
+                jac(0, 0) -= 1.;
+                jac(1, 1) -= 1.;
+                jac(2, 2) -= 1.;
+                MultiplyRight3x3(jac, *_Orient);
+                jac(0, 0) += 1.;
+                jac(1, 1) += 1.;
+                jac(2, 2) += 1.;
+              }
             }
-            _AdjJacobian[idx].Adjugate(_DetJacobian[idx]);
+            jac.Adjugate(_DetJacobian[idx]);
           }
         }
       } else {
@@ -243,12 +279,26 @@ public:
             x = i, y = j, z = k;
             _Domain->LatticeToWorld(x, y, z);
             idx = _Domain->LatticeToIndex(i, j, k, l);
-            _FFD->LocalJacobian(_AdjJacobian[idx], x, y, z, t);
+            Matrix &jac = _AdjJacobian[idx];
+            _FFD->LocalJacobian(jac, x, y, z, t);
             if (_Orient) {
-              if (_FFD->Z() == 1) MultiplyRight2x2(_AdjJacobian[idx], *_Orient);
-              else                MultiplyRight3x3(_AdjJacobian[idx], *_Orient);
+              if (_FFD->Z() == 1) {
+                jac(0, 0) -= 1.;
+                jac(1, 1) -= 1.;
+                MultiplyRight2x2(jac, *_Orient);
+                jac(0, 0) += 1.;
+                jac(1, 1) += 1.;
+              } else {
+                jac(0, 0) -= 1.;
+                jac(1, 1) -= 1.;
+                jac(2, 2) -= 1.;
+                MultiplyRight3x3(jac, *_Orient);
+                jac(0, 0) += 1.;
+                jac(1, 1) += 1.;
+                jac(2, 2) += 1.;
+              }
             }
-            _AdjJacobian[idx].Adjugate(_DetJacobian[idx]);
+            jac.Adjugate(_DetJacobian[idx]);
           }
         }
       }
@@ -263,12 +313,26 @@ public:
             _Domain->LatticeToWorld(x, y, z);
             idx = _Domain->LatticeToIndex(i, j, k, l);
             if (IsActiveWorld(_FFD, x, y, z, t)) {
-              _FFD->FFDJacobianWorld(_AdjJacobian[idx], x, y, z, t);
+              Matrix &jac = _AdjJacobian[idx];
+              _FFD->FFDJacobianWorld(jac, x, y, z, t);
               if (_Orient) {
-                if (_FFD->Z() == 1) MultiplyRight2x2(_AdjJacobian[idx], *_Orient);
-                else                MultiplyRight3x3(_AdjJacobian[idx], *_Orient);
+                if (_FFD->Z() == 1) {
+                  jac(0, 0) -= 1.;
+                  jac(1, 1) -= 1.;
+                  MultiplyRight2x2(jac, *_Orient);
+                  jac(0, 0) += 1.;
+                  jac(1, 1) += 1.;
+                } else {
+                  jac(0, 0) -= 1.;
+                  jac(1, 1) -= 1.;
+                  jac(2, 2) -= 1.;
+                  MultiplyRight3x3(jac, *_Orient);
+                  jac(0, 0) += 1.;
+                  jac(1, 1) += 1.;
+                  jac(2, 2) += 1.;
+                }
               }
-              _AdjJacobian[idx].Adjugate(_DetJacobian[idx]);
+              jac.Adjugate(_DetJacobian[idx]);
             } else {
               _DetJacobian[idx] = NaN;
             }
@@ -284,12 +348,26 @@ public:
             _Domain->LatticeToWorld(x, y, z);
             idx = _Domain->LatticeToIndex(i, j, k, l);
             if (IsActiveWorld(_FFD, x, y, z, t)) {
-              _FFD->LocalJacobian(_AdjJacobian[idx], x, y, z, t);
+              Matrix &jac = _AdjJacobian[idx];
+              _FFD->LocalJacobian(jac, x, y, z, t);
               if (_Orient) {
-                if (_FFD->Z() == 1) MultiplyRight2x2(_AdjJacobian[idx], *_Orient);
-                else                MultiplyRight3x3(_AdjJacobian[idx], *_Orient);
+                if (_FFD->Z() == 1) {
+                  jac(0, 0) -= 1.;
+                  jac(1, 1) -= 1.;
+                  MultiplyRight2x2(jac, *_Orient);
+                  jac(0, 0) += 1.;
+                  jac(1, 1) += 1.;
+                } else {
+                  jac(0, 0) -= 1.;
+                  jac(1, 1) -= 1.;
+                  jac(2, 2) -= 1.;
+                  MultiplyRight3x3(jac, *_Orient);
+                  jac(0, 0) += 1.;
+                  jac(1, 1) += 1.;
+                  jac(2, 2) += 1.;
+                }
               }
-              _AdjJacobian[idx].Adjugate(_DetJacobian[idx]);
+              jac.Adjugate(_DetJacobian[idx]);
             } else {
               _DetJacobian[idx] = NaN;
             }
@@ -354,9 +432,13 @@ public:
       _Domain->LatticeToWorld(x, y, z);
       _FFD->WorldToLattice(x, y, z);
       if (IsActiveLattice(_FFD, x, y, z)) {
-        _FFD->EvaluateJacobian(_AdjJacobian[idx], x, y, z);
-        if (_Orient) MultiplyRight3x3(_AdjJacobian[idx], *_Orient);
-        _AdjJacobian[idx].Adjugate(_DetJacobian[idx]);
+        Matrix &jac = _AdjJacobian[idx];
+        _FFD->EvaluateJacobian(jac, x, y, z);
+        if (_Orient) MultiplyRight3x3(jac, *_Orient);
+        jac(0, 0) += 1.;
+        jac(1, 1) += 1.;
+        jac(2, 2) += 1.;
+        jac.Adjugate(_DetJacobian[idx]);
       } else {
         _DetJacobian[idx] = NaN;
       }
@@ -401,10 +483,14 @@ public:
     for (int j = re.rows ().begin(); j != re.rows ().end(); ++j)
     for (int i = re.cols ().begin(); i != re.cols ().end(); ++i) {
       idx = _FFD->LatticeToIndex(i, j, k);
-      if (IsActiveLattice(_FFD, i, j, k)) {
-        _FFD->EvaluateJacobian(_AdjJacobian[idx], i, j, k);
-        if (_Orient) MultiplyRight3x3(_AdjJacobian[idx], *_Orient);
-        _AdjJacobian[idx].Adjugate(_DetJacobian[idx]);
+      if (IsActiveBSplineLatticePoint(_FFD, i, j, k)) {
+        Matrix &jac = _AdjJacobian[idx];
+        _FFD->EvaluateJacobian(jac, i, j, k);
+        if (_Orient) MultiplyRight3x3(jac, *_Orient);
+        jac(0, 0) += 1.;
+        jac(1, 1) += 1.;
+        jac(2, 2) += 1.;
+        jac.Adjugate(_DetJacobian[idx]);
       } else {
         _DetJacobian[idx] = NaN;
       }
@@ -449,12 +535,16 @@ public:
     for (int j = re.rows ().begin(); j != re.rows ().end(); ++j)
     for (int i = re.cols ().begin(); i != re.cols ().end(); ++i) {
       idx = _Domain->LatticeToIndex(i, j, k);
+      Matrix &jac = _AdjJacobian[idx];
       x = i, y = j, z = k;
       _Domain->LatticeToWorld(x, y, z);
       _FFD->WorldToLattice(x, y, z);
-      _FFD->EvaluateJacobian(_AdjJacobian[idx], x, y, z);
-      if (_Orient) MultiplyRight3x3(_AdjJacobian[idx], *_Orient);
-      _AdjJacobian[idx].Adjugate(_DetJacobian[idx]);
+      _FFD->EvaluateJacobian(jac, x, y, z);
+      if (_Orient) MultiplyRight3x3(jac, *_Orient);
+      jac(0, 0) += 1.;
+      jac(1, 1) += 1.;
+      jac(2, 2) += 1.;
+      jac.Adjugate(_DetJacobian[idx]);
     }
   }
 
@@ -496,9 +586,13 @@ public:
     for (int j = re.rows ().begin(); j != re.rows ().end(); ++j)
     for (int i = re.cols ().begin(); i != re.cols ().end(); ++i) {
       idx = _FFD->LatticeToIndex(i, j, k);
-      _FFD->EvaluateJacobian(_AdjJacobian[idx], i, j, k);
-      if (_Orient) MultiplyRight3x3(_AdjJacobian[idx], *_Orient);
-      _AdjJacobian[idx].Adjugate(_DetJacobian[idx]);
+      Matrix &jac = _AdjJacobian[idx];
+      _FFD->EvaluateJacobian(jac, i, j, k);
+      if (_Orient) MultiplyRight3x3(jac, *_Orient);
+      jac(0, 0) += 1.;
+      jac(1, 1) += 1.;
+      jac(2, 2) += 1.;
+      jac.Adjugate(_DetJacobian[idx]);
     }
   }
 
