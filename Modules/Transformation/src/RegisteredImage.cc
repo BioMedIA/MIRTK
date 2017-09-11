@@ -366,7 +366,6 @@ void RegisteredImage::Initialize(const ImageAttributes &attr, int t)
 // -----------------------------------------------------------------------------
 void RegisteredImage::ComputeInputGradient(double sigma)
 {
-  MIRTK_START_TIMING();
   Delete(_InputGradient);
   if (sigma > 0. || _PrecomputeDerivatives) {
     // Background value
@@ -385,6 +384,7 @@ void RegisteredImage::ComputeInputGradient(double sigma)
     }
     // Smooth input image
     if (sigma > 0.) {
+      MIRTK_START_TIMING();
       UniquePtr<InputGradientType> blurred(new InputGradientType());
       if (IsInf(bgvalue)) {
         typedef GaussianBlurring<InputGradientType::VoxelType> GaussianFilter;
@@ -405,8 +405,10 @@ void RegisteredImage::ComputeInputGradient(double sigma)
       }
       temp.reset(blurred.release());
       image = temp.get();
+      MIRTK_DEBUG_TIMING(5, "low-pass filtering of image for 1st order derivatives");
     }
     if (_PrecomputeDerivatives) {
+      MIRTK_START_TIMING();
       const int nvox = image->NumberOfSpatialVoxels();
       UniquePtr<InputGradientType> gradient(new InputGradientType());
       // Compute image gradient using finite differences
@@ -483,14 +485,12 @@ void RegisteredImage::ComputeInputGradient(double sigma)
     } else {
       _InputGradient = reinterpret_cast<InputGradientType *>(_InputImage);
     }
-    MIRTK_DEBUG_TIMING(5, "low-pass filtering of image for 1st order derivatives");
   }
 }
 
 // -----------------------------------------------------------------------------
 void RegisteredImage::ComputeInputHessian(double sigma)
 {
-  MIRTK_START_TIMING();
   Delete(_InputHessian);
   // Background value
   double bgvalue = -inf;
@@ -508,6 +508,7 @@ void RegisteredImage::ComputeInputHessian(double sigma)
   }
   // Smooth input image
   if (sigma > .0) {
+    MIRTK_START_TIMING();
     UniquePtr<InputHessianType> blurred(new InputHessianType());
     if (IsInf(bgvalue)) {
       typedef GaussianBlurring<InputHessianType::VoxelType> GaussianFilter;
@@ -528,8 +529,10 @@ void RegisteredImage::ComputeInputHessian(double sigma)
     }
     temp.reset(blurred.release());
     image = temp.get();
+    MIRTK_DEBUG_TIMING(5, "low-pass filtering of image for 2nd order derivatives");
   }
   // Compute 2nd order image derivatives using finite differences
+  MIRTK_START_TIMING();
   UniquePtr<InputHessianType> hessian(new InputHessianType());
   typedef HessianImageFilter<InputHessianType::VoxelType> HessianFilterType;
   HessianFilterType filter(HessianFilterType::HESSIAN_MATRIX);
