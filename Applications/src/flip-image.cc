@@ -55,6 +55,10 @@ void PrintHelp(const char *name)
   cout << "  -noaxes            Disable swapping of the coordinate axes.\n";
   cout << "  -origin [on|off]   Enable/disable swapping of the origin coordinates. (default: on)\n";
   cout << "  -noorigin          Disable swapping of the origin coordinates.\n";
+  cout << "  -x                 Reflect image data along x dimension.\n";
+  cout << "  -y                 Reflect image data along y dimension.\n";
+  cout << "  -z                 Reflect image data along z dimension.\n";
+  cout << "  -t                 Reflect image data along t dimension.\n";
   cout << "  -xy, -yx           Swap x and y dimension.\n";
   cout << "  -xz, -zx           Swap x and z dimension.\n";
   cout << "  -xt, -tx           Swap x and t dimension.\n";
@@ -83,7 +87,19 @@ int main(int argc, char **argv)
   bool modify_axes   = false;
 
   for (ALL_OPTIONS) {
-    if (OPTION("-xy") || OPTION("-yx")) {
+    if (OPTION("-x")) {
+      image->ReflectX(modify_axes);
+    }
+    else if (OPTION("-y")) {
+      image->ReflectY(modify_axes);
+    }
+    else if (OPTION("-z")) {
+      image->ReflectZ(modify_axes);
+    }
+    else if (OPTION("-t")) {
+      image->ReflectT(modify_axes);
+    }
+    else if (OPTION("-xy") || OPTION("-yx")) {
       if (modify_axes) {
         image->SwapXY(true);
       } else {
