@@ -1409,7 +1409,7 @@ template <> void GenericImage<double3x3>::GravityCenter(Point &, int, int) const
 
 // -----------------------------------------------------------------------------
 template <class VoxelType>
-void GenericImage<VoxelType>::ReflectX()
+void GenericImage<VoxelType>::ReflectX(bool modify_axes)
 {
   for (int t = 0; t < _attr._t; ++t)
   for (int z = 0; z < _attr._z; ++z)
@@ -1417,11 +1417,17 @@ void GenericImage<VoxelType>::ReflectX()
   for (int x = 0; x < _attr._x / 2; ++x) {
     swap(_matrix[t][z][y][x], _matrix[t][z][y][_attr._x-(x+1)]);
   }
+  if (modify_axes) {
+    _attr._xaxis[0] = -_attr._xaxis[0];
+    _attr._xaxis[1] = -_attr._xaxis[1];
+    _attr._xaxis[2] = -_attr._xaxis[2];
+    UpdateMatrix();
+  }
 }
 
 // -----------------------------------------------------------------------------
 template <class VoxelType>
-void GenericImage<VoxelType>::ReflectY()
+void GenericImage<VoxelType>::ReflectY(bool modify_axes)
 {
   for (int t = 0; t < _attr._t; ++t)
   for (int z = 0; z < _attr._z; ++z)
@@ -1429,17 +1435,44 @@ void GenericImage<VoxelType>::ReflectY()
   for (int x = 0; x < _attr._x; ++x) {
     swap(_matrix[t][z][y][x], _matrix[t][z][_attr._y-(y+1)][x]);
   }
+  if (modify_axes) {
+    _attr._yaxis[0] = -_attr._yaxis[0];
+    _attr._yaxis[1] = -_attr._yaxis[1];
+    _attr._yaxis[2] = -_attr._yaxis[2];
+    UpdateMatrix();
+  }
 }
 
 // -----------------------------------------------------------------------------
 template <class VoxelType>
-void GenericImage<VoxelType>::ReflectZ()
+void GenericImage<VoxelType>::ReflectZ(bool modify_axes)
 {
   for (int t = 0; t < _attr._t; ++t)
   for (int z = 0; z < _attr._z / 2; ++z)
   for (int y = 0; y < _attr._y; ++y)
   for (int x = 0; x < _attr._x; ++x) {
     swap(_matrix[t][z][y][x], _matrix[t][_attr._z-(z+1)][y][x]);
+  }
+  if (modify_axes) {
+    _attr._zaxis[0] = -_attr._zaxis[0];
+    _attr._zaxis[1] = -_attr._zaxis[1];
+    _attr._zaxis[2] = -_attr._zaxis[2];
+    UpdateMatrix();
+  }
+}
+
+// -----------------------------------------------------------------------------
+template <class VoxelType>
+void GenericImage<VoxelType>::ReflectT(bool modify_axes)
+{
+  for (int t = 0; t < _attr._t / 2; ++t)
+  for (int z = 0; z < _attr._z; ++z)
+  for (int y = 0; y < _attr._y; ++y)
+  for (int x = 0; x < _attr._x; ++x) {
+    swap(_matrix[t][z][y][x], _matrix[_attr._t-(t+1)][z][y][x]);
+  }
+  if (modify_axes) {
+    _attr._dt = -_attr._dt;
   }
 }
 

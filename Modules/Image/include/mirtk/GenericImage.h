@@ -417,9 +417,10 @@ public:
   // ---------------------------------------------------------------------------
   // Common image manipulations
 
-  virtual void ReflectX();  ///< Reflect image along x
-  virtual void ReflectY();  ///< Reflect image along y
-  virtual void ReflectZ();  ///< Reflect image along z
+  virtual void ReflectX(bool modify_axes = false);  ///< Reflect image along x
+  virtual void ReflectY(bool modify_axes = false);  ///< Reflect image along y
+  virtual void ReflectZ(bool modify_axes = false);  ///< Reflect image along z
+  virtual void ReflectT(bool modify_axes = false);  ///< Reflect image along t
 
   virtual void FlipXY(bool modify_origin = false); ///< Flip x and y axis, always also swaps voxel size
   virtual void FlipXZ(bool modify_origin = false); ///< Flip x and z axis, always also swaps voxel size
