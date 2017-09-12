@@ -35,7 +35,7 @@ mirtkAutoRegisterEnergyTermMacro(NegJacobianConstraint);
 NegJacobianConstraint::NegJacobianConstraint(const char *name, bool constrain_spline)
 :
   JacobianConstraint(name, constrain_spline),
-  _Epsilon(.1), _Gamma(.5), _Power(2)
+  _Epsilon(.05), _Gamma(.5), _Power(2)
 {
   _SubDomain = SD_Shifted;
 }
