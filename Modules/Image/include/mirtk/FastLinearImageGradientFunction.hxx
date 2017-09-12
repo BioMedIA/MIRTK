@@ -1,8 +1,8 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2013-2015 Imperial College London
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2013-2017 Imperial College London
+ * Copyright 2013-2017 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -55,15 +55,15 @@ void GenericFastLinearImageGradientFunction<TImage>::Initialize(bool coeff)
   // Domain on which linear interpolation is defined: [0, x)
   switch (this->NumberOfDimensions()) {
     case 4:
-      this->_t1 = .0;
+      this->_t1 = 0.;
       this->_t2 = fdec(this->Input()->T() - 1);
     case 3:
-      this->_z1 = .0;
+      this->_z1 = 0.;
       this->_z2 = fdec(this->Input()->Z() - 1);
     default:
-      this->_y1 = .0;
+      this->_y1 = 0.;
       this->_y2 = fdec(this->Input()->Y() - 1);
-      this->_x1 = .0;
+      this->_x1 = 0.;
       this->_x2 = fdec(this->Input()->X() - 1);
   }
 }
@@ -81,6 +81,21 @@ void GenericFastLinearImageGradientFunction<TImage>
 }
 
 // =============================================================================
+// Interpolation weights
+// =============================================================================
+
+// -----------------------------------------------------------------------------
+template <class TImage>
+inline int GenericFastLinearImageGradientFunction<TImage>
+::ComputeWeights(double x, Real w[2])
+{
+  const int i = ifloor(x);
+  w[1] = static_cast<Real>(x) - static_cast<Real>(i);
+  w[0] = static_cast<Real>(1) - w[1];
+  return i;
+}
+
+// =============================================================================
 // Evaluation
 // =============================================================================
 
@@ -90,8 +105,9 @@ inline typename GenericFastLinearImageGradientFunction<TImage>::GradientType
 GenericFastLinearImageGradientFunction<TImage>
 ::Get2D(double x, double y, double z, double t) const
 {
-  const int i = ifloor(x);
-  const int j = ifloor(y);
+  Real wx[2], wy[2], wd[2] = {Real(-1), Real(1)};
+  const int i = ComputeWeights(x, wx);
+  const int j = ComputeWeights(y, wy);
   const int k = iround(z);
   const int l = iround(t);
 
@@ -99,10 +115,6 @@ GenericFastLinearImageGradientFunction<TImage>
       l < 0 || l >= this->Input()->T()) {
     return this->DefaultValue();
   }
-
-  Real wx[2], wy[2], wd[2] = {Real(-1), Real(1)};
-  wx[1] = Real(x - i); wx[0] = Real(1) - wx[1];
-  wy[1] = Real(y - j); wy[0] = Real(1) - wy[1];
 
   GradientType val(.0);
   Real         nrm(0), coeff;
@@ -135,8 +147,9 @@ inline typename GenericFastLinearImageGradientFunction<TImage>::GradientType
 GenericFastLinearImageGradientFunction<TImage>
 ::GetWithPadding2D(double x, double y, double z, double t) const
 {
-  const int i = ifloor(x);
-  const int j = ifloor(y);
+  Real wx[2], wy[2], wd[2] = {Real(-1), Real(1)};
+  const int i = ComputeWeights(x, wx);
+  const int j = ComputeWeights(y, wy);
   const int k = iround(z);
   const int l = iround(t);
 
@@ -144,10 +157,6 @@ GenericFastLinearImageGradientFunction<TImage>
       l < 0 || l >= this->Input()->T()) {
     return this->DefaultValue();
   }
-
-  Real wx[2], wy[2], wd[2] = {Real(-1), Real(1)};
-  wx[1] = Real(x - i); wx[0] = Real(1) - wx[1];
-  wy[1] = Real(y - j); wy[0] = Real(1) - wy[1];
 
   GradientType val(.0);
   Real         coeff;
@@ -176,14 +185,11 @@ inline typename GenericFastLinearImageGradientFunction<TImage>::GradientType
 GenericFastLinearImageGradientFunction<TImage>
 ::Get2D(const TOtherImage *input, double x, double y, double z, double t) const
 {
-  const int i = ifloor(x);
-  const int j = ifloor(y);
+  Real wx[2], wy[2], wd[2] = {Real(-1), Real(1)};
+  const int i = ComputeWeights(x, wx);
+  const int j = ComputeWeights(y, wy);
   const int k = iround(z);
   const int l = iround(t);
-
-  Real wx[2], wy[2], wd[2] = {Real(-1), Real(1)};
-  wx[1] = Real(x - i); wx[0] = Real(1) - wx[1];
-  wy[1] = Real(y - j); wy[0] = Real(1) - wy[1];
 
   GradientType val(.0);
   Real         coeff;
@@ -208,8 +214,9 @@ inline typename GenericFastLinearImageGradientFunction<TImage>::GradientType
 GenericFastLinearImageGradientFunction<TImage>
 ::GetWithPadding2D(const TOtherImage *input, double x, double y, double z, double t) const
 {
-  const int i = ifloor(x);
-  const int j = ifloor(y);
+  Real wx[2], wy[2], wd[2] = {Real(-1), Real(1)};
+  const int i = ComputeWeights(x, wx);
+  const int j = ComputeWeights(y, wy);
   const int k = iround(z);
   const int l = iround(t);
 
@@ -217,10 +224,6 @@ GenericFastLinearImageGradientFunction<TImage>
       l < 0 || l >= input->T()) {
     return this->DefaultValue();
   }
-
-  Real wx[2], wy[2], wd[2] = {Real(-1), Real(1)};
-  wx[1] = Real(x - i); wx[0] = Real(1) - wx[1];
-  wy[1] = Real(y - j); wy[0] = Real(1) - wy[1];
 
   GradientType val(.0);
   Real         coeff;
@@ -249,19 +252,15 @@ inline typename GenericFastLinearImageGradientFunction<TImage>::GradientType
 GenericFastLinearImageGradientFunction<TImage>
 ::Get3D(double x, double y, double z, double t) const
 {
-  const int i = ifloor(x);
-  const int j = ifloor(y);
-  const int k = ifloor(z);
+  Real wx[2], wy[2], wz[2], wd[2] = {Real(-1), Real(1)};
+  const int i = ComputeWeights(x, wx);
+  const int j = ComputeWeights(y, wy);
+  const int k = ComputeWeights(z, wz);
   const int l = iround(t);
 
   if (l < 0 || l >= this->Input()->T()) {
     return this->DefaultValue();
   }
-
-  Real wx[2], wy[2], wz[2], wd[2] = {Real(-1), Real(1)};
-  wx[1] = Real(x - i); wx[0] = Real(1) - wx[1];
-  wy[1] = Real(y - j); wy[0] = Real(1) - wy[1];
-  wz[1] = Real(z - k); wz[0] = Real(1) - wz[1];
 
   GradientType val(.0);
   Real         nrm(0), coeff;
@@ -300,19 +299,15 @@ inline typename GenericFastLinearImageGradientFunction<TImage>::GradientType
 GenericFastLinearImageGradientFunction<TImage>
 ::GetWithPadding3D(double x, double y, double z, double t) const
 {
-  const int i = ifloor(x);
-  const int j = ifloor(y);
-  const int k = ifloor(z);
+  Real wx[2], wy[2], wz[2], wd[2] = {Real(-1), Real(1)};
+  const int i = ComputeWeights(x, wx);
+  const int j = ComputeWeights(y, wy);
+  const int k = ComputeWeights(z, wz);
   const int l = iround(t);
 
   if (l < 0 || l >= this->Input()->T()) {
     return this->DefaultValue();
   }
-
-  Real wx[2], wy[2], wz[2], wd[2] = {Real(-1), Real(1)};
-  wx[1] = Real(x - i); wx[0] = Real(1) - wx[1];
-  wy[1] = Real(y - j); wy[0] = Real(1) - wy[1];
-  wz[1] = Real(z - k); wz[0] = Real(1) - wz[1];
 
   GradientType val(.0);
   Real         coeff;
@@ -345,15 +340,11 @@ inline typename GenericFastLinearImageGradientFunction<TImage>::GradientType
 GenericFastLinearImageGradientFunction<TImage>
 ::Get3D(const TOtherImage *input, double x, double y, double z, double t) const
 {
-  const int i = ifloor(x);
-  const int j = ifloor(y);
-  const int k = ifloor(z);
-  const int l = iround(t);
-
   Real wx[2], wy[2], wz[2], wd[2] = {Real(-1), Real(1)};
-  wx[1] = Real(x - i); wx[0] = Real(1) - wx[1];
-  wy[1] = Real(y - j); wy[0] = Real(1) - wy[1];
-  wz[1] = Real(z - k); wz[0] = Real(1) - wz[1];
+  const int i = ComputeWeights(x, wx);
+  const int j = ComputeWeights(y, wy);
+  const int k = ComputeWeights(z, wz);
+  const int l = iround(t);
 
   GradientType val(.0);
   Real         coeff;
@@ -382,19 +373,15 @@ inline typename GenericFastLinearImageGradientFunction<TImage>::GradientType
 GenericFastLinearImageGradientFunction<TImage>
 ::GetWithPadding3D(const TOtherImage *input, double x, double y, double z, double t) const
 {
-  const int i = ifloor(x);
-  const int j = ifloor(y);
-  const int k = ifloor(z);
+  Real wx[2], wy[2], wz[2], wd[2] = {Real(-1), Real(1)};
+  const int i = ComputeWeights(x, wx);
+  const int j = ComputeWeights(y, wy);
+  const int k = ComputeWeights(z, wz);
   const int l = iround(t);
 
   if (l < 0 || l >= input->T()) {
     return this->DefaultValue();
   }
-
-  Real wx[2], wy[2], wz[2], wd[2] = {Real(-1), Real(1)};
-  wx[1] = Real(x - i); wx[0] = Real(1) - wx[1];
-  wy[1] = Real(y - j); wy[0] = Real(1) - wy[1];
-  wz[1] = Real(z - k); wz[0] = Real(1) - wz[1];
 
   GradientType val(.0);
   Real         coeff;
@@ -427,16 +414,11 @@ inline typename GenericFastLinearImageGradientFunction<TImage>::GradientType
 GenericFastLinearImageGradientFunction<TImage>
 ::Get4D(double x, double y, double z, double t) const
 {
-  const int i = ifloor(x);
-  const int j = ifloor(y);
-  const int k = ifloor(z);
-  const int l = ifloor(t);
-
   Real wx[2], wy[2], wz[2], wt[2], wd[2] = {Real(-1), Real(1)};
-  wx[1] = Real(x - i); wx[0] = Real(1) - wx[1];
-  wy[1] = Real(y - j); wy[0] = Real(1) - wy[1];
-  wz[1] = Real(z - k); wz[0] = Real(1) - wz[1];
-  wt[1] = Real(t - l); wt[0] = Real(1) - wt[1];
+  const int i = ComputeWeights(x, wx);
+  const int j = ComputeWeights(y, wy);
+  const int k = ComputeWeights(z, wz);
+  const int l = ComputeWeights(t, wt);
 
   GradientType val(.0);
   Real         nrm(0), coeff;
@@ -480,16 +462,11 @@ inline typename GenericFastLinearImageGradientFunction<TImage>::GradientType
 GenericFastLinearImageGradientFunction<TImage>
 ::GetWithPadding4D(double x, double y, double z, double t) const
 {
-  const int i = ifloor(x);
-  const int j = ifloor(y);
-  const int k = ifloor(z);
-  const int l = ifloor(t);
-
   Real wx[2], wy[2], wz[2], wt[2], wd[2] = {Real(-1), Real(1)};
-  wx[1] = Real(x - i); wx[0] = Real(1) - wx[1];
-  wy[1] = Real(y - j); wy[0] = Real(1) - wy[1];
-  wz[1] = Real(z - k); wz[0] = Real(1) - wz[1];
-  wt[1] = Real(t - l); wt[0] = Real(1) - wt[1];
+  const int i = ComputeWeights(x, wx);
+  const int j = ComputeWeights(y, wy);
+  const int k = ComputeWeights(z, wz);
+  const int l = ComputeWeights(t, wt);
 
   GradientType val(.0);
   Real         coeff;
@@ -525,16 +502,11 @@ inline typename GenericFastLinearImageGradientFunction<TImage>::GradientType
 GenericFastLinearImageGradientFunction<TImage>
 ::Get4D(const TOtherImage *input, double x, double y, double z, double t) const
 {
-  const int i = ifloor(x);
-  const int j = ifloor(y);
-  const int k = ifloor(z);
-  const int l = ifloor(t);
-
   Real wx[2], wy[2], wz[2], wt[2], wd[2] = {Real(-1), Real(1)};
-  wx[1] = Real(x - i); wx[0] = Real(1) - wx[1];
-  wy[1] = Real(y - j); wy[0] = Real(1) - wy[1];
-  wz[1] = Real(z - k); wz[0] = Real(1) - wz[1];
-  wt[1] = Real(t - l); wt[0] = Real(1) - wt[1];
+  const int i = ComputeWeights(x, wx);
+  const int j = ComputeWeights(y, wy);
+  const int k = ComputeWeights(z, wz);
+  const int l = ComputeWeights(t, wt);
 
   GradientType val(.0);
   Real         coeff;
@@ -566,16 +538,11 @@ inline typename GenericFastLinearImageGradientFunction<TImage>::GradientType
 GenericFastLinearImageGradientFunction<TImage>
 ::GetWithPadding4D(const TOtherImage *input, double x, double y, double z, double t) const
 {
-  const int i = ifloor(x);
-  const int j = ifloor(y);
-  const int k = ifloor(z);
-  const int l = ifloor(t);
-
   Real wx[2], wy[2], wz[2], wt[2], wd[2] = {Real(-1), Real(1)};
-  wx[1] = Real(x - i); wx[0] = Real(1) - wx[1];
-  wy[1] = Real(y - j); wy[0] = Real(1) - wy[1];
-  wz[1] = Real(z - k); wz[0] = Real(1) - wz[1];
-  wt[1] = Real(t - l); wt[0] = Real(1) - wt[1];
+  const int i = ComputeWeights(x, wx);
+  const int j = ComputeWeights(y, wy);
+  const int k = ComputeWeights(z, wz);
+  const int l = ComputeWeights(t, wt);
 
   GradientType val(.0);
   Real         coeff;
