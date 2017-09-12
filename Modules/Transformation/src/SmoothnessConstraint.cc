@@ -37,7 +37,7 @@ mirtkAutoRegisterEnergyTermMacro(SmoothnessConstraint);
 SmoothnessConstraint::SmoothnessConstraint(const char *name, double weight)
 :
   TransformationConstraint(name, weight),
-  _WithRespectToWorld(true), _UseLatticeSpacing(true),
+  _WithRespectToWorld(true), _UseLatticeSpacing(false),
   _AnnealingRate(.0), _AnnealingWeight(1.0)
 {
   _ParameterPrefix.push_back("Smoothness ");
