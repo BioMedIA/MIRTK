@@ -35,7 +35,7 @@ mirtkAutoRegisterEnergyTermMacro(LogJacobianConstraint);
 LogJacobianConstraint::LogJacobianConstraint(const char *name, bool constrain_spline)
 :
   JacobianConstraint(name, constrain_spline),
-  _Epsilon(.1)
+  _Epsilon(.005)
 {
   _ParameterPrefix.push_back("Jacobian penalty ");
 }
