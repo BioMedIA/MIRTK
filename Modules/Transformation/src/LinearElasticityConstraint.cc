@@ -679,12 +679,13 @@ LinearElasticityConstraint::LinearElasticityConstraint(const char *name, double 
   TransformationConstraint(name, weight),
   _Approximate(true),
   _WithRespectToWorld(true),
-  _UseLatticeSpacing(true),
+  _UseLatticeSpacing(false),
   _ConstrainRotation(true),
   _Lambda(0.), _Mu(1.)
 {
-  _ParameterPrefix.push_back("Linear elasticity ");
+  _ParameterPrefix.push_back("Elastic energy ");
   _ParameterPrefix.push_back("Linear energy ");
+  _ParameterPrefix.push_back("Linear elasticity ");
   _ParameterPrefix.push_back("Elasticity ");
 }
 
