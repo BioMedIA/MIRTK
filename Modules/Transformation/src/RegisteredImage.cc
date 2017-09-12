@@ -1307,6 +1307,17 @@ private:
   Transformer  _Transform;
   Interpolator _Interpolate;
 
+  // Attempt to reduce differences between registration with identical images
+  // that have only a different image to world mapping by rounding continuous
+  // voxel indices to a specified precision. For a single test registration,
+  // this slightly increased the results due to more iterations. Results
+  // with x/y axes swapped and negative z axis still different from image
+  // with identity transformation... (using FastLinearGradientImageFunction).
+  inline double RoundIndex(double x) const
+  {
+    return static_cast<double>(static_cast<long>(round(x * 1e+4))) * 1e-4;
+  }
+
 public:
 
   /// Constructor
@@ -1321,7 +1332,10 @@ public:
   void operator ()(int i, int j, int k, int, VoxelType *o)
   {
     double x = i, y = j, z = k;
-    _Transform  (x, y, z);
+    _Transform(x, y, z);
+    x = RoundIndex(x);
+    y = RoundIndex(y);
+    z = RoundIndex(z);
     _Interpolate(x, y, z, o);
   }
 
@@ -1329,7 +1343,10 @@ public:
   void operator ()(int i, int j, int k, int, const CoordType *wc, VoxelType *o)
   {
     double x = i, y = j, z = k;
-    _Transform  (x, y, z, wc);
+    _Transform(x, y, z, wc);
+    x = RoundIndex(x);
+    y = RoundIndex(y);
+    z = RoundIndex(z);
     _Interpolate(x, y, z, o);
   }
 
@@ -1337,7 +1354,10 @@ public:
   void operator ()(int i, int j, int k, int, const CoordType *wc, const DisplacementType *dx, VoxelType *o)
   {
     double x = i, y = j, z = k;
-    _Transform  (x, y, z, wc, dx);
+    _Transform(x, y, z, wc, dx);
+    x = RoundIndex(x);
+    y = RoundIndex(y);
+    z = RoundIndex(z);
     _Interpolate(x, y, z, o);
   }
 
@@ -1345,7 +1365,10 @@ public:
   void operator ()(int i, int j, int k, int, const CoordType *wc, const DisplacementType *d1, const DisplacementType *d2, VoxelType *o)
   {
     double x = i, y = j, z = k;
-    _Transform  (x, y, z, wc, d1, d2);
+    _Transform(x, y, z, wc, d1, d2);
+    x = RoundIndex(x);
+    y = RoundIndex(y);
+    z = RoundIndex(z);
     _Interpolate(x, y, z, o);
   }
 };

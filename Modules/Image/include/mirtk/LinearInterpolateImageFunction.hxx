@@ -1,8 +1,8 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2013-2015 Imperial College London
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2013-2017 Imperial College London
+ * Copyright 2013-2017 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -58,15 +58,15 @@ void GenericLinearInterpolateImageFunction<TImage>::Initialize(bool coeff)
   // Domain on which linear interpolation is defined: [0, x)
   switch (this->NumberOfDimensions()) {
     case 4:
-      this->_t1 = .0;
+      this->_t1 = 0.;
       this->_t2 = fdec(this->Input()->T() - 1);
     case 3:
-      this->_z1 = .0;
+      this->_z1 = 0.;
       this->_z2 = fdec(this->Input()->Z() - 1);
     default:
-      this->_y1 = .0;
+      this->_y1 = 0.;
       this->_y2 = fdec(this->Input()->Y() - 1);
-      this->_x1 = .0;
+      this->_x1 = 0.;
       this->_x2 = fdec(this->Input()->X() - 1);
   }
 
@@ -109,7 +109,7 @@ template <class TImage>
 void GenericLinearInterpolateImageFunction<TImage>
 ::BoundingInterval(double x, int &i, int &I) const
 {
-  i = static_cast<int>(floor(x)), I = i + 1;
+  i = ifloor(x), I = i + 1;
 }
 
 // =============================================================================
@@ -851,13 +851,10 @@ void GenericLinearInterpolateImageFunction<TImage>
 {
   const TImage * const input = this->Input();
 
-  const int i = ifloor(x);
-  const int j = ifloor(y);
-  const int k = iround(z);
-
   Real wx[2], wy[2], wd[2] = {Real(-1), Real(1)};
-  wx[1] = Real(x - i); wx[0] = Real(1) - wx[1];
-  wy[1] = Real(y - j); wy[0] = Real(1) - wy[1];
+  const int i = ComputeWeights(x, wx);
+  const int j = ComputeWeights(y, wy);
+  const int k = iround(z);
 
   if (IsNaN(t) && IsZero(input->TSize()) && input->N() == 1) {
 
@@ -927,14 +924,10 @@ void GenericLinearInterpolateImageFunction<TImage>
 {
   const TImage * const input = this->Input();
 
-  const int i = ifloor(x);
-  const int j = ifloor(y);
-  const int k = ifloor(z);
-
   Real wx[2], wy[2], wz[2], wd[2] = {Real(-1), Real(1)};
-  wx[1] = Real(x - i); wx[0] = Real(1) - wx[1];
-  wy[1] = Real(y - j); wy[0] = Real(1) - wy[1];
-  wz[1] = Real(z - k); wz[0] = Real(1) - wz[1];
+  const int i = ComputeWeights(x, wx);
+  const int j = ComputeWeights(y, wy);
+  const int k = ComputeWeights(z, wz);
 
   if (IsNaN(t) && IsZero(input->TSize()) && input->N() == 1) {
 
@@ -1017,11 +1010,11 @@ void GenericLinearInterpolateImageFunction<TImage>
 
   jac.Initialize(input->N(), 4);
 
-  if (IsNaN(t)) t = 0.;
-  const int i = ifloor(x);
-  const int j = ifloor(y);
-  const int k = ifloor(z);
-  const int l = ifloor(t);
+  Real wx[2], wy[2], wz[2], wt[2], wd[2] = {Real(-1), Real(1)};
+  const int i = ComputeWeights(x, wx);
+  const int j = ComputeWeights(y, wy);
+  const int k = ComputeWeights(z, wz);
+  const int l = ComputeWeights(IsNaN(t) ? 0. : t, wt);
 
   if (i < 0 || i >= input->X() - 1 ||
       j < 0 || j >= input->Y() - 1 ||
@@ -1029,12 +1022,6 @@ void GenericLinearInterpolateImageFunction<TImage>
       l < 0 || l >= input->T() - 1) {
     return; // zero
   }
-
-  Real wx[2], wy[2], wz[2], wt[2], wd[2] = {Real(-1), Real(1)};
-  wx[1] = Real(x - i); wx[0] = Real(1) - wx[1];
-  wy[1] = Real(y - j); wy[0] = Real(1) - wy[1];
-  wz[1] = Real(z - k); wz[0] = Real(1) - wz[1];
-  wt[1] = Real(t - l); wt[0] = Real(1) - wt[1];
 
   RealType dv; // input value at discrete point
   RealType dx = voxel_cast<RealType>(0); // derivative(s) w.r.t. x
@@ -1093,13 +1080,10 @@ void GenericLinearInterpolateImageFunction<TImage>
 {
   const TImage * const input = this->Input();
 
-  const int i = ifloor(x);
-  const int j = ifloor(y);
-  const int k = iround(z);
-
   Real wx[2], wy[2], wd[2] = {Real(-1), Real(1)};
-  wx[1] = Real(x - i); wx[0] = Real(1) - wx[1];
-  wy[1] = Real(y - j); wy[0] = Real(1) - wy[1];
+  const int i = ComputeWeights(x, wx);
+  const int j = ComputeWeights(y, wy);
+  const int k = iround(z);
 
   if (IsNaN(t) && IsZero(input->TSize()) && input->N() == 1) {
 
@@ -1176,14 +1160,10 @@ void GenericLinearInterpolateImageFunction<TImage>
 {
   const TImage * const input = this->Input();
 
-  const int i = ifloor(x);
-  const int j = ifloor(y);
-  const int k = ifloor(z);
-
   Real wx[2], wy[2], wz[2], wd[2] = {Real(-1), Real(1)};
-  wx[1] = Real(x - i); wx[0] = Real(1) - wx[1];
-  wy[1] = Real(y - j); wy[0] = Real(1) - wy[1];
-  wz[1] = Real(z - k); wz[0] = Real(1) - wz[1];
+  const int i = ComputeWeights(x, wx);
+  const int j = ComputeWeights(y, wy);
+  const int k = ComputeWeights(z, wz);
 
   if (IsNaN(t) && IsZero(input->TSize()) && input->N() == 1) {
 
@@ -1273,11 +1253,11 @@ void GenericLinearInterpolateImageFunction<TImage>
 
   jac.Initialize(input->N(), 4);
 
-  if (IsNaN(t)) t = 0.;
-  const int i = ifloor(x);
-  const int j = ifloor(y);
-  const int k = ifloor(z);
-  const int l = ifloor(t);
+  Real wx[2], wy[2], wz[2], wt[2], wd[2] = {Real(-1), Real(1)};
+  const int i = ComputeWeights(x, wx);
+  const int j = ComputeWeights(y, wy);
+  const int k = ComputeWeights(z, wz);
+  const int l = ComputeWeights(IsNaN(t) ? 0. : t, wt);
 
   if (i < 0 || i >= input->X() - 1 ||
       j < 0 || j >= input->Y() - 1 ||
@@ -1285,12 +1265,6 @@ void GenericLinearInterpolateImageFunction<TImage>
       l < 0 || l >= input->T() - 1) {
     return; // zero
   }
-
-  Real wx[2], wy[2], wz[2], wt[2], wd[2] = {Real(-1), Real(1)};
-  wx[1] = Real(x - i); wx[0] = Real(1) - wx[1];
-  wy[1] = Real(y - j); wy[0] = Real(1) - wy[1];
-  wz[1] = Real(z - k); wz[0] = Real(1) - wz[1];
-  wt[1] = Real(t - l); wt[0] = Real(1) - wt[1];
 
   RealType dv; // input value at discrete point
   RealType dx = voxel_cast<RealType>(0); // derivative(s) w.r.t. x
@@ -1350,13 +1324,10 @@ template <class TImage> template <class TOtherImage>
 void GenericLinearInterpolateImageFunction<TImage>
 ::Jacobian2D(Matrix &jac, const TOtherImage *input, double x, double y, double z, double t) const
 {
-  const int i = ifloor(x);
-  const int j = ifloor(y);
-  const int k = iround(z);
-
   Real wx[2], wy[2], wd[2] = {Real(-1), Real(1)};
-  wx[1] = Real(x - i); wx[0] = Real(1) - wx[1];
-  wy[1] = Real(y - j); wy[0] = Real(1) - wy[1];
+  const int i = ComputeWeights(x, wx);
+  const int j = ComputeWeights(y, wy);
+  const int k = iround(z);
 
   if (IsNaN(t) && IsZero(input->TSize()) && input->N() == 1) {
 
@@ -1421,14 +1392,10 @@ void GenericLinearInterpolateImageFunction<TImage>
 ::Jacobian3D(Matrix &jac, const TOtherImage *input,
              double x, double y, double z, double t) const
 {
-  const int i = ifloor(x);
-  const int j = ifloor(y);
-  const int k = ifloor(z);
-
   Real wx[2], wy[2], wz[2], wd[2] = {Real(-1), Real(1)};
-  wx[1] = Real(x - i); wx[0] = Real(1) - wx[1];
-  wy[1] = Real(y - j); wy[0] = Real(1) - wy[1];
-  wz[1] = Real(z - k); wz[0] = Real(1) - wz[1];
+  const int i = ComputeWeights(x, wx);
+  const int j = ComputeWeights(y, wy);
+  const int k = ComputeWeights(z, wz);
 
   if (IsNaN(t) && IsZero(input->TSize()) && input->N() == 1) {
 
@@ -1501,17 +1468,11 @@ void GenericLinearInterpolateImageFunction<TImage>
 {
   jac.Initialize(input->N(), 4);
 
-  if (IsNaN(t)) t = 0.;
-  const int i = ifloor(x);
-  const int j = ifloor(y);
-  const int k = ifloor(z);
-  const int l = ifloor(t);
-
   Real wx[2], wy[2], wz[2], wt[2], wd[2] = {Real(-1), Real(1)};
-  wx[1] = Real(x - i); wx[0] = Real(1) - wx[1];
-  wy[1] = Real(y - j); wy[0] = Real(1) - wy[1];
-  wz[1] = Real(z - k); wz[0] = Real(1) - wz[1];
-  wt[1] = Real(t - l); wt[0] = Real(1) - wt[1];
+  const int i = ComputeWeights(x, wx);
+  const int j = ComputeWeights(y, wy);
+  const int k = ComputeWeights(z, wz);
+  const int l = ComputeWeights(IsNaN(t) ? 0. : t, wt);
 
   RealType dv; // input value at discrete point
   RealType dx = voxel_cast<RealType>(0); // derivative(s) w.r.t. x

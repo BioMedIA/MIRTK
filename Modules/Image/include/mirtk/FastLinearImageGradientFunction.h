@@ -71,6 +71,15 @@ public:
   virtual void BoundingInterval(double, int &, int &) const;
 
   // ---------------------------------------------------------------------------
+  // Linear interpolation weights
+
+  /// Returns truncated integral part of floating point
+  ///
+  /// \param[in]  x Floating point number.
+  /// \param[out] w Linear interpolation weights for closest lattice nodes.
+  static int ComputeWeights(double, Real[2]);
+
+  // ---------------------------------------------------------------------------
   // Evaluation
 
   /// Get gradient of given 2D image at arbitrary location (in pixels)
