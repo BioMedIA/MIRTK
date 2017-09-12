@@ -1069,7 +1069,7 @@ JacobianConstraint::JacobianConstraint(const char *name, bool constrain_spline)
   _SubDomain(SD_Lattice),
   _ConstrainParameterization(constrain_spline),
   _WithRespectToWorld(true),
-  _UseLatticeSpacing(true),
+  _UseLatticeSpacing(false),
   _DetJacobian(nullptr),
   _AdjJacobian(nullptr)
 {
