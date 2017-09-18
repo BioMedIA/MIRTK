@@ -104,6 +104,9 @@ enum Metric
   Barycentricity
 };
 
+typedef GenericImage<float>     OutputImage;
+typedef OutputImage::VoxelType  OutputType;
+
 // =============================================================================
 // Auxiliary functions
 // =============================================================================
@@ -166,6 +169,7 @@ int main(int argc, char **argv)
   const char *target_name   = nullptr;
   const char *mask_name     = nullptr;
   double      padding_value = -inf;
+  OutputType  outside_value = 0.;
   bool        cache_disp    = false;
   bool        cumulative    = false;
   bool        squared       = false;
@@ -177,11 +181,10 @@ int main(int argc, char **argv)
     else if (OPTION("-target")) target_name = ARGUMENT;
     else if (OPTION("-mask"))   mask_name   = ARGUMENT;
     else if (OPTION("-padding")) {
-      const char *arg = ARGUMENT;
-      if (!FromString(arg, padding_value)) {
-        cerr << "Invalid -padding value" << endl;
-        exit(1);
-      }
+      PARSE_ARGUMENT(padding_value);
+    }
+    else if (OPTION("-outside")) {
+      PARSE_ARGUMENT(outside_value);
     }
     else if (OPTION("-cumulative")) cumulative = true;
     else if (OPTION("-squared"))    squared    = true;
@@ -284,7 +287,7 @@ int main(int argc, char **argv)
     }
 
     // Compute inverse-consistency error for each pair of transformations
-    GenericImage<float> output(attr);
+    OutputImage output(attr);
     const int nvox = output.NumberOfVoxels();
     int ntuple = 0;
     int ntotal = static_cast<int>(dofin_name.size() / dofs.size());
@@ -337,14 +340,16 @@ int main(int argc, char **argv)
       const double *x1 = i2w.Data(0, 0, 0, 0);
       const double *y1 = i2w.Data(0, 0, 0, 1);
       const double *z1 = i2w.Data(0, 0, 0, 2);
-      float *err = output.Data();
+      OutputType *err = output.Data();
       for (int n = 0; n < nvox; ++n) {
         if ((target.IsEmpty() || target.IsForeground(n)) && (mask.IsEmpty() || mask.Get(n))) {
           x2 = x1[n], y2 = y1[n], z2 = z1[n];
           for (j = 0; j < dofs.size(); ++j) dofs[j]->Transform(x2, y2, z2);
           x2 -= x1[n], y2 -= y1[n], z2 -= z1[n];
           d = x2 * x2 + y2 * y2 + z2 * z2;
-          err[n] += static_cast<float>(squared ? d : sqrt(d));
+          err[n] += static_cast<OutputType>(squared ? d : sqrt(d));
+        } else {
+          err[n] = outside_value;
         }
       }
     }
