@@ -2827,10 +2827,15 @@ int main(int argc, char *argv[])
 
   // Cast velocity based MIRTK transformation to displacement based MIRTK transformation
   if (format_out == Format_WorldSVF || format_out == Format_VoxelSVF) {
-    BSplineFreeFormTransformationSV *svffd;
-    svffd = dynamic_cast<BSplineFreeFormTransformationSV *>(dof.get());
+    auto svffd = dynamic_cast<BSplineFreeFormTransformationSV *>(dof.get());
     if (svffd == nullptr) {
-      FatalError("Output format 'svf_world' and 'svf_voxel' requires input SVFFD!");
+      auto mffd = dynamic_cast<MultiLevelFreeFormTransformation *>(dof.get());
+      if (mffd && mffd->NumberOfLevels() == 1) {
+        svffd = dynamic_cast<BSplineFreeFormTransformationSV *>(mffd->GetLocalTransformation(0));
+      }
+      if (svffd == nullptr) {
+        FatalError("Output format 'svf_world' and 'svf_voxel' requires input SVFFD!");
+      }
     }
     dof.reset(new BSplineFreeFormTransformation3D(*svffd));
     if (format_out == Format_WorldSVF) format_out = Format_WorldDisplacement;
