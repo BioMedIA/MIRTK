@@ -213,7 +213,11 @@ if __name__ == '__main__':
             cols = usecols
     sums = np.zeros((nrows, len(usecols)), dtype=np.float)
     for csv_name in args.tables:
-        sums += np.genfromtxt(csv_name, delimiter=',', skip_header=1 if args.header else 0, usecols=usecols, dtype=np.float)
+        tmp = np.genfromtxt(csv_name, delimiter=',', skip_header=1 if args.header else 0, usecols=usecols, dtype=np.float)
+        if len(usecols) > 1:
+            sums += tmp
+        else:
+            sums[:,0] += tmp
     num = len(args.tables)
     out = sys.stdout
     if args.output:
