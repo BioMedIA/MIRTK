@@ -830,6 +830,9 @@ int EvaluateJacobian(const JacobianConstraint *constraint,
       svffd = nullptr;
     }
   }
+  if (!constraint->Symmetric()) {
+    svffd = nullptr;
+  }
   if (svffd) {
     UniquePtr<Matrix> orient;
     if (constraint->WithRespectToWorld()) {
@@ -947,7 +950,7 @@ private:
   Matrix *_Jacobian;
 
   /// Compute determinant of 2x2 cofactor matrix
-  inline double Det2x2(double a11, double a12, double a21, double a22) const
+  inline double Det(double a11, double a12, double a21, double a22) const
   {
     return a11 * a22 - a12 * a21;
   }
@@ -960,15 +963,15 @@ public:
     for (int idx = re.begin(); idx != re.end(); ++idx) {
       const auto &jac = _Jacobian[idx];
       if (jac.Rows() == 3) {
-        adj(0, 0) = + Det2x2(jac(1, 1), jac(1, 2), jac(2, 1), jac(2, 2));
-        adj(0, 1) = - Det2x2(jac(0, 1), jac(0, 2), jac(2, 1), jac(2, 2));
-        adj(0, 2) = + Det2x2(jac(0, 1), jac(0, 2), jac(1, 1), jac(1, 2));
-        adj(1, 0) = - Det2x2(jac(1, 0), jac(1, 2), jac(2, 0), jac(2, 2));
-        adj(1, 1) = + Det2x2(jac(0, 0), jac(0, 2), jac(2, 0), jac(2, 2));
-        adj(1, 2) = - Det2x2(jac(0, 0), jac(0, 2), jac(1, 0), jac(1, 2));
-        adj(2, 0) = + Det2x2(jac(1, 0), jac(1, 1), jac(2, 0), jac(2, 1));
-        adj(2, 1) = - Det2x2(jac(0, 0), jac(0, 1), jac(2, 0), jac(2, 1));
-        adj(2, 2) = + Det2x2(jac(0, 0), jac(0, 1), jac(1, 0), jac(1, 1));
+        adj(0, 0) = + Det(jac(1, 1), jac(1, 2), jac(2, 1), jac(2, 2));
+        adj(0, 1) = - Det(jac(0, 1), jac(0, 2), jac(2, 1), jac(2, 2));
+        adj(0, 2) = + Det(jac(0, 1), jac(0, 2), jac(1, 1), jac(1, 2));
+        adj(1, 0) = - Det(jac(1, 0), jac(1, 2), jac(2, 0), jac(2, 2));
+        adj(1, 1) = + Det(jac(0, 0), jac(0, 2), jac(2, 0), jac(2, 2));
+        adj(1, 2) = - Det(jac(0, 0), jac(0, 2), jac(1, 0), jac(1, 2));
+        adj(2, 0) = + Det(jac(1, 0), jac(1, 1), jac(2, 0), jac(2, 1));
+        adj(2, 1) = - Det(jac(0, 0), jac(0, 1), jac(2, 0), jac(2, 1));
+        adj(2, 2) = + Det(jac(0, 0), jac(0, 1), jac(1, 0), jac(1, 1));
         _Jacobian[idx] = adj;
       }
     }
@@ -1052,7 +1055,7 @@ public:
 
 // -----------------------------------------------------------------------------
 /// Evaluate value of symmetric Jacobian based penalty term for SVFFD
-struct EvaluateConstraint_SVFFD
+struct EvaluateSymmetricConstraint
 {
 private:
 
@@ -1065,9 +1068,9 @@ private:
 
 public:
 
-  EvaluateConstraint_SVFFD() {}
+  EvaluateSymmetricConstraint() {}
 
-  EvaluateConstraint_SVFFD(const EvaluateConstraint_SVFFD &lhs, split)
+  EvaluateSymmetricConstraint(const EvaluateSymmetricConstraint &lhs, split)
   :
     _Constraint(lhs._Constraint), _FFD(lhs._FFD),
     _Domain(lhs._Domain),
@@ -1075,7 +1078,7 @@ public:
     _Penalty(0.), _N(0)
   {}
 
-  void join(const EvaluateConstraint_SVFFD &rhs)
+  void join(const EvaluateSymmetricConstraint &rhs)
   {
     _Penalty += rhs._Penalty;
     _N       += rhs._N;
@@ -1103,7 +1106,7 @@ public:
                   const double                 *det,
                   double                       &penalty)
   {
-    EvaluateConstraint_SVFFD body;
+    EvaluateSymmetricConstraint body;
     body._Constraint  = constraint;
     body._FFD         = ffd;
     body._Domain      = &domain;
@@ -1330,8 +1333,9 @@ struct EvaluateGradient_Domain_BSplineFFD_SV
 
   void operator ()(const blocked_range3d<int> &re) const
   {
+    Vector3D<double> grad1, grad2;
     int    idx1, idx2, xdof, ydof, zdof, cp, i1, j1, k1, i2, j2, k2;
-    double x, y, z, df, dp[3], gradient[3];
+    double x, y, z, df, a, b, c, wa, wb, wc, da, db, dc, du, dv, dw;
 
     // Loop over control points
     for (int ck = re.pages().begin(); ck != re.pages().end(); ++ck)
@@ -1341,7 +1345,8 @@ struct EvaluateGradient_Domain_BSplineFFD_SV
       if (_Constraint->ConstrainPassiveDoFs() || _FFD->IsActive(cp)) {
         if (_FFD->BoundingBox(*_Domain, cp, i1, j1, k1, i2, j2, k2)) {
 
-          gradient[0] = gradient[1] = gradient[2] = 0.;
+          grad1 = 0.;
+          grad2 = 0.;
 
           // Loop over image domain
           for (int k = k1; k <= k2; ++k)
@@ -1357,52 +1362,73 @@ struct EvaluateGradient_Domain_BSplineFFD_SV
             idx1 = _Domain->LatticeToIndex(i, j, k, 0);
             idx2 = _Domain->LatticeToIndex(i, j, k, 1);
 
+            // Values of the B-spline basis functions and its 1st derivatives
+            // Note: Calling Kernel::B faster/not slower than Kernel::VariableToIndex + Kernel:LookupTable.
+            a = x - ci;
+            wa = BSpline<double>::B  (a);
+            da = BSpline<double>::B_I(a);
+
+            b = y - cj;
+            wb = BSpline<double>::B  (b);
+            db = BSpline<double>::B_I(b);
+
+            c = z - ck;
+            wc = BSpline<double>::B  (c);
+            dc = BSpline<double>::B_I(c);
+
+            // Derivatives of 3D cubic B-spline kernel w.r.t. lattice distance from control point
+            du = da * wb * wc;
+            dv = wa * db * wc;
+            dw = wa * wb * dc;
+
+            // Apply chain rule for da/dx, db/dx, dc/dx and sum terms (same for y and z)
+            // to get the derivative of the 3D cubic B-spline kernel centered at this
+            // control point w.r.t. each spatial world coordinate
+            if (_Constraint->WithRespectToWorld()) {
+              if (_Constraint->UseLatticeSpacing()) {
+                _FFD->JacobianToWorld(du, dv, dw);
+              } else {
+                _FFD->JacobianToWorldOrientation(du, dv, dw);
+              }
+            }
+
             // Derivative of penalty term w.r.t. Jacobian determinant
             df = _Constraint->DerivativeWrtJacobianDet(_DetJacobian[idx1]);
+
+            // Apply chain rule and Jacobi's formula to get derivatives of Jacobian determinant
+            // (https://en.wikipedia.org/wiki/Jacobi's_formula)
             if (!IsZero(df)) {
-
-              // Derivatives of Jacobian determinant w.r.t. DoFs of control point
-              // (https://en.wikipedia.org/wiki/Jacobi's_formula)
-              _FFD->EvaluateJacobianDetDerivative(dp, _AdjJacobian[idx1], x - ci, y - cj, z - ck,
-                                                  _Constraint->WithRespectToWorld(),
-                                                  _Constraint->UseLatticeSpacing());
-
-              // Apply chain rule and add to sum of gradient vectors
-              gradient[0] += df * dp[0];
-              gradient[1] += df * dp[1];
-              gradient[2] += df * dp[2];
+              const auto &adj = _AdjJacobian[idx1];
+              grad1._x += df * (adj(0, 0) * du + adj(1, 0) * dv + adj(2, 0) * dw);
+              grad1._y += df * (adj(0, 1) * du + adj(1, 1) * dv + adj(2, 1) * dw);
+              grad1._z += df * (adj(0, 2) * du + adj(1, 2) * dv + adj(2, 2) * dw);
             }
 
             // Derivative of penalty term w.r.t. Jacobian determinant of inverse mapping
             df = _Constraint->DerivativeWrtJacobianDet(_DetJacobian[idx2]);
+
+            // Apply chain rule and Jacobi's formula to get derivatives of Jacobian determinant
+            // (https://en.wikipedia.org/wiki/Jacobi's_formula)
             if (!IsZero(df)) {
-
-              // Derivatives of Jacobian determinant w.r.t. DoFs of control point
-              // (https://en.wikipedia.org/wiki/Jacobi's_formula)
-              _FFD->EvaluateJacobianDetDerivative(dp, _AdjJacobian[idx2], x - ci, y - cj, z - ck,
-                                                  _Constraint->WithRespectToWorld(),
-                                                  _Constraint->UseLatticeSpacing());
-
-              // Apply chain rule and add to sum of gradient vectors
-              gradient[0] -= df * dp[0];
-              gradient[1] -= df * dp[1];
-              gradient[2] -= df * dp[2];
+              const auto &adj = _AdjJacobian[idx2];
+              grad2._x -= df * (adj(0, 0) * du + adj(1, 0) * dv + adj(2, 0) * dw);
+              grad2._y -= df * (adj(0, 1) * du + adj(1, 1) * dv + adj(2, 1) * dw);
+              grad2._z -= df * (adj(0, 2) * du + adj(1, 2) * dv + adj(2, 2) * dw);
             }
           }
 
           // Divide by size of support region
           #if _USE_INNER_GRADIENT_SUM_NORM
             int n = (i2 - i1 + 1) * (j2 - j1 + 1) * (k2 - k1 + 1);
-            gradient[0] /= n;
-            gradient[1] /= n;
-            gradient[2] /= n;
+            grad1 /= n;
+            grad2 /= n;
           #endif
 
           // Add to total gradient
           _FFD->IndexToDOFs(cp, xdof, ydof, zdof);
-          _Gradient[xdof] += _Weight * gradient[0];
-          _Gradient[ydof] += _Weight * gradient[1];
-          _Gradient[zdof] += _Weight * gradient[2];
+          _Gradient[xdof] += _Weight * (grad1._x + grad2._x);
+          _Gradient[ydof] += _Weight * (grad1._y + grad2._y);
+          _Gradient[zdof] += _Weight * (grad1._z + grad2._z);
         }
       }
     }
@@ -1538,8 +1564,9 @@ struct EvaluateGradient_Lattice_BSplineFFD_SV
 
   void operator ()(const blocked_range3d<int> &re) const
   {
-    int    idx1, idx2, xdof, ydof, zdof, cp, i1, j1, k1, i2, j2, k2;
-    double df, dp[3], gradient[3];
+    Vector3D<double> grad1, grad2;
+    int    idx1, idx2, xdof, ydof, zdof, cp, i1, j1, k1, i2, j2, k2, a, b, c;
+    double df, wa, wb, wc, da, db, dc, du, dv, dw;
 
     // Loop over control points
     for (int ck = re.pages().begin(); ck != re.pages().end(); ++ck)
@@ -1548,7 +1575,8 @@ struct EvaluateGradient_Lattice_BSplineFFD_SV
       cp = _FFD->LatticeToIndex(ci, cj, ck);
       if (_Constraint->ConstrainPassiveDoFs() || _FFD->IsActive(cp)) {
 
-        gradient[0] = gradient[1] = gradient[2] = 0.;
+        grad1 = 0.;
+        grad2 = 0.;
 
         i1 = max(ci - 1, 0);
         j1 = max(cj - 1, 0);
@@ -1567,52 +1595,79 @@ struct EvaluateGradient_Lattice_BSplineFFD_SV
           idx1 = _FFD->LatticeToIndex(i, j, k, 0);
           idx2 = _FFD->LatticeToIndex(i, j, k, 1);
 
+          // Values of the B-spline basis functions and its 1st derivatives at lattice points
+          // Note: The order of the cubic B-spline pieces is *not* B0, B1, B2, B3! Hence, the minus signs.
+          a = i - ci;
+          if (-1 <= a && a <= 1) {
+            wa = BSpline<double>::LatticeWeights[a + 1];
+            da = - BSpline<double>::LatticeWeights_I[a + 1];
+          }
+
+          b = j - cj;
+          if (-1 <= b && b <= 1) {
+            wb = BSpline<double>::LatticeWeights[b + 1];
+            db = - BSpline<double>::LatticeWeights_I[b + 1];
+          }
+
+          c = k - ck;
+          if (-1 <= c && c <= 1) {
+            wc = BSpline<double>::LatticeWeights[c + 1];
+            dc = - BSpline<double>::LatticeWeights_I[c + 1];
+          }
+
+          // Derivatives of 3D cubic B-spline kernel w.r.t. lattice distance from control point
+          du = da * wb * wc;
+          dv = wa * db * wc;
+          dw = wa * wb * dc;
+
+          // Apply chain rule for da/dx, db/dx, dc/dx and sum terms (same for y and z)
+          // to get the derivative of the 3D cubic B-spline kernel centered at this
+          // control point w.r.t. each spatial world coordinate
+          if (_Constraint->WithRespectToWorld()) {
+            if (_Constraint->UseLatticeSpacing()) {
+              _FFD->JacobianToWorld(du, dv, dw);
+            } else {
+              _FFD->JacobianToWorldOrientation(du, dv, dw);
+            }
+          }
+
           // Derivative of penalty term w.r.t. Jacobian determinant
           df = _Constraint->DerivativeWrtJacobianDet(_DetJacobian[idx1]);
+
+          // Apply chain rule and Jacobi's formula to get derivatives of Jacobian determinant
+          // (https://en.wikipedia.org/wiki/Jacobi's_formula)
           if (!IsZero(df)) {
-
-            // Derivatives of Jacobian determinant w.r.t. DoFs of control point
-            // (https://en.wikipedia.org/wiki/Jacobi's_formula)
-            _FFD->EvaluateJacobianDetDerivative(dp, _AdjJacobian[idx1], i - ci, j - cj, k - ck,
-                                                _Constraint->WithRespectToWorld(),
-                                                _Constraint->UseLatticeSpacing());
-
-            // Apply chain rule and add to sum of gradient vectors
-            gradient[0] += df * dp[0];
-            gradient[1] += df * dp[1];
-            gradient[2] += df * dp[2];
+            const auto &adj = _AdjJacobian[idx1];
+            grad1._x += df * (adj(0, 0) * du + adj(1, 0) * dv + adj(2, 0) * dw);
+            grad1._y += df * (adj(0, 1) * du + adj(1, 1) * dv + adj(2, 1) * dw);
+            grad1._z += df * (adj(0, 2) * du + adj(1, 2) * dv + adj(2, 2) * dw);
           }
 
           // Derivative of penalty term w.r.t. Jacobian determinant of inverse mapping
           df = _Constraint->DerivativeWrtJacobianDet(_DetJacobian[idx2]);
+
+          // Apply chain rule and Jacobi's formula to get derivatives of Jacobian determinant
+          // (https://en.wikipedia.org/wiki/Jacobi's_formula)
           if (!IsZero(df)) {
-
-            // Derivatives of Jacobian determinant w.r.t. DoFs of control point
-            // (https://en.wikipedia.org/wiki/Jacobi's_formula)
-            _FFD->EvaluateJacobianDetDerivative(dp, _AdjJacobian[idx2], i - ci, j - cj, k - ck,
-                                                _Constraint->WithRespectToWorld(),
-                                                _Constraint->UseLatticeSpacing());
-
-            // Apply chain rule and add to sum of gradient vectors
-            gradient[0] -= df * dp[0];
-            gradient[1] -= df * dp[1];
-            gradient[2] -= df * dp[2];
+            const auto &adj = _AdjJacobian[idx2];
+            grad2._x -= df * (adj(0, 0) * du + adj(1, 0) * dv + adj(2, 0) * dw);
+            grad2._y -= df * (adj(0, 1) * du + adj(1, 1) * dv + adj(2, 1) * dw);
+            grad2._z -= df * (adj(0, 2) * du + adj(1, 2) * dv + adj(2, 2) * dw);
           }
         }
 
         // Divide by size of support region
         #if _USE_INNER_GRADIENT_SUM_NORM
           int n = (i2 - i1 + 1) * (j2 - j1 + 1) * (k2 - k1 + 1);
-          gradient[0] /= n;
-          gradient[1] /= n;
-          gradient[2] /= n;
+          grad1 /= n;
+          grad2 /= n;
         #endif
 
         // Add to total gradient
         _FFD->IndexToDOFs(cp, xdof, ydof, zdof);
-        _Gradient[xdof] += _Weight * gradient[0];
-        _Gradient[ydof] += _Weight * gradient[1];
-        _Gradient[zdof] += _Weight * gradient[2];
+        _Gradient[xdof] += _Weight * (grad1._x + grad2._x);
+        _Gradient[ydof] += _Weight * (grad1._y + grad2._y);
+        _Gradient[zdof] += _Weight * (grad1._z + grad2._z);
       }
     }
   }
@@ -1652,6 +1707,9 @@ int EvaluateConstraintGradient(const JacobianConstraint *constraint,
       bffd  = nullptr;
       svffd = nullptr;
     }
+  }
+  if (!constraint->Symmetric()) {
+    svffd = nullptr;
   }
   if (svffd) {
     if (constraint->SubDomain() == JacobianConstraint::SD_Lattice) {
@@ -1892,7 +1950,7 @@ double JacobianConstraint::Evaluate()
         ffd = mffd->GetLocalTransformation(n);
         auto svffd = dynamic_cast<const BSplineFreeFormTransformationSV *>(ffd);
         if (svffd) {
-          EvaluateConstraint_SVFFD::Run(this, svffd, *domain, det, penalty);
+          EvaluateSymmetricConstraint::Run(this, ffd, *domain, det, penalty);
           det += 2 * npts;
         } else {
           EvaluateConstraint::Run(this, ffd, *domain, det, penalty);
@@ -1904,7 +1962,7 @@ double JacobianConstraint::Evaluate()
   } else if (ffd) {
     auto svffd = dynamic_cast<const BSplineFreeFormTransformationSV *>(ffd);
     if (svffd) {
-      EvaluateConstraint_SVFFD::Run(this, svffd, *domain, det, penalty);
+      EvaluateSymmetricConstraint::Run(this, ffd, *domain, det, penalty);
     } else {
       EvaluateConstraint::Run(this, ffd, *domain, det, penalty);
     }
