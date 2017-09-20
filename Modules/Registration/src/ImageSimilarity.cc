@@ -583,7 +583,7 @@ void ImageSimilarity::ParametricGradient(const RegisteredImage *image,
   const class Transformation *T = image->Transformation();
   mirtkAssert(T != NULL, "image is being transformed");
   const WorldCoordsImage *i2w = image->ImageToWorld();
-  const double                t0  = image->GetTOrigin();
+  const double            t0  = image->GetTOrigin();
   np_gradient->PutTOrigin(image->InputImage()->GetTOrigin());
   T->ParametricGradient(np_gradient, gradient, i2w, t0, weight);
 }
