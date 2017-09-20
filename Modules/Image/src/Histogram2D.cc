@@ -644,15 +644,27 @@ double Histogram2D<HistogramType>::JointEntropy() const
   //            different summation of values, which causes different numerical
   //            cancelations. When used for NMI gradient computation, the
   //            registration result could differ from run to run!
-  double p, sum = .0;
+  //
+  // Additional note from 20 Sep 2017 (Andreas):
+  // Changed summation from naive to Kahan summation. This results in identical
+  // joint entropy and NMI values for a symmetric SVFFD registration at the first
+  // iteration, lowest level, when input images are exchanged. With the naive
+  // summation, the joint entropy and therefore NMI values would differ after
+  // about 15 significant digits.
+  double p, s = 0., c = 0., y, t;
   const HistogramType *bin = _bins[0];
   const int nbins = _nbins_x * _nbins_y;
   for (int i = 0; i != nbins; ++i, ++bin) {
     p = static_cast<double>(*bin);
-    if (p > .0) sum += p * log(p);
+    if (p > .0) {
+      y = p * log(p) - c;
+      t = s + y;
+      c = (t - s) - y;
+      s = t;
+    }
   }
   // H = - sum (p/n) log(p/n) = log(n) - sum(p log p) / n
-  return log(_nsamp) - sum / _nsamp;
+  return log(_nsamp) - s / _nsamp;
 }
 
 // -----------------------------------------------------------------------------
@@ -890,7 +902,7 @@ void Histogram2D<HistogramType>::Smooth()
   }
 
   // Smooth along the y-axis
-  _nsamp = 0;
+  double n = 0., c = 0., y, t;
   for (int i = 0; i < _nbins_x; i++)
   for (int j = 0; j < _nbins_y; j++) {
     value = .0;
@@ -900,8 +912,13 @@ void Histogram2D<HistogramType>::Smooth()
       }
     }
     _bins[j][i] = static_cast<HistogramType>(value);
-    _nsamp     += static_cast<HistogramType>(value);
+    // Kahan summation of number of samples
+    y = static_cast<double>(value) - c;
+    t = n + y;
+    c = (t - n) - y;
+    n = t;
   }
+  _nsamp = static_cast<HistogramType>(n);
 
   // Free tmp memory
   Deallocate(tmp);

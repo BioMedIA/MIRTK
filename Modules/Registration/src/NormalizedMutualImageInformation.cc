@@ -62,6 +62,17 @@ class CalculateGradient : public VoxelFunction
   double                                  _NormalizedMutualInformation;
   double                                  _NormalizedJointEntropy;
 
+  /// Round value to fixed precision to avoid floating point differences of
+  /// NMI gradient in a symmetric (SVFFD) registration when target and source
+  /// images are exchanged in order to obtain inverse consistent results.
+  ///
+  /// Moreover, noted that optimization would perform more iterations with this
+  /// fixed precision NMI derivative than without, i.e., yielding higher final NMI.
+  inline double RoundDerivativeValue(double x) const
+  {
+    return 1e-9 * static_cast<double>(static_cast<long long>(1e+9 * static_cast<double>(x)));
+  }
+
 public:
 
   CalculateGradient(const NormalizedMutualImageInformation *_this,
@@ -97,9 +108,9 @@ public:
       if (s1 <  0           ) s1 = 0;
       if (s2 >= source_nbins) s2 = source_nbins - 1;
 
-      double jointEntropyGrad  = .0;
-      double targetEntropyGrad = .0;
-      double sourceEntropyGrad = .0;
+      double jointEntropyGrad  = 0.;
+      double targetEntropyGrad = 0.;
+      double sourceEntropyGrad = 0.;
       double w;
 
       for (int t = t1; t <= t2; ++t)
@@ -112,6 +123,7 @@ public:
       }
 
       (*deriv) = (targetEntropyGrad + sourceEntropyGrad - _NormalizedMutualInformation * jointEntropyGrad) / _NormalizedJointEntropy;
+      (*deriv) = RoundDerivativeValue(*deriv);
     }
   }
 };

@@ -341,7 +341,24 @@ void HistogramImageSimilarity::Include(const blocked_range3d<int> &region)
 void HistogramImageSimilarity::UpdateHistogram()
 {
   if (_UseParzenWindow) {
+    // Smooth joint histogram of raw samples
     _Histogram = _Samples->Smoothed(_PadHistogram);
+    // Smooth also transposed histogram to ensure numerically identical results
+    // when target and source images are exchanged; this is required for an
+    // inverse consistent result using for example the symmetric SVFFD algorithm
+    auto hist = _Samples->Transposed();
+    if (_PadHistogram) {
+      hist = hist.Smoothed(_PadHistogram);
+    } else {
+      hist.Smooth();
+    }
+    // Average both smoothed histograms
+    for (int j = 0; j < _Histogram.NumberOfBinsY(); ++j)
+    for (int i = 0; i < _Histogram.NumberOfBinsX(); ++i) {
+      _Histogram(i, j) = .5 * (_Histogram(i, j) + hist(j, i));
+    }
+    // Average number of samples (better than summing a[i] again even when Kahan summation used)
+    _Histogram.NumberOfSamples(.5 * (_Histogram.NumberOfSamples() + hist.NumberOfSamples()));
   } else {
     _Histogram = *_Samples;
   }
