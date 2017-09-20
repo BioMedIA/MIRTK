@@ -79,8 +79,12 @@ public:
   /// Whether to use control point spacing when derivatives are computed w.r.t. world coordinates
   mirtkPublicAttributeMacro(bool, UseLatticeSpacing);
 
+  /// Whether to apply symmetric penalty in case of SVFFD model (default: true)
+  mirtkPublicAttributeMacro(bool, Symmetric);
+
 protected:
 
+  int     _NumJacobian; ///< Number of allocated Jacobian matrices
   double *_DetJacobian; ///< Determinant of Jacobian at each control point
   Matrix *_AdjJacobian; ///< Adjugate of Jacobian at each control point
   Array<Matrix> _MatW2L; ///< World to sub-domain lattice coordinates
