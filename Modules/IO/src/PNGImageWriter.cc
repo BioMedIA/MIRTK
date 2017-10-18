@@ -1,8 +1,9 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2008-2015 Imperial College London
+ * Copyright 2008-2017 Imperial College London
  * Copyright 2008-2015 Daniel Rueckert, Julia Schnabel
+ * Copyright 2015-2017 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -47,13 +48,8 @@ void PNGImageWriter::Initialize()
   ImageWriter::Initialize();
 
   // Check input
-  if (_Input->Z() != 3) {
-    cerr << this->NameOfClass() << " supports only images with (z = 3, e.g. R-G-B)" << endl;
-    exit(1);
-  }
-  if (dynamic_cast<const GenericImage<unsigned char> *>(_Input) == NULL) {
-    cerr << this->NameOfClass() << " supports only images of voxel type unsigned char" << endl;
-    exit(1);
+  if (_Input->Z() != 1 && _Input->Z() != 3) {
+    Throw(ERR_InvalidArgument, __FUNCTION__, "Supports only images with z=1 (grayscale) or z=3 (RGB)");
   }
 }
 
@@ -63,23 +59,20 @@ void PNGImageWriter::Run()
   // Initialize filter
   this->Initialize();
 
-  png_structp png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, (png_voidp)NULL, NULL, NULL);
+  png_structp png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, (png_voidp)nullptr, nullptr, nullptr);
   if (!png_ptr) {
-    cerr << this->NameOfClass() << "::Run: Unable to write PNG file!" << endl;
-    exit(1);
+    Throw(ERR_RuntimeError, __FUNCTION__, "Unable to write PNG file");
   }
 
   png_infop info_ptr = png_create_info_struct(png_ptr);
   if (!info_ptr) {
-    cerr << this->NameOfClass() << "::Run: Unable to write PNG file!" << endl;;
-    png_destroy_write_struct(&png_ptr, (png_infopp)NULL);
-    exit(1);
+    png_destroy_write_struct(&png_ptr, (png_infopp)nullptr);
+    Throw(ERR_RuntimeError, __FUNCTION__, "Unable to write PNG file");
   }
 
   if (setjmp(png_jmpbuf(png_ptr)) != 0) {
-    cerr << this->NameOfClass() << "::Run: Unable to write PNG file!" << endl;;
     png_destroy_write_struct(&png_ptr, &info_ptr);
-    exit(1);
+    Throw(ERR_RuntimeError, __FUNCTION__, "Unable to write PNG file");
   }
 
   // Open file
@@ -91,43 +84,57 @@ void PNGImageWriter::Run()
   FILE *fp = fopen(_FileName.c_str(), "wb");
 #endif
   if (fp == nullptr) {
-    cerr << this->NameOfClass() << "::Run: Failed to open PNG file for writing: " << _FileName << endl;
-    exit(1);
+    Throw(ERR_RuntimeError, __FUNCTION__, "Failed to open PNG file for writing: ", _FileName);
   }
 
   // Initialize PNG I/O
   png_init_io(png_ptr, fp);
 
-  // Initialize header
-  png_set_IHDR(png_ptr, info_ptr, _Input->X(), _Input->Y(),
-               8, PNG_COLOR_TYPE_RGB, PNG_INTERLACE_NONE,
-               PNG_COMPRESSION_TYPE_DEFAULT,
-               PNG_FILTER_TYPE_DEFAULT);
+  // Initialize header, and convert and write image data
+  UniquePtr<png_byte[]> data;
+  UniquePtr<png_bytep[]> image;
+  data.reset(new png_byte[_Input->X() * _Input->Y() * _Input->Z()]);
+  image.reset(new png_bytep[_Input->Y()]);
 
-  // Write header
-  png_write_info(png_ptr, info_ptr);
-
-  // Copy image
-  png_byte *data = new png_byte  [3*_Input->X()*_Input->Y()];
-  png_byte **ptr = new png_byte *[  _Input->Y()];
-  png_byte *ptr2data = data;
-
-  const GenericImage<unsigned char> *image;
-  image = dynamic_cast<const GenericImage<unsigned char> *>(_Input);
-  for (int j = 0; j < image->Y(); ++j) {
-    for (int i = 0; i < image->X(); ++i) {
-      *ptr2data++ = image->Get(i, j, 0, 0);
-      *ptr2data++ = image->Get(i, j, 1, 0);
-      *ptr2data++ = image->Get(i, j, 2, 0);
-    }
-    ptr[_Input->Y() - j - 1] = &(data[_Input->X() * j * 3]);
+  double min_val, max_val;
+  _Input->GetMinMaxAsDouble(min_val, max_val);
+  double slope = 1., intercept = 0.;
+  if (min_val < 0. || max_val > 255.) {
+    slope = 255. / (max_val - min_val);
+    intercept = - slope * min_val;
   }
-  png_write_image(png_ptr, ptr);
+  if (_Input->Z() == 1) {
+    png_set_IHDR(png_ptr, info_ptr, _Input->X(), _Input->Y(),
+                 8, PNG_COLOR_TYPE_GRAY, PNG_INTERLACE_NONE,
+                 PNG_COMPRESSION_TYPE_DEFAULT,
+                 PNG_FILTER_TYPE_DEFAULT);
+    for (int j = 0; j < _Input->Y(); ++j) {
+      png_bytep ptr = &data[j * _Input->X()];
+      image[_Input->Y() - j - 1] = ptr;
+      for (int i = 0; i < _Input->X(); ++i, ++ptr) {
+        *ptr = voxel_cast<png_byte>(slope * _Input->GetAsDouble(i, j) + intercept);
+      }
+    }
+  } else if (_Input->Z() == 3) {
+    png_set_IHDR(png_ptr, info_ptr, _Input->X(), _Input->Y(),
+                 8, PNG_COLOR_TYPE_RGB, PNG_INTERLACE_NONE,
+                 PNG_COMPRESSION_TYPE_DEFAULT,
+                 PNG_FILTER_TYPE_DEFAULT);
+    for (int j = 0; j < _Input->Y(); ++j) {
+      png_bytep ptr = &data[j * _Input->X()];
+      image[_Input->Y() - j - 1] = ptr;
+      for (int i = 0; i < _Input->X(); ++i) {
+        *ptr++ = voxel_cast<png_byte>(slope * _Input->GetAsDouble(i, j, 0) + intercept);
+        *ptr++ = voxel_cast<png_byte>(slope * _Input->GetAsDouble(i, j, 1) + intercept);
+        *ptr++ = voxel_cast<png_byte>(slope * _Input->GetAsDouble(i, j, 2) + intercept);
+      }
+    }
+  } else {
+    Throw(ERR_InvalidArgument, __FUNCTION__, "Unsupported input image type/size");
+  }
+  png_write_info(png_ptr, info_ptr);
+  png_write_image(png_ptr, image.get());
   png_write_end(png_ptr, info_ptr);
-
-  // Delete pointers
-  delete[] data;
-  delete[] ptr;
 
   // Destroy PNG data
   png_destroy_write_struct(&png_ptr, &info_ptr);
