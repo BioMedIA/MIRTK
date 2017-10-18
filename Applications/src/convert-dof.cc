@@ -86,6 +86,7 @@ void PrintHelp(const char *name)
   cout << "  f3d_disp_vel_field          Nifty Reg reg_f3d output image displacement field as stationary velocity field.\n";
   cout << "  f3d_spline_vel_grid         Nifty Reg reg_f3d output control point velocity field.\n";
   cout << "  dramms                      DRAMMS deformation field.\n";
+  cout << "  elastix|elastix_ffd         Elastix BSplineTransform parameters text file.\n";
   cout << "  star_ccm                    Output file suitable for import in STAR CCM+.\n";
   cout << "  star_ccm_table              Point displacements as STAR CCM+ XYZ Table.\n";
   cout << "  star_ccm_table_xyz          Transformed points  as STAR CCM+ XYZ Table.\n";
@@ -208,6 +209,9 @@ enum TransformationFileFormat
   Format_F3D_DEF_VEL_FIELD,
   Format_F3D_DISP_VEL_FIELD,
   Format_F3D_SPLINE_VEL_GRID,
+  // Elastix
+  Format_Elastix,
+  Format_Elastix_FFD,
   // FreeSurfer
   Format_MNI,
   Format_MNI_XFM,
@@ -274,6 +278,8 @@ inline string ToString(const TransformationFileFormat &format, int w, char c, bo
     case Format_MNI_XFM:                  str = "mni_xfm"; break;
     case Format_MNI_M3Z:                  str = "mni_m3z"; break;
     case Format_DRAMMS:                   str = "dramms"; break;
+    case Format_Elastix:                  str = "elastix"; break;
+    case Format_Elastix_FFD:              str = "elastix_ffd"; break;
     case Format_STAR_CCM:                 str = "star_ccm"; break;
     case Format_STAR_CCM_Table:           str = "star_ccm_table"; break;
     case Format_STAR_CCM_Table_XYZ:       str = "star_ccm_table_xyz"; break;
@@ -792,16 +798,39 @@ Transformation *ReadF3D(const char *fname, const char *dofin_name = NULL,
     // Read NIfTI header
     NiftiImageInfo hdr(fname);
     if (type == F3D_TYPE_UNKNOWN) {
-      if (hdr.intent_code == NIFTI_INTENT_VECTOR && hdr.intent_name == "NREG_TRANS") {
-        type = static_cast<F3DTransformationType>(static_cast<int>(hdr.intent_p1));
-      } else if (hdr.intent_code == NIFTI_INTENT_VECTOR && hdr.intent_name == "NREG_CPP_FILE") {
-        type = F3D_SPLINE_GRID; // v1.3.9
-      } else {
+      if (hdr.intent_code == NIFTI_INTENT_VECTOR) {
+        // latest
+        if (hdr.intent_name == "NREG_TRANS") {
+          type = static_cast<F3DTransformationType>(static_cast<int>(hdr.intent_p1));
+        // v1.3.9
+        } else if (hdr.intent_name == "NREG_CPP_FILE") {
+          if (hdr.descrip == "Control point position from NiftyReg (reg_f3d)") {
+            // reg_f3d without -vel option
+            type = F3D_SPLINE_GRID;
+          } else if (hdr.descrip == "Velocity field grid from NiftyReg (reg_f3d2)") {
+            // reg_f3d with -vel and -sym options
+            type = F3D_SPLINE_VEL_GRID;
+          }
+        } else if (hdr.intent_name == "NREG_VEL_STEP") {
+          // reg_f3d with -vel option, but without -sym
+          if (hdr.descrip == "Velocity field grid from NiftyReg (reg_f3d2)") {
+            type = F3D_SPLINE_VEL_GRID;
+          }
+        }
+      }
+      if (type == F3D_TYPE_UNKNOWN) {
         FatalError("Cannot determine format of input F3D vector field from NIfTI intent code!");
       }
     }
     if (steps == 0) {
-      steps = static_cast<int>(hdr.intent_p2);
+      if (hdr.intent_name == "NREG_VEL_STEP") {
+        steps = static_cast<int>(hdr.intent_p1);
+      } else if (hdr.intent_name == "NREG_TRANS") {
+        steps = static_cast<int>(hdr.intent_p2);
+      }
+      if (steps == 0) {
+        steps = 6;
+      }
     }
 
     bool displacement = (type == F3D_DISP_FIELD || type == F3D_DISP_VEL_FIELD);
@@ -939,6 +968,246 @@ Transformation *ReadDRAMMS(const char *fname)
   ConvertVoxelToWorldDisplacement(disp);
   // Convert to linear FFD
   return ToLinearFFD(disp);
+}
+
+// =============================================================================
+// elastix
+// =============================================================================
+
+// -----------------------------------------------------------------------------
+/// Read transformation from elastix output file
+Transformation *ReadElastix(const char *fname, const ImageAttributes &target)
+{
+  int ndims = 0;
+  int ndofs = 0;
+  int order = 3;
+  UniquePtr<double> dofs;
+  ImageAttributes grid;
+  bool cyclic = false;
+
+  ifstream ifs(fname);
+  if (!ifs.is_open()) {
+    Warning("Failed to open file for reading: " << fname);
+    return nullptr;
+  }
+  string line;
+  Array<string> part;
+  if (!getline(ifs, line) || line != "(Transform \"BSplineTransform\")") {
+    Warning("Elastix input: Expected first line to specify BSplineTransform type");
+    return nullptr;
+  }
+  while (getline(ifs, line)) {
+    line = Trim(line);
+    if (line.empty()) continue;
+    if (line[0] == '/' && line[1] == '/') continue;
+    if (line[0] != '(' || line[line.length()-1] != ')') {
+      Warning("Elastix input: Expected lines to be enclosed in parentheses");
+      return nullptr;
+    }
+    line = line.substr(1, line.length() - 2);
+    part = Split(line, ' ', 0, true, true);
+    if (part.size() < 2) {
+      Warning("Elastix input: Expected lines to contain at least two entries, a key and a value");
+      return nullptr;
+    }
+    if (part[0] == "NumberOfParameters") {
+      if (part.size() != 2 || !FromString(part[1], ndofs) || ndofs <= 0) {
+        Warning("Elastix input: Expected NumberOfParameters to have exactly one positive integer value");
+        return nullptr;
+      }
+      dofs.reset(new double[ndofs]);
+    } else if (part[0] == "TransformParameters") {
+      if (part.size() != static_cast<size_t>(ndofs + 1)) {
+        Warning("Elastix input: Expected " << ndofs << " TransformParameters, got " << part.size() - 1);
+        return nullptr;
+      }
+      for (int i = 0; i < ndofs; ++i) {
+        if (!FromString(part[i+1], dofs.get()[i])) {
+          Warning("Elastix input: Failed to parse TransformParameters value");
+          return nullptr;
+        }
+      }
+    } else if (part[0] == "GridSize") {
+      if (ndims == 0) {
+        ndims = static_cast<int>(part.size() - 1);
+      } else if (static_cast<int>(part.size() - 1) != ndims) {
+        Warning("Elastix input: Expected GridSize to have " << ndims << " values, got " << part.size() - 1);
+        return nullptr;
+      }
+      if (ndims < 2 || ndims > 4) {
+        Warning("Elastix input: Can only read transformation with 2, 3, or 4 dimensions");
+        return nullptr;
+      }
+      for (int i = 0, n; i < ndims; ++i) {
+        if (!FromString(part[i+1], n) || n <= 0) {
+          Warning("Elastix input: Failed to parse GridSize value");
+          return nullptr;
+        }
+        if      (i == 0) grid._x = n;
+        else if (i == 1) grid._y = n;
+        else if (i == 2) grid._z = n;
+        else if (i == 3) grid._t = n;
+      }
+    } else if (part[0] == "GridIndex") {
+      if (ndims == 0) {
+        ndims = static_cast<int>(part.size() - 1);
+      } else if (static_cast<int>(part.size() - 1) != ndims) {
+        Warning("Elastix input: Expected GridIndex to have " << ndims << " values, got " << part.size() - 1);
+        return nullptr;
+      }
+      if (ndims < 2 || ndims > 4) {
+        Warning("Elastix input: Can only read transformation with 2, 3, or 4 dimensions");
+        return nullptr;
+      }
+      for (int i = 0, n; i < ndims; ++i) {
+        if (!FromString(part[i+1], n)) {
+          Warning("Elastix input: Failed to parse GridIndex value");
+          return nullptr;
+        }
+        if (n != 0) {
+          Warning("Elastix input: Only GridIndex equal to 0 supported");
+          return nullptr;
+        }
+      }
+    } else if (part[0] == "GridSpacing") {
+      if (ndims == 0) {
+        ndims = static_cast<int>(part.size() - 1);
+      } else if (static_cast<int>(part.size() - 1) != ndims) {
+        Warning("Elastix input: Expected GridSpacing to have " << ndims << " values, got " << part.size() - 1);
+        return nullptr;
+      }
+      if (ndims < 2 || ndims > 4) {
+        Warning("Elastix input: Can only read transformation with 2, 3, or 4 dimensions");
+        return nullptr;
+      }
+      double s;
+      for (int i = 0; i < ndims; ++i) {
+        if (!FromString(part[i+1], s) || s <= 0.) {
+          Warning("Elastix input: Failed to parse GridSpacing value");
+          return nullptr;
+        }
+        if      (i == 0) grid._dx = s;
+        else if (i == 1) grid._dy = s;
+        else if (i == 2) grid._dz = s;
+        else if (i == 3) grid._dt = s;
+      }
+    } else if (part[0] == "GridOrigin") {
+      if (ndims == 0) {
+        ndims = static_cast<int>(part.size() - 1);
+      } else if (static_cast<int>(part.size() - 1) != ndims) {
+        Warning("Elastix input: Expected GridOrigin to have " << ndims << " values, got " << part.size() - 1);
+        return nullptr;
+      }
+      if (ndims < 2 || ndims > 4) {
+        Warning("Elastix input: Can only read transformation with 2, 3, or 4 dimensions");
+        return nullptr;
+      }
+      double x;
+      for (int i = 0; i < ndims; ++i) {
+        if (!FromString(part[i+1], x)) {
+          Warning("Elastix input: Failed to parse GridOrigin value");
+          return nullptr;
+        }
+        if      (i == 0) grid._xorigin = x;
+        else if (i == 1) grid._yorigin = x;
+        else if (i == 2) grid._zorigin = x;
+        else if (i == 3) grid._torigin = x;
+      }
+    } else if (part[0] == "GridDirection") {
+      if (static_cast<int>(part.size() - 1) != 9) {
+        Warning("Elastix input: Expected GridDirection to have 9 values, got " << part.size() - 1);
+        return nullptr;
+      }
+      double v;
+      for (int i = 0; i < 9; ++i) {
+        if (!FromString(part[i+1], v)) {
+          Warning("Elastix input: Failed to parse GridDirection value");
+          return nullptr;
+        }
+        if      (i == 0) grid._xaxis[0] = v;
+        else if (i == 1) grid._yaxis[0] = v;
+        else if (i == 2) grid._zaxis[0] = v;
+        else if (i == 3) grid._xaxis[1] = v;
+        else if (i == 4) grid._yaxis[1] = v;
+        else if (i == 5) grid._zaxis[1] = v;
+        else if (i == 6) grid._xaxis[2] = v;
+        else if (i == 7) grid._yaxis[2] = v;
+        else if (i == 8) grid._zaxis[2] = v;
+      }
+    } else if (part[0] == "BSplineTransformSplineOrder") {
+      if (part.size() != 2) {
+        Warning("Elastix input: Expected BSplineTransformSplineOrder to have exactly one value");
+        return nullptr;
+      }
+      if (!FromString(part[1], order)) {
+        Warning("Elastix input: Failed to parse BSplineTransformSplineOrder value");
+        return nullptr;
+      }
+    } else if (part[0] == "UseCyclicTransform") {
+      if (!FromString(part[1], cyclic)) {
+        Warning("Elastix input: Failed to parse UseCyclicTransform value");
+        return nullptr;
+      }
+    }
+  }
+  UniquePtr<FreeFormTransformation> dof;
+  if (ndofs == 0) {
+    Warning("Elastix input: NumberOfParameters not specified");
+    return nullptr;
+  }
+  if (ndims < 2 || ndims > 4) {
+    Warning("Elastix input: Can only read transformation with 2, 3, or 4 dimensions");
+    return nullptr;
+  }
+  if (!grid) {
+    Warning("Elastix input: Invalid BSplineTransform grid");
+    return nullptr;
+  }
+  int ncps = grid.NumberOfPoints();
+  if (ndims * ncps != ndofs) {
+    Warning("Elastix input: NumberOfParameters does not match GridSize");
+    return nullptr;
+  }
+  // Deal with itk::NiftiImageIO::SetNIfTIOrientationFromImageIO nonsense
+  grid._xorigin *= -1.;
+  grid._yorigin *= -1.;
+  for (int i = 0; i < 2; ++i) {
+    grid._xaxis[i] *= -1.;
+    grid._yaxis[i] *= -1.;
+    grid._zaxis[i] *= -1.;
+  }
+  // Move origin to grid center
+  double tx = .5 * (grid._x - 1) * grid._dx;
+  double ty = .5 * (grid._y - 1) * grid._dy;
+  double tz = .5 * (grid._z - 1) * grid._dz;
+  grid._xorigin += tx * grid._xaxis[0] + ty * grid._yaxis[0] + tz * grid._zaxis[0];
+  grid._yorigin += tx * grid._xaxis[1] + ty * grid._yaxis[1] + tz * grid._zaxis[1];
+  grid._zorigin += tx * grid._xaxis[2] + ty * grid._yaxis[2] + tz * grid._zaxis[2];
+  // Create MIRTK transformation
+  if (order == 1) {
+    if (ndims == 4) {
+      dof.reset(new LinearFreeFormTransformation4D(grid));
+    } else {
+      dof.reset(new LinearFreeFormTransformation3D(grid));
+    }
+  } else if (order == 3) {
+    if (ndims == 4) {
+      dof.reset(new BSplineFreeFormTransformation4D(grid));
+    } else {
+      dof.reset(new BSplineFreeFormTransformation3D(grid));
+    }
+  } else {
+    Warning("Elastix input: Can only convert BSplineTransform with BSplineTransformSplineOrder 1 or 3");
+    return nullptr;
+  }
+  double *x = dofs.get();
+  double *y = x + ncps;
+  double *z = y + ncps;
+  for (int i = 0; i < ncps; ++i, ++x, ++y, ++z) {
+    // x and y axes are reflected by ITK
+    dof->Put(i, -(*x), -(*y), *z);
+  }
+  return dof.release();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1433,10 +1702,13 @@ bool WriteMIRTK(const char *fname, Transformation *dof,
   }
 
   // Attributes of output FFD (if output is not only a homogeneous transformation)
-  if (!target_attr && ffd) {
-    target_attr = ffd->Attributes();
-  }
-  if (target_attr) {
+  if (ffd) {
+    if (!target_attr) target_attr = ffd->Attributes();
+    if (dx <= .0) dx = ffd->GetXSpacing();
+    if (dy <= .0) dy = ffd->GetYSpacing();
+    if (dz <= .0) dz = ffd->GetZSpacing();
+    if (dt <= .0) dt = ffd->GetTSpacing();
+  } else if (target_attr) {
     if (dx <= .0) dx = target_attr._dx;
     if (dy <= .0) dy = target_attr._dy;
     if (dz <= .0) dz = target_attr._dz;
@@ -1486,7 +1758,8 @@ bool WriteMIRTK(const char *fname, Transformation *dof,
   }
 
   // Write input transformation directly when possible
-  if (!resample_ffd && (dof_type == type || type == TRANSFORMATION_UNKNOWN)) {
+  if (type == TRANSFORMATION_UNKNOWN) type = dof_type;
+  if (!resample_ffd && dof_type == type) {
     if (omffd) {
       if (mffd) {
         if (omffd->TypeOfClass() == mffd->TypeOfClass()) {
@@ -2378,6 +2651,12 @@ int main(int argc, char *argv[])
     case Format_F3D_SPLINE_VEL_GRID: {
       dof.reset(ReadF3D(input_name, dofin_name, xyz_units, ffdim.minsteps,
                         ToF3DTransformationType(format_in)));
+    } break;
+
+    // Elastix
+    case Format_Elastix:
+    case Format_Elastix_FFD: {
+      dof.reset(ReadElastix(input_name, target_attr));
     } break;
 
     // FreeSurfer

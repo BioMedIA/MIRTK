@@ -53,10 +53,24 @@ public:
   typedef GenericFastCubicBSplineInterpolateImageFunction3D<CPImage> Interpolator;
   typedef Interpolator::Kernel                                       Kernel;
 
+  /// Options for parametric gradient calculation
+  enum ParametricGradientType
+  {
+    PG_Default,       ///< Default gradient computation.
+    PG_Analytic,      ///< Analytic derivation w.r.t. DoFs.
+    PG_Convolution,   ///< Convolution with cubic B-spline filter.
+    PG_Approximation  ///< Approximate voxel-wise non-parametric gradient
+                      ///< field with cubic B-spline function, also known
+                      ///< as "directly manipulated FFD (DMFFD)".
+  };
+
   // ---------------------------------------------------------------------------
   // Attributes
 
 protected:
+
+  /// Whether to compute parametric gradient using cubic B-spline convolution
+  mirtkPublicAttributeMacro(ParametricGradientType, ParametricGradientCalculation);
 
   /// Interpolates control point values at arbitrary lattice locations
   Interpolator _FFD;
@@ -97,7 +111,27 @@ public:
   virtual ~BSplineFreeFormTransformation3D();
 
   // ---------------------------------------------------------------------------
+  // Parameters (non-DoFs)
+
+  // Import other Parameter overloads
+  using FreeFormTransformation3D::Parameter;
+
+  /// Set named (non-DoF) parameter from value as string
+  virtual bool Set(const char *, const char *);
+
+  /// Get (non-DoF) parameters as key/value as string map
+  virtual ParameterList Parameter() const;
+
+  // ---------------------------------------------------------------------------
   // Approximation/Interpolation
+
+  /// Approximate displacements: This function takes a set of points and a set
+  /// of displacements and finds !new! parameters such that the resulting
+  /// transformation approximates the displacements as good as possible.
+  /// These parameters are added to the given coefficients using specified weight.
+  void AddApproximateSplineCoefficients(const double *, const double *, const double *,
+                                        const double *, const double *, const double *,
+                                        int, double *, double = 1., bool = false) const;
 
   /// Approximate displacements: This function takes a set of points and a set
   /// of displacements and finds !new! parameters such that the resulting
@@ -265,6 +299,7 @@ public:
   using FreeFormTransformation3D::LocalJacobian;
   using FreeFormTransformation3D::LocalHessian;
   using FreeFormTransformation3D::JacobianDOFs;
+  using FreeFormTransformation3D::ParametricGradient;
 
   /// Calculates the Jacobian of the transformation w.r.t either control point displacements or velocities
   virtual void FFDJacobianWorld(Matrix &, double, double, double, double = 0, double = NaN) const;
@@ -283,6 +318,13 @@ public:
 
   /// Calculates the derivative of the Jacobian of the transformation (w.r.t. world coordinates) w.r.t. a transformation parameter
   virtual void DeriveJacobianWrtDOF(Matrix &, int, double, double, double, double = 0, double = NaN) const;
+
+    /// Applies the chain rule to convert spatial non-parametric gradient
+  /// to a gradient w.r.t the parameters of this transformation
+  virtual void ParametricGradient(const GenericImage<double> *, double *,
+                                  const WorldCoordsImage *,
+                                  const WorldCoordsImage *,
+                                  double = NaN, double = 1) const;
 
   // ---------------------------------------------------------------------------
   // Properties
@@ -320,6 +362,44 @@ public:
 ////////////////////////////////////////////////////////////////////////////////
 // Inline definitions
 ////////////////////////////////////////////////////////////////////////////////
+
+// =============================================================================
+// String conversion of enum values
+// =============================================================================
+
+// ----------------------------------------------------------------------------
+template <>
+inline string ToString(const BSplineFreeFormTransformation3D::ParametricGradientType &value, int w, char c, bool left)
+{
+  const char *str;
+  switch (value) {
+    case BSplineFreeFormTransformation3D::PG_Default:       str = "Default";       break;
+    case BSplineFreeFormTransformation3D::PG_Analytic:      str = "Analytic";      break;
+    case BSplineFreeFormTransformation3D::PG_Convolution:   str = "Convolution";   break;
+    case BSplineFreeFormTransformation3D::PG_Approximation: str = "Approximation"; break;
+    default:                                                str = "Unknown";       break;
+  }
+  return ToString(str, w, c, left);
+}
+
+// ----------------------------------------------------------------------------
+template <>
+inline bool FromString(const char *str, BSplineFreeFormTransformation3D::ParametricGradientType &value)
+{
+  string lstr = ToLower(str);
+  if (lstr == "default") {
+    value = BSplineFreeFormTransformation3D::PG_Default;
+  } else if (lstr == "analytic") {
+    value = BSplineFreeFormTransformation3D::PG_Analytic;
+  } else if (lstr == "convolution") {
+    value = BSplineFreeFormTransformation3D::PG_Convolution;
+  } else if (lstr == "dmffd" || lstr == "directlymanipulated" || lstr == "directly manipulated" || lstr == "approximation") {
+    value = BSplineFreeFormTransformation3D::PG_Approximation;
+  } else {
+    return false;
+  }
+  return true;
+}
 
 // =============================================================================
 // Evaluation
