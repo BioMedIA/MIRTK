@@ -169,7 +169,7 @@ istream &operator >>(istream &is, OverlapMetric &metric)
     metric = FalsePositiveRate;
   } else if (str == "fdr" || str == "falsediscoveryrate" || str == "false discovery rate") {
     metric = FalseDiscoveryRate;
-  } else if (str == "fnr" || str == "falsenegativerate" || str == "falsenegativerate" || str == "missrate" || str == "miss rate") {
+  } else if (str == "fnr" || str == "falsenegativerate" || str == "false negative rate" || str == "missrate" || str == "miss rate") {
     metric = FalseNegativeRate;
   } else if (str == "accuracy") {
     metric = Accuracy;
