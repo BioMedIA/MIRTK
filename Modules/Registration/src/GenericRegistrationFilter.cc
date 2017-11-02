@@ -1308,7 +1308,7 @@ inline void rtrim(char *s)
   size_t l = strlen(s);
   if (l == 0) return;
   char *p = s + l - 1;
-  while (*p == ' ' || *p == '\t') {
+  while (*p == ' ' || *p == '\t' || *p == '\r' || *p == '\n') {
     *p = '\0';
     if (p == s) break;
     --p;
@@ -1364,8 +1364,8 @@ static bool read_next(istream &in, char *buffer, int n, char *&name, char *&valu
   rtrim(name);
   // concatenate multi-line energy function value
   if (strcmp(name, "Energy function") == 0) {
+    rtrim(value);
     while (true) {
-      rtrim(value);
       size_t len = strlen(value);
       if (len > 3 && strcmp(value + len - 3, "...") == 0) {
         // separate multi-line statements by single space (i.e. replace first '.' by ' ')
@@ -1374,6 +1374,7 @@ static bool read_next(istream &in, char *buffer, int n, char *&name, char *&valu
         char *next_value = value + len - 2;
         in.getline(next_value, n - int(next_value - buffer));
         if (!in) return false;
+        rtrim(next_value);
         ++no;
         // discard leading whitespace characters
         p = next_value;
