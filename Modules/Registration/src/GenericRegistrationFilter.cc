@@ -1113,8 +1113,9 @@ bool GenericRegistrationFilter::IsMovingImage(int n) const
   // Note: Image is moving if it is being transformed by any similarity term
   Array<ImageSimilarityInfo>::const_iterator it;
   for (it = _ImageSimilarityInfo.begin(); it != _ImageSimilarityInfo.end(); ++it) {
-    if (it->_TargetIndex == n && !it->_TargetTransformation.IsIdentity()) return true;
-    if (it->_SourceIndex == n && !it->_SourceTransformation.IsIdentity()) return true;
+    // Note: For longitudinal registration, target image deformed by FFD at t=0 may be compared to itself
+    if (it->_TargetIndex == n && it->_SourceIndex != n && !it->_TargetTransformation.IsIdentity()) return true;
+    if (it->_TargetIndex != n && it->_SourceIndex == n && !it->_SourceTransformation.IsIdentity()) return true;
   }
   return false;
 }
@@ -1274,8 +1275,9 @@ bool GenericRegistrationFilter::IsMovingPointSet(int n) const
   // Note: Point set is moving if it is being transformed by any similarity term
   Array<PointSetDistanceInfo>::const_iterator it;
   for (it = _PointSetDistanceInfo.begin(); it != _PointSetDistanceInfo.end(); ++it) {
-    if (it->_TargetIndex == n && !it->_TargetTransformation.IsIdentity()) return true;
-    if (it->_SourceIndex == n && !it->_SourceTransformation.IsIdentity()) return true;
+    // Note: For longitudinal registration, target point set deformed by FFD at t=0 may be compared to itself
+    if (it->_TargetIndex == n && it->_SourceIndex != n && !it->_TargetTransformation.IsIdentity()) return true;
+    if (it->_TargetIndex != n && it->_SourceIndex == n && !it->_SourceTransformation.IsIdentity()) return true;
   }
   return false;
 }
