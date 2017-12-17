@@ -3473,7 +3473,7 @@ void GenericRegistrationFilter::InitializeTransformation()
   // of a 4D FFD if it is not extended periodically by the extrapolator
   enum ExtrapolationMode m = ffd->ExtrapolationMode();
   const bool periodic = (m == ExtrapolationWithPeriodicTime(m));
-  if (!periodic) {
+  if (!periodic && _CropPadFFD) {
     if (domain._t > 1) {
       // Note: Image/FFD lattices are not centered in the temporal domain
       const double margin = ffd->KernelRadius();
