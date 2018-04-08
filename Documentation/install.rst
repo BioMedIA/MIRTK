@@ -19,6 +19,7 @@ for Linux and OS X is 2.8.12, while version 3.4 or newer is needed on Windows.
 For the compilation of the MIRTK source code, a C++ compiler with support for the
 `C++11`_ standard is required. On Windows, the minimum required Visual Studio compiler
 version is 18.0. A compatible compiler is shipped with Visual Studio 2013 or newer.
+For Unix operation systems, we recommend the use of the `GNU Compiler Collection`_ (GCC).
 
 To execute the :doc:`MIRTK commands <commands>`, a Python_ installation is required.
 Note that Python has to be installed before configuring the MIRTK build using CMake.
@@ -68,6 +69,7 @@ Module               Requires module(s)                                         
 |Registration|       |Common|, |Numerics|, |Image|, |Transformation|               |PointSet|, |Deformable|
 |Deformable|         |Common|, |Numerics|, |Image|, |Transformation|, |PointSet|
 |Mapping|            |Common|, |Numerics|, |Image|, |PointSet|
+|Scripting|
 |DrawEM|             |Common|, |Numerics|, |Image|, |IO|
 ===================  ===========================================================   ========================================
 
@@ -260,6 +262,7 @@ The Bash completions are then available when a new Terminal window is opened.
 
 
 .. _C++11:     https://isocpp.org/wiki/faq/cpp11
+.. _GNU Compiler Collection: https://gcc.gnu.org/
 .. _Python:    https://www.python.org
 .. _Boost:     http://www.boost.org
 .. _Eigen:     http://eigen.tuxfamily.org
