@@ -998,9 +998,9 @@ void GenericRegistrationFilter::Clear()
 GenericRegistrationFilter::GenericRegistrationFilter()
 :
   _InitialGuess(nullptr),
+  _TargetTransformation(nullptr),
   _Domain(nullptr),
   _Transformation(nullptr),
-  _TargetTransformation(nullptr),
   _Optimizer(nullptr)
 {
   // Bind broadcast method to optimizer events (excl. Start/EndEvent!)

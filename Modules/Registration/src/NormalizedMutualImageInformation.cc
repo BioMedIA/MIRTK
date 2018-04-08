@@ -85,8 +85,8 @@ public:
     _LogJointHistogram(logJointHistogram),
     _LogMarginalXHistogram(logMarginalXHistogram),
     _LogMarginalYHistogram(logMarginalYHistogram),
-    _NormalizedJointEntropy(je_norm),
-    _NormalizedMutualInformation(nmi)
+    _NormalizedMutualInformation(nmi),
+    _NormalizedJointEntropy(je_norm)
   {}
 
   template <class TImage, class TIntensity, class TGradient>
