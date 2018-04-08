@@ -35,6 +35,11 @@ set(UMFPACK_VERSION_MINOR  ${SuiteSparse_VERSION_MINOR})
 set(UMFPACK_VERSION_PATCH  ${SuiteSparse_VERSION_PATCH})
 set(UMFPACK_VERSION_STRING ${SuiteSparse_VERSION_STRING})
 
+set(UMFPACK_INCLUDE_DIR  "${SuiteSparse_UMFPACK_INCLUDE_DIR}")
+set(UMFPACK_INCLUDE_DIRS "${SuiteSparse_UMFPACK_INCLUDE_DIRS}")
+set(UMFPACK_LIBRARY      "${SuiteSparse_UMFPACK_LIBRARY}")
+set(UMFPACK_LIBRARIES    "${SuiteSparse_UMFPACK_LIBRARIES}")
+
 # ------------------------------------------------------------------------------
 # Handle QUIET, REQUIRED, and [EXACT] VERSION arguments and set SuiteSparse_FOUND
 include(FindPackageHandleStandardArgs)
