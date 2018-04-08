@@ -156,7 +156,7 @@ public:
   // Properties
 
   /// Calculates the gradient of the bending energy w.r.t the transformation parameters
-  virtual void BendingEnergyGradient(double *, double = 1, bool = false, bool = true) const;
+  virtual void BendingEnergyGradient(double *, double = 1, bool = false, bool = true, bool = true) const;
 
   // ---------------------------------------------------------------------------
   // I/O

@@ -419,7 +419,9 @@ public:
   /// \param[in]  y   World coordinate along y axis at which to evaluate derivatives.
   /// \param[in]  z   World coordinate along z axis at which to evaluate derivatives.
   /// \param[in]  adj Adjugate of Jacobian matrix evaluated at (x, y, z).
-  virtual void JacobianDetDerivative(double dJ[3], const Matrix &adj, int cp, double x, double y, double z, double = 0, double = NaN) const;
+  virtual void JacobianDetDerivative(double dJ[3], const Matrix &adj,
+                                     int cp, double x, double y, double z, double t = 0, double t0 = NaN,
+                                     bool wrt_world = true, bool use_spacing = true) const;
 
 protected:
 

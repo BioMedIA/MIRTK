@@ -1447,7 +1447,7 @@ void BSplineFreeFormTransformationSV::JacobianDOFs(TransformationJacobian &jac, 
 
 // -----------------------------------------------------------------------------
 inline void BSplineFreeFormTransformationSV
-::JacobianDetDerivative(double [3], const Matrix &, int, double, double, double, double, double) const
+::JacobianDetDerivative(double [3], const Matrix &, int, double, double, double, double, double, bool, bool) const
 {
   Throw(ERR_NotImplemented, __FUNCTION__, "Not implemented");
 }
