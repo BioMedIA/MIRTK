@@ -346,9 +346,9 @@ protected:
   {
     double g[3];
     _Gradient->Evaluate(g, x, y, z);
-    out[_x] = in[_x] + jac(0, 0) * g[0] + jac(0, 1) * g[1] + jac(0, 2) * g[2];
-    out[_y] = in[_y] + jac(1, 0) * g[0] + jac(1, 1) * g[1] + jac(1, 2) * g[2];
-    out[_z] = in[_z] + jac(2, 0) * g[0] + jac(2, 1) * g[1] + jac(2, 2) * g[2];
+    out[_x] = in[_x] + static_cast<TGradient>(jac(0, 0) * g[0] + jac(0, 1) * g[1] + jac(0, 2) * g[2]);
+    out[_y] = in[_y] + static_cast<TGradient>(jac(1, 0) * g[0] + jac(1, 1) * g[1] + jac(1, 2) * g[2]);
+    out[_z] = in[_z] + static_cast<TGradient>(jac(2, 0) * g[0] + jac(2, 1) * g[1] + jac(2, 2) * g[2]);
   }
 };
 
@@ -651,9 +651,9 @@ public:
     _OutputDisplacement->WorldToImage(x, y, z);
     _OutputDisplacement->Evaluate(d, x, y, z);
     // Sum displacements
-    (*out) = dx + static_cast<TReal>(d[0]), out += n;
-    (*out) = dy + static_cast<TReal>(d[1]), out += n;
-    (*out) = dz + static_cast<TReal>(d[2]);
+    (*out) = static_cast<TReal>(dx + d[0]), out += n;
+    (*out) = static_cast<TReal>(dy + d[1]), out += n;
+    (*out) = static_cast<TReal>(dz + d[2]);
   }
 };
 
@@ -688,9 +688,9 @@ public:
     _OutputDisplacement->WorldToImage(u, v, w);
     _OutputDisplacement->Evaluate(d, u, v, w);
     // Sum displacements
-    (*out) = (x2 - x1) + static_cast<TReal>(d[0]), out += n;
-    (*out) = (y2 - y1) + static_cast<TReal>(d[1]), out += n;
-    (*out) = (z2 - z1) + static_cast<TReal>(d[2]);
+    (*out) = static_cast<TReal>(x2 - x1 + d[0]), out += n;
+    (*out) = static_cast<TReal>(y2 - y1 + d[1]), out += n;
+    (*out) = static_cast<TReal>(z2 - z1 + d[2]);
   }
 };
 

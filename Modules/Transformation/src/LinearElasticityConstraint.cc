@@ -244,10 +244,10 @@ class RemoveRotation
 
 public:
 
-  void operator ()(const blocked_range<size_t> &re) const
+  void operator ()(const blocked_range<int> &re) const
   {
     Matrix3x3 J;
-    for (size_t i = re.begin(); i != re.end(); ++i) {
+    for (auto i = re.begin(); i != re.end(); ++i) {
       Matrix &jac = _Jacobian[i];
       if (jac.Rows() > 0) {
         J = jac.To3x3();
@@ -267,7 +267,7 @@ public:
   {
     RemoveRotation eval;
     eval._Jacobian = jac.data();
-    parallel_for(blocked_range<size_t>(0, jac.size()), eval);
+    parallel_for(blocked_range<int>(0, static_cast<int>(jac.size())), eval);
   }
 };
 
@@ -303,10 +303,10 @@ public:
     _Count  += other._Count;
   }
 
-  void operator ()(const blocked_range<size_t> &re)
+  void operator ()(const blocked_range<int> &re)
   {
     double a, b;
-    for (size_t cp = re.begin(); cp != re.end(); ++cp) {
+    for (auto cp = re.begin(); cp != re.end(); ++cp) {
       if (_ConstrainPassiveDoFs || _FFD->IsActive(cp)) {
         const Matrix &jac = _Jacobian[cp];
         a = pow(jac(0, 0) + jac(0, 0), 2)
@@ -331,7 +331,7 @@ public:
     eval._Jacobian             = jac;
     eval._Mu                   = .5 * mu;
     eval._Lambda               = lambda;
-    parallel_reduce(blocked_range<size_t>(0, ffd->NumberOfCPs()), eval);
+    parallel_reduce(blocked_range<int>(0, ffd->NumberOfCPs()), eval);
     return (eval._Count > 0 ? eval._Energy / eval._Count : 0.);
   }
 };
@@ -365,10 +365,10 @@ public:
     _Count  += other._Count;
   }
 
-  void operator ()(const blocked_range<size_t> &re)
+  void operator ()(const blocked_range<int> &re)
   {
     double a, b;
-    for (size_t vox = re.begin(); vox != re.end(); ++vox) {
+    for (auto vox = re.begin(); vox != re.end(); ++vox) {
       const Matrix &jac = _Jacobian[vox];
       if (jac.Rows() > 0) {
         a = pow(jac(0, 0) + jac(0, 0), 2)
@@ -390,7 +390,7 @@ public:
     eval._Jacobian             = jac;
     eval._Mu                   = .5 * mu;
     eval._Lambda               = lambda;
-    parallel_reduce(blocked_range<size_t>(0, domain->NumberOfSpatialPoints()), eval);
+    parallel_reduce(blocked_range<int>(0, domain->NumberOfSpatialPoints()), eval);
     return (eval._Count > 0 ? eval._Energy / eval._Count : 0.);
   }
 };
