@@ -11,8 +11,13 @@ from mirtk.atlas.spatiotemporal import SpatioTemporalAtlas
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="""
         Construct (spatio-temporal) atlas from images of the same anatomy of different subjects.
+
         To construct a spatio-temporal atlas, images of subjects at different ages spread over
-        the atlas time range are required.""")
+        the atlas time range are required. Please cite the following preprint when you use this
+        command in your research (or the respective peer-reviewed article when accepted):
+
+        Schuh et al., "Unbiased construction of a temporally consistent morphological
+        atlas of neonatal brain development", bioRxiv, 2018. doi:10.1101/251512""")
     parser.add_argument("config", help="JSON file with atlas configuration.")
     parser.add_argument("-a", "--ages", "--means", dest="means", type=float, nargs="+",
                         help="Discrete time points for which to construct atlas.")
