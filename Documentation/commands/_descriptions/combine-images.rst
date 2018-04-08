@@ -5,3 +5,13 @@ Concatenate two or more either 2D images to form a 3D volume,
 or 3D volumes to form a 3D+t temporal sequence. All input images
 must have the same image attributes, except in either the third (2D)
 or the third and fourth (3D) image dimension.
+
+Moreover, given an :option:`combine-images -input` volume (sequence), additional
+slices (volumes) can be appended to it. Note that when :option:`combine-images -sort`
+is enabled, the additional slices (volumes) can be interleaved with the
+existing volume (sequence), allowing inserting a slice (volume) anywhere
+not only after the last slice (volume) of the input volume (sequence).
+
+Note that the slice thickness of the output volume when concatenating slices
+is set equal the average slice thickness of the input images, unless it is
+overridden by the :option:`combine-images -spacing` value.

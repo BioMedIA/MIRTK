@@ -42,25 +42,25 @@ Command options
 
    Isovalue of surface intensities. (default: 0)
 
-.. option:: -blur <sigma>
+.. option:: -blur, -sigma <sigma>
 
    Blur input image with kernel size sigma before running filter. (default: 0)
 
 .. option:: -isotropic
 
-   Resample image to an isotropic voxel size (minimum of input voxel size).
+   Resample image to an isotropic voxel size (minimum of input voxel size). (default: off)
 
-.. option:: -normals [on|off]
+.. option:: -normals, -nonormals
 
-   Choose whether to generate normals (default) or not.
+   Whether to calculate surface normals. (default: on)
 
-.. option:: -gradients [on|off]
+.. option:: -gradients, -nogradients
 
-   Choose whether to generate gradients or not (default).
+   Whether to calculate image gradients. (default: off)
 
-.. option:: -close [on|off]
+.. option:: -close, -noclose
 
-   Put zeros around the image to generate a closed surface(s).
+   Put zeros around the image to generate a closed surface(s). (default: off)
 
 .. option:: -compress, -nocompress
 

@@ -4,6 +4,7 @@
 Copies point and/or cell data from a source point set to a target point set
 and writes the resulting amended point set to the specified output file.
 When no separate output file is specified, the target point set is overwritten.
+This command can also convert from point data to cell data and vice versa.
 
 If the point sets have differing number of points or cells, respectively,
 zero entries are either added to the target arrays or only the first n tuples

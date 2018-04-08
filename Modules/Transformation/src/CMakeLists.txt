@@ -42,10 +42,12 @@ set(HEADERS
   ImageTransformation.h
   InverseAffineTransformation.h
   JacobianConstraint.h
+  LinearElasticityConstraint.h
   LinearFreeFormTransformation3D.h
   LinearFreeFormTransformation4D.h
   LinearFreeFormTransformationTD.h
   LogJacobianConstraint.h
+  NegJacobianConstraint.h
   MultiLevelFreeFormTransformation.h
   MultiLevelStationaryVelocityTransformation.h
   MultiLevelTransformation.h
@@ -88,10 +90,12 @@ set(SOURCES
   ImageTransformation.cc
   InverseAffineTransformation.cc
   JacobianConstraint.cc
+  LinearElasticityConstraint.cc
   LinearFreeFormTransformation3D.cc
   LinearFreeFormTransformation4D.cc
   LinearFreeFormTransformationTD.cc
   LogJacobianConstraint.cc
+  NegJacobianConstraint.cc
   MultiLevelFreeFormTransformation.cc
   MultiLevelStationaryVelocityTransformation.cc
   MultiLevelTransformation.cc

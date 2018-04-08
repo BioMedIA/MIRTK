@@ -103,10 +103,10 @@ Command options
 .. option:: -anisotropic ([<sigma>] [<tensor_array>] | <sigma1> <sigma2> [(<e2_array> | <e1_array> <e2_array>)])
 
    Anisotropic Gaussian smoothing kernel given input tensor field point data array
-   named <tensor_array>. The default tensor field used no arguments or only <sigma> specified
-   is the curvature tensor output of polydatacurvature. Alternatively, specify <sigma1> and <sigma2>
-   together with the direction of maximum curvature in <e2_array> or both, the direction of minimum
-   and maximum curvature direction in point data arrays named <e1_array> and <e2_array>.
+   named <tensor_array>. The default tensor field used with no arguments or only <sigma> specified
+   is the curvature tensor output of the calculate-surface-attributes -tensor command. Alternatively,
+   specify <sigma1> and <sigma2> together with the direction of maximum curvature in <e2_array> or both,
+   the direction of minimum and maximum curvature direction in point data arrays named <e1_array> and <e2_array>.
 
 .. option:: -track [<name>]
 

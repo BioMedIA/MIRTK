@@ -28,6 +28,7 @@ norm_option_value()
 TRAVIS=`norm_option_value "$TRAVIS" OFF`
 WITH_VTK=`norm_option_value "$WITH_VTK" OFF`
 TRANSFER=`norm_option_value "$TRANSFER_AppImage" OFF`
+AppImage_DEVEL=`norm_option_value "$AppImage_DEVEL" OFF`
 AppImage_VIEWER=`norm_option_value "$AppImage_VIEWER" OFF`
 AppImage_LATEST=`norm_option_value "$AppImage_LATEST" OFF`
 PYTHON="/usr/bin/env python"  # target system Python interpreter
@@ -122,13 +123,18 @@ if [ -d usr/lib/mirtk ]; then
 fi
 
 rm -f usr/bin/uninstall-mirtk || true
-rm -rf usr/include || true
-rm -rf usr/lib/cmake || true
-rm -rf usr/doc || true
-rm -rf usr/share || true
 rmdir usr/lib64 || true
 rmdir usr/lib/mesa || true
 
+# Delete development files required only to link to libs in extracted image
+if [ $AppImage_DEVEL = OFF ]; then
+  rm -rf usr/include || true
+  rm -rf usr/lib/cmake || true
+  rm -rf usr/doc || true
+  rm -rf usr/share || true
+fi
+
+# Strip binary files to reduce image size
 find . -name *.so -or -name *.so.* -exec strip {} \;
 for f in $(find . -type f -executable -exec file -- {} \; | grep ELF | cut -d: -f1); do
   strip "$f"

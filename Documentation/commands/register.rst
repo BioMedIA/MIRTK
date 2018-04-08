@@ -31,21 +31,25 @@ Description
 
 
 
-Arguments
----------
+Output options
+--------------
 
 .. option:: -dofout <file>
 
    Write transformation to specified file.
 
+.. option:: -output <file>
 
-Command options
----------------
+   Write (first) transformed source image to specified file.
+   Given the flexibility of the energy function formulation,
+   this option may not always give the desired output and is
+   limited to standard pairwise image registration using a
+   single image dissimilarity term. Use transform-image command
+   with the :option:`-dofout` file as input otherwise.
 
-.. option:: -model <m1>[+<m2>...]
 
-   Transformation model(s). (default: Rigid+Affine+FFD)
-   Alternatively, use "-par 'Transformation model' <name>" (see :option:`-par`).
+Input options
+-------------
 
 .. option:: -image <file>...
 
@@ -100,13 +104,6 @@ Command options
    followed by the corresponding affine transformation file. Input images
    not included are assumed to not be further pre-transformed. (default: none)
 
-.. option:: -mask <file>
-
-   Reference mask which defines the domain within which to evaluate the
-   energy function (i.e. image similarity). The registered images will
-   thus be resampled within the corresponding domain of the world system.
-   By default, the foreground of the target image defines this domain.
-
 .. option:: -dofins <file>
 
    Read pairwise transformations from the files specified
@@ -119,30 +116,126 @@ Command options
 .. option:: -dofin <file>
 
    Read initial transformation from file if :option:`-dofins` not specified.
-   Otherwise, writes the initial transformation obtained by approximating
-   the pairwise transformations to the named file.
-   If the given transformation cannot be used directly as starting
-   point of the registration, it will be approximated by an instance
-   of the chosen transformation model at the initial resolution level.
-   The input transformation may thus be of different type than the
-   output transformation of the registration. (default: none)
+   When no initial guess is given, and the first transformation model is a
+   homogeneous transformation, a translation which aligns image foreground centers
+   of mass is used. The identity mapping ('Id' or 'identity') is used as initial guess
+   for deformable models unless the <file> argument is 'guess' to align the centers.
+   If the given transformation cannot be used directly as starting point of the
+   registration, it will be approximated by an instance of the chosen transformation
+   model at the initial resolution level. The input transformation may thus be of
+   different type than the output transformation of the registration.
+   (default: guess or Id/identity)
 
-.. option:: -par <name> <value>
+.. option:: -mask <file>
 
-   Specify parameter value directly as command argument.
+   Reference mask which defines the domain within which to evaluate the
+   energy function (i.e. image similarity). The registered images will
+   thus be resampled within the corresponding domain of the world system.
+   By default, the foreground of the target image defines this domain.
+
+
+Configuration options
+---------------------
 
 .. option:: -parin <file>
 
-   Read parameters from configuration file. If "stdin" or "cin",
+   Read parameters from configuration file. If <file> is "stdin" or "cin",
    the parameters are read from standard input instead. (default: none)
+
+.. option:: -par <name> <value>
+
+   Specify any parameter value usually found in :option:`-parin` file as command argument.
+   The other configuration options are convenient shortcuts for commonly customized parameters.
+
+.. option:: -model <m1>[+<m2>...]
+
+   "Transformation model". Multiple models can be concatenated using a plus sign.
+   (default: Rigid+Affine+FFD)
+
+.. option:: -multi-level-model, -composition None|Sum|Fluid|LogSum
+
+   "Multi-level transformation model" used to combine global affine transformation
+   with the local free-form deformations at each resolution level. (default: Sum)
+
+.. option:: -sim <value>
+
+   Specifies concrete "Image (dis-)similarity" measure of SIM "Energy function" term.
+   Most often used measures are MSE/SSD, NMI, and NCC/LNCC. (default: NMI)
+
+.. option:: -bins <n>
+
+   "No. of bins" used for NMI image similarity measure.
+
+.. option:: -window <width> [<units> [<type>]]
+
+   Local window used for (local) NCC/LNCC image similarity measure.
+   A window <width> of zero corresponds to a global NCC measure.
+   The <units> can be either "vox" (default) or "mm". The type
+   of the window can be "box" (default), "sigma", "fwhm", or "fwtm",
+   where the latter correspond to a Gaussian window with either the specified
+   standard deviation, full width at half maximum, or full width at tenth maximum,
+   respectively. The default is a box window with uniform weights for each voxel.
+
+.. option:: -interp, -interpolation <mode>
+
+   "Image interpolation" mode. (default: "Fast linear [with padding]")
+
+.. option:: -extrap, -extrapolation <mode>
+
+   "Image extrapolation" mode. (default: "Default" for used interpolation mode)
+
+.. option:: -levels <from> [<to>]
+
+   Image/FFD resolution levels. The <from> number corresponds to the "No. of levels",
+   and the <to> number is the final level which is 1 by default.
+   When images are given as input, the default number of levels is 4 and 1 otherwise.
+
+.. option:: -level <n>
+
+   Alias for :option:`-levels` <n> <n> which only performs the registration on a single level.
+
+.. option:: -bg, -background, -padding <value>
+
+   "Background value" (threshold) of input and output images (default: none)
+
+.. option:: -ds <width>
+
+   "Control point spacing" of free-form deformation on highest resolution level. (default: 4x min voxel size)
+
+.. option:: -be <w>
+
+   "Bending energy weight" of free-form deformation. (default: 0.001)
+
+.. option:: -le <w> [<lambda>]
+
+   "Linear energy weight" of free-form deformation. (default: 0)
+
+.. option:: -tp <w>
+
+   "Topology preservation weight" of free-form deformation. (default: 0)
+
+.. option:: -vp <w>
+
+   "Volume preservation weight" of free-form deformation. (default: 0)
+
+.. option:: -lj, -jl, -log-jac, -jac <w>
+
+   "LogJac penalty weight" of free-form deformation. For a classic FFD transformation model
+   this penalty term is equivalent to the volume preservation term. When applied to the SVFFD
+   model, however, this penalty applies to the Jacobian determinant of the velocity field. (default: 0)
+
+.. option:: -nj, -neg-jac <w>
+
+   "NegJac penalty weight" of free-form deformation. For a classic FFD transformation model
+   this penalty term is equivalent to the volume preservation term. When applied to the SVFFD
+   model, however, this penalty applies to the Jacobian determinant of the velocity field. (default: 0)
 
 .. option:: -parout <file>
 
-   Write parameters to the named configuration file. Note that after
-   initializaton of the registration, an interim configuration file is
-   written. This file is overwritten once the registration finished with
-   final configuration used during the course of the registration.
-   (default: none)
+   Write parameters to the named configuration file. Note that after initialization of
+   the registration, an interim configuration file is written. This file is overwritten
+   once the registration finished with final configuration used during the course of the
+   registration. (default: none)
 
 
 Standard options

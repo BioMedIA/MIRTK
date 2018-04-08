@@ -399,7 +399,8 @@ double LinearFreeFormTransformation3D::BendingEnergy(bool incl_passive, bool) co
 
 // -----------------------------------------------------------------------------
 // derivative of classic pairwise bending energy
-void LinearFreeFormTransformation3D::BendingEnergyGradient(double *gradient, double weight, bool incl_passive, bool) const
+void LinearFreeFormTransformation3D
+::BendingEnergyGradient(double *gradient, double weight, bool incl_passive, bool, bool) const
 {
   int    i1, j1, k1, i2, j2, k2;
   Vector tmp;

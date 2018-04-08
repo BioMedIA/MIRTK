@@ -68,6 +68,9 @@ public:
   // ---------------------------------------------------------------------------
   // Attributes
 
+  /// Input image contains spline coefficients
+  mirtkAttributeMacro(bool, UseInputCoefficients);
+
   /// Image of spline coefficients
   mirtkAttributeMacro(CoefficientImage, Coefficient);
 
@@ -92,6 +95,9 @@ public:
 
   /// Initialize image function
   virtual void Initialize(bool = false);
+
+  /// Update spline coefficients
+  virtual void Update();
 
   // ---------------------------------------------------------------------------
   // Domain checks
@@ -344,13 +350,10 @@ public:
   void Jacobian(Matrix &, const TOtherImage *, double, double, double = 0, double = 0) const;
 
   /// Get 1st order derivatives of given image at arbitrary location (in pixels)
-  void EvaluateJacobianInside(Matrix &, double, double, double = 0, double = 0) const;
+  virtual void EvaluateJacobianInside(Matrix &, double, double, double = 0, double = 0) const;
 
   /// Get 1st order derivatives of given image at arbitrary location (in pixels)
-  void EvaluateJacobianOutside(Matrix &, double, double, double = 0, double = 0) const;
-
-  /// Get 1st order derivatives of given image at arbitrary location (in pixels)
-  void EvaluateJacobian(Matrix &, double, double, double = 0, double = 0) const;
+  virtual void EvaluateJacobianOutside(Matrix &, double, double, double = 0, double = 0) const;
 
 };
 

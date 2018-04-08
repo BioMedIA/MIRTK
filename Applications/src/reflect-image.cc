@@ -1,9 +1,9 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2008-2015 Imperial College London
+ * Copyright 2008-2017 Imperial College London
  * Copyright 2008-2013 Daniel Rueckert, Julia Schnabel
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2013-2017 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,6 +26,11 @@
 
 using namespace mirtk;
 
+// TODO: This command is obsolete; use flip-image instead.
+//       The "mirtk.subprocess.path" function can map "reflect-image"
+//       requests to "flip-image" command executions to maintain
+//       backwards compatibility. This would include setting
+//       "-axes off" for "-xy"... options that were removed here.
 
 // =============================================================================
 // Help
@@ -34,21 +39,19 @@ using namespace mirtk;
 // -----------------------------------------------------------------------------
 void PrintHelp(const char *name)
 {
-  cout << endl;
-  cout << "Usage: " << name << " <input> <output> [options]" << endl;
-  cout << endl;
-  cout << "Description:" << endl;
-  cout << "  Applies a sequence of one or more spatial reflections to an image." << endl;
-  cout << "  The reflection options are processed in the order given and changing" << endl;
-  cout << "  the order can change the result." << endl;
-  cout << endl;
-  cout << "Options:" << endl;
-  cout << "  -x         Reflect x axis." << endl;
-  cout << "  -y         Reflect y axis." << endl;
-  cout << "  -z         Reflect z axis." << endl;
-  cout << "  -xy, -yx   Swap x and y axes." << endl;
-  cout << "  -xz, -zx   Swap x and z axes." << endl;
-  cout << "  -yz, -zy   Swap y and z axes." << endl;
+  cout << "\n";
+  cout << "Usage: " << name << " <input> <output> [options]\n";
+  cout << "\n";
+  cout << "Description:\n";
+  cout << "  Applies a  one or more spatial reflections along an image axis.\n";
+  cout << "  A more generic tool that can also be used to swap two axes is\n";
+  cout << "  the flip-image command.\n";
+  cout << "\n";
+  cout << "Options:\n";
+  cout << "  -x   Reflect x axis.\n";
+  cout << "  -y   Reflect y axis.\n";
+  cout << "  -z   Reflect z axis.\n";
+  cout << "  -t   Reflect t axis.\n";
   PrintStandardOptions(cout);
   cout << endl;
 }
@@ -68,15 +71,33 @@ int main(int argc, char *argv[])
   InitializeIOLibrary();
   UniquePtr<BaseImage> image(BaseImage::New(input_name));
 
+  bool modify_axes = false;
+  bool reflect_x   = false;
+  bool reflect_y   = false;
+  bool reflect_z   = false;
+  bool reflect_t   = false;
+
   for (ALL_OPTIONS) {
-    if      (OPTION("-x")) image->ReflectX();
-    else if (OPTION("-y")) image->ReflectY();
-    else if (OPTION("-z")) image->ReflectZ();
-    else if (OPTION("-xy") || OPTION("-yx")) image->FlipXY(false);
-    else if (OPTION("-xz") || OPTION("-zx")) image->FlipXZ(false);
-    else if (OPTION("-yz") || OPTION("-zy")) image->FlipYZ(false);
+    if (OPTION("-axes")) {
+      modify_axes = true;
+      if (HAS_ARGUMENT) {
+        PARSE_ARGUMENT(modify_axes);
+      }
+    }
+    else if (OPTION("-noaxes")) {
+      modify_axes = false;
+    }
+    else if (OPTION("-x")) reflect_x = true;
+    else if (OPTION("-y")) reflect_y = true;
+    else if (OPTION("-z")) reflect_z = true;
+    else if (OPTION("-t")) reflect_t = true;
     else HANDLE_COMMON_OR_UNKNOWN_OPTION();
   }
+
+  if (reflect_x) image->ReflectX(modify_axes);
+  if (reflect_y) image->ReflectY(modify_axes);
+  if (reflect_z) image->ReflectZ(modify_axes);
+  if (reflect_t) image->ReflectT(modify_axes);
 
   image->Write(output_name);
 

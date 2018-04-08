@@ -13,7 +13,7 @@ Synopsis
 
 ::
 
-    evaluate-distortion <original> <deformed> <output> [options]
+    evaluate-distortion <original> <input> [<output>] [options]
 
 
 Description
@@ -30,9 +30,9 @@ Arguments
 
    File name of original dataset.
 
-.. option:: deformed
+.. option:: input
 
-   File name of deformed dataset.
+   File name of deformed/mapped dataset.
 
 .. option:: output
 
@@ -42,9 +42,15 @@ Arguments
 Command options
 ---------------
 
+.. option:: -angular
+
+   Quantify angular distortion by computing the average ratio of normalized
+   angles at each vertex before and after the mapping. This ratio is 1 when
+   the angles of the original mesh are preserved in the input mesh.
+
 .. option:: -areal
 
-   Compute areal distortion of cells: log_2(area(deformed)/area(original)). (default)
+   Compute areal distortion of cells: log_2(area(deformed)/area(original)).
 
 .. option:: -abs-areal
 

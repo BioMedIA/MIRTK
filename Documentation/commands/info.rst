@@ -78,6 +78,10 @@ Point set options
 
    Check for self-intersections. (default: off)
 
+.. option:: -area
+
+   Display surface area information
+
 .. option:: -output-surface <file>
 
    Write surface mesh to specified file. (default: none)

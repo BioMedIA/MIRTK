@@ -87,13 +87,32 @@ void GenericBSplineInterpolateImageFunction<TImage>
   }
 
   // Initialize coefficient image
-  if (coeff && this->Input()->GetDataType() == voxel_info<RealType>::type()) {
-    _Coefficient.Initialize(this->Input()->Attributes(),
-                            reinterpret_cast<RealType *>(
-                            const_cast<void *>(this->Input()->GetDataPointer())));
-  } else {
+  RealType *data = nullptr;
+  _UseInputCoefficients = coeff;
+  if (_UseInputCoefficients && this->Input()->GetDataType() == voxel_info<RealType>::type()) {
+    data = reinterpret_cast<RealType *>(const_cast<void *>(this->Input()->GetDataPointer()));
+  }
+  _Coefficient.Initialize(this->Input()->Attributes(), data);
+  this->Update();
+
+  // Initialize infinite coefficient image (i.e., extrapolator)
+  if (!_InfiniteCoefficient || _InfiniteCoefficient->ExtrapolationMode() != this->ExtrapolationMode()) {
+    delete _InfiniteCoefficient;
+    _InfiniteCoefficient = CoefficientExtrapolator::New(this->ExtrapolationMode(), &_Coefficient);
+  }
+  if (_InfiniteCoefficient) {
+    _InfiniteCoefficient->Input(&_Coefficient);
+    _InfiniteCoefficient->Initialize();
+  }
+}
+
+// -----------------------------------------------------------------------------
+template <class TImage>
+void GenericBSplineInterpolateImageFunction<TImage>::Update()
+{
+  if (_Coefficient.GetDataPointer() != this->Input()->GetDataPointer()) {
     _Coefficient = *(this->Input());
-    if (!coeff) {
+    if (!_UseInputCoefficients) {
       Real poles[2];
       int  npoles;
       SplinePoles(_SplineDegree, poles, npoles);
@@ -105,16 +124,6 @@ void GenericBSplineInterpolateImageFunction<TImage>
                  ConvertToInterpolationCoefficientsX(_Coefficient, poles, npoles);
       }
     }
-  }
-
-  // Initialize infinite coefficient image (i.e., extrapolator)
-  if (!_InfiniteCoefficient || _InfiniteCoefficient->ExtrapolationMode() != this->ExtrapolationMode()) {
-    delete _InfiniteCoefficient;
-    _InfiniteCoefficient = CoefficientExtrapolator::New(this->ExtrapolationMode(), &_Coefficient);
-  }
-  if (_InfiniteCoefficient) {
-    _InfiniteCoefficient->Input(&_Coefficient);
-    _InfiniteCoefficient->Initialize();
   }
 }
 

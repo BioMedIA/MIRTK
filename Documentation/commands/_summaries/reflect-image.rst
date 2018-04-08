@@ -2,6 +2,6 @@
 
 .. |reflect-image-brief-description| replace::
 
-   Applies a sequence of one or more spatial reflections to an image.
-   The reflection options are processed in the order given and changing
-   the order can change the result.
+   Applies a  one or more spatial reflections along an image axis.
+   A more generic tool that can also be used to swap two axes is
+   the flip-image command.

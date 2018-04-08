@@ -1,5 +1,4 @@
 ## Install dependencies on Ubuntu or OS X (using Homebrew)
-set -e
 
 norm_option_value()
 {
@@ -42,6 +41,7 @@ run()
 {
   echo "> $@"
   "$@"
+  [ $? -eq 0 ] || exit 1
 }
 
 
@@ -66,7 +66,7 @@ if [ $os = linux ] || [ $os = Linux ]; then
 
   if [ $WITH_UMFPACK = ON ]; then
     # see https://bugs.launchpad.net/ubuntu/+source/suitesparse/+bug/1333214
-    sudo add-apt-repository -y ppa:bzindovic/suitesparse-bugfix-1319687
+    sudo add-apt-repository -y ppa:bzindovic/suitesparse-bugfix-1319687 || exit 1
     deps=(${deps[@]} libsuitesparse-dev)
   fi
 
@@ -80,8 +80,8 @@ if [ $os = linux ] || [ $os = Linux ]; then
     fi
   fi
 
-  sudo apt-get update -qq
-  sudo apt-get install -y --no-install-recommends ${deps[@]}
+  sudo apt-get update -qq || exit 1
+  sudo apt-get install -y --no-install-recommends ${deps[@]} || exit 1
 
   if [ $TESTING = ON ]; then
     # libgtest-dev only install source files
@@ -89,7 +89,7 @@ if [ $os = linux ] || [ $os = Linux ]; then
     run cmake /usr/src/gtest
     run make -j $cpu_cores
     run sudo mv -f libgtest.a libgtest_main.a /usr/lib
-    cd
+    cd || exit 1
     [ $TRAVIS = ON ] || rm -rf /tmp/gtest-build
   fi
 fi
@@ -105,14 +105,14 @@ if [ $os = osx ] || [ $os = Darwin ]; then
     for dep in $@; do
       if $(brew ls --version $dep &> /dev/null) ; then
         brew unlink $dep && brew link $dep
+        [ $? -eq 0 ] || exit 1
       else
         brew install $dep
       fi
     done
   }
 
-  brew update > /dev/null
-  brew tap homebrew/science
+  brew update > /dev/null || exit 1
   if [ $WITH_CCACHE = ON ]; then
     brew_install ccache
   fi
@@ -135,10 +135,11 @@ if [ $os = osx ] || [ $os = Darwin ]; then
   if [ $TESTING = ON ]; then
     run git clone --depth=1 https://github.com/google/googletest.git /tmp/gtest-source
     mkdir /tmp/gtest-build && cd /tmp/gtest-build
+    [ $? -eq 0 ] || exit 1
     run cmake -DCMAKE_CXX_FLAGS=-std=c++11 -DBUILD_GMOCK=OFF -DBUILD_GTEST=ON ../gtest-source
     run make -j $cpu_cores
     run sudo make install
-    cd
+    cd || exit 1
     [ $TRAVIS = ON ] || rm -rf /tmp/gtest-build /tmp/gtest-source
   fi
 fi
@@ -181,9 +182,10 @@ if [ $WITH_VTK = ON ] && [ -n "$VTK_VERSION" ]; then
     # custom build instead of Homebrew to take advantage of caching of minimal build
     cd /tmp
     echo "Downloading VTK $VTK_VERSION..."
-    run curl -O "http://www.vtk.org/files/release/${VTK_VERSION%.*}/VTK-${VTK_VERSION}.tar.gz"
+    run curl -O "https://www.vtk.org/files/release/${VTK_VERSION%.*}/VTK-${VTK_VERSION}.tar.gz"
     run tar -xzf "VTK-${VTK_VERSION}.tar.gz"
     mkdir "VTK-${VTK_VERSION}/Build" && cd "VTK-${VTK_VERSION}/Build"
+    [ $? -eq 0 ] || exit 1
     echo "Configuring VTK $VTK_VERSION..."
     cmake_args=("${cmake_args[@]}"
       -DVTK_Group_StandAlone=OFF
@@ -235,6 +237,6 @@ if [ $WITH_VTK = ON ] && [ -n "$VTK_VERSION" ]; then
     cd
     [ $TRAVIS = ON ] || rm -rf "/tmp/VTK-${VTK_VERSION}"
   fi
-  mkdir -p "$HOME/.cmake/packages/VTK"
+  mkdir -p "$HOME/.cmake/packages/VTK" || exit 1
   echo "$vtk_prefix/lib/cmake/vtk-${VTK_VERSION%.*}" > "$HOME/.cmake/packages/VTK/VTK-$VTK_VERSION"
 fi

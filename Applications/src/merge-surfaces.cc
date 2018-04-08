@@ -116,7 +116,7 @@ void PrintHelp(const char *name)
   cout << "      When off, the output data set has unconnected components.\n";
   cout << "      (default: on)\n";
   cout << "  -largest [on|off]\n";
-  cout << "      Retain only largest surface component after :option:`-join`ing of boundaries. (default: off)\n";
+  cout << "      Retain only largest surface component after :option:`-join` of boundaries. (default: off)\n";
   cout << "  -tolerance, -tol <float>\n";
   cout << "      Maximum distance of an input cell from the segmentation\n";
   cout << "      boundary to be removed. The resulting intersection boundary\n";

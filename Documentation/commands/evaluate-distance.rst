@@ -42,11 +42,53 @@ Arguments
 Command options
 ---------------
 
-.. option:: -name <name>
+.. option:: -mask-name <name>
+
+   Name of input mask. (default: none)
+
+.. option:: -mask-erosion <n>
+
+   Number of iterations of mask erosions. (default: 0)
+
+.. option:: -mask-dilation <n>
+
+   Number of iterations of mask dilations. (default: 0)
+
+.. option:: -pad-value, -padding-value <value>
+
+   Floating point value for points with zero mask value. (default: NaN)
+
+.. option:: -undef-value, -undefined-value <value>
+
+   Value for undefined distance measures, e.g., normal does not intersect source. (default: NaN)
+
+.. option:: -nan-value <value>
+
+   Set both :option:`-pad-value` and :option:`-undef-value` to the specified value.
+
+.. option:: -dist-name, -name, -array <name>
 
    Name of output point data array or column header. (default: Distance)
 
-.. option:: -separator <sep>
+.. option:: -digits, -precision <n>
+
+   Number of digits after the decimal point to print/write. (default: 5)
+
+.. option:: -table [<name>|stdout|cout|print]
+
+   Write statistics of distance measure in table format to named output file.
+   When <name> is 'stdout', 'cout',  or 'print', print table to standard output stream. (default: off)
+
+.. option:: -append, -noappend
+
+   Whether to append row to existing :option:`-table` file.
+   If table file exists, skip header and write measurements only. (default: off)
+
+.. option:: -header, -noheader
+
+   When :option:`-table` given, write table header before row of measurements. (default: on)
+
+.. option:: -delim, -delimiter, -sep, -separator <str>
 
    Column separator used for table of measured point distances. (default: \t)
 

@@ -35,6 +35,121 @@ Arguments
    Transformed source image.
 
 
+Command options
+---------------
+
+.. option:: -dofin <file>...
+
+   Append transformation to composition or 'Id'/'Identity'. (default: Id)
+   This option can be given multiple times and/or accepts multiple arguments.
+   The transformations are composed from left to right, i.e., when the arguments
+   are "ffd.dof.gz aff.dof rig.dof", the target image point is first mapped by
+   the "ffd.dof.gz" transformation, then "aff.dof", and finally "rig.dof".
+
+.. option:: -invdof, -dofin_i <file>...
+
+   Append inverse of given transformations to composition.
+   When multiple arguments are given, the composite transformation
+   is inverted, i.e., the order is reversed and each transformation
+   inverted separately. If the order should not be reversed, use
+   option -invdof/-dofin_i before each argument.
+
+.. option:: -invert [on|off], -noinvert
+
+   Enable/disable inversion of composite transformation. (default: off)
+
+.. option:: -interpolation, -interp <mode>
+
+   Interpolation mode: (default: Linear)
+   
+   - NN [with padding]
+   - Linear [with padding]
+   - Fast linear [with padding]
+   - BSpline [with padding]
+   - Cubic BSpline [with padding]
+   - Fast cubic BSpline [with padding]
+   - CSpline [with padding]
+   - SBased [with padding]
+   - Sinc [with padding]
+   - Gaussian [with padding]
+
+.. option:: -labels [<n>...|all]
+
+   Transform the specified segmentation labels. When no arguments or "all" is
+   given, all input labels are transformed. When :option:`-interpolation` mode
+   is nearest neighbor ("NN"), the input label image is directly resampled
+   by assigning the output the nearest label value. Otherwise, the default,
+   the binary mask corresponding to each label is resampled using the selected
+   interpolation mode (e.g., linear) and the resulting fuzzy segmentations
+   converted back into a hard segmentation by assigning the label with the
+   highest interpolated value (pseudo-probability). This results in smoother
+   transformed hard segmentations with reduced NN interpolation artifacts.
+
+.. option:: -target <file>
+
+   Target image. (default: source)
+
+.. option:: -target-affdof <file>
+
+   Affine target header transformation. (default: none)
+
+.. option:: -target-invdof <file>
+
+   Inverse affine target header transformation. (default: none)
+
+.. option:: -source-affdof <file>
+
+   Affine source header transformation. (default: none)
+
+.. option:: -source-invdof <file>
+
+   Inverse affine source header transformation. (default: none)
+
+.. option:: -apply-affdof
+
+   Apply affine header transformation to output image header.
+   When this option is not specified, the output image attributes
+   are identical to the :option:`-target` image. When this option
+   is given, the :option:`-target-affdof` or :option:`-target-invdof`,
+   respectively, is applied to the output image attributes.
+
+.. option:: -spacing, -voxel-size <dx> [<dy> [<dz> [<dt>]]]
+
+   Voxel size of output image. (default: :option:`-target` spacing)
+
+.. option:: -type, -dtype, -datatype <type>
+
+   Data type of output image. (default: data type of source)
+
+.. option:: -Tp, -target-padding <value>
+
+   Target padding value. (default: none)
+
+.. option:: -Sp, -source-padding <value>
+
+   Source padding value. (default: none)
+
+.. option:: -padding <value>
+
+   Set both :option:`-target-padding` and :option:`-source-padding` to same value.
+
+.. option:: -Tt, -target-time <value>
+
+   Time point of target image. (default: torigin)
+
+.. option:: -St, -source-time <value>
+
+   Time point of source image. (default: torigin)
+
+.. option:: -2d [on|off], -no2d
+
+   Project transformed points to 2D, i.e., ignore mapped z coordinate. (default: off)
+
+.. option:: -3d
+
+   Alias for :option:`-2d` off.
+
+
 Standard options
 ----------------
 

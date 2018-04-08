@@ -465,7 +465,7 @@ double LinearFreeFormTransformation4D::BendingEnergy(bool incl_passive, bool) co
 // -----------------------------------------------------------------------------
 // derivative of classic pairwise bending energy
 void LinearFreeFormTransformation4D
-::BendingEnergyGradient(double *gradient, double weight, bool incl_passive, bool) const
+::BendingEnergyGradient(double *gradient, double weight, bool incl_passive, bool, bool) const
 {
   int    i1, j1, k1, l1, i2, j2, k2, l2;
   Vector tmp;

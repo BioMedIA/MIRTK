@@ -183,6 +183,8 @@ template class ImageToImage<float>;
 template class ImageToImage<double>;
 template class ImageToImage<Float3>;
 template class ImageToImage<Double3>;
+template class ImageToImage<Float9>;
+template class ImageToImage<Double9>;
 
 
 } // namespace mirtk

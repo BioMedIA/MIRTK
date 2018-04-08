@@ -66,4 +66,4 @@ FFD with a linear interpolation kernel and a control point spacing corresponding
 In other words, the output FFD is in general a dense ("non-parametric") displacement field.
 
 .. [1] Rueckert et al., Automatic construction of 3-D statistical deformation
-       models of the brain using nonrigid registration, IEEE TMI, 22(8), 1014–25 (2003)
+       models of the brain using nonrigid registration, IEEE TMI, 22(8), 1014-25 (2003)

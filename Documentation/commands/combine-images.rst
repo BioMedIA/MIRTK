@@ -15,6 +15,7 @@ Synopsis
 
     combine-images <input>... <output> [options]
     combine-images <input>... -output <output> [options]
+    combine-images -input <volume> -image <slice> -output <volume> [options]
     combine-images [options]
 
 
@@ -28,15 +29,19 @@ Description
 Command options
 ---------------
 
-.. option:: -output <output>
+.. option:: -input <file>
 
-   Output image file. Last positional argument if option missing.
+   Read input -images from given volume/sequence.
 
-.. option:: -image <input>
+.. option:: -output <path>
+
+   Output image file path. Last positional argument when option missing.
+
+.. option:: -image <file>
 
    Add one input image. Option can be given multiple times.
 
-.. option:: -images <input>...
+.. option:: -images <file>...
 
    Add one or more input images. Option can be given multiple times.
 
@@ -49,9 +54,9 @@ Command options
 
    Disable sorting of input images, same as :option:`-sort` off. (default)
 
-.. option:: -start
+.. option:: -start <float>
 
-   <float>     Position of first slice/frame of output volume/sequence.
+   Position of first slice/frame of output volume/sequence.
 
 .. option:: -spacing <float>
 

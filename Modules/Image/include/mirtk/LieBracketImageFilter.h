@@ -195,11 +195,11 @@ LieBracketImageFilter<VoxelType>::New(const Image *image, bool usejac)
 // ----------------------------------------------------------------------------
 template <class VoxelType>
 void liebracket(GenericImage<VoxelType> *ov,
-                GenericImage<VoxelType> *lv,
-                GenericImage<VoxelType> *rv, bool usejac = true)
+                const GenericImage<VoxelType> *lv,
+                const GenericImage<VoxelType> *rv, bool usejac = true)
 {
   typedef LieBracketImageFilter<VoxelType> LieBracketFilter;
-  UniquePtr<LieBracketFilter> filter(LieBracketFilter::New(ov, usejac));
+  UniquePtr<LieBracketFilter> filter(LieBracketFilter::New(lv, usejac));
   filter->Input(0, lv);
   filter->Input(1, rv);
   filter->Output(ov);

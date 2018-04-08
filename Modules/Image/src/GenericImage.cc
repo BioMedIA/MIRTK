@@ -1409,7 +1409,7 @@ template <> void GenericImage<double3x3>::GravityCenter(Point &, int, int) const
 
 // -----------------------------------------------------------------------------
 template <class VoxelType>
-void GenericImage<VoxelType>::ReflectX()
+void GenericImage<VoxelType>::ReflectX(bool modify_axes)
 {
   for (int t = 0; t < _attr._t; ++t)
   for (int z = 0; z < _attr._z; ++z)
@@ -1417,11 +1417,17 @@ void GenericImage<VoxelType>::ReflectX()
   for (int x = 0; x < _attr._x / 2; ++x) {
     swap(_matrix[t][z][y][x], _matrix[t][z][y][_attr._x-(x+1)]);
   }
+  if (modify_axes) {
+    _attr._xaxis[0] = -_attr._xaxis[0];
+    _attr._xaxis[1] = -_attr._xaxis[1];
+    _attr._xaxis[2] = -_attr._xaxis[2];
+    UpdateMatrix();
+  }
 }
 
 // -----------------------------------------------------------------------------
 template <class VoxelType>
-void GenericImage<VoxelType>::ReflectY()
+void GenericImage<VoxelType>::ReflectY(bool modify_axes)
 {
   for (int t = 0; t < _attr._t; ++t)
   for (int z = 0; z < _attr._z; ++z)
@@ -1429,17 +1435,44 @@ void GenericImage<VoxelType>::ReflectY()
   for (int x = 0; x < _attr._x; ++x) {
     swap(_matrix[t][z][y][x], _matrix[t][z][_attr._y-(y+1)][x]);
   }
+  if (modify_axes) {
+    _attr._yaxis[0] = -_attr._yaxis[0];
+    _attr._yaxis[1] = -_attr._yaxis[1];
+    _attr._yaxis[2] = -_attr._yaxis[2];
+    UpdateMatrix();
+  }
 }
 
 // -----------------------------------------------------------------------------
 template <class VoxelType>
-void GenericImage<VoxelType>::ReflectZ()
+void GenericImage<VoxelType>::ReflectZ(bool modify_axes)
 {
   for (int t = 0; t < _attr._t; ++t)
   for (int z = 0; z < _attr._z / 2; ++z)
   for (int y = 0; y < _attr._y; ++y)
   for (int x = 0; x < _attr._x; ++x) {
     swap(_matrix[t][z][y][x], _matrix[t][_attr._z-(z+1)][y][x]);
+  }
+  if (modify_axes) {
+    _attr._zaxis[0] = -_attr._zaxis[0];
+    _attr._zaxis[1] = -_attr._zaxis[1];
+    _attr._zaxis[2] = -_attr._zaxis[2];
+    UpdateMatrix();
+  }
+}
+
+// -----------------------------------------------------------------------------
+template <class VoxelType>
+void GenericImage<VoxelType>::ReflectT(bool modify_axes)
+{
+  for (int t = 0; t < _attr._t / 2; ++t)
+  for (int z = 0; z < _attr._z; ++z)
+  for (int y = 0; y < _attr._y; ++y)
+  for (int x = 0; x < _attr._x; ++x) {
+    swap(_matrix[t][z][y][x], _matrix[_attr._t-(t+1)][z][y][x]);
+  }
+  if (modify_axes) {
+    _attr._dt = -_attr._dt;
   }
 }
 
@@ -2186,11 +2219,15 @@ template class GenericImage<unsigned int>;
 template class GenericImage<float>;
 template class GenericImage<float2>;
 template class GenericImage<float3>;
+template class GenericImage<Float3>;
 template class GenericImage<float4>;
+template class GenericImage<Float9>;
 template class GenericImage<double>;
 template class GenericImage<double2>;
 template class GenericImage<double3>;
+template class GenericImage<Double3>;
 template class GenericImage<double4>;
+template class GenericImage<Double9>;
 template class GenericImage<float3x3>;
 template class GenericImage<double3x3>;
 
@@ -2245,18 +2282,17 @@ template GenericImage<double>::GenericImage(const GenericImage<float> &);
 
 template GenericImage<float2  >::GenericImage(const GenericImage<double2  > &);
 template GenericImage<float3  >::GenericImage(const GenericImage<double3  > &);
+template GenericImage<Float3  >::GenericImage(const GenericImage<Double3  > &);
 template GenericImage<float4  >::GenericImage(const GenericImage<double4  > &);
+template GenericImage<Float9  >::GenericImage(const GenericImage<Double9  > &);
 template GenericImage<float3x3>::GenericImage(const GenericImage<double3x3> &);
 
 template GenericImage<double2  >::GenericImage(const GenericImage<float2  > &);
 template GenericImage<double3  >::GenericImage(const GenericImage<float3  > &);
+template GenericImage<Double3  >::GenericImage(const GenericImage<Float3  > &);
 template GenericImage<double4  >::GenericImage(const GenericImage<float4  > &);
+template GenericImage<Double9  >::GenericImage(const GenericImage<Float9  > &);
 template GenericImage<double3x3>::GenericImage(const GenericImage<float3x3> &);
-
-// TODO: Remove deprecated template instantiations below
-template class GenericImage<Vector3D<float>  >;
-template class GenericImage<Vector3D<double> >;
-template GenericImage<Vector3D<double> >::GenericImage(const GenericImage<Vector3D<float> > &);
 
 
 } // namespace mirtk

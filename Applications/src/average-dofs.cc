@@ -121,7 +121,7 @@ void PrintHelp(const char *name)
   cout << "  In other words, the output FFD is in general a dense (\"non-parametric\") displacement field." << endl;
   cout << endl;
   cout << "  .. [1] Rueckert et al., Automatic construction of 3-D statistical deformation" << endl;
-  cout << "         models of the brain using nonrigid registration, IEEE TMI, 22(8), 1014–25 (2003)" << endl;
+  cout << "         models of the brain using nonrigid registration, IEEE TMI, 22(8), 1014-25 (2003)" << endl;
   cout << endl;
   cout << "Input options:" << endl;
   cout << "  -type <name>               Common type/class name of input transformations." << endl;

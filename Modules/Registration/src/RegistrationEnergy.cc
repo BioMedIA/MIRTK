@@ -705,7 +705,11 @@ void RegistrationEnergy::Gradient(double *gradient, double step, bool *sgn_chg)
 // -----------------------------------------------------------------------------
 double RegistrationEnergy::GradientNorm(const double *dx) const
 {
-  return _Transformation->DOFGradientNorm(dx);
+  double norm = _Transformation->DOFGradientNorm(dx);
+  if (IsNaN(norm)) {
+    Throw(ERR_LogicError, __FUNCTION__, "Gradient vector contains NaN values!");
+  }
+  return norm;
 }
 
 // -----------------------------------------------------------------------------

@@ -26,6 +26,38 @@ Description
 Command options
 ---------------
 
+.. option:: -axes [on|off]
+
+   Enable/disable swapping of the coordinate axes. (default: off)
+
+.. option:: -noaxes
+
+   Disable swapping of the coordinate axes.
+
+.. option:: -origin [on|off]
+
+   Enable/disable swapping of the origin coordinates. (default: on)
+
+.. option:: -noorigin
+
+   Disable swapping of the origin coordinates.
+
+.. option:: -x
+
+   Reflect image data along x dimension.
+
+.. option:: -y
+
+   Reflect image data along y dimension.
+
+.. option:: -z
+
+   Reflect image data along z dimension.
+
+.. option:: -t
+
+   Reflect image data along t dimension.
+
 .. option:: -xy, -yx
 
    Swap x and y dimension.

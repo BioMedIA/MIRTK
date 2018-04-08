@@ -28,11 +28,11 @@ Arguments
 
 .. option:: input
 
-   Input image.
+   Input image file path.
 
 .. option:: output
 
-   Output image.
+   Output file path.
 
 
 Command options
@@ -40,7 +40,7 @@ Command options
 
 .. option:: -Rx1 <int>
 
-   Leftmost  input voxel index along x axis.
+   Leftmost input voxel index along x axis.
 
 .. option:: -Rx2 <int>
 
@@ -48,7 +48,7 @@ Command options
 
 .. option:: -Ry1 <int>
 
-   Leftmost  input voxel index along y axis.
+   Leftmost input voxel index along y axis.
 
 .. option:: -Ry2 <int>
 
@@ -56,7 +56,7 @@ Command options
 
 .. option:: -Rz1 <int>
 
-   Leftmost  input voxel index along z axis.
+   Leftmost input voxel index along z axis.
 
 .. option:: -Rz2 <int>
 
@@ -64,7 +64,7 @@ Command options
 
 .. option:: -Rt1 <int>
 
-   Leftmost  input voxel index along t axis.
+   Leftmost input voxel index along t axis.
 
 .. option:: -Rt2 <int>
 
@@ -82,7 +82,7 @@ Command options
 
    Extract minimum bounding box containing the landmark points.
 
-.. option:: -ref <image>
+.. option:: -ref <file>
 
    Extract region specified by discrete reference image domain.
 
@@ -94,9 +94,31 @@ Command options
 
    Scale resulting region by specified factor. (default: 1)
 
-.. option:: -pad [<value>]
+.. option:: -crop [value]
+
+   Crop background with intensity below or equal specified value. (default: 0)
+
+.. option:: -pad [value]
 
    Pad output image by the specified value. (default: 0)
+
+.. option:: -split <dim>|x|y|z|t
+
+   Split extracted region along specified dimension into separate images.
+   For example, use '-split z' to save individual slices of a 3D volume.
+   The <output> file path is appended with a format string '_%03d' before
+   the file name extension to create unique output file paths, unless such
+   format specification is part of the given file path already.
+
+.. option:: -swap [on|off]
+
+   When :option:`-split` is used, first swap the dimension along which the
+   extracted region is split with the last dimension such that when splitting
+   a volume along the first dimension, the output image files have z=1. (default: off)
+
+.. option:: -noswap
+
+   Set :option:`-swap` to off.
 
 
 Standard options

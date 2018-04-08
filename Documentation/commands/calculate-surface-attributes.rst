@@ -28,17 +28,21 @@ Arguments
 
 .. option:: input
 
-   Input surface mesh.
+   Input  surface mesh.
 
 .. option:: output
 
    Output surface mesh.
 
 
-Command options
+Normals options
 ---------------
 
-.. option:: -normals, -point-normals
+.. option:: -normals
+
+   Surface point and cell normals.
+
+.. option:: -point-normals
 
    Surface point normals.
 
@@ -58,21 +62,17 @@ Command options
 
    Enable/disable enforcement of vertex order consistency. (default: on)
 
+.. option:: -flip-normals, -noflip-normals
 
-Curvature output options
-------------------------
+   Enable/disable flipping of normals. (default: off)
 
-.. option:: -H [<name>]
 
-   Mean curvature.
+Curvature options
+-----------------
 
-.. option:: -K [<name>]
+.. option:: -k1k2 [<name>] [<name>]
 
-   Gauss curvature.
-
-.. option:: -C [<name>]
-
-   Curvedness.
+   Principal curvatures.
 
 .. option:: -k1 [<name>]
 
@@ -82,10 +82,6 @@ Curvature output options
 
    Maximum curvature.
 
-.. option:: -k1k2 [<name>] [<name>]
-
-   Principal curvatures.
-
 .. option:: -e1 [<name>]
 
    Direction of minimum curvature.
@@ -93,6 +89,18 @@ Curvature output options
 .. option:: -e2 [<name>]
 
    Direction of maximum curvature.
+
+.. option:: -H [<name>]
+
+   Mean curvature:  H = .5 * (k1 + k2).
+
+.. option:: -K [<name>]
+
+   Gauss curvature: K = k1 * k2.
+
+.. option:: -C [<name>]
+
+   Curvedness:      C = sqrt(.5 * (k1^2 + k2^2)).
 
 .. option:: -normalize
 
@@ -107,14 +115,139 @@ Curvature output options
    Do not use vtkCurvatures. Instead, estimate the curvature
    tensor field and decompose it to obtain principle curvatures. (default)
 
-.. option:: -smooth [<niter>] [<sigma>] [<sigma2>]
 
-   Smooth calculated scalar curvature measures using a Gaussian smoothing kernel.
-   If sigma2 is specified, an anisotropic kernel with standard deviation
+Parcellation options
+--------------------
+
+.. option:: -labels <name>
+
+   Name of surface point and/or cell parcellation array.
+
+.. option:: -point-labels <name>
+
+   Name of surface point parcellation array.
+
+.. option:: -cell-labels <name>
+
+   Name of surface cell  parcellation array.
+
+.. option:: -border-mask <name>
+
+   Add parcellation border mask to output surface mesh,
+   where points/cells adjacent to a given point/cell
+   belong to different parcels have a non-zero value.
+
+
+Local image options
+-------------------
+
+.. option:: -image <file>
+
+   Input image file required by -gradient* and -patch* options.
+
+.. option:: -gradient-normal [<name>]
+
+   Compute image derivative in normal direction using cubic B-spline interpolation.
+   The <name> of the output point data array is by default 'ImageGradientNormal'. (default: off)
+
+.. option:: -gradient-angle [<name>]
+
+   Compute cosine of angle made up by image gradient and normal vector using cubic
+   B-spline interpolation for computing the image derivatives. The <name> of the output
+   point data array is by default 'ImageGradientAngle' (default: off)
+
+.. option:: -patch-name <name>
+
+   Name of output point data array storing patch image statistics.
+   (default: LocalImageStatistics)
+
+.. option:: -patch-size <nx> [<ny> [<nz>]]
+
+   Size of image patches. When only <nx> is given, an image patch of size
+   nx = ny = nz is used. When only <nz> is omitted, a 2D patch is used.
+
+.. option:: -patch-spacing <dx> [<dy> [<dz>]]
+
+   Spacing between patch sample points. When only <dx> is given, an isotropic
+   sampling in all three dimensions of <dx> is used. When only <dz> is omitted,
+   a 2D patch spacing is used with dz=0.
+
+.. option:: -patch-space image|world|tangent
+
+   Coordinate system of patch. (default: tangent)
+   
+   - world:   Patch is aligned with world coordinate system.
+   - image:   Patch is algined with image coordinate system.
+   - tangent: Each patch is aligned with the coordinate system made up
+   
+   by the normal vector and two orthonormal tangent vectors.
+
+.. option:: -patch-samples, -nopatch-samples
+
+   Whether to store individual intensities interpolated at patch sample points.
+
+.. option:: -demean-patch
+
+   Substract mean intensity from individual :option:`-patch-samples`.
+
+.. option:: -whiten-patch
+
+   Dividide individual :option:`-patch-samples` by standard deviation.
+
+.. option:: -patch-min
+
+   Append minimum patch intensity to output point data array.
+
+.. option:: -patch-max
+
+   Append maximum patch intensity to output point data array.
+
+.. option:: -patch-min-abs
+
+   Append minimum absolute patch intensity to output point data array.
+
+.. option:: -patch-max-abs
+
+   Append maximum absolute patch intensity to output point data array.
+
+.. option:: -patch-mean
+
+   Append mean patch intensity to output point data array.
+
+.. option:: -patch-sigma
+
+   Append standard deviation of patch intensities to output point data array.
+
+
+Smoothing options
+-----------------
+
+.. option:: -smooth-iterations [<niter>]
+
+   Number of smoothing iterations.
+
+.. option:: -smooth-weighting <name> [options]
+
+   Smooth scalar attributes using the named weighting function:
+   
+   - 'Gaussian': Isotropic Gaussian smoothing kernel. (default)
+   - Options: [<sigma>]
+   - If sigma is not specified, it is automatically determined from the edges.
+   - 'AnisotropicGaussian': Anisotropic Gaussian smoothing kernel.
+   - Options: [<sigma>] [<sigma2>]
+   - If sigma is not specified, it is automatically determined from the edges.
+   - If sigma2 is specified, an anisotropic kernel with standard deviation
+   
    sigma along the direction of minimum curvature, and sigma2 in the
-   direction of maximum curvature is used. If the value of sigma2 is "tensor"
-   instead of a numeric value, the isotropic Gaussian kernel is oriented
+   
+   direction of maximum curvature is used.
+   - If sigma2 is not specified, an isotropic Gaussian kernel used that is oriented
+   
    and scaled along each local geometry axis using the curvature tensor.
+   - 'InverseDistance': Inverse node distance.
+   - Options: [<bias>]
+   - If the bias is specified, the distance is estimated as 1/(dist+bias).
+   - 'Combinatorial': Uniform node weights.
 
 
 Standard options

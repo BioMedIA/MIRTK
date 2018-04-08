@@ -30,6 +30,10 @@ Output options
 
    Output rigid transformation.
 
+.. option:: -similarity
+
+   Output similarity transformation.
+
 .. option:: -affine
 
    Output affine transformation.
@@ -78,6 +82,23 @@ Command options
 
    Set upper 3x3 (rotation) matrix entries
    (e.g., image orientation from image info output).
+
+.. option:: -image-reset <file>
+
+   Set transformation to difference between spatial image to world mapping
+   of given image and the default lattice with axes parallel to the axes of
+   the world coordinate system and image center at the origin. The affine
+   output transformation maps points of the unoriented world system with
+   origin at the image center to the world coordinates of the input image.
+
+.. option:: -image-rotation <file>
+
+   Set transformation to difference between spatial image to world mapping
+   of given image and an image lattice with axes parallel to the axes of
+   the world coordinate system. The affine output transformation maps points
+   of the unoriented world system to the world coordinates of the input image.
+   Hence, the domain of the map is the same as the world domain of the image,
+   except that the orientation matrix is equal the identity matrix.
 
 .. option:: -tx <tx>
 

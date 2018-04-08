@@ -116,10 +116,12 @@ void PrintHelp(const char* name)
   cout << "\n";
   cout << "  Energy function =      SIM[Image dissimilarity](I(1), I(2:end) o T)...\n";
   cout << "                  +      PDM[Point set distance](T o P(1), P(2:end))...\n";
-  cout << "                  + 1e-3 BE [Bending energy](T)...\n";
-  cout << "                  +    0 TP [Topology preservation](T)...\n";
-  cout << "                  +    0 VP [Volume preservation](T)...\n";
-  cout << "                  +    0 JAC[Jacobian penalty](T)...\n";
+  cout << "                  + 1e-3 BE[Bending energy](T)...\n";
+  cout << "                  +    0 LE[Linear energy](T)...\n";
+  cout << "                  +    0 TP[Topology preservation](T)...\n";
+  cout << "                  +    0 VP[Volume preservation](T)...\n";
+  cout << "                  +    0 LogJac[LogJac penalty](T)...\n";
+  cout << "                  +    0 NegJac[NegJac penalty](T)...\n";
   cout << "                  +    0 Sparsity(T)\n";
   cout << "\n";
   cout << "  where only energy terms with non-zero weights are active during the registration.\n";
@@ -248,12 +250,18 @@ void PrintHelp(const char* name)
   cout << "      \"Control point spacing\" of free-form deformation on highest resolution level. (default: 4x min voxel size)\n";
   cout << "  -be <w>\n";
   cout << "      \"Bending energy weight\" of free-form deformation. (default: 0.001)\n";
+  cout << "  -le <w> [<lambda>]\n";
+  cout << "      \"Linear energy weight\" of free-form deformation. (default: 0)\n";
   cout << "  -tp <w>\n";
   cout << "      \"Topology preservation weight\" of free-form deformation. (default: 0)\n";
   cout << "  -vp <w>\n";
   cout << "      \"Volume preservation weight\" of free-form deformation. (default: 0)\n";
-  cout << "  -jl, -jac <w>\n";
-  cout << "      \"Jacobian penalty weight\" of free-form deformation. For a classic FFD transformation model\n";
+  cout << "  -lj, -jl, -log-jac, -jac <w>\n";
+  cout << "      \"LogJac penalty weight\" of free-form deformation. For a classic FFD transformation model\n";
+  cout << "      this penalty term is equivalent to the volume preservation term. When applied to the SVFFD\n";
+  cout << "      model, however, this penalty applies to the Jacobian determinant of the velocity field. (default: 0)\n";
+  cout << "  -nj, -neg-jac <w>\n";
+  cout << "      \"NegJac penalty weight\" of free-form deformation. For a classic FFD transformation model\n";
   cout << "      this penalty term is equivalent to the volume preservation term. When applied to the SVFFD\n";
   cout << "      model, however, this penalty applies to the Jacobian determinant of the velocity field. (default: 0)\n";
   cout << "  -parout <file>\n";
@@ -824,6 +832,16 @@ int main(int argc, char **argv)
       PARSE_ARGUMENT(w);
       Insert(params, "Bending energy weight", w);
     }
+    else if (OPTION("-le")) {
+      double w;
+      PARSE_ARGUMENT(w);
+      Insert(params, "Linear energy weight", w);
+      if (HAS_ARGUMENT) {
+        double lambda;
+        PARSE_ARGUMENT(lambda);
+        Insert(params, "Linear energy lambda", lambda / w);
+      }
+    }
     else if (OPTION("-vp")) {
       double w;
       PARSE_ARGUMENT(w);
@@ -834,10 +852,15 @@ int main(int argc, char **argv)
       PARSE_ARGUMENT(w);
       Insert(params, "Topology preservation weight", w);
     }
-    else if (OPTION("-jl") || OPTION("-jac")) {
+    else if (OPTION("-lj") || OPTION("-jl") || OPTION("-logjac") || OPTION("-log-jac") || OPTION("-jac")) {
       double w;
       PARSE_ARGUMENT(w);
-      Insert(params, "Jacobian penalty weight", w);
+      Insert(params, "LogJac penalty weight", w);
+    }
+    else if (OPTION("-nj") || OPTION("-negjac") || OPTION("-neg-jac")) {
+      double w;
+      PARSE_ARGUMENT(w);
+      Insert(params, "NegJac penalty weight", w);
     }
     else if (OPTION("-padding") || OPTION("-bg") || OPTION("-background")) {
       double v;

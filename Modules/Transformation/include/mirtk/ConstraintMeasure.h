@@ -41,10 +41,12 @@ enum ConstraintMeasure
   CM_TopologyPreservation = EM_TopologyPreservation, ///< Topology preservation constraint
   CM_Sparsity             = EM_Sparsity,             ///< Default sparsity constraint
   CM_BendingEnergy        = EM_BendingEnergy,        ///< Thin-plate spline bending energy
+  CM_LinearElasticity     = EM_LinearElasticity,     ///< Linear elastic energy
   CM_L0Norm               = EM_L0Norm,               ///< Sparsity constraint based on l0-norm
   CM_L1Norm               = EM_L1Norm,               ///< Sparsity constraint based on l1-norm
   CM_L2Norm               = EM_L2Norm,               ///< Sparsity constraint based on l2-norm
-  CM_SqLogDetJac          = EM_SqLogDetJac           ///< Squared logarithm of the Jacobian determinant
+  CM_SqLogDetJac          = EM_SqLogDetJac,          ///< Squared logarithm of the Jacobian determinant
+  CM_NegDetJac            = EM_NegDetJac             ///< Penalize negative Jacobian determinant
 };
 
 // -----------------------------------------------------------------------------

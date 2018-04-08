@@ -99,10 +99,12 @@ enum EnergyMeasure
     EM_TopologyPreservation,    ///< Topology preservation constraint
     EM_Sparsity,                ///< Default sparsity constraint
     EM_BendingEnergy,           ///< Thin-plate spline bending energy
+    EM_LinearElasticity,        ///< Linear elastic energy
     EM_L0Norm,                  ///< Sparsity constraint based on l0-norm
     EM_L1Norm,                  ///< Sparsity constraint based on l1-norm
     EM_L2Norm,                  ///< Sparsity constraint based on l2-norm
     EM_SqLogDetJac,             ///< Squared logarithm of the Jacobian determinant
+    EM_NegDetJac,               ///< Penalise negative Jacobian determinant
 
   CM_End,
 
@@ -171,6 +173,7 @@ inline string ToString(const EnergyMeasure &value, int w, char c, bool left)
     // -------------------------------------------------------------------------
     // Transformation constraints
     case EM_BendingEnergy:        str = "BE"; break;
+    case EM_LinearElasticity:     str = "LE"; break;
     case EM_VolumePreservation:   str = "VP"; break;
     case EM_TopologyPreservation: str = "TP"; break;
     case EM_Sparsity:             str = "Sparsity"; break;
@@ -178,6 +181,7 @@ inline string ToString(const EnergyMeasure &value, int w, char c, bool left)
     case EM_L1Norm:               str = "L1"; break;
     case EM_L2Norm:               str = "L2"; break;
     case EM_SqLogDetJac:          str = "SqLogDetJac"; break;
+    case EM_NegDetJac:            str = "NegDetJac"; break;
 
     // -------------------------------------------------------------------------
     // Others
@@ -245,6 +249,7 @@ inline string ToPrettyString(const EnergyMeasure &value, int w = 0, char c = ' '
     // -------------------------------------------------------------------------
     // Transformation constraints
     case EM_BendingEnergy:        str = "Bending energy"; break;
+    case EM_LinearElasticity:     str = "Linear elasticity"; break;
     case EM_VolumePreservation:   str = "Volume preservation"; break;
     case EM_TopologyPreservation: str = "Topology preservation"; break;
     case EM_Sparsity:             str = "Sparsity constraint"; break;
@@ -252,6 +257,7 @@ inline string ToPrettyString(const EnergyMeasure &value, int w = 0, char c = ' '
     case EM_L1Norm:               str = "l1 norm"; break;
     case EM_L2Norm:               str = "l2 norm"; break;
     case EM_SqLogDetJac:          str = "Squared logarithm of Jacobian determinant"; break;
+    case EM_NegDetJac:            str = "Negative Jacobian determinant penalty"; break;
 
     // -------------------------------------------------------------------------
     // Others
@@ -327,7 +333,10 @@ inline bool FromString(const char *str, EnergyMeasure &value)
   // ---------------------------------------------------------------------------
   // Alternative names for transformation regularization terms
   if (value == EM_Unknown) {
-    if (lstr == "jac") value = EM_SqLogDetJac;
+    if      (lstr == "jac") value = EM_SqLogDetJac;
+    else if (lstr == "logjac") value = EM_SqLogDetJac;
+    else if (lstr == "negjac") value = EM_NegDetJac;
+    else if (lstr == "elasticity") value = EM_LinearElasticity;
   }
 
   // ---------------------------------------------------------------------------

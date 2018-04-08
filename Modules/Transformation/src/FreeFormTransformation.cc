@@ -1,9 +1,9 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2008-2015 Imperial College London
+ * Copyright 2008-2017 Imperial College London
  * Copyright 2008-2013 Daniel Rueckert, Julia Schnabel
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2013-2017 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -1234,6 +1234,13 @@ void FreeFormTransformation
   MIRTK_DEBUG_TIMING(2, "point-wise parametric gradient computation (FFD)");
 }
 
+// -----------------------------------------------------------------------------
+void FreeFormTransformation
+::FFDJacobianDetDerivative(double [3], const Matrix &, int, double, double, double, double, double, bool, bool) const
+{
+  Throw(ERR_NotImplemented, __FUNCTION__, "Not implemented");
+}
+
 // =============================================================================
 // Properties
 // =============================================================================
@@ -1302,7 +1309,7 @@ double FreeFormTransformation
 }
 
 // -----------------------------------------------------------------------------
-void FreeFormTransformation::BendingEnergyGradient(double *, double, bool, bool) const
+void FreeFormTransformation::BendingEnergyGradient(double *, double, bool, bool, bool) const
 {
   cerr << this->NameOfClass() << "::BendingEnergyGradient: Not implemented" << endl;
   exit(1);

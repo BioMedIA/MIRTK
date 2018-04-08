@@ -1,8 +1,8 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2013-2015 Imperial College London
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2013-2017 Imperial College London
+ * Copyright 2013-2017 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,7 +37,7 @@ mirtkAutoRegisterEnergyTermMacro(SmoothnessConstraint);
 SmoothnessConstraint::SmoothnessConstraint(const char *name, double weight)
 :
   TransformationConstraint(name, weight),
-  _WithRespectToWorld(false),
+  _WithRespectToWorld(true), _UseLatticeSpacing(false),
   _AnnealingRate(.0), _AnnealingWeight(1.0)
 {
   _ParameterPrefix.push_back("Smoothness ");
@@ -54,6 +54,11 @@ bool SmoothnessConstraint::SetWithoutPrefix(const char *param, const char *value
       strstr(param, "With respect to world") == param) {
     return FromString(value, _WithRespectToWorld);
   }
+  if (strcmp(param, "Use lattice spacing") == 0 ||
+      strcmp(param, "Use grid spacing")    == 0 ||
+      strcmp(param, "Use spacing")         == 0) {
+    return FromString(value, _UseLatticeSpacing);
+  }
   if (strstr(param, "Annealing rate") == param) {
     return FromString(value, _AnnealingRate);
   }
@@ -64,7 +69,8 @@ bool SmoothnessConstraint::SetWithoutPrefix(const char *param, const char *value
 ParameterList SmoothnessConstraint::Parameter() const
 {
   ParameterList params = TransformationConstraint::Parameter();
-  InsertWithPrefix(params, "W.r.t. world (experimental)",   _WithRespectToWorld);
+  InsertWithPrefix(params, "W.r.t. world", _WithRespectToWorld);
+  InsertWithPrefix(params, "Use lattice spacing", _UseLatticeSpacing);
   InsertWithPrefix(params, "Annealing rate (experimental)", _AnnealingRate);
   return params;
 }
@@ -97,10 +103,10 @@ double SmoothnessConstraint::Evaluate()
     for (int l = 0; l < mffd->NumberOfLevels(); ++l) {
       if (!mffd->LocalTransformationIsActive(l)) continue;
       ffd = mffd->GetLocalTransformation(l);
-      bending += ffd->BendingEnergy(_ConstrainPassiveDoFs, _WithRespectToWorld);
+      bending += ffd->BendingEnergy(_ConstrainPassiveDoFs, _WithRespectToWorld && _UseLatticeSpacing);
     }
   } else if (ffd) {
-    bending = ffd->BendingEnergy(_ConstrainPassiveDoFs, _WithRespectToWorld);
+    bending = ffd->BendingEnergy(_ConstrainPassiveDoFs, _WithRespectToWorld && _UseLatticeSpacing);
   }
   return _AnnealingWeight * bending;
 }
@@ -118,28 +124,17 @@ void SmoothnessConstraint::EvaluateGradient(double *gradient, double, double wei
     for (int l = 0; l < mffd->NumberOfLevels(); ++l) {
       if (!mffd->LocalTransformationIsActive(l)) continue;
       ffd = mffd->GetLocalTransformation(l);
-      ffd->BendingEnergyGradient(gradient, weight, _ConstrainPassiveDoFs, _WithRespectToWorld);
+      ffd->BendingEnergyGradient(gradient, weight, _ConstrainPassiveDoFs, _WithRespectToWorld, _UseLatticeSpacing);
       gradient += ffd->NumberOfDOFs();
     }
   } else if (ffd) {
-    ffd->BendingEnergyGradient(gradient, weight, _ConstrainPassiveDoFs, _WithRespectToWorld);
+    ffd->BendingEnergyGradient(gradient, weight, _ConstrainPassiveDoFs, _WithRespectToWorld, _UseLatticeSpacing);
   }
 }
 
 // =============================================================================
 // Debugging
 // =============================================================================
-
-// -----------------------------------------------------------------------------
-void SmoothnessConstraint
-::WriteFFDGradient(const char *fname, const FreeFormTransformation *ffd, const double *g) const
-{
-  typedef FreeFormTransformation::CPValue CPValue;
-  typedef GenericImage<CPValue>           CPImage;
-  CPValue *data = reinterpret_cast<CPValue *>(const_cast<double *>(g));
-  CPImage gradient(ffd->Attributes(), data);
-  gradient.Write(fname);
-}
 
 // -----------------------------------------------------------------------------
 void SmoothnessConstraint::WriteGradient(const char *p, const char *suffix) const
@@ -159,7 +154,7 @@ void SmoothnessConstraint::WriteGradient(const char *p, const char *suffix) cons
       if (!mffd->LocalTransformationIsActive(l)) continue;
       ffd = mffd->GetLocalTransformation(l);
       double *gradient = CAllocate<double>(ffd->NumberOfDOFs());
-      ffd->BendingEnergyGradient(gradient, 1.0, _ConstrainPassiveDoFs, _WithRespectToWorld);
+      ffd->BendingEnergyGradient(gradient, 1.0, _ConstrainPassiveDoFs, _WithRespectToWorld, _UseLatticeSpacing);
       if (mffd->NumberOfActiveLevels() == 1) {
         snprintf(fname, sz, "%sgradient%s", prefix, suffix);
       } else {
@@ -171,7 +166,7 @@ void SmoothnessConstraint::WriteGradient(const char *p, const char *suffix) cons
   } else if (ffd) {
     snprintf(fname, sz, "%sgradient%s", prefix, suffix);
     double *gradient = CAllocate<double>(ffd->NumberOfDOFs());
-    ffd->BendingEnergyGradient(gradient, 1.0, _ConstrainPassiveDoFs, _WithRespectToWorld);
+    ffd->BendingEnergyGradient(gradient, 1.0, _ConstrainPassiveDoFs, _WithRespectToWorld, _UseLatticeSpacing);
     WriteFFDGradient(fname, ffd, gradient);
     Deallocate(gradient);
   }

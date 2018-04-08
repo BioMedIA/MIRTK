@@ -1029,7 +1029,7 @@ template <> inline void HashImage<double3x3>::PutMinMax(VoxelType, VoxelType)
 
 // -----------------------------------------------------------------------------
 template <class VoxelType>
-void HashImage<VoxelType>::ReflectX()
+void HashImage<VoxelType>::ReflectX(bool modify_axes)
 {
   VoxelType value;
   for (int t = 0; t < _attr._t; ++t)
@@ -1040,11 +1040,17 @@ void HashImage<VoxelType>::ReflectX()
     Put(x,y,z,t,  Get(_attr._x-(x+1),y,z,t));
     Put(_attr._x-(x+1),y,z,t,  value);
   }
+  if (modify_axes) {
+    _attr._xaxis[0] = -_attr._xaxis[0];
+    _attr._xaxis[1] = -_attr._xaxis[1];
+    _attr._xaxis[2] = -_attr._xaxis[2];
+    UpdateMatrix();
+  }
 }
 
 // -----------------------------------------------------------------------------
 template <class VoxelType>
-void HashImage<VoxelType>::ReflectY()
+void HashImage<VoxelType>::ReflectY(bool modify_axes)
 {
   VoxelType value;
   for (int t = 0; t < _attr._t; ++t)
@@ -1055,11 +1061,17 @@ void HashImage<VoxelType>::ReflectY()
       Put(x,y,z,t,  Get(x,_attr._y-(y+1),z,t));
       Put(x,_attr._y-(y+1),z,t,  value);
   }
+  if (modify_axes) {
+    _attr._yaxis[0] = -_attr._yaxis[0];
+    _attr._yaxis[1] = -_attr._yaxis[1];
+    _attr._yaxis[2] = -_attr._yaxis[2];
+    UpdateMatrix();
+  }
 }
 
 // -----------------------------------------------------------------------------
 template <class VoxelType>
-void HashImage<VoxelType>::ReflectZ()
+void HashImage<VoxelType>::ReflectZ(bool modify_axes)
 {
   VoxelType value;
   for (int t = 0; t < _attr._t; ++t)
@@ -1069,6 +1081,30 @@ void HashImage<VoxelType>::ReflectZ()
     value=Get(x,y,z,t);
     Put(x,y,z,t,  Get(x,y,_attr._z-(z+1),t));
     Put(x,y,_attr._z-(z+1),t,  value);
+  }
+  if (modify_axes) {
+    _attr._zaxis[0] = -_attr._zaxis[0];
+    _attr._zaxis[1] = -_attr._zaxis[1];
+    _attr._zaxis[2] = -_attr._zaxis[2];
+    UpdateMatrix();
+  }
+}
+
+// -----------------------------------------------------------------------------
+template <class VoxelType>
+void HashImage<VoxelType>::ReflectT(bool modify_axes)
+{
+  VoxelType value;
+  for (int t = 0; t < _attr._t / 2; ++t)
+  for (int z = 0; z < _attr._z; ++z)
+  for (int y = 0; y < _attr._y; ++y)
+  for (int x = 0; x < _attr._x; ++x) {
+    value=Get(x,y,z,t);
+    Put(x,y,z,t,  Get(x,y,z,_attr._t-(t+1)));
+    Put(x,y,z,_attr._t-(t+1),  value);
+  }
+  if (modify_axes) {
+    _attr._dt = -_attr._dt;
   }
 }
 

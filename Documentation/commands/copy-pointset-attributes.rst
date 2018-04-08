@@ -29,6 +29,9 @@ Arguments
 .. option:: source
 
    Point set from which to copy the point/cell data.
+   Can also be a GIFTI file with only point data arrays.
+   In this case, the coordinates and topology of the target
+   surface are used to define the source surface.
 
 .. option:: target
 
@@ -84,6 +87,11 @@ Command options
    Replaces the points of the target point set by the first three
    components of the specified source point data array.
 
+.. option:: -pointdata-as-celldata <name|index>
+
+   Converts the specified point data array of the source point set to cell
+   data and adds a corresponding cell data array to the target point set.
+
 .. option:: -pointmask <name>
 
    Add point data array which indicates copied point data.
@@ -92,6 +100,11 @@ Command options
 
    Name or index of source cell data to copy.
 
+.. option:: -celldata-as-pointdata <name|index>
+
+   Converts the specified cell data array of the source point set to point
+   data and adds a corresponding point data array to the target point set.
+
 .. option:: -cellmask <name>
 
    Add cell data array which indicates copied cell data.
@@ -99,6 +112,14 @@ Command options
 .. option:: -case-[in]sensitive
 
    Lookup source arrays by case [in]sensitive name. (default: insensitive)
+
+.. option:: -majority
+
+   Use majority vote for resampling categorical data. (default)
+
+.. option:: -unanimous
+
+   Use unanimous vote for resampling categorical data.
 
 
 Standard options

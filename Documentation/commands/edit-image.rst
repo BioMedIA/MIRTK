@@ -38,27 +38,39 @@ Arguments
 Command options
 ---------------
 
-.. option:: -size <dx> <dy> <dz>
+.. option:: -spacing, -voxel-size, -size <dx> [<dy> [<dz> [<dt>]]]
 
-   Voxel size   (in mm)
+   Voxel size (dx, dy, dz in mm, dt in ms)
 
-.. option:: -tsize <dt>
+.. option:: -dx <dx>
 
-   Voxel size   (in ms)
+   Spatial voxel size in x dimension.
 
-.. option:: -origin <x> <y> <z>
+.. option:: -dy <dy>
+
+   Spatial voxel size in y dimension.
+
+.. option:: -dz <dz>
+
+   Spatial voxel size in z dimension.
+
+.. option:: -dt, tsize <dt>
+
+   Temporal voxel size (in ms)
+
+.. option:: -origin <x> <y> [<z> [<t>]]
 
    Image spatial origin (in mm)
 
 .. option:: -torigin <t>
 
-   Image temporal origin (in ms)
+   Temporal image origin (in ms)
 
 .. option:: -orientation <x1> <x2> <x3>  <y1> <y2> <y3>  <z1> <z2> <z3>
 
-   Image orientation.
+   Image orientation. The axes direction vectors are normalized to unit length.
 
-.. option:: -copy-size <image>
+.. option:: -copy-spacing, -copy-voxel-size, -copy-size <image>
 
    Copy voxel size.
 
@@ -74,9 +86,9 @@ Command options
 
    Alias for :option:`-copy-origin` :option:`-copy-orientation`.
 
-.. option:: -copy-origin-orientation-size <image>
+.. option:: -copy-origin-orientation-spacing, -copy-origin-orientation-voxel-size, -copy-origin-orientation-size <image>
 
-   Alias for :option:`-copy-origin` :option:`-copy-orientation` :option:`-copy-size`.
+   Alias for :option:`-copy-origin` :option:`-copy-orientation` :option:`-copy-spacing`.
 
 .. option:: -reset
 
@@ -90,11 +102,27 @@ Command options
 
    Apply transformation to axis, spacing and origin information
    in the header. Note that any shearing that is present is
-   stored as additional affine transformation (c.f. -putdof).
+   stored as additional affine transformation (c.f. :option:`-putdof`).
+
+.. option:: -dofin_i <fil>
+
+   Same as :option:`-dofin` but using the inverse transformation.
 
 .. option:: -putdof <file>
 
    Store affine transformation in image header (NIfTI only).
+
+.. option:: -putdof_i <fil>
+
+   Same as :option:`-putdof` but using the inverse transformation.
+
+.. option:: -dofout <file>
+
+   Save transformation which maps the world coordinates of the
+   output image to the world coordinates of the input image.
+   Applying this output transformation to the output image
+   using the :option:`-dofin` option restores the previous
+   image origin, orientation, and voxel size.
 
 .. option:: -swapxy
 

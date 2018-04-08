@@ -78,11 +78,18 @@ public:
   // implementation of EvaluateInside and EvaluateOutside where the only
   // difference is the image type used to access the image values.
 
+  const ImageAttributes &Attributes() const; ///< Attributes of input image
+
   int X() const; ///< Size of input image in x dimension
   int Y() const; ///< Size of input image in y dimension
   int Z() const; ///< Size of input image in z dimension
   int T() const; ///< Size of input image in t dimension
   int N() const; ///< Number of vector components per image voxel
+
+  double XSize() const; ///< Voxel size of input image in x dimension
+  double YSize() const; ///< Voxel size of input image in y dimension
+  double ZSize() const; ///< Voxel size of input image in z dimension
+  double TSize() const; ///< Voxel size of input image in t dimension
 
   /// Whether the extrapolated value is identical to the background
   /// value of the input image. If the input uses a background mask
@@ -365,6 +372,12 @@ public:
 ////////////////////////////////////////////////////////////////////////////////
 
 // -----------------------------------------------------------------------------
+inline const ImageAttributes &ExtrapolateImageFunction::Attributes() const
+{
+  return Input()->Attributes();
+}
+
+// -----------------------------------------------------------------------------
 inline int ExtrapolateImageFunction::X() const
 {
   return Input()->X();
@@ -392,6 +405,30 @@ inline int ExtrapolateImageFunction::T() const
 inline int ExtrapolateImageFunction::N() const
 {
   return Input()->N();
+}
+
+// -----------------------------------------------------------------------------
+inline double ExtrapolateImageFunction::XSize() const
+{
+  return Input()->XSize();
+}
+
+// -----------------------------------------------------------------------------
+inline double ExtrapolateImageFunction::YSize() const
+{
+  return Input()->YSize();
+}
+
+// -----------------------------------------------------------------------------
+inline double ExtrapolateImageFunction::ZSize() const
+{
+  return Input()->ZSize();
+}
+
+// -----------------------------------------------------------------------------
+inline double ExtrapolateImageFunction::TSize() const
+{
+  return Input()->TSize();
 }
 
 // -----------------------------------------------------------------------------

@@ -4,262 +4,382 @@
    :hidden:
    :maxdepth: 1
 
+   /commands/aggregate-images
    /commands/average-dofs
    /commands/average-images
+   /commands/average-measure
+   /commands/average-overlap
    /commands/bisect-dof
-   /commands/calculate
+   /commands/blend-surface
+   /commands/calculate-boundary-map
    /commands/calculate-distance-map
+   /commands/calculate-element-wise
    /commands/calculate-exponential-map
+   /commands/calculate-filtering
+   /commands/calculate-gradients
    /commands/calculate-lie-bracket
    /commands/calculate-logarithmic-map
    /commands/calculate-surface-attributes
+   /commands/calculate-surface-map
    /commands/calculate-surface-spectrum
+   /commands/calculate-volume-map
+   /commands/change-label
    /commands/close-image
+   /commands/close-scalars
    /commands/combine-images
    /commands/compose-dofs
    /commands/compose-maps
+   /commands/construct-atlas
    /commands/convert-dof
    /commands/convert-image
    /commands/convert-pointset
-   /commands/convert-pointset-to-mat
    /commands/copy-pointset-attributes
-   /commands/copy-pointset-attributes-from-mat
    /commands/cut-brain
    /commands/decimate-surface
    /commands/deform-mesh
    /commands/delete-pointset-attributes
    /commands/detect-edges
    /commands/dilate-image
+   /commands/dilate-scalars
    /commands/downsample-image
+   /commands/draw-em
    /commands/edit-dof
    /commands/edit-image
+   /commands/em
+   /commands/em-hard-segmentation
    /commands/erode-image
+   /commands/erode-scalars
+   /commands/evaluate-atlas
+   /commands/evaluate-cardiac-motion
    /commands/evaluate-distance
    /commands/evaluate-distortion
    /commands/evaluate-dof
    /commands/evaluate-jacobian
-   /commands/evaluate-map
    /commands/evaluate-overlap
    /commands/evaluate-similarity
+   /commands/evaluate-surface-map
+   /commands/evaluate-surface-mesh
    /commands/evaluate-surface-overlap
+   /commands/evaluate-volume-map
    /commands/extract-connected-components
    /commands/extract-connected-points
    /commands/extract-image-region
+   /commands/extract-image-slice
+   /commands/extract-image-volume
+   /commands/extract-pointset-cells
    /commands/extract-pointset-surface
    /commands/extract-surface
+   /commands/fill-holes
+   /commands/fill-holes-nn-based
    /commands/flip-image
    /commands/help-rst
    /commands/info
    /commands/init-dof
    /commands/invert-dof
-   /commands/map-boundary
-   /commands/map-surface
-   /commands/map-volume
+   /commands/kmeans
+   /commands/match-histogram
    /commands/match-points
+   /commands/measure-volume
+   /commands/merge-surfaces
+   /commands/normalize
    /commands/offset-surface
    /commands/open-image
+   /commands/open-scalars
    /commands/project-onto-surface
+   /commands/recon-neonatal-cortex
    /commands/reflect-image
    /commands/register
-   /commands/remesh
+   /commands/remesh-surface
    /commands/resample-image
    /commands/smooth-image
    /commands/smooth-surface
+   /commands/split-labels
+   /commands/subdivide-brain-image
    /commands/transform-image
    /commands/transform-points
 
-=================================== =====================================================
-Command                             Description
-=================================== =====================================================
-|average-dofs|                      |average-dofs-brief-description|
-|average-images|                    |average-images-brief-description|
-|bisect-dof|                        |bisect-dof-brief-description|
-|calculate|                         |calculate-brief-description|
-|calculate-distance-map|            |calculate-distance-map-brief-description|
-|calculate-exponential-map|         |calculate-exponential-map-brief-description|
-|calculate-lie-bracket|             |calculate-lie-bracket-brief-description|
-|calculate-logarithmic-map|         |calculate-logarithmic-map-brief-description|
-|calculate-surface-attributes|      |calculate-surface-attributes-brief-description|
-|calculate-surface-spectrum|        |calculate-surface-spectrum-brief-description|
-|close-image|                       |close-image-brief-description|
-|combine-images|                    |combine-images-brief-description|
-|compose-dofs|                      |compose-dofs-brief-description|
-|compose-maps|                      |compose-maps-brief-description|
-|convert-dof|                       |convert-dof-brief-description|
-|convert-image|                     |convert-image-brief-description|
-|convert-pointset|                  |convert-pointset-brief-description|
-|convert-pointset-to-mat|           |convert-pointset-to-mat-brief-description|
-|copy-pointset-attributes|          |copy-pointset-attributes-brief-description|
-|copy-pointset-attributes-from-mat| |copy-pointset-attributes-from-mat-brief-description|
-|cut-brain|                         |cut-brain-brief-description|
-|decimate-surface|                  |decimate-surface-brief-description|
-|deform-mesh|                       |deform-mesh-brief-description|
-|delete-pointset-attributes|        |delete-pointset-attributes-brief-description|
-|detect-edges|                      |detect-edges-brief-description|
-|dilate-image|                      |dilate-image-brief-description|
-|downsample-image|                  |downsample-image-brief-description|
-|edit-dof|                          |edit-dof-brief-description|
-|edit-image|                        |edit-image-brief-description|
-|erode-image|                       |erode-image-brief-description|
-|evaluate-distance|                 |evaluate-distance-brief-description|
-|evaluate-distortion|               |evaluate-distortion-brief-description|
-|evaluate-dof|                      |evaluate-dof-brief-description|
-|evaluate-jacobian|                 |evaluate-jacobian-brief-description|
-|evaluate-map|                      |evaluate-map-brief-description|
-|evaluate-overlap|                  |evaluate-overlap-brief-description|
-|evaluate-similarity|               |evaluate-similarity-brief-description|
-|evaluate-surface-overlap|          |evaluate-surface-overlap-brief-description|
-|extract-connected-components|      |extract-connected-components-brief-description|
-|extract-connected-points|          |extract-connected-points-brief-description|
-|extract-image-region|              |extract-image-region-brief-description|
-|extract-pointset-surface|          |extract-pointset-surface-brief-description|
-|extract-surface|                   |extract-surface-brief-description|
-|flip-image|                        |flip-image-brief-description|
-|help-rst|                          |help-rst-brief-description|
-|info|                              |info-brief-description|
-|init-dof|                          |init-dof-brief-description|
-|invert-dof|                        |invert-dof-brief-description|
-|map-boundary|                      |map-boundary-brief-description|
-|map-surface|                       |map-surface-brief-description|
-|map-volume|                        |map-volume-brief-description|
-|match-points|                      |match-points-brief-description|
-|offset-surface|                    |offset-surface-brief-description|
-|open-image|                        |open-image-brief-description|
-|project-onto-surface|              |project-onto-surface-brief-description|
-|reflect-image|                     |reflect-image-brief-description|
-|register|                          |register-brief-description|
-|remesh|                            |remesh-brief-description|
-|resample-image|                    |resample-image-brief-description|
-|smooth-image|                      |smooth-image-brief-description|
-|smooth-surface|                    |smooth-surface-brief-description|
-|transform-image|                   |transform-image-brief-description|
-|transform-points|                  |transform-points-brief-description|
-=================================== =====================================================
+============================== ================================================
+Command                        Description
+============================== ================================================
+|aggregate-images|             |aggregate-images-brief-description|
+|average-dofs|                 |average-dofs-brief-description|
+|average-images|               |average-images-brief-description|
+|average-measure|              |average-measure-brief-description|
+|average-overlap|              |average-overlap-brief-description|
+|bisect-dof|                   |bisect-dof-brief-description|
+|blend-surface|                |blend-surface-brief-description|
+|calculate-boundary-map|       |calculate-boundary-map-brief-description|
+|calculate-distance-map|       |calculate-distance-map-brief-description|
+|calculate-element-wise|       |calculate-element-wise-brief-description|
+|calculate-exponential-map|    |calculate-exponential-map-brief-description|
+|calculate-filtering|          |calculate-filtering-brief-description|
+|calculate-gradients|          |calculate-gradients-brief-description|
+|calculate-lie-bracket|        |calculate-lie-bracket-brief-description|
+|calculate-logarithmic-map|    |calculate-logarithmic-map-brief-description|
+|calculate-surface-attributes| |calculate-surface-attributes-brief-description|
+|calculate-surface-map|        |calculate-surface-map-brief-description|
+|calculate-surface-spectrum|   |calculate-surface-spectrum-brief-description|
+|calculate-volume-map|         |calculate-volume-map-brief-description|
+|change-label|                 |change-label-brief-description|
+|close-image|                  |close-image-brief-description|
+|close-scalars|                |close-scalars-brief-description|
+|combine-images|               |combine-images-brief-description|
+|compose-dofs|                 |compose-dofs-brief-description|
+|compose-maps|                 |compose-maps-brief-description|
+|construct-atlas|              |construct-atlas-brief-description|
+|convert-dof|                  |convert-dof-brief-description|
+|convert-image|                |convert-image-brief-description|
+|convert-pointset|             |convert-pointset-brief-description|
+|copy-pointset-attributes|     |copy-pointset-attributes-brief-description|
+|cut-brain|                    |cut-brain-brief-description|
+|decimate-surface|             |decimate-surface-brief-description|
+|deform-mesh|                  |deform-mesh-brief-description|
+|delete-pointset-attributes|   |delete-pointset-attributes-brief-description|
+|detect-edges|                 |detect-edges-brief-description|
+|dilate-image|                 |dilate-image-brief-description|
+|dilate-scalars|               |dilate-scalars-brief-description|
+|downsample-image|             |downsample-image-brief-description|
+|draw-em|                      |draw-em-brief-description|
+|edit-dof|                     |edit-dof-brief-description|
+|edit-image|                   |edit-image-brief-description|
+|em|                           |em-brief-description|
+|em-hard-segmentation|         |em-hard-segmentation-brief-description|
+|erode-image|                  |erode-image-brief-description|
+|erode-scalars|                |erode-scalars-brief-description|
+|evaluate-atlas|               |evaluate-atlas-brief-description|
+|evaluate-cardiac-motion|      |evaluate-cardiac-motion-brief-description|
+|evaluate-distance|            |evaluate-distance-brief-description|
+|evaluate-distortion|          |evaluate-distortion-brief-description|
+|evaluate-dof|                 |evaluate-dof-brief-description|
+|evaluate-jacobian|            |evaluate-jacobian-brief-description|
+|evaluate-overlap|             |evaluate-overlap-brief-description|
+|evaluate-similarity|          |evaluate-similarity-brief-description|
+|evaluate-surface-map|         |evaluate-surface-map-brief-description|
+|evaluate-surface-mesh|        |evaluate-surface-mesh-brief-description|
+|evaluate-surface-overlap|     |evaluate-surface-overlap-brief-description|
+|evaluate-volume-map|          |evaluate-volume-map-brief-description|
+|extract-connected-components| |extract-connected-components-brief-description|
+|extract-connected-points|     |extract-connected-points-brief-description|
+|extract-image-region|         |extract-image-region-brief-description|
+|extract-image-slice|          |extract-image-slice-brief-description|
+|extract-image-volume|         |extract-image-volume-brief-description|
+|extract-pointset-cells|       |extract-pointset-cells-brief-description|
+|extract-pointset-surface|     |extract-pointset-surface-brief-description|
+|extract-surface|              |extract-surface-brief-description|
+|fill-holes|                   |fill-holes-brief-description|
+|fill-holes-nn-based|          |fill-holes-nn-based-brief-description|
+|flip-image|                   |flip-image-brief-description|
+|help-rst|                     |help-rst-brief-description|
+|info|                         |info-brief-description|
+|init-dof|                     |init-dof-brief-description|
+|invert-dof|                   |invert-dof-brief-description|
+|kmeans|                       |kmeans-brief-description|
+|match-histogram|              |match-histogram-brief-description|
+|match-points|                 |match-points-brief-description|
+|measure-volume|               |measure-volume-brief-description|
+|merge-surfaces|               |merge-surfaces-brief-description|
+|normalize|                    |normalize-brief-description|
+|offset-surface|               |offset-surface-brief-description|
+|open-image|                   |open-image-brief-description|
+|open-scalars|                 |open-scalars-brief-description|
+|project-onto-surface|         |project-onto-surface-brief-description|
+|recon-neonatal-cortex|        |recon-neonatal-cortex-brief-description|
+|reflect-image|                |reflect-image-brief-description|
+|register|                     |register-brief-description|
+|remesh-surface|               |remesh-surface-brief-description|
+|resample-image|               |resample-image-brief-description|
+|smooth-image|                 |smooth-image-brief-description|
+|smooth-surface|               |smooth-surface-brief-description|
+|split-labels|                 |split-labels-brief-description|
+|subdivide-brain-image|        |subdivide-brain-image-brief-description|
+|transform-image|              |transform-image-brief-description|
+|transform-points|             |transform-points-brief-description|
+============================== ================================================
 
-.. |average-dofs|                      replace:: :doc:`/commands/average-dofs`
-.. |average-images|                    replace:: :doc:`/commands/average-images`
-.. |bisect-dof|                        replace:: :doc:`/commands/bisect-dof`
-.. |calculate|                         replace:: :doc:`/commands/calculate`
-.. |calculate-distance-map|            replace:: :doc:`/commands/calculate-distance-map`
-.. |calculate-exponential-map|         replace:: :doc:`/commands/calculate-exponential-map`
-.. |calculate-lie-bracket|             replace:: :doc:`/commands/calculate-lie-bracket`
-.. |calculate-logarithmic-map|         replace:: :doc:`/commands/calculate-logarithmic-map`
-.. |calculate-surface-attributes|      replace:: :doc:`/commands/calculate-surface-attributes`
-.. |calculate-surface-spectrum|        replace:: :doc:`/commands/calculate-surface-spectrum`
-.. |close-image|                       replace:: :doc:`/commands/close-image`
-.. |combine-images|                    replace:: :doc:`/commands/combine-images`
-.. |compose-dofs|                      replace:: :doc:`/commands/compose-dofs`
-.. |compose-maps|                      replace:: :doc:`/commands/compose-maps`
-.. |convert-dof|                       replace:: :doc:`/commands/convert-dof`
-.. |convert-image|                     replace:: :doc:`/commands/convert-image`
-.. |convert-pointset|                  replace:: :doc:`/commands/convert-pointset`
-.. |convert-pointset-to-mat|           replace:: :doc:`/commands/convert-pointset-to-mat`
-.. |copy-pointset-attributes|          replace:: :doc:`/commands/copy-pointset-attributes`
-.. |copy-pointset-attributes-from-mat| replace:: :doc:`/commands/copy-pointset-attributes-from-mat`
-.. |cut-brain|                         replace:: :doc:`/commands/cut-brain`
-.. |decimate-surface|                  replace:: :doc:`/commands/decimate-surface`
-.. |deform-mesh|                       replace:: :doc:`/commands/deform-mesh`
-.. |delete-pointset-attributes|        replace:: :doc:`/commands/delete-pointset-attributes`
-.. |detect-edges|                      replace:: :doc:`/commands/detect-edges`
-.. |dilate-image|                      replace:: :doc:`/commands/dilate-image`
-.. |downsample-image|                  replace:: :doc:`/commands/downsample-image`
-.. |edit-dof|                          replace:: :doc:`/commands/edit-dof`
-.. |edit-image|                        replace:: :doc:`/commands/edit-image`
-.. |erode-image|                       replace:: :doc:`/commands/erode-image`
-.. |evaluate-distance|                 replace:: :doc:`/commands/evaluate-distance`
-.. |evaluate-distortion|               replace:: :doc:`/commands/evaluate-distortion`
-.. |evaluate-dof|                      replace:: :doc:`/commands/evaluate-dof`
-.. |evaluate-jacobian|                 replace:: :doc:`/commands/evaluate-jacobian`
-.. |evaluate-map|                      replace:: :doc:`/commands/evaluate-map`
-.. |evaluate-overlap|                  replace:: :doc:`/commands/evaluate-overlap`
-.. |evaluate-similarity|               replace:: :doc:`/commands/evaluate-similarity`
-.. |evaluate-surface-overlap|          replace:: :doc:`/commands/evaluate-surface-overlap`
-.. |extract-connected-components|      replace:: :doc:`/commands/extract-connected-components`
-.. |extract-connected-points|          replace:: :doc:`/commands/extract-connected-points`
-.. |extract-image-region|              replace:: :doc:`/commands/extract-image-region`
-.. |extract-pointset-surface|          replace:: :doc:`/commands/extract-pointset-surface`
-.. |extract-surface|                   replace:: :doc:`/commands/extract-surface`
-.. |flip-image|                        replace:: :doc:`/commands/flip-image`
-.. |help-rst|                          replace:: :doc:`/commands/help-rst`
-.. |info|                              replace:: :doc:`/commands/info`
-.. |init-dof|                          replace:: :doc:`/commands/init-dof`
-.. |invert-dof|                        replace:: :doc:`/commands/invert-dof`
-.. |map-boundary|                      replace:: :doc:`/commands/map-boundary`
-.. |map-surface|                       replace:: :doc:`/commands/map-surface`
-.. |map-volume|                        replace:: :doc:`/commands/map-volume`
-.. |match-points|                      replace:: :doc:`/commands/match-points`
-.. |offset-surface|                    replace:: :doc:`/commands/offset-surface`
-.. |open-image|                        replace:: :doc:`/commands/open-image`
-.. |project-onto-surface|              replace:: :doc:`/commands/project-onto-surface`
-.. |reflect-image|                     replace:: :doc:`/commands/reflect-image`
-.. |register|                          replace:: :doc:`/commands/register`
-.. |remesh|                            replace:: :doc:`/commands/remesh`
-.. |resample-image|                    replace:: :doc:`/commands/resample-image`
-.. |smooth-image|                      replace:: :doc:`/commands/smooth-image`
-.. |smooth-surface|                    replace:: :doc:`/commands/smooth-surface`
-.. |transform-image|                   replace:: :doc:`/commands/transform-image`
-.. |transform-points|                  replace:: :doc:`/commands/transform-points`
+.. |aggregate-images|             replace:: :doc:`/commands/aggregate-images`
+.. |average-dofs|                 replace:: :doc:`/commands/average-dofs`
+.. |average-images|               replace:: :doc:`/commands/average-images`
+.. |average-measure|              replace:: :doc:`/commands/average-measure`
+.. |average-overlap|              replace:: :doc:`/commands/average-overlap`
+.. |bisect-dof|                   replace:: :doc:`/commands/bisect-dof`
+.. |blend-surface|                replace:: :doc:`/commands/blend-surface`
+.. |calculate-boundary-map|       replace:: :doc:`/commands/calculate-boundary-map`
+.. |calculate-distance-map|       replace:: :doc:`/commands/calculate-distance-map`
+.. |calculate-element-wise|       replace:: :doc:`/commands/calculate-element-wise`
+.. |calculate-exponential-map|    replace:: :doc:`/commands/calculate-exponential-map`
+.. |calculate-filtering|          replace:: :doc:`/commands/calculate-filtering`
+.. |calculate-gradients|          replace:: :doc:`/commands/calculate-gradients`
+.. |calculate-lie-bracket|        replace:: :doc:`/commands/calculate-lie-bracket`
+.. |calculate-logarithmic-map|    replace:: :doc:`/commands/calculate-logarithmic-map`
+.. |calculate-surface-attributes| replace:: :doc:`/commands/calculate-surface-attributes`
+.. |calculate-surface-map|        replace:: :doc:`/commands/calculate-surface-map`
+.. |calculate-surface-spectrum|   replace:: :doc:`/commands/calculate-surface-spectrum`
+.. |calculate-volume-map|         replace:: :doc:`/commands/calculate-volume-map`
+.. |change-label|                 replace:: :doc:`/commands/change-label`
+.. |close-image|                  replace:: :doc:`/commands/close-image`
+.. |close-scalars|                replace:: :doc:`/commands/close-scalars`
+.. |combine-images|               replace:: :doc:`/commands/combine-images`
+.. |compose-dofs|                 replace:: :doc:`/commands/compose-dofs`
+.. |compose-maps|                 replace:: :doc:`/commands/compose-maps`
+.. |construct-atlas|              replace:: :doc:`/commands/construct-atlas`
+.. |convert-dof|                  replace:: :doc:`/commands/convert-dof`
+.. |convert-image|                replace:: :doc:`/commands/convert-image`
+.. |convert-pointset|             replace:: :doc:`/commands/convert-pointset`
+.. |copy-pointset-attributes|     replace:: :doc:`/commands/copy-pointset-attributes`
+.. |cut-brain|                    replace:: :doc:`/commands/cut-brain`
+.. |decimate-surface|             replace:: :doc:`/commands/decimate-surface`
+.. |deform-mesh|                  replace:: :doc:`/commands/deform-mesh`
+.. |delete-pointset-attributes|   replace:: :doc:`/commands/delete-pointset-attributes`
+.. |detect-edges|                 replace:: :doc:`/commands/detect-edges`
+.. |dilate-image|                 replace:: :doc:`/commands/dilate-image`
+.. |dilate-scalars|               replace:: :doc:`/commands/dilate-scalars`
+.. |downsample-image|             replace:: :doc:`/commands/downsample-image`
+.. |draw-em|                      replace:: :doc:`/commands/draw-em`
+.. |edit-dof|                     replace:: :doc:`/commands/edit-dof`
+.. |edit-image|                   replace:: :doc:`/commands/edit-image`
+.. |em|                           replace:: :doc:`/commands/em`
+.. |em-hard-segmentation|         replace:: :doc:`/commands/em-hard-segmentation`
+.. |erode-image|                  replace:: :doc:`/commands/erode-image`
+.. |erode-scalars|                replace:: :doc:`/commands/erode-scalars`
+.. |evaluate-atlas|               replace:: :doc:`/commands/evaluate-atlas`
+.. |evaluate-cardiac-motion|      replace:: :doc:`/commands/evaluate-cardiac-motion`
+.. |evaluate-distance|            replace:: :doc:`/commands/evaluate-distance`
+.. |evaluate-distortion|          replace:: :doc:`/commands/evaluate-distortion`
+.. |evaluate-dof|                 replace:: :doc:`/commands/evaluate-dof`
+.. |evaluate-jacobian|            replace:: :doc:`/commands/evaluate-jacobian`
+.. |evaluate-overlap|             replace:: :doc:`/commands/evaluate-overlap`
+.. |evaluate-similarity|          replace:: :doc:`/commands/evaluate-similarity`
+.. |evaluate-surface-map|         replace:: :doc:`/commands/evaluate-surface-map`
+.. |evaluate-surface-mesh|        replace:: :doc:`/commands/evaluate-surface-mesh`
+.. |evaluate-surface-overlap|     replace:: :doc:`/commands/evaluate-surface-overlap`
+.. |evaluate-volume-map|          replace:: :doc:`/commands/evaluate-volume-map`
+.. |extract-connected-components| replace:: :doc:`/commands/extract-connected-components`
+.. |extract-connected-points|     replace:: :doc:`/commands/extract-connected-points`
+.. |extract-image-region|         replace:: :doc:`/commands/extract-image-region`
+.. |extract-image-slice|          replace:: :doc:`/commands/extract-image-slice`
+.. |extract-image-volume|         replace:: :doc:`/commands/extract-image-volume`
+.. |extract-pointset-cells|       replace:: :doc:`/commands/extract-pointset-cells`
+.. |extract-pointset-surface|     replace:: :doc:`/commands/extract-pointset-surface`
+.. |extract-surface|              replace:: :doc:`/commands/extract-surface`
+.. |fill-holes|                   replace:: :doc:`/commands/fill-holes`
+.. |fill-holes-nn-based|          replace:: :doc:`/commands/fill-holes-nn-based`
+.. |flip-image|                   replace:: :doc:`/commands/flip-image`
+.. |help-rst|                     replace:: :doc:`/commands/help-rst`
+.. |info|                         replace:: :doc:`/commands/info`
+.. |init-dof|                     replace:: :doc:`/commands/init-dof`
+.. |invert-dof|                   replace:: :doc:`/commands/invert-dof`
+.. |kmeans|                       replace:: :doc:`/commands/kmeans`
+.. |match-histogram|              replace:: :doc:`/commands/match-histogram`
+.. |match-points|                 replace:: :doc:`/commands/match-points`
+.. |measure-volume|               replace:: :doc:`/commands/measure-volume`
+.. |merge-surfaces|               replace:: :doc:`/commands/merge-surfaces`
+.. |normalize|                    replace:: :doc:`/commands/normalize`
+.. |offset-surface|               replace:: :doc:`/commands/offset-surface`
+.. |open-image|                   replace:: :doc:`/commands/open-image`
+.. |open-scalars|                 replace:: :doc:`/commands/open-scalars`
+.. |project-onto-surface|         replace:: :doc:`/commands/project-onto-surface`
+.. |recon-neonatal-cortex|        replace:: :doc:`/commands/recon-neonatal-cortex`
+.. |reflect-image|                replace:: :doc:`/commands/reflect-image`
+.. |register|                     replace:: :doc:`/commands/register`
+.. |remesh-surface|               replace:: :doc:`/commands/remesh-surface`
+.. |resample-image|               replace:: :doc:`/commands/resample-image`
+.. |smooth-image|                 replace:: :doc:`/commands/smooth-image`
+.. |smooth-surface|               replace:: :doc:`/commands/smooth-surface`
+.. |split-labels|                 replace:: :doc:`/commands/split-labels`
+.. |subdivide-brain-image|        replace:: :doc:`/commands/subdivide-brain-image`
+.. |transform-image|              replace:: :doc:`/commands/transform-image`
+.. |transform-points|             replace:: :doc:`/commands/transform-points`
 
+.. include:: /commands/_summaries/aggregate-images.rst
 .. include:: /commands/_summaries/average-dofs.rst
 .. include:: /commands/_summaries/average-images.rst
+.. include:: /commands/_summaries/average-measure.rst
+.. include:: /commands/_summaries/average-overlap.rst
 .. include:: /commands/_summaries/bisect-dof.rst
-.. include:: /commands/_summaries/calculate.rst
+.. include:: /commands/_summaries/blend-surface.rst
+.. include:: /commands/_summaries/calculate-boundary-map.rst
 .. include:: /commands/_summaries/calculate-distance-map.rst
+.. include:: /commands/_summaries/calculate-element-wise.rst
 .. include:: /commands/_summaries/calculate-exponential-map.rst
+.. include:: /commands/_summaries/calculate-filtering.rst
+.. include:: /commands/_summaries/calculate-gradients.rst
 .. include:: /commands/_summaries/calculate-lie-bracket.rst
 .. include:: /commands/_summaries/calculate-logarithmic-map.rst
 .. include:: /commands/_summaries/calculate-surface-attributes.rst
+.. include:: /commands/_summaries/calculate-surface-map.rst
 .. include:: /commands/_summaries/calculate-surface-spectrum.rst
+.. include:: /commands/_summaries/calculate-volume-map.rst
+.. include:: /commands/_summaries/change-label.rst
 .. include:: /commands/_summaries/close-image.rst
+.. include:: /commands/_summaries/close-scalars.rst
 .. include:: /commands/_summaries/combine-images.rst
 .. include:: /commands/_summaries/compose-dofs.rst
 .. include:: /commands/_summaries/compose-maps.rst
+.. include:: /commands/_summaries/construct-atlas.rst
 .. include:: /commands/_summaries/convert-dof.rst
 .. include:: /commands/_summaries/convert-image.rst
 .. include:: /commands/_summaries/convert-pointset.rst
-.. include:: /commands/_summaries/convert-pointset-to-mat.rst
 .. include:: /commands/_summaries/copy-pointset-attributes.rst
-.. include:: /commands/_summaries/copy-pointset-attributes-from-mat.rst
 .. include:: /commands/_summaries/cut-brain.rst
 .. include:: /commands/_summaries/decimate-surface.rst
 .. include:: /commands/_summaries/deform-mesh.rst
 .. include:: /commands/_summaries/delete-pointset-attributes.rst
 .. include:: /commands/_summaries/detect-edges.rst
 .. include:: /commands/_summaries/dilate-image.rst
+.. include:: /commands/_summaries/dilate-scalars.rst
 .. include:: /commands/_summaries/downsample-image.rst
+.. include:: /commands/_summaries/draw-em.rst
 .. include:: /commands/_summaries/edit-dof.rst
 .. include:: /commands/_summaries/edit-image.rst
+.. include:: /commands/_summaries/em.rst
+.. include:: /commands/_summaries/em-hard-segmentation.rst
 .. include:: /commands/_summaries/erode-image.rst
+.. include:: /commands/_summaries/erode-scalars.rst
+.. include:: /commands/_summaries/evaluate-atlas.rst
+.. include:: /commands/_summaries/evaluate-cardiac-motion.rst
 .. include:: /commands/_summaries/evaluate-distance.rst
 .. include:: /commands/_summaries/evaluate-distortion.rst
 .. include:: /commands/_summaries/evaluate-dof.rst
 .. include:: /commands/_summaries/evaluate-jacobian.rst
-.. include:: /commands/_summaries/evaluate-map.rst
 .. include:: /commands/_summaries/evaluate-overlap.rst
 .. include:: /commands/_summaries/evaluate-similarity.rst
+.. include:: /commands/_summaries/evaluate-surface-map.rst
+.. include:: /commands/_summaries/evaluate-surface-mesh.rst
 .. include:: /commands/_summaries/evaluate-surface-overlap.rst
+.. include:: /commands/_summaries/evaluate-volume-map.rst
 .. include:: /commands/_summaries/extract-connected-components.rst
 .. include:: /commands/_summaries/extract-connected-points.rst
 .. include:: /commands/_summaries/extract-image-region.rst
+.. include:: /commands/_summaries/extract-image-slice.rst
+.. include:: /commands/_summaries/extract-image-volume.rst
+.. include:: /commands/_summaries/extract-pointset-cells.rst
 .. include:: /commands/_summaries/extract-pointset-surface.rst
 .. include:: /commands/_summaries/extract-surface.rst
+.. include:: /commands/_summaries/fill-holes.rst
+.. include:: /commands/_summaries/fill-holes-nn-based.rst
 .. include:: /commands/_summaries/flip-image.rst
 .. include:: /commands/_summaries/help-rst.rst
 .. include:: /commands/_summaries/info.rst
 .. include:: /commands/_summaries/init-dof.rst
 .. include:: /commands/_summaries/invert-dof.rst
-.. include:: /commands/_summaries/map-boundary.rst
-.. include:: /commands/_summaries/map-surface.rst
-.. include:: /commands/_summaries/map-volume.rst
+.. include:: /commands/_summaries/kmeans.rst
+.. include:: /commands/_summaries/match-histogram.rst
 .. include:: /commands/_summaries/match-points.rst
+.. include:: /commands/_summaries/measure-volume.rst
+.. include:: /commands/_summaries/merge-surfaces.rst
+.. include:: /commands/_summaries/normalize.rst
 .. include:: /commands/_summaries/offset-surface.rst
 .. include:: /commands/_summaries/open-image.rst
+.. include:: /commands/_summaries/open-scalars.rst
 .. include:: /commands/_summaries/project-onto-surface.rst
+.. include:: /commands/_summaries/recon-neonatal-cortex.rst
 .. include:: /commands/_summaries/reflect-image.rst
 .. include:: /commands/_summaries/register.rst
-.. include:: /commands/_summaries/remesh.rst
+.. include:: /commands/_summaries/remesh-surface.rst
 .. include:: /commands/_summaries/resample-image.rst
 .. include:: /commands/_summaries/smooth-image.rst
 .. include:: /commands/_summaries/smooth-surface.rst
+.. include:: /commands/_summaries/split-labels.rst
+.. include:: /commands/_summaries/subdivide-brain-image.rst
 .. include:: /commands/_summaries/transform-image.rst
 .. include:: /commands/_summaries/transform-points.rst

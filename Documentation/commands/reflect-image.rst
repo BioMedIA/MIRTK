@@ -38,17 +38,9 @@ Command options
 
    Reflect z axis.
 
-.. option:: -xy, -yx
+.. option:: -t
 
-   Swap x and y axes.
-
-.. option:: -xz, -zx
-
-   Swap x and z axes.
-
-.. option:: -yz, -zy
-
-   Swap y and z axes.
+   Reflect t axis.
 
 
 Standard options

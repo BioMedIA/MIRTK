@@ -29,7 +29,9 @@ Command options
 
 .. option:: -dofin <file>...
 
-   Transformation file. (default: identity)
+   Transformation or image file. When an image file is given,
+   the image to world transformation is applied. The :option:`-invert`
+   can be used to transform points from world to image space. (default: identity)
 
 .. option:: -invert
 

@@ -1,9 +1,9 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2008-2015 Imperial College London
+ * Copyright 2008-2017 Imperial College London
  * Copyright 2008-2013 Daniel Rueckert, Julia Schnabel
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2013-2017 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -507,6 +507,24 @@ public:
   /// is 1 which equals 100% of the bounding box.
   void BoundingBox(int, Point &, Point &, double = 1) const;
 
+  /// Gets the spatial bounding box for a control point in lattice coordinates.
+  /// The last parameter specifies what fraction of the bounding box to return.
+  /// The default is 1 which equals 100% of the bounding box.
+  bool BoundingBox(const ImageAttributes &, int, int &, int &, int &,
+                                                 int &, int &, int &, double = 1) const;
+
+  /// Gets the spatio-temporal bounding box for a control point in lattice coordinates.
+  /// The last parameter specifies what fraction of the bounding box to return.
+  /// The default is 1 which equals 100% of the bounding box.
+  bool BoundingBox(const ImageAttributes &, int, int &, int &, int &, int &,
+                                                 int &, int &, int &, int &, double = 1) const;
+
+  /// Gets the spatial bounding box for a transformation parameter in lattice coordinates.
+  /// The last parameter specifies what fraction of the bounding box to return.
+  /// The default is 1 which equals 100% of the bounding box.
+  bool DOFBoundingBox(const ImageAttributes &, int, int &, int &, int &,
+                                                    int &, int &, int &, double = 1) const;
+
   /// Gets the spatial bounding box for a control point in image coordinates.
   /// The last parameter specifies what fraction of the bounding box to return.
   /// The default is 1 which equals 100% of the bounding box.
@@ -623,6 +641,12 @@ public:
   /// derivatives w.r.t world coordinates
   void JacobianToWorld(Matrix &) const;
 
+  /// Reorient 1st order derivatives computed w.r.t 2D lattice coordinates
+  void JacobianToWorldOrientation(double &, double &) const;
+
+  /// Reorient 1st order derivatives computed w.r.t 2D lattice coordinates
+  void JacobianToWorldOrientation(double &, double &, double &) const;
+
   /// Convert 2nd order derivatives computed w.r.t 2D lattice coordinates to
   /// derivatives w.r.t world coordinates
   void HessianToWorld(double &, double &, double &) const;
@@ -659,6 +683,40 @@ public:
 
   /// Calculates the Jacobian of the transformation w.r.t the transformation parameters
   virtual void JacobianDOFs(TransformationJacobian &, double, double, double, double = 0, double = NaN) const;
+
+  /// Calculates derivatives of the Jacobian determinant of spline function w.r.t. DoFs of a control point
+  ///
+  /// This function is identical to JacobianDetDerivative when the DoFs of the control points are displacements.
+  /// When the DoFs are velocities, however, this function computes the derivatives of the Jacobian determinant
+  /// of the velocity field instead.
+  ///
+  /// \param[out] dJ           Partial derivatives of Jacobian determinant at (x, y, z) w.r.t. DoFs of control point.
+  /// \param[in]  cp           Index of control point w.r.t. whose DoFs the derivatives are computed.
+  /// \param[in]  x            World coordinate along x axis at which to evaluate derivatives.
+  /// \param[in]  y            World coordinate along y axis at which to evaluate derivatives.
+  /// \param[in]  z            World coordinate along z axis at which to evaluate derivatives.
+  /// \param[in]  adj          Adjugate of Jacobian matrix evaluated at (x, y, z).
+  /// \param[in]  wrt_world    Whether derivatives are computed w.r.t. world coordinate system.
+  /// \param[in]  use_spacing  Whether to use grid spacing when \p wrt_world is \c true.
+  virtual void FFDJacobianDetDerivative(double dJ[3], const Matrix &adj,
+                                        int cp, double x, double y, double z, double = 0, double = NaN,
+                                        bool wrt_world = true, bool use_spacing = true) const;
+
+  /// Calculates derivatives of the Jacobian determinant at world point w.r.t. DoFs of a control point
+  ///
+  /// \param[out] dJ           Partial derivatives of Jacobian determinant w.r.t. DoFs of control point.
+  /// \param[in]  adj          Pre-computed adjugate of Jacobian matrix at this world point.
+  /// \param[in]  cp           Index of control point w.r.t. whose DoFs the derivatives are computed.
+  /// \param[in]  x            World coordinate along x axis at which to evaluate derivatives.
+  /// \param[in]  y            World coordinate along y axis at which to evaluate derivatives.
+  /// \param[in]  z            World coordinate along z axis at which to evaluate derivatives.
+  /// \param[in]  t            Temporal coordinate of point at which to evaluate derivatives.
+  /// \param[in]  t0           Temporal coordinate of co-domain (target). Used by velocity-based models.
+  /// \param[in]  wrt_world    Whether derivatives are computed w.r.t. world coordinate system.
+  /// \param[in]  use_spacing  Whether to use grid spacing when \p wrt_world is \c true.
+  virtual void JacobianDetDerivative(double dJ[3], const Matrix &adj,
+                                     int cp, double x, double y, double z, double t = 0, double t0 = NaN,
+                                     bool wrt_world = true, bool use_spacing = true) const;
 
   /// Applies the chain rule to convert spatial non-parametric gradient
   /// to a gradient w.r.t the parameters of this transformation.
@@ -702,7 +760,7 @@ public:
 
   /// Approximates the gradient of the bending energy on the control point
   /// lattice w.r.t the transformation parameters and adds it with the given weight
-  virtual void BendingEnergyGradient(double *, double = 1.0, bool = false, bool = true) const;
+  virtual void BendingEnergyGradient(double *, double = 1.0, bool = false, bool = true, bool = true) const;
 
   // ---------------------------------------------------------------------------
   // I/O
@@ -1116,7 +1174,7 @@ inline void FreeFormTransformation::BoundingBox(double &t1, double &t2) const
 
 // -----------------------------------------------------------------------------
 inline void FreeFormTransformation::BoundingBox(double &x1, double &y1, double &z1,
-                                                    double &x2, double &y2, double &z2) const
+                                                double &x2, double &y2, double &z2) const
 {
   x1 = y1 = z1 = .0;
   this->LatticeToWorld(x1, y1, z1);
@@ -1135,7 +1193,7 @@ inline void FreeFormTransformation::BoundingBox(Point &p1, Point &p2) const
 
 // -----------------------------------------------------------------------------
 inline void FreeFormTransformation::BoundingBox(double &x1, double &y1, double &z1, double &t1,
-                                                    double &x2, double &y2, double &z2, double &t2) const
+                                                double &x2, double &y2, double &z2, double &t2) const
 {
   BoundingBox(x1, y1, z1, x2, y2, z2);
   BoundingBox(t1, t2);
@@ -1157,7 +1215,7 @@ inline void FreeFormTransformation::BoundingBox(int, double &t1, double &t2, dou
 
 // -----------------------------------------------------------------------------
 inline void FreeFormTransformation::BoundingBox(int, double &x1, double &y1, double &z1,
-                                                         double &x2, double &y2, double &z2, double) const
+                                                     double &x2, double &y2, double &z2, double) const
 {
   x1 = 0,      y1 = 0,      z1 = 0;
   x2 = _x - 1, y2 = _y - 1, z2 = _z - 1;
@@ -1170,8 +1228,8 @@ inline void FreeFormTransformation::BoundingBox(int, double &x1, double &y1, dou
 
 // -----------------------------------------------------------------------------
 inline void FreeFormTransformation::BoundingBox(int cp, double &x1, double &y1, double &z1, double &t1,
-                                                            double &x2, double &y2, double &z2, double &t2,
-                                                            double fraction) const
+                                                        double &x2, double &y2, double &z2, double &t2,
+                                                        double fraction) const
 {
   this->BoundingBox(cp, x1, y1, z1, x2, y2, z2, fraction);
   this->BoundingBox(cp, t1, t2,                 fraction);
@@ -1184,10 +1242,10 @@ inline void FreeFormTransformation::BoundingBox(int cp, Point &p1, Point &p2, do
 }
 
 // -----------------------------------------------------------------------------
-inline bool FreeFormTransformation::BoundingBox(const Image *image, int cp,
-                                                    int &i1, int &j1, int &k1,
-                                                    int &i2, int &j2, int &k2,
-                                                    double fraction) const
+inline bool FreeFormTransformation::BoundingBox(const ImageAttributes &domain, int cp,
+                                                int &i1, int &j1, int &k1,
+                                                int &i2, int &j2, int &k2,
+                                                double fraction) const
 {
   // Calculate bounding box in world coordinates parallel to world axes
   double x[2], y[2], z[2];
@@ -1197,14 +1255,14 @@ inline bool FreeFormTransformation::BoundingBox(const Image *image, int cp,
   // bounding box parallel to image axes which need not coincide with world axes
   Point p;
   double x1, y1, z1, x2, y2, z2;
-  x1 = y1 = z1 = + numeric_limits<double>::infinity();
-  x2 = y2 = z2 = - numeric_limits<double>::infinity();
+  x1 = y1 = z1 = + inf;
+  x2 = y2 = z2 = - inf;
 
   for (int c = 0; c <= 1; ++c)
   for (int b = 0; b <= 1; ++b)
   for (int a = 0; a <= 1; ++a) {
     p = Point(x[a], y[b], z[c]);
-    image->WorldToImage(p);
+    domain.WorldToLattice(p);
     if (p._x < x1) x1 = p._x;
     if (p._x > x2) x2 = p._x;
     if (p._y < y1) y1 = p._y;
@@ -1214,64 +1272,91 @@ inline bool FreeFormTransformation::BoundingBox(const Image *image, int cp,
   }
 
   // Round to nearest voxel in image domain
-  i1 = static_cast<int>(round(x1));
-  i2 = static_cast<int>(round(x2));
-  j1 = static_cast<int>(round(y1));
-  j2 = static_cast<int>(round(y2));
-  k1 = static_cast<int>(round(z1));
-  k2 = static_cast<int>(round(z2));
+  i1 = iround(x1);
+  i2 = iround(x2);
+  j1 = iround(y1);
+  j2 = iround(y2);
+  k1 = iround(z1);
+  k2 = iround(z2);
 
   // When both indices are outside in opposite directions,
   // use the full range [0, N[. If they are both outside in
   // the same direction, the condition i1 <= i2 is false which
   // indicates that the bounding box is empty in this case
-  i1 = (i1 < 0 ?  0 : (i1 >= image->X() ? image->X()     : i1));
-  i2 = (i2 < 0 ? -1 : (i2 >= image->X() ? image->X() - 1 : i2));
-  j1 = (j1 < 0 ?  0 : (j1 >= image->Y() ? image->Y()     : j1));
-  j2 = (j2 < 0 ? -1 : (j2 >= image->Y() ? image->Y() - 1 : j2));
-  k1 = (k1 < 0 ?  0 : (k1 >= image->Z() ? image->Z()     : k1));
-  k2 = (k2 < 0 ? -1 : (k2 >= image->Z() ? image->Z() - 1 : k2));
+  i1 = (i1 < 0 ?  0 : (i1 >= domain.X() ? domain.X()     : i1));
+  i2 = (i2 < 0 ? -1 : (i2 >= domain.X() ? domain.X() - 1 : i2));
+  j1 = (j1 < 0 ?  0 : (j1 >= domain.Y() ? domain.Y()     : j1));
+  j2 = (j2 < 0 ? -1 : (j2 >= domain.Y() ? domain.Y() - 1 : j2));
+  k1 = (k1 < 0 ?  0 : (k1 >= domain.Z() ? domain.Z()     : k1));
+  k2 = (k2 < 0 ? -1 : (k2 >= domain.Z() ? domain.Z() - 1 : k2));
   return i1 <= i2 && j1 <= j2 && k1 <= k2;
 }
 
 // -----------------------------------------------------------------------------
 inline bool FreeFormTransformation::BoundingBox(const Image *image, int cp,
-                                                    int &i1, int &j1, int &k1, int &l1,
-                                                    int &i2, int &j2, int &k2, int &l2,
-                                                    double fraction) const
+                                                int &i1, int &j1, int &k1,
+                                                int &i2, int &j2, int &k2,
+                                                double fraction) const
+{
+  return BoundingBox(image->Attributes(), cp, i1, j1, k1, i2, j2, k2, fraction);
+}
+
+// -----------------------------------------------------------------------------
+inline bool FreeFormTransformation::BoundingBox(const ImageAttributes &domain, int cp,
+                                                int &i1, int &j1, int &k1, int &l1,
+                                                int &i2, int &j2, int &k2, int &l2,
+                                                double fraction) const
 {
   // Calculate spatial bounding box in image coordinates
-  bool bbvalid = BoundingBox(image, cp, i1, j1, k1, i2, j2, k2, fraction);
+  bool bbvalid = BoundingBox(domain, cp, i1, j1, k1, i2, j2, k2, fraction);
 
   // Calculate temporal bounding box
   double t1, t2;
   this->BoundingBox(cp, t1, t2, fraction);
 
   // Convert to image coordinates
-  t1 = image->TimeToImage(t1);
-  t2 = image->TimeToImage(t2);
+  t1 = domain.TimeToLattice(t1);
+  t2 = domain.TimeToLattice(t2);
   if (t2 < t1) swap(t1, t2);
 
   // Round to nearest voxel in image domain
-  l1 = static_cast<int>(round(t1));
-  l2 = static_cast<int>(round(t2));
+  l1 = iround(t1);
+  l2 = iround(t2);
 
   // When both indices are outside in opposite directions,
   // use the full range [0, N[. If they are both outside in
   // the same direction, the condition l1 <= l2 is false which
   // indicates that the bounding box is empty in this case
-  l1 = (l1 < 0 ?  0 : (l1 >= image->T() ? image->T()     : l1));
-  l2 = (l2 < 0 ? -1 : (l2 >= image->T() ? image->T() - 1 : l2));
+  l1 = (l1 < 0 ?  0 : (l1 >= domain.T() ? domain.T()     : l1));
+  l2 = (l2 < 0 ? -1 : (l2 >= domain.T() ? domain.T() - 1 : l2));
   return bbvalid && l1 <= l2;
 }
 
 // -----------------------------------------------------------------------------
-inline bool FreeFormTransformation::DOFBoundingBox(const Image *image, int dof,
-                                                       int &i1, int &j1, int &k1,
-                                                       int &i2, int &j2, int &k2,
-                                                       double fraction) const
+inline bool FreeFormTransformation::BoundingBox(const Image *image, int cp,
+                                                int &i1, int &j1, int &k1, int &l1,
+                                                int &i2, int &j2, int &k2, int &l2,
+                                                double fraction) const
 {
-  return BoundingBox(image, this->DOFToIndex(dof), i1, j1, k1, i2, j2, k2, fraction);
+  return BoundingBox(image->Attributes(), cp, i1, j1, k1, l1, i2, j2, k2, l2, fraction);
+}
+
+// -----------------------------------------------------------------------------
+inline bool FreeFormTransformation::DOFBoundingBox(const ImageAttributes &domain, int dof,
+                                                   int &i1, int &j1, int &k1,
+                                                   int &i2, int &j2, int &k2,
+                                                   double fraction) const
+{
+  return BoundingBox(domain, this->DOFToIndex(dof), i1, j1, k1, i2, j2, k2, fraction);
+}
+
+// -----------------------------------------------------------------------------
+inline bool FreeFormTransformation::DOFBoundingBox(const Image *image, int dof,
+                                                   int &i1, int &j1, int &k1,
+                                                   int &i2, int &j2, int &k2,
+                                                   double fraction) const
+{
+  return BoundingBox(image->Attributes(), dof, i1, j1, k1, i2, j2, k2, fraction);
 }
 
 // =============================================================================
@@ -1484,6 +1569,23 @@ inline void FreeFormTransformation::JacobianToWorld(Matrix &jac) const
 }
 
 // -----------------------------------------------------------------------------
+inline void FreeFormTransformation::JacobianToWorldOrientation(double &du, double &dv) const
+{
+  double dx = du * _attr._xaxis[0] + dv * _attr._yaxis[0];
+  double dy = du * _attr._xaxis[1] + dv * _attr._yaxis[1];
+  du = dx, dv = dy;
+}
+
+// -----------------------------------------------------------------------------
+inline void FreeFormTransformation::JacobianToWorldOrientation(double &du, double &dv, double &dw) const
+{
+  double dx = du * _attr._xaxis[0] + dv * _attr._yaxis[0] + dw * _attr._zaxis[0];
+  double dy = du * _attr._xaxis[1] + dv * _attr._yaxis[1] + dw * _attr._zaxis[1];
+  double dz = du * _attr._xaxis[2] + dv * _attr._yaxis[2] + dw * _attr._zaxis[2];
+  du = dx, dv = dy, dw = dz;
+}
+
+// -----------------------------------------------------------------------------
 inline void
 FreeFormTransformation::HessianToWorld(double &duu, double &duv, double &dvv) const
 {
@@ -1573,8 +1675,7 @@ inline void FreeFormTransformation::HessianToWorld(Matrix hessian[3]) const
 // -----------------------------------------------------------------------------
 inline void FreeFormTransformation::FFDJacobianWorld(Matrix &, double, double, double, double, double) const
 {
-  cerr << this->NameOfClass() << "::FFDJacobianWorld: Not implemented" << endl;
-  exit(1);
+  Throw(ERR_NotImplemented, __FUNCTION__, "Not implemented");
 }
 
 // -----------------------------------------------------------------------------
@@ -1681,6 +1782,15 @@ inline void FreeFormTransformation::JacobianDOFs(TransformationJacobian &jac, do
       }
     }
   }
+}
+
+// -----------------------------------------------------------------------------
+inline void FreeFormTransformation
+::JacobianDetDerivative(double dJ[3], const Matrix &adj,
+                        int cp, double x, double y, double z, double t, double t0,
+                        bool wrt_world, bool use_spacing) const
+{
+  this->FFDJacobianDetDerivative(dJ, adj, cp, x, y, z, t, t0, wrt_world, use_spacing);
 }
 
 // =============================================================================

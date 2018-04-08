@@ -143,6 +143,12 @@ public:
   /// Whether self-update is enabled
   mirtkPublicAttributeMacro(bool, SelfUpdate);
 
+  /// Minimum foreground intensity of input image
+  mirtkReadOnlyAttributeMacro(double, MinInputIntensity);
+
+  /// Maximum foreground intensity of input image
+  mirtkReadOnlyAttributeMacro(double, MaxInputIntensity);
+
   /// Minimum foreground intensity of warped image or NaN
   mirtkPublicAttributeMacro(double, MinIntensity);
 

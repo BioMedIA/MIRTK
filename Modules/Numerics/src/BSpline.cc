@@ -2,7 +2,7 @@
  * Medical Image Registration ToolKit (MIRTK)
  *
  * Copyright 2013-2015 Imperial College London
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2013-2018 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,6 +22,8 @@
 namespace mirtk {
 
 
+#ifndef __clang__
+
 // Lookup table of B-spline function values
 template <class TReal> MIRTK_Numerics_EXPORT TReal BSpline<TReal>::WeightLookupTable[BSpline<TReal>::LookupTableSize];
 
@@ -32,6 +34,9 @@ template <class TReal> MIRTK_Numerics_EXPORT TReal BSpline<TReal>::LookupTable_I
 
 // Wether lookup tables of B-spline kernel were initialized
 template <class TReal> MIRTK_Numerics_EXPORT bool BSpline<TReal>::_initialized = false;
+
+#endif // !defined(__clang__)
+
 
 // Explicit template instantiations
 template class BSpline<float>;

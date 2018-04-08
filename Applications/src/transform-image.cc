@@ -129,7 +129,7 @@ void PrintHelp(const char *name)
   cout << "  -2d [on|off], -no2d\n";
   cout << "      Project transformed points to 2D, i.e., ignore mapped z coordinate. (default: off)\n";
   cout << "  -3d\n";
-  cout << "      Alias for :option:`-2d off`.\n";
+  cout << "      Alias for :option:`-2d` off.\n";
   PrintCommonOptions(cout);
   cout << endl;
 }
@@ -324,8 +324,8 @@ struct ResampleLabelBody
 
   ResampleLabelBody(const CoordMap *map, const InterpolateImageFunction *interp)
   :
-    _CoordMap(map),
     _LabelMask(interp),
+    _CoordMap(map),
     _Output(map->Attributes(), 1)
   {
     _Output.DefaultValue(0);
@@ -333,8 +333,8 @@ struct ResampleLabelBody
 
   ResampleLabelBody(ResampleLabelBody &other, split)
   :
-    _CoordMap(other._CoordMap),
     _LabelMask(other._LabelMask),
+    _CoordMap(other._CoordMap),
     _Output(other._Output.Attributes())
   {
     _Output.DefaultValue(0);

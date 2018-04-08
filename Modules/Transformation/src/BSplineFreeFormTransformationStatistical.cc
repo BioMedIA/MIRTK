@@ -312,12 +312,12 @@ void BSplineFreeFormTransformationStatistical
 
 // -----------------------------------------------------------------------------
 void BSplineFreeFormTransformationStatistical
-::BendingEnergyGradient(double *gradient, double w, bool incl_passive, bool wrt_world) const
+::BendingEnergyGradient(double *gradient, double w, bool incl_passive, bool wrt_world, bool use_spacing) const
 {
   // Compute bending gradient w.r.t control point coefficients
   double *tmp_gradient = CAllocate<double>(3 * this->NumberOfCPs());
   memset(tmp_gradient, 0, 3 * this->NumberOfCPs() * sizeof(double));
-  BSplineFreeFormTransformation3D::BendingEnergyGradient(tmp_gradient, w, incl_passive, wrt_world);
+  BSplineFreeFormTransformation3D::BendingEnergyGradient(tmp_gradient, w, incl_passive, wrt_world, use_spacing);
 
   // Apply chain rule to obtain gradient w.r.t statistical parameters
   BSplineFreeFormTransformationStatisticalCPGradientProjection proj;

@@ -45,23 +45,23 @@ Command options
 
 .. option:: -total
 
-   Total jacobian. (default)
+   Total Jacobian. (default)
 
 .. option:: -local
 
-   Local jacobian only.
+   Local Jacobian only.
 
 .. option:: -global
 
-   Global jacobian only.
+   Global Jacobian only.
 
 .. option:: -relative
 
-   Local jacobian divided by global Jacobian.
+   Local Jacobian divided by global Jacobian.
 
 .. option:: -log
 
-   Log of total jacobian.
+   Log of total Jacobian.
 
 .. option:: -padding <value>
 
@@ -79,17 +79,33 @@ Command options
 
    Temporal origin of source image. (default: _torigin + _dt)
 
+.. option:: -ss [fast]
+
+   Force use of scaling-and-squaring for SV FFD. (default: SV FFD integration method)
+
 .. option:: -noss
 
    Do not use scaling-and-squaring for SV FFD.
 
+.. option:: -disp [on|off]
+
+   Evaluate Jacobian of linearly interpolated displacement field. (default: off)
+
+.. option:: -velo [on|off]
+
+   Evaluate Jacobian of velocity field parameterization for SV/TD FFD. (default: off)
+
 .. option:: -float
 
-   Output determinant values as single-precision floating point.
+   Output values as single-precision floating point.
 
 .. option:: -double
 
-   Output determinant values as double-precision floating point.
+   Output values as double-precision floating point.
+
+.. option:: -real
+
+   Output values as floating point with default precision.
 
 .. option:: -threshold <value>
 

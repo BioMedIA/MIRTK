@@ -59,8 +59,19 @@ class CalculateGradient : public VoxelFunction
   const Histogram2D<BinType>             &_LogJointHistogram;
   const Histogram1D<BinType>             &_LogMarginalXHistogram;
   const Histogram1D<BinType>             &_LogMarginalYHistogram;
-  double                                  _JointEntropy;
   double                                  _NormalizedMutualInformation;
+  double                                  _NormalizedJointEntropy;
+
+  /// Round value to fixed precision to avoid floating point differences of
+  /// NMI gradient in a symmetric (SVFFD) registration when target and source
+  /// images are exchanged in order to obtain inverse consistent results.
+  ///
+  /// Moreover, noted that optimization would perform more iterations with this
+  /// fixed precision NMI derivative than without, i.e., yielding higher final NMI.
+  inline double RoundDerivativeValue(double x) const
+  {
+    return 1e-9 * static_cast<double>(static_cast<long long>(1e+9 * static_cast<double>(x)));
+  }
 
 public:
 
@@ -68,14 +79,14 @@ public:
                     const Histogram2D<BinType> &logJointHistogram,
                     const Histogram1D<BinType> &logMarginalXHistogram,
                     const Histogram1D<BinType> &logMarginalYHistogram,
-                    double je, double nmi)
+                    double je_norm, double nmi)
   :
     _This(_this),
     _LogJointHistogram(logJointHistogram),
     _LogMarginalXHistogram(logMarginalXHistogram),
     _LogMarginalYHistogram(logMarginalYHistogram),
-    _JointEntropy(je),
-    _NormalizedMutualInformation(nmi)
+    _NormalizedMutualInformation(nmi),
+    _NormalizedJointEntropy(je_norm)
   {}
 
   template <class TImage, class TIntensity, class TGradient>
@@ -97,9 +108,9 @@ public:
       if (s1 <  0           ) s1 = 0;
       if (s2 >= source_nbins) s2 = source_nbins - 1;
 
-      double jointEntropyGrad  = .0;
-      double targetEntropyGrad = .0;
-      double sourceEntropyGrad = .0;
+      double jointEntropyGrad  = 0.;
+      double targetEntropyGrad = 0.;
+      double sourceEntropyGrad = 0.;
       double w;
 
       for (int t = t1; t <= t2; ++t)
@@ -111,7 +122,8 @@ public:
         sourceEntropyGrad += w * static_cast<double>(_LogMarginalYHistogram(s));
       }
 
-      (*deriv) = (targetEntropyGrad + sourceEntropyGrad - _NormalizedMutualInformation * jointEntropyGrad) / _JointEntropy;
+      (*deriv) = (targetEntropyGrad + sourceEntropyGrad - _NormalizedMutualInformation * jointEntropyGrad) / _NormalizedJointEntropy;
+      (*deriv) = RoundDerivativeValue(*deriv);
     }
   }
 };
@@ -184,12 +196,12 @@ void NormalizedMutualImageInformation::Update(bool gradient)
   HistogramImageSimilarity::Update(gradient);
 
   // Update marginal histograms
-  _Histogram->HistogramX(_TargetHistogram);
-  _Histogram->HistogramY(_SourceHistogram);
+  _Histogram.HistogramX(_TargetHistogram);
+  _Histogram.HistogramY(_SourceHistogram);
 
   _TargetEntropy = _TargetHistogram.Entropy();
   _SourceEntropy = _SourceHistogram.Entropy();
-  _JointEntropy  = _Histogram->JointEntropy();
+  _JointEntropy  = _Histogram.JointEntropy();
 }
 
 // -----------------------------------------------------------------------------
@@ -220,12 +232,12 @@ bool NormalizedMutualImageInformation
   // Swap target and source if similarity derived w.r.t transformed "target"
   if (image == Target()) {
     fixed = Source();
-    jhist = _Histogram->Transposed();
+    jhist = _Histogram.Transposed();
     xhist = _SourceHistogram;
     yhist = _TargetHistogram;
   } else {
     fixed = Target();
-    jhist = *_Histogram;
+    jhist = _Histogram;
     xhist = _TargetHistogram;
     yhist = _SourceHistogram;
   }
@@ -235,10 +247,14 @@ bool NormalizedMutualImageInformation
   xhist.Log();
   yhist.Log();
 
+  // Normalized mutual information value
+  double nmi = (_TargetEntropy + _SourceEntropy) / _JointEntropy;
+
+  // Joint entropy value times normalisation factor, including negative sign
+  double je_norm = - _JointEntropy * _Histogram.NumberOfSamples();
+
   // Evaluate similarity gradient w.r.t given transformed image
-  CalculateGradient eval(this, jhist, xhist, yhist,
-     /* denominator = */ - _JointEntropy * _Histogram->NumberOfSamples(),
-     /* NMI         = */ (_TargetEntropy + _SourceEntropy) / _JointEntropy);
+  CalculateGradient eval(this, jhist, xhist, yhist, je_norm, nmi);
   memset(gradient->Data(), 0, _NumberOfVoxels * sizeof(GradientType));
   ParallelForEachVoxel(fixed, image, gradient, eval);
 

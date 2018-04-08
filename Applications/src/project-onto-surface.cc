@@ -827,7 +827,7 @@ void MarkHoles(vtkPolyData *surface, int max_hole_size, const char *scalars_name
         }
       }
     } else {
-      for (vtkIdType ptId = 0, exclId; ptId < surface->GetNumberOfPoints(); ++ptId) {
+      for (vtkIdType ptId = 0; ptId < surface->GetNumberOfPoints(); ++ptId) {
         if (static_cast<LabelType>(labels->GetComponent(ptId, 0)) == 0) {
           labels->SetComponent(ptId, 0, -1.);
         }

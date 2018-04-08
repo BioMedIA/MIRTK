@@ -1,8 +1,8 @@
 /*
  * Medical Image Registration ToolKit (MIRTK)
  *
- * Copyright 2013-2015 Imperial College London
- * Copyright 2013-2015 Andreas Schuh
+ * Copyright 2013-2017 Imperial College London
+ * Copyright 2013-2017 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,6 +25,8 @@
 #include "mirtk/Transformation.h"
 #include "mirtk/AffineTransformation.h"
 #include "mirtk/FreeFormTransformation.h"
+#include "mirtk/MultiLevelFreeFormTransformation.h"
+#include "mirtk/LinearFreeFormTransformation3D.h"
 
 
 using namespace mirtk;
@@ -102,6 +104,9 @@ enum Metric
   Barycentricity
 };
 
+typedef GenericImage<float>     OutputImage;
+typedef OutputImage::VoxelType  OutputType;
+
 // =============================================================================
 // Auxiliary functions
 // =============================================================================
@@ -159,11 +164,13 @@ int main(int argc, char **argv)
   for (ALL_POSARGS) dofin_name.push_back(ARGUMENT);
 
   // Optional arguments
-  const char *list_name     = NULL;
-  const char *output_name   = NULL;
-  const char *target_name   = NULL;
-  const char *mask_name     = NULL;
-  double      padding_value = -numeric_limits<double>::infinity();
+  const char *list_name     = nullptr;
+  const char *output_name   = nullptr;
+  const char *target_name   = nullptr;
+  const char *mask_name     = nullptr;
+  double      padding_value = -inf;
+  OutputType  outside_value = 0.;
+  bool        cache_disp    = false;
   bool        cumulative    = false;
   bool        squared       = false;
   Metric      metric        = None;
@@ -174,11 +181,10 @@ int main(int argc, char **argv)
     else if (OPTION("-target")) target_name = ARGUMENT;
     else if (OPTION("-mask"))   mask_name   = ARGUMENT;
     else if (OPTION("-padding")) {
-      const char *arg = ARGUMENT;
-      if (!FromString(arg, padding_value)) {
-        cerr << "Invalid -padding value" << endl;
-        exit(1);
-      }
+      PARSE_ARGUMENT(padding_value);
+    }
+    else if (OPTION("-outside")) {
+      PARSE_ARGUMENT(outside_value);
     }
     else if (OPTION("-cumulative")) cumulative = true;
     else if (OPTION("-squared"))    squared    = true;
@@ -191,6 +197,10 @@ int main(int argc, char **argv)
     else if (OPTION("-mte"))  { metric = Transitivity;       cumulative = false; }
     else if (OPTION("-cte"))  { metric = Transitivity;       cumulative = true;  }
     else if (OPTION("-barycentricity")) metric = Barycentricity;
+    else if (OPTION("-allow-caching-of-displacements") || OPTION("-ss")) {
+      cache_disp = true;
+      if (HAS_ARGUMENT) PARSE_ARGUMENT(cache_disp);
+    }
     else HANDLE_COMMON_OR_UNKNOWN_OPTION();
   }
 
@@ -277,7 +287,7 @@ int main(int argc, char **argv)
     }
 
     // Compute inverse-consistency error for each pair of transformations
-    GenericImage<float> output(attr);
+    OutputImage output(attr);
     const int nvox = output.NumberOfVoxels();
     int ntuple = 0;
     int ntotal = static_cast<int>(dofin_name.size() / dofs.size());
@@ -295,19 +305,51 @@ int main(int argc, char **argv)
       }
       for (j = 0; j < dofs.size(); ++j) {
         if (i == 0 && j == 0) dofs[j] = dof;
-        else dofs[j].reset(Transformation::New(dofin_name[i + j].c_str()));
+        else {
+          dofs[j].reset(Transformation::New(dofin_name[i + j].c_str()));
+          if (cache_disp && dofs[j]->RequiresCachingOfDisplacements()) {
+            int dims = 0;
+            auto mffd = dynamic_cast<MultiLevelFreeFormTransformation *>(dofs[j].get());
+            if (mffd) {
+              for (int l = 0; l < mffd->NumberOfLevels(); ++l) {
+                int level_dims = 2;
+                if      (mffd->GetLocalTransformation(l)->T() > 1) level_dims = 4;
+                else if (mffd->GetLocalTransformation(l)->Z() > 1) level_dims = 3;
+                if (dims == 0) {
+                  dims = level_dims;
+                } else if (dims != level_dims) {
+                  dims = 0;
+                  break;
+                }
+              }
+            } else {
+              auto ffd = dynamic_cast<FreeFormTransformation *>(dofs[j].get());
+              dims = 2;
+              if      (ffd->T() > 1) dims = 4;
+              else if (ffd->Z() > 1) dims = 3;
+            }
+            if (dims == 2 || dims == 3) {
+              if (verbose > 1) cout << "  Convert input transformation to " << dims << "D LinearFFD" << endl;
+              GenericImage<double> disp(attr, dims);
+              dofs[j]->Displacement(disp);
+              dofs[j].reset(new LinearFreeFormTransformation3D(disp));
+            }
+          }
+        }
       }
       const double *x1 = i2w.Data(0, 0, 0, 0);
       const double *y1 = i2w.Data(0, 0, 0, 1);
       const double *z1 = i2w.Data(0, 0, 0, 2);
-      float *err = output.Data();
+      OutputType *err = output.Data();
       for (int n = 0; n < nvox; ++n) {
         if ((target.IsEmpty() || target.IsForeground(n)) && (mask.IsEmpty() || mask.Get(n))) {
           x2 = x1[n], y2 = y1[n], z2 = z1[n];
           for (j = 0; j < dofs.size(); ++j) dofs[j]->Transform(x2, y2, z2);
           x2 -= x1[n], y2 -= y1[n], z2 -= z1[n];
           d = x2 * x2 + y2 * y2 + z2 * z2;
-          err[n] += static_cast<float>(squared ? d : sqrt(d));
+          err[n] += static_cast<OutputType>(squared ? d : sqrt(d));
+        } else {
+          err[n] = outside_value;
         }
       }
     }

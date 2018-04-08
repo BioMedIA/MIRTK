@@ -62,6 +62,9 @@ public:
   /// Degree of B-spline
   mirtkPublicAttributeMacro(int, SplineDegree);
 
+  /// Input image contains spline coefficients
+  mirtkAttributeMacro(bool, UseInputCoefficients);
+
   /// Image of spline coefficients
   mirtkAttributeMacro(CoefficientImage, Coefficient);
 
@@ -81,6 +84,9 @@ public:
 
   /// Initialize interpolation function
   virtual void Initialize(bool = false);
+
+  /// Update spline coefficients
+  virtual void Update();
 
   // ---------------------------------------------------------------------------
   // Domain checks

@@ -76,6 +76,10 @@ class BSplineFreeFormTransformationSV : public BSplineFreeFormTransformation3D
   /// Integration method used to obtain displacement from velocities
   mirtkPublicAttributeMacro(FFDIntegrationMethod, IntegrationMethod);
 
+  /// Whether to evaluate BCH formulat for parametric gradient calculation
+  /// on dense image lattice of non-parametric gradient using linear interpolation
+  mirtkPublicAttributeMacro(bool, UseDenseBCHGrid);
+
   /// Use Lie derivative definition of Lie bracket based on vector field
   /// Jacobian matrices instead of difference of vector field composition
   mirtkPublicAttributeMacro(bool, LieDerivative);
@@ -84,10 +88,6 @@ class BSplineFreeFormTransformationSV : public BSplineFreeFormTransformation3D
   /// value, i.e., no. of terms < 2, the gradient is computed using the specified
   /// integration method instead.
   mirtkPublicAttributeMacro(int, NumberOfBCHTerms);
-
-  /// Cached derivatives of transformation T = exp(v) w.r.t. v
-  mutable GenericImage<double> *_JacobianDOFs;
-  mutable double                _JacobianDOFsIntervalLength;
 
   // ---------------------------------------------------------------------------
   // Construction/Destruction
@@ -203,14 +203,6 @@ public:
   virtual void Invert();
 
   // ---------------------------------------------------------------------------
-  // Parameters (DoFs)
-
-  using BSplineFreeFormTransformation3D::Changed;
-
-  /// Set whether object has changed and should notify observers upon request
-  virtual void Changed(bool);
-
-  // ---------------------------------------------------------------------------
   // Parameters (non-DoFs)
 
   using BSplineFreeFormTransformation3D::Parameter;
@@ -319,7 +311,6 @@ public:
   /// \param[out]    dx   Partial derivatives of corresponding transformation w.r.t. x.
   /// \param[out]    dj   Determinant of Jacobian w.r.t. x, i.e., det(jac(\p dx)).
   /// \param[out]    lj   Log of determinant of Jacobian w.r.t. x, i.e., log(det(jac(\p dx))).
-  /// \param[out]    dv   Partial derivatives of corresponding transformation w.r.t. v.
   /// \param[in]     T    Upper integration limit, i.e., length of time interval.
   /// \param[in]     wc   Pre-computed world coordinates of image voxels.
   template <class VoxelType>
@@ -328,7 +319,6 @@ public:
                           GenericImage<VoxelType> *dx,
                           GenericImage<VoxelType> *dj = NULL,
                           GenericImage<VoxelType> *lj = NULL,
-                          GenericImage<VoxelType> *dv = NULL,
                           double T = 1.0, const WorldCoordsImage *wc = NULL) const;
 
   /// Whether the caching of the transformation displacements is required
@@ -420,6 +410,18 @@ public:
 
   /// Calculates the Jacobian of the transformation w.r.t the transformation parameters
   virtual void JacobianDOFs(TransformationJacobian &, double, double, double, double = 0, double = NaN) const;
+
+  /// Calculates derivatives of the Jacobian determinant at world point w.r.t. DoFs of a control point
+  ///
+  /// \param[out] dJ  Partial derivatives of Jacobian determinant at (x, y, z) w.r.t. DoFs of control point.
+  /// \param[in]  cp  Index of control point w.r.t. whose DoFs the derivatives are computed.
+  /// \param[in]  x   World coordinate along x axis at which to evaluate derivatives.
+  /// \param[in]  y   World coordinate along y axis at which to evaluate derivatives.
+  /// \param[in]  z   World coordinate along z axis at which to evaluate derivatives.
+  /// \param[in]  adj Adjugate of Jacobian matrix evaluated at (x, y, z).
+  virtual void JacobianDetDerivative(double dJ[3], const Matrix &adj,
+                                     int cp, double x, double y, double z, double t = 0, double t0 = NaN,
+                                     bool wrt_world = true, bool use_spacing = true) const;
 
 protected:
 

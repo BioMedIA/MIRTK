@@ -7,3 +7,10 @@ point set file. The corresponding transformed coordinates are then written
 either to STDOUT or an output point set file, respectively. If multiple
 transformations are specified, these are applied in the order as they appear
 on the command line.
+
+::
+
+    Attention: When both :option:`transform-points -target` and :option:`transform-points -source` arguments are given,
+               the points are first mapped from target world to image space and then
+               the image to world transformation of the source image is applied.
+               This is a relict from the corresponding IRTK command...

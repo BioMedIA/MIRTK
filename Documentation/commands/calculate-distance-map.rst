@@ -44,6 +44,7 @@ Command options
    
    - ``cityblock``: Manhatten city block (L1) distance.
    - ``euclidean``: Euclidean distance.
+   - ``laplacian``: Laplacian distance.
 
 
 Euclidean distance transform options
@@ -71,6 +72,13 @@ Euclidean distance transform options
    where the voxel size is s times the minimum voxel size.
    When no argument given, s defaults to 1. (default: 0/off)
 
+.. option:: -outside <file>
+
+   Binary mask with non-zero values at voxels which are outside
+   the region for which distance values are to be computed.
+   Required by ``laplacian`` :option:`-distance`, where it defines
+   the boundary voxels with a maximum distance value of 1.
+
 
 Standard options
 ----------------
@@ -94,3 +102,19 @@ Standard options
 .. option:: -h, -help
 
    Print help and exit.
+
+
+Terminal options
+----------------
+
+.. option:: -color, -nocolor
+
+   Enable/disable colored output. (default: off)
+
+
+Parallelization options
+-----------------------
+
+.. option:: -threads <n>
+
+   Use maximal <n> threads for parallel execution. (default: automatic)

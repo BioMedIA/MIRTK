@@ -62,6 +62,9 @@ public:
   // ---------------------------------------------------------------------------
   // Attributes
 
+  /// Input image contains spline coefficients
+  mirtkAttributeMacro(bool, UseInputCoefficients);
+
   /// Image of spline coefficients
   mirtkAttributeMacro(CoefficientImage, Coefficient);
 
@@ -86,6 +89,9 @@ public:
 
   /// Initialize image function
   virtual void Initialize(bool = false);
+
+  /// Update spline coefficients
+  virtual void Update();
 
   // ---------------------------------------------------------------------------
   // Domain checks

@@ -127,6 +127,13 @@ MIRTKCU_API inline bool AreEqualOrNaN(double a, double b, double tol = 1e-12)
 }
 
 // -----------------------------------------------------------------------------
+/// Determine equality of a floating point number with zero
+MIRTKCU_API inline bool IsZero(double a, double tol = 1e-12)
+{
+  return abs(a) < tol;
+}
+
+// -----------------------------------------------------------------------------
 /// \deprecated Use AreEqual instead.
 MIRTKCU_API inline bool fequal(double a, double b, double tol = 1e-12)
 {

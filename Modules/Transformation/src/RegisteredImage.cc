@@ -162,6 +162,8 @@ RegisteredImage::RegisteredImage()
   _CacheFixedDisplacement(false), // by default, only if required by transformation
   _CacheDisplacement     (false), // (c.f. Transformation::RequiresCachingOfDisplacements)
   _SelfUpdate            (true),
+  _MinInputIntensity     (NaN),
+  _MaxInputIntensity     (NaN),
   _MinIntensity          (NaN),
   _MaxIntensity          (NaN),
   _GradientSigma         (0.),
@@ -194,6 +196,8 @@ RegisteredImage::RegisteredImage(const RegisteredImage &other)
   _CacheFixedDisplacement(other._CacheFixedDisplacement),
   _CacheDisplacement     (other._CacheDisplacement),
   _SelfUpdate            (other._SelfUpdate),
+  _MinInputIntensity     (other._MinInputIntensity),
+  _MaxInputIntensity     (other._MaxInputIntensity),
   _MinIntensity          (other._MinIntensity),
   _MaxIntensity          (other._MaxIntensity),
   _GradientSigma         (other._GradientSigma),
@@ -226,6 +230,8 @@ RegisteredImage &RegisteredImage::operator =(const RegisteredImage &other)
   _CacheFixedDisplacement = other._CacheFixedDisplacement;
   _CacheDisplacement      = other._CacheDisplacement;
   _SelfUpdate             = other._SelfUpdate;
+  _MinInputIntensity      = other._MinInputIntensity;
+  _MaxInputIntensity      = other._MaxInputIntensity;
   _MinIntensity           = other._MinIntensity;
   _MaxIntensity           = other._MaxIntensity;
   _GradientSigma          = other._GradientSigma;
@@ -291,6 +297,9 @@ void RegisteredImage::Initialize(const ImageAttributes &attr, int t)
     Throw(ERR_InvalidArgument, __FUNCTION__, "Number of registered image channels must be either 1, 4, 10 or 13");
   }
   GenericImage<VoxelType>::Initialize(attr, t);
+
+  // Determine input intensity range
+  _InputImage->GetMinMaxAsDouble(_MinInputIntensity, _MaxInputIntensity);
 
   // Pre-compute world coordinates
   if (_WorldCoordinates) {
@@ -366,7 +375,6 @@ void RegisteredImage::Initialize(const ImageAttributes &attr, int t)
 // -----------------------------------------------------------------------------
 void RegisteredImage::ComputeInputGradient(double sigma)
 {
-  MIRTK_START_TIMING();
   Delete(_InputGradient);
   if (sigma > 0. || _PrecomputeDerivatives) {
     // Background value
@@ -385,6 +393,7 @@ void RegisteredImage::ComputeInputGradient(double sigma)
     }
     // Smooth input image
     if (sigma > 0.) {
+      MIRTK_START_TIMING();
       UniquePtr<InputGradientType> blurred(new InputGradientType());
       if (IsInf(bgvalue)) {
         typedef GaussianBlurring<InputGradientType::VoxelType> GaussianFilter;
@@ -405,8 +414,10 @@ void RegisteredImage::ComputeInputGradient(double sigma)
       }
       temp.reset(blurred.release());
       image = temp.get();
+      MIRTK_DEBUG_TIMING(5, "low-pass filtering of image for 1st order derivatives");
     }
     if (_PrecomputeDerivatives) {
+      MIRTK_START_TIMING();
       const int nvox = image->NumberOfSpatialVoxels();
       UniquePtr<InputGradientType> gradient(new InputGradientType());
       // Compute image gradient using finite differences
@@ -483,14 +494,12 @@ void RegisteredImage::ComputeInputGradient(double sigma)
     } else {
       _InputGradient = reinterpret_cast<InputGradientType *>(_InputImage);
     }
-    MIRTK_DEBUG_TIMING(5, "low-pass filtering of image for 1st order derivatives");
   }
 }
 
 // -----------------------------------------------------------------------------
 void RegisteredImage::ComputeInputHessian(double sigma)
 {
-  MIRTK_START_TIMING();
   Delete(_InputHessian);
   // Background value
   double bgvalue = -inf;
@@ -508,6 +517,7 @@ void RegisteredImage::ComputeInputHessian(double sigma)
   }
   // Smooth input image
   if (sigma > .0) {
+    MIRTK_START_TIMING();
     UniquePtr<InputHessianType> blurred(new InputHessianType());
     if (IsInf(bgvalue)) {
       typedef GaussianBlurring<InputHessianType::VoxelType> GaussianFilter;
@@ -528,8 +538,10 @@ void RegisteredImage::ComputeInputHessian(double sigma)
     }
     temp.reset(blurred.release());
     image = temp.get();
+    MIRTK_DEBUG_TIMING(5, "low-pass filtering of image for 2nd order derivatives");
   }
   // Compute 2nd order image derivatives using finite differences
+  MIRTK_START_TIMING();
   UniquePtr<InputHessianType> hessian(new InputHessianType());
   typedef HessianImageFilter<InputHessianType::VoxelType> HessianFilterType;
   HessianFilterType filter(HessianFilterType::HESSIAN_MATRIX);
@@ -914,7 +926,8 @@ public:
     New<IntensityFunction>(_IntensityFunction, f, interp, o->ExtrapolationMode(), f_bg, f_bg);
     New<GradientFunction >(_GradientFunction,  g, interp, Extrapolation_Default,  g_bg, 0.);
     New<HessianFunction  >(_HessianFunction,   h, interp, Extrapolation_Default,  h_bg, 0.);
-    f->GetMinMaxAsDouble(_MinIntensity, _MaxIntensity);
+    _MinIntensity           = o->MinInputIntensity();
+    _MaxIntensity           = o->MaxInputIntensity();
     _PrecomputedDerivatives = o->PrecomputeDerivatives();
     _NumberOfChannels       = o->T();
     _NumberOfVoxels         = o->X() * o->Y() * o->Z();
@@ -979,13 +992,13 @@ public:
                (!_HessianFunction  || _HessianFunction ->IsInside(x, y, z));
     }
     if (inside && check_value && _InterpolateWithPadding) {
-      double value = _IntensityFunction->EvaluateWithPadding(x, y, z);
+      double value = _IntensityFunction->EvaluateWithPaddingInside(x, y, z);
       if (IsNaN(value) || AreEqual(value, _IntensityFunction->DefaultValue(), 1e-6)) inside = false;
     }
     if (inside) return 1;
-    if (0. <= x && x <= _InputSize._x - 1. &&
-        0. <= y && y <= _InputSize._y - 1. &&
-        0. <= z && z <= _InputSize._z - 1.) return 0;
+    if (-.5 < x && x < _InputSize._x - .5 &&
+        -.5 < y && y < _InputSize._y - .5 &&
+        -.5 < z && z < _InputSize._z - .5) return 0;
     return -1;
   }
 
@@ -1027,7 +1040,7 @@ public:
     } else {
       value = _OutsideValue;
     }
-    *o = static_cast<VoxelType>(value);
+    (*o) = static_cast<VoxelType>(value);
     // Pass inside/outside check result on to derivative interpolation
     // functions such that these boundary checks are only done once.
     // This requires the same interpolation mode for all channels.
@@ -1047,6 +1060,9 @@ private:
         } else {
           _GradientFunction->EvaluateInside(o, x, y, z, stride);
         }
+        for (int c = 1; c <= 3; ++c, o += stride) {
+          (*o) *= _RescaleSlope;
+        }
       } break;
       // Boundary
       case 0: {
@@ -1055,10 +1071,15 @@ private:
         } else {
           _GradientFunction->EvaluateOutside(o, x, y, z, stride);
         }
+        for (int c = 1; c <= 3; ++c, o += stride) {
+          (*o) *= _RescaleSlope;
+        }
       } break;
       // Outside
       default: {
-        for (int c = 1; c <= 3; ++c, o += stride) *o = 0.;
+        for (int c = 1; c <= 3; ++c, o += stride) {
+          (*o) = 0.;
+        }
       } break;
     }
   }
@@ -1074,6 +1095,9 @@ private:
         } else {
           _HessianFunction->EvaluateInside(o, x, y, z, stride);
         }
+        for (int c = 4; c <= _NumberOfChannels; ++c, o += stride) {
+          (*o) *= _RescaleSlope;
+        }
       } break;
       // Boundary
       case 0: {
@@ -1082,17 +1106,22 @@ private:
         } else {
           _HessianFunction->EvaluateOutside(o, x, y, z, stride);
         }
+        for (int c = 4; c <= _NumberOfChannels; ++c, o += stride) {
+          (*o) *= _RescaleSlope;
+        }
       } break;
       // Outside
       default: {
-        for (int c = 4; c < _NumberOfChannels; ++c, o += stride) *o = 0.;
+        for (int c = 4; c < _NumberOfChannels; ++c, o += stride) {
+          (*o) = 0.;
+        }
       } break;
     }
   }
 
 public:
 
-  /// Interpolate 2nd order derivatives of input intensity function
+  /// Interpolate 1st order derivatives of input intensity function
   void Gradient(double x, double y, double z, VoxelType *o, int mode = 0) const
   {
     double gradient[3];
@@ -1278,6 +1307,17 @@ private:
   Transformer  _Transform;
   Interpolator _Interpolate;
 
+  // Attempt to reduce differences between registration with identical images
+  // that have only a different image to world mapping by rounding continuous
+  // voxel indices to a specified precision. For a single test registration,
+  // this slightly increased the results due to more iterations. Results
+  // with x/y axes swapped and negative z axis still different from image
+  // with identity transformation... (using FastLinearGradientImageFunction).
+  inline double RoundIndex(double x) const
+  {
+    return static_cast<double>(static_cast<long>(round(x * 1e+4))) * 1e-4;
+  }
+
 public:
 
   /// Constructor
@@ -1292,7 +1332,10 @@ public:
   void operator ()(int i, int j, int k, int, VoxelType *o)
   {
     double x = i, y = j, z = k;
-    _Transform  (x, y, z);
+    _Transform(x, y, z);
+    x = RoundIndex(x);
+    y = RoundIndex(y);
+    z = RoundIndex(z);
     _Interpolate(x, y, z, o);
   }
 
@@ -1300,7 +1343,10 @@ public:
   void operator ()(int i, int j, int k, int, const CoordType *wc, VoxelType *o)
   {
     double x = i, y = j, z = k;
-    _Transform  (x, y, z, wc);
+    _Transform(x, y, z, wc);
+    x = RoundIndex(x);
+    y = RoundIndex(y);
+    z = RoundIndex(z);
     _Interpolate(x, y, z, o);
   }
 
@@ -1308,7 +1354,10 @@ public:
   void operator ()(int i, int j, int k, int, const CoordType *wc, const DisplacementType *dx, VoxelType *o)
   {
     double x = i, y = j, z = k;
-    _Transform  (x, y, z, wc, dx);
+    _Transform(x, y, z, wc, dx);
+    x = RoundIndex(x);
+    y = RoundIndex(y);
+    z = RoundIndex(z);
     _Interpolate(x, y, z, o);
   }
 
@@ -1316,7 +1365,10 @@ public:
   void operator ()(int i, int j, int k, int, const CoordType *wc, const DisplacementType *d1, const DisplacementType *d2, VoxelType *o)
   {
     double x = i, y = j, z = k;
-    _Transform  (x, y, z, wc, d1, d2);
+    _Transform(x, y, z, wc, d1, d2);
+    x = RoundIndex(x);
+    y = RoundIndex(y);
+    z = RoundIndex(z);
     _Interpolate(x, y, z, o);
   }
 };

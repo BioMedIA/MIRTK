@@ -14,8 +14,8 @@ Synopsis
 ::
 
     average-images <output> -images <images.lst> [options]
-    average-images <output> -image <image1> [-dof <dof1>] -image <image2> [-dof <dof2>]... [options]
-    average-images <output> <image1> [<dof1>] <image2> [<dof2>]... [options]
+    average-images <output> -image <image1> [<w1>] [-dof <dof1>...] -image <image2> [<w2>] [-dof <dof2>...]... [options]
+    average-images <output> <image1> [<dof1>...] <image2> [<dof2>...]... [options]
     average-images <output> <sequence> [options]
 
 
@@ -31,21 +31,40 @@ Arguments
 
 .. option:: output
 
-   Voxel-wise average image.
+   Voxel-wise average image. When the :option:`-label` is used multiple times,
+   a unique file path is created for each fuzzy output segmentation.
+
+
+Input options
+-------------
+
+.. option:: -image <file> [<w>]
+
+   A single input image.
 
 .. option:: -images <file>
 
    Text file with N lines containing the file name of each input image,
    optionally a transformation file name (see :option:`-dof` and :option:`-dof_i`),
-   optionally followed by a weight for a weighted output average (default weight is 1).
+   followed by an optional weight for a weighted output average (default weight is 1).
    The first line of the text file must specify the common base directory
    of all relative image and transformation file paths occurring on the
    subsequent N lines. A path starting with './' must be relative to the
-   directory containing the input text file itself.
+   directory containing the input text file itself. Each transformation file
+   path may be prefixed with 'inv:' or 'dof:' to indicate whether the inverse
+   of the given transformation file maps points from the image world space to
+   the common average world space or not. When omitted from a file path, 'dof:'
+   is implied, i.e., the transformation is assumed to map points from input image
+   to average image world space (see :option:`-dof`).
 
-.. option:: -image <file>
+.. option:: -delim, -delimiter <c>
 
-   A single input image.
+   Delimiter used in :option:`-images` file.
+   (default: ',' for .csv, '\t' for .tsv, and ' ' otherwise)
+
+.. option:: -invert
+
+   Invert transformations specified in :option:`-images` file.
 
 .. option:: -dof <file>
 
@@ -54,28 +73,80 @@ Arguments
 .. option:: -dof_i <file>
 
    Specifies a transformation whose inverse is to be applied to the
-   preceeding image. (default: none)
+   preceeding image similar to :option:`-dof`. (default: none)
 
 
 Command options
 ---------------
 
-.. option:: -size <dx> [<dy> [<dz>]]
+.. option:: -reference, -target <file>|max-size|max-space|average
 
-   Voxel size of intensity average image. (default: average of input images)
+   When <file> name specified, use the attributes of this reference image for average image.
+   When "max-size" is specified, the input image with the most number of voxels is used as
+   reference, whereas "max-space" selects the image which occupies the largest amount world space.
+   By default, an "average" voxel size and image orientation is computed from the input images
+   and the image size adjusted such that the image bounding boxes of all (affinely transformed)
+   input images are contained within the average image space. (default: average)
+
+.. option:: -voxel-size, -spacing, -size <dx> [<dy> [<dz>]]
+
+   Voxel size of intensity average image. (default: :option:`-reference`)
 
 .. option:: -padding <value>
 
    Input padding and output background value. No input padding if not specified.
    Output background value zero by default or minimum average intensity minus 1. (default: 0)
 
-.. option:: -interp <mode>
+.. option:: -threshold <value>
+
+   Replace average value by :option:`-padding` value when cumulative normalized weight
+   is below the specified threshold in [0, 1). (default: 0)
+
+.. option:: -normalize, -normalization <mode>
+
+   Input intensity normalization:
+   
+   - ``none``:    Use input intensities unmodified. (default)
+   - ``mean``:    Divide by mean foreground value.
+   - ``median``:  Divide by median foreground value.
+   - ``z-score``: Subtract mean and divide by standard deviation.
+   - ``unit``:    Rescale input intensities to [0, 1].
+   - ``dist``:    Rescale input intensities to average mean and standard deviation of input images.
+
+.. option:: -rescale, -rescaling <mode>|<min> <max>
+
+   Linear rescaling of average intensity values:
+   
+   - ``none``: No rescaling of averaged intensities. (default)
+   - ``unit``: Rescale average intensities to [0, 1].
+   - ``dist``: Rescale average intensities to average mean and standard deviation of input images.
+   - ``<min> <max>``: Rescale average intensities to specified output range.
+
+.. option:: -margin <n>
+
+   Crop/pad average image and ensure a margin of <n> voxels at each boundary. (default: -1/off)
+
+.. option:: -interpolation, -interp <mode>
 
    Interpolation mode, e.g., NN, Linear, BSpline, Cubic, Sinc. (default: Linear)
 
-.. option:: -label <value>
+.. option:: -label, -labels [<path>|<value>|<from>..<to>...]
 
-   Segmentation label of which to create an average probability map.
+   Segmentation label(s) of which to create an average probability map.
+   When multiple labels are given, the corresponding segments are merged.
+   This option can be given multiple times to create more than one average
+   image for each segment. When only one <output> file name is given, it is
+   modified to include the index of the segment corresponding to the order
+   of the -label(s) options. Otherwise, specify a different output <path>
+   as argument. A suffix corresponding to the respective label is appended to
+   the output file path before the file name extension. When no argument is given
+   the <output> path is used.
+
+.. option:: -datatype, -dtype, -type char|uchar|short|float|double
+
+   Data type of output image. The intermediate average image always has floating point data type.
+   When this option is given, this average is cast to the respective output type before writing
+   the result to the output image file. (default: float)
 
 
 Standard options

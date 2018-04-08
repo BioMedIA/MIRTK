@@ -278,6 +278,11 @@ public:
     for (int n = re.begin(); n != re.end(); ++n) {
       // Determine minimal lattice containing foreground voxels
       auto attr = ForegroundDomain(_Input[n], _Background[n], _Resolution[n], _Blurring[n], false);
+      // Add extra margin for derivatives computation
+      const int margin = 1;
+      if (attr._x > 1) attr._x += 2 * margin;
+      if (attr._y > 1) attr._y += 2 * margin;
+      if (attr._z > 1) attr._z += 2 * margin;
       // Resample input image on foreground lattice
       // (interpolation not required as voxel centers should still match)
       _Output[n].Initialize(attr, 1);
@@ -518,15 +523,16 @@ public:
       double dz = (_Image[1][n].Z() > 1 ? _Image[1][n].ZSize() : .0);
       Vector3D<double> var(.0);
       for (int l = 2; l <= _Level; ++l) {
-        var._x +=  pow(0.7 * dx, 2);
-        var._y +=  pow(0.7 * dy, 2);
-        var._z +=  pow(0.7 * dz, 2);
-        dx *= 2.0, dy *= 2.0, dz *= 2.0;
+        var._x +=  pow(0.7355 * dx, 2);
+        var._y +=  pow(0.7355 * dy, 2);
+        var._z +=  pow(0.7355 * dz, 2);
+        dx *= 2., dy *= 2., dz *= 2.;
       }
-      const Vector3D<double> sigma(sqrt(var._x), sqrt(var._y), sqrt(var._z));
+      Vector3D<double> sigma(sqrt(var._x), sqrt(var._y), sqrt(var._z));
       // Determine minimal lattice containing foreground voxels
       ImageAttributes attr;
       if (_CropPad) {
+        // Crop image with extra margin for Gaussian filtering
         const auto res = Vector3D<double>(dx, dy, dz);
         auto blurring = sigma;
         if (_Blurring) {
@@ -538,14 +544,35 @@ public:
       } else {
         attr = _Image[1][n].Attributes();
       }
-      // Calculate number of voxels preserving the image size
-      attr._x = (dx ? iceil(attr._x * attr._dx / dx) : 1);
-      attr._y = (dy ? iceil(attr._y * attr._dy / dy) : 1);
-      attr._z = (dz ? iceil(attr._z * attr._dz / dz) : 1);
       // Ensure lattice can be divided by 2, given that dx = 2^n * attr._dx
       if (attr._x % 2 != 0) attr._x += 1, attr._xorigin += .5 * attr._dx;
       if (attr._y % 2 != 0) attr._y += 1, attr._yorigin += .5 * attr._dy;
       if (attr._z % 2 != 0) attr._z += 1, attr._zorigin += .5 * attr._dz;
+      // Calculate number of voxels preserving the image size
+      for (int l = 2; l <= _Level; ++l) {
+        if (attr._x < 64) {
+          dx *= .5;
+        } else {
+          attr._x /= 2;
+        }
+        if (attr._y < 64) {
+          dy *= .5;
+        } else {
+          attr._y /= 2;
+        }
+        if (attr._z < 64) {
+          dz *= .5;
+        } else {
+          attr._z /= 2;
+        }
+      }
+      // Add extra margin for derivatives computation
+      if (_CropPad) {
+        const int margin = 1;
+        if (attr._x > 1) attr._x += 2 * margin;
+        if (attr._y > 1) attr._y += 2 * margin;
+        if (attr._z > 1) attr._z += 2 * margin;
+      }
       // If background value set, consider foreground only
       if (_Padding) {
         typedef GaussianBlurringWithPadding<VoxelType> BlurFilter;
@@ -971,9 +998,9 @@ void GenericRegistrationFilter::Clear()
 GenericRegistrationFilter::GenericRegistrationFilter()
 :
   _InitialGuess(nullptr),
+  _TargetTransformation(nullptr),
   _Domain(nullptr),
   _Transformation(nullptr),
-  _TargetTransformation(nullptr),
   _Optimizer(nullptr)
 {
   // Bind broadcast method to optimizer events (excl. Start/EndEvent!)
@@ -1086,8 +1113,9 @@ bool GenericRegistrationFilter::IsMovingImage(int n) const
   // Note: Image is moving if it is being transformed by any similarity term
   Array<ImageSimilarityInfo>::const_iterator it;
   for (it = _ImageSimilarityInfo.begin(); it != _ImageSimilarityInfo.end(); ++it) {
-    if (it->_TargetIndex == n && !it->_TargetTransformation.IsIdentity()) return true;
-    if (it->_SourceIndex == n && !it->_SourceTransformation.IsIdentity()) return true;
+    // Note: For longitudinal registration, target image deformed by FFD at t=0 may be compared to itself
+    if (it->_TargetIndex == n && it->_SourceIndex != n && !it->_TargetTransformation.IsIdentity()) return true;
+    if (it->_TargetIndex != n && it->_SourceIndex == n && !it->_SourceTransformation.IsIdentity()) return true;
   }
   return false;
 }
@@ -1247,8 +1275,9 @@ bool GenericRegistrationFilter::IsMovingPointSet(int n) const
   // Note: Point set is moving if it is being transformed by any similarity term
   Array<PointSetDistanceInfo>::const_iterator it;
   for (it = _PointSetDistanceInfo.begin(); it != _PointSetDistanceInfo.end(); ++it) {
-    if (it->_TargetIndex == n && !it->_TargetTransformation.IsIdentity()) return true;
-    if (it->_SourceIndex == n && !it->_SourceTransformation.IsIdentity()) return true;
+    // Note: For longitudinal registration, target point set deformed by FFD at t=0 may be compared to itself
+    if (it->_TargetIndex == n && it->_SourceIndex != n && !it->_TargetTransformation.IsIdentity()) return true;
+    if (it->_TargetIndex != n && it->_SourceIndex == n && !it->_SourceTransformation.IsIdentity()) return true;
   }
   return false;
 }
@@ -2231,11 +2260,13 @@ void GenericRegistrationFilter::ParseEnergyFormula(int nimages, int npsets, int 
       if (!formula.empty()) formula += " + ";
       const double be_w = ((nimages >= 2) ? 0.001 : .0);
       formula += ToString(be_w);
-      formula +=     " BE[Bending energy]"
-                 " + 0 TP[Topology preservation]"
-                 " + 0 VP[Volume preservation]"
-                 " + 0 JAC[Jacobian penalty]"
-                 " + 0 Sparsity";
+      formula +=     " BE[Bending energy](T)"
+                 " + 0 LE[Linear energy](T)"
+                 " + 0 TP[Topology preservation](T)"
+                 " + 0 VP[Volume preservation](T)"
+                 " + 0 LogJac[LogJac penalty](T)"
+                 " + 0 NegJac[NegJac penalty](T)"
+                 " + 0 Sparsity(T)";
     }
     formula += " + 0 MSDE[Displacement error](T)";
   }
@@ -3442,7 +3473,7 @@ void GenericRegistrationFilter::InitializeTransformation()
   // of a 4D FFD if it is not extended periodically by the extrapolator
   enum ExtrapolationMode m = ffd->ExtrapolationMode();
   const bool periodic = (m == ExtrapolationWithPeriodicTime(m));
-  if (!periodic) {
+  if (!periodic && _CropPadFFD) {
     if (domain._t > 1) {
       // Note: Image/FFD lattices are not centered in the temporal domain
       const double margin = ffd->KernelRadius();
