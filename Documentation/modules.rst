@@ -17,6 +17,7 @@ Modules
    modules/registration
    modules/deformable
    modules/mapping
+   modules/scripting
    modules/drawem
 
 .. Replacements for use by descriptions included below to refer to other modules
@@ -113,6 +114,14 @@ Mapping
 .. include:: modules/_descriptions/mapping.rst
 
 :doc:`[more] <modules/mapping>`
+
+
+Scripting
+---------
+
+.. include:: modules/_descriptions/scripting.rst
+
+:doc:`[more] <modules/scripting>`
 
 
 Draw-EM
