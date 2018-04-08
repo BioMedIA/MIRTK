@@ -60,15 +60,7 @@ of the downloaded MIRTK repository:
    after the initial clone command without any directory path argument. To download
    only selected additional files, run one or more of the following commands.
 
-The MIRTK group hosts Git submodule repositories with copies of the Boost_ and Eigen_
-library header files required to build the core modules of the MIRTK
-(see `MIRTK/Boost <https://github.com/MIRTK/Boost>`__ and
-`MIRTK/Eigen <https://github.com/MIRTK/Eigen>`__ projects on GitHub). Note that
-these unofficial copies may not be suitable to build also the optional MIRTK Packages
-below if these require additional header files not included in these repositories.
-It is therefore recommended to install a compatible version of Boost and Eigen using
-the official installation packages available for your operating system instead.
-Other optional third-party libraries for which no binary installation packages for the
+Optional third-party libraries for which no binary installation packages for the
 supported operating systems exists are included as Git submodules under the ThirdParty/
 subdirectory of the MIRTK project. To download these third-party source files,
 run the following command(s):
@@ -95,11 +87,10 @@ update the desired Git submodules before (re-)configuring the build files, e.g.:
     # Or download one or more of the following packages only
     git submodule update --init -- Packages/Deformable
     git submodule update --init -- Packages/Mapping
+    git submodule update --init -- Packages/Scripting
     git submodule update --init -- Packages/DrawEM
 
 
-.. _Git:   https://git-scm.com
-.. _Boost: http://www.boost.org
 .. _Eigen: http://eigen.tuxfamily.org
 
 
@@ -118,11 +109,9 @@ The license enables usage of MIRTK in both commercial and non-commercial applica
 without restrictions on the licensing applied to the combined work.
 
 The MIRTK Git repository includes source files and references to Git submodule repositories
-whose source files are covered by their own respective license terms which are compatible
+whose source files are covered by their own respective license terms, which are compatible
 with the MIRTK license. See the following links for details:
 
-- `ThirdParty/Boost <https://github.com/MIRTK/Boost>`__: `Boost Software License Version 1.0 <http://www.boost.org/users/license.html>`__
-- `ThirdParty/Eigen <https://github.com/MIRTK/Eigen>`__: `Mozilla Public License Version 2.0 <https://www.mozilla.org/en-US/MPL/2.0/>`__
 - `ThirdParty/LBFGS <https://github.com/BioMedIA/MIRTK/tree/master/ThirdParty/LBFGS>`__: `The MIT License <https://opensource.org/licenses/MIT>`__
 - `NIfTI C library <https://www.nitrc.org/projects/nifti>`__: `Public domain <https://en.wikipedia.org/wiki/Public_domain>`__
 - `GIFTI C library <https://www.nitrc.org/projects/gifti/>`__: `Public domain <https://en.wikipedia.org/wiki/Public_domain>`__

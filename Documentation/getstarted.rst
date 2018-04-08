@@ -19,8 +19,21 @@ build the MIRTK from its publicly available source code.
 Instead of manually installing the MIRTK locally on your system, you can use
 the pre-made `biomedia/mirtk <https://hub.docker.com/r/biomedia/mirtk/>`_
 Docker image to run the :doc:`commands` inside a `Docker container`_.
-
 For a guide to install and use Docker_, see the `official docs <https://docs.docker.com>`__.
+
+For Linux users, the easiest way to get started with MIRTK without the need for the Docker
+runtime environment is the AppImage_ available on Bintray_. An MIRTK AppImage contains
+all the required shared libraries and pre-built MIRTK commands. It can be executed on any
+Linux system with a compatible minimum glibc version (>=2.15). With this AppImage, there is no
+actual need for any installation. Simply download the file, make it executable, and copy it to
+a directory of your choice, e.g., one that is in your PATH, i.e.,::
+
+  wget -O mirtk https://bintray.com/schuhschuh/AppImages/download_file?file_path=MIRTK%2Bview-latest-x86_64-glibc2.15.AppImage
+  chmod a+x mirtk
+  sudo mv mirtk /usr/bin
+
+This AppImage is updated automatically when a change is committed to the ``master`` branch of
+the GitHub repository.
 
 
 .. _BashCompletion:
@@ -28,8 +41,29 @@ For a guide to install and use Docker_, see the `official docs <https://docs.doc
 Bash completion
 ---------------
 
+**Custom built**
+
 For information on how to enable auto-completion_ when running ``mirtk`` commands of
 a manual MIRTK installation in the Bash_ shell, see the :doc:`install` instructions.
+
+
+**Using AppImage**
+
+To enable Bash completion for running the MIRTK commands on Linux using the AppImage,
+copy the `completion script <https://raw.githubusercontent.com/BioMedIA/MIRTK/master/Scripts/mirtk_bash_completion.sh>`__
+available in the GitHub repository to ``/etc/bash_completion.d/``.
+
+This can be done with the following Terminal command::
+
+  sudo curl -L https://raw.githubusercontent.com/BioMedIA/MIRTK/master/Scripts/mirtk_bash_completion.sh > /etc/bash_completion.d/mirtk
+
+Alternatively, save the file to your home directory at, for example, ``$HOME/bash_completion/``,
+rename it to ``mirtk``, and add the following line to your ``.bashrc`` file::
+
+  [ ! -f "$HOME/bash_completion/mirtk" ] || . "$HOME/bash_completion/mirtk"
+
+
+**Using Docker**
 
 To enable Bash completion for running the MIRTK commands with Docker,
 copy the `docker <https://raw.githubusercontent.com/docker/docker/master/contrib/completion/bash/docker>`__
@@ -47,7 +81,7 @@ On OS X with Homebrew, use these commands instead::
 
   brew install bash-completion
   curl -L https://raw.githubusercontent.com/docker/docker/master/contrib/completion/bash/docker        > $(brew --prefix)/etc/bash_completion.d/docker
-  curl -L https://raw.githubusercontent.com/BioMedIA/MIRTK/develop/Docker/Completion/Bash/docker-mirtk > $(brew --prefix)/etc/bash_completion.d/docker-mirtk
+  curl -L https://raw.githubusercontent.com/BioMedIA/MIRTK/master/Docker/Completion/Bash/docker-mirtk > $(brew --prefix)/etc/bash_completion.d/docker-mirtk
 
 Alternatively, save the files to your home directory at, for example, ``$HOME/bash_completion/``
 and add the following lines to your ``.bashrc`` (Linux) or ``.bash_profile`` (OS X) file::
@@ -115,6 +149,8 @@ guidelines for more information on how to contribute your code to the MIRTK sour
 or develop your own MIRTK Package.
 
 
+.. _AppImage:           https://appimage.org/
+.. _Bintray:            https://bintray.com/schuhschuh/AppImages/MIRTK/master
 .. _Bash:               https://www.gnu.org/software/bash/
 .. _auto-completion:    https://www.gnu.org/software/bash/manual/html_node/Programmable-Completion.html
 .. _Homebrew:           http://brew.sh
