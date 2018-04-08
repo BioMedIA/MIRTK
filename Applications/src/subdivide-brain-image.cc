@@ -72,8 +72,8 @@ void PrintHelp(const char *name)
   cout << "  - 1: Cortical grey matter\n";
   cout << "  - 2: Cerebral white matter and deep brain structures of right hemisphere\n";
   cout << "  - 3: Cerebral white matter and deep brain structures of left  hemisphere\n";
-  cout << "  - 4: Brainstem, including cerebellum when :option:`-brainstem+cerebellum` is on\n";
-  cout << "  - 5: Cerebellum, when :option:`-brainstem+cerebellum` is off\n";
+  cout << "  - 4: Brainstem, including cerebellum when :option:`-brainstem-and-cerebellum` is on\n";
+  cout << "  - 5: Cerebellum, when :option:`-brainstem-and-cerebellum` is off\n";
   cout << "\n";
   cout << "Arguments:\n";
   cout << "  input    Input  label image. See :option:`-input-labels`.\n";
@@ -123,7 +123,7 @@ void PrintHelp(const char *name)
   cout << "      No. of iterations used to close holes in brainstem segmentation. (default: 0)\n";
   cout << "  -cerebellum-closing <n>\n";
   cout << "      No. of iterations used to close holes in cerebellum segmentation. (default: 0)\n";
-  cout << "  -brainstem+cerebellum, -cerebellum+brainstem, -bs+cb, -cb+bs [on|off]\n";
+  cout << "  -brainstem-and-cerebellum, -cerebellum-and-brainstem, -bscb, -cbbs [on|off]\n";
   cout << "      Whether to merge brainstem and cerebellum. (default: off)\n";
   PrintStandardOptions(cout);
   cout << endl;
@@ -1031,7 +1031,9 @@ int main(int argc, char *argv[])
     else if (OPTION("-cerebellum") || OPTION("-cb")) {
       cbmask_name = GetFileNameOrAddLabels(OPTIDX, argc, argv, cbmask_labels);
     }
-    else if (OPTION("-brainstem+cerebellum") || OPTION("-bs+cb") ||
+    else if (OPTION("-brainstem-and-cerebellum") || OPTION("-bscb") ||
+             OPTION("-cerebellum-and-brainstem") || OPTION("-cbbs") ||
+             OPTION("-brainstem+cerebellum") || OPTION("-bs+cb") ||
              OPTION("-cerebellum+brainstem") || OPTION("-cb+bs")) {
       if (HAS_ARGUMENT) PARSE_ARGUMENT(merge_bs_cb);
       else merge_bs_cb = true;

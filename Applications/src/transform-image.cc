@@ -129,7 +129,7 @@ void PrintHelp(const char *name)
   cout << "  -2d [on|off], -no2d\n";
   cout << "      Project transformed points to 2D, i.e., ignore mapped z coordinate. (default: off)\n";
   cout << "  -3d\n";
-  cout << "      Alias for :option:`-2d off`.\n";
+  cout << "      Alias for :option:`-2d` off.\n";
   PrintCommonOptions(cout);
   cout << endl;
 }
