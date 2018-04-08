@@ -26,7 +26,7 @@ runtime environment is the AppImage_ available on Bintray_. An MIRTK AppImage co
 all the required shared libraries and pre-built MIRTK commands. It can be executed on any
 Linux system with a compatible minimum glibc version (>=2.15). With this AppImage, there is no
 actual need for any installation. Simply download the file, make it executable, and copy it to
-a directory of your choice, e.g., one that is in your PATH, i.e.,::
+a directory that is in your PATH, e.g.,::
 
   wget -O mirtk https://bintray.com/schuhschuh/AppImages/download_file?file_path=MIRTK%2Bview-latest-x86_64-glibc2.15.AppImage
   chmod a+x mirtk
