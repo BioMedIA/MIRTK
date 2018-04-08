@@ -121,16 +121,16 @@ public:
   static bool VariableToIndex(TReal, int &i, int &j);
 
   /// Lookup table of B-spline function values
-  static TReal WeightLookupTable[LookupTableSize];
+  MIRTK_Numerics_EXPORT static TReal WeightLookupTable[LookupTableSize];
 
   /// Lookup table of B-spline basis function values
-  static TReal LookupTable[LookupTableSize][4];
+  MIRTK_Numerics_EXPORT static TReal LookupTable[LookupTableSize][4];
 
   /// Lookup table of B-spline basis function 1st derivative values
-  static TReal LookupTable_I[LookupTableSize][4];
+  MIRTK_Numerics_EXPORT static TReal LookupTable_I[LookupTableSize][4];
 
   /// Lookup table of B-spline basis function 2nd derivative values
-  static TReal LookupTable_II[LookupTableSize][4];
+  MIRTK_Numerics_EXPORT static TReal LookupTable_II[LookupTableSize][4];
 
   // ---------------------------------------------------------------------------
   // B-spline basis functions
@@ -230,18 +230,6 @@ protected:
   /// Flag which indicates whether the lookup tables are initialized
   MIRTK_Numerics_EXPORT static bool _initialized;
 };
-
-// -----------------------------------------------------------------------------
-// Lookup table of B-spline function values
-template <class TReal> TReal BSpline<TReal>::WeightLookupTable[BSpline<TReal>::LookupTableSize];
-
-// Lookup table of B-spline basis function values
-template <class TReal> TReal BSpline<TReal>::LookupTable   [BSpline<TReal>::LookupTableSize][4];
-template <class TReal> TReal BSpline<TReal>::LookupTable_I [BSpline<TReal>::LookupTableSize][4];
-template <class TReal> TReal BSpline<TReal>::LookupTable_II[BSpline<TReal>::LookupTableSize][4];
-
-// Wether lookup tables of B-spline kernel were initialized
-template <class TReal> bool BSpline<TReal>::_initialized = false;
 
 // -----------------------------------------------------------------------------
 // Weights often used by B-spline transformations for evaluation of derivatives
