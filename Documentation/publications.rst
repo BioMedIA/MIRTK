@@ -73,11 +73,17 @@ in the following workshop paper.
             In 3rd MICCAI Workshop on Spatiotemporal Image Analysis for Longitudinal and Time-Series Image Data (STIA),
             LNCS 8682, pp. 27-37, Boston, MA (2014)
 
+.. [Schuh18] `Unbiased construction of a temporally consistent morphological atlas of neonatal brain development <https://www.biorxiv.org/content/early/2018/01/28/251512>`__. |br|
+            A. Schuh, A. Makropoulos, E. C. Robinson, L. Cordero-Grande, E. Hughes, J. Hutter, A. N. Price, M. Murgasova, R. Pedro A. G. Teixeira, N. Tusor, J. K. Steinweg, S. Victor, M. A. Rutherford, J. V. Hajnal, A. D. Edwards, D. Rueckert.
+            bioRxiv, `doi:10.1101/251512 <https://doi.org/10.1101/251512>`_ (2018)
+
+
 **Draw-EM: Developing brain Region Annotation With Expectation-Maximization**
 
 .. [TMI14] `Automatic whole brain MRI segmentation of the developing neonatal brain <http://ieeexplore.ieee.org/xpl/articleDetails.jsp?arnumber=6810848>`__. |br|
            A. Makropoulos, I. S. Gousias, C. Ledig, P. Aljabar, A. Serag, J. V. Hajnal, A. D. Edwards, S. J. Counsell, D. Rueckert.
            IEEE Transactions on Medical Imaging, vol. 33 (9), pp. 1818-1831, 2014.
+
 
 **Spectral surface matching**
 
