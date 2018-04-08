@@ -2,7 +2,7 @@
  * Medical Image Registration ToolKit (MIRTK)
  *
  * Copyright 2013-2017 Imperial College London
- * Copyright 2013-2017 Andreas Schuh
+ * Copyright 2013-2018 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -231,16 +231,22 @@ protected:
   MIRTK_Numerics_EXPORT static bool _initialized;
 };
 
+// -----------------------------------------------------------------------------
+// Fix Clang warning regarding missing definition of static template members
+#ifdef __clang__
+
 // Lookup table of B-spline function values
-template <class TReal> MIRTK_Numerics_EXPORT TReal BSpline<TReal>::WeightLookupTable[BSpline<TReal>::LookupTableSize];
+template <class TReal> TReal BSpline<TReal>::WeightLookupTable[BSpline<TReal>::LookupTableSize];
 
 // Lookup table of B-spline basis function values
-template <class TReal> MIRTK_Numerics_EXPORT TReal BSpline<TReal>::LookupTable   [BSpline<TReal>::LookupTableSize][4];
-template <class TReal> MIRTK_Numerics_EXPORT TReal BSpline<TReal>::LookupTable_I [BSpline<TReal>::LookupTableSize][4];
-template <class TReal> MIRTK_Numerics_EXPORT TReal BSpline<TReal>::LookupTable_II[BSpline<TReal>::LookupTableSize][4];
+template <class TReal> TReal BSpline<TReal>::LookupTable   [BSpline<TReal>::LookupTableSize][4];
+template <class TReal> TReal BSpline<TReal>::LookupTable_I [BSpline<TReal>::LookupTableSize][4];
+template <class TReal> TReal BSpline<TReal>::LookupTable_II[BSpline<TReal>::LookupTableSize][4];
 
 // Wether lookup tables of B-spline kernel were initialized
-template <class TReal> MIRTK_Numerics_EXPORT bool BSpline<TReal>::_initialized = false;
+template <class TReal> bool BSpline<TReal>::_initialized = false;
+
+#endif // defined(__clang__)
 
 // -----------------------------------------------------------------------------
 // Weights often used by B-spline transformations for evaluation of derivatives
