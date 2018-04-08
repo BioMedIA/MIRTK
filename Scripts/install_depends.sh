@@ -112,7 +112,6 @@ if [ $os = osx ] || [ $os = Darwin ]; then
   }
 
   brew update > /dev/null
-  brew tap homebrew/science
   if [ $WITH_CCACHE = ON ]; then
     brew_install ccache
   fi
