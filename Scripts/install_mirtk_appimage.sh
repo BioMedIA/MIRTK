@@ -1,8 +1,8 @@
 #!/bin/bash
 
 WITH_VIEWER=true
-INSTALL_PREFIX="/usr/local"
-SUDO='sudo'  # set to empty string if prefix is writable by $USER
+INSTALL_PREFIX="$HOME/opt/mirtk-appimage"
+SUDO=''  # set to empty string if prefix is writable by $USER
 
 APPIMAGE="$1"
 if [ -z "$APPIMAGE" ]; then
@@ -19,7 +19,7 @@ EOF
   elif [ $WITH_VIEWER != true ] || [ $GLIBC_VERSION_MAJOR -eq 2 -a $GLIBC_VERSION_MINOR -eq 14 ]; then
     APPIMAGE=MIRTK-latest-x86_64-glibc2.14.AppImage
   else
-    APPIMAGE=MIRTK+view-latest-x86_64-glibc2.15.AppImage
+    APPIMAGE=MIRTK%2Bview-latest-x86_64-glibc2.15.AppImage
   fi
 else
   name="$(basename "$APPIMAGE")"
@@ -48,4 +48,4 @@ https://bintray.com/schuhschuh/AppImages/download_file?file_path=MIRTK-latest-x8
 EOF
 fi
 
-chmod a+x /tmp/mirtk && $SUDO cp /tmp/mirtk "$INSTALL_PREFIX/bin/mirtk" && rm -f /tmp/mirtk
+chmod a+x /tmp/mirtk && $SUDO mkdir -p "$INSTALL_PREFIX/bin" && $SUDO cp /tmp/mirtk "$INSTALL_PREFIX/bin/mirtk" && rm -f /tmp/mirtk
