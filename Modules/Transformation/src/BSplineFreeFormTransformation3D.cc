@@ -1670,14 +1670,23 @@ void BSplineFreeFormTransformation3D
   if (-1 <= a && a <= 1) {
     wa = Kernel::LatticeWeights[a + 1];
     da = - Kernel::LatticeWeights_I[a + 1];
+  } else {
+    wa = 0.;
+    da = 0.;
   }
   if (-1 <= b && b <= 1) {
     wb = Kernel::LatticeWeights[b + 1];
     db = - Kernel::LatticeWeights_I[b + 1];
+  } else {
+    wb = 0.;
+    db = 0.;
   }
   if (-1 <= c && c <= 1) {
     wc = Kernel::LatticeWeights[c + 1];
     dc = - Kernel::LatticeWeights_I[c + 1];
+  } else {
+    wc = 0.;
+    dc = 0.;
   }
 
   // Product terms of 3D cubic B-spline kernel required for total derivative
