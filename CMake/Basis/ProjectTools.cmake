@@ -1830,11 +1830,6 @@ macro (basis_project_initialize)
     cmake_policy (SET CMP0017 NEW)
   endif ()
 
-  if (POLICY CMP0048)
-    # PROJECT_VERSION et al. variables are set by basis_project instead
-    cmake_policy (SET CMP0048 OLD)
-  endif ()
-
   # --------------------------------------------------------------------------
   # reset
 
@@ -1873,7 +1868,18 @@ macro (basis_project_initialize)
     endif ()
   endforeach ()
 
-  project ("${PROJECT_NAME}" ${LANGUAGES})
+  if (POLICY CMP0048)
+    cmake_policy (SET CMP0048 NEW)
+    project ("${PROJECT_NAME}" VERSION "${PROJECT_VERSION}" LANGUAGES ${LANGUAGES})
+  else ()
+    project ("${PROJECT_NAME}" ${LANGUAGES})
+    basis_version_numbers (
+      "${PROJECT_VERSION}"
+        PROJECT_VERSION_MAJOR
+        PROJECT_VERSION_MINOR
+        PROJECT_VERSION_PATCH
+    )
+  endif ()
 
   # work-around for issue with CMAKE_PROJECT_NAME always being set to 'Project'
   if ("${PROJECT_SOURCE_DIR}" STREQUAL "${CMAKE_SOURCE_DIR}")
@@ -1923,14 +1929,6 @@ macro (basis_project_initialize)
   else ()
     set (PROJECT_REVISION 0)
   endif ()
-
-  # extract version numbers from version string
-  basis_version_numbers (
-    "${PROJECT_VERSION}"
-      PROJECT_VERSION_MAJOR
-      PROJECT_VERSION_MINOR
-      PROJECT_VERSION_PATCH
-  )
 
   if (NOT DEFINED PROJECT_SOVERSION OR PROJECT_SOVERSION STREQUAL "")
     set (PROJECT_SOVERSION "${PROJECT_VERSION_MAJOR}")
