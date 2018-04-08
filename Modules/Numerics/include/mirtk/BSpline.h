@@ -121,16 +121,16 @@ public:
   static bool VariableToIndex(TReal, int &i, int &j);
 
   /// Lookup table of B-spline function values
-  MIRTK_Numerics_EXPORT static TReal WeightLookupTable[LookupTableSize];
+  static TReal WeightLookupTable[LookupTableSize];
 
   /// Lookup table of B-spline basis function values
-  MIRTK_Numerics_EXPORT static TReal LookupTable[LookupTableSize][4];
+  static TReal LookupTable[LookupTableSize][4];
 
   /// Lookup table of B-spline basis function 1st derivative values
-  MIRTK_Numerics_EXPORT static TReal LookupTable_I[LookupTableSize][4];
+  static TReal LookupTable_I[LookupTableSize][4];
 
   /// Lookup table of B-spline basis function 2nd derivative values
-  MIRTK_Numerics_EXPORT static TReal LookupTable_II[LookupTableSize][4];
+  static TReal LookupTable_II[LookupTableSize][4];
 
   // ---------------------------------------------------------------------------
   // B-spline basis functions
