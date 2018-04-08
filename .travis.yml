@@ -29,6 +29,7 @@ env:
   # build and deployment of AppImage for Linux
   - AppImage_BUILD=${AppImage_BUILD:-ON}
   - AppImage_BRANCH=${AppImage_BRANCH:-master}
+  - AppImage_DEVEL=${AppImage_DEVEL:-ON}
   - AppImage_VIEWER=${AppImage_VIEWER:-OFF}
   - AppImage_LATEST=${AppImage_LATEST:-ON}
   matrix:
