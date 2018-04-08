@@ -2,7 +2,7 @@
  * Medical Image Registration ToolKit (MIRTK)
  *
  * Copyright 2013-2015 Imperial College London
- * Copyright 2013-2018 Andreas Schuh
+ * Copyright 2013-2015 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
