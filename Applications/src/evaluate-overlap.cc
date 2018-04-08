@@ -427,19 +427,23 @@ int main(int argc, char **argv)
       GreyPixel a, b;
       OrderedSet<GreyPixel> segment;
       do {
+        bool invalid_a_or_b = false;
         const char *arg = ARGUMENT;
         const Array<string> parts = Split(arg, "..");
         if (parts.size() == 1) {
-          if (!FromString(parts[0], a)) a = NaN;
-          b = a;
+          if (FromString(parts[0], a)) {
+            b = a;
+          } else {
+            invalid_a_or_b = true;
+          }
         } else if (parts.size() == 2) {
           if (!FromString(parts[0], a) || !FromString(parts[1], b)) {
-            a = b = NaN;
+            invalid_a_or_b = true;
           }
         } else {
-          a = b = NaN;
+          invalid_a_or_b = true;
         }
-        if (IsNaN(a) || IsNaN(b)) {
+        if (invalid_a_or_b) {
           FatalError("Invalid -label, -segment argument: " << arg);
         }
         if (a > b) swap(a, b);
