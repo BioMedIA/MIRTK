@@ -29,7 +29,7 @@ Arguments
 .. option:: dof
 
    File path of input transformation. Depending on the evaluation measure,
-   multiple consecutive transformation are processed in tuples of fixed
+   multiple consecutive transformations are processed in tuples of fixed
    size and an error measure is computed for each such tuple of transformations.
    In the default case of 1-tuples, each transformation is evaluated separately.
    For other evaluation measures which are based on more than just one transformation
@@ -72,6 +72,12 @@ Command options
 
    Request evaluation of transitivity error for each triple
    of input transformations when applied in the given order.
+
+.. option:: -barycentricity
+
+   Evaluate norm of the average log map of all input transformations.
+   When the transformations map each image to the common barycenter,
+   the reported value should be (close to) zero.
 
 
 Standard options

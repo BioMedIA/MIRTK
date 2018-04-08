@@ -21,10 +21,10 @@
 |help-rst|                     |info|                         |init-dof|                     |invert-dof|                  
 |kmeans|                       |match-histogram|              |match-points|                 |measure-volume|              
 |merge-surfaces|               |normalize|                    |offset-surface|               |open-image|                  
-|open-scalars|                 |padding|                      |project-onto-surface|         |recon-neonatal-cortex|       
-|reflect-image|                |register|                     |remesh-surface|               |resample-image|              
-|smooth-image|                 |smooth-surface|               |split-labels|                 |subdivide-brain-image|       
-|transform-image|              |transform-points|            
+|open-scalars|                 |project-onto-surface|         |recon-neonatal-cortex|        |reflect-image|               
+|register|                     |remesh-surface|               |resample-image|               |smooth-image|                
+|smooth-surface|               |split-labels|                 |subdivide-brain-image|        |transform-image|             
+|transform-points|            
 ============================== ============================== ============================== ==============================
 
 .. |aggregate-images| replace:: :doc:`commands/aggregate-images`
@@ -108,7 +108,6 @@
 .. |offset-surface| replace:: :doc:`commands/offset-surface`
 .. |open-image| replace:: :doc:`commands/open-image`
 .. |open-scalars| replace:: :doc:`commands/open-scalars`
-.. |padding| replace:: :doc:`commands/padding`
 .. |project-onto-surface| replace:: :doc:`commands/project-onto-surface`
 .. |recon-neonatal-cortex| replace:: :doc:`commands/recon-neonatal-cortex`
 .. |reflect-image| replace:: :doc:`commands/reflect-image`

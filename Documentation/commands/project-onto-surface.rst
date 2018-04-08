@@ -15,6 +15,8 @@ Synopsis
 
     project-onto-surface <input> <output> -image <file> [options]
     project-onto-surface <input> <output> -labels <file> [options]
+    project-onto-surface <input> <output> -constant <value>... [options]
+    project-onto-surface <input> <output> -surface <file> [-scalars <scalars> [<scalars_new_name>] ]
     project-onto-surface <input> <output> -boundary [-nolabel-points] [-nolabel-cells] [-name <scalars>]
 
 
@@ -42,11 +44,11 @@ Command options
 
 .. option:: -white
 
-   Input surface is cortical WM/GM boundary.
+   Input surface is cortical WM/GM boundary. (default: off)
 
 .. option:: -pial
 
-   Input surface is cortical GM/CSF boundary.
+   Input surface is cortical GM/CSF boundary. (default: off)
 
 .. option:: -image <file>
 
@@ -56,9 +58,21 @@ Command options
 
    Input segmentation image with positive integer labels.
 
+.. option:: -surface <file>
+
+   Input surface from which to project scalars.
+
+.. option:: -constant <value>...
+
+   Assign tuple of constant values to all points/cells.
+
 .. option:: -name <name>
 
    Name of output scalar array. (default: Scalars or Labels)
+
+.. option:: -type char|uchar|short|ushort|int|uint|float|double
+
+   Type of output scalar array. (default: float)
 
 .. option:: -celldata, -nocelldata
 
@@ -70,11 +84,37 @@ Command options
 
 .. option:: -fill, -nofill
 
-   Fill holes in projected surface parcellation.
+   Fill holes/small patches in projected surface parcellation. (default: on)
+
+.. option:: -max-hole-size <n>
+
+   Only fill in holes with less than or exactly n points/cells.
+   When non-positive, the largest -n holes are kept. A zero value is
+   equivalent to -1, i.e., only the largest hole is kept. (default: max value)
+
+.. option:: -smooth <n>
+
+   Number of iterations to smooth. (default: 0)
 
 .. option:: -min-size <n>
 
-   Surface patches with less than n points are removed. (default: 0)
+   Surface patches with less than n points/cells are removed.
+   When :option:`-fill` is given, the resulting holes are filled in
+   using the non-zero labels of surrounding patches. Otherwise, the
+   removed patches remain unlabeled (i.e., label value zero). (default: 0)
+
+.. option:: -min-ratio <ratio>
+
+   Keep only components that are larger than ratio times the size
+   of the largest connected component per label, with 0 < ratio <= 1.
+   When :option:`-fill` is given, the resulting holes are filled in
+   using the non-zero labels of surrounding patches. Otherwise, the
+   removed patches remain unlabeled (i.e., label value zero). (default: 0)
+
+.. option:: -scalars <input_name> [<output_name>]
+
+   Scalars to be projected from the input surface (can be defined multiple times).
+   <name2> can be specified to set the name of the output scalar array.
 
 .. option:: -boundary
 
@@ -82,6 +122,11 @@ Command options
    When no :option:`-image` or :option:`-labels` input file is
    specified, the boundaries of the input parcellation given by
    the labels array with the specified :option:`-name` are extracted.
+
+.. option:: -dilation-radius <float>
+
+   Maximum distance of voxel from input label image boundary to be assigned
+   this label during dilation before projecting these labels onto the surface. (default: inf)
 
 .. option:: -write-dilated-labels <file>
 

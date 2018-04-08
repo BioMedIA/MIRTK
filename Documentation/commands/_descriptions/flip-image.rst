@@ -3,4 +3,12 @@
 
 Swaps the two image dimensions at a time, in the order of the input
 options. Both, the image data and the coordinates of the image origin
-are swapped each time an input option is processed.
+are swapped each time an input option is processed. To swap the image
+axes instead of the origin, use the :option:`flip-image -axes` option before the
+swap options. This option should be used to reorder the image dimensions
+without changing the world coordinates of the voxels. When swapping of
+the coordinate axes is enabled, the coordinates of the image origin are
+kept the same, i.e., :option:`flip-image -origin` is ignored. The default behavior
+is to swap the image data and the coordinates of the image origin. This
+may in many cases not have the desired effect, but has been this way
+already for some time.

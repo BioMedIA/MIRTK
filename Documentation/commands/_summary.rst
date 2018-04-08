@@ -85,7 +85,6 @@
    /commands/offset-surface
    /commands/open-image
    /commands/open-scalars
-   /commands/padding
    /commands/project-onto-surface
    /commands/recon-neonatal-cortex
    /commands/reflect-image
@@ -183,7 +182,6 @@ Command                        Description
 |offset-surface|               |offset-surface-brief-description|
 |open-image|                   |open-image-brief-description|
 |open-scalars|                 |open-scalars-brief-description|
-|padding|                      |padding-brief-description|
 |project-onto-surface|         |project-onto-surface-brief-description|
 |recon-neonatal-cortex|        |recon-neonatal-cortex-brief-description|
 |reflect-image|                |reflect-image-brief-description|
@@ -279,7 +277,6 @@ Command                        Description
 .. |offset-surface|               replace:: :doc:`/commands/offset-surface`
 .. |open-image|                   replace:: :doc:`/commands/open-image`
 .. |open-scalars|                 replace:: :doc:`/commands/open-scalars`
-.. |padding|                      replace:: :doc:`/commands/padding`
 .. |project-onto-surface|         replace:: :doc:`/commands/project-onto-surface`
 .. |recon-neonatal-cortex|        replace:: :doc:`/commands/recon-neonatal-cortex`
 .. |reflect-image|                replace:: :doc:`/commands/reflect-image`
@@ -374,7 +371,6 @@ Command                        Description
 .. include:: /commands/_summaries/offset-surface.rst
 .. include:: /commands/_summaries/open-image.rst
 .. include:: /commands/_summaries/open-scalars.rst
-.. include:: /commands/_summaries/padding.rst
 .. include:: /commands/_summaries/project-onto-surface.rst
 .. include:: /commands/_summaries/recon-neonatal-cortex.rst
 .. include:: /commands/_summaries/reflect-image.rst

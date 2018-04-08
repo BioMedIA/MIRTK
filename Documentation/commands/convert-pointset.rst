@@ -32,7 +32,8 @@ Arguments
 
 .. option:: output
 
-   Output point set file (.vtk, .vtp, .vtu, .stl, .ply, .off, .dfs, .node, .poly, .smesh).
+   Output point set file (.vtk, .vtp, .vtu, .stl, .ply, .off, .dfs,
+   .node, .poly, .smesh, .gii, .csv, .tsv, .txt).
 
 
 Command options
@@ -56,6 +57,12 @@ Command options
 .. option:: -nopointdata
 
    Do not write point data to output file. (default: off)
+
+.. option:: -nopoints
+
+   Do not write point coordinates to output .csv, .tsv, or .txt file.
+   This option is implicit when the output file name ends with
+   .attr.csv, .attr.tsv, or .attr.txt (default: off)
 
 .. option:: -ascii
 

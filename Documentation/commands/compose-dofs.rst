@@ -28,8 +28,52 @@ Command options
 
 .. option:: -target <image>
 
-   Target image on which images will be resampled using
-   the composed transformation.
+   Target image on which images will be resampled using the composed transformation.
+   The finite grid of the target image is used to determine an appropriate domain
+   on which to approximate the displacement field of the composite transformation
+   when :option:`-approximate` is given.
+
+.. option:: -rotation, -norotation
+
+   Whether to allow rotation    when composite transformation is affine. (default: on)
+
+.. option:: -translation, -notranslation
+
+   Whether to allow translation when composite transformation is affine. (default: on)
+
+.. option:: -scaling, -noscaling
+
+   Whether to allow scaling when composite transformation is affine. (default: on)
+
+.. option:: -shearing, -noshearing
+
+   Whether to allow shearing when composite transformation is affine. (default: on)
+
+.. option:: -approximate
+
+   Approximate the composed transformation using a single FFD. (default: off)
+
+.. option:: -scale <s1> [s2...]
+
+   Scaling factors for each input (SV) FFD in the same order as the positional
+   input file name arguments. These factors can only be applied to single FFDs,
+   and are mainly useful for velocity based transformations. For rigid, similarity,
+   or affine transformations, use -1 to invert the input transformation. (default: 1)
+
+.. option:: -bch [<n> [yes|no]]
+
+   Use Baker-Campbell-Hausdorff (BCH) formula to approximate composition of SV FFDs.
+   All input transformations must be of type cubic B-spline SV FFD. Arguments
+   are optional. The first argument is the number of BCH terms to use. The minimum
+   is 2 terms, i.e., the sum of left and right velocity fields. The second argument
+   is a boolean flag indicating whether or not the Lie brackets should be computed
+   using the Jacobian of the vector fields (yes) or if it should be approximated
+   as the difference of the compositions in either order. (default: 6 yes)
+
+.. option:: -nobch
+
+   Do not use BCH formula to compose SV FFDs. Instead, evaluate composite displacements
+   and approximate these even when all input transformations are of type SV FFD.
 
 
 Standard options

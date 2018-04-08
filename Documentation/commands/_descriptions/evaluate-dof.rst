@@ -7,3 +7,8 @@ transformation from target to source and backward transformation from source
 to target image. Another voxel-wise measure that can be computed using this
 program are the cumulative or mean transitivity error (CTE/MTE) given three
 transformations, from target (A) to B, from B to C, and from C to A again.
+
+This tool can further be used to evaluate the deviation of N affine transformations
+which map a template to each one of N images from the barycenter corresponding
+to the identity transformation. A larger deviation indicates a stronger bias of
+the template towards a subset of the images and/or unbalanced registration errors.

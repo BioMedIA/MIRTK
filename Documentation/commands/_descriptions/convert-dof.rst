@@ -7,6 +7,10 @@ Converts between different transformation file formats:
 unknown                     Unknown, try to guess it from file header/type.
 disp_world|disp|image       Dense displacement field image with world space displacement vectors [mm].
 disp_voxel                  Dense displacement field image with target space displacement vectors [voxel].
+disp_itk|itk_disp           Dense displacement field image in ITK format [mm].
+svf_world|svf               Dense velocity field image with world space vectors [mm]. Requires input SVFFD.
+svf_voxel                   Dense velocity field image with target space vectors [voxel]. Requires input SVFFD.
+svf_itk|itk_svf             Dense velocity field image in ITK format (e.g., LogDemons) [mm]
 mirtk                       MIRTK transformation file format.
 mirtk_rigid|rigid           Rigid MIRTK transformation file format (6 DoFs).
 mirtk_similarity            Similarity MIRTK transformation file format (7 DoFs).
@@ -35,6 +39,8 @@ f3d_spline_grid             Nifty Reg reg_f3d output control point displacement 
 f3d_def_vel_field           Nifty Reg reg_f3d output image deformation  field as stationary velocity field.
 f3d_disp_vel_field          Nifty Reg reg_f3d output image displacement field as stationary velocity field.
 f3d_spline_vel_grid         Nifty Reg reg_f3d output control point velocity field.
+elastix|elastix_ffd         Elastix BSplineTransform parameters text file.
+dramms                      DRAMMS deformation field.
 star_ccm                    Output file suitable for import in STAR CCM+.
 star_ccm_table              Point displacements as STAR CCM+ XYZ Table.
 star_ccm_table_xyz          Transformed points  as STAR CCM+ XYZ Table.

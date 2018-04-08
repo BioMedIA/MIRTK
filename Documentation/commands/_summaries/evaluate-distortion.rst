@@ -2,6 +2,6 @@
 
 .. |evaluate-distortion-brief-description| replace::
 
-   Computes the distortion of a surface mesh under deformation and stores
-   the results in the output dataset. If no output dataset is given, the
-   mean and standard deviation are reported only.
+   Computes the distortion of a surface mesh under deformation, when
+   mapped to the surface of another solid with equivalent topology, or
+   flattened to the plane or sphere, respectively.

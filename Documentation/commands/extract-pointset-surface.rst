@@ -27,7 +27,26 @@ Description
 Output options
 --------------
 
-.. option:: -fillholes [<size>]
+.. option:: -source-array <name>
+
+   Add point/cell data array with the specified name with one-based
+   labels corresponding to the input point set from which an output
+   point/cell originates from. When the first input point set has
+   a scalar array with the specified name, the labels of this first
+   surface are preserved, while successive labels are offset by the
+   maximum integer value of the input data array. This is useful when
+   successively merging surface meshes instead of with a single execution
+   of this command. (default: none)
+
+.. option:: -merge [<float>]
+
+   Merge points closer than the specified distance, default is 1e-6. (default: off)
+
+.. option:: -tolerance <float>
+
+   Distance tolerance value to use for boolean operations. (default: 1e-6)
+
+.. option:: -fill-holes [<size>]
 
    Fill holes of given maximum size (i.e., circumsphere radius).
 
@@ -39,7 +58,7 @@ Output options
 
    Output sphere which is inscribed the surface mesh.
 
-.. option:: -boundingsphere
+.. option:: -bounding-sphere
 
    Output minimum sphere which fully contains the surface mesh.
 
@@ -54,6 +73,10 @@ Output options
 .. option:: -implicit <file>
 
    Write signed implicit surface distance to named image file.
+
+.. option:: -outside, -nooutside
+
+   Swap inside/outside of output :option:`-mask` and :option:`-implicit` surface. (default: off)
 
 .. option:: -reference <image>
 

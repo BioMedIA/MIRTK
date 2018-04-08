@@ -50,6 +50,14 @@ Command options
 
    Extract all components.
 
+.. option:: -min-size <n>
+
+   Minimum number of component voxels. (default: 0)
+
+.. option:: -max-size <n>
+
+   Maximum number of component voxels. (default: all voxels)
+
 .. option:: -connectivity <num>
 
    Type of voxel connectivity (4, 6, 18, or 26). (default: 26)

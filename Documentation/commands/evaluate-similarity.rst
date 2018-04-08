@@ -53,7 +53,7 @@ Command options
 .. option:: -metric <sim>...
 
    Image (dis-)similarity measure(s):
-   JE, CC, MI, NMI, SSD, CR_XY, CR_YX, LC, K, ML, NGF_COS, LNCC, CoVar, PSNR
+   JE, CC, MI, NMI, SSD, CR_XY, CR_YX, LC, K, ML, NGF_COS, NCC, CoVar, PSNR
 
 .. option:: -p, -padding <value>
 

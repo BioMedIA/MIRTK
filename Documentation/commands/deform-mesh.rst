@@ -45,13 +45,13 @@ Input options
 
    Intensity image on which external forces are based. (default: none)
 
-.. option:: -dmap <file>
+.. option:: -distance-image, -dmap <file>
 
    Euclidean distance image on which implicit surface forces are based. (default: none)
 
-.. option:: -dmap-offset <value>
+.. option:: -distance-offset, -dmap-offset <value>
 
-   Implicit surface isovalue in :option:`-dmap` image. (default: 0)
+   Implicit surface isovalue of :option:`-distance-image`. (default: 0)
 
 .. option:: -mask <file>
 
@@ -80,7 +80,7 @@ Optimization options
    - ``GradientDescent``:          Gradient descent optimizer.
    - ``ConjugateGradientDescent``: Conjugate gradient descent.
 
-.. option:: -linesearch <name>
+.. option:: -line-search, -linesearch <name>
 
    Line search method used by gradient descent optimizers:
    
@@ -105,26 +105,39 @@ Optimization options
    Perform optimization on starting at level <max> until level <min> (> 0).
    When only the <max> level argument is given, the <min> level is set to 1.
    On each level, the node forces are averaged :math:`2^{level-1}` times which
-   is similar to computing the forces on a coarser mesh. (default: 0 0)
+   is similar to computing the forces on a coarser mesh. See :option:`-force-averaging`. (default: 0 0)
 
-.. option:: -steps | -iterations <n>
+.. option:: -force-averaging <n>...
+
+   Number of force averaging steps. (default: 0)
+   Cannot be combined with :option:`-magnitude-averaging`.
+
+.. option:: -magnitude-averaging <n>...
+
+   Number of force magnitude averaging steps. (default: 0)
+   Cannot be combined with :option:`-force-averaging`.
+
+.. option:: -distance-averaging <n>...
+
+   Number of :option:`-distance` force averaging steps. (default: 0)
+
+.. option:: -steps, -max-steps, -iterations, -max-iterations <n>...
 
    Maximum number of iterations. (default: 100)
 
-.. option:: -step | -dt <value>
+.. option:: -step, -dt <value>...
 
    Length of integration/gradient steps. (default: 1)
 
-.. option:: -step-magnification <mag>
-
-   Multiplicative factor for magnification of maximum :option:`-step` length.
-   The step length at level n (highest level at n=1) is :math:`dt * mag^{level-1}`. (default: 1)
-
-.. option:: -maxdx <value>
+.. option:: -max-dx, -maxdx, -dx <value>...
 
    Maximum displacement of a node at each iteration. By default, the node displacements
    are normalized by the maximum node displacement. When this option is used, the node
    displacements are clamped to the specified maximum length instead. (default: :option:`-step`)
+
+.. option:: -max-displacement <value>
+
+   Maximum distance from input surface. (default: +inf)
 
 .. option:: -remesh <n>
 
@@ -133,27 +146,26 @@ Optimization options
 .. option:: -remesh-adaptively
 
    Remesh surface mesh using an adaptive edge length interval based on local curvature
-   of the deformed surface mesh or input implicit surface (:option:`-dmap`).
+   of the deformed surface mesh or input implicit surface (:option:`-distance-image`).
 
-.. option:: -minedgelength <value>
+.. option:: -triangle-inversion, -notriangle-inversion
+
+   Whether to allow inversion of pair of triangles during surface remeshing. (default: on)
+
+.. option:: -min-edgelength <value>...
 
    Minimum edge length used for local adaptive remeshing. (default: -1)
 
-.. option:: -maxedgelength <value>
+.. option:: -max-edgelength <value>...
 
    Maximum edge length used for local adaptive remeshing. (default: -1)
 
-.. option:: -edgelength-magnification <mag>
-
-   Multiplicative factor for magnification of :option:`-minedgelength` and :option:`-maxedgelength`.
-   The edge length at level n (highest level at n=1) is :math:`l * mag^{level-1}`. (default: 1)
-
-.. option:: -minangle <degrees>
+.. option:: -min-angle <degrees>...
 
    Minimum angle between edge node normals for an edge be excluded from collapsing during
    iterative :option:`-remesh` operations. (default: 180)
 
-.. option:: -maxangle <degrees>
+.. option:: -max-angle <degrees>...
 
    Maximum angle between edge node normals for an edge be excluded from splitting during
    iterative :option:`-remesh` operations. (default: 180)
@@ -174,13 +186,24 @@ Optimization options
 
    Hard non-self-intersection constraint for surface meshes. (default: off)
 
-.. option:: -mind | -mindistance <value>
+.. option:: -mind, -min-distance <value>
 
    Minimum distance to other triangles in front of a given triangle.
 
-.. option:: -minw | -minwidth <value>
+.. option:: -minw, -min-width <value>
 
    Minimum distance to other triangles in the back of a given triangle.
+
+.. option:: -max-collision-angle <degrees>
+
+   Maximum angle between vector connecting centers of nearby triangles and the face normal
+   of the reference triangle for a collision to be detected. When the triangles are within
+   the same flat neighborhood of the surface mesh, this angle will be close to 90 degrees.
+   This parameter reduces false collision detection between neighboring triangles. (default: 45)
+
+.. option:: -fast-collision-test
+
+   Use fast approximate triangle-triangle collision test based on distance of their centers only. (default: off)
 
 .. option:: -reset-status
 
@@ -199,18 +222,14 @@ Deformable model options
 
    Weight of implicit surface distance. (default: 0)
 
-.. option:: -distance-spring | -dspring <w>
-
-   Weight of implicit surface spring force. (default: 0)
-
 .. option:: -distance-measure <name>
 
-   Implicit surface distance measure used by :option:`-distance` and :option:`-distance-spring`):
+   Implicit surface distance measure used by :option:`-distance`:
    
-   - ``minimum``: Minimum surface distance (see :option:`-dmap`, default)
+   - ``minimum``: Minimum surface distance (see :option:`-distance-image`, default)
    - ``normal``:  Estimate distance by casting rays along normal direction.
 
-.. option:: -balloon-inflation | -balloon <w>
+.. option:: -balloon-inflation, -balloon <w>
 
    Weight of inflation force based on local intensity statistics. (default: 0)
 
@@ -218,9 +237,38 @@ Deformable model options
 
    Weight of deflation force based on local intensity statistics. (default: 0)
 
+.. option:: -balloon-min <intensity>
+
+   Global lower intensity threshold for :option:`-balloon-inflation` or :option:`-balloon-deflation`. (default: -inf)
+
+.. option:: -balloon-max <intensity>
+
+   Global upper intensity threshold for :option:`-balloon-inflation` or :option:`-balloon-deflation`. (default: +inf)
+
+.. option:: -balloon-range <min> <max>
+
+   Global intensity thresholds for :option:`-balloon-inflation` or :option:`-balloon-deflation`. (default: [-inf +inf])
+
+.. option:: -balloon-radius <r>
+
+   Radius for local intensity statistics of :option:`-balloon-inflation` or :option:`-balloon-deflation`. (default: 7 times voxel size)
+
+.. option:: -balloon-sigma <sigma>
+
+   Local intensity standard deviation scaling factor of :option:`-balloon-inflation` or :option:`-balloon-deflation`. (default: 5)
+
+.. option:: -balloon-mask <file>
+
+   Image mask used for local intensity statistics for :option:`-balloon-inflation` or :option:`-balloon-deflation`.
+   (default: interior of deformed surface)
+
 .. option:: -edges <w>
 
    Weight of image edge force. (default: 0)
+
+.. option:: -edge-distance <w>
+
+   Weight of closest image edge distance force. (default: 0)
 
 .. option:: -inflation <w>
 
@@ -234,11 +282,11 @@ Deformable model options
 
    Weight of internal spring force. (default: 0)
 
-.. option:: -normal-spring | -nspring <w>
+.. option:: -normal-spring, -nspring <w>
 
    Weight of internal spring force in normal direction. (default: 0)
 
-.. option:: -tangential-spring | -tspring <w>
+.. option:: -tangential-spring, -tspring <w>
 
    Weight of internal spring force in tangent plane. (default: 0)
 
@@ -250,10 +298,29 @@ Deformable model options
 
    Weight of surface curvature. (default: 0)
 
-.. option:: -quadratic-curvature | -qcurvature <w>
+.. option:: -quadratic-curvature, -qcurvature <w>
 
-   Weight of surface curvature estimated by quadratic fit of node neighbor
-   to tangent plane distance. (default: 0)
+   Weight of surface curvature estimated by quadratic fit of node neighbor to tangent plane distance. (default: 0)
+
+.. option:: -distant-quadratic-curvature, -distant-qcurvature <w>
+
+   Weight of :option:`-quadratic-curvature` proportional to the :option:`-distance` magnitude. (default: 0)
+
+.. option:: -mean-curvature, -mcurvature <w>
+
+   Weight of mean curvature constraint. (default: 0)
+
+.. option:: -distant-mean-curvature, -distant-mcurvature <w>
+
+   Weight of :option:`-mean-curvature` proportional to the :option:`-distance` magnitude. (default: 0)
+
+.. option:: -gauss-curvature, -gcurvature <w>
+
+   Weight of Gauss curvature constraint. (default: 0)
+
+.. option:: -distant-gauss-curvature, -distant-gcurvature <w>
+
+   Weight of :option:`-gauss-curvature` proportional to the :option:`-distance` magnitude. (default: 0)
 
 .. option:: -distortion <w>
 
@@ -264,13 +331,30 @@ Deformable model options
    Weight of spring force based on difference of neighbor distance compared to
    initial distance. (default: 0)
 
-.. option:: -repulsion <w> [<radius>]
+.. option:: -repulsion <w>
 
-   Weight of node repulsion force. (default: 0 0)
+   Weight of node repulsion force. (default: 0)
+
+.. option:: -repulsion-radius <r>
+
+   Radius of node repulsion force. (default: average edge length)
+
+.. option:: -repulsion-distance <r>
+
+   Frontface radius of node repulsion force. (default: average edge length)
+
+.. option:: -repulsion-width <r>
+
+   Backface radius of node repulsion force. (default: average edge length)
 
 .. option:: -collision <w>
 
    Weight of triangle repulsion force.
+
+.. option:: -normal <w>
+
+   Constant force along outwards normal direction (positive weight)
+   or inwards normal direction (negative weight).
 
 
 Stopping criterion options
@@ -280,23 +364,23 @@ Stopping criterion options
 
    Consider only sum of external energy terms as total energy value of deformable model functional.
    Internal forces still contribute to the gradient of the functional, but are excluded from the
-   energy function value (see :option:`-epsilon` and :option:`-minenergy`). (default: off)
+   energy function value (see :option:`-epsilon` and :option:`-min-energy`). (default: off)
 
 .. option:: -epsilon <value>
 
    Minimum change of deformable surface energy convergence criterion.
 
-.. option:: -delta <value>
+.. option:: -delta <value>...
 
-   Minimum maximum node displacement or :option:`-dof` parameter value.
+   Minimum maximum node displacement or :option:`-dof` parameter value. (default: 1e-6)
 
-.. option:: -minenergy <value>
+.. option:: -min-energy <value>
 
    Target deformable surface energy value. (default: 0)
 
-.. option:: -minactive <n>
+.. option:: -min-active <ratio>...
 
-   Minimum percentage of active nodes. (default: 0)
+   Minimum ratio of active nodes in [0, 1]. (default: 0)
 
 .. option:: -inflation-error <threshold>
 
@@ -383,15 +467,15 @@ Output options
 
    Write XML VTK file with or without compression. (default: on)
 
-.. option:: -debugprefix <prefix>
+.. option:: -debug-prefix <prefix>
 
    File name prefix for :option:`-debug` output. (default: deform_mesh\_)
 
-.. option:: -debuginterval <n>
+.. option:: -debug-interval <n>
 
    Write :option:`-debug` output every n-th iteration. (default: 10)
 
-.. option:: -levelprefix, -nolevelprefix
+.. option:: -level-prefix, -nolevel-prefix
 
    Write :option:`-debug` output without level prefix in file names. (default: on)
 

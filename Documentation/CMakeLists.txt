@@ -99,7 +99,10 @@ if (BUILD_DOCUMENTATION_SOURCES)
 
   # Remove commands which do not (yet) support the -h, -help options
   if (COMMANDS)
-    list(REMOVE_ITEM COMMANDS convert-mris)
+    list(REMOVE_ITEM COMMANDS
+      convert-mris
+      padding
+    )
   endif ()
 
   if (COMMANDS)

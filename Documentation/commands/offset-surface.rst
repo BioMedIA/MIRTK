@@ -13,7 +13,7 @@ Synopsis
 
 ::
 
-    offset-surface <input> <output> <distance> [options]
+    offset-surface <input> <output> [options]
 
 
 Description
@@ -23,8 +23,24 @@ Description
 
 
 
+Arguments
+---------
+
+.. option:: input
+
+   Input surface mesh file.
+
+.. option:: output
+
+   Output surface mesh file.
+
+
 Command options
 ---------------
+
+.. option:: -offset <distance>
+
+   Offset distance. (default: 0)
 
 .. option:: -relative
 

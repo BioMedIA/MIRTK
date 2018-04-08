@@ -2,4 +2,4 @@
 
 .. |average-images-brief-description| replace::
 
-   Computes voxelwise average image of the given (transformed) input images.
+   Computes voxel-wise average image of the given (transformed) input images.

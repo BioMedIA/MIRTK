@@ -36,7 +36,8 @@ Arguments
 
 .. option:: sigma
 
-   Standard deviation of Gaussian smoothing kernel. (default: 1)
+   Standard deviation of Gaussian smoothing kernel. When negative, its
+   absolute value is multiplied by the average voxel size. (default: 1)
 
 
 Command options

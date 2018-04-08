@@ -13,7 +13,7 @@ Synopsis
 
 ::
 
-    evaluate-overlap <target> <source>... [options]
+    evaluate-overlap <target> [<source>...] [options]
 
 
 Description
@@ -38,49 +38,100 @@ Arguments
 Command options
 ---------------
 
+.. option:: -images <file>
+
+   Text file with source image file paths.
+
+.. option:: -images-delim, -images-delimiter <c>
+
+   Delimiter used in :option:`-images` file.
+   (default: ',' for .csv, '\t' for .tsv, and ' ' otherwise)
+
 .. option:: -Rx1 <int>
 
-   Region of interest
+   Region of interest lower index threshold in x dimension.
 
 .. option:: -Ry1 <int>
 
-   Region of interest
+   Region of interest lower index threshold in y dimension.
 
 .. option:: -Rz1 <int>
 
-   Region of interest
+   Region of interest lower index threshold in z dimension.
 
 .. option:: -Rx2 <int>
 
-   Region of interest
+   Region of interest upper index threshold in x dimension.
 
 .. option:: -Ry2 <int>
 
-   Region of interest
+   Region of interest upper index threshold in y dimension.
 
 .. option:: -Rz2 <int>
 
-   Region of interest
+   Region of interest upper index threshold in z dimension.
 
 .. option:: -Tp <value>
 
    Padding value in target.
 
-.. option:: -label <int>
+.. option:: -label, -segment <value|lower..upper>...
 
-   Segmentation label. (default: none)
+   Segmentation labels. When more than one specified, the segments are merged.
+   This option can be given multiple times to evaluate the overlap of more than
+   one (merged) segment at once. Use '-label 0' to evaluate overlap of all labels
+   merged into one segment (i.e., union of all labels). (default: none)
+
+.. option:: -labels
+
+   All (positive) segmentation labels individually. Can be combined with :option:`-label`.
+
+.. option:: -probs [<threshold>]
+
+   Evaluate overlap of class probability maps (fuzzy membership functions).
+   The values of the input images are rescaled to [0, 1]. When no <threshold>
+   is specified, a value of 0.5 is used to binarize the fuzzy segmentation masks.
+   When no <threshold> is specified and the metric is either Dice (DSC) or Jaccard (JSC),
+   these metrics are evaluated using their respective definition based on scalar products.
 
 .. option:: -precision <int>
 
    Number of significant digits. (default: 2)
 
-.. option:: -metric <Sensitivity|Specificity|Dice|Jaccard>
+.. option:: -metric <name>
 
-   Overlap metric. (default: Dice)
+   Segmentation overlap metric (see https://en.wikipedia.org/wiki/Confusion_matrix).
+   (default: Dice / F1-score)
 
-.. option:: -delim <char>
+.. option:: -delimiter, -delim <char>
 
    Delimiter for output of multiple overlap values. (default: ,)
+
+.. option:: -table [<file>|stdout|cout]
+
+   Write table with overlap measures for all segments in a row,
+   one row per input source image which is compared to the target
+   segmentation. By default, the output to STDIN with verbosity 0
+   is the transpose table and excludes a table header. (default: off)
+
+.. option:: -header, -noheader
+
+   Whether to output a header row when :option:`-table` is used. (default: on)
+
+.. option:: -id [<name>]
+
+   Print ID column with given <name> when :option:`-table` is used and multiple source
+   images are given. When only one image is given, the table is normally transposed with
+   the label value in the first column. With this option, the table is always such that
+   each row corresponds to one input source image, also when only one is given. (default: off)
+
+.. option:: -noid
+
+   Do not print ID column when :option:`-table` is used.
+
+.. option:: -id-path, -noid-path
+
+   Use full input source image file path as ID column entry. (default: off)
 
 
 Standard options

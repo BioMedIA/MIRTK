@@ -27,9 +27,23 @@ Description
 Input options
 -------------
 
-.. option:: -target <file>
+.. option:: -type <name>
 
-   Common reference image space of input transformations.
+   Common type/class name of input transformations.
+   If not specified or when :option:`-target` is not used, the input
+   transformations may need to be opened and read twice from disk.
+   Use this option when all input transformations have the same known
+   type to avoid the extra I/O. Not needed when -nodofs option given.
+
+.. option:: -target <file>|common
+
+   Either file name of reference image or (M)FFD transformation.
+   When all input (M)FFDs have the same type and attributes, "common"
+   can be specified to use the attributes of the first input FFD. When
+   used together with the :option:`-type`, this avoids reading all input
+   transformations twice, where during the first pass it is determined
+   whether and which type all input transformations have in common and on
+   what discrete lattice to possibly average the parameters directly.
    If not specified and local transformations are to be averaged,
    the attributes of the first local transformation are used.
 
@@ -99,10 +113,14 @@ Average transformation options
 
    Average deformation or assume none to be present. (default: on)
 
+.. option:: -local, -nolocal
+
+   Alias for :option:`-deformation`.
+
 .. option:: -log, -nolog
 
    Whether to average local transformations in log-space.
-   (default: yes, unless the :option:`-dofs` are averaged directly)
+   (default: no, unless the :option:`-dofs` of a SV FFD are averaged directly)
 
 .. option:: -log-euclidean
 
@@ -112,10 +130,11 @@ Average transformation options
 
    Compute global bi-invariant mean, i.e., exponential barycenter. (default: on)
 
-.. option:: -dofs
+.. option:: -dofs, -nodofs
 
-   Average the local transformation parameters directly.
-   (default: corresponding (dense) displacement fields are averaged)
+   Average the local transformation parameters directly. When this option is off,
+   the corresponding (dense) displacement fields are averaged instead.
+   (default: yes, unless input contains mixed FFD types or common type does not support this)
 
 .. option:: -inverse-dofs
 
@@ -130,7 +149,7 @@ Average transformation options
 
    Disables averaging of :option:`-translation` and :option:`-rotation` components.
 
-.. option:: -affine
+.. option:: -affine, -global
 
    Enables averaging of :option:`-translation`, :option:`-rotation`,
    :option:`-scaling`, and :option:`-shearing`, components and disables output of
@@ -140,6 +159,10 @@ Average transformation options
 
    Disables averaging of :option:`-rotation`, :option:`-translation`,
    :option:`-scaling`, and :option:`-shearing` components.
+
+.. option:: -noglobal
+
+   Same as :option:`-noaffine`, but also forces output of non-MFFD.
 
 .. option:: -all
 

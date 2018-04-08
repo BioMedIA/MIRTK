@@ -2,7 +2,7 @@
 
 .. |extract-image-region-brief-description| replace::
 
-   Crop/pad image by extracting a region of interest. The output image region
+   Crop/pad image by extracting a region of interest and optionally split  the extracted region into separate image files, e.g., individual slices  of a volume saved as individual image files. The output image region
    is chosen such that it contains the union of all specified axis-aligned
    rectangular input image regions. In case of :option:`extract-image-region -pad`, the output
    region does not have to be fully contained within the input image.

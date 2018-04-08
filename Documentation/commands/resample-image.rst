@@ -53,9 +53,9 @@ Command options
 .. option:: -interp <mode>
 
    Interpolation mode (case insensitive):
-   NN, Linear (default), Fast linear, BSpline, Cubic BSpline,
-   Fast cubic BSpline, CSpline, SBased, Sinc, Gaussian,
-   NN with padding, Linear with padding,
+   Default, NN, Linear (default), Fast linear, BSpline,
+   Cubic BSpline, Fast cubic BSpline, CSpline, SBased,
+   Sinc, Gaussian, NN with padding, Linear with padding,
    Fast linear with padding, BSpline with padding,
    Cubic BSpline with padding,
    Fast cubic BSpline with padding,

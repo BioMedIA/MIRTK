@@ -58,17 +58,17 @@ Command options
 
    Delete TCOORDS attribute(s).
 
-.. option:: -name <name>
+.. option:: -name <name>...
 
-   Name of point/cell data array to remove.
+   Case-sensitive name of data array to remove.
 
-.. option:: -pointdata <name>|<index>
+.. option:: -pointdata <name>|<index>...
 
-   Name of point data array to remove.
+   Case-sensitive name of point data array to remove.
 
-.. option:: -celldata  <name>|<index>
+.. option:: -celldata  <name>|<index>...
 
-   Name of cell data array to remove.
+   Case-sensitive name of cell data array to remove.
 
 
 Standard options
