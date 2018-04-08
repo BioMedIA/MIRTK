@@ -116,8 +116,7 @@ if [ $os = osx ] || [ $os = Darwin ]; then
   if [ $WITH_CCACHE = ON ]; then
     brew_install ccache
   fi
-  brew_install eigen tbb
-  # brew_install flann -- requires gcc, so skip it for CI testing for now
+  brew_install eigen flann tbb
   if [ $WITH_ARPACK = ON ]; then
     brew_install arpack
   fi
