@@ -280,6 +280,7 @@ namespace mirtk {
 
 
 // Base class
+template class GenericInterpolateImageFunction<ByteImage>;
 mirtkInterpolatorInstantiations(GenericInterpolateImageFunction);
 
 // ND

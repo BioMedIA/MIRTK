@@ -159,7 +159,7 @@ Comment=Medical Image Registration ToolKit ($VERSION)
 Exec=$PYTHON usr/bin/mirtk
 Terminal=true
 Type=Application
-Categories=Development
+Categories=Development;
 EOF
 
 cat -- > "AppRun" <<EOF
