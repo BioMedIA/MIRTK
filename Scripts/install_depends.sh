@@ -107,7 +107,7 @@ if [ $os = osx ] || [ $os = Darwin ]; then
         brew unlink $dep && brew link $dep
         [ $? -eq 0 ] || exit 1
       else
-        brew install $dep || exit 1
+        brew install $dep
       fi
     done
   }
