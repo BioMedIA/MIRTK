@@ -143,28 +143,6 @@ inline bool IsActiveLattice(const FreeFormTransformation3D *ffd, double x, doubl
 
 // -----------------------------------------------------------------------------
 /// Check if lattice point is within local support of an active control point
-inline bool IsActiveLattice(const FreeFormTransformation3D *ffd, int ci, int cj, int ck)
-{
-  const int r = ffd->KernelRadius();
-
-  int i1 = max(0, ci - r);
-  int j1 = max(0, cj - r);
-  int k1 = max(0, ck - r);
-
-  int i2 = min(ci + r, ffd->X() - 1);
-  int j2 = min(cj + r, ffd->Y() - 1);
-  int k2 = min(ck + r, ffd->Z() - 1);
-
-  for (int k = k1; k <= k2; ++k)
-  for (int j = j1; j <= j2; ++j)
-  for (int i = i1; i <= i2; ++i) {
-    if (ffd->IsActive(i, j, k)) return true;
-  }
-  return false;
-}
-
-// -----------------------------------------------------------------------------
-/// Check if lattice point is within local support of an active control point
 inline bool IsActiveBSplineLatticePoint(const BSplineFreeFormTransformation3D *ffd, int ci, int cj, int ck)
 {
   int i1 = max(0, ci - 1);

@@ -334,7 +334,7 @@ GenericFastCubicBSplineInterpolateImageFunction<TImage>
   --i, --j, --k;
 
   RealType val = voxel_cast<RealType>(0);
-  Real     nrm(0), wyz, w;
+  Real     wyz, w;
 
   int ia, jb, kc;
   for (int c = 0; c <= 3; ++c) {
