@@ -231,6 +231,17 @@ protected:
   MIRTK_Numerics_EXPORT static bool _initialized;
 };
 
+// Lookup table of B-spline function values
+template <class TReal> MIRTK_Numerics_EXPORT TReal BSpline<TReal>::WeightLookupTable[BSpline<TReal>::LookupTableSize];
+
+// Lookup table of B-spline basis function values
+template <class TReal> MIRTK_Numerics_EXPORT TReal BSpline<TReal>::LookupTable   [BSpline<TReal>::LookupTableSize][4];
+template <class TReal> MIRTK_Numerics_EXPORT TReal BSpline<TReal>::LookupTable_I [BSpline<TReal>::LookupTableSize][4];
+template <class TReal> MIRTK_Numerics_EXPORT TReal BSpline<TReal>::LookupTable_II[BSpline<TReal>::LookupTableSize][4];
+
+// Wether lookup tables of B-spline kernel were initialized
+template <class TReal> MIRTK_Numerics_EXPORT bool BSpline<TReal>::_initialized = false;
+
 // -----------------------------------------------------------------------------
 // Weights often used by B-spline transformations for evaluation of derivatives
 // at lattice points only where B-spline parameter t is zero
