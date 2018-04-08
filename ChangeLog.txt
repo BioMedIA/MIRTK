@@ -1,5 +1,32 @@
 .. This file is formatted using reStructuredText (reST) and included by Documentation/changelog.rst !
 
+
+2018
+----
+
+.. _v2.0.0:
+
+
+Release 2.0.0 (Apr 8)
+~~~~~~~~~~~~~~~~~~~~~
+
+This major release reflects the version used in the experiments of the PhD thesis of Andreas Schuh,
+including in particular the spatio-temporal atlas construction following the approach detailed in the preprint
+of Schuh et al., "Unbiased construction of a temporally consistent morphological atlas of neonatal brain development",
+bioRXiv, `doi:10.1101/251512 <https://doi.org/10.1101/251512>`_.
+
+Note that the change of the image dissimilarity scaling requires different choices of regularization weights, e.g.,
+the "Bending energy weight", when compared to previous versions. Therefore the major version number has been increased.
+
+- Changed scaling of image dissimilarity gradient.
+- Additional Linear Energy constraint for deformable registration.
+- Groupwise spatio-temporal atlas construction.
+- Enable build with VTK 8.
+- Provide AppImage for easy installation on Linux.
+- Added ``match-histogram`` command.
+- For a more detailed list of changes, see `PR 652 <https://github.com/BioMedIA/MIRTK/pull/652>`_.
+
+
 2016
 ----
 
