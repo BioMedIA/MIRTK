@@ -1,0 +1,147 @@
+{
+    "paths": {
+        "topdir": ".",
+        "agecsv": "dhcp-atlas-ages.csv",
+        "imgcsv": "dhcp-atlas-uids.csv",
+        "tmpdir": "cache",
+        "outdir": "atlas"
+    },
+    "images": {
+        "default": "t2w",
+        "ref": "global/roi/domain.nii.gz",
+        "t1w": {
+            "prefix": "images/t1w/",
+            "suffix": ".nii.gz",
+            "interp": "linear",
+            "datatype": "float",
+            "normalization": "z-score",
+            "rescaling": [1, 100],
+            "sharpen": true,
+            "bkgrnd": 0,
+            "bins": 0
+        },
+        "t2w": {
+            "prefix": "images/t2w/",
+            "suffix": ".nii.gz",
+            "interp": "linear",
+            "datatype": "float",
+            "normalization": "z-score",
+            "rescaling": [1, 100],
+            "sharpen": true,
+            "bkgrnd": 0,
+            "bins": 0
+        },
+        "tissues": {
+            "prefix": "labels/tissues/",
+            "suffix": ".nii.gz",
+            "labels": "1..9",
+            "interp": "nn"
+        },
+        "structures": {
+            "prefix": "labels/structures/",
+            "suffix": ".nii.gz",
+            "labels": "1..87",
+            "interp": "nn"
+        }
+    },
+    "iterations": 8,
+    "registration": {
+        "affine": {
+            "prefix": "global/dof/",
+            "suffix": ".dof.gz"
+        },
+        "config": [
+            {
+                "energy": "Symmetric",
+                "model": "SVFFD",
+                "ffdim": "SS",
+                "intsteps": 64,
+                "liederiv": false,
+                "bchterms": 2,
+                "channels": ["t2w"],
+                "measures": {"t2w": "NMI"},
+                "padding": true,
+                "interpolation": "Linear with padding",
+                "foreground": "Union",
+                "levels": 3,
+                "resolution": 1.0,
+                "spacing": [8.0, 16.0, 32.0],
+                "bending": 1e-3,
+                "jacobian": 0e-0,
+                "blurring": {"tissues": 2, "structures": 2}
+            },
+            {
+                "levels": 4,
+                "resolution": 0.5,
+                "spacing": [8.0, 8.0, 16.0, 32.0]
+            },
+            {
+                "spacing": 4.0
+            },
+            {
+                "spacing": 4.0
+            },
+            {
+                "spacing": 4.0
+            },
+            {
+                "bending": 5e-3,
+                "jacobian": 1e-5,
+                "spacing": 2.0
+            },
+            {
+                "spacing": 2.0
+            },
+            {
+                "spacing": 2.0
+            }
+        ],
+        "growth": {
+            "enabled": true,
+            "exclavg": false,
+            "bchterms": 3
+        }
+    },
+    "regression": {
+        "means": [36, 37, 38, 39, 40, 41, 42, 43, 44],
+        "sigma": [1.64, 1.31, 1.0, 0.77, 0.64, 0.73, 0.86, 1.18, 1.5],
+        "epsilon": 0.01,
+        "precision": 2
+    },
+    "evaluation": {
+        "measures": {
+            "t2w": ["sdev", "gini", "entropy", "grad"],
+            "tissues": ["entropy", "label-consistency", "grad(2)"],
+            "structures": ["entropy", "label-consistency"]
+        },
+        "rois": {
+            "global#brain": "{topdir}/global/roi/brain/t{t:02.0f}.nii.gz",
+            "global#tissue={l:d}": ["{topdir}/global/roi/t{t:02.0f}/tissue_{l:d}.nii.gz", "1..9"],
+            "brain": "{subdir}/roi/brain/t{t:02.2f}.nii.gz",
+            "structure={l:02d}": ["structures", "all"],
+            "tissue={l:d}": ["tissues", "all"]
+        }
+    },
+    "environment": {
+        "queue": {
+            "short": "condor",
+            "long": "condor"
+        },
+        "mintasks": 1,
+        "maxtasks": 500,
+        "threads": 8,
+        "condor": {
+            "requirements": [
+                "Arch == \"X86_64\"",
+                "OpSysShortName == \"Ubuntu\"",
+                "OpSysMajorVer >= 14",
+                "Machine != \"kronos.doc.ic.ac.uk\"",
+                "Machine != \"kasos.doc.ic.ac.uk\"",
+                "Machine != \"florizel.doc.ic.ac.uk\""
+            ],
+            "environment": {
+                "PYTHONPATH": ["/vol/biomedic/users/as12312/lib/python2.7/site-packages"]
+            }
+        }
+    }
+}
