@@ -160,7 +160,7 @@ class SpatioTemporalAtlas(object):
             try:
                 if self.verbose > 1:
                     sys.stdout.write("\n\n")
-                mirtk.run(command, args=args, opts=opts, showcmd=(self.verbose > 1), threads=threads, onexit='exit' if self.exit_on_error else 'throw')
+                mirtk.run(command, args=args, opts=opts, showcmd=(self.verbose > 1), threads=threads, onerror='exit' if self.exit_on_error else 'throw')
             finally:
                 os.chdir(prevdir)
 
