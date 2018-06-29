@@ -37,17 +37,23 @@ env:
   - WITH_VTK=ON       # test build with all moduldes, including those using VTK
 
 matrix:
+  allow_failures:
+    # the osx build often breaks with homebrew changes, so we allow it to fail 
+    - os: osx
   exclude:
-  # in order to reduce number of jobs to wait for, test only main compilers used on each OS
+  # in order to reduce number of jobs to wait for, test only main compilers 
+  # used on each OS
   - os: linux
     compiler: clang
   - os: osx
     compiler: g++
-  # travis-ci.org has low capacity for macOS jobs, thus reduce number of macOS jobs to
-  # only the essential ones. With the following, we only need to wait for one macOS job.
-  # Because on macOS usually a very recent VTK version is installed with Homebrew,
-  # it is more interesting to build with VTK on macOS than on Ubuntu. When the GCC build
-  # without VTK on Ubuntu succeeds, chances are very high it also builts fine on macOS.
+  # travis-ci.org has low capacity for macOS jobs, thus reduce number of 
+  # macOS jobs to only the essential ones. With the following, we only need 
+  # to wait for one macOS job.  
+  # Because on macOS usually a very recent VTK version is installed with 
+  # Homebrew, it is more interesting to build with VTK on macOS than on 
+  # Ubuntu. When the GCC build without VTK on Ubuntu succeeds, chances 
+  # are very high it also builts fine on macOS.
   - os: osx
     compiler: clang
     env: WITH_VTK=OFF
@@ -60,7 +66,7 @@ cache:
   - "$HOME/VTK-$MACOS_VTK_VERSION"
 
 before_install:
-  - . Scripts/install_depends.sh  # sourcing should enable export of env variables
+  - . Scripts/install_depends.sh  # sourcing will enable export of env variables
   - cd $TRAVIS_BUILD_DIR          # working directory may have been changed
 
 install: true

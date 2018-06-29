@@ -43,7 +43,7 @@ def submit(name, command=None, args=[], opts={}, script=None, tasks=0, deps=[],
                 log = os.path.join(logdir, name + "_$(Cluster).$(Process).log")
             else:
                 log = os.path.join(logdir, name + "_$(Cluster).log")
-        makedirs(logdir)
+        os.makedirs(logdir)
     jobdesc = "universe = vanilla\n"
     if threads > 0:
         jobdesc += "request_cpus = {0}\n".format(threads)
