@@ -664,7 +664,7 @@ void JoinBoundaries(SurfaceBoundary &boundary, vtkAbstractCellLocator *cut, doub
     // Construct list of new triangles based on either dj=-1 or dj=+1 traversal
     // direction and select those triangles with the least cost/error
     const int max_iter = seg1.NumberOfPoints() + seg2.NumberOfPoints();
-    double l1, l2, cost1, cost2;
+    double l1, l2, cost1 = 0., cost2 = 0.;
     Array<Vector3D<vtkIdType>> tris1, tris2;
     for (int dj = -1; dj <= 1; dj += 2) {
       int i = i0, j = j0;
@@ -672,7 +672,7 @@ void JoinBoundaries(SurfaceBoundary &boundary, vtkAbstractCellLocator *cut, doub
       seg2.ClearSelection();
       auto &tris = (dj == -1 ? tris1 : tris2);
       auto &cost = (dj == -1 ? cost1 : cost2);
-      cost = 0., tris.reserve(max_iter);
+      tris.reserve(max_iter);
       for (int iter = 0; iter < max_iter; ++iter) {
         l1 = (seg1.IsSelected(i + di) ? inf : seg2.Point(j).SquaredDistance(seg1.Point(i + di)));
         l2 = (seg2.IsSelected(j + dj) ? inf : seg1.Point(i).SquaredDistance(seg2.Point(j + dj)));
