@@ -13,3 +13,6 @@
 [submodule "Packages/Scripting"]
 	path = Packages/Scripting
 	url = https://github.com/MIRTK/Scripting.git
+[submodule "Packages/Viewer"]
+	path = Packages/Viewer
+	url = https://github.com/MIRTK/Viewer.git

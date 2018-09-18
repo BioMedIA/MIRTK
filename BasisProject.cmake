@@ -75,6 +75,7 @@ basis_project (
     Packages/Mapping
     Packages/DrawEM
     Packages/Scripting
+    Packages/Viewer
 
   # --------------------------------------------------------------------------
   # list of modules enabled by default
@@ -93,6 +94,7 @@ basis_project (
     Mapping
     DrawEM
     Scripting
+    Viewer
 
   # --------------------------------------------------------------------------
   # dependencies
