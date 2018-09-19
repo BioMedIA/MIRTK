@@ -102,6 +102,8 @@ if (BUILD_DOCUMENTATION_SOURCES)
     list(REMOVE_ITEM COMMANDS
       convert-mris
       padding
+      display
+      view
     )
   endif ()
 
