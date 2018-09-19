@@ -106,16 +106,14 @@ if [ $os = osx ] || [ $os = Darwin ]; then
 
   brew_install()
   {
-    set -x
     for dep in $@; do
-      if $(brew ls --version $dep &> /dev/null) ; then
+      if $(brew ls $dep &> /dev/null); then
         brew unlink $dep && brew link $dep
         [ $? -eq 0 ] || exit 1
       else
         brew install $dep
       fi
     done
-    set +x
   }
 
   brew update > /dev/null || exit 1
