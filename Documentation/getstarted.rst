@@ -36,7 +36,7 @@ Linux system with a compatible minimum glibc version (>=2.15). With this AppImag
 actual need for an installation. Simply download the file, make it executable, and copy it to
 a directory that is in your PATH, e.g.,::
 
-  wget -O mirtk https://bintray.com/schuhschuh/AppImages/download_file?file_path=MIRTK%2Bview-latest-x86_64-glibc2.15.AppImage
+  wget -O mirtk https://bintray.com/schuhschuh/AppImages/download_file?file_path=MIRTK-latest-x86_64-glibc2.14.AppImage
   chmod a+x mirtk
   sudo mv mirtk /usr/bin
 
