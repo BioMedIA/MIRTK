@@ -20,6 +20,7 @@ WITH_UMFPACK=`norm_option_value "$WITH_UMFPACK" OFF`
 WITH_VTK=`norm_option_value "$WITH_VTK" OFF`
 WITH_TBB=`norm_option_value "$WITH_TBB" ON`
 WITH_FLANN=`norm_option_value "$WITH_FLANN" ON`
+WITH_FLTK=`norm_option_value "$WITH_FLTK" OFF`
 WITH_CCACHE=`norm_option_value "$WITH_CCACHE" OFF`
 BUILD_DEPS_WITH_CCACHE=`norm_option_value "$BUILD_DEPS_WITH_CCACHE" OFF`
 FORCE_REBUILD_DEPS=`norm_option_value "$FORCE_REBUILD_DEPS" OFF`
@@ -78,6 +79,9 @@ if [ $os = linux ] || [ $os = Linux ]; then
       deps=(${deps[@]} libvtk6-dev)
       VTK_VERSION=''
     fi
+    if [ $WITH_FLTK = ON ]; then
+      deps=(${deps[@]} libfltk1.3-dev)
+    fi
   fi
 
   sudo apt-get update -qq || exit 1
@@ -128,6 +132,9 @@ if [ $os = osx ] || [ $os = Darwin ]; then
     if [ -z "$VTK_VERSION" ]; then
       echo "Installing VTK using Homebrew"
       brew_install vtk --without-python
+    fi
+    if [ $WITH_FLTK = ON ]; then
+      brew_install fltk
     fi
   fi
 

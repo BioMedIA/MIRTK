@@ -34,6 +34,7 @@ WITH_UMFPACK=`norm_option_value "$WITH_UMFPACK" OFF`
 WITH_VTK=`norm_option_value "$WITH_VTK" OFF`
 WITH_TBB=`norm_option_value "$WITH_TBB" ON`
 WITH_FLANN=`norm_option_value "$WITH_FLANN" ON`
+WITH_FLTK=`norm_option_value "$WITH_FLTK" OFF`
 WITH_CCACHE=`norm_option_value "$WITH_CCACHE" OFF`
 
 if [ $TRAVIS = ON ]; then
@@ -52,6 +53,9 @@ fi
 modules=(Common Numerics Image IO Transformation Registration DrawEM)
 if [ $WITH_VTK = ON ]; then
   modules=(${modules[@]} PointSet Deformable Mapping)
+  if [ $WITH_FLTK = ON ]; then
+    modules=(${modules[@]} Viewer)
+  fi
 fi
 
 cmake_args=

@@ -1,6 +1,5 @@
 #!/bin/bash
 
-WITH_VIEWER=true
 INSTALL_PREFIX="$HOME/opt/mirtk-appimage"
 SUDO=''  # set to empty string if prefix is writable by $USER
 
@@ -16,10 +15,8 @@ Consider building MIRTK from source code or use the Docker container.
 See also: http://mirtk.github.io/getstarted.html#install-the-software
 EOF
     exit 1
-  elif [ $WITH_VIEWER != true ] || [ $GLIBC_VERSION_MAJOR -eq 2 -a $GLIBC_VERSION_MINOR -eq 14 ]; then
-    APPIMAGE=MIRTK-latest-x86_64-glibc2.14.AppImage
   else
-    APPIMAGE=MIRTK%2Bview-latest-x86_64-glibc2.15.AppImage
+    APPIMAGE=MIRTK-latest-x86_64-glibc2.14.AppImage
   fi
 else
   name="$(basename "$APPIMAGE")"
