@@ -80,7 +80,7 @@ if [ $os = linux ] || [ $os = Linux ]; then
       VTK_VERSION=''
     fi
     if [ $WITH_FLTK = ON ]; then
-      deps=(${deps[@]} libfltk1.3-dev)
+      deps=(${deps[@]} libfltk1.3-dev libxinerama-dev)
     fi
   fi
 
