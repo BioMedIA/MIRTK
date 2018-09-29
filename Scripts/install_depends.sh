@@ -67,7 +67,7 @@ if [ $os = linux ] || [ $os = Linux ]; then
 
   if [ $WITH_UMFPACK = ON ]; then
     # see https://bugs.launchpad.net/ubuntu/+source/suitesparse/+bug/1333214
-    sudo add-apt-repository -y ppa:bzindovic/suitesparse-bugfix-1319687 || exit 1
+    # sudo add-apt-repository -y ppa:bzindovic/suitesparse-bugfix-1319687 || exit 1
     deps=(${deps[@]} libsuitesparse-dev)
   fi
 
