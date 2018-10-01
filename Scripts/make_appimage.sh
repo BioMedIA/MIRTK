@@ -29,7 +29,6 @@ TRAVIS=`norm_option_value "$TRAVIS" OFF`
 WITH_VTK=`norm_option_value "$WITH_VTK" OFF`
 TRANSFER=`norm_option_value "$TRANSFER_AppImage" OFF`
 AppImage_DEVEL=`norm_option_value "$AppImage_DEVEL" OFF`
-AppImage_VIEWER=`norm_option_value "$AppImage_VIEWER" OFF`
 AppImage_LATEST=`norm_option_value "$AppImage_LATEST" OFF`
 PYTHON="/usr/bin/env python"  # target system Python interpreter
 
@@ -77,21 +76,6 @@ cd "$APPDIR/.."
 wget -q https://github.com/probonopd/AppImages/raw/master/functions.sh -O ./functions.sh
 . ./functions.sh
 cd "$APPDIR"
-
-########################################################################
-# Include pre-built binary MIRTK view command (source not included)
-########################################################################
-
-if [ $AppImage_VIEWER = ON ]; then
-  sudo apt-get install -y libgsl0ldbl
-  wget -O view https://bintray.com/schuhschuh/generic/download_file?file_path=ubuntu-14.04%2Fview
-  chmod a+x view
-  if [ -d usr/lib/mirtk/tools ]; then
-    mv view usr/lib/mirtk/tools/
-  else
-    mv view usr/lib/tools/
-  fi
-fi
 
 ########################################################################
 # Copy in dependencies that may not be available on all target systems
@@ -184,7 +168,7 @@ tree -a 2> /dev/null || true
 ########################################################################
 
 echo
-echo "Generating AppImages..."
+echo "Generating AppImage..."
 APPIMAGES=()
 
 cd "$APPDIR/.."
@@ -192,31 +176,6 @@ mkdir -p "$OUTDIR"
 wget "https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-${ARCH}.AppImage"
 chmod a+x appimagetool-${ARCH}.AppImage
 
-if [ $AppImage_VIEWER = ON ]; then
-  echo "Generating AppImage including view binary..."
-  APPIMAGE="$APP+view-$RELEASE-$ARCH"
-  GLIBC_VERSION=$(glibc_needed)
-  [ -z "$GLIBC_VERSION" ] || APPIMAGE="$APPIMAGE-glibc$GLIBC_VERSION"
-  APPIMAGE="$APPIMAGE.AppImage"
-  rm -f "$OUTDIR/$APPIMAGE" 2> /dev/null || true
-  ./appimagetool-${ARCH}.AppImage -n -v "$APPDIR" "$OUTDIR/$APPIMAGE"
-  APPIMAGES=("${APPIMAGES[@]}" "$APPIMAGE")
-  echo "Generating AppImage including view binary... done"
-
-  cd "$APPDIR/usr/lib"
-  rm -f tools/view \
-        libgsl* \
-        libGL* \
-        libX* \
-        libxcb* \
-        libxshmfence* \
-        libfreetype* \
-        libglapi* \
-  rm -rf mesa || true
-  cd "$APPDIR/.."
-fi
-
-echo "Generating AppImage excluding view binary..."
 APPIMAGE="$APP-$RELEASE-$ARCH"
 GLIBC_VERSION=$(glibc_needed)
 [ -z "$GLIBC_VERSION" ] || APPIMAGE="$APPIMAGE-glibc$GLIBC_VERSION"
@@ -224,9 +183,8 @@ APPIMAGE="$APPIMAGE.AppImage"
 rm -f "$OUTDIR/$APPIMAGE" 2> /dev/null || true
 ./appimagetool-${ARCH}.AppImage -n -v "$APPDIR" "$OUTDIR/$APPIMAGE"
 APPIMAGES=("${APPIMAGES[@]}" "$APPIMAGE")
-echo "Generating AppImage excluding view binary... done"
 
-echo "Generating AppImages... done"
+echo "Generating AppImage... done"
 
 ########################################################################
 # Clean up

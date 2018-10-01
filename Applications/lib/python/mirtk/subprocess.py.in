@@ -91,9 +91,9 @@ def path(argv, quiet=False):
                 break
     if not quiet:
         if not fpath:
-            sys.stderr.write('Error: Missing execuable for command: ' + command)
+            sys.stderr.write('Error: Missing executable for command: ' + command + '\n')
         elif not os.access(fpath, os.X_OK):
-            sys.stderr.write('Error: Insufficient permissions to execute command: ' + fpath)
+            sys.stderr.write('Error: Insufficient permissions to execute command: ' + fpath + '\n')
     return fpath
 
 

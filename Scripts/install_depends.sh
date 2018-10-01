@@ -20,6 +20,7 @@ WITH_UMFPACK=`norm_option_value "$WITH_UMFPACK" OFF`
 WITH_VTK=`norm_option_value "$WITH_VTK" OFF`
 WITH_TBB=`norm_option_value "$WITH_TBB" ON`
 WITH_FLANN=`norm_option_value "$WITH_FLANN" ON`
+WITH_FLTK=`norm_option_value "$WITH_FLTK" OFF`
 WITH_CCACHE=`norm_option_value "$WITH_CCACHE" OFF`
 BUILD_DEPS_WITH_CCACHE=`norm_option_value "$BUILD_DEPS_WITH_CCACHE" OFF`
 FORCE_REBUILD_DEPS=`norm_option_value "$FORCE_REBUILD_DEPS" OFF`
@@ -66,7 +67,7 @@ if [ $os = linux ] || [ $os = Linux ]; then
 
   if [ $WITH_UMFPACK = ON ]; then
     # see https://bugs.launchpad.net/ubuntu/+source/suitesparse/+bug/1333214
-    sudo add-apt-repository -y ppa:bzindovic/suitesparse-bugfix-1319687 || exit 1
+    # sudo add-apt-repository -y ppa:bzindovic/suitesparse-bugfix-1319687 || exit 1
     deps=(${deps[@]} libsuitesparse-dev)
   fi
 
@@ -77,6 +78,9 @@ if [ $os = linux ] || [ $os = Linux ]; then
     if [ -z "$VTK_VERSION" ] || [ $VTK_VERSION = '6.0.0' ]; then
       deps=(${deps[@]} libvtk6-dev)
       VTK_VERSION=''
+    fi
+    if [ $WITH_FLTK = ON ]; then
+      deps=(${deps[@]} libxi-dev libxmu-dev libxinerama-dev libxcursor-dev libcairo-dev libfltk1.3-dev)
     fi
   fi
 
@@ -103,7 +107,7 @@ if [ $os = osx ] || [ $os = Darwin ]; then
   brew_install()
   {
     for dep in $@; do
-      if $(brew ls --version $dep &> /dev/null) ; then
+      if $(brew ls $dep &> /dev/null); then
         brew unlink $dep && brew link $dep
         [ $? -eq 0 ] || exit 1
       else
@@ -128,6 +132,9 @@ if [ $os = osx ] || [ $os = Darwin ]; then
     if [ -z "$VTK_VERSION" ]; then
       echo "Installing VTK using Homebrew"
       brew_install vtk --without-python
+    fi
+    if [ $WITH_FLTK = ON ]; then
+      brew_install fltk
     fi
   fi
 

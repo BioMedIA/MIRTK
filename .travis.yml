@@ -26,6 +26,7 @@ env:
   - WITH_UMFPACK=OFF  # ARPACK & UMFPACK dependencies come in pairs
   - WITH_TBB=ON       # build with TBB is always recommended
   - WITH_FLANN=ON     # build with FLANN is optional, but requires only little extra build time
+  - WITH_FLTK=ON      # build with FLTK-based Viewer when WITH_VTK is turned ON
   # build and deployment of AppImage for Linux
   - AppImage_BUILD=${AppImage_BUILD:-ON}
   - AppImage_BRANCH=${AppImage_BRANCH:-master}
