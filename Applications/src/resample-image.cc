@@ -57,7 +57,7 @@ void PrintHelp(const char *name)
   cout << endl;
   cout << "Optional arguments:" << endl;
   cout << "  -imsize <nx> <ny> <nz>   New image size in number of voxels (default: input image size)" << endl;
-  cout << "  -size <dx> <dy> <dz>     New voxel size in mm (default: 1 1 1)" << endl;
+  cout << "  -size <dx> <dy> <dz>     New voxel size in mm (default: input voxel size)" << endl;
   cout << "  -isotropic <m>           Resample to isotropic voxel size: m*min(dx, min(dy, dz))" << endl;
   cout << "  -interp <mode>           Interpolation mode (case insensitive):" << endl;
   line_length = max_line_length;
