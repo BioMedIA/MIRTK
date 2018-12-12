@@ -304,7 +304,7 @@ class SpatioTemporalAtlas(object):
         ages = set()
         for imgid in self.imgids:
             ages.add(self.age(imgid))
-        return list(ages)
+        return list(ages.union(self.means))
 
     def stdev(self, t):
         """Get standard deviation of temporal Gaussian kernel centered at time t."""
