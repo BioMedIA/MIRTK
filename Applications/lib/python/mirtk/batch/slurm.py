@@ -24,6 +24,7 @@ import os
 import sys
 import subprocess
 import time
+import mirtk.utils
 
 
 # ----------------------------------------------------------------------------
@@ -86,8 +87,7 @@ def submit(name, command=None, args=[], opts={}, script=None, tasks=0, deps=[],
             if tasks > 0:
                 log += "_%A.%a.log"
             log += "_%j.log"
-        if not os.path.exists(logdir):
-            os.makedirs(logdir)
+        mirtk.utils.makedirs(logdir)
         argv.extend(['-o', log, '-e', log])
     if deps:
         if isinstance(deps, int):
