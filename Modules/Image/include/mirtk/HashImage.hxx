@@ -25,7 +25,6 @@
 #include "mirtk/Math.h"
 #include "mirtk/Memory.h"
 #include "mirtk/Path.h"
-#include "mirtk/Matrix3x3.h"
 #include "mirtk/VoxelCast.h"
 #include "mirtk/Vector3D.h"
 #include "mirtk/Point.h"
@@ -1222,12 +1221,6 @@ void HashImage<VoxelType>::ImageToVTK(vtkStructuredPoints *vtk) const
   for (int i = 0; i < nvox; ++i) {
     for (int l = 0; l < _attr._t; ++l, ++ptr2) *ptr2 = Get(l * nvox);
   }
-}
-
-template <>
-inline void HashImage<Matrix3x3>::ImageToVTK(vtkStructuredPoints *) const
-{
-  Throw(ERR_NotImplemented, __FUNCTION__, "Not implemented");
 }
 
 // -----------------------------------------------------------------------------
