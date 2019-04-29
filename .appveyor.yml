@@ -2,7 +2,7 @@
 
 version: 'build.{build}'
 
-os: Visual Studio 2015
+os: Visual Studio 2017
 
 environment:
   LIBPNG_VERSION: 1.6.18.44
@@ -11,7 +11,7 @@ environment:
   TBB_VERSION: 2017_U7
   TBB_PACKAGE_ID: tbb2017_20170604oss
   matrix:
-  - Toolset: v140
+  - Toolset: v141
 
 platform:
 - x64
@@ -34,7 +34,7 @@ matrix:
 install:
 - ps: |
     $compiler = switch ($env:TOOLSET) {
-      "v150" {"msvc15"}
+      "v141" {"msvc14"}
       "v140" {"msvc14"}
       "v120" {"msvc12"}
     }
@@ -68,7 +68,7 @@ before_build:
     Write-Output "Configuration: $env:CONFIGURATION"
     Write-Output "Platform: $env:PLATFORM"
     $generator = switch ($env:TOOLSET) {
-      "v150" {"Visual Studio 15 2017"}
+      "v141" {"Visual Studio 15 2017"}
       "v140" {"Visual Studio 14 2015"}
       "v120" {"Visual Studio 12 2013"}
     }
@@ -86,7 +86,7 @@ build_script:
     & cmake -G "$generator" `
           -D CMAKE_SUPPRESS_REGENERATION=1 `
           -D CMAKE_CONFIGURATION_TYPES="Debug;Release" `
-          -D DEPENDS_Boost_DIR=C:/Libraries/boost_1_63_0 `
+          -D DEPENDS_Boost_DIR=C:/Libraries/boost_1_69_0 `
           -D DEPENDS_PNG_DIR=C:/projects/libpng `
           -D DEPENDS_ZLIB_DIR=C:/projects/zlib `
           -D DEPENDS_Eigen3_DIR=C:/projects/eigen `
