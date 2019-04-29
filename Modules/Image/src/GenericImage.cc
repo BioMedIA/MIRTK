@@ -1129,8 +1129,9 @@ BinaryImage GenericImage<VoxelType>::operator!=(VoxelType pixel) const
 template <class VoxelType>
 void GenericImage<VoxelType>::GetMinMax(VoxelType &min, VoxelType &max) const
 {
-  min = max = VoxelType();
-  
+  min = VoxelType();
+  max = VoxelType();
+ 
   const VoxelType *ptr   = this->Data();
   bool             first = true;
   
@@ -1163,7 +1164,8 @@ template <> void GenericImage<double3x3>::GetMinMax(VoxelType &, VoxelType &) co
 template <class VoxelType>
 void GenericImage<VoxelType>::GetMinMax(VoxelType &min, VoxelType &max, VoxelType pad) const
 {
-  min = max = VoxelType();
+  min = VoxelType();
+  max = VoxelType();
 
   const VoxelType *ptr   = this->Data();
   bool             first = true;
