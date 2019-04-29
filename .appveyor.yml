@@ -34,7 +34,7 @@ matrix:
 install:
 - ps: |
     $compiler = switch ($env:TOOLSET) {
-      "v141" {"msvc15"}
+      "v141" {"msvc14"}
       "v140" {"msvc14"}
       "v120" {"msvc12"}
     }
