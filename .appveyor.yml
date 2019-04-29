@@ -86,7 +86,7 @@ build_script:
     & cmake -G "$generator" `
           -D CMAKE_SUPPRESS_REGENERATION=1 `
           -D CMAKE_CONFIGURATION_TYPES="Debug;Release" `
-          -D DEPENDS_Boost_DIR=C:/Libraries/boost_1_63_0 `
+          -D DEPENDS_Boost_DIR=C:/Libraries/boost_1_69_0 `
           -D DEPENDS_PNG_DIR=C:/projects/libpng `
           -D DEPENDS_ZLIB_DIR=C:/projects/zlib `
           -D DEPENDS_Eigen3_DIR=C:/projects/eigen `
