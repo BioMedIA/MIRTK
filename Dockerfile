@@ -48,12 +48,22 @@ RUN ls /usr/src/MIRTK \
     && cmake \
       -D CMAKE_INSTALL_PREFIX=/usr/local \
       -D CMAKE_BUILD_TYPE=Release \
-      -D BUILD_ALL_MODULES=ON \
       -D BUILD_SHARED_LIBS=ON \
       -D BUILD_APPLICATIONS=ON \
       -D BUILD_TESTING=${BUILD_TESTING} \
       -D BUILD_DOCUMENTATION=OFF \
       -D BUILD_CHANGELOG=OFF \
+      -D MODULE_Common=ON \
+      -D MODULE_Numerics=ON \
+      -D MODULE_Image=ON \
+      -D MODULE_IO=ON \
+      -D MODULE_PointSet=ON \
+      -D MODULE_Transformation=ON \
+      -D MODULE_Registration=ON \
+      -D MODULE_Deformable=ON \
+      -D MODULE_DrawEM=ON \
+      -D MODULE_Mapping=ON \
+      -D MODULE_Scripting=ON \
       -D WITH_ARPACK=ON \
       -D WITH_FLANN=ON \
       -D WITH_MATLAB=OFF \
