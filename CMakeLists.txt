@@ -84,7 +84,13 @@ if (WITH_CCACHE)
   if (CMAKE_CXX_COMPILER MATCHES "ccache")
     message(STATUS "Detected C++ compiler is in ccache path, ignoring WITH_CCACHE option")
   else ()
-    find_program(CCACHE_COMMAND "ccache")
+    find_program(CCACHE_COMMAND
+      NAMES
+        "ccache"
+      HINTS
+        "/usr/bin"
+        "/usr/local/bin"
+    )
     if (NOT CCACHE_COMMAND)
       message(FATAL_ERROR "Use of ccache requested, but CCACHE_COMMAND not found!")
     endif ()
