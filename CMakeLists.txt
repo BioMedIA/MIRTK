@@ -113,6 +113,11 @@ endif ()
 # ----------------------------------------------------------------------------
 # Configure build system
 
+# CMake >=3.15 warns if top-level CMakeLists.txt contains no project command
+basis_project_args(ARGS)
+project(${ARGS})
+unset(ARGS)
+
 # Initialize project
 mirtk_project_begin()
 
