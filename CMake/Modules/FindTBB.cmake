@@ -386,7 +386,13 @@ foreach (_TBB_COMPONENT IN LISTS _TBB_FIND_COMPONENTS)
     # Add TBB::<C> import target
     string(TOLOWER ${_TBB_COMPONENT} _TBB_TARGET_NAME)
     set(_TBB_TARGET_NAME "TBB::${_TBB_TARGET_NAME}")
-    add_library(${_TBB_TARGET_NAME} SHARED IMPORTED)
+    if (TARGET ${_TBB_TARGET_NAME})
+      if (TBB_DEBUG)
+        message("** FindTBB: Updating existing target ${_TBB_TARGET_NAME}")
+      endif ()
+    else ()
+      add_library(${_TBB_TARGET_NAME} SHARED IMPORTED)
+    endif ()
 
     set_target_properties(${_TBB_TARGET_NAME} PROPERTIES
       INTERFACE_INCLUDE_DIRECTORIES     "${TBB_${_TBB_COMPONENT}_INCLUDE_DIRS}"
