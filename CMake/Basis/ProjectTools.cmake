@@ -1795,6 +1795,69 @@ function (basis_find_logo OUTPUT_VARIABLE SPECIFIED_LOGO DEFAULT_NAME)
   endif ()
 endfunction()
 
+
+# ----------------------------------------------------------------------------
+## @brief Load project command arguments from BasisProject.cmake file.
+function (basis_project_args VAR)
+
+  # hide it here to avoid that it shows up in the GUI on error
+  set (CMAKE_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}" CACHE INTERNAL "" FORCE)
+
+  # project meta-data
+  if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/BasisProject.cmake")
+    set (BASIS_basis_project_CALLED FALSE)
+    set (PROJECT_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
+    include ("${CMAKE_CURRENT_SOURCE_DIR}/BasisProject.cmake")
+    if (NOT BASIS_basis_project_CALLED)
+      message (FATAL_ERROR "Missing basis_project() command in BasisProject.cmake!")
+    endif ()
+  else ()
+    message (FATAL_ERROR "Missing BasisProject.cmake file!")
+  endif ()
+
+  # project command arguments
+  set (LANGUAGES)
+  foreach (lang IN LISTS PROJECT_LANGUAGES)
+    if (lang MATCHES "^(C|CXX)$")
+      list (APPEND LANGUAGES ${lang})
+    elseif (lang MATCHES "^CXX-?[0-9][0-9x]+$")
+      list (APPEND LANGUAGES CXX)
+    endif ()
+  endforeach ()
+
+  if (POLICY CMP0048)
+    cmake_policy (SET CMP0048 NEW)
+    set (_args "${PROJECT_NAME}" VERSION "${PROJECT_VERSION}" LANGUAGES ${LANGUAGES})
+    if (CMAKE_VERSION VERSION_LESS 3.9)
+      set (PROJECT_DESCRIPTION "${PROJECT_DESCRIPTION}" PARENT_SCOPE)
+    elseif (PROJECT_DESCRIPTION)
+      list(APPEND _args DESCRIPTION "${PROJECT_DESCRIPTION}")
+    endif ()
+    if (CMAKE_VERSION VERSION_LESS 3.12)
+      set (PROJECT_HOMEPAGE_URL "${PROJECT_PACKAGE_WEBSITE}" PARENT_SCOPE)
+    elseif (PROJECT_PACKAGE_WEBSITE)
+      list(APPEND _args HOMEPAGE_URL "${PROJECT_PACKAGE_WEBSITE}")
+    endif ()
+  else ()
+    set (_args "${PROJECT_NAME}" ${LANGUAGES})
+    basis_version_numbers (
+      "${PROJECT_VERSION}"
+        PROJECT_VERSION_MAJOR
+        PROJECT_VERSION_MINOR
+        PROJECT_VERSION_PATCH
+    )
+    set (PROJECT_VERSION "${PROJECT_VERSION}" PARENT_SCOPE)
+    set (PROJECT_VERSION_MAJOR "${PROJECT_VERSION_MAJOR}" PARENT_SCOPE)
+    set (PROJECT_VERSION_MINOR "${PROJECT_VERSION_MINOR}" PARENT_SCOPE)
+    set (PROJECT_VERSION_PATCH "${PROJECT_VERSION_PATCH}" PARENT_SCOPE)
+    set (PROJECT_DESCRIPTION "${PROJECT_DESCRIPTION}" PARENT_SCOPE)
+    set (PROJECT_HOMEPAGE_URL "${PROJECT_PACKAGE_WEBSITE}" PARENT_SCOPE)
+  endif ()
+
+  set ("${VAR}" "${_args}" PARENT_SCOPE)
+
+endfunction()
+
 # ----------------------------------------------------------------------------
 ## @brief Initialize project, calls CMake's project() command.
 #
@@ -1858,32 +1921,16 @@ macro (basis_project_initialize)
   endif ()
 
   # --------------------------------------------------------------------------
-  # project()
-  set (LANGUAGES)
-  foreach (lang IN LISTS PROJECT_LANGUAGES)
-    if (lang MATCHES "^(C|CXX)$")
-      list (APPEND LANGUAGES ${lang})
-    elseif (lang MATCHES "^CXX-?[0-9][0-9x]+$")
-      list (APPEND LANGUAGES CXX)
-    endif ()
-  endforeach ()
-
-  if (POLICY CMP0048)
-    cmake_policy (SET CMP0048 NEW)
-    project ("${PROJECT_NAME}" VERSION "${PROJECT_VERSION}" LANGUAGES ${LANGUAGES})
-  else ()
-    project ("${PROJECT_NAME}" ${LANGUAGES})
-    basis_version_numbers (
-      "${PROJECT_VERSION}"
-        PROJECT_VERSION_MAJOR
-        PROJECT_VERSION_MINOR
-        PROJECT_VERSION_PATCH
-    )
-  endif ()
+  # project command
+  basis_project_args (_args)
+  project (${_args})
+  unset (_args)
 
   # work-around for issue with CMAKE_PROJECT_NAME always being set to 'Project'
-  if ("${PROJECT_SOURCE_DIR}" STREQUAL "${CMAKE_SOURCE_DIR}")
-    set_property (CACHE CMAKE_PROJECT_NAME PROPERTY VALUE "${PROJECT_NAME}")
+  if (CMAKE_PROJECT_NAME STREQUAL "Project" AND "${PROJECT_SOURCE_DIR}" STREQUAL "${CMAKE_SOURCE_DIR}")
+    basis_update_value (CMAKE_PROJECT_NAME "${PROJECT_NAME}")
+    basis_update_value (CMAKE_PROJECT_VERSION "${PROJECT_VERSION}")
+    basis_update_value (CMAKE_PROJECT_DESCRIPTION "${PROJECT_DESCRIPTION}")
   endif ()
 
   # C++ standard
