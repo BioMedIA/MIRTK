@@ -182,7 +182,6 @@ double MultiLevelFreeFormTransformation
         ffd->Reset();
       }
     }
-    ++lvl;
   }
 
   return error;
@@ -237,7 +236,6 @@ double MultiLevelFreeFormTransformation
         ffd->Reset();
       }
     }
-    ++lvl;
   }
 
   return error;
@@ -292,7 +290,6 @@ double MultiLevelFreeFormTransformation
         ffd->Reset();
       }
     }
-    ++lvl;
   }
 
   return error;
