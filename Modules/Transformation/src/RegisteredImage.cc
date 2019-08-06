@@ -114,8 +114,7 @@ public:
 /// Voxel function used to rescale magnitude of image gradient vectors
 class RescaleSquaredGradientMagnitude : public VoxelFunction
 {
-  const Array<double> *_SquaredMagnitude;
-  double               _Scale;
+  double _Scale;
 
   const int _x = 0;
   int _y, _z;
@@ -124,11 +123,14 @@ public:
 
   RescaleSquaredGradientMagnitude(const BaseImage *gradient, const Array<double> *mag2, double thres2)
   :
-    _SquaredMagnitude(mag2),
     _y(gradient->NumberOfSpatialVoxels()), _z(_y + _y)
   {
     double max2 = data::statistic::Max::Calculate(static_cast<int>(mag2->size()), mag2->data());
-    _Scale = sqrt(thres2 / max2);
+    if (max2 > 0.) {
+      _Scale = sqrt(thres2 / max2);
+    } else {
+      _Scale = 1.;
+    }
   }
 
   template <class TImage, class T>

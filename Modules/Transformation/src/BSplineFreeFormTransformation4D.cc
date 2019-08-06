@@ -1192,8 +1192,7 @@ class Evaluate2ndOrderBSplineFFDDerivatives4D : public VoxelFunction
   typedef BSplineFreeFormTransformation4D::Vector         Vector;
   typedef BSplineFreeFormTransformation4D::Kernel         Kernel;
 
-  const BSplineFreeFormTransformation4D *_FFD;      ///< B-spline free-form deformation
-  const Extrapolator                    *_CPValue;  ///< Coefficients of B-spline FFD
+  const Extrapolator *_CPValue;  ///< Coefficients of B-spline FFD
 
   /// Apply world to lattice reorientation (and scaling) matrix
   inline void Reorient(const Matrix &orient,
@@ -1268,7 +1267,7 @@ public:
   /// Constructor
   Evaluate2ndOrderBSplineFFDDerivatives4D(const BSplineFreeFormTransformation4D *ffd, const Matrix *orient = nullptr)
   :
-    _FFD(ffd), _CPValue(ffd->Extrapolator())
+    _CPValue(ffd->Extrapolator())
   {
     InitializeLookupTable(orient);
   }
