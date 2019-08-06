@@ -396,7 +396,7 @@ inline PointSet& PointSet::operator-=(const PointSet &pset)
 inline PointSet PointSet::operator()(int j, int k) const
 {
   PointSet pset;
-  for (int i = j; i < k; j++) {
+  for (int i = j; i < k; ++i) {
     pset += _data[i];
   }
   return pset;
