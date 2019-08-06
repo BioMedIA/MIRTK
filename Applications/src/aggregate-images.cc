@@ -740,7 +740,7 @@ int main(int argc, char **argv)
       eval._Function = [min_value, max_value, bins, parzen](const InputArray &values) -> OutputType {
         Histogram1D<int> hist(bins);
         hist.Min(static_cast<double>(min_value));
-        hist.Max(static_cast<double>(min_value));
+        hist.Max(static_cast<double>(max_value));
         for (auto value : values) {
           hist.AddSample(static_cast<double>(value));
         }
