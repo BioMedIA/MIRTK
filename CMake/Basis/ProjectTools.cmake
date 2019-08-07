@@ -2670,7 +2670,9 @@ macro (basis_project_end)
       # Attention: add_uninstall must be called last in a separate file via an
       #            add_subdirectory call. This ensures that the code is executed
       #            at the end of the root cmake_install.cmake file.
-      add_subdirectory ("${BASIS_MODULE_PATH}/uninstall" "${PROJECT_BINARY_DIR}/uninstall")
+      if (BASIS_UNINSTALLER)
+        add_subdirectory ("${BASIS_MODULE_PATH}/uninstall" "${PROJECT_BINARY_DIR}/uninstall")
+      endif ()
     endif ()
 
   endif ()

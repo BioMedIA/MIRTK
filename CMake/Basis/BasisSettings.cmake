@@ -833,6 +833,10 @@ mark_as_advanced (BASIS_DEBUG)
 option (BASIS_BUILD_ONLY "Request configuration of software build only, skipping steps related to packaging and installation." OFF)
 mark_as_advanced (BASIS_BUILD_ONLY)
 
+## @brief Request generation of package uninstaller script upon installation.
+option (BASIS_UNINSTALLER "Request generation of default package uninstall script upon installation." OFF)
+mark_as_advanced (BASIS_UNINSTALLER)
+
 # ============================================================================
 # build configuration
 # ============================================================================
