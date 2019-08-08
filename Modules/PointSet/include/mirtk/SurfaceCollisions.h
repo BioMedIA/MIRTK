@@ -296,8 +296,10 @@ public:
   /// Get type of cell collision
   CollisionType GetCollisionType(int) const;
 
+#ifdef VTK_USE_64BIT_IDS
   /// Get type of cell collision
   CollisionType GetCollisionType(vtkIdType) const;
+#endif // VTK_USE_64BIT_IDS
 
   /// Set of intersections of other faces with the specified cell
   /// \note Use only when intersection tests enabled.
