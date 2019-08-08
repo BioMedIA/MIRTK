@@ -520,10 +520,12 @@ SurfaceCollisions::CollisionType SurfaceCollisions::GetCollisionType(int cellId)
 }
 
 // -----------------------------------------------------------------------------
+#ifdef VTK_USE_64BIT_IDS
 SurfaceCollisions::CollisionType SurfaceCollisions::GetCollisionType(vtkIdType cellId) const
 {
   return static_cast<CollisionType>(static_cast<int>(GetCollisionTypeArray()->GetComponent(cellId, 0)));
 }
+#endif // VTK_USE_64BIT_IDS
 
 // =============================================================================
 // Execution
