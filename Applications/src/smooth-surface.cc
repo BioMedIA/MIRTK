@@ -297,6 +297,9 @@ void AreaWeightedLaplacianSmoothing(vtkPolyData *input, vtkDataArray *mask,
     input->GetPointData()->AddArray(dists);
   }
 
+  // Build links (required by GetPointCells)
+  input->BuildLinks();
+
   // Smoothing iterations
   for (i = 0; i <= noOfIterations; ++i) {
     if (verbose) cout << "iteration  " << i << " ";
