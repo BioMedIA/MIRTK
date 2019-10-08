@@ -658,12 +658,16 @@ int main(int argc, char **argv)
 
   // Parameters of histogram based measures
   InputType min_value, max_value;
+  double hist_lower, hist_upper, bin_width;
   if (mode == AM_Entropy || mode == AM_Mode) {
     GetMinMax(images, min_value, max_value);
-    if (bins == 0) {
-      bins = iceil(max_value) - ifloor(min_value);
-      if (bins == 0) bins = 1;
+    if (bins < 2) {
+      bins = iround(max_value - min_value) + 1;
     }
+    bin_width = static_cast<double>(max_value - min_value) / (bins - 1);
+    const auto half_bin_width = 0.5 * bin_width;
+    hist_lower = min_value - half_bin_width;
+    hist_upper = max_value + half_bin_width;
   }
 
   // Evaluate aggregation function for samples given at each voxel
@@ -724,10 +728,8 @@ int main(int argc, char **argv)
     } break;
 
     case AM_Entropy: {
-      eval._Function = [min_value, max_value, bins, parzen](const InputArray &values) -> OutputType {
-        Histogram1D<int> hist(bins);
-        hist.Min(static_cast<double>(min_value));
-        hist.Max(static_cast<double>(max_value));
+      eval._Function = [hist_lower, hist_upper, bin_width, parzen](const InputArray &values) -> OutputType {
+        Histogram1D<int> hist(hist_lower, hist_upper, bin_width);
         for (auto value : values) {
           hist.AddSample(static_cast<double>(value));
         }
@@ -737,10 +739,8 @@ int main(int argc, char **argv)
     } break;
 
     case AM_Mode: {
-      eval._Function = [min_value, max_value, bins, parzen](const InputArray &values) -> OutputType {
-        Histogram1D<int> hist(bins);
-        hist.Min(static_cast<double>(min_value));
-        hist.Max(static_cast<double>(max_value));
+      eval._Function = [hist_lower, hist_upper, bin_width, parzen](const InputArray &values) -> OutputType {
+        Histogram1D<int> hist(hist_lower, hist_upper, bin_width);
         for (auto value : values) {
           hist.AddSample(static_cast<double>(value));
         }
