@@ -662,7 +662,7 @@ int main(int argc, char **argv)
   if (mode == AM_Entropy || mode == AM_Mode) {
     GetMinMax(images, min_value, max_value);
     if (bins < 2) {
-      bins = iround(max_value - min_value) + 1;
+      bins = max(2, iround(max_value - min_value) + 1);
     }
     bin_width = static_cast<double>(max_value - min_value) / (bins - 1);
     const auto half_bin_width = 0.5 * bin_width;
