@@ -78,7 +78,7 @@ void NiftiImage::Initialize(int x, int y, int z, int t, int u,
   // Spatial dimensions
   nim->nifti_type = 1;               // 1==nii (1 file) - should set the magic in nhdr in Write()
   nim->datatype   = datatype;        // Will be NIFTI_TYPE_UINT8 | NIFTI_TYPE_INT16 | NIFTI_TYPE_FLOAT32
-  nim->ndim       = ((u > 1) ? 5 : (t > 1 ? 4 : 3));
+  nim->ndim       = (u > 1) ? 5 : 4; // Always use ndim >= 4 to ensure dt value is preserved
   nim->nx         = (x > 1 ? x : 1); // So that nvox can be computed correctly, see below
   nim->ny         = (y > 1 ? y : 1); // dito
   nim->nz         = (z > 1 ? z : 1); // ...
