@@ -220,6 +220,12 @@ void PrintHelp(const char *name)
   cout << "      Compute logarithm to base 10, alias for :option:`-log` with base 10.\n";
   cout << "  -mod, -fmod <denominator>\n";
   cout << "      Compute modulo division of each value with specified denominator.\n";
+  cout << "  -floor\n";
+  cout << "      Round floating point values to largest integer value that is not greater.\n";
+  cout << "  -ceil\n";
+  cout << "      Round floating point values to smallest integer value that is greater.\n";
+  cout << "  -round\n";
+  cout << "      Round floating point values to the nearest integer value, away from zero for halfway cases.\n";
   cout << "\n";
   cout << "Data output options:\n";
   cout << "  -out, -o, -output <file> [<type>] [<name>]\n";
@@ -884,6 +890,12 @@ int main(int argc, char **argv)
         exit(1);
       }
       ops.push_back(UniquePtr<Op>(new Mod(denominator)));
+    } else if (OPTION("-floor")) {
+      ops.push_back(UniquePtr<Op>(new Floor()));
+    } else if (OPTION("-ceil")) {
+      ops.push_back(UniquePtr<Op>(new Ceil()));
+    } else if (OPTION("-round")) {
+      ops.push_back(UniquePtr<Op>(new Round()));
     } else if (OPTION("=")) {
       const char *fname = ARGUMENT;
       #if MIRTK_Image_WITH_VTK
