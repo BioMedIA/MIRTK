@@ -218,6 +218,8 @@ void PrintHelp(const char *name)
   cout << "      Compute natural logarithm, alias for :option:`-log` with base e.\n";
   cout << "  -lg, -log10 [<threshold>]\n";
   cout << "      Compute logarithm to base 10, alias for :option:`-log` with base 10.\n";
+  cout << "  -mod, -fmod <denominator>\n";
+  cout << "      Compute modulo division of each value with specified denominator.\n";
   cout << "\n";
   cout << "Data output options:\n";
   cout << "  -out, -o, -output <file> [<type>] [<name>]\n";
@@ -874,6 +876,14 @@ int main(int argc, char **argv)
         op = new Ln(a);
       }
       ops.push_back(UniquePtr<Op>(op));
+    } else if (OPTION("-mod") || OPTION("-fmod")) {
+      const char *arg = ARGUMENT;
+      double denominator;
+      if (!FromString(arg, denominator) || abs(denominator) < 1e-12) {
+        cerr << "Invalid -mod value, must be a non-zero number!" << endl;
+        exit(1);
+      }
+      ops.push_back(UniquePtr<Op>(new Mod(denominator)));
     } else if (OPTION("=")) {
       const char *fname = ARGUMENT;
       #if MIRTK_Image_WITH_VTK
