@@ -385,7 +385,19 @@ int main(int argc, char **argv)
       }
     }
   }
-
+  int mask_size = 0;
+  for (int idx = 0; idx < nvox; ++idx) {
+    if (mask(idx) != 0) {
+      mask_size += 1;
+    }
+  }
+  if (mask_size == 0) {
+    cerr << "Warning: Target image domain is empty!";
+    if (mask_name) {
+      cerr << " Ensure mask image '" << mask_name << "' overlaps with target image domain.";
+    }
+    cerr << "\n";
+  }
   target.PutMask(&mask);
 
   // Target intensity range in region of interest
@@ -482,8 +494,16 @@ int main(int argc, char **argv)
 
     // Compute overlap mask
     overlap = mask;
+    int overlap_size = 0;
     for (int idx = 0; idx < nvox; ++idx) {
-      overlap(idx) = (overlap(idx) && source.IsForeground(idx) ? 1 : 0);
+      if (overlap(idx) != 0 && source.IsForeground(idx)) {
+        overlap_size += 1;
+      } else {
+        overlap(idx) = 0;
+      }
+    }
+    if (overlap_size == 0) {
+      cerr << "Warning: Source image '" << source_name[n] << "' has no overlap with the target image domain!\n";
     }
 
     // Fill joint histogram
