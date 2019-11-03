@@ -95,7 +95,7 @@ public:
   {
     if (det < _Epsilon) {
       double l = log(_Epsilon);
-      double m = 2. * log(_Epsilon) / _Epsilon;
+      double m = 2. * l / _Epsilon;
       double t = l * l - m * _Epsilon;
       return m * det + t;
     } else {
