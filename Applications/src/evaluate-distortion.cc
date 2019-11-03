@@ -26,6 +26,7 @@
 
 // include of mirtk/vtkMath.h with fix for VTK 6.0 isinf ambiguity
 // needed because vtkTriangle.h otherwise includes vtkMath.h
+#include "mirtk/Vtk.h"
 #include "mirtk/VtkMath.h"
 
 #include "vtkSmartPointer.h"
@@ -130,7 +131,7 @@ AngularDistortion(vtkPolyData *orig, vtkPolyData *mesh)
   array->SetNumberOfComponents(2);
   array->SetNumberOfTuples(npoints);
 
-  unsigned short ncells1, ncells2;
+  vtkPolyDataGetPointCellsNumCellsType ncells1, ncells2;
   vtkIdType      *cells1, *cells2;
   double         sum1,    sum2;
   Array<double>  angles1, angles2;
@@ -144,7 +145,7 @@ AngularDistortion(vtkPolyData *orig, vtkPolyData *mesh)
     }
     angles1.resize(ncells1);
     angles2.resize(ncells2);
-    for (unsigned short i = 0; i < ncells1; ++i) {
+    for (vtkPolyDataGetPointCellsNumCellsType i = 0; i < ncells1; ++i) {
       if (cells1[i] != cells2[i]) {
         FatalError("AngularDistortion: Lists of cell IDs to which point " << ptId << " belongs differ!");
       }
@@ -155,7 +156,7 @@ AngularDistortion(vtkPolyData *orig, vtkPolyData *mesh)
     sum2 = Accumulate(angles2);
     avg_ratio = .0;
     max_ratio = .0;
-    for (unsigned short i = 0; i < ncells1; ++i) {
+    for (vtkPolyDataGetPointCellsNumCellsType i = 0; i < ncells1; ++i) {
       ratio = (angles1[i] / sum1) / (angles2[i] / sum2);
       max_ratio = max(max_ratio, ratio);
       avg_ratio += ratio;

@@ -124,7 +124,11 @@ set(DEPENDS
 )
 
 if (VTK_FOUND)
-  list(APPEND DEPENDS vtkCommonCore vtkCommonDataModel)
+  if (TARGET VTK::CommonCore)
+    list(APPEND DEPENDS VTK::CommonCore VTK::CommonDataModel)
+  else ()
+    list(APPEND DEPENDS vtkCommonCore vtkCommonDataModel)
+  endif ()
 endif ()
 
 if (TARGET TBB::tbb)

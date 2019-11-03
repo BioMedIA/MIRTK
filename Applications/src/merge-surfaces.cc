@@ -459,8 +459,8 @@ void DeleteSingleBoundaryPointCells(SurfaceBoundary &boundary, vtkAbstractCellLo
 {
   vtkPolyData * const surface = boundary.Surface();
 
-  unsigned short ncells;
-  vtkIdType      *cells;
+  vtkPolyDataGetPointCellsNumCellsType ncells;
+  vtkIdType *cells;
 
   while (true) {
     int ndel = 0;
@@ -729,11 +729,11 @@ Merge(vtkPolyData *s1, vtkPolyData *s2, vtkPolyData *label_boundary, double tol,
   const double max_dist2 =  4. * tol2;
   const double max_hdist = 10. * tol;
 
-  double         p[3], x[3], dist2;
-  vtkIdType      cellId;
-  int            subId;
-  unsigned short ncells;
-  vtkIdType      *cells;
+  double     p[3], x[3], dist2;
+  vtkIdType  cellId;
+  int        subId;
+  vtkIdType *cells;
+  vtkPolyDataGetPointCellsNumCellsType ncells;
 
   // Build links
   s1->BuildLinks();
@@ -751,7 +751,7 @@ Merge(vtkPolyData *s1, vtkPolyData *s2, vtkPolyData *label_boundary, double tol,
     cut->FindClosestPoint(p, x, cellId, subId, dist2);
     if (dist2 < tol2) {
       s1->GetPointCells(ptId, ncells, cells);
-      for (unsigned short i = 0; i < ncells; ++i) {
+      for (vtkPolyDataGetPointCellsNumCellsType i = 0; i < ncells; ++i) {
         s1->DeleteCell(cells[i]);
       }
       s1->DeletePoint(ptId);
@@ -763,7 +763,7 @@ Merge(vtkPolyData *s1, vtkPolyData *s2, vtkPolyData *label_boundary, double tol,
     cut->FindClosestPoint(p, x, cellId, subId, dist2);
     if (dist2 < tol2) {
       s2->GetPointCells(ptId, ncells, cells);
-      for (unsigned short i = 0; i < ncells; ++i) {
+      for (vtkPolyDataGetPointCellsNumCellsType i = 0; i < ncells; ++i) {
         s2->DeleteCell(cells[i]);
       }
       s2->DeletePoint(ptId);
@@ -848,16 +848,16 @@ void FixBorderPointNormals(vtkPolyData *surface)
   vtkDataArray * const csource  = surface->GetCellData ()->GetArray(SOURCE_ARRAY_NAME);
   vtkDataArray * const psource  = surface->GetPointData()->GetArray(SOURCE_ARRAY_NAME);
 
-  unsigned short ncells, n;
-  vtkIdType      *cells;
-  Vector3        pn, cn;
+  vtkPolyDataGetPointCellsNumCellsType ncells, n;
+  vtkIdType *cells;
+  Vector3    pn, cn;
 
   for (vtkIdType ptId = 0; ptId < surface->GetNumberOfPoints(); ++ptId) {
     if (psource->GetComponent(ptId, 0) == 0.) {
       surface->GetPointCells(ptId, ncells, cells);
       n  = 0;
       pn = 0.;
-      for (unsigned short i = 0; i < ncells; ++i) {
+      for (vtkPolyDataGetPointCellsNumCellsType i = 0; i < ncells; ++i) {
         if (csource->GetComponent(cells[i], 0) >= 0.) {
           cnormals->GetTuple(cells[i], cn);
           pn += cn, ++n;
@@ -881,7 +881,7 @@ vtkSmartPointer<vtkDataArray> IntersectionCellMask(vtkPolyData * const surface, 
   vtkCellData  * const cd     = surface->GetCellData();
   vtkDataArray * const source = cd->GetArray(SOURCE_ARRAY_NAME);
 
-  unsigned short ncells;
+  vtkPolyDataGetPointCellsNumCellsType ncells;
   vtkIdType npts, *pts, *cells;
 
   vtkSmartPointer<vtkDataArray> mask;
@@ -898,7 +898,7 @@ vtkSmartPointer<vtkDataArray> IntersectionCellMask(vtkPolyData * const surface, 
         surface->GetCellPoints(cellId, npts, pts);
         for (vtkIdType i = 0; i < npts; ++i) {
           surface->GetPointCells(pts[i], ncells, cells);
-          for (unsigned short j = 0; j < ncells; ++j) {
+          for (vtkPolyDataGetPointCellsNumCellsType j = 0; j < ncells; ++j) {
             next->SetComponent(cells[j], 0, 1.);
           }
         }
@@ -919,7 +919,7 @@ vtkSmartPointer<vtkDataArray> IntersectionPointMask(vtkPolyData * const surface,
   vtkCellData  * const cd     = surface->GetCellData();
   vtkDataArray * const source = cd->GetArray(SOURCE_ARRAY_NAME);
 
-  unsigned short ncells;
+  vtkPolyDataGetPointCellsNumCellsType ncells;
   vtkIdType npts, *pts, *cells;
 
   vtkSmartPointer<vtkDataArray> mask;
@@ -927,7 +927,7 @@ vtkSmartPointer<vtkDataArray> IntersectionPointMask(vtkPolyData * const surface,
   mask->FillComponent(0, 0.);
   for (vtkIdType ptId = 0; ptId < n; ++ptId) {
     surface->GetPointCells(ptId, ncells, cells);
-    for (unsigned short i = 0; i < ncells; ++i) {
+    for (vtkPolyDataGetPointCellsNumCellsType i = 0; i < ncells; ++i) {
       if (source->GetComponent(cells[i], 0) == 0.) {
         mask->SetComponent(ptId, 0, 1.);
         break;
@@ -941,7 +941,7 @@ vtkSmartPointer<vtkDataArray> IntersectionPointMask(vtkPolyData * const surface,
     for (vtkIdType ptId = 0; ptId < n; ++ptId) {
       if (mask->GetComponent(ptId, 0) != 0.) {
         surface->GetPointCells(ptId, ncells, cells);
-        for (unsigned short i = 0; i < ncells; ++i) {
+        for (vtkPolyDataGetPointCellsNumCellsType i = 0; i < ncells; ++i) {
           surface->GetCellPoints(cells[i], npts, pts);
           for (vtkIdType j = 0; j < npts; ++j) {
             next->SetComponent(pts[j], 0, 1.);
@@ -1169,7 +1169,7 @@ vtkSmartPointer<vtkPolyData> LargestClosedIntersection(vtkPolyData *s1, vtkPolyD
     MIRTK_START_TIMING();
     cut->BuildLinks();
 
-    unsigned short ncells;
+    vtkPolyDataGetPointCellsNumCellsType ncells;
     vtkIdType ptId, nbrId, cellId, *cells;
     vtkNew<vtkIdList> ptIds;
     ptIds->Allocate(2);
@@ -1502,8 +1502,8 @@ bool IsValidIntersection(vtkSmartPointer<vtkPolyData> cut, double tol)
 
     cut->BuildLinks();
 
-    unsigned short ncells;
-    vtkIdType      *cells;
+    vtkPolyDataGetPointCellsNumCellsType ncells;
+    vtkIdType *cells;
     for (vtkIdType ptId = 0; ptId < cut->GetNumberOfPoints(); ++ptId) {
       cut->GetPointCells(ptId, ncells, cells);
       if (ncells != 2 || cut->GetCellType(cells[0]) != VTK_LINE || cut->GetCellType(cells[1]) != VTK_LINE) {
@@ -1524,8 +1524,8 @@ void SmoothLineStrip(vtkSmartPointer<vtkPolyData> cut, int niter = 1)
 
   cut->BuildLinks();
 
-  unsigned short ncells;
-  vtkIdType      *cells, *pts1, *pts2, npts;
+  vtkPolyDataGetPointCellsNumCellsType ncells;
+  vtkIdType *cells, *pts1, *pts2, npts;
 
   vtkSmartPointer<vtkPoints> points;
   points = vtkSmartPointer<vtkPoints>::New();
@@ -1617,8 +1617,8 @@ double LineStripCurvature(vtkSmartPointer<vtkPolyData> cut)
 
   cut->BuildLinks();
 
-  unsigned short ncells;
-  vtkIdType      *cells, *pts1, *pts2, npts;
+  vtkPolyDataGetPointCellsNumCellsType ncells;
+  vtkIdType *cells, *pts1, *pts2, npts;
 
   for (vtkIdType ptId = 0; ptId < cut->GetNumberOfPoints(); ++ptId) {
     cut->GetPointCells(ptId, ncells, cells);
@@ -1654,8 +1654,8 @@ double MaxLineStripAngle(vtkSmartPointer<vtkPolyData> cut)
 
   cut->BuildLinks();
 
-  unsigned short ncells;
-  vtkIdType      *cells, *pts1, *pts2, npts;
+  vtkPolyDataGetPointCellsNumCellsType ncells;
+  vtkIdType *cells, *pts1, *pts2, npts;
 
   for (vtkIdType ptId = 0; ptId < cut->GetNumberOfPoints(); ++ptId) {
     cut->GetPointCells(ptId, ncells, cells);
@@ -3027,8 +3027,8 @@ int main(int argc, char *argv[])
     decltype(bins)::iterator  bin;
     double                    label;
     int                       count;
-    unsigned short            ncells;
     vtkIdType                 npts, *pts, *cells;
+    vtkPolyDataGetPointCellsNumCellsType ncells;
 
     vtkSmartPointer<vtkDataArray> cell_source;
     cell_source = output->GetCellData()->GetArray(SOURCE_ARRAY_NAME);
@@ -3040,7 +3040,7 @@ int main(int argc, char *argv[])
         output->GetCellPoints(cellId, npts, pts);
         for (vtkIdType i = 0; i < npts; ++i) {
           output->GetPointCells(pts[i], ncells, cells);
-          for (unsigned short j = 0; j < ncells; ++j) {
+          for (vtkPolyDataGetPointCellsNumCellsType j = 0; j < ncells; ++j) {
             if (cells[j] != cellId) {
               label = cell_source->GetComponent(cells[j], 0);
               bin   = bins.find(label);
@@ -3072,9 +3072,9 @@ int main(int argc, char *argv[])
       cout.flush();
     }
 
-    double         label;
-    unsigned short ncells;
-    vtkIdType      *cells;
+    double     label;
+    vtkIdType *cells;
+    vtkPolyDataGetPointCellsNumCellsType ncells;
     vtkSmartPointer<vtkDataArray> cell_source, point_source;
 
     cell_source  = output->GetCellData()->GetArray(SOURCE_ARRAY_NAME);
@@ -3089,7 +3089,7 @@ int main(int argc, char *argv[])
         label = 0.;
       } else {
         label = cell_source->GetComponent(cells[0], 0);
-        for (unsigned short i = 1; i < ncells; ++i) {
+        for (vtkPolyDataGetPointCellsNumCellsType i = 1; i < ncells; ++i) {
           if (cell_source->GetComponent(cells[i], 0) != label) {
             label = 0.;
             break;

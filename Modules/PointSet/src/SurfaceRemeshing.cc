@@ -208,10 +208,10 @@ inline Point SurfaceRemeshing::MiddlePoint(vtkIdType ptId1, vtkIdType ptId2) con
 // -----------------------------------------------------------------------------
 inline int SurfaceRemeshing::NodeConnectivity(vtkIdType ptId) const
 {
-  unsigned short ncells;
-  vtkIdType      *cells;
+  vtkIdType *cells;
+  vtkPolyDataGetPointCellsNumCellsType ncells;
   _Output->GetPointCells(ptId, ncells, cells);
-  return ncells;
+  return static_cast<int>(ncells);
 }
 
 // -----------------------------------------------------------------------------
@@ -258,10 +258,10 @@ inline vtkIdType SurfaceRemeshing::GetCellEdgeNeighbor(vtkIdType cellId, vtkIdTy
 // -----------------------------------------------------------------------------
 inline bool SurfaceRemeshing::IsBoundaryPoint(vtkIdType ptId) const
 {
-  unsigned short ncells;
+  vtkPolyDataGetPointCellsNumCellsType ncells;
   vtkIdType *cells, *pts, npts;
   _Output->GetPointCells(ptId, ncells, cells);
-  for (unsigned short i = 0; i < ncells; ++i) {
+  for (vtkPolyDataGetPointCellsNumCellsType i = 0; i < ncells; ++i) {
     _Output->GetCellPoints(cells[i], npts, pts);
     for (vtkIdType j = 0; j < npts; ++j) {
       if (pts[j] == ptId) {
@@ -282,12 +282,12 @@ inline bool SurfaceRemeshing::IsBoundaryPoint(vtkIdType ptId) const
 // -----------------------------------------------------------------------------
 inline bool SurfaceRemeshing::IsBoundaryEdge(vtkIdType ptId1, vtkIdType ptId2) const
 {
-  vtkIdType      *cells1, *cells2;
-  unsigned short ncells1, ncells2, n = 0;
+  vtkIdType *cells1, *cells2;
+  vtkPolyDataGetPointCellsNumCellsType ncells1, ncells2, n = 0;
   _Output->GetPointCells(ptId1, ncells1, cells1);
   _Output->GetPointCells(ptId2, ncells2, cells2);
-  for (unsigned short i = 0; i < ncells1; ++i)
-  for (unsigned short j = 0; j < ncells2; ++j) {
+  for (vtkPolyDataGetPointCellsNumCellsType i = 0; i < ncells1; ++i)
+  for (vtkPolyDataGetPointCellsNumCellsType j = 0; j < ncells2; ++j) {
     if (cells1[i] == cells2[j]) ++n;
   }
   return n != 2;
@@ -309,10 +309,10 @@ inline void SurfaceRemeshing
 ::GetCellPointNeighbors(vtkIdType cellId, vtkIdType ptId, vtkIdList *ptIds) const
 {
   ptIds->Reset();
-  unsigned short ncells;
+  vtkPolyDataGetPointCellsNumCellsType ncells;
   vtkIdType *cells, *pts, npts;
   _Output->GetPointCells(ptId, ncells, cells);
-  for (unsigned short i = 0; i < ncells; ++i) {
+  for (vtkPolyDataGetPointCellsNumCellsType i = 0; i < ncells; ++i) {
     if (cells[i] != cellId) {
       _Output->GetCellPoints(cells[i], npts, pts);
       for (vtkIdType j = 0; j < npts; ++j) {
@@ -326,7 +326,7 @@ inline void SurfaceRemeshing
 inline vtkIdType SurfaceRemeshing
 ::GetCellEdgeNeighborPoint(vtkIdType cellId, vtkIdType ptId1, vtkIdType ptId2, bool mergeTriples)
 {
-  unsigned short ncells;
+  vtkPolyDataGetPointCellsNumCellsType ncells;
   vtkIdType ptId3, npts, *pts, *cells;
 
   // Get other cell adjacent to this edge
@@ -366,11 +366,11 @@ inline vtkIdType SurfaceRemeshing
         ptId3 = ptIds1->GetId(i);
         _Output->GetPointCells(ptId3, ncells, cells);
         if (ncells != 3) continue; // node connectivity must be three
-        for (unsigned short j = 0; j < ncells; ++j) {
+        for (vtkPolyDataGetPointCellsNumCellsType j = 0; j < ncells; ++j) {
           _Output->GetCellPoints(cells[j], npts, pts);
           for (vtkIdType k = 0; k < npts; ++k) {
             if (pts[k] != ptId1 && pts[k] != ptId2 && pts[k] != ptId3) {
-              for (unsigned short l = 0; l < ncells; ++l) {
+              for (vtkPolyDataGetPointCellsNumCellsType l = 0; l < ncells; ++l) {
                 if (cells[l] == cellId || cells[l] == neighborCellId) {
                   ReplaceCellPoint(cells[l], ptId3, pts[k]);
                   idx = l;
@@ -378,13 +378,13 @@ inline vtkIdType SurfaceRemeshing
                 }
               }
               if (idx != -1) {
-                for (unsigned short l = 0; l < ncells; ++l) {
+                for (vtkPolyDataGetPointCellsNumCellsType l = 0; l < ncells; ++l) {
                   if (l != idx) DeleteCell(cells[l]);
                 }
                 ptIds1->DeleteId(ptId3);
                 ptIds1->InsertUniqueId(pts[k]); // should be in list already
                 if (_MeltingQueue) {
-                  for (unsigned short l = 0; l < ncells; ++l) {
+                  for (vtkPolyDataGetPointCellsNumCellsType l = 0; l < ncells; ++l) {
                     _MeltingQueue->DeleteId(cells[l]);
                     if (l == idx && cells[l] != cellId) {
                       double priority = MeltingPriority(cells[idx]);
@@ -462,21 +462,21 @@ inline void SurfaceRemeshing
     UnorderedMap<double, double> bins;
     UnorderedMap<double, double>::iterator bin;
     double v, max_val;
-    unsigned short ncells;
+    vtkPolyDataGetPointCellsNumCellsType ncells;
     vtkIdType npts, *pts, *cells;
     vtkSmartPointer<vtkIdList> ptIds = vtkSmartPointer<vtkIdList>::New();
     for (auto i : _CategoricalPointDataIndices) {
       vtkDataArray * const arr = inputPD->GetArray(i);
       ptIds->Reset();
       _Output->GetPointCells(ptId1, ncells, cells);
-      for (unsigned short j = 0; j < ncells; ++j) {
+      for (vtkPolyDataGetPointCellsNumCellsType j = 0; j < ncells; ++j) {
         _Output->GetCellPoints(cells[j], npts, pts);
         for (vtkIdType k = 0; k < npts; ++k) {
           if (pts[k] != newId) ptIds->InsertUniqueId(pts[k]);
         }
       }
       _Output->GetPointCells(ptId2, ncells, cells);
-      for (unsigned short j = 0; j < ncells; ++j) {
+      for (vtkPolyDataGetPointCellsNumCellsType j = 0; j < ncells; ++j) {
         _Output->GetCellPoints(cells[j], npts, pts);
         for (vtkIdType k = 0; k < npts; ++k) {
           if (pts[k] != newId) ptIds->InsertUniqueId(pts[k]);
@@ -833,8 +833,8 @@ void SurfaceRemeshing::MeltingOfNodes()
 {
   MIRTK_START_TIMING();
 
-  unsigned short             ncells;
-  vtkIdType                  ptIdx, npts, *pts, *cells, cellId1, cellId2, cellId3;
+  vtkPolyDataGetPointCellsNumCellsType ncells;
+  vtkIdType ptIdx, npts, *pts, *cells, cellId1, cellId2, cellId3;
   vtkSmartPointer<vtkIdList> ptIds1, ptIds2;
   ptIds1 = vtkSmartPointer<vtkIdList>::New();
   ptIds2 = vtkSmartPointer<vtkIdList>::New();
@@ -848,7 +848,7 @@ void SurfaceRemeshing::MeltingOfNodes()
       switch (ncells) {
         case 1: case 2: {
           if (!IsBoundaryPoint(ptId)) {
-            for (unsigned short i = 0; i < ncells; ++i) {
+            for (vtkPolyDataGetPointCellsNumCellsType i = 0; i < ncells; ++i) {
               DeleteCell(cells[i]);
             }
             ++_NumberOfMeltedNodes;
@@ -858,7 +858,7 @@ void SurfaceRemeshing::MeltingOfNodes()
         case 3: {
           ptIds1->Reset();
           ptIds2->Reset();
-          for (unsigned short i = 0; i < ncells; ++i) {
+          for (vtkPolyDataGetPointCellsNumCellsType i = 0; i < ncells; ++i) {
             _Output->GetCellPoints(cells[i], npts, pts);
             if (i == 0) {
               ptIds1->Allocate(npts);

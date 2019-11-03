@@ -119,12 +119,12 @@ void CellDataFilter::Initialize()
 void CellDataFilter::GetNodeNeighbors(int cellId, UnorderedSet<int> &cellIds) const
 {
   cellIds.clear();
-  unsigned short ncells;
+  vtkPolyDataGetPointCellsNumCellsType ncells;
   vtkIdType npts, *pts, *cells;
   _Output->GetCellPoints(cellId, npts, pts);
   for (vtkIdType i = 0; i < npts; ++i) {
     _Output->GetPointCells(pts[i], ncells, cells);
-    for (unsigned short j = 0; j < ncells; ++j) {
+    for (vtkPolyDataGetPointCellsNumCellsType j = 0; j < ncells; ++j) {
       if (cells[j] != cellId) {
         cellIds.insert(cells[j]);
       }

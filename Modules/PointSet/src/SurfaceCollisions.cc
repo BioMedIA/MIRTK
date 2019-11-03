@@ -26,6 +26,7 @@
 #include "mirtk/PointLocator.h"
 #include "mirtk/Parallel.h"
 #include "mirtk/Profiling.h"
+#include "mirtk/Vtk.h"
 #include "mirtk/VtkMath.h"
 
 #include "vtkPlane.h"
@@ -160,7 +161,7 @@ public:
     double         n1[3], n2[3], p1[3], p2[3], r1, c1[3], d[3], search_radius, dot;
     int            tri12[3], i1, i2, shared_vertex1, shared_vertex2, coplanar, s1, s2;
     vtkIdType      npts, *pts1, *pts2, *cells, cellId1, cellId2;
-    unsigned short ncells;
+    vtkPolyDataGetPointCellsNumCellsType ncells;
     CollisionInfo  collision;
     CollisionType  type;
 
@@ -194,7 +195,7 @@ public:
       cellIds->Reset();
       for (vtkIdType i = 0; i < ptIds->GetNumberOfIds(); ++i) {
         surface->GetPointCells(ptIds->GetId(i), ncells, cells);
-        for (unsigned short j = 0; j < ncells; ++j) {
+        for (vtkPolyDataGetPointCellsNumCellsType j = 0; j < ncells; ++j) {
           if (cells[j] != cellId1) cellIds->InsertUniqueId(cells[j]);
         }
       }
