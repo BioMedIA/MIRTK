@@ -39,8 +39,8 @@ void PrintHelp(const char *name)
   cout << "Usage: " << name << " <input> <output> [options]\n";
   cout << "\n";
   cout << "Description:" << endl;
-  cout << "  Crop/pad image by extracting a region of interest and optionally split";
-  cout << "  the extracted region into separate image files, e.g., individual slices";
+  cout << "  Crop/pad image by extracting a region of interest and optionally split\n";
+  cout << "  the extracted region into separate image files, e.g., individual slices\n";
   cout << "  of a volume saved as individual image files. The output image region\n";
   cout << "  is chosen such that it contains the union of all specified axis-aligned\n";
   cout << "  rectangular input image regions. In case of :option:`-pad`, the output\n";
@@ -76,9 +76,11 @@ void PrintHelp(const char *name)
   cout << "      Extract minimum bounding box containing the landmark points.\n";
   cout << "  -ref <file>\n";
   cout << "      Extract region specified by discrete reference image domain.\n";
-  cout << "  -margin <int>\n";
+  cout << "  -margin <int>...\n";
   cout << "      Add fixed-width margin to union of image regions. (default: 0)\n";
-  cout << "  -scale <float>\n";
+  cout << "  -margin-mm <float>...\n";
+  cout << "      Add fixed-width margin in mm to union of image regions. (default: 0)\n";
+  cout << "  -scale <float>...\n";
   cout << "      Scale resulting region by specified factor. (default: 1)\n";
   cout << "  -crop [value]\n";
   cout << "      Crop background with intensity below or equal specified value. (default: 0)\n";
@@ -179,8 +181,9 @@ int main(int argc, char **argv)
   UniquePtr<BaseImage> in(BaseImage::New(input_name));
 
   // Parse optional arguments and adjust image region accordingly
-  int    xmargin = 0, ymargin = 0, zmargin = 0, tmargin = 0;
-  double xscale  = 1, yscale  = 1, zscale  = 1, tscale  = 1;
+  int    xmargin    =  0, ymargin    =  0, zmargin    =  0, tmargin    =  0;
+  double xmargin_mm = .0, ymargin_mm = .0, zmargin_mm = .0, tmargin_mm = .0;
+  double xscale     =  1, yscale     =  1, zscale     =  1, tscale     =  1;
   bool   pad           = false;
   double padding_value = .0;
   int    split         = -1;
@@ -282,18 +285,37 @@ int main(int argc, char **argv)
       } while (HAS_ARGUMENT);
     }
     else if (OPTION("-margin")) {
-      xmargin = ymargin = ToRegionMargin(ARGUMENT);
-      zmargin = tmargin = 0;
-      if (HAS_ARGUMENT) ymargin = ToRegionMargin(ARGUMENT);
-      if (HAS_ARGUMENT) zmargin = ToRegionMargin(ARGUMENT);
-      if (HAS_ARGUMENT) tmargin = ToRegionMargin(ARGUMENT);
+      xmargin = ToRegionMargin(ARGUMENT);
+      if (HAS_ARGUMENT) {
+        ymargin = ToRegionMargin(ARGUMENT);
+        zmargin = tmargin = 0;
+        if (HAS_ARGUMENT) zmargin = ToRegionMargin(ARGUMENT);
+        if (HAS_ARGUMENT) tmargin = ToRegionMargin(ARGUMENT);
+      } else {
+        ymargin = zmargin = tmargin = xmargin;
+      }
+    }
+    else if (OPTION("-margin-mm")) {
+      PARSE_ARGUMENT(xmargin_mm);
+      if (HAS_ARGUMENT) {
+        PARSE_ARGUMENT(ymargin_mm);
+        zmargin_mm = tmargin_mm = .0;
+        if (HAS_ARGUMENT) PARSE_ARGUMENT(zmargin_mm);
+        if (HAS_ARGUMENT) PARSE_ARGUMENT(tmargin_mm);
+      } else {
+        ymargin_mm = zmargin_mm = tmargin_mm = xmargin_mm;
+      }
     }
     else if (OPTION("-scale")) {
-      xscale = yscale = ToScaleFactor(ARGUMENT);
-      zscale = tscale = 1.0;
-      if (HAS_ARGUMENT) yscale = ToScaleFactor(ARGUMENT);
-      if (HAS_ARGUMENT) zscale = ToScaleFactor(ARGUMENT);
-      if (HAS_ARGUMENT) tscale = ToScaleFactor(ARGUMENT);
+      xscale = ToScaleFactor(ARGUMENT);
+      if (HAS_ARGUMENT) {
+        yscale = ToScaleFactor(ARGUMENT);
+        zscale = tscale = 1.0;
+        if (HAS_ARGUMENT) zscale = ToScaleFactor(ARGUMENT);
+        if (HAS_ARGUMENT) tscale = ToScaleFactor(ARGUMENT);
+      } else {
+        yscale = zscale = tscale = xscale;
+      }
     }
     else if (OPTION("-crop")) {
       double bg = padding_value;
@@ -342,6 +364,11 @@ int main(int argc, char **argv)
   if (t2 >= MAX_INDEX) t2 = in->T() - 1;
 
   // Add fixed-width margin
+  xmargin = max(xmargin, iceil(xmargin_mm / in->GetXSize()));
+  ymargin = max(ymargin, iceil(ymargin_mm / in->GetYSize()));
+  zmargin = max(zmargin, iceil(zmargin_mm / in->GetZSize()));
+  tmargin = max(tmargin, iceil(tmargin_mm / in->GetTSize()));
+
   x1 -= xmargin, x2 += xmargin;
   y1 -= ymargin, y2 += ymargin;
   z1 -= zmargin, z2 += zmargin;
