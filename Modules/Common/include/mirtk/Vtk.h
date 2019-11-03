@@ -27,6 +27,7 @@
 #include "vtkSmartPointer.h"
 #include "vtkDataArray.h"
 #include "vtkDataSetAttributes.h"
+#include "vtkVersionMacros.h"
 
 
 namespace mirtk {
@@ -67,6 +68,16 @@ namespace mirtk {
 #  define SetNthVTKInput(filter, n, dataset) (filter)->SetInput(n, dataset);
 #  define AddNthVTKInput(filter, n, dataset) (filter)->AddInput(n, dataset);
 #  define SetNthVTKConnection(filter2, n2, filter1, n1) (filter2)->SetInput(n2, (filter1)->GetOutput(n1));
+#endif
+
+// =============================================================================
+// VTK 8/9 transition
+// =============================================================================
+
+#if VTK_MAJOR_VERSION > 8 || (VTK_MAJOR_VERSION == 8 && VTK_MINOR_VERSION == 90)
+  typedef vtkIdType vtkPolyDataGetPointCellsNumCellsType;
+#else
+  typedef unsigned short vtkPolyDataGetPointCellsNumCellsType;
 #endif
 
 // =============================================================================

@@ -29,6 +29,7 @@
 #include "mirtk/LinearInterpolateImageFunction.h"
 #include "mirtk/FastCubicBSplineInterpolateImageFunction.h"
 
+#include "mirtk/Vtk.h"
 #include "vtkSmartPointer.h"
 #include "vtkPolyData.h"
 #include "vtkPointData.h"
@@ -248,8 +249,8 @@ BorderPointMask(vtkPolyData *surface, vtkDataArray *point_labels,
   mask = NewVtkDataArray(VTK_UNSIGNED_CHAR, surface->GetNumberOfPoints(), 1, "BorderMask");
   double label;
   if (cell_labels) {
-    unsigned short ncells;
-    vtkIdType      *cells;
+    vtkPolyDataGetPointCellsNumCellsType ncells;
+    vtkIdType *cells;
     for (vtkIdType ptId = 0; ptId < surface->GetNumberOfPoints(); ++ptId) {
       surface->GetPointCells(ptId, ncells, cells);
       if (ncells == 1) {
@@ -258,7 +259,7 @@ BorderPointMask(vtkPolyData *surface, vtkDataArray *point_labels,
         mask->SetComponent(ptId, 0, 0.);
         if (ncells > 0) {
           label = cell_labels->GetComponent(cells[0], 0);
-          for (unsigned short i = 1; i < ncells; ++i) {
+          for (vtkPolyDataGetPointCellsNumCellsType i = 1; i < ncells; ++i) {
             if (cell_labels->GetComponent(cells[i], 0) != label) {
               mask->SetComponent(ptId, 0, 1.);
               break;
@@ -306,7 +307,7 @@ BorderCellMask(vtkPolyData *surface, vtkDataArray *cell_labels, bool edge_nbrs =
       }
     }
   } else {
-    unsigned short ncells;
+    vtkPolyDataGetPointCellsNumCellsType ncells;
     vtkIdType npts, *pts, *cells;
     for (vtkIdType cellId = 0; cellId < surface->GetNumberOfCells(); ++cellId) {
       mask->SetComponent(cellId, 0, 0.);
@@ -314,7 +315,7 @@ BorderCellMask(vtkPolyData *surface, vtkDataArray *cell_labels, bool edge_nbrs =
       surface->GetCellPoints(cellId, npts, pts);
       for (vtkIdType i = 0; i < npts; ++i) {
         surface->GetPointCells(pts[i], ncells, cells);
-        for (int j = 0; j < ncells; ++j) {
+        for (vtkPolyDataGetPointCellsNumCellsType j = 0; j < ncells; ++j) {
           if (cell_labels->GetComponent(cells[j], 0) != label) {
             mask->SetComponent(cellId, 0, 1.);
             i = npts; // break all inner loops

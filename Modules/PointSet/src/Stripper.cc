@@ -20,6 +20,7 @@
 #include "mirtk/Stripper.h"
 
 #include "mirtk/List.h"
+#include "mirtk/Vtk.h"
 
 #include "vtkNew.h"
 #include "vtkStripper.h"
@@ -39,13 +40,13 @@ namespace {
 // -----------------------------------------------------------------------------
 void GrowLine(vtkPolyData *output, List<vtkIdType> &line)
 {
-  unsigned short ncells;
-  vtkIdType      npts, *pts, *cells, cellId;
+  vtkPolyDataGetPointCellsNumCellsType ncells;
+  vtkIdType npts, *pts, *cells, cellId;
 
   while (true) {
     cellId = -1;
     output->GetPointCells(line.back(), ncells, cells);
-    for (unsigned short i = 0; i < ncells; ++i) {
+    for (vtkPolyDataGetPointCellsNumCellsType i = 0; i < ncells; ++i) {
       if (output->GetCellType(cells[i]) == VTK_LINE) {
         if (cellId == -1) {
           cellId = cells[i];
