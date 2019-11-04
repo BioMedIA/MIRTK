@@ -37,7 +37,7 @@ LogJacobianConstraint::LogJacobianConstraint(const char *name, bool constrain_sp
   JacobianConstraint(name, constrain_spline),
   _Epsilon(.005)
 {
-  _ParameterPrefix.push_back("Jacobian penalty ");
+  _ParameterPrefix.push_back("LogJac penalty ");
 }
 
 // -----------------------------------------------------------------------------

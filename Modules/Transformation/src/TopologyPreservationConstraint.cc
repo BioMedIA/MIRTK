@@ -37,6 +37,8 @@ TopologyPreservationConstraint::TopologyPreservationConstraint(const char *name)
 :
   NegJacobianConstraint(name, false)
 {
+  _ParameterPrefix.resize(1);
+  _ParameterPrefix[0] = "Topology preservation ";
 }
 
 // -----------------------------------------------------------------------------

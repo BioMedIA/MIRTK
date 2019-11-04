@@ -37,6 +37,7 @@ NegJacobianConstraint::NegJacobianConstraint(const char *name, bool constrain_sp
   JacobianConstraint(name, constrain_spline),
   _Epsilon(.01), _Gamma(.5), _Power(2)
 {
+  _ParameterPrefix.push_back("NegJac penalty ");
   _SubDomain = SD_Shifted;
 }
 

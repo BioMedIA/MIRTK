@@ -36,7 +36,8 @@ VolumePreservationConstraint::VolumePreservationConstraint(const char *name)
 :
   LogJacobianConstraint(name, false)
 {
-  _ParameterPrefix.clear();
+  _ParameterPrefix.resize(1);
+  _ParameterPrefix[0] = "Volume preservation ";
 }
 
 // -----------------------------------------------------------------------------
