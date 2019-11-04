@@ -58,11 +58,28 @@ public:
     SD_Shifted  ///< Evaluate penalty in-between control points
   };
 
+  /// Type of spatially varying penalty weight image
+  typedef GenericImage<float> WeightImage;
+
   // ---------------------------------------------------------------------------
   // Attributes
 
   /// Sub-domain on which to evaluate penalty
   mirtkPublicAttributeMacro(SubDomainEnum, SubDomain);
+
+  /// File path of image with spatially varying penalty weights
+  mirtkPublicAttributeMacro(string, MaskFileName);
+
+  /// Standard deviation of Gaussian kernel used for downsampling of mask image
+  ///
+  /// This value must be in units of the fraction between downsampled domain on which
+  /// the penalty is being evaluated and the input mask. If the domain on which the
+  /// penalty is evaluated has smaller or similar spacing than the input mask, no
+  /// smoothing is applied along the respective image axis for which this is the case.
+  mirtkPublicAttributeMacro(double, MaskBlurring);
+
+  /// Image of spatially varying penalty weights
+  mirtkPublicAttributeMacro(WeightImage, Mask);
 
   /// Whether to always apply constraint to Jacobian of FFD spline function
   ///
@@ -90,6 +107,7 @@ protected:
   Array<Matrix> _MatW2L; ///< World to sub-domain lattice coordinates
   Array<Matrix> _MatL2W; ///< Sub-domain lattice coordinates to world
   Array<ImageAttributes> _SubDomains; ///< Discrete sub-domain over which to integrate penalty
+  Array<WeightImage>     _Masks;      ///< Spatially varying weight image for each sub-domain
 
   // ---------------------------------------------------------------------------
   // Construction/destruction
