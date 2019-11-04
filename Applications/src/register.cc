@@ -254,16 +254,30 @@ void PrintHelp(const char* name)
   cout << "      \"Linear energy weight\" of free-form deformation. (default: 0)\n";
   cout << "  -tp <w>\n";
   cout << "      \"Topology preservation weight\" of free-form deformation. (default: 0)\n";
-  cout << "  -vp <w>\n";
+  cout << "  -tp-mask <file>\n";
+  cout << "      \"Topology preservation mask\" with spatially varying weights. (default: none)\n";
+  cout << "  -vp <w> [<file>]\n";
   cout << "      \"Volume preservation weight\" of free-form deformation. (default: 0)\n";
-  cout << "  -lj, -jl, -log-jac, -jac <w>\n";
+  cout << "  -vp-mask <file>\n";
+  cout << "      \"Volume preservation mask\" with spatially varying weights. (default: none)\n";
+  cout << "  -lj, -jl, -log-jac, -jac <w> [<file>]\n";
   cout << "      \"LogJac penalty weight\" of free-form deformation. For a classic FFD transformation model\n";
   cout << "      this penalty term is equivalent to the volume preservation term. When applied to the SVFFD\n";
-  cout << "      model, however, this penalty applies to the Jacobian determinant of the velocity field. (default: 0)\n";
-  cout << "  -nj, -neg-jac <w>\n";
+  cout << "      model, however, this penalty applies to the Jacobian determinant of the velocity field.\n";
+  cout << "      Optionally, an image file with spatially varying weights can be given as second argument.\n";
+  cout << "      The contribution of the penalty at each voxel is multiplied by both, global and local, weights.\n";
+  cout << "      (default: 0)\n";
+  cout << "  -lj-mask, -jl-mask, -log-jac-mask, -jac-mask <file>\n";
+  cout << "      \"LogJac penalty mask\" with spatially varying weights. (default: none)\n";
+  cout << "  -nj, -neg-jac <w> [<file>]\n";
   cout << "      \"NegJac penalty weight\" of free-form deformation. For a classic FFD transformation model\n";
   cout << "      this penalty term is equivalent to the volume preservation term. When applied to the SVFFD\n";
-  cout << "      model, however, this penalty applies to the Jacobian determinant of the velocity field. (default: 0)\n";
+  cout << "      model, however, this penalty applies to the Jacobian determinant of the velocity field.\n";
+  cout << "      Optionally, an image file with spatially varying weights can be given as second argument.\n";
+  cout << "      The contribution of the penalty at each voxel is multiplied by both, global and local, weights.\n";
+  cout << "      (default: 0)\n";
+  cout << "  -nj-mask, -neg-jac-mask <file>\n";
+  cout << "      \"NegJac penalty mask\" with spatially varying weights. (default: none)\n";
   cout << "  -parout <file>\n";
   cout << "      Write parameters to the named configuration file. Note that after initialization of\n";
   cout << "      the registration, an interim configuration file is written. This file is overwritten\n";
@@ -847,20 +861,32 @@ int main(int argc, char **argv)
       PARSE_ARGUMENT(w);
       Insert(params, "Volume preservation weight", w);
     }
+    else if (OPTION("-vp-mask")) {
+      Insert(params, "Volume preservation mask", ARGUMENT);
+    }
     else if (OPTION("-tp")) {
       double w;
       PARSE_ARGUMENT(w);
       Insert(params, "Topology preservation weight", w);
+    }
+    else if (OPTION("-tp-mask")) {
+      Insert(params, "Topology preservation mask", ARGUMENT);
     }
     else if (OPTION("-lj") || OPTION("-jl") || OPTION("-logjac") || OPTION("-log-jac") || OPTION("-jac")) {
       double w;
       PARSE_ARGUMENT(w);
       Insert(params, "LogJac penalty weight", w);
     }
+    else if (OPTION("-lj-mask") || OPTION("-jl-mask") || OPTION("-logjac-mask") || OPTION("-log-jac-mask") || OPTION("-jac-mask")) {
+      Insert(params, "LogJac penalty mask", ARGUMENT);
+    }
     else if (OPTION("-nj") || OPTION("-negjac") || OPTION("-neg-jac")) {
       double w;
       PARSE_ARGUMENT(w);
       Insert(params, "NegJac penalty weight", w);
+    }
+    else if (OPTION("-nj-mask") || OPTION("-negjac-mask") || OPTION("-neg-jac-mask")) {
+      Insert(params, "NegJac penalty mask", ARGUMENT);
     }
     else if (OPTION("-padding") || OPTION("-bg") || OPTION("-background")) {
       double v;
