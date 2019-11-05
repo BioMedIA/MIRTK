@@ -89,7 +89,7 @@ if [ $os = linux ] || [ $os = Linux ]; then
     fi
     if [ "$DISTRIB_CODENAME" = "trusty" ]; then
       if [ -z "$VTK_VERSION" ] || [ $VTK_VERSION = '6.0.0' ]; then
-        deps=(${deps[@]} libvtk6-dev python-vtk6)
+        deps=(${deps[@]} libvtk6-dev)
         VTK_VERSION=''
       fi
     elif [ "$DISTRIB_CODENAME" = "xenial" ]; then
@@ -99,14 +99,14 @@ if [ $os = linux ] || [ $os = Linux ]; then
       fi
     elif [ "$DISTRIB_CODENAME" = "bionic" ]; then
       if [ $VTK_VERSION = '6.3.0' ]; then
-        deps=(${deps[@]} libvtk6-dev python-vtk6)
+        deps=(${deps[@]} libvtk6-dev)
         VTK_VERSION=''
       elif [ -z "$VTK_VERSION" ] || [ $VTK_VERSION = '7.1.1' ]; then
-        deps=(${deps[@]} libvtk7-dev python3-vtk7)
+        deps=(${deps[@]} libvtk7-dev)
         VTK_VERSION=''
       fi
     elif [ -z "$VTK_VERSION" ]; then
-      deps=(${deps[@]} libvtk7-dev python3-vtk7)
+      deps=(${deps[@]} libvtk7-dev)
     fi
     if [ $WITH_FLTK = ON ]; then
       deps=(${deps[@]} libxi-dev libxmu-dev libxinerama-dev libxcursor-dev libcairo-dev libfltk1.3-dev)
