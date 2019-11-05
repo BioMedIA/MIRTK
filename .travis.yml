@@ -1,4 +1,4 @@
-dist: xenial
+dist: bionic
 sudo: required
 
 language: cpp
@@ -19,7 +19,7 @@ env:
   # versions of VTK for each OS
   # - On Ubuntu, use default version installed by apt-get
   # - On macOS, build recent VTK version from sources and cache installation
-  - LINUX_VTK_VERSION=6.2.0
+  - LINUX_VTK_VERSION=7.1.1
   - MACOS_VTK_VERSION=8.1.0
   - WITH_CCACHE=ON    # speed up MIRTK build itself using ccache
   - WITH_ARPACK=OFF   # requires time consuming build of gcc on macOS
