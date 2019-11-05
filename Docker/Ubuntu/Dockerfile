@@ -15,8 +15,9 @@
 
 FROM ubuntu:18.04
 
-LABEL Maintainer="Andreas Schuh <andreas.schuh.84@gmail.com>"
-LABEL Description="Ubuntu with prerequisits for MIRTK installed" Vendor="BioMedIA"
+LABEL Maintainer="Andreas Schuh <andreas.schuh.84@gmail.com>" \
+      Description="Ubuntu with prerequisits for MIRTK installed" \
+      Vendor="BioMedIA"
 
 # No. of threads to use for build (--build-arg THREADS=8)
 # By default, all available CPUs are used. When a Docker Machine is used,

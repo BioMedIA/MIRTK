@@ -20,15 +20,15 @@
 # Pre-made Ubuntu system with all MIRTK dependencies installed
 FROM biomedia/ubuntu:18.04-mirtk
 
-LABEL Maintainer="Andreas Schuh <andreas.schuh.84@gmail.com>"
-LABEL Description="Medical Image Registration ToolKit (MIRTK)"
-LABEL Vendor="BioMedIA"
+LABEL Maintainer="Andreas Schuh <andreas.schuh.84@gmail.com>" \
+      Description="Medical Image Registration ToolKit (MIRTK)" \
+      Vendor="BioMedIA"
 
 # Git repository and commit SHA from which this Docker image was built
 # (see https://microbadger.com/#/labels)
 ARG VCS_REF
-LABEL org.label-schema.vcs-ref=$VCS_REF
-LABEL org.label-schema.vcs-url="https://github.com/BioMedIA/MIRTK"
+LABEL org.label-schema.vcs-ref=$VCS_REF \
+      org.label-schema.vcs-url="https://github.com/BioMedIA/MIRTK"
 
 # No. of threads to use for build (--build-arg THREADS=8)
 # By default, all available CPUs are used. When a Docker Machine is used,
