@@ -18,9 +18,9 @@
 ## https://hub.docker.com/r/biomedia/mirtk/
 
 # Pre-made Ubuntu system with all MIRTK dependencies installed
-FROM biomedia/ubuntu:mirtk
+FROM biomedia/ubuntu:18.04-mirtk
 
-MAINTAINER Andreas Schuh <andreas.schuh.84@gmail.com>
+LABEL Maintainer="Andreas Schuh <andreas.schuh.84@gmail.com>"
 LABEL Description="Medical Image Registration ToolKit (MIRTK)" Vendor="BioMedIA"
 
 # Git repository and commit SHA from which this Docker image was built
@@ -39,12 +39,12 @@ ARG THREADS
 ARG BUILD_TESTING=OFF
 
 # Build and install MIRTK
-COPY . /usr/src/MIRTK
-RUN ls /usr/src/MIRTK \
+COPY . /usr/src/mirtk
+RUN ls /usr/src/mirtk \
     && NUM_CPUS=${THREADS:-`cat /proc/cpuinfo | grep processor | wc -l`} \
     && echo "Maximum number of build threads = $NUM_CPUS" \
-    && mkdir /usr/src/MIRTK/Build \
-    && cd /usr/src/MIRTK/Build \
+    && mkdir /usr/src/mirtk/Build \
+    && cd /usr/src/mirtk/Build \
     && cmake \
       -D CMAKE_INSTALL_PREFIX=/usr/local \
       -D CMAKE_BUILD_TYPE=Release \
@@ -64,6 +64,7 @@ RUN ls /usr/src/MIRTK \
       -D MODULE_DrawEM=ON \
       -D MODULE_Mapping=ON \
       -D MODULE_Scripting=ON \
+      -D MODULE_Viewer=ON \
       -D WITH_ARPACK=ON \
       -D WITH_FLANN=ON \
       -D WITH_MATLAB=OFF \
@@ -78,10 +79,10 @@ RUN ls /usr/src/MIRTK \
     && if [ ${BUILD_TESTING} = ON ]; then make -j $NUM_CPUS && make test; fi \
     && make -j $NUM_CPUS install \
     && cd /usr/src \
-    && rm -rf /usr/src/MIRTK
+    && rm -rf /usr/src/mirtk
 
 # Make "mirtk" the default executable for application containers
-ENTRYPOINT ["python", "/usr/local/bin/mirtk"]
+ENTRYPOINT ["python3", "/usr/local/bin/mirtk"]
 CMD ["help"]
 
 # Assume user data volume to be mounted at /data

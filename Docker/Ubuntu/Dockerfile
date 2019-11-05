@@ -13,9 +13,9 @@
 ##
 ## https://hub.docker.com/r/biomedia/ubuntu/
 
-FROM ubuntu:14.04
+FROM ubuntu:18.04
 
-MAINTAINER Andreas Schuh <andreas.schuh.84@gmail.com>
+LABEL Maintainer="Andreas Schuh <andreas.schuh.84@gmail.com>"
 LABEL Description="Ubuntu with prerequisits for MIRTK installed" Vendor="BioMedIA"
 
 # No. of threads to use for build (--build-arg THREADS=8)
@@ -23,32 +23,28 @@ LABEL Description="Ubuntu with prerequisits for MIRTK installed" Vendor="BioMedI
 # set the number of CPUs in the VirtualBox VM Settings.
 ARG THREADS
 
-# When VTK_VERSION='', the official libvtk6-dev package is used.
+# When VTK_VERSION='', the official libvtk7-dev package is used.
 # Note, however, that this results in a Docker image that is about twice
 # the size of the image when a custom VTK build without Qt, wrappers,
 # and unused VTK modules is used instead!
-ARG VTK_VERSION=7.0.0
+ARG VTK_VERSION=8.2.0
 
-ARG EIGEN_VERSION=3.2.8
+ARG EIGEN_VERSION=3.3.7
+
+ARG CXX_STANDARD=c++14
 
 # Install prerequisites for MIRTK build
-#
-# The bzindovic/suitesparse-bugfix-1319687 PPA is required for building
-# shared libraries which link with the static SuiteSparse libraries due
-# to a bug in the official Ubuntu package:
-# https://bugs.launchpad.net/ubuntu/+source/suitesparse/+bug/1333214
 RUN NUM_CPUS=${THREADS:-`cat /proc/cpuinfo | grep processor | wc -l`} \
     && echo "Maximum number of build threads = $NUM_CPUS" \
     && apt-get update && apt-get install -y --no-install-recommends \
       software-properties-common \
-    && add-apt-repository -y ppa:bzindovic/suitesparse-bugfix-1319687 \
     && apt-get update && apt-get install -y --no-install-recommends \
       wget \
       gcc \
       g++ \
       make \
       cmake \
-      python \
+      python3 \
       freeglut3-dev \
       libarpack2-dev \
       libboost-math-dev \
@@ -77,13 +73,13 @@ RUN NUM_CPUS=${THREADS:-`cat /proc/cpuinfo | grep processor | wc -l`} \
       && wget -O archive.tar.bz2 http://bitbucket.org/eigen/eigen/get/${EIGEN_VERSION}.tar.bz2 \
       && tar vxjf archive.tar.bz2 --strip 1 \
       && mv signature_of_eigen3_matrix_library Eigen /usr/include/eigen3/ \
-      && mv cmake/FindEigen3.cmake /usr/share/cmake-2.8/Modules/ \
+      && mv cmake/FindEigen3.cmake /usr/share/cmake-3.10/Modules/ \
       && cd /usr/src \
       && rm -rf ${EIGEN_SOURCE_DIR}; \
     fi \
     && \
     if [ -z ${VTK_VERSION} ]; then \
-      apt-get install -y libvtk6-dev; \
+      apt-get install -y libvtk7-dev; \
     else \
       VTK_RELEASE=`echo ${VTK_VERSION} | sed s/\.[0-9]*$//` \
       && cd /usr/src \
@@ -95,7 +91,7 @@ RUN NUM_CPUS=${THREADS:-`cat /proc/cpuinfo | grep processor | wc -l`} \
       && cmake \
         -D CMAKE_INSTALL_PREFIX=/usr/local \
         -D CMAKE_BUILD_TYPE=Release \
-        -D CMAKE_CXX_FLAGS=-std=c++11 \
+        -D CMAKE_CXX_STANDARD=${CXX_STANDARD} \
         -D VTK_USE_SYSTEM_PNG=ON \
         -D VTK_USE_SYSTEM_ZLIB=ON \
         -D BUILD_SHARED_LIBS=ON \

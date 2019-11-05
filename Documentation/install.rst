@@ -17,7 +17,7 @@ the Cross-platform Make tool named CMake_ is needed. The minimum required versio
 for Linux and OS X is 2.8.12, while version 3.4 or newer is needed on Windows.
 
 For the compilation of the MIRTK source code, a C++ compiler with support for the
-`C++11`_ standard is required. On Windows, the minimum required Visual Studio compiler
+`C++14`_ standard is required. On Windows, the minimum required Visual Studio compiler
 version is 18.0. A compatible compiler is shipped with Visual Studio 2013 or newer.
 For Unix operation systems, we recommend the use of the `GNU Compiler Collection`_ (GCC).
 
