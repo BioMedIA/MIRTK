@@ -52,23 +52,37 @@ run()
 if [ $os = linux ] || [ $os = Linux ]; then
   cpu_cores=$(grep -c ^processor /proc/cpuinfo)
 
+  if [ -f /etc/lsb-release ]; then
+    source /etc/lsb-release
+  else
+    echo "Script works on Ubuntu only" 1>&2
+    exit 1
+  fi
+  if [ "$DISTRIB_ID" != "Ubuntu" ]; then
+    echo "Script requires Ubuntu 14.04, 16.04, or 18.04" 1>&2
+    exit 1
+  fi
+
   deps=( \
     freeglut3-dev \
     libboost-math-dev \
     libboost-random-dev \
     libeigen3-dev \
-    libnifti-dev \
-    libpng12-dev \
+    libnifti-dev
   )
+
+  if [ "$DISTRIB_CODENAME" = "trusty" ] || [ "$DISTRIB_CODENAME" = "xenial" ]; then
+    deps=(${deps[@]} libpng12-dev)
+  else
+    deps=(${deps[@]} libpng16-dev)
+  fi
 
   [ $TESTING = OFF ] || deps=(${deps[@]} libgtest-dev)
   [ $WITH_TBB = OFF ] || deps=(${deps[@]} libtbb-dev)
   [ $WITH_FLANN = OFF ] || deps=(${deps[@]} libflann-dev)
   [ $WITH_ARPACK = OFF ] || deps=(${deps[@]} libarpack2-dev)
 
-  if [ -f /etc/lsb-release ]; then
-    source /etc/lsb-release
-  fi
+  
 
   if [ $WITH_UMFPACK = ON ]; then
     # see https://bugs.launchpad.net/ubuntu/+source/suitesparse/+bug/1333214
@@ -80,31 +94,27 @@ if [ $os = linux ] || [ $os = Linux ]; then
     if [ -n "$LINUX_VTK_VERSION" ]; then
       VTK_VERSION="$LINUX_VTK_VERSION"
     fi
-    if [ "$DISTRIB_ID" = "Ubuntu" ]; then
-      if [ "$DISTRIB_CODENAME" = "trusty" ]; then
-        if [ -z "$VTK_VERSION" ] || [ $VTK_VERSION = '6.0.0' ]; then
-          deps=(${deps[@]} libvtk6-dev)
-          VTK_VERSION=''
-        fi
-      elif [ "$DISTRIB_CODENAME" = "xenial" ]; then
-        if [ -z "$VTK_VERSION" ] || [ $VTK_VERSION = '6.2.0' ]; then
-          deps=(${deps[@]} libvtk6-dev)
-          deps=(${deps[@]} python-vtk6)  # cf. https://forum.freecadweb.org/viewtopic.php?t=16453
-          VTK_VERSION=''
-        fi
-      elif [ "$DISTRIB_CODENAME" = "bionic" ]; then
-        if [ $VTK_VERSION = '6.3.0' ]; then
-          deps=(${deps[@]} libvtk6-dev)
-          VTK_VERSION=''
-        elif [ -z "$VTK_VERSION" ] || [ $VTK_VERSION = '7.1.1' ]; then
-          deps=(${deps[@]} libvtk7-dev)
-          VTK_VERSION=''
-        fi
-      elif [ -z "$VTK_VERSION" ]; then
+    if [ "$DISTRIB_CODENAME" = "trusty" ]; then
+      if [ -z "$VTK_VERSION" ] || [ $VTK_VERSION = '6.0.0' ]; then
+        deps=(${deps[@]} libvtk6-dev)
+        VTK_VERSION=''
+      fi
+    elif [ "$DISTRIB_CODENAME" = "xenial" ]; then
+      if [ -z "$VTK_VERSION" ] || [ $VTK_VERSION = '6.2.0' ]; then
+        deps=(${deps[@]} libvtk6-dev)
+        deps=(${deps[@]} python-vtk6)  # cf. https://forum.freecadweb.org/viewtopic.php?t=16453
+        VTK_VERSION=''
+      fi
+    elif [ "$DISTRIB_CODENAME" = "bionic" ]; then
+      if [ $VTK_VERSION = '6.3.0' ]; then
+        deps=(${deps[@]} libvtk6-dev)
+        VTK_VERSION=''
+      elif [ -z "$VTK_VERSION" ] || [ $VTK_VERSION = '7.1.1' ]; then
         deps=(${deps[@]} libvtk7-dev)
+        VTK_VERSION=''
       fi
     elif [ -z "$VTK_VERSION" ]; then
-      deps=(${deps[@]} libvtk6-dev)
+      deps=(${deps[@]} libvtk7-dev)
     fi
     if [ $WITH_FLTK = ON ]; then
       deps=(${deps[@]} libxi-dev libxmu-dev libxinerama-dev libxcursor-dev libcairo-dev libfltk1.3-dev)
