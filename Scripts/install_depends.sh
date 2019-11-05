@@ -68,21 +68,14 @@ if [ $os = linux ] || [ $os = Linux ]; then
     libboost-math-dev \
     libboost-random-dev \
     libeigen3-dev \
-    libnifti-dev
+    libnifti-dev \
+    libpng-dev \
   )
-
-  if [ "$DISTRIB_CODENAME" = "trusty" ] || [ "$DISTRIB_CODENAME" = "xenial" ]; then
-    deps=(${deps[@]} libpng12-dev)
-  else
-    deps=(${deps[@]} libpng16-dev)
-  fi
 
   [ $TESTING = OFF ] || deps=(${deps[@]} libgtest-dev)
   [ $WITH_TBB = OFF ] || deps=(${deps[@]} libtbb-dev)
   [ $WITH_FLANN = OFF ] || deps=(${deps[@]} libflann-dev)
   [ $WITH_ARPACK = OFF ] || deps=(${deps[@]} libarpack2-dev)
-
-  
 
   if [ $WITH_UMFPACK = ON ]; then
     # see https://bugs.launchpad.net/ubuntu/+source/suitesparse/+bug/1333214
