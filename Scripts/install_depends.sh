@@ -89,6 +89,7 @@ if [ $os = linux ] || [ $os = Linux ]; then
       elif [ "$DISTRIB_CODENAME" = "xenial" ]; then
         if [ -z "$VTK_VERSION" ] || [ $VTK_VERSION = '6.2.0' ]; then
           deps=(${deps[@]} libvtk6-dev)
+          deps=(${deps[@]} python-vtk6)  # cf. https://forum.freecadweb.org/viewtopic.php?t=16453
           VTK_VERSION=''
         fi
       elif [ "$DISTRIB_CODENAME" = "bionic" ]; then
