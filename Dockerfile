@@ -21,13 +21,14 @@
 FROM biomedia/ubuntu:18.04-mirtk
 
 LABEL Maintainer="Andreas Schuh <andreas.schuh.84@gmail.com>"
-LABEL Description="Medical Image Registration ToolKit (MIRTK)" Vendor="BioMedIA"
+LABEL Description="Medical Image Registration ToolKit (MIRTK)"
+LABEL Vendor="BioMedIA"
 
 # Git repository and commit SHA from which this Docker image was built
 # (see https://microbadger.com/#/labels)
 ARG VCS_REF
-LABEL org.label-schema.vcs-ref=$VCS_REF \
-      org.label-schema.vcs-url="https://github.com/BioMedIA/MIRTK"
+LABEL org.label-schema.vcs-ref=$VCS_REF
+LABEL org.label-schema.vcs-url="https://github.com/BioMedIA/MIRTK"
 
 # No. of threads to use for build (--build-arg THREADS=8)
 # By default, all available CPUs are used. When a Docker Machine is used,
@@ -64,7 +65,7 @@ RUN ls /usr/src/mirtk \
       -D MODULE_DrawEM=ON \
       -D MODULE_Mapping=ON \
       -D MODULE_Scripting=ON \
-      -D MODULE_Viewer=ON \
+      -D MODULE_Viewer=OFF \
       -D WITH_ARPACK=ON \
       -D WITH_FLANN=ON \
       -D WITH_MATLAB=OFF \
@@ -82,7 +83,7 @@ RUN ls /usr/src/mirtk \
     && rm -rf /usr/src/mirtk
 
 # Make "mirtk" the default executable for application containers
-ENTRYPOINT ["python3", "/usr/local/bin/mirtk"]
+ENTRYPOINT ["/usr/bin/python3", "/usr/local/bin/mirtk"]
 CMD ["help"]
 
 # Assume user data volume to be mounted at /data
