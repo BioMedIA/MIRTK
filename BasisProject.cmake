@@ -1,8 +1,8 @@
 # ============================================================================
 # Medical Image Registration ToolKit (MIRTK)
 #
-# Copyright 2013-2017 Imperial College London
-# Copyright 2013-2018 Andreas Schuh
+# Copyright 2013-2019 Imperial College London
+# Copyright 2013-2019 Andreas Schuh
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -56,11 +56,11 @@ basis_project (
   SOVERSION    "0"     # API yet unstable
   AUTHORS      "Andreas Schuh"
   DESCRIPTION  "Medical Image Registration ToolKit"
-  COPYRIGHT    "2013-2018 Imperial College London, Andreas Schuh"
+  COPYRIGHT    "2013-2019 Imperial College London, Andreas Schuh"
   LICENSE      "Apache License Version 2.0"
   CONTACT      "Andreas Schuh <andreas.schuh.84@gmail.com>"
   TEMPLATE     "with-basis-submodule/1.0"
-  LANGUAGES    C CXX-11
+  LANGUAGES    C CXX-14
  
   # --------------------------------------------------------------------------
   # directories

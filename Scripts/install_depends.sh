@@ -13,6 +13,7 @@ norm_option_value()
   fi
 }
 
+CXX_STANDARD=c++14
 TRAVIS=`norm_option_value "$TRAVIS" OFF`
 TESTING=`norm_option_value "$TESTING" OFF`
 WITH_ARPACK=`norm_option_value "$WITH_ARPACK" OFF`
@@ -65,6 +66,10 @@ if [ $os = linux ] || [ $os = Linux ]; then
   [ $WITH_FLANN = OFF ] || deps=(${deps[@]} libflann-dev)
   [ $WITH_ARPACK = OFF ] || deps=(${deps[@]} libarpack2-dev)
 
+  if [ -f /etc/lsb-release ]; then
+    source /etc/lsb-release
+  fi
+
   if [ $WITH_UMFPACK = ON ]; then
     # see https://bugs.launchpad.net/ubuntu/+source/suitesparse/+bug/1333214
     # sudo add-apt-repository -y ppa:bzindovic/suitesparse-bugfix-1319687 || exit 1
@@ -75,9 +80,30 @@ if [ $os = linux ] || [ $os = Linux ]; then
     if [ -n "$LINUX_VTK_VERSION" ]; then
       VTK_VERSION="$LINUX_VTK_VERSION"
     fi
-    if [ -z "$VTK_VERSION" ] || [ $VTK_VERSION = '6.0.0' ]; then
+    if [ "$DISTRIB_ID" = "Ubuntu" ]; then
+      if [ "$DISTRIB_CODENAME" = "trusty" ]; then
+        if [ -z "$VTK_VERSION" ] || [ $VTK_VERSION = '6.0.0' ]; then
+          deps=(${deps[@]} libvtk6-dev)
+          VTK_VERSION=''
+        fi
+      elif [ "$DISTRIB_CODENAME" = "xenial" ]; then
+        if [ -z "$VTK_VERSION" ] || [ $VTK_VERSION = '6.2.0' ]; then
+          deps=(${deps[@]} libvtk6-dev)
+          VTK_VERSION=''
+        fi
+      elif [ "$DISTRIB_CODENAME" = "bionic" ]; then
+        if [ $VTK_VERSION = '6.3.0' ]; then
+          deps=(${deps[@]} libvtk6-dev)
+          VTK_VERSION=''
+        elif [ -z "$VTK_VERSION" ] || [ $VTK_VERSION = '7.1.1' ]; then
+          deps=(${deps[@]} libvtk7-dev)
+          VTK_VERSION=''
+        fi
+      elif [ -z "$VTK_VERSION" ]; then
+        deps=(${deps[@]} libvtk7-dev)
+      fi
+    elif [ -z "$VTK_VERSION" ]; then
       deps=(${deps[@]} libvtk6-dev)
-      VTK_VERSION=''
     fi
     if [ $WITH_FLTK = ON ]; then
       deps=(${deps[@]} libxi-dev libxmu-dev libxinerama-dev libxcursor-dev libcairo-dev libfltk1.3-dev)
@@ -143,7 +169,7 @@ if [ $os = osx ] || [ $os = Darwin ]; then
     run git clone --depth=1 https://github.com/google/googletest.git /tmp/gtest-source
     mkdir /tmp/gtest-build && cd /tmp/gtest-build
     [ $? -eq 0 ] || exit 1
-    run cmake -DCMAKE_CXX_FLAGS=-std=c++11 -DBUILD_GMOCK=OFF -DBUILD_GTEST=ON ../gtest-source
+    run cmake -DCMAKE_CXX_STANDARD=$CXX_STANDARD -DBUILD_GMOCK=OFF -DBUILD_GTEST=ON ../gtest-source
     run make -j $cpu_cores
     run sudo make install
     cd || exit 1
@@ -195,6 +221,7 @@ if [ $WITH_VTK = ON ] && [ -n "$VTK_VERSION" ]; then
     [ $? -eq 0 ] || exit 1
     echo "Configuring VTK $VTK_VERSION..."
     cmake_args=("${cmake_args[@]}"
+      -DCMAKE_CXX_STANDARD=$CXX_STANDARD
       -DVTK_Group_StandAlone=OFF
       -DVTK_Group_Rendering=OFF
       -DModule_vtkCommonCore=ON
