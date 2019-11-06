@@ -42,6 +42,18 @@ template <class T>
 using WeakPtr = std::weak_ptr<T>;
 
 template <class T>
+UniquePtr<T> MakeUnique()
+{
+  return std::make_unique<T>();
+}
+
+template <class T, class... Args>
+UniquePtr<T> MakeUnique(Args&&... args)
+{
+  return std::make_unique<T>(args...);
+}
+
+template <class T>
 SharedPtr<T> NewShared()
 {
   return std::make_shared<T>();
