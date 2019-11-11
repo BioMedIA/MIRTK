@@ -41,28 +41,20 @@ using SharedPtr = std::shared_ptr<T>;
 template <class T>
 using WeakPtr = std::weak_ptr<T>;
 
-template <class T>
-UniquePtr<T> MakeUnique()
-{
-  return std::make_unique<T>();
-}
-
 template <class T, class... Args>
-UniquePtr<T> MakeUnique(Args&&... args)
+UniquePtr<T> NewUnique(Args&&... args)
 {
-  return std::make_unique<T>(args...);
-}
-
-template <class T>
-SharedPtr<T> NewShared()
-{
-  return std::make_shared<T>();
+  #if __cplusplus == 201103L
+    return UniquePtr<T>(new T(std::forward<Args>(args)...));
+  #else
+    return std::make_unique<T>(std::forward<Args>(args)...);
+  #endif
 }
 
 template <class T, class... Args>
 SharedPtr<T> NewShared(Args&&... args)
 {
-  return std::make_shared<T>(args...);
+  return std::make_shared<T>(std::forward<Args>(args)...);
 }
 
 using std::memset;

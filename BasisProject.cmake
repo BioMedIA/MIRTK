@@ -60,7 +60,7 @@ basis_project (
   LICENSE      "Apache License Version 2.0"
   CONTACT      "Andreas Schuh <andreas.schuh.84@gmail.com>"
   TEMPLATE     "with-basis-submodule/1.0"
-  LANGUAGES    C CXX-14
+  LANGUAGES    C CXX-11
  
   # --------------------------------------------------------------------------
   # directories
