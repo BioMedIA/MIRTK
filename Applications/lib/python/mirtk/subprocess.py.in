@@ -170,11 +170,11 @@ def run(cmd, *args, **kwargs):
     """Execute MIRTK command and throw exception or exit on error.
 
     This function calls the specified MIRTK command with the given positional
-    and option arguments (keyword arguments prepended by single dash, '-').
-    The 'onexit' and 'onexit' keyword arguments define the return value and
+    and optional arguments (keyword arguments prepended by single dash, '-').
+    The 'onexit' and 'onerror' keyword arguments define the return value and
     the error handling when the subprocess returns a non-zero exit code.
     By default, this function behaves identical to check_call, i.e., throws
-    and exception when the command failed and does not return a value otherwise.
+    an exception when the command failed and does not return a value otherwise.
 
     Arguments
     ---------
