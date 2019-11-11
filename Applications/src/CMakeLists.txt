@@ -160,6 +160,7 @@ if (MIRTK_Transformation_FOUND)
     add_image_transformation_command(evaluate-dof)
     add_image_transformation_command(evaluate-jacobian)
     add_image_transformation_command(init-dof)
+    add_image_transformation_command(random-dof)
     add_image_transformation_command(transform-image)
 
     if (MIRTK_IO_WITH_VTK)
