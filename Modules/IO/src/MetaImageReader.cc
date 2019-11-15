@@ -102,12 +102,20 @@ void MetaImageReader::CopyHeader(const MetaImage &meta_image)
   const double * const offset = meta_image.Offset();
   _Attributes._xorigin = offset[0];
   _Attributes._yorigin = offset[1];
-  _Attributes._zorigin = (ndims > 2 ? offset[2] : 0);
-  _Attributes._torigin = (ndims > 3 ? offset[3] : 0);
+  _Attributes._zorigin = (ndims > 2 ? offset[2] : 0.);
+  _Attributes._torigin = (ndims > 3 ? offset[3] : 0.);
 
-  memset(_Attributes._xaxis, 0, 3);
-  memset(_Attributes._yaxis, 0, 3);
-  memset(_Attributes._zaxis, 0, 3);
+  _Attributes._xaxis[0] = 1.;
+  _Attributes._xaxis[1] = 0.;
+  _Attributes._xaxis[2] = 0.;
+
+  _Attributes._yaxis[0] = 0.;
+  _Attributes._yaxis[1] = 1.;
+  _Attributes._yaxis[2] = 0.;
+
+  _Attributes._zaxis[0] = 0.;
+  _Attributes._zaxis[1] = 0.;
+  _Attributes._zaxis[2] = 1.;
 
   const double * const matrix = meta_image.TransformMatrix();
   memcpy(_Attributes._xaxis, matrix + 0 * ndims, ndims);
