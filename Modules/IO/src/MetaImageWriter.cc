@@ -122,18 +122,51 @@ void MetaImageWriter::Run()
   void * const data = const_cast<void *>(_Input->GetDataPointer());
   MetaImage meta_image(ndims, size, spacing, element_type, channels, data);
 
+  meta_image.BinaryData(true);
+  meta_image.CompressedData(true);
+
   const auto origin = _Input->GetOrigin();
   meta_image.Offset(0, origin._x);
   meta_image.Offset(1, origin._y);
   if (ndims > 2) meta_image.Offset(2, origin._z);
   if (ndims > 3) meta_image.Offset(3, _Input->GetTOrigin());
 
-  const int nrows = max(ndims, 3);
-  const int ncols = nrows;
+  const int spatial_dims = max(ndims, 3);
+
   const auto matrix = _Input->Attributes().GetLatticeToWorldOrientation();
-  for (int c = 0; c < ncols; ++c)
-  for (int r = 0; r < nrows; ++r) {
+  for (int c = 0; c < spatial_dims; ++c)
+  for (int r = 0; r < spatial_dims; ++r) {
     meta_image.TransformMatrix(r, c, matrix(r, c));
+  }
+
+  BaseImage::OrientationCode code[3];
+  _Input->Orientation(code[0], code[1], code[2]);
+  for (int i = 0; i < spatial_dims; ++i) {
+    MET_OrientationEnumType met_orientation;
+    switch (code[i]) {
+      case BaseImage::L2R:
+        met_orientation = MET_ORIENTATION_RL;
+        break;
+      case BaseImage::R2L:
+        met_orientation = MET_ORIENTATION_LR;
+        break;
+      case BaseImage::A2P:
+        met_orientation = MET_ORIENTATION_AP;
+        break;
+      case BaseImage::P2A:
+        met_orientation = MET_ORIENTATION_PA;
+        break;
+      case BaseImage::S2I:
+        met_orientation = MET_ORIENTATION_SI;
+        break;
+      case BaseImage::I2S:
+        met_orientation = MET_ORIENTATION_IS;
+        break;
+      case BaseImage::Orientation_Unknown:
+        met_orientation = MET_ORIENTATION_UNKNOWN;
+        break;
+    };
+    meta_image.AnatomicalOrientation(i, met_orientation);
   }
 
   if (!meta_image.Write(_FileName.c_str())) {
