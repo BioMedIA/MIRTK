@@ -31,6 +31,10 @@
     #include "mirtk/NiftiImageReader.h"
     #include "mirtk/NiftiImageWriter.h"
   #endif
+  #if MIRTK_IO_WITH_META
+    #include "mirtk/MetaImageReader.h"
+    #include "mirtk/MetaImageWriter.h"
+  #endif
 #endif
 
 

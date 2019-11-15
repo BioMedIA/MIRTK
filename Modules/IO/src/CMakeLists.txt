@@ -29,6 +29,76 @@
 ##############################################################################
 
 # ----------------------------------------------------------------------------
+# GIFTI I/O library
+if (NOT ITK_FOUND AND ZLIB_FOUND)
+
+  set(METAIO_SOURCES
+    meta/metaUtils.cxx
+    meta/metaArrow.cxx
+    meta/metaBlob.cxx
+    meta/metaCommand.cxx
+    meta/metaContour.cxx
+    meta/metaDTITube.cxx
+    meta/metaEllipse.cxx
+    meta/metaGroup.cxx
+    meta/metaGaussian.cxx
+    meta/metaImage.cxx
+    meta/metaImageUtils.cxx
+    meta/metaLandmark.cxx
+    meta/metaLine.cxx
+    meta/metaMesh.cxx
+    meta/metaObject.cxx
+    meta/metaOutput.cxx
+    meta/metaScene.cxx
+    meta/metaSurface.cxx
+    meta/metaTube.cxx
+    meta/metaVesselTube.cxx
+    meta/metaTransform.cxx
+    meta/metaTubeGraph.cxx
+    meta/metaForm.cxx
+    meta/metaArray.cxx
+    meta/metaFEMObject.cxx
+  )
+
+  set(METAIO_HEADERS 
+    meta/metaArray.h
+    meta/metaArrow.h
+    meta/metaBlob.h
+    meta/metaCommand.h
+    meta/metaContour.h
+    meta/metaDTITube.h
+    meta/metaEllipse.h
+    meta/metaEvent.h
+    meta/metaFEMObject.h
+    meta/metaForm.h
+    meta/metaGaussian.h
+    meta/metaGroup.h
+    meta/metaImage.h
+    meta/metaImageTypes.h
+    meta/metaImageUtils.h
+    meta/metaIOConfig.h
+    meta/metaLandmark.h
+    meta/metaLine.h
+    meta/metaMesh.h
+    meta/metaObject.h
+    meta/metaOutput.h
+    meta/metaScene.h
+    meta/metaSurface.h
+    meta/metaTransform.h
+    meta/metaTubeGraph.h
+    meta/metaTube.h
+    meta/metaTypes.h
+    meta/metaUtils.h
+    meta/metaVesselTube.h
+  )
+
+  add_library(metaio OBJECT ${METAIO_HEADERS} ${METAIO_SOURCES})
+
+  set_target_properties(metaio PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
+
+endif ()
+
+# ----------------------------------------------------------------------------
 # NIfTI I/O library
 if (NOT NiftiCLib_FOUND)
 
@@ -53,6 +123,7 @@ if (NOT NiftiCLib_FOUND)
   endif ()
 
 endif ()
+
 # ----------------------------------------------------------------------------
 # GIFTI I/O library
 if (NOT GiftiCLib_FOUND AND VTK_FOUND AND EXPAT_FOUND)
@@ -76,6 +147,7 @@ if (NOT GiftiCLib_FOUND AND VTK_FOUND AND EXPAT_FOUND)
   endif ()
  
 endif ()
+
 # ----------------------------------------------------------------------------
 # MIRTK I/O library
 set(HEADERS
@@ -122,6 +194,30 @@ if (NiftiCLib_FOUND)
   list(APPEND DEPENDS ${NiftiCLib_LIBRARIES})
 else ()
   list(APPEND SOURCES $<TARGET_OBJECTS:nifticlib>)
+endif ()
+
+if (ITK_FOUND OR ZLIB_FOUND)
+  list(APPEND HEADERS
+    MetaImageReader.h
+    MetaImageWriter.h
+  )
+  list(APPEND SOURCES
+    MetaImageReader.cc
+    MetaImageWriter.cc
+  )
+  if (TARGET ITKMetaIO)
+    list(APPEND DEPENDS ITKMetaIO)
+  else ()
+    include_directories("meta")
+    list(APPEND SOURCES $<TARGET_OBJECTS:metaio>)
+    if (WIN32)
+      if (BORLAND)
+        list(APPEND DEPENDS import32)
+      else ()
+        list(APPEND DEPENDS comctl32 wsock32)
+      endif ()
+    endif ()
+  endif ()
 endif ()
 
 if (VTK_FOUND)
