@@ -164,6 +164,9 @@ bool NiftiImageReader::CanRead(const char *fname) const
 // -----------------------------------------------------------------------------
 void NiftiImageReader::Initialize()
 {
+  // Close old file
+  this->Close();
+
   // Read header
   this->ReadHeader();
 
@@ -396,14 +399,14 @@ void NiftiImageReader::ReadHeader()
 // -----------------------------------------------------------------------------
 void NiftiImageReader::Print() const
 {
+  ImageReader::Print();
+
   Matrix mat(3, 3);
   for (int i = 0; i < 3; i++) {
     mat(0, i) = _Attributes._xaxis[i] * _Attributes._dx;
     mat(1, i) = _Attributes._yaxis[i] * _Attributes._dy;
     mat(2, i) = _Attributes._zaxis[i] * _Attributes._dz;
   }
-
-  cout << "Name of class is " << this->NameOfClass() << "\n";
 
   // Check which coordinate system is used.
   cout << "Transformation specified in NIFTI header using ";
@@ -423,8 +426,6 @@ void NiftiImageReader::Print() const
 
   cout << "Scale slope = " << _Slope << "\n";
   cout << "Intercept   = " << _Intercept << "\n";
-
-  ImageReader::Print();
 }
 
 
