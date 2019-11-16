@@ -293,7 +293,7 @@ void NiftiImageReader::ReadHeader()
     _Attributes._zaxis[i] = mat_44.m[i][2] / _Attributes._dz;
   }
 
-  // Convert between nifti and  coordinate systems
+  // Convert between nifti and IRTK coordinate systems
   // See https://www.fmrib.ox.ac.uk/ibim/uploads/coordtransforms.pdf
   Matrix D(4, 4), D_inv(4, 4), M(4, 4), R;
   for (int j = 0; j < 4; j++) {
@@ -308,7 +308,7 @@ void NiftiImageReader::ReadHeader()
   }
   R = D * M * D_inv;
 
-  // Set image origin by adding q/sform offset to third column of R:
+  // Set image origin by adding q/sform offset to fourth column of R:
   _Attributes._xorigin = R(0, 3) + mat_44.m[0][3];
   _Attributes._yorigin = R(1, 3) + mat_44.m[1][3];
   _Attributes._zorigin = R(2, 3) + mat_44.m[2][3];

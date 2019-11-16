@@ -87,6 +87,8 @@ void MetaImageReader::CopyHeader(const MetaImage &meta_image)
     exit(1);
   }
 
+  const int spatial_dims = max(ndims, 3);
+
   const int * const size = meta_image.DimSize();
   _Attributes._x = size[0];
   _Attributes._y = size[1];
@@ -98,12 +100,6 @@ void MetaImageReader::CopyHeader(const MetaImage &meta_image)
   _Attributes._dy = spacing[1];
   _Attributes._dz = (ndims > 2 ? spacing[2] : 1.);
   _Attributes._dt = (ndims > 3 ? spacing[3] : (channels > 1 ? 0. : 1.));
-
-  const double * const offset = meta_image.Offset();
-  _Attributes._xorigin = offset[0];
-  _Attributes._yorigin = offset[1];
-  _Attributes._zorigin = (ndims > 2 ? offset[2] : 0.);
-  _Attributes._torigin = (ndims > 3 ? offset[3] : 0.);
 
   _Attributes._xaxis[0] = 1.;
   _Attributes._xaxis[1] = 0.;
@@ -117,12 +113,34 @@ void MetaImageReader::CopyHeader(const MetaImage &meta_image)
   _Attributes._zaxis[1] = 0.;
   _Attributes._zaxis[2] = 1.;
 
-  const double * const matrix = meta_image.TransformMatrix();
-  memcpy(_Attributes._xaxis, matrix + 0 * ndims, ndims);
-  memcpy(_Attributes._yaxis, matrix + 1 * ndims, ndims);
-  if (ndims > 2) {
-    memcpy(_Attributes._zaxis, matrix + 2 * ndims, ndims);
+  Matrix matrix(spatial_dims, spatial_dims);
+  for (int c = 0; c < spatial_dims; ++c)
+  for (int r = 0; r < spatial_dims; ++r) {
+    matrix(r, c) = meta_image.TransformMatrix(r, c);
   }
+  memcpy(_Attributes._xaxis, matrix.Col(0), spatial_dims * sizeof(double));
+  memcpy(_Attributes._yaxis, matrix.Col(1), spatial_dims * sizeof(double));
+  if (spatial_dims > 2) {
+    memcpy(_Attributes._zaxis, matrix.Col(2), spatial_dims * sizeof(double));
+  }
+
+  const double * const offset = meta_image.Offset();
+  _Attributes._xorigin = offset[0];
+  _Attributes._yorigin = offset[1];
+  _Attributes._zorigin = (ndims > 2 ? offset[2] : 0.);
+  _Attributes._torigin = (ndims > 3 ? offset[3] : 0.);
+
+  double xorigin = _Attributes._xorigin;
+  double yorigin = _Attributes._yorigin;
+  double zorigin = _Attributes._zorigin;
+  _Attributes.WorldToLattice(xorigin, yorigin, zorigin);
+  xorigin += static_cast<double>(_Attributes._x - 1) / 2.,
+  yorigin += static_cast<double>(_Attributes._y - 1) / 2.,
+  zorigin += static_cast<double>(_Attributes._z - 1) / 2.,
+  _Attributes.LatticeToWorld(xorigin, yorigin, zorigin);
+  _Attributes._xorigin = xorigin;
+  _Attributes._yorigin = yorigin;
+  _Attributes._zorigin = zorigin;
 
   _Slope     = meta_image.ElementToIntensityFunctionSlope();
   _Intercept = meta_image.ElementToIntensityFunctionOffset();

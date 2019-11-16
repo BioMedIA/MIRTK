@@ -72,6 +72,7 @@ void MetaImageWriter::Run()
   } else {
     ndims = 2;
   }
+  const int spatial_dims = max(ndims, 3);
 
   int size[] = {
     _Input->X(),
@@ -125,13 +126,14 @@ void MetaImageWriter::Run()
   meta_image.BinaryData(true);
   meta_image.CompressedData(true);
 
-  const auto origin = _Input->GetOrigin();
-  meta_image.Offset(0, origin._x);
-  meta_image.Offset(1, origin._y);
-  if (ndims > 2) meta_image.Offset(2, origin._z);
-  if (ndims > 3) meta_image.Offset(3, _Input->GetTOrigin());
-
-  const int spatial_dims = max(ndims, 3);
+  double offset[3] = {0., 0., 0.};
+  _Input->ImageToWorld(offset[0], offset[1], offset[2]);
+  for (int i = 0; i < spatial_dims; ++i) {
+    meta_image.Offset(i, offset[i]);
+  }
+  if (ndims > 3) {
+    meta_image.Offset(3, _Input->GetTOrigin());
+  }
 
   const auto matrix = _Input->Attributes().GetLatticeToWorldOrientation();
   for (int c = 0; c < spatial_dims; ++c)
