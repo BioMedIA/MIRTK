@@ -82,8 +82,8 @@ void MetaImageReader::CopyHeader(const MetaImage &meta_image)
     cerr << this->NameOfClass() << ": Only 2D, 3D, and 4D images supported, got ndims=" << ndims << endl;
     exit(1);
   }
-  if (channels > 1) {
-    cerr << this->NameOfClass() << ": Multi-channel image are currently not supported" << endl;
+  if (channels > 1 && ndims > 3) {
+    cerr << this->NameOfClass() << ": Only 2D and 3D multi-channel images are supported" << endl;
     exit(1);
   }
 
@@ -214,10 +214,22 @@ BaseImage *MetaImageReader::Run()
 
   CopyHeader(*_MetaImage);
 
-  const int n = _Attributes.NumberOfLatticePoints();
   UniquePtr<BaseImage> output(BaseImage::New(_DataType));
   output->Initialize(_Attributes);
-  memcpy(output->GetScalarPointer(), _MetaImage->ElementData(), n * _Bytes);
+  if (_MetaImage->ElementNumberOfChannels() > 1) {
+    const char *ptr = reinterpret_cast<char *>(_MetaImage->ElementData());
+    for (int k = 0; k < _Attributes._z; ++k)
+    for (int j = 0; j < _Attributes._y; ++j)
+    for (int i = 0; i < _Attributes._x; ++i) {
+      for (int l = 0; l < _Attributes._t; ++l) {
+        memcpy(output->GetDataPointer(i, j, k, l), ptr, _Bytes);
+        ptr += _Bytes;
+      }
+    }
+  } else {
+    const int n = _Attributes.NumberOfLatticePoints();
+    memcpy(output->GetScalarPointer(), _MetaImage->ElementData(), n * _Bytes);
+  }
   this->Finalize(output.get());
 
   return output.release();
