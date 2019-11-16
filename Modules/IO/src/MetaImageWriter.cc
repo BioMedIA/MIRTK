@@ -22,6 +22,9 @@
 #include "mirtk/MetaImageWriter.h"
 #include "mirtk/ImageWriterFactory.h"
 
+#include "mirtk/Memory.h"
+#include "mirtk/Matrix.h"
+
 
 namespace mirtk {
 
@@ -64,8 +67,10 @@ void MetaImageWriter::Run()
   this->Initialize();
   this->Close();
 
+  const int channels = IsZero(_Input->TSize()) ? _Input->T() : 1;
+
   int ndims;
-  if (_Input->T() > 1 && !IsZero(_Input->TSize())) {
+  if (_Input->T() > 1 && channels == 1) {
     ndims = 4;
   } else if (_Input->Z() > 1) {
     ndims = 3;
@@ -74,19 +79,18 @@ void MetaImageWriter::Run()
   }
   const int spatial_dims = max(ndims, 3);
 
-  int size[] = {
+  const int size[] = {
     _Input->X(),
     _Input->Y(),
     _Input->Z(),
     _Input->T(),
   };
-  double spacing[] = {
+  const double spacing[] = {
     _Input->XSize(),
     _Input->YSize(),
     _Input->ZSize(),
     _Input->TSize(),
   };
-  const int channels = 1;
 
   MET_ValueEnumType element_type;
   const auto data_type = ImageDataType(_Input->GetDataType());
@@ -120,25 +124,40 @@ void MetaImageWriter::Run()
       exit(1);
   }
 
-  void * const data = const_cast<void *>(_Input->GetDataPointer());
-  MetaImage meta_image(ndims, size, spacing, element_type, channels, data);
+  UniquePtr<MetaImage> meta_image;
+  if (channels == 1) {
+    void * const data = const_cast<void *>(_Input->GetDataPointer());
+    meta_image.reset(new MetaImage(ndims, size, spacing, element_type, channels, data));
+  } else {
+    meta_image.reset(new MetaImage(ndims, size, spacing, element_type, channels));
+    const size_t element_bytes = MET_ValueTypeSize[element_type];
+    char *ptr = reinterpret_cast<char *>(meta_image->ElementData());
+    for (int k = 0; k < _Input->Z(); ++k)
+    for (int j = 0; j < _Input->Y(); ++j)
+    for (int i = 0; i < _Input->X(); ++i) {
+      for (int l = 0; l < _Input->T(); ++l) {
+        memcpy(ptr, _Input->GetDataPointer(i, j, k, l), element_bytes);
+        ptr += element_bytes;
+      }
+    }
+  }
 
-  meta_image.BinaryData(true);
-  meta_image.CompressedData(true);
+  meta_image->BinaryData(true);
+  meta_image->CompressedData(true);
 
   double offset[3] = {0., 0., 0.};
   _Input->ImageToWorld(offset[0], offset[1], offset[2]);
   for (int i = 0; i < spatial_dims; ++i) {
-    meta_image.Offset(i, offset[i]);
+    meta_image->Offset(i, offset[i]);
   }
   if (ndims > 3) {
-    meta_image.Offset(3, _Input->GetTOrigin());
+    meta_image->Offset(3, _Input->GetTOrigin());
   }
 
   const auto matrix = _Input->Attributes().GetLatticeToWorldOrientation();
   for (int c = 0; c < spatial_dims; ++c)
   for (int r = 0; r < spatial_dims; ++r) {
-    meta_image.TransformMatrix(r, c, matrix(r, c));
+    meta_image->TransformMatrix(r, c, matrix(r, c));
   }
 
   BaseImage::OrientationCode code[3];
@@ -168,10 +187,10 @@ void MetaImageWriter::Run()
         met_orientation = MET_ORIENTATION_UNKNOWN;
         break;
     };
-    meta_image.AnatomicalOrientation(i, met_orientation);
+    meta_image->AnatomicalOrientation(i, met_orientation);
   }
 
-  if (!meta_image.Write(_FileName.c_str())) {
+  if (!meta_image->Write(_FileName.c_str())) {
     cerr << this->NameOfClass() << ": Failed to write image to file '" << _FileName << "'" << endl;
     exit(1);
   }
