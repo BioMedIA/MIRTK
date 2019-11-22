@@ -66,7 +66,7 @@ basis_project (
       vtkIOXML
     }"
     TBB{tbb} # transitive dependency of MIRTK{Common}
-    ZLIB     # for [NG]iftiCLib
+    ZLIB     # for MetaIO, NiftiCLib, GiftiCLib
     #<optional-dependency>
   TEST_DEPENDS
     #<test-dependency>

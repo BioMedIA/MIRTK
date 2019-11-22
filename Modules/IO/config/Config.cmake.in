@@ -52,6 +52,9 @@
 @BASIS_CONFIG@
 
 
+## @brief Whether this library was built with MetaImage support
+basis_set_config(WITH_META @WITH_ZLIB_CONFIG@)
+
 ## @brief Whether this library was built with NIfTI support
 basis_set_config(WITH_NIFTI 1)
 basis_copy_config(WITH_NIfTI WITH_NIFTI)

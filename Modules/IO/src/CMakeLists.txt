@@ -29,6 +29,29 @@
 ##############################################################################
 
 # ----------------------------------------------------------------------------
+# GIFTI I/O library
+if (NOT ITK_FOUND AND ZLIB_FOUND)
+
+  add_library(metaio OBJECT
+    meta/metaEvent.h
+    meta/metaImage.h
+    meta/metaImage.cxx
+    meta/metaImageTypes.h
+    meta/metaImageUtils.h
+    meta/metaImageUtils.cxx
+    meta/metaIOConfig.h
+    meta/metaObject.h
+    meta/metaObject.cxx
+    meta/metaTypes.h
+    meta/metaUtils.h
+    meta/metaUtils.cxx
+  )
+
+  set_target_properties(metaio PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
+
+endif ()
+
+# ----------------------------------------------------------------------------
 # NIfTI I/O library
 if (NOT NiftiCLib_FOUND)
 
@@ -53,6 +76,7 @@ if (NOT NiftiCLib_FOUND)
   endif ()
 
 endif ()
+
 # ----------------------------------------------------------------------------
 # GIFTI I/O library
 if (NOT GiftiCLib_FOUND AND VTK_FOUND AND EXPAT_FOUND)
@@ -76,6 +100,7 @@ if (NOT GiftiCLib_FOUND AND VTK_FOUND AND EXPAT_FOUND)
   endif ()
  
 endif ()
+
 # ----------------------------------------------------------------------------
 # MIRTK I/O library
 set(HEADERS
@@ -122,6 +147,30 @@ if (NiftiCLib_FOUND)
   list(APPEND DEPENDS ${NiftiCLib_LIBRARIES})
 else ()
   list(APPEND SOURCES $<TARGET_OBJECTS:nifticlib>)
+endif ()
+
+if (ITK_FOUND OR ZLIB_FOUND)
+  list(APPEND HEADERS
+    MetaImageReader.h
+    MetaImageWriter.h
+  )
+  list(APPEND SOURCES
+    MetaImageReader.cc
+    MetaImageWriter.cc
+  )
+  if (TARGET ITKMetaIO)
+    list(APPEND DEPENDS ITKMetaIO)
+  else ()
+    include_directories("meta")
+    list(APPEND SOURCES $<TARGET_OBJECTS:metaio>)
+    if (WIN32)
+      if (BORLAND)
+        list(APPEND DEPENDS import32)
+      else ()
+        list(APPEND DEPENDS comctl32 wsock32)
+      endif ()
+    endif ()
+  endif ()
 endif ()
 
 if (VTK_FOUND)

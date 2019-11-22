@@ -21,6 +21,9 @@
 #define MIRTK_IOConfig_H
 
 
+/// Whether MIRTK IO module was built with MetaImage support
+#define MIRTK_IO_WITH_META @WITH_ZLIB_CONFIG@
+
 /// Whether MIRTK IO module was built with NIfTI support
 #define MIRTK_IO_WITH_NIFTI 1
 #define MIRTK_IO_WITH_NIfTI MIRTK_IO_WITH_NIFTI

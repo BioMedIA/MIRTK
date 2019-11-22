@@ -116,6 +116,9 @@ public:
 
 protected:
 
+  /// Finalize read image
+  void Finalize(BaseImage *) const;
+
   /// Read header. This is an abstract function. Each derived class has to
   /// implement this function in order to initialize the read-only attributes
   /// of this class.
