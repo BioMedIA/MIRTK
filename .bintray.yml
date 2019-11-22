@@ -20,7 +20,7 @@
         "public_stats": false
     },
     "version": {
-        "name": "2.1-pre-1",
+        "name": "2.1-pre1",
         "desc": "AppImage of MIRTK master HEAD deployed by Travis CI build",
         "gpgSign": true
     },

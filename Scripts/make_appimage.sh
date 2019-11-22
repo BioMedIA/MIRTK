@@ -56,7 +56,12 @@ else
 fi
 if [ -z "$RELEASE" ]; then
   if [ $AppImage_LATEST = ON ]; then
-    RELEASE="latest"  # overwrite previous "latest" BinTray AppImage
+    # overwrite previous "latest" BinTray AppImage
+    if [ -z "$AppImage_RELEASE" ]; then
+      RELEASE="latest"
+    else
+      RELEASE="$AppImage_RELEASE"
+    fi
   else
     RELEASE="$VERSION"
   fi

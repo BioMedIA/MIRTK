@@ -32,6 +32,7 @@ env:
   - AppImage_BRANCH=${AppImage_BRANCH:-master}
   - AppImage_DEVEL=${AppImage_DEVEL:-ON}
   - AppImage_LATEST=${AppImage_LATEST:-ON}
+  - AppImage_RELEASE=${AppImage_RELEASE}
   matrix:
   - WITH_VTK=OFF      # make sure that MIRTK can be build fine without VTK
   - WITH_VTK=ON       # test build with all moduldes, including those using VTK
