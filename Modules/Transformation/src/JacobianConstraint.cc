@@ -1236,6 +1236,9 @@ struct EvaluateGradient_AnyFFD
 
               // Lattice point index
               idx = _Domain->LatticeToIndex(i, j, k, l);
+              if (IsNaN(_DetJacobian[idx])) {
+                continue;
+              }
 
               // Derivative of penalty term w.r.t. Jacobian determinant
               df = _Constraint->DerivativeWrtJacobianDet(_DetJacobian[idx]);
@@ -1488,7 +1491,7 @@ struct EvaluateGradient_Domain_BSplineFFD_SV
             // Lattice point index
             idx1 = _Domain->LatticeToIndex(i, j, k, 0);
             idx2 = _Domain->LatticeToIndex(i, j, k, 1);
-            if (IsNaN(_DetJacobian[idx1]) || IsNaN(_DetJacobian[idx2])) {
+            if (IsNaN(_DetJacobian[idx1])) {
               continue;
             }
 
@@ -1654,6 +1657,9 @@ struct EvaluateGradient_Lattice_BSplineFFD_3D
 
           // Lattice point index
           idx = _FFD->LatticeToIndex(i, j, k);
+          if (IsNaN(_DetJacobian[idx])) {
+            continue;
+          }
 
           // Derivative of penalty term w.r.t. Jacobian determinant
           df = _Constraint->DerivativeWrtJacobianDet(_DetJacobian[idx]);
@@ -1774,6 +1780,9 @@ struct EvaluateGradient_Lattice_BSplineFFD_SV
           // Lattice point index
           idx1 = _FFD->LatticeToIndex(i, j, k, 0);
           idx2 = _FFD->LatticeToIndex(i, j, k, 1);
+          if (IsNaN(_DetJacobian[idx1])) {
+            continue;
+          }
 
           // Spatially varying weight
           if (_Mask) {
