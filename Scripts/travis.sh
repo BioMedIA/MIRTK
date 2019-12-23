@@ -85,6 +85,7 @@ run cmake \
       -D WITH_PROFILING=ON \
       -D WITH_TBB=$WITH_TBB \
       -D WITH_UMFPACK=$WITH_UMFPACK \
+      -D WITH_ITK=$WITH_ITK \
       -D WITH_VTK=$WITH_VTK \
       -D WITH_ZLIB=ON \
       ${cmake_args[@]} \

@@ -77,7 +77,6 @@ if [ $os = linux ] || [ $os = Linux ]; then
   [ $WITH_TBB = OFF ] || deps=(${deps[@]} libtbb-dev)
   [ $WITH_FLANN = OFF ] || deps=(${deps[@]} libflann-dev)
   [ $WITH_ARPACK = OFF ] || deps=(${deps[@]} libarpack2-dev)
-  [ $WITH_ITK = OFF ] || deps=(${deps[@]} libinsighttoolkit4-dev)
 
   if [ $WITH_UMFPACK = ON ]; then
     # see https://bugs.launchpad.net/ubuntu/+source/suitesparse/+bug/1333214
@@ -113,6 +112,10 @@ if [ $os = linux ] || [ $os = Linux ]; then
     if [ $WITH_FLTK = ON ]; then
       deps=(${deps[@]} libxi-dev libxmu-dev libxinerama-dev libxcursor-dev libcairo-dev libfltk1.3-dev)
     fi
+  fi
+
+  if [ $WITH_ITK = ON ]; then
+    deps=(${deps[@]} libinsighttoolkit4-dev libfftw3-dev uuid-dev)
   fi
 
   sudo apt-get update -qq || exit 1
@@ -169,7 +172,7 @@ if [ $os = osx ] || [ $os = Darwin ]; then
     fi
   fi
   if [ $WITH_ITK = ON ]; then
-    brew_install itk
+    brew_install itk fftw libuuid
   fi
 
   # download, build, and install gtest

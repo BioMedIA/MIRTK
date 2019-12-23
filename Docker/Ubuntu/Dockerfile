@@ -51,7 +51,10 @@ RUN NUM_CPUS=${THREADS:-`cat /proc/cpuinfo | grep processor | wc -l`} \
       libboost-math-dev \
       libboost-random-dev \
       libflann-dev \
-      libgtest-dev \
+      libfft \
+      libfftw3-dev \
+      uuid-dev \
+      libinsighttoolkit4-dev \
       libnifti-dev \
       libpng-dev \
       libsuitesparse-dev \
