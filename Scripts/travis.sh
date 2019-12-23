@@ -31,6 +31,7 @@ TRAVIS=`norm_option_value "$TRAVIS" OFF`
 TESTING=`norm_option_value "$TESTING" OFF`
 WITH_ARPACK=`norm_option_value "$WITH_ARPACK" OFF`
 WITH_UMFPACK=`norm_option_value "$WITH_UMFPACK" OFF`
+WITH_ITK=`norm_option_value "$WITH_ITK" OFF`
 WITH_VTK=`norm_option_value "$WITH_VTK" OFF`
 WITH_TBB=`norm_option_value "$WITH_TBB" ON`
 WITH_FLANN=`norm_option_value "$WITH_FLANN" ON`
@@ -50,12 +51,15 @@ else
   cpu_cores=1
 fi
 
-modules=(Common Numerics Image IO Transformation Registration DrawEM)
+modules=(Common Numerics Image IO Transformation Registration)
 if [ $WITH_VTK = ON ]; then
   modules=(${modules[@]} PointSet Deformable Mapping)
   if [ $WITH_FLTK = ON ]; then
     modules=(${modules[@]} Viewer)
   fi
+fi
+if [ $WITH_ITK = ON ]; then
+  modules=(${modules[@]} DrawEM)
 fi
 
 cmake_args=

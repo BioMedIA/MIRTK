@@ -18,6 +18,7 @@ TRAVIS=`norm_option_value "$TRAVIS" OFF`
 TESTING=`norm_option_value "$TESTING" OFF`
 WITH_ARPACK=`norm_option_value "$WITH_ARPACK" OFF`
 WITH_UMFPACK=`norm_option_value "$WITH_UMFPACK" OFF`
+WITH_ITK=`norm_option_value "$WITH_ITK" OFF`
 WITH_VTK=`norm_option_value "$WITH_VTK" OFF`
 WITH_TBB=`norm_option_value "$WITH_TBB" ON`
 WITH_FLANN=`norm_option_value "$WITH_FLANN" ON`
@@ -76,6 +77,7 @@ if [ $os = linux ] || [ $os = Linux ]; then
   [ $WITH_TBB = OFF ] || deps=(${deps[@]} libtbb-dev)
   [ $WITH_FLANN = OFF ] || deps=(${deps[@]} libflann-dev)
   [ $WITH_ARPACK = OFF ] || deps=(${deps[@]} libarpack2-dev)
+  [ $WITH_ITK = OFF ] || deps=(${deps[@]} libinsighttoolkit4-dev)
 
   if [ $WITH_UMFPACK = ON ]; then
     # see https://bugs.launchpad.net/ubuntu/+source/suitesparse/+bug/1333214
@@ -165,6 +167,9 @@ if [ $os = osx ] || [ $os = Darwin ]; then
     if [ $WITH_FLTK = ON ]; then
       brew_install fltk
     fi
+  fi
+  if [ $WITH_ITK = ON ]; then
+    brew_install itk
   fi
 
   # download, build, and install gtest
