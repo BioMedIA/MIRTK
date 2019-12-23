@@ -157,9 +157,9 @@ istream &operator >>(istream &is, OverlapMetric &metric)
     metric = FalseNegatives;
   } else if (str == "false positives" || str == "falsepositives" || str == "fp") {
     metric = FalsePositives;
-  } else if (str == "sensitivity") {
+  } else if (str == "tpr" || str == "sensitivity") {
     metric = Sensitivity;
-  } else if (str == "specificity") {
+  } else if (str == "tnr" || str == "specificity") {
     metric = Specificity;
   } else if (str == "ppv" || str == "positivepredictivevalue" || str == "positive predictive value" || str == "precision") {
     metric = PositivePredictiveValue;
@@ -171,7 +171,7 @@ istream &operator >>(istream &is, OverlapMetric &metric)
     metric = FalseDiscoveryRate;
   } else if (str == "fnr" || str == "falsenegativerate" || str == "false negative rate" || str == "missrate" || str == "miss rate") {
     metric = FalseNegativeRate;
-  } else if (str == "accuracy") {
+  } else if (str == "acc" || str == "accuracy") {
     metric = Accuracy;
   } else if (str == "f1score" || str == "fscore" || str == "f-score" || str == "fmeasure" || str == "f-measure") {
     metric = F1Score;
