@@ -481,7 +481,7 @@ int main(int argc, char **argv)
     else if (OPTION("-Ry2")) PARSE_ARGUMENT(j2);
     else if (OPTION("-Rz1")) PARSE_ARGUMENT(k1);
     else if (OPTION("-Rz2")) PARSE_ARGUMENT(k2);
-    else if (OPTION("-probs")) {
+    else if (OPTION("-probs") || OPTION("-pbmaps")) {
       pbmaps = true;
       if (HAS_ARGUMENT) {
         PARSE_ARGUMENT(pbmap_min);
@@ -508,7 +508,7 @@ int main(int argc, char **argv)
     else HANDLE_COMMON_OR_UNKNOWN_OPTION();
   }
   if (pbmaps && (all_labels || !segments.empty())) {
-    FatalError("Options -label[s] and -pbmaps are mutually exclusive");
+    FatalError("Options -label[s] and -probs are mutually exclusive");
   }
 
   // Read source image file paths from text file
