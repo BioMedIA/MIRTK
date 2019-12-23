@@ -51,14 +51,14 @@ RUN NUM_CPUS=${THREADS:-`cat /proc/cpuinfo | grep processor | wc -l`} \
       libboost-math-dev \
       libboost-random-dev \
       libflann-dev \
-      libfft \
       libfftw3-dev \
-      uuid-dev \
+      libgtest-dev \
       libinsighttoolkit4-dev \
       libnifti-dev \
       libpng-dev \
       libsuitesparse-dev \
       libtbb-dev \
+      uuid-dev \
       zlib1g-dev \
     && mkdir /usr/src/gtest/build \
     && cd /usr/src/gtest/build \
