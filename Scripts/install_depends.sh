@@ -18,6 +18,7 @@ TRAVIS=`norm_option_value "$TRAVIS" OFF`
 TESTING=`norm_option_value "$TESTING" OFF`
 WITH_ARPACK=`norm_option_value "$WITH_ARPACK" OFF`
 WITH_UMFPACK=`norm_option_value "$WITH_UMFPACK" OFF`
+WITH_ITK=`norm_option_value "$WITH_ITK" OFF`
 WITH_VTK=`norm_option_value "$WITH_VTK" OFF`
 WITH_TBB=`norm_option_value "$WITH_TBB" ON`
 WITH_FLANN=`norm_option_value "$WITH_FLANN" ON`
@@ -113,6 +114,10 @@ if [ $os = linux ] || [ $os = Linux ]; then
     fi
   fi
 
+  if [ $WITH_ITK = ON ]; then
+    deps=(${deps[@]} libinsighttoolkit4-dev libfftw3-dev uuid-dev)
+  fi
+
   sudo apt-get update -qq || exit 1
   sudo apt-get install -y --no-install-recommends ${deps[@]} || exit 1
 
@@ -165,6 +170,9 @@ if [ $os = osx ] || [ $os = Darwin ]; then
     if [ $WITH_FLTK = ON ]; then
       brew_install fltk
     fi
+  fi
+  if [ $WITH_ITK = ON ]; then
+    brew_install itk fftw libuuid
   fi
 
   # download, build, and install gtest

@@ -74,6 +74,7 @@ RUN ls /usr/src/mirtk \
       -D WITH_PROFILING=ON \
       -D WITH_TBB=ON \
       -D WITH_UMFPACK=ON \
+      -D WITH_ITK=ON \
       -D WITH_VTK=ON \
       -D WITH_ZLIB=ON \
       .. \
