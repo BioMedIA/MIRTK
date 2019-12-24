@@ -27,7 +27,8 @@ env:
   - WITH_TBB=ON       # build with TBB is always recommended
   - WITH_FLANN=ON     # build with FLANN is optional, but requires only little extra build time
   - WITH_FLTK=ON      # build with FLTK-based Viewer when WITH_VTK is turned ON
-  - WITH_ITK=ON       # required by ANTs N4 which is included in DrawEM package
+  - WITH_ITK=OFF      # required by ANTs N4 which is included in DrawEM package
+                      # exclude DrawEM from Travis CI build for now, see https://github.com/MIRTK/DrawEM/pull/27
   # build and deployment of AppImage for Linux
   - AppImage_BUILD=${AppImage_BUILD:-ON}
   - AppImage_BRANCH=${AppImage_BRANCH:-master}
