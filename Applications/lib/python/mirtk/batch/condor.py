@@ -48,6 +48,8 @@ def submit(name, command=None, args=[], opts={}, script=None, tasks=0, deps=[],
                 log = os.path.join(logdir, name + "_$(Cluster).log")
         mirtk.utils.makedirs(logdir)
     jobdesc = "universe = vanilla\n"
+    if logdir:
+        jobdesc += "log = {0}\n".format(os.path.join(logdir, name + ".condor.log"))
     if threads > 0:
         jobdesc += "request_cpus = {0}\n".format(threads)
     if memory > 0:
