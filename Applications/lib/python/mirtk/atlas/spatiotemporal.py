@@ -467,6 +467,8 @@ class SpatioTemporalAtlas(object):
                     formula += term.format(sim=measure, channel=channels[c].capitalize().replace("=", " "), tgt=target, src=source)
             if "bending" in cfg:
                 formula += " + 0 BE[Bending energy](T)"
+            if "elasticity" in cfg:
+                formula += " + 0 LE[Linear elasticity](T)"
             if "jacobian" in cfg:
                 formula += " + 0 JAC[Jacobian penalty](T)"
             params.append("Energy function = " + formula)
@@ -491,6 +493,9 @@ class SpatioTemporalAtlas(object):
             be_weights = cfg.get("bending", [0])
             if not isinstance(be_weights, list):
                 be_weights = [be_weights]
+            le_weights = cfg.get("elasticity", [0])
+            if not isinstance(le_weights, list):
+                le_weights = [le_weights]
             lj_weights = cfg.get("jacobian", [0])
             if not isinstance(lj_weights, list):
                 lj_weights = [lj_weights]
@@ -536,6 +541,8 @@ class SpatioTemporalAtlas(object):
                     params.append("Control point spacing = {0}".format(spacing))
                 be_weight = float(be_weights[level - 1] if level <= len(be_weights) else be_weights[-1])
                 params.append("Bending energy weight = {0}".format(be_weight))
+                le_weight = float(le_weights[level - 1] if level <= len(le_weights) else le_weights[-1])
+                params.append("Linear elasticity weight = {0}".format(le_weight))
                 lj_weight = float(lj_weights[level - 1] if level <= len(lj_weights) else lj_weights[-1])
                 params.append("Jacobian penalty weight = {0}".format(lj_weight))
             # write -parin file for "register" command
