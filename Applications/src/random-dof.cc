@@ -114,6 +114,7 @@ NewTransformation(const char *type,
   if (!attr) {
     return nullptr;
   }
+  UniquePtr<Transformation> dof;
   if (ltype == "ffd" || ltype == "bsplineffd" || ltype == "mffd") {
     UniquePtr<FreeFormTransformation> affd;
     if (ndim < 4) {
@@ -124,20 +125,22 @@ NewTransformation(const char *type,
     if (ltype == "mffd") {
       auto mffd = NewUnique<MultiLevelFreeFormTransformation>();
       mffd->PushLocalTransformation(affd.release());
-      return mffd;
+      dof.reset(mffd.release());
+    } else {
+      dof.reset(affd.release());
     }
-    return affd;
   }
   if (ltype == "svffd" || ltype == "bsplinesvffd" || ltype == "msvffd") {
     auto affd = NewUnique<BSplineFreeFormTransformationSV>(attr, sx, sy, sz);
     if (ltype == "msvffd") {
       auto mffd = NewUnique<MultiLevelFreeFormTransformation>();
       mffd->PushLocalTransformation(affd.release());
-      return mffd;
+      dof.reset(mffd.release());
+    } else {
+      dof.reset(affd.release());
     }
-    return affd;
   }
-  return nullptr;
+  return dof;
 }
 
 // =============================================================================
