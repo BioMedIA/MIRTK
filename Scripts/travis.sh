@@ -67,8 +67,14 @@ for module in ${modules[@]}; do
   cmake_args=(${cmake_args[@]} -D MODULE_${module}=ON)
 done
 
+if [ -x /opt/cmake-3.12.4/bin/cmake ]; then
+  cmake_cmd="/opt/cmake-3.12.4/bin/cmake"
+else
+  cmake_cmd="cmake"
+fi
+
 mkdir Build && cd Build
-run cmake \
+run "$cmake_cmd" \
       -D CMAKE_INSTALL_PREFIX=/usr \
       -D CMAKE_BUILD_TYPE=Release \
       -D BUILD_SHARED_LIBS=ON \
