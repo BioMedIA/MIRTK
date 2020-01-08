@@ -64,6 +64,25 @@ if [ $os = linux ] || [ $os = Linux ]; then
     exit 1
   fi
 
+  cmake_cmd="$(which cmake)"
+  if [ -n "$cmake_cmd" ]; then
+    cmake_version="$("$cmake_cmd" --version | grep 'cmake version' | cut -d' ' -f3)"
+    echo "Found CMake version $cmake_version"
+    cmake_version_major="${cmake_version/.*}"
+    [ $? -eq 0 -a -n "$cmake_version_major" ] || cmake_version_major=0
+  else
+    cmake_version_major=0
+  fi
+  if [ ${cmake_version_major} -lt 3 ]; then
+    cmake_version=3.12.4
+    echo "Installing CMake version $cmake_version"
+    wget --quiet https://cmake.org/files/v${cmake_version%.*}/cmake-${cmake_version}-Linux-x86_64.tar.gz -O /tmp/cmake.tar.gz
+    mkdir /opt/cmake-${cmake_version}
+    tar xf /tmp/cmake.tar.gz -C /opt/cmake-${cmake_version} --strip-components=1 -h
+    rm -f /tmp/cmake.tar.gz
+    cmake_cmd="/opt/cmake-${cmake_version}/bin/cmake"
+  fi
+
   deps=( \
     freeglut3-dev \
     libboost-math-dev \
@@ -124,7 +143,7 @@ if [ $os = linux ] || [ $os = Linux ]; then
   if [ $TESTING = ON ]; then
     # libgtest-dev only install source files
     mkdir /tmp/gtest-build && cd /tmp/gtest-build
-    run cmake /usr/src/gtest
+    run "$cmake_cmd" /usr/src/gtest
     run make -j $cpu_cores
     run sudo mv -f libgtest.a libgtest_main.a /usr/lib
     cd || exit 1
@@ -180,7 +199,7 @@ if [ $os = osx ] || [ $os = Darwin ]; then
     run git clone --depth=1 https://github.com/google/googletest.git /tmp/gtest-source
     mkdir /tmp/gtest-build && cd /tmp/gtest-build
     [ $? -eq 0 ] || exit 1
-    run cmake -DCMAKE_CXX_STANDARD=$CXX_STANDARD -DBUILD_GMOCK=OFF -DBUILD_GTEST=ON ../gtest-source
+    run "$cmake_cmd" -DCMAKE_CXX_STANDARD=$CXX_STANDARD -DBUILD_GMOCK=OFF -DBUILD_GTEST=ON ../gtest-source
     run make -j $cpu_cores
     run sudo make install
     cd || exit 1
@@ -271,7 +290,7 @@ if [ $WITH_VTK = ON ] && [ -n "$VTK_VERSION" ]; then
         )
       fi
     fi
-    run cmake "${cmake_args[@]}" ..
+    run "$cmake_cmd" "${cmake_args[@]}" ..
     echo "Configuring VTK $VTK_VERSION... done"
     echo "Building VTK $VTK_VERSION..."
     run make -j $cpu_cores
