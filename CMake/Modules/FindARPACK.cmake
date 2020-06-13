@@ -1,5 +1,5 @@
 find_library(ARPACK_LIBRARY
-  NAMES arpack parpack
+  NAMES arpack
   PATHS ${ARPACK_DIR}/lib
 )
 
