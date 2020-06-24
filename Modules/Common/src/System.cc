@@ -80,7 +80,7 @@ string GetDateTime()
   std::time_t now = Clock::to_time_t(Clock::now());
   tm info = localtime(now);
   char date_time_string[32];
-  strftime(date_time_string, 16, "%c %Z", &info);
+  strftime(date_time_string, 32, "%c %Z", &info);
   return date_time_string;
 }
 
