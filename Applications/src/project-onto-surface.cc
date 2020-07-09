@@ -132,7 +132,7 @@ void PrintHelp(const char *name)
   cout << "      this label during dilation before projecting these labels onto the surface. (default: inf)\n";
   cout << "  -write-dilated-labels <file>\n";
   cout << "      Write image of dilated labels.\n";
-  cout << "  -[no]check.\n";
+  cout << "  -[no]check\n";
   cout << "      Whether to check if surface is contained within image domain.\n";
   PrintStandardOptions(cout);
   cout << endl;
