@@ -132,6 +132,8 @@ void PrintHelp(const char *name)
   cout << "      this label during dilation before projecting these labels onto the surface. (default: inf)\n";
   cout << "  -write-dilated-labels <file>\n";
   cout << "      Write image of dilated labels.\n";
+  cout << "  -[no]check.\n";
+  cout << "      Whether to check if surface is contained within image domain.\n";
   PrintStandardOptions(cout);
   cout << endl;
 }
@@ -1490,6 +1492,7 @@ int main(int argc, char *argv[])
   bool          fill_holes              = true;
   int           smoothing_iterations    = 0;
   double        max_dilation_distance   = inf;
+  bool          check_bounds            = true;
 
   // arguments for scalars projection from surface
   const char *input_surface_proj_name   = NULL;
@@ -1541,6 +1544,7 @@ int main(int argc, char *argv[])
     else HANDLE_BOOLEAN_OPTION("pointdata",  label_points);
     else HANDLE_BOOLEAN_OPTION("point-data", label_points);
     else HANDLE_BOOLEAN_OPTION("boundary", output_boundary_edges);
+    else HANDLE_BOOLEAN_OPTION("check", check_bounds);
     else if (OPTION("-surface"))  input_surface_proj_name = ARGUMENT;
     else if (OPTION("-scalars")){
       char* scalars_to_copy = ARGUMENT;
@@ -1610,28 +1614,30 @@ int main(int argc, char *argv[])
   }
 
   // Check that surface does not go outside fov of label image.
-  if (surface && (input_image_name || input_labels_name) && (label_points || label_cells)) {
-    if (input_image_name) {
-      CheckBounds(surface, &image, verbose > 0, input_image_name, "");
+  if (check_bounds) {
+    if (surface && (input_image_name || input_labels_name) && (label_points || label_cells)) {
+      if (input_image_name) {
+        CheckBounds(surface, &image, verbose > 0, input_image_name, "");
+      }
+      if (input_labels_name) {
+        CheckBounds(surface, &labels, verbose > 0, input_labels_name, "");
+      }
     }
-    if (input_labels_name) {
-      CheckBounds(surface, &labels, verbose > 0, input_labels_name, "");
+    if (white_surface && (input_image_name || input_labels_name) && (label_points || label_cells)) {
+      if (input_image_name) {
+        CheckBounds(white_surface, &image, verbose > 0, input_image_name, "WM/cGM");
+      }
+      if (input_labels_name) {
+        CheckBounds(white_surface, &labels, verbose > 0, input_labels_name, "WM/cGM");
+      }
     }
-  }
-  if (white_surface && (input_image_name || input_labels_name) && (label_points || label_cells)) {
-    if (input_image_name) {
-      CheckBounds(white_surface, &image, verbose > 0, input_image_name, "WM/cGM");
-    }
-    if (input_labels_name) {
-      CheckBounds(white_surface, &labels, verbose > 0, input_labels_name, "WM/cGM");
-    }
-  }
-  if (pial_surface && (input_image_name || input_labels_name) && (label_points || label_cells)) {
-    if (input_image_name) {
-      CheckBounds(pial_surface, &image, verbose > 0, input_image_name, "cGM/CSF");
-    }
-    if (input_labels_name) {
-      CheckBounds(pial_surface, &labels, verbose > 0, input_labels_name, "cGM/CSF");
+    if (pial_surface && (input_image_name || input_labels_name) && (label_points || label_cells)) {
+      if (input_image_name) {
+        CheckBounds(pial_surface, &image, verbose > 0, input_image_name, "cGM/CSF");
+      }
+      if (input_labels_name) {
+        CheckBounds(pial_surface, &labels, verbose > 0, input_labels_name, "cGM/CSF");
+      }
     }
   }
 
