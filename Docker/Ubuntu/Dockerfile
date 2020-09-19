@@ -74,7 +74,7 @@ RUN NUM_CPUS=${THREADS:-`cat /proc/cpuinfo | grep processor | wc -l`} \
       EIGEN_SOURCE_DIR=/usr/src/eigen-${EIGEN_VERSION} \
       && mkdir ${EIGEN_SOURCE_DIR} /usr/include/eigen3 \
       && cd ${EIGEN_SOURCE_DIR} \
-      && wget -O archive.tar.bz2 http://bitbucket.org/eigen/eigen/get/${EIGEN_VERSION}.tar.bz2 \
+      && wget -O archive.tar.bz2 https://gitlab.com/libeigen/eigen/-/archive/${EIGEN_VERSION}/eigen-${EIGEN_VERSION}.tar.bz2 \
       && tar vxjf archive.tar.bz2 --strip 1 \
       && mv signature_of_eigen3_matrix_library Eigen /usr/include/eigen3/ \
       && mv cmake/FindEigen3.cmake /usr/share/cmake-3.10/Modules/ \
