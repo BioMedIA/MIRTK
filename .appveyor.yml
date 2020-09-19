@@ -7,7 +7,7 @@ os: Visual Studio 2017
 environment:
   LIBPNG_VERSION: 1.6.18.44
   ZLIB_VERSION: 1.2.8.4
-  EIGEN_VERSION: 3.3.4
+  EIGEN_VERSION: 3.3.7
   TBB_VERSION: 2017_U7
   TBB_PACKAGE_ID: tbb2017_20170604oss
   matrix:
@@ -53,9 +53,9 @@ install:
 
 - ps: |
     Write-Output "Installing Eigen $($env:EIGEN_VERSION)"
-    & curl -o eigen.zip http://bitbucket.org/eigen/eigen/get/$($env:EIGEN_VERSION).zip
+    & curl -o eigen.zip https://gitlab.com/libeigen/eigen/-/archive/$($env:EIGEN_VERSION)/eigen-$($env:EIGEN_VERSION).zip
     & 7z x eigen.zip -y | Out-Null
-    Rename-Item -path eigen-eigen-5a0156e40feb -newName eigen
+    Rename-Item -path eigen-$($env:EIGEN_VERSION) -newName eigen
 
 - ps: |
     Write-Output "Installing TBB $($env:TBB_VERSION)"
