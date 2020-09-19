@@ -63,7 +63,7 @@ basis_project (
     UMFPACK
     LBFGS
     MATLAB{mwmclmcrrt}
-    VTK-8|7|6{vtkCommonCore,vtkCommonDataModel,vtkIOGeometry,vtkIOLegacy,vtkIOPLY,vtkIOXML}
+    VTK{vtkCommonCore,vtkCommonDataModel,vtkIOGeometry,vtkIOLegacy,vtkIOPLY,vtkIOXML}
     TBB{tbb} # transitive dependency of MIRTK{Common}
     #<optional-dependency>
   TEST_DEPENDS

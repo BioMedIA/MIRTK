@@ -78,18 +78,18 @@ public:
   /// Compute bounding spheres of specified range of cells
   void operator ()(const blocked_range<vtkIdType> &re) const
   {
-    vtkIdType npts, *pts;
+    vtkNew<vtkIdList> ptIds;
     double a[3], b[3], c[3], origin[3], radius;
 
     for (vtkIdType cellId = re.begin(); cellId != re.end(); ++cellId) {
       // Get triangle vertices
-      _Surface->GetCellPoints(cellId, npts, pts);
+      _Surface->GetCellPoints(cellId, ptIds.GetPointer());
       mirtkAssert(npts == 3, "surface is triangular mesh");
 
       // Get triangle vertex positions
-      _Surface->GetPoint(pts[0], a);
-      _Surface->GetPoint(pts[1], b);
-      _Surface->GetPoint(pts[2], c);
+      _Surface->GetPoint(ptIds->GetId(0), a);
+      _Surface->GetPoint(ptIds->GetId(1), b);
+      _Surface->GetPoint(ptIds->GetId(2), c);
 
       // Get center of bounding sphere
       vtkTriangle::TriangleCenter(a, b, c, origin);
@@ -157,16 +157,15 @@ public:
     const double min_distance = max(_MinFrontfaceDistance, _MinBackfaceDistance);
     const double R            = _MaxRadius + 1.1 * min_distance;
 
-    double         tri1[3][3], tri2[3][3], tri1_2D[3][2], tri2_2D[3][2];
-    double         n1[3], n2[3], p1[3], p2[3], r1, c1[3], d[3], search_radius, dot;
-    int            tri12[3], i1, i2, shared_vertex1, shared_vertex2, coplanar, s1, s2;
-    vtkIdType      npts, *pts1, *pts2, *cells, cellId1, cellId2;
-    vtkPolyDataGetPointCellsNumCellsType ncells;
+    double tri1[3][3], tri2[3][3], tri1_2D[3][2], tri2_2D[3][2];
+    double n1[3], n2[3], p1[3], p2[3], r1, c1[3], d[3], search_radius, dot;
+    int    tri12[3], i1, i2, shared_vertex1, shared_vertex2, coplanar, s1, s2;
+  
+    vtkNew<vtkIdList> ptIds, cellIds, triPtIds1, triPtIds2, triCellIds;
+    vtkIdType cellId1, cellId2;
+  
     CollisionInfo  collision;
     CollisionType  type;
-
-    vtkSmartPointer<vtkIdList> ptIds   = vtkSmartPointer<vtkIdList>::New();
-    vtkSmartPointer<vtkIdList> cellIds = vtkSmartPointer<vtkIdList>::New();
 
     for (cellId1 = re.begin(); cellId1 != re.end(); ++cellId1) {
 
@@ -178,11 +177,11 @@ public:
       }
 
       // Get vertices and normal of this triangle
-      surface->GetCellPoints(cellId1, npts, pts1);
-      mirtkAssert(npts == 3, "surface is triangular mesh");
-      surface->GetPoint(pts1[0], tri1[0]);
-      surface->GetPoint(pts1[1], tri1[1]);
-      surface->GetPoint(pts1[2], tri1[2]);
+      surface->GetCellPoints(cellId1, triPtIds1.GetPointer());
+      mirtkAssert(triPtIds1->GetNumberOfIds() == 3, "surface is triangular mesh");
+      surface->GetPoint(triPtIds1->GetId(0), tri1[0]);
+      surface->GetPoint(triPtIds1->GetId(1), tri1[1]);
+      surface->GetPoint(triPtIds1->GetId(2), tri1[2]);
       vtkTriangle::ComputeNormal(tri1[0], tri1[1], tri1[2], n1);
 
       // Get bounding sphere
@@ -191,12 +190,12 @@ public:
 
       // Find other triangles within search radius
       search_radius = min(max(_Filter->MinSearchRadius(), r1 + R), _Filter->MaxSearchRadius());
-      _Locator->FindPointsWithinRadius(search_radius, c1, ptIds);
+      _Locator->FindPointsWithinRadius(search_radius, c1, ptIds.GetPointer());
       cellIds->Reset();
       for (vtkIdType i = 0; i < ptIds->GetNumberOfIds(); ++i) {
-        surface->GetPointCells(ptIds->GetId(i), ncells, cells);
-        for (vtkPolyDataGetPointCellsNumCellsType j = 0; j < ncells; ++j) {
-          if (cells[j] != cellId1) cellIds->InsertUniqueId(cells[j]);
+        surface->GetPointCells(ptIds->GetId(i), triCellIds.GetPointer());
+        for (vtkIdType j = 0; j < triCellIds->GetNumberOfIds(); ++j) {
+          if (triCellIds->GetId(j) != cellId1) cellIds->InsertUniqueId(triCellIds->GetId(j));
         }
       }
 
@@ -205,16 +204,16 @@ public:
         cellId2 = cellIds->GetId(i);
 
         // Get vertex positions of nearby candidate triangle
-        surface->GetCellPoints(cellId2, npts, pts2);
-        surface->GetPoint(pts2[0], tri2[0]);
-        surface->GetPoint(pts2[1], tri2[1]);
-        surface->GetPoint(pts2[2], tri2[2]);
+        surface->GetCellPoints(cellId2, triPtIds2.GetPointer());
+        surface->GetPoint(triPtIds2->GetId(0), tri2[0]);
+        surface->GetPoint(triPtIds2->GetId(1), tri2[1]);
+        surface->GetPoint(triPtIds2->GetId(2), tri2[2]);
 
         // Get corresponding indices of shared vertices
         for (i1 = 0; i1 < 3; ++i1) {
           tri12[i1] = -1;
           for (i2 = 0; i2 < 3; ++i2) {
-            if (pts1[i1] == pts2[i2]) {
+            if (triPtIds1->GetId(i1) == triPtIds2->GetId(i2)) {
               tri12[i1] = i2;
               break;
             }

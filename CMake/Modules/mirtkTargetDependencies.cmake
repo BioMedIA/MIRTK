@@ -57,6 +57,10 @@ function (mirtk_target_dependencies target_name)
               list(APPEND ldpath "${dep_path}")
             endif ()
           endif ()
+          # VTK >=8.90 module system autoinit
+          if (dep_name MATCHES "^VTK::")
+            vtk_module_autoinit(TARGETS ${target_uid} MODULES ${dep_name})
+          endif ()
         # Add dependency on non-library target
         else ()
           add_dependencies(${target_uid} ${dep_name})

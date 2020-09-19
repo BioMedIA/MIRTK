@@ -124,17 +124,17 @@ vtkSmartPointer<vtkPolyData> CurrentsDistance::SurfaceToCurrent(vtkPolyData *dat
   centers->SetNumberOfPoints(num_faces);
 
   faces->InitTraversal();
-  vtkIdType npts, *id;
-  double    v1[3], v2[3], v3[3], e2[3], e3[3], c[3], n[3];
+  vtkNew<vtkIdList> ptIds;
+  double v1[3], v2[3], v3[3], e2[3], e3[3], c[3], n[3];
   for (vtkIdType i = 0; i < num_faces; ++i) {
-    faces->GetNextCell(npts, id);
-    if (npts != 3) {
+    faces->GetNextCell(ptIds.GetPointer());
+    if (ptIds->GetNumberOfIds() != 3) {
       cerr << "CurrentsDistance::SurfaceToCurrent: Surface cells must have three points each!" << endl;
       exit(1);
     }
-    data->GetPoint(id[0], v1);
-    data->GetPoint(id[1], v2);
-    data->GetPoint(id[2], v3);
+    data->GetPoint(ptIds->GetId(0), v1);
+    data->GetPoint(ptIds->GetId(1), v2);
+    data->GetPoint(ptIds->GetId(2), v3);
     for (int d = 0; d < 3; ++d) {
       e2[d] = v3[d] - v1[d];
       e3[d] = v2[d] - v1[d];
@@ -257,7 +257,7 @@ public:
 
   void operator ()(const blocked_range<vtkIdType> &re)
   {
-    vtkSmartPointer<vtkIdList> ids = vtkSmartPointer<vtkIdList>::New();
+    vtkNew<vtkIdList> ids;
     // In case of point clouds, the _Weights(A|B) arrays contain
     // scalar tuples only, i.e., GetTuple does not change the second
     // and third component of da and db, respectively. The dot product
@@ -266,7 +266,7 @@ public:
     for (vtkIdType i = re.begin(); i != re.end(); ++i) {
       _CentersA->GetPoint(i, ca);
       _WeightsA->GetTuple(i, da);
-      _LocatorB->FindPointsWithinRadius(_Radius, ca, ids);
+      _LocatorB->FindPointsWithinRadius(_Radius, ca, ids.GetPointer());
       double value = .0;
       for (vtkIdType k = 0; k < ids->GetNumberOfIds(); ++k) {
         vtkIdType j = ids->GetId(k);
@@ -416,6 +416,7 @@ public:
 
   void operator ()(const blocked_range<vtkIdType> &re)
   {
+    vtkNew<vtkIdList> ids;
     vtkIdType j, i1, i2, i3;       // vertex indices
     double    v1[3], v2[3], v3[3]; // vertex coordinates
     double    e1[3], e2[3], e3[3]; // edge vectors
@@ -426,12 +427,10 @@ public:
 
     const double _2over3 = 2.0 / 3.0;
 
-    vtkSmartPointer<vtkIdList> ids = vtkSmartPointer<vtkIdList>::New();
-
     // Loop over transformed triangles
     for (vtkIdType i = re.begin(); i != re.end(); ++i) {
       // Get vertex indices
-      _SurfaceA->GetCellPoints(i, ids);
+      _SurfaceA->GetCellPoints(i, ids.GetPointer());
       i1 = ids->GetId(0);
       i2 = ids->GetId(1);
       i3 = ids->GetId(2);
@@ -447,7 +446,7 @@ public:
       _WeightsA->GetTuple(i, n1);
       // Compute kds = KtauS and dks = gradKtauS.transpose()
       // (cf. Deformetrica 2.0 OrientedSurfaceMesh::ComputeMatchGradient)
-      _LocatorA->FindPointsWithinRadius(_Radius, c1, ids);
+      _LocatorA->FindPointsWithinRadius(_Radius, c1, ids.GetPointer());
       memset(kws, 0, 3 * sizeof(double));
       memset(dks, 0, 9 * sizeof(double));
       for (vtkIdType k = 0; k < ids->GetNumberOfIds(); ++k) {
@@ -465,7 +464,7 @@ public:
       }
       // Compute kwt = KtauT and dkt = gradKtauT.transpose()
       // (cf. Deformetrica 2.0 OrientedSurfaceMesh::ComputeMatchGradient)
-      _LocatorB->FindPointsWithinRadius(_Radius, c1, ids);
+      _LocatorB->FindPointsWithinRadius(_Radius, c1, ids.GetPointer());
       memset(kwt, 0, 3 * sizeof(double));
       memset(dkt, 0, 9 * sizeof(double));
       for (vtkIdType k = 0; k < ids->GetNumberOfIds(); ++k) {

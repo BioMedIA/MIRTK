@@ -71,16 +71,6 @@ namespace mirtk {
 #endif
 
 // =============================================================================
-// VTK 8/9 transition
-// =============================================================================
-
-#if VTK_MAJOR_VERSION > 8 || (VTK_MAJOR_VERSION == 8 && VTK_MINOR_VERSION == 90)
-  typedef vtkIdType vtkPolyDataGetPointCellsNumCellsType;
-#else
-  typedef unsigned short vtkPolyDataGetPointCellsNumCellsType;
-#endif
-
-// =============================================================================
 // Data set attributes
 // =============================================================================
 

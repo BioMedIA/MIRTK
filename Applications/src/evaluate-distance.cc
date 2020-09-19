@@ -468,15 +468,14 @@ int main(int argc, char *argv[])
       vtkNew<vtkCellLocator> locator;
       locator->SetDataSet(target);
       locator->BuildLocator();
-      vtkSmartPointer<vtkIdList> ptIds;
-      ptIds = vtkSmartPointer<vtkIdList>::New();
+      vtkNew<vtkIdList> ptIds;
 
       for (vtkIdType ptId = 0; ptId < target->GetNumberOfPoints(); ++ptId) {
         source->GetPoint(ptId, a);
         locator->FindClosestPoint(a, b, cellId, subId, dist);
         dist = sqrt(dist);
         if (mask) {
-          target->GetCellPoints(cellId, ptIds);
+          target->GetCellPoints(cellId, ptIds.GetPointer());
           for (vtkIdType i = 0; i < ptIds->GetNumberOfIds(); ++i) {
             if (mask->GetComponent(ptIds->GetId(i), 0) != 0.) {
               if (dist > hausdorff_dist) hausdorff_dist = dist;

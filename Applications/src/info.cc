@@ -201,8 +201,8 @@ struct CountTriangleTriangleIntersections
     vtkSmartPointer<vtkIdList>      ptIds   = vtkSmartPointer<vtkIdList>::New();
     vtkSmartPointer<vtkIdList>      cellIds = vtkSmartPointer<vtkIdList>::New();
 
-    vtkPolyDataGetPointCellsNumCellsType ncells;
-    vtkIdType *cells, cellId2;
+    vtkIdType cellId2;
+    vtkNew<vtkIdList> ptCellIds;
     double r1, c1[3], v1[3], v2[3], v3[3], u1[3], u2[3], u3[3];
 
     for (vtkIdType cellId1 = re.begin(); cellId1 != re.end(); ++cellId1) {
@@ -215,9 +215,9 @@ struct CountTriangleTriangleIntersections
       _PointLocator->FindPointsWithinRadius(3.0 * r1, c1, ptIds);
       cellIds->Reset();
       for (vtkIdType i = 0; i < ptIds->GetNumberOfIds(); ++i) {
-        _DataSet->GetPointCells(ptIds->GetId(i), ncells, cells);
-        for (vtkPolyDataGetPointCellsNumCellsType j = 0; j < ncells; ++j) {
-          cellIds->InsertUniqueId(cells[j]);
+        _DataSet->GetPointCells(ptIds->GetId(i), ptCellIds.GetPointer());
+        for (vtkIdType j = 0; j < ptCellIds->GetNumberOfIds(); ++j) {
+          cellIds->InsertUniqueId(ptCellIds->GetId(j));
         }
       }
       for (vtkIdType i = 0; i < cellIds->GetNumberOfIds(); ++i) {

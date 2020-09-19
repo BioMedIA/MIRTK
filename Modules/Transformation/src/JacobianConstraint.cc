@@ -1337,7 +1337,7 @@ struct EvaluateGradient_Domain_BSplineFFD_3D
   {
     int    idx, xdof, ydof, zdof, cp, i1, j1, k1, i2, j2, k2;
     double x, y, z, df, dp[3], gradient[3];
-    double cx, cy, cz, wx, wy, wz, w = 1.;
+    double w = 1.;
 
     #if _USE_INNER_GRADIENT_SUM_NORM
       double norm;

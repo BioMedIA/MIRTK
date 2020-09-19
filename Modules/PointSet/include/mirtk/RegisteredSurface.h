@@ -163,7 +163,11 @@ inline int RegisteredSurface::NumberOfStrips() const
 // -----------------------------------------------------------------------------
 inline void RegisteredSurface::GetCellPoints(int i, vtkIdType &npts, const vtkIdType *&pts) const
 {
-  _OutputSurface->GetCellPoints(i, npts, const_cast<vtkIdType *&>(pts));
+  #if VTK_MAJOR_VERSION > 8
+    _OutputSurface->GetCellPoints(i, npts, pts);
+  #else
+    _OutputSurface->GetCellPoints(i, npts, const_cast<vtkIdType *&>(pts));
+  #endif
 }
 
 

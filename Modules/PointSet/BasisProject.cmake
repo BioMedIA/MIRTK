@@ -57,7 +57,7 @@ basis_project (
     MIRTK{Common,Numerics,Image,Transformation,IO}
     Boost-1.48 # {random} used, but headers only
     Eigen3
-    "VTK-8|7|6{
+    "VTK{
       vtkCommonCore,
       vtkCommonDataModel,
       vtkCommonExecutionModel,

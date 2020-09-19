@@ -685,7 +685,7 @@ void LabelCortex(vtkPolyData *white_surface, vtkPolyData *pial_surface,
 /// cortical hemispheres to -1 so they are filled in by FillHoles or SmoothLabels
 void MarkHoles(vtkPolyData *surface, int max_hole_size, const char *scalars_name = "Labels", bool using_cells = true)
 {
-  vtkSmartPointer<vtkIdList> ids = vtkSmartPointer<vtkIdList>::New();
+  vtkNew<vtkIdList> ids;
 
   Point  p, q;
   double pcoords[3];
@@ -729,7 +729,7 @@ void MarkHoles(vtkPolyData *surface, int max_hole_size, const char *scalars_name
   for (vtkIdType ptId = 0; ptId < surface->GetNumberOfPoints(); ++ptId) {
     point_mask->SetComponent(ptId, 0, 1.);
     if (using_cells) {
-      surface->GetPointCells(ptId, ids);
+      surface->GetPointCells(ptId, ids.GetPointer());
     } else {
       ids->SetNumberOfIds(1);
       ids->InsertId(0, ptId);
@@ -866,9 +866,7 @@ vtkIdType NextSeed(OrderedSet<vtkIdType> &ids, vtkDataArray *regions)
 // -----------------------------------------------------------------------------
 vtkIdType GrowRegion(vtkPolyData *surface, vtkDataArray *regions, LabelType regionId, vtkIdType id, bool using_cells = true)
 {
-  vtkSmartPointer<vtkIdList> cellPointIds    = vtkSmartPointer<vtkIdList>::New();
-  vtkSmartPointer<vtkIdList> neighborCellIds = vtkSmartPointer<vtkIdList>::New();
-  vtkSmartPointer<vtkIdList> idList          = vtkSmartPointer<vtkIdList>::New();
+  vtkNew<vtkIdList> cellPointIds, neighborCellIds, idList;
   idList->SetNumberOfIds(2);
 
   EdgeTable edgeTable;
@@ -884,7 +882,7 @@ vtkIdType GrowRegion(vtkPolyData *surface, vtkDataArray *regions, LabelType regi
       ++region_size;
       regions->SetComponent(id, 0, regionId);
       if (using_cells) {
-        surface->GetCellPoints(id, cellPointIds);
+        surface->GetCellPoints(id, cellPointIds.GetPointer());
         for (vtkIdType i = 0; i < cellPointIds->GetNumberOfIds(); ++i) {
           idList->SetId(0, cellPointIds->GetId(i));
           if (i == cellPointIds->GetNumberOfIds() - 1) {
@@ -892,7 +890,7 @@ vtkIdType GrowRegion(vtkPolyData *surface, vtkDataArray *regions, LabelType regi
           } else {
             idList->SetId(1, cellPointIds->GetId(i + 1));
           }
-          surface->GetCellNeighbors(id, idList, neighborCellIds);
+          surface->GetCellNeighbors(id, idList.GetPointer(), neighborCellIds.GetPointer());
           for (vtkIdType j = 0; j < neighborCellIds->GetNumberOfIds(); ++j) {
             const vtkIdType neighborCellId = neighborCellIds->GetId(j);
             if (static_cast<LabelType>(regions->GetComponent(neighborCellId, 0)) == -1) {
@@ -983,11 +981,8 @@ void MarkSmallRegions(vtkPolyData *surface, int min_region_size, const char *sca
 void FillHoles(vtkPolyData *surface, const char *scalars_name = "Labels", bool using_cells = true)
 {
   // Structured needed for "label front propagation"
-  vtkSmartPointer<vtkIdList> idList          = vtkSmartPointer<vtkIdList>::New();
-  vtkSmartPointer<vtkIdList> cellPointIds    = vtkSmartPointer<vtkIdList>::New();
-  vtkSmartPointer<vtkIdList> neighborCellIds = vtkSmartPointer<vtkIdList>::New();
-  vtkIdType neighborCellId;
-  vtkIdType id;
+  vtkNew<vtkIdList> idList, cellPointIds, neighborCellIds;
+  vtkIdType neighborCellId, id;
   LabelType label;
 
   idList->SetNumberOfIds(2);
@@ -1012,7 +1007,7 @@ void FillHoles(vtkPolyData *surface, const char *scalars_name = "Labels", bool u
       label = static_cast<LabelType>(round(labels->GetComponent(id, 0)));
       if (label != -1) continue;
       // Iterate over cell edges
-      surface->GetCellPoints(id, cellPointIds);
+      surface->GetCellPoints(id, cellPointIds.GetPointer());
       bool is_boundary_cell = false;
       for (vtkIdType i = 0; i < cellPointIds->GetNumberOfIds(); ++i) {
         // Get cells sharing these edge points
@@ -1022,7 +1017,7 @@ void FillHoles(vtkPolyData *surface, const char *scalars_name = "Labels", bool u
         } else {
           idList->SetId(1, cellPointIds->GetId(i + 1));
         }
-        surface->GetCellNeighbors(id, idList, neighborCellIds);
+        surface->GetCellNeighbors(id, idList.GetPointer(), neighborCellIds.GetPointer());
         // Add if any neighboring cell is labeled
         for (vtkIdType j = 0; j < neighborCellIds->GetNumberOfIds(); ++j) {
           neighborCellId = neighborCellIds->GetId(j);
@@ -1068,7 +1063,7 @@ void FillHoles(vtkPolyData *surface, const char *scalars_name = "Labels", bool u
     hist.clear();
     if (using_cells) {
       // Iterate over cell edges
-      surface->GetCellPoints(id, cellPointIds);
+      surface->GetCellPoints(id, cellPointIds.GetPointer());
       for (vtkIdType i = 0; i < cellPointIds->GetNumberOfIds(); ++i) {
         // Get cells sharing these edge points
         idList->SetId(0, cellPointIds->GetId(i));
@@ -1077,7 +1072,7 @@ void FillHoles(vtkPolyData *surface, const char *scalars_name = "Labels", bool u
         } else {
           idList->SetId(1, cellPointIds->GetId(i + 1));
         }
-        surface->GetCellNeighbors(id, idList, neighborCellIds);
+        surface->GetCellNeighbors(id, idList.GetPointer(), neighborCellIds.GetPointer());
         // Count labels of neighboring cells and add unlabeled ones to queue
         for (vtkIdType j = 0; j < neighborCellIds->GetNumberOfIds(); ++j) {
           neighborCellId = neighborCellIds->GetId(j);
@@ -1340,9 +1335,7 @@ vtkSmartPointer<vtkPolyData> ExtractLabelBoundaries(vtkPolyData *surface, const 
 
   LabelType label;
   bool is_boundary_edge;
-  vtkSmartPointer<vtkIdList> idList          = vtkSmartPointer<vtkIdList>::New();
-  vtkSmartPointer<vtkIdList> cellPointIds    = vtkSmartPointer<vtkIdList>::New();
-  vtkSmartPointer<vtkIdList> neighborCellIds = vtkSmartPointer<vtkIdList>::New();
+  vtkNew<vtkIdList> idList, cellPointIds, neighborCellIds;
   vtkIdType neighborCellId;
 
   idList->SetNumberOfIds(2);
@@ -1352,7 +1345,7 @@ vtkSmartPointer<vtkPolyData> ExtractLabelBoundaries(vtkPolyData *surface, const 
     // Get cell label and point IDs
     label = static_cast<LabelType>(round(cell_labels->GetComponent(cellId, 0)));
     cellPointIds->Reset();
-    mesh->GetCellPoints(cellId, cellPointIds);
+    mesh->GetCellPoints(cellId, cellPointIds.GetPointer());
     // Iterate over cell edges
     for (vtkIdType i = 0; i < cellPointIds->GetNumberOfIds(); ++i) {
       is_boundary_edge = false;
@@ -1364,7 +1357,7 @@ vtkSmartPointer<vtkPolyData> ExtractLabelBoundaries(vtkPolyData *surface, const 
         idList->SetId(1, cellPointIds->GetId(i + 1));
       }
       neighborCellIds->Reset();
-      mesh->GetCellNeighbors(cellId, idList, neighborCellIds);
+      mesh->GetCellNeighbors(cellId, idList.GetPointer(), neighborCellIds.GetPointer());
       // Compare labels of neighboring cells to this cell's label
       for (vtkIdType j = 0; j < neighborCellIds->GetNumberOfIds(); ++j) {
         neighborCellId = neighborCellIds->GetId(j);
@@ -1382,7 +1375,7 @@ vtkSmartPointer<vtkPolyData> ExtractLabelBoundaries(vtkPolyData *surface, const 
   while (i != boundaryEdgeIds.end()) {
     idList->SetId(0, i->first);
     idList->SetId(1, i->second);
-    edges->InsertNextCell(idList);
+    edges->InsertNextCell(idList.GetPointer());
     ++i;
   }
   if (verbose) cout << " done: #edges = " << edges->GetNumberOfCells() << endl;

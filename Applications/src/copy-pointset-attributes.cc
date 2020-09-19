@@ -249,9 +249,9 @@ ConvertPointToCellLabels(vtkPointSet *pset, vtkDataArray *labels,
       double label;
       OrderedMap<double, int> hist;
       OrderedMap<double, int>::iterator bin;
-      vtkSmartPointer<vtkIdList> ptIds = vtkSmartPointer<vtkIdList>::New();
+      vtkNew<vtkIdList> ptIds;
       for (vtkIdType cellId = 0; cellId < pset->GetNumberOfCells(); ++cellId) {
-        pset->GetCellPoints(cellId, ptIds);
+        pset->GetCellPoints(cellId, ptIds.GetPointer());
         for (int j = 0; j < labels->GetNumberOfComponents(); ++j) {
           hist.clear();
           for (vtkIdType i = 0; i < ptIds->GetNumberOfIds(); ++i) {
@@ -274,9 +274,9 @@ ConvertPointToCellLabels(vtkPointSet *pset, vtkDataArray *labels,
     case UnanimousVote: {
       const double invalid = NaN;
       double       label;
-      vtkSmartPointer<vtkIdList> ptIds = vtkSmartPointer<vtkIdList>::New();
+      vtkNew<vtkIdList> ptIds;
       for (vtkIdType cellId = 0; cellId < pset->GetNumberOfCells(); ++cellId) {
-        pset->GetCellPoints(cellId, ptIds);
+        pset->GetCellPoints(cellId, ptIds.GetPointer());
         for (int j = 0; j < labels->GetNumberOfComponents(); ++j) {
           if (ptIds->GetNumberOfIds() == 0) {
             label = invalid;
@@ -319,9 +319,9 @@ ConvertCellToPointLabels(vtkPointSet *pset, vtkDataArray *labels,
       double label;
       OrderedMap<double, int> hist;
       OrderedMap<double, int>::iterator bin;
-      vtkSmartPointer<vtkIdList> cellIds = vtkSmartPointer<vtkIdList>::New();
+      vtkNew<vtkIdList> cellIds;
       for (vtkIdType ptId = 0; ptId < pset->GetNumberOfPoints(); ++ptId) {
-        pset->GetPointCells(ptId, cellIds);
+        pset->GetPointCells(ptId, cellIds.GetPointer());
         for (int j = 0; j < labels->GetNumberOfComponents(); ++j) {
           hist.clear();
           for (vtkIdType i = 0; i < cellIds->GetNumberOfIds(); ++i) {
@@ -344,9 +344,9 @@ ConvertCellToPointLabels(vtkPointSet *pset, vtkDataArray *labels,
     case UnanimousVote: {
       double       label;
       const double invalid = NaN;
-      vtkSmartPointer<vtkIdList> cellIds = vtkSmartPointer<vtkIdList>::New();
+      vtkNew<vtkIdList> cellIds;
       for (vtkIdType ptId = 0; ptId < pset->GetNumberOfPoints(); ++ptId) {
-        pset->GetPointCells(ptId, cellIds);
+        pset->GetPointCells(ptId, cellIds.GetPointer());
         for (int j = 0; j < labels->GetNumberOfComponents(); ++j) {
           if (cellIds->GetNumberOfIds() == 0) {
             label = invalid;
