@@ -27,6 +27,7 @@
 #include "vtkSmartPointer.h"
 #include "vtkDataArray.h"
 #include "vtkDataSetAttributes.h"
+#include "vtkIdList.h"
 #include "vtkVersionMacros.h"
 
 
