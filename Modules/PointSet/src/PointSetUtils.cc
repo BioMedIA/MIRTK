@@ -1166,12 +1166,7 @@ vtkSmartPointer<vtkImageData> NewVtkMask(int nx, int ny, int nz)
   imagedata->SetOrigin(.0, .0, .0);
   imagedata->SetDimensions(nx, ny, nz);
   imagedata->SetSpacing(1.0, 1.0, 1.0);
-#if VTK_MAJOR_VERSION >= 6
   imagedata->AllocateScalars(ToVTKDataType(MIRTK_VOXEL_BINARY), 1);
-#else
-  imagedata->SetScalarType(ToVTKDataType(MIRTK_VOXEL_BINARY));
-  imagedata->AllocateScalars();
-#endif
   return imagedata;
 }
 

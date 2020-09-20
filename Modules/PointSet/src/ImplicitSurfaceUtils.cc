@@ -90,12 +90,7 @@ vtkSmartPointer<vtkPolyData> Isosurface(const DistanceImage &dmap, double offset
   vtkimage->SetOrigin(-mx, -my, -mz);
   vtkimage->SetDimensions(nx, ny, nz);
   vtkimage->SetSpacing(1.0, 1.0, 1.0);
-#if VTK_MAJOR_VERSION >= 6
   vtkimage->AllocateScalars(distance_image->ImageToVTKScalarType(), 1);
-#else
-  vtkimage->SetScalarType(distance_image->ImageToVTKScalarType());
-  vtkimage->AllocateScalars();
-#endif
 
   const double boundary_value = offset + 10.0;
   const VoxelType *d = distance_image->Data();
