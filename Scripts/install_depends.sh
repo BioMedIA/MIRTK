@@ -245,7 +245,7 @@ if [ $WITH_VTK = ON ] && [ -n "$VTK_VERSION" ]; then
     # custom build instead of Homebrew to take advantage of caching of minimal build
     cd /tmp
     echo "Downloading VTK $VTK_VERSION..."
-    run curl -O "https://www.vtk.org/files/release/${VTK_VERSION%.*}/VTK-${VTK_VERSION}.tar.gz"
+    run curl -L -o "VTK-${VTK_VERSION}.tar.gz" "https://github.com/Kitware/VTK/archive/v${VTK_VERSION}.tar.gz"
     run tar -xzf "VTK-${VTK_VERSION}.tar.gz"
     mkdir "VTK-${VTK_VERSION}/Build" && cd "VTK-${VTK_VERSION}/Build"
     [ $? -eq 0 ] || exit 1
