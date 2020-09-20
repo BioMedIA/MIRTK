@@ -1,5 +1,4 @@
 ## Install dependencies on Ubuntu or OS X (using Homebrew)
-set -x
 
 norm_option_value()
 {
@@ -27,6 +26,7 @@ WITH_FLTK=`norm_option_value "$WITH_FLTK" OFF`
 WITH_CCACHE=`norm_option_value "$WITH_CCACHE" OFF`
 BUILD_DEPS_WITH_CCACHE=`norm_option_value "$BUILD_DEPS_WITH_CCACHE" OFF`
 FORCE_REBUILD_DEPS=`norm_option_value "$FORCE_REBUILD_DEPS" OFF`
+DEBUG_VTK_BUILD=`norm_option_value "$DEBUG_VTK_BUILD" OFF`
 
 
 # ------------------------------------------------------------------------------
@@ -216,6 +216,7 @@ fi
 # ------------------------------------------------------------------------------
 # Install specific VTK version from source
 if [ $WITH_VTK = ON ] && [ -n "$VTK_VERSION" ]; then
+  [ "$DEBUG_VTK_BUILD" != "ON" ] || set -x
   vtk_prefix="${VTK_PREFIX:-$HOME/VTK-$VTK_VERSION}"
   # build configuration
   cmake_args=(
@@ -309,4 +310,5 @@ if [ $WITH_VTK = ON ] && [ -n "$VTK_VERSION" ]; then
   fi
   mkdir -p "$HOME/.cmake/packages/VTK" || exit 1
   echo "$vtk_prefix/lib/cmake/vtk-${VTK_VERSION%.*}" > "$HOME/.cmake/packages/VTK/VTK-$VTK_VERSION"
+  set +x
 fi
