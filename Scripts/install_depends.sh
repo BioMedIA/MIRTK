@@ -216,7 +216,6 @@ fi
 # ------------------------------------------------------------------------------
 # Install specific VTK version from source
 if [ $WITH_VTK = ON ] && [ -n "$VTK_VERSION" ]; then
-  [ "$DEBUG_VTK_BUILD" != "ON" ] || set -x
   vtk_prefix="${VTK_PREFIX:-$HOME/VTK-$VTK_VERSION}"
   # build configuration
   cmake_args=(
@@ -256,6 +255,7 @@ if [ $WITH_VTK = ON ] && [ -n "$VTK_VERSION" ]; then
     run tar -xzf "VTK-${VTK_VERSION}.tar.gz"
     mkdir "VTK-${VTK_VERSION}/Build" && cd "VTK-${VTK_VERSION}/Build"
     [ $? -eq 0 ] || exit 1
+    [ "$DEBUG_VTK_BUILD" != "ON" ] || set -x
     echo "Configuring VTK $VTK_VERSION..."
     cmake_args=("${cmake_args[@]}"
       -DCMAKE_CXX_STANDARD=$CXX_STANDARD
