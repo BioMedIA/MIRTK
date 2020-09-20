@@ -365,14 +365,13 @@ UnorderedSet<int> BoundaryPoints(vtkDataSet *dataset, const EdgeTable *edgeTable
     edgeTable = tmpEdgeTable.get();
   }
   UnorderedSet<int> boundaryPtIds;
-  vtkSmartPointer<vtkIdList> cellIds1 = vtkSmartPointer<vtkIdList>::New();
-  vtkSmartPointer<vtkIdList> cellIds2 = vtkSmartPointer<vtkIdList>::New();
+  vtkNew<vtkIdList> cellIds1, cellIds2;
   vtkIdType ptId1, ptId2;
   EdgeIterator edgeIt(*edgeTable);
   for (edgeIt.InitTraversal(); edgeIt.GetNextEdge(ptId1, ptId2) != -1;) {
-    dataset->GetPointCells(ptId1, cellIds1);
-    dataset->GetPointCells(ptId2, cellIds2);
-    cellIds1->IntersectWith(cellIds2);
+    dataset->GetPointCells(ptId1, cellIds1.GetPointer());
+    dataset->GetPointCells(ptId2, cellIds2.GetPointer());
+    cellIds1->IntersectWith(cellIds2.GetPointer());
     if (cellIds1->GetNumberOfIds() < 2) {
       boundaryPtIds.insert(static_cast<int>(ptId1));
       boundaryPtIds.insert(static_cast<int>(ptId2));
@@ -385,14 +384,13 @@ UnorderedSet<int> BoundaryPoints(vtkDataSet *dataset, const EdgeTable *edgeTable
 EdgeList BoundaryEdges(vtkDataSet *dataset, const EdgeTable &edgeTable)
 {
   EdgeList boundaryEdges;
-  vtkSmartPointer<vtkIdList> cellIds1 = vtkSmartPointer<vtkIdList>::New();
-  vtkSmartPointer<vtkIdList> cellIds2 = vtkSmartPointer<vtkIdList>::New();
   vtkIdType ptId1, ptId2;
+  vtkNew<vtkIdList> cellIds1, cellIds2;
   EdgeIterator edgeIt(edgeTable);
   for (edgeIt.InitTraversal(); edgeIt.GetNextEdge(ptId1, ptId2) != -1;) {
-    dataset->GetPointCells(ptId1, cellIds1);
-    dataset->GetPointCells(ptId2, cellIds2);
-    cellIds1->IntersectWith(cellIds2);
+    dataset->GetPointCells(ptId1, cellIds1.GetPointer());
+    dataset->GetPointCells(ptId2, cellIds2.GetPointer());
+    cellIds1->IntersectWith(cellIds2.GetPointer());
     if (cellIds1->GetNumberOfIds() < 2) {
       boundaryEdges.push_back(MakePair(static_cast<int>(ptId1), static_cast<int>(ptId2)));
     }
@@ -490,10 +488,10 @@ int NumberOfPoints(vtkDataSet *dataset)
 {
   int n = 0;
   bool deleted;
-  vtkSmartPointer<vtkIdList> cellIds = vtkSmartPointer<vtkIdList>::New();
+  vtkNew<vtkIdList> cellIds;
   for (vtkIdType ptId = 0; ptId < dataset->GetNumberOfPoints(); ++ptId) {
-    dataset->GetPointCells(ptId, cellIds);
     deleted = true;
+    dataset->GetPointCells(ptId, cellIds.GetPointer());
     for (vtkIdType i = 0; i < cellIds->GetNumberOfIds(); ++i) {
       if (dataset->GetCellType(cellIds->GetId(i)) != VTK_EMPTY_CELL) {
         deleted = false;
@@ -650,20 +648,20 @@ struct ComputeSurfaceArea
 
   void operator ()(const blocked_range<vtkIdType> cellIds)
   {
-    vtkSmartPointer<vtkGenericCell> cell = vtkSmartPointer<vtkGenericCell>::New();
-    vtkIdType npts, *pts;
+    vtkNew<vtkGenericCell> cell;
+    vtkNew<vtkIdList> ptIds;
     double p1[3], p2[3], p3[3], area;
     for (vtkIdType cellId = cellIds.begin(); cellId != cellIds.end(); ++cellId)
     {
-      _Surface->GetCellPoints(cellId, npts, pts);
-      if (npts == 3) {
-        _Surface->GetPoint(pts[0], p1);
-        _Surface->GetPoint(pts[1], p2);
-        _Surface->GetPoint(pts[2], p3);
+      _Surface->GetCellPoints(cellId, ptIds.GetPointer());
+      if (ptIds->GetNumberOfIds() == 3) {
+        _Surface->GetPoint(ptIds->GetId(0), p1);
+        _Surface->GetPoint(ptIds->GetId(1), p2);
+        _Surface->GetPoint(ptIds->GetId(2), p3);
         area = vtkTriangle::TriangleArea(p1, p2, p3);
       } else {
-        _Surface->GetCell(cellId, cell);
-        area = ComputeArea(cell);
+        _Surface->GetCell(cellId, cell.GetPointer());
+        area = ComputeArea(cell.GetPointer());
       }
       if (_CellArea) _CellArea->SetComponent(cellId, 0, area);
       _SurfaceArea += area;
@@ -1168,12 +1166,7 @@ vtkSmartPointer<vtkImageData> NewVtkMask(int nx, int ny, int nz)
   imagedata->SetOrigin(.0, .0, .0);
   imagedata->SetDimensions(nx, ny, nz);
   imagedata->SetSpacing(1.0, 1.0, 1.0);
-#if VTK_MAJOR_VERSION >= 6
   imagedata->AllocateScalars(ToVTKDataType(MIRTK_VOXEL_BINARY), 1);
-#else
-  imagedata->SetScalarType(ToVTKDataType(MIRTK_VOXEL_BINARY));
-  imagedata->AllocateScalars();
-#endif
   return imagedata;
 }
 

@@ -22,7 +22,6 @@
 #include "mirtk/List.h"
 #include "mirtk/Vtk.h"
 
-#include "vtkNew.h"
 #include "vtkStripper.h"
 #include "vtkCellArray.h"
 
@@ -40,16 +39,15 @@ namespace {
 // -----------------------------------------------------------------------------
 void GrowLine(vtkPolyData *output, List<vtkIdType> &line)
 {
-  vtkPolyDataGetPointCellsNumCellsType ncells;
-  vtkIdType npts, *pts, *cells, cellId;
-
+  vtkIdType cellId;
+  vtkNew<vtkIdList> cellIds, ptIds;
   while (true) {
     cellId = -1;
-    output->GetPointCells(line.back(), ncells, cells);
-    for (vtkPolyDataGetPointCellsNumCellsType i = 0; i < ncells; ++i) {
-      if (output->GetCellType(cells[i]) == VTK_LINE) {
+    output->GetPointCells(line.back(), cellIds.GetPointer());
+    for (vtkIdType i = 0; i < cellIds->GetNumberOfIds(); ++i) {
+      if (output->GetCellType(cellIds->GetId(i)) == VTK_LINE) {
         if (cellId == -1) {
-          cellId = cells[i];
+          cellId = cellIds->GetId(i);
         } else {
           cellId = -1;
           break;
@@ -57,17 +55,17 @@ void GrowLine(vtkPolyData *output, List<vtkIdType> &line)
       }
     }
     if (cellId == -1) break;
-    output->GetCellPoints(cellId, npts, pts);
+    output->GetCellPoints(cellId, ptIds.GetPointer());
     output->RemoveCellReference(cellId);
     output->DeleteCell(cellId);
-    if (npts == 0) break;
-    if (pts[0] == line.back()) {
-      for (vtkIdType i = 1; i < npts; ++i) {
-        line.push_back(pts[i]);
+    if (ptIds->GetNumberOfIds() == 0) break;
+    if (ptIds->GetId(0) == line.back()) {
+      for (vtkIdType i = 1; i < ptIds->GetNumberOfIds(); ++i) {
+        line.push_back(ptIds->GetId(i));
       }
-    } else if (pts[npts-1] == line.back()) {
-      for (vtkIdType i = npts-2; i >= 0; --i) {
-        line.push_back(pts[i]);
+    } else if (ptIds->GetId(ptIds->GetNumberOfIds() - 1) == line.back()) {
+      for (vtkIdType i = ptIds->GetNumberOfIds() - 2; i >= 0; --i) {
+        line.push_back(ptIds->GetId(i));
       }
     } else {
       break;
@@ -130,7 +128,7 @@ void Stripper::Execute()
   // Strip lines
   if (_StripLines && _Output->GetNumberOfLines() > 0) {
     List<List<vtkIdType>> lines;
-    vtkIdType             npts, *pts;
+    vtkNew<vtkIdList> ptIds;
 
     // Pick each line segment as possible seed for contiguous line
     for (vtkIdType seedId = 0; seedId < _Output->GetNumberOfCells(); ++seedId) {
@@ -138,9 +136,9 @@ void Stripper::Execute()
       if (_Output->GetCellType(seedId) != VTK_LINE) continue;
       // Start new line in reverse order
       List<vtkIdType> line;
-      _Output->GetCellPoints(seedId, npts, pts);
-      for (vtkIdType i = 0; i < npts; ++i) {
-        line.push_front(pts[i]);
+      _Output->GetCellPoints(seedId, ptIds.GetPointer());
+      for (vtkIdType i = 0; i < ptIds->GetNumberOfIds(); ++i) {
+        line.push_front(ptIds->GetId(i));
       }
       _Output->RemoveCellReference(seedId);
       _Output->DeleteCell(seedId);

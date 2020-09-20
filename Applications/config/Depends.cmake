@@ -57,7 +57,7 @@
 if (MIRTK_Image_FOUND)
   # command: calculate
   if (MIRTK_Image_WITH_VTK)
-    basis_find_package(VTK 8|7|6 REQUIRED COMPONENTS vtkCommonCore vtkCommonDataModel)
+    basis_find_package(VTK REQUIRED COMPONENTS vtkCommonCore vtkCommonDataModel)
   endif ()
 endif ()
 
@@ -65,7 +65,7 @@ endif ()
 # Dependencies of point set commands
 if (MIRTK_PointSet_FOUND)
   # command: all point set commands, info
-  basis_find_package(VTK 8|7|6 REQUIRED
+  basis_find_package(VTK REQUIRED
     COMPONENTS
       vtkCommonCore
       vtkCommonDataModel

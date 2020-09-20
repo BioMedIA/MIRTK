@@ -225,12 +225,12 @@ void SamplePoints(vtkPointSet *pointset, Array<int> &indices,
   if (maxnum == 0 && maxdist > .0) {
     const double r = maxdist / 2.0;
     // Count number of points within radius r of each input point
+    vtkNew<vtkIdList> ids;
     double p[3];
-    vtkSmartPointer<vtkIdList> ids = vtkSmartPointer<vtkIdList>::New();
     double sum = .0;
     for (vtkIdType i = 0; i < pointset->GetNumberOfPoints(); ++i) {
       pointset->GetPoint(i, p);
-      locator->FindPointsWithinRadius(r, p, ids);
+      locator->FindPointsWithinRadius(r, p, ids.GetPointer());
       sum += ids->GetNumberOfIds();
     }
     // Divide number of points by average number of points within radius r

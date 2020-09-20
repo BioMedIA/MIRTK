@@ -118,15 +118,14 @@ void CellDataFilter::Initialize()
 // -----------------------------------------------------------------------------
 void CellDataFilter::GetNodeNeighbors(int cellId, UnorderedSet<int> &cellIds) const
 {
+  vtkNew<vtkIdList> ptIds, ptCellIds;
   cellIds.clear();
-  vtkPolyDataGetPointCellsNumCellsType ncells;
-  vtkIdType npts, *pts, *cells;
-  _Output->GetCellPoints(cellId, npts, pts);
-  for (vtkIdType i = 0; i < npts; ++i) {
-    _Output->GetPointCells(pts[i], ncells, cells);
-    for (vtkPolyDataGetPointCellsNumCellsType j = 0; j < ncells; ++j) {
-      if (cells[j] != cellId) {
-        cellIds.insert(cells[j]);
+  _Output->GetCellPoints(cellId, ptIds.GetPointer());
+  for (vtkIdType i = 0; i < ptIds->GetNumberOfIds(); ++i) {
+    _Output->GetPointCells(ptIds->GetId(i), ptCellIds.GetPointer());
+    for (vtkIdType j = 0; j < ptCellIds->GetNumberOfIds(); ++j) {
+      if (ptCellIds->GetId(j) != cellId) {
+        cellIds.insert(ptCellIds->GetId(j));
       }
     }
   }

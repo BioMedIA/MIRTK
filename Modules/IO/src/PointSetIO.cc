@@ -747,14 +747,14 @@ bool WriteDFS(const char *fname, vtkPolyData *polydata)
     surface.vertices[i].z = static_cast<float>(p[2]);
   }
   // Copy triangular faces
-  vtkIdType npts, *pts;
+  vtkNew<vtkIdList> ptIds;
   surface.triangles.resize(polydata->GetNumberOfCells());
   for (vtkIdType i = 0; i < polydata->GetNumberOfCells(); ++i) {
-    polydata->GetCellPoints(i, npts, pts);
-    if (npts != 3) return false;
-    surface.triangles[i].a = static_cast<int>(pts[0]);
-    surface.triangles[i].b = static_cast<int>(pts[1]);
-    surface.triangles[i].c = static_cast<int>(pts[2]);
+    polydata->GetCellPoints(i, ptIds.GetPointer());
+    if (ptIds->GetNumberOfIds() != 3) return false;
+    surface.triangles[i].a = static_cast<int>(ptIds->GetId(0));
+    surface.triangles[i].b = static_cast<int>(ptIds->GetId(1));
+    surface.triangles[i].c = static_cast<int>(ptIds->GetId(2));
   }
   // Copy vertex normals
   vtkDataArray *normals = polydata->GetPointData()->GetNormals();
@@ -897,13 +897,13 @@ bool WriteOFF(const char *fname, vtkPolyData *polydata)
     ofs << p[0] << " " << p[1] << " " << p[2] << "\n";
   }
 
-  vtkIdType numPts, *ptIds;
+  vtkNew<vtkIdList> ptIds;
   polydata->BuildCells();
   for (vtkIdType cellId = 0; cellId < polydata->GetNumberOfCells(); ++cellId) {
-    polydata->GetCellPoints(cellId, numPts, ptIds);
-    ofs << numPts;
-    for (vtkIdType i = 0; i < numPts; ++i) {
-      ofs << " " << ptIds[i];
+    polydata->GetCellPoints(cellId, ptIds.GetPointer());
+    ofs << ptIds->GetNumberOfIds();
+    for (vtkIdType i = 0; i < ptIds->GetNumberOfIds(); ++i) {
+      ofs << " " << ptIds->GetId(i);
     }
     ofs << "\n";
   }
@@ -964,9 +964,9 @@ bool WriteTetGenPoly(const char *fname, vtkPolyData *polydata, const PointSet *h
 {
   ofstream os(fname);
   if (!os.is_open()) return false;
+  vtkNew<vtkIdList> ptIds;
   os << "# part 1: nodes\n";
   WriteTetGenNode(os, polydata);
-  vtkIdType npts, *pts;
   vtkCellArray *verts  = polydata->GetVerts();
   vtkCellArray *lines  = polydata->GetLines();
   vtkCellArray *polys  = polydata->GetPolys();
@@ -982,9 +982,11 @@ bool WriteTetGenPoly(const char *fname, vtkPolyData *polydata, const PointSet *h
     os << "# verts\n";
     os << verts->GetNumberOfCells() << "\n";
     verts->InitTraversal();
-    while (verts->GetNextCell(npts, pts)) {
-      os << npts << " ";
-      for (vtkIdType i = 0; i < npts; ++i) os << " " << (pts[i] + 1);
+    while (verts->GetNextCell(ptIds.GetPointer())) {
+      os << ptIds->GetNumberOfIds() << " ";
+      for (vtkIdType i = 0; i < ptIds->GetNumberOfIds(); ++i) {
+        os << " " << (ptIds->GetId(i) + 1);
+      }
       os << "\n";
     }
   }
@@ -992,9 +994,11 @@ bool WriteTetGenPoly(const char *fname, vtkPolyData *polydata, const PointSet *h
     os << "# lines\n";
     os << lines->GetNumberOfCells() << "\n";
     lines->InitTraversal();
-    while (lines->GetNextCell(npts, pts)) {
-      os << npts << " ";
-      for (vtkIdType i = 0; i < npts; ++i) os << " " << (pts[i] + 1);
+    while (lines->GetNextCell(ptIds.GetPointer())) {
+      os << ptIds->GetNumberOfIds() << " ";
+      for (vtkIdType i = 0; i < ptIds->GetNumberOfIds(); ++i) {
+        os << " " << (ptIds->GetId(i) + 1);
+      }
       os << "\n";
     }
   }
@@ -1002,9 +1006,11 @@ bool WriteTetGenPoly(const char *fname, vtkPolyData *polydata, const PointSet *h
     os << "# polys\n";
     os << polys->GetNumberOfCells() << "\n";
     polys->InitTraversal();
-    while (polys->GetNextCell(npts, pts)) {
-      os << npts << " ";
-      for (vtkIdType i = 0; i < npts; ++i) os << " " << (pts[i] + 1);
+    while (polys->GetNextCell(ptIds.GetPointer())) {
+      os << ptIds->GetNumberOfIds() << " ";
+      for (vtkIdType i = 0; i < ptIds->GetNumberOfIds(); ++i) {
+        os << " " << (ptIds->GetId(i) + 1);
+      }
       os << "\n";
     }
   }
@@ -1012,9 +1018,11 @@ bool WriteTetGenPoly(const char *fname, vtkPolyData *polydata, const PointSet *h
     os << "# strips\n";
     os << strips->GetNumberOfCells() << "\n";
     strips->InitTraversal();
-    while (strips->GetNextCell(npts, pts)) {
-      os << npts << " ";
-      for (vtkIdType i = 0; i < npts; ++i) os << " " << (pts[i] + 1);
+    while (strips->GetNextCell(ptIds.GetPointer())) {
+      os << ptIds->GetNumberOfIds() << " ";
+      for (vtkIdType i = 0; i < ptIds->GetNumberOfIds(); ++i) {
+        os << " " << (ptIds->GetId(i) + 1);
+      }
       os << "\n";
     }
   }
@@ -1038,9 +1046,9 @@ bool WriteTetGenSMesh(const char *fname, vtkPolyData *polydata, const PointSet *
 {
   ofstream os(fname);
   if (!os.is_open()) return false;
+  vtkNew<vtkIdList> ptIds;
   os << "# part 1: nodes\n";
   WriteTetGenNode(os, polydata);
-  vtkIdType npts, *pts;
   vtkCellArray *verts  = polydata->GetVerts();
   vtkCellArray *lines  = polydata->GetLines();
   vtkCellArray *polys  = polydata->GetPolys();
@@ -1054,33 +1062,41 @@ bool WriteTetGenSMesh(const char *fname, vtkPolyData *polydata, const PointSet *
   os << nfacets << " 0\n";
   if (verts->GetNumberOfCells() > 0) {
     verts->InitTraversal();
-    while (verts->GetNextCell(npts, pts)) {
-      os << npts << " ";
-      for (vtkIdType i = 0; i < npts; ++i) os << " " << (pts[i] + 1);
+    while (verts->GetNextCell(ptIds.GetPointer())) {
+      os << ptIds->GetNumberOfIds() << " ";
+      for (vtkIdType i = 0; i < ptIds->GetNumberOfIds(); ++i) {
+        os << " " << (ptIds->GetId(i) + 1);
+      }
       os << "\n";
     }
   }
   if (lines->GetNumberOfCells() > 0) {
     lines->InitTraversal();
-    while (lines->GetNextCell(npts, pts)) {
-      os << npts << " ";
-      for (vtkIdType i = 0; i < npts; ++i) os << " " << (pts[i] + 1);
+    while (lines->GetNextCell(ptIds.GetPointer())) {
+      os << ptIds->GetNumberOfIds() << " ";
+      for (vtkIdType i = 0; i < ptIds->GetNumberOfIds(); ++i) {
+        os << " " << (ptIds->GetId(i) + 1);
+      }
       os << "\n";
     }
   }
   if (polys->GetNumberOfCells() > 0) {
     polys->InitTraversal();
-    while (polys->GetNextCell(npts, pts)) {
-      os << npts << " ";
-      for (vtkIdType i = 0; i < npts; ++i) os << " " << (pts[i] + 1);
+    while (polys->GetNextCell(ptIds.GetPointer())) {
+      os << ptIds->GetNumberOfIds() << " ";
+      for (vtkIdType i = 0; i < ptIds->GetNumberOfIds(); ++i) {
+        os << " " << (ptIds->GetId(i) + 1);
+      }
       os << "\n";
     }
   }
   if (strips->GetNumberOfCells() > 0) {
     strips->InitTraversal();
-    while (strips->GetNextCell(npts, pts)) {
-      os << npts;
-      for (vtkIdType i = 0; i < npts; ++i) os << " " << (pts[i] + 1);
+    while (strips->GetNextCell(ptIds.GetPointer())) {
+      os << ptIds->GetNumberOfIds();
+      for (vtkIdType i = 0; i < ptIds->GetNumberOfIds(); ++i) {
+        os << " " << (ptIds->GetId(i) + 1);
+      }
       os << "\n";
     }
   }
@@ -1772,9 +1788,9 @@ vtkSmartPointer<vtkPolyData> ReadGIFTI(const char *fname, vtkPolyData *surface, 
   // Check topology information
   if (polys) {
     polys->InitTraversal();
-    vtkIdType npts, *pts;
-    while (polys->GetNextCell(npts, pts) != 0) {
-      if (npts != 3 || pts[0] >= npoints || pts[1] >= npoints || pts[2] >= npoints) {
+    vtkNew<vtkIdList> ptIds;
+    while (polys->GetNextCell(ptIds.GetPointer()) != 0) {
+      if (ptIds->GetNumberOfIds() != 3 || ptIds->GetId(0) >= npoints || ptIds->GetId(1) >= npoints || ptIds->GetId(2) >= npoints) {
         if (errmsg) {
           cerr << "Error: GIFTI topology array has invalid point index!" << endl;
         }
@@ -1985,19 +2001,19 @@ static bool AddTriangles(gifti_image *gim, vtkCellArray *triangles, vtkInformati
   }
 
   // Copy triangles
-  vtkIdType npts, *pts;
+  vtkNew<vtkIdList> ptIds;
   int *pdata = reinterpret_cast<int *>(da->data);
   triangles->InitTraversal();
   for (int i = 0; i < da->dims[0]; ++i) {
-    triangles->GetNextCell(npts, pts);
-    if (npts != 3) {
+    triangles->GetNextCell(ptIds.GetPointer());
+    if (ptIds->GetNumberOfIds() != 3) {
       gifti_free_DataArray(da);
       gim->darray[--gim->numDA] = nullptr;
       return false;
     }
-    (*pdata) = static_cast<int>(pts[0]), ++pdata;
-    (*pdata) = static_cast<int>(pts[1]), ++pdata;
-    (*pdata) = static_cast<int>(pts[2]), ++pdata;
+    (*pdata) = static_cast<int>(ptIds->GetId(0)), ++pdata;
+    (*pdata) = static_cast<int>(ptIds->GetId(1)), ++pdata;
+    (*pdata) = static_cast<int>(ptIds->GetId(2)), ++pdata;
   }
 
   // Copy meta data from vtkPolyData information

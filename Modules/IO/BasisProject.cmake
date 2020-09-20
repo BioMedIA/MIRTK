@@ -58,13 +58,7 @@ basis_project (
     #<dependency>
   OPTIONAL_DEPENDS
     PNG
-    "VTK-8|7|6{
-      vtkCommonCore,
-      vtkIOGeometry,
-      vtkIOLegacy,
-      vtkIOPLY,
-      vtkIOXML
-    }"
+    VTK{vtkCommonCore,vtkIOGeometry,vtkIOLegacy,vtkIOPLY,vtkIOXML}
     TBB{tbb} # transitive dependency of MIRTK{Common}
     ZLIB     # for MetaIO, NiftiCLib, GiftiCLib
     #<optional-dependency>

@@ -38,6 +38,8 @@ WITH_FLANN=`norm_option_value "$WITH_FLANN" ON`
 WITH_FLTK=`norm_option_value "$WITH_FLTK" OFF`
 WITH_CCACHE=`norm_option_value "$WITH_CCACHE" OFF`
 
+cmake_args=
+
 if [ $TRAVIS = ON ]; then
   os="$TRAVIS_OS_NAME"
 else
@@ -57,12 +59,16 @@ if [ $WITH_VTK = ON ]; then
   if [ $WITH_FLTK = ON ]; then
     modules=(${modules[@]} Viewer)
   fi
+  if [ $os = osx ] || [ $os = Darwin ]; then
+    if [ -d "/usr/local/opt/vtk@$MACOS_VTK_VERSION" ]; then
+      cmake_args+=(-D DEPENDS_VTK_DIR="/usr/local/opt/vtk@$MACOS_VTK_VERSION")
+    fi
+  fi
 fi
 if [ $WITH_ITK = ON ]; then
   modules=(${modules[@]} DrawEM)
 fi
 
-cmake_args=
 for module in ${modules[@]}; do
   cmake_args=(${cmake_args[@]} -D MODULE_${module}=ON)
 done

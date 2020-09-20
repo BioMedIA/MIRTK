@@ -22,6 +22,7 @@
 #include "mirtk/Assert.h"
 #include "mirtk/Parallel.h"
 
+#include "vtkNew.h"
 #include "vtkPolyData.h"
 #include "vtkCellArray.h"
 
@@ -57,17 +58,17 @@ struct ComputeVolume
 
   void operator ()(const blocked_range<vtkIdType> &re)
   {
+    vtkNew<vtkIdList> ptIds;
     double v1[3], v2[3], v3[3], det, height;
-    vtkIdType npts, *pts;
     vtkCellArray * const polys = _DataSet->GetPolys();
     for (vtkIdType cellId = re.begin(); cellId != re.end(); ++cellId) {
       // Get position of triangle vertices
-      polys->GetCell(cellId, npts, pts);
-      if (npts == 0) continue;
-      mirtkAssert(npts == 3, "mesh is triangulated");
-      _DataSet->GetPoint(pts[0], v1);
-      _DataSet->GetPoint(pts[1], v2);
-      _DataSet->GetPoint(pts[2], v3);
+      polys->GetCell(cellId, ptIds.GetPointer());
+      if (ptIds->GetNumberOfIds() == 0) continue;
+      mirtkAssert(ptIds->GetNumberOfIds() == 3, "mesh is triangulated");
+      _DataSet->GetPoint(ptIds->GetId(0), v1);
+      _DataSet->GetPoint(ptIds->GetId(1), v2);
+      _DataSet->GetPoint(ptIds->GetId(2), v3);
       // Twice the area of the projection onto the x-y plane
       det = ((v2[1] - v3[1]) * (v1[0] - v3[0]) -
              (v2[0] - v3[0]) * (v1[1] - v3[1]));
@@ -397,16 +398,16 @@ struct ComputeWindingNumber
   /// Add contributions of triangles in range to winding number
   void operator ()(const blocked_range<vtkIdType> &re)
   {
+    vtkNew<vtkIdList> ptIds;
     double v1[3], v2[3], v3[3];
-    vtkIdType npts, *pts;
     vtkCellArray * const polys = _DataSet->GetPolys();
     for (vtkIdType cellId = re.begin(); cellId != re.end(); ++cellId) {
-      polys->GetCell(cellId, npts, pts);
-      if (npts == 0) continue;
-      mirtkAssert(npts == 3, "mesh is triangulated");
-      _DataSet->GetPoint(pts[0], v1);
-      _DataSet->GetPoint(pts[1], v2);
-      _DataSet->GetPoint(pts[2], v3);
+      polys->GetCell(cellId, ptIds.GetPointer());
+      if (ptIds->GetNumberOfIds() == 0) continue;
+      mirtkAssert(ptIds->GetNumberOfIds() == 3, "mesh is triangulated");
+      _DataSet->GetPoint(ptIds->GetId(0), v1);
+      _DataSet->GetPoint(ptIds->GetId(1), v2);
+      _DataSet->GetPoint(ptIds->GetId(2), v3);
       _Sum += triangle_chain(v1, v2, v3);
     }
   }

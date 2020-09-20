@@ -29,6 +29,7 @@
 #include "vtkPolyDataWriter.h"
 #include "vtkPolyDataConnectivityFilter.h"
 #include "vtkCleanPolyData.h"
+#include "vtkIdTypeArray.h"
 
 using namespace mirtk;
 

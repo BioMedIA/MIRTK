@@ -114,8 +114,8 @@ void SurfacePatches::Execute()
   vtkDataArray * const labels = GetLabelsArray();
 
   Queue<vtkIdType>  active;
-  vtkIdType         seedId, curId, nbrId, npts, *pts, ncells;
-  vtkNew<vtkIdList> cellIds;
+  vtkIdType         seedId, curId, nbrId, ncells;
+  vtkNew<vtkIdList> cellIds, ptIds;
 
   for (seedId = 0; seedId < _Output->GetNumberOfCells(); ++seedId) {
     if (labels->GetComponent(seedId, 0) == 0.) {
@@ -128,9 +128,9 @@ void SurfacePatches::Execute()
         if (labels->GetComponent(curId, 0) == 0.) {
           ++ncells;
           labels->SetComponent(curId, 0, _NumberOfPatches);
-          _Output->GetCellPoints(curId, npts, pts);
-          for (vtkIdType i = 0; i < npts; ++i) {
-            _Output->GetCellEdgeNeighbors(curId, pts[i], pts[(i+1)%npts], cellIds.GetPointer());
+          _Output->GetCellPoints(curId, ptIds.GetPointer());
+          for (vtkIdType i = 0; i < ptIds->GetNumberOfIds(); ++i) {
+            _Output->GetCellEdgeNeighbors(curId, ptIds->GetId(i), ptIds->GetId((i + 1) % ptIds->GetNumberOfIds()), cellIds.GetPointer());
             if (cellIds->GetNumberOfIds() == 1) {
               nbrId = cellIds->GetId(0);
               if (labels->GetComponent(nbrId, 0) == 0.) {

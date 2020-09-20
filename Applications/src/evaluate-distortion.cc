@@ -97,19 +97,20 @@ enum DistortionMeasure
 // -----------------------------------------------------------------------------
 double Angle(vtkPolyData *mesh, vtkIdType cellId, vtkIdType ptId)
 {
-  vtkIdType npts, *pts, i[3] = {0, 1, 2};
-  mesh->GetCellPoints(cellId, npts, pts);
-  for (vtkIdType j = 0; j < npts; ++j) {
-    if (pts[j] == ptId) {
+  vtkIdType i[3] = {0, 1, 2};
+  vtkNew<vtkIdList> ptIds;
+  mesh->GetCellPoints(cellId, ptIds.GetPointer());
+  for (vtkIdType j = 0; j < ptIds->GetNumberOfIds(); ++j) {
+    if (ptIds->GetId(j) == ptId) {
       i[0] = i[j];
       i[j] = 0;
       break;
     }
   }
   double p[3][3], ab, ac, bc;
-  mesh->GetPoint(pts[0], p[i[0]]);
-  mesh->GetPoint(pts[1], p[i[1]]);
-  mesh->GetPoint(pts[2], p[i[2]]);
+  mesh->GetPoint(ptIds->GetId(0), p[i[0]]);
+  mesh->GetPoint(ptIds->GetId(1), p[i[1]]);
+  mesh->GetPoint(ptIds->GetId(2), p[i[2]]);
   ab = pow(p[1][0] - p[0][0], 2) + pow(p[1][1] - p[0][1], 2) + pow(p[1][2] - p[0][2], 2);
   ac = pow(p[2][0] - p[0][0], 2) + pow(p[2][1] - p[0][1], 2) + pow(p[2][2] - p[0][2], 2);
   bc = pow(p[2][0] - p[1][0], 2) + pow(p[2][1] - p[1][1], 2) + pow(p[2][2] - p[1][2], 2);
@@ -131,37 +132,38 @@ AngularDistortion(vtkPolyData *orig, vtkPolyData *mesh)
   array->SetNumberOfComponents(2);
   array->SetNumberOfTuples(npoints);
 
-  vtkPolyDataGetPointCellsNumCellsType ncells1, ncells2;
-  vtkIdType      *cells1, *cells2;
+  vtkNew<vtkIdList> cellIds1, cellIds2;
+
   double         sum1,    sum2;
   Array<double>  angles1, angles2;
   double         ratio, avg_ratio, max_ratio;
 
   for (vtkIdType ptId = 0; ptId < npoints; ++ptId) {
-    orig->GetPointCells(ptId, ncells1, cells1);
-    mesh->GetPointCells(ptId, ncells2, cells2);
-    if (ncells1 != ncells2) {
+    orig->GetPointCells(ptId, cellIds1.GetPointer());
+    mesh->GetPointCells(ptId, cellIds2.GetPointer());
+    if (cellIds1->GetNumberOfIds() != cellIds2->GetNumberOfIds()) {
       FatalError("AngularDistortion: Point " << ptId << " belongs to different number of cells in the two meshes!");
     }
-    angles1.resize(ncells1);
-    angles2.resize(ncells2);
-    for (vtkPolyDataGetPointCellsNumCellsType i = 0; i < ncells1; ++i) {
-      if (cells1[i] != cells2[i]) {
+    const vtkIdType ncells = cellIds1->GetNumberOfIds();
+    angles1.resize(ncells);
+    angles2.resize(ncells);
+    for (vtkIdType i = 0; i < ncells; ++i) {
+      if (cellIds1->GetId(i) != cellIds2->GetId(i)) {
         FatalError("AngularDistortion: Lists of cell IDs to which point " << ptId << " belongs differ!");
       }
-      angles1[i] = Angle(orig, cells1[i], ptId);
-      angles2[i] = Angle(mesh, cells2[i], ptId);
+      angles1[i] = Angle(orig, cellIds1->GetId(i), ptId);
+      angles2[i] = Angle(mesh, cellIds2->GetId(i), ptId);
     }
     sum1 = Accumulate(angles1);
     sum2 = Accumulate(angles2);
     avg_ratio = .0;
     max_ratio = .0;
-    for (vtkPolyDataGetPointCellsNumCellsType i = 0; i < ncells1; ++i) {
+    for (vtkIdType i = 0; i < ncells; ++i) {
       ratio = (angles1[i] / sum1) / (angles2[i] / sum2);
       max_ratio = max(max_ratio, ratio);
       avg_ratio += ratio;
     }
-    avg_ratio /= ncells1;
+    avg_ratio /= ncells;
     array->SetComponent(ptId, 0, avg_ratio);
     array->SetComponent(ptId, 1, max_ratio);
   }

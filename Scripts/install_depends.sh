@@ -26,6 +26,7 @@ WITH_FLTK=`norm_option_value "$WITH_FLTK" OFF`
 WITH_CCACHE=`norm_option_value "$WITH_CCACHE" OFF`
 BUILD_DEPS_WITH_CCACHE=`norm_option_value "$BUILD_DEPS_WITH_CCACHE" OFF`
 FORCE_REBUILD_DEPS=`norm_option_value "$FORCE_REBUILD_DEPS" OFF`
+DEBUG_VTK_BUILD=`norm_option_value "$DEBUG_VTK_BUILD" OFF`
 
 
 # ------------------------------------------------------------------------------
@@ -184,7 +185,11 @@ if [ $os = osx ] || [ $os = Darwin ]; then
     VTK_VERSION="$MACOS_VTK_VERSION"
     if [ -z "$VTK_VERSION" ]; then
       echo "Installing VTK using Homebrew"
-      brew_install vtk --without-python
+      brew_install vtk
+    elif [ "$VTK_VERSION" = "8.2" ] || [ "$VTK_VERSION" == "9.0" ]; then
+      echo "Installing VTK $VTK_VERSION using Homebrew"
+      brew_install vtk@$VTK_VERSION
+      VTK_VERSION=""  # skip installation from source code below
     fi
     if [ $WITH_FLTK = ON ]; then
       brew_install fltk
@@ -220,57 +225,94 @@ if [ $WITH_VTK = ON ] && [ -n "$VTK_VERSION" ]; then
   # pre-requisites to use system installations
   if [ $os = osx ] || [ $os = Darwin ]; then
     brew_install hdf5 netcdf jpeg libpng libtiff lz4
-    cmake_args=("${cmake_args[@]}"
-      -DVTK_USE_SYSTEM_HDF5=ON
-      -DVTK_USE_SYSTEM_EXPAT=ON
-      -DVTK_USE_SYSTEM_LIBXML2=ON
-      -DVTK_USE_SYSTEM_ZLIB=ON
-      -DVTK_USE_SYSTEM_NETCDF=ON
-      -DVTK_USE_SYSTEM_JPEG=ON
-      -DVTK_USE_SYSTEM_PNG=ON
-      -DVTK_USE_SYSTEM_TIFF=ON
-      -DVTK_USE_SYSTEM_LIBRARIES=ON
-    )
+    if [ ${VTK_VERSION/.*/} -lt 9 ]; then
+      cmake_args+=(
+        -DVTK_USE_SYSTEM_HDF5=ON
+        -DVTK_USE_SYSTEM_EXPAT=ON
+        -DVTK_USE_SYSTEM_LIBXML2=ON
+        -DVTK_USE_SYSTEM_ZLIB=ON
+        -DVTK_USE_SYSTEM_NETCDF=ON
+        -DVTK_USE_SYSTEM_JPEG=ON
+        -DVTK_USE_SYSTEM_PNG=ON
+        -DVTK_USE_SYSTEM_TIFF=ON
+        -DVTK_USE_SYSTEM_LIBRARIES=ON
+      )
+    else
+      cmake_args+=(
+        -DVTK_MODULE_USE_EXTERNAL_VTK_hdf5=ON
+        -DVTK_MODULE_USE_EXTERNAL_VTK_expat=ON
+        -DVTK_MODULE_USE_EXTERNAL_VTK_libxml2=ON
+        -DVTK_MODULE_USE_EXTERNAL_VTK_zlib=ON
+        -DVTK_MODULE_USE_EXTERNAL_VTK_netcdf=ON
+        -DVTK_MODULE_USE_EXTERNAL_VTK_jpeg=ON
+        -DVTK_MODULE_USE_EXTERNAL_VTK_png=ON
+        -DVTK_MODULE_USE_EXTERNAL_VTK_tiff=ON
+      )
+    fi
   fi
   if [ $FORCE_REBUILD_DEPS = OFF ] && [ -d "$vtk_prefix/lib/cmake/vtk-${VTK_VERSION%.*}" ]; then
     # use previously cached VTK installation
     echo "Using cached VTK $VTK_VERSION installation in $vtk_prefix"
   else
-    # whether to remove downloaded sources and build directory after installation
-    if [ $TRAVIS = ON ]; then
-      cleanup_vtk_build=OFF
-    else
-      cleanup_vtk_build=ON
-    fi
+    run rm -rf "$vtk_prefix"
     # custom build instead of Homebrew to take advantage of caching of minimal build
     cd /tmp
     echo "Downloading VTK $VTK_VERSION..."
-    run curl -O "https://www.vtk.org/files/release/${VTK_VERSION%.*}/VTK-${VTK_VERSION}.tar.gz"
+    run curl -L -o "VTK-${VTK_VERSION}.tar.gz" "https://github.com/Kitware/VTK/archive/v${VTK_VERSION}.tar.gz"
     run tar -xzf "VTK-${VTK_VERSION}.tar.gz"
     mkdir "VTK-${VTK_VERSION}/Build" && cd "VTK-${VTK_VERSION}/Build"
     [ $? -eq 0 ] || exit 1
+    [ "$DEBUG_VTK_BUILD" != "ON" ] || set -x
     echo "Configuring VTK $VTK_VERSION..."
-    cmake_args=("${cmake_args[@]}"
-      -DCMAKE_CXX_STANDARD=$CXX_STANDARD
-      -DVTK_Group_StandAlone=OFF
-      -DVTK_Group_Rendering=OFF
-      -DModule_vtkCommonCore=ON
-      -DModule_vtkCommonDataModel=ON
-      -DModule_vtkCommonExecutionModel=ON
-      -DModule_vtkFiltersCore=ON
-      -DModule_vtkFiltersHybrid=ON
-      -DModule_vtkFiltersFlowPaths=ON
-      -DModule_vtkFiltersGeneral=ON
-      -DModule_vtkFiltersGeometry=ON
-      -DModule_vtkFiltersParallel=ON
-      -DModule_vtkFiltersModeling=ON
-      -DModule_vtkImagingStencil=ON
-      -DModule_vtkIOLegacy=ON
-      -DModule_vtkIOXML=ON
-      -DModule_vtkIOGeometry=ON
-      -DModule_vtkIOPLY=ON
-      -DModule_vtkIOXML=ON
-    )
+    cmake_args+=(-DCMAKE_CXX_STANDARD=$CXX_STANDARD)
+    if [ ${VTK_VERSION/.*/} -lt 9 ]; then
+      cmake_args+=(
+        -DVTK_Group_Rendering=OFF
+        -DVTK_Group_StandAlone=OFF
+        -DModule_vtkCommonCore=ON
+        -DModule_vtkCommonDataModel=ON
+        -DModule_vtkCommonExecutionModel=ON
+        -DModule_vtkFiltersCore=ON
+        -DModule_vtkFiltersHybrid=ON
+        -DModule_vtkFiltersFlowPaths=ON
+        -DModule_vtkFiltersGeneral=ON
+        -DModule_vtkFiltersGeometry=ON
+        -DModule_vtkFiltersParallel=ON
+        -DModule_vtkFiltersModeling=ON
+        -DModule_vtkImagingStencil=ON
+        -DModule_vtkIOLegacy=ON
+        -DModule_vtkIOXML=ON
+        -DModule_vtkIOGeometry=ON
+        -DModule_vtkIOPLY=ON
+        -DModule_vtkIOXML=ON
+      )
+    else
+      cmake_args+=(
+        -DVTK_GROUP_ENABLE_Imaging=YES
+        -DVTK_GROUP_ENABLE_MPI=DONT_WANT
+        -DVTK_GROUP_ENABLE_Qt=DONT_WANT
+        -DVTK_GROUP_ENABLE_Rendering=DONT_WANT
+        -DVTK_GROUP_ENABLE_StandAlone=DONT_WANT
+        -DVTK_GROUP_ENABLE_Views=DONT_WANT
+        -DVTK_GROUP_ENABLE_Web=DONT_WANT
+        -DVTK_MODULE_ENABLE_VTK_CommonCore=YES
+        -DVTK_MODULE_ENABLE_VTK_CommonDataModel=YES
+        -DVTK_MODULE_ENABLE_VTK_CommonExecutionModel=YES
+        -DVTK_MODULE_ENABLE_VTK_FiltersCore=YES
+        -DVTK_MODULE_ENABLE_VTK_FiltersHybrid=YES
+        -DVTK_MODULE_ENABLE_VTK_FiltersFlowPaths=YES
+        -DVTK_MODULE_ENABLE_VTK_FiltersGeneral=YES
+        -DVTK_MODULE_ENABLE_VTK_FiltersGeometry=YES
+        -DVTK_MODULE_ENABLE_VTK_FiltersParallel=YES
+        -DVTK_MODULE_ENABLE_VTK_FiltersModeling=YES
+        -DVTK_MODULE_ENABLE_VTK_ImagingStencil=YES
+        -DVTK_MODULE_ENABLE_VTK_IOLegacy=YES
+        -DVTK_MODULE_ENABLE_VTK_IOXML=YES
+        -DVTK_MODULE_ENABLE_VTK_IOGeometry=YES
+        -DVTK_MODULE_ENABLE_VTK_IOPLY=YES
+        -DVTK_MODULE_ENABLE_VTK_IOXML=YES
+      )
+    fi
     if [ $WITH_CCACHE = ON ] && [ $BUILD_DEPS_WITH_CCACHE = ON ]; then
       cc_compiler=''
       cxx_compiler=''
@@ -279,15 +321,11 @@ if [ $WITH_VTK = ON ] && [ -n "$VTK_VERSION" ]; then
       [ -z "$CXX" ] || cc_compiler=`which $CXX`
       if [ "$cc_compiler" = "${cc_compiler/ccache/}" ]; then
         echo "Using $launcher as C compiler launcher"
-        cmake_args=("${cmake_args[@]}"
-          -DCMAKE_C_COMPILER_LAUNCHER="$launcher"
-        )
+        cmake_args+=(-DCMAKE_C_COMPILER_LAUNCHER="$launcher")
       fi
       if [ "$cxx_compiler" = "${cxx_compiler/ccache/}" ]; then
         echo "Using $launcher as C++ compiler launcher"
-        cmake_args=("${cmake_args[@]}"
-          -DCMAKE_CXX_COMPILER_LAUNCHER="$launcher"
-        )
+        cmake_args+=(-DCMAKE_CXX_COMPILER_LAUNCHER="$launcher")
       fi
     fi
     run "$cmake_cmd" "${cmake_args[@]}" ..
@@ -303,4 +341,5 @@ if [ $WITH_VTK = ON ] && [ -n "$VTK_VERSION" ]; then
   fi
   mkdir -p "$HOME/.cmake/packages/VTK" || exit 1
   echo "$vtk_prefix/lib/cmake/vtk-${VTK_VERSION%.*}" > "$HOME/.cmake/packages/VTK/VTK-$VTK_VERSION"
+  set +x
 fi

@@ -30,6 +30,7 @@
 #include "mirtk/PointSetUtils.h"
 #include "mirtk/VtkMath.h"
 
+#include "vtkNew.h"
 #include "vtkSmartPointer.h"
 #include "vtkPointData.h"
 #include "vtkCellData.h"
@@ -181,9 +182,9 @@ struct ConvertCellLabelsToPointLabels
     UnorderedMap<int, int>::iterator it;
     int label, maxcount;
 
-    vtkSmartPointer<vtkIdList> cellIds = vtkSmartPointer<vtkIdList>::New();
+    vtkNew<vtkIdList> cellIds;
     for (vtkIdType ptId = 0; ptId < _DataSet->GetNumberOfPoints(); ++ptId) {
-      _DataSet->GetPointCells(ptId, cellIds);
+      _DataSet->GetPointCells(ptId, cellIds.GetPointer());
       count.clear();
       for (vtkIdType i = 0; i < cellIds->GetNumberOfIds(); ++i) {
         label = static_cast<int>(_CellLabels->GetComponent(cellIds->GetId(i), 0));

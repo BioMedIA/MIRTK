@@ -58,7 +58,7 @@ basis_project (
     #<dependency>
   OPTIONAL_DEPENDS
     TBB{tbb}
-    VTK-8|7|6{vtkCommonCore,vtkCommonDataModel,vtkIOLegacy,vtkIOXML}
+    VTK{vtkCommonCore,vtkCommonDataModel,vtkIOLegacy,vtkIOXML}
     Python{Interp} # ForEachVoxelFunction.py generator script
     #<optional-dependency>
   TEST_DEPENDS

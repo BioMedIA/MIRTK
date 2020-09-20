@@ -85,22 +85,21 @@ public:
   /// Compute edge tensors for specified range of edges
   void operator ()(const blocked_range<vtkIdType> &re) const
   {
-    vtkIdType npts, *pts, ptId1, ptId2, cellId1, cellId2;
+    vtkNew<vtkIdList> ptIds, adjCellIds;
+    vtkIdType ptId1, ptId2, cellId1, cellId2;
     double    d, p1[3], p2[3], e[3], n1[3], n2[3], dp, cp[3], beta, s, T[6];
-
-    vtkSmartPointer<vtkIdList> adjCellIds = vtkSmartPointer<vtkIdList>::New();
 
     // Iterate over faces
     for (cellId1 = re.begin(); cellId1 != re.end(); ++cellId1) {
-      _Surface->GetCellPoints(cellId1, npts, pts);
-      for (vtkIdType i = 0; i < npts; ++i) {
+      _Surface->GetCellPoints(cellId1, ptIds.GetPointer());
+      for (vtkIdType i = 0; i < ptIds->GetNumberOfIds(); ++i) {
         // Get edge points
-        ptId1 = pts[i];
-        ptId2 = pts[(i + 1) % npts];
+        ptId1 = ptIds->GetId(i);
+        ptId2 = ptIds->GetId((i + 1) % ptIds->GetNumberOfIds());
         // Process edge only if there is really just one other neighbour, i.e.,
         // the edge has two adjacent faces with IDs cellId1 and cellId2, and
         // when the edge was not visited before (ensured by cellId1 < cellId2)
-        _Surface->GetCellEdgeNeighbors(cellId1, ptId1, ptId2, adjCellIds);
+        _Surface->GetCellEdgeNeighbors(cellId1, ptId1, ptId2, adjCellIds.GetPointer());
         if (adjCellIds->GetNumberOfIds() == 1 && cellId1 < (cellId2 = adjCellIds->GetId(0))) {
           // Compute normalized edge vector
           _Surface->GetPoint(ptId1, p1);

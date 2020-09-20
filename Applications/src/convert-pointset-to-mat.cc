@@ -25,6 +25,7 @@
 #include "mirtk/PointSetIO.h"
 #include "mirtk/PointSetUtils.h"
 
+#include "vtkNew.h"
 #include "vtkSmartPointer.h"
 #include "vtkPolyData.h"
 #include "vtkCellArray.h"
@@ -172,9 +173,11 @@ int main(int argc, char *argv[])
     vtkIdType i = 0;
     vtkCellArray *cells = polydata->GetPolys();
     cells->InitTraversal();
-    vtkIdType npts, *pts;
-    while (cells->GetNextCell(npts, pts)) {
-      F(i, 0) = pts[0]+1, F(i, 1) = pts[1]+1, F(i, 2) = pts[2]+1;
+    vtkNew<vtkIdList> ptIds;
+    while (cells->GetNextCell(ptIds.GetPointer())) {
+      F(i, 0) = ptIds->GetId(0) + 1;
+      F(i, 1) = ptIds->GetId(1) + 1;
+      F(i, 2) = ptIds->GetId(2) + 1;
       ++i;
     }
     mxArray *var = MatrixToMxArray(F);

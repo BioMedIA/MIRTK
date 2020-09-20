@@ -249,18 +249,17 @@ BorderPointMask(vtkPolyData *surface, vtkDataArray *point_labels,
   mask = NewVtkDataArray(VTK_UNSIGNED_CHAR, surface->GetNumberOfPoints(), 1, "BorderMask");
   double label;
   if (cell_labels) {
-    vtkPolyDataGetPointCellsNumCellsType ncells;
-    vtkIdType *cells;
+    vtkNew<vtkIdList> cellIds;
     for (vtkIdType ptId = 0; ptId < surface->GetNumberOfPoints(); ++ptId) {
-      surface->GetPointCells(ptId, ncells, cells);
-      if (ncells == 1) {
+      surface->GetPointCells(ptId, cellIds.GetPointer());
+      if (cellIds->GetNumberOfIds() == 1) {
         mask->SetComponent(ptId, 0, 1.);
       } else {
         mask->SetComponent(ptId, 0, 0.);
-        if (ncells > 0) {
-          label = cell_labels->GetComponent(cells[0], 0);
-          for (vtkPolyDataGetPointCellsNumCellsType i = 1; i < ncells; ++i) {
-            if (cell_labels->GetComponent(cells[i], 0) != label) {
+        if (cellIds->GetNumberOfIds() > 0) {
+          label = cell_labels->GetComponent(cellIds->GetId(0), 0);
+          for (vtkIdType i = 1; i < cellIds->GetNumberOfIds(); ++i) {
+            if (cell_labels->GetComponent(cellIds->GetId(i), 0) != label) {
               mask->SetComponent(ptId, 0, 1.);
               break;
             }
@@ -307,18 +306,17 @@ BorderCellMask(vtkPolyData *surface, vtkDataArray *cell_labels, bool edge_nbrs =
       }
     }
   } else {
-    vtkPolyDataGetPointCellsNumCellsType ncells;
-    vtkIdType npts, *pts, *cells;
+    vtkNew<vtkIdList> cellIds, ptIds;
     for (vtkIdType cellId = 0; cellId < surface->GetNumberOfCells(); ++cellId) {
       mask->SetComponent(cellId, 0, 0.);
       label = cell_labels->GetComponent(cellId, 0);
-      surface->GetCellPoints(cellId, npts, pts);
-      for (vtkIdType i = 0; i < npts; ++i) {
-        surface->GetPointCells(pts[i], ncells, cells);
-        for (vtkPolyDataGetPointCellsNumCellsType j = 0; j < ncells; ++j) {
-          if (cell_labels->GetComponent(cells[j], 0) != label) {
+      surface->GetCellPoints(cellId, ptIds.GetPointer());
+      for (vtkIdType i = 0; i < ptIds->GetNumberOfIds(); ++i) {
+        surface->GetPointCells(ptIds->GetId(i), cellIds.GetPointer());
+        for (vtkIdType j = 0; j < cellIds->GetNumberOfIds(); ++j) {
+          if (cell_labels->GetComponent(cellIds->GetId(j), 0) != label) {
             mask->SetComponent(cellId, 0, 1.);
-            i = npts; // break all inner loops
+            i = ptIds->GetNumberOfIds(); // break all inner loops
             break;
           }
         }

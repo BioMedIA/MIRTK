@@ -60,11 +60,7 @@ basis_project (
     MIRTK{PointSet}
     MIRTK{Deformable}
     MATLAB{mwmclmcrrt}
-    "VTK-8|7|6{
-      vtkCommonCore,
-      vtkCommonDataModel,
-      vtkIOXML
-    }"
+    VTK{vtkCommonCore,vtkCommonDataModel,vtkIOXML}
     TBB{tbb}
     #<optional-dependency>
   TEST_DEPENDS

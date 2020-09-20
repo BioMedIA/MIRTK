@@ -160,21 +160,19 @@ double hSquareRobustMean(vtkPolyData* surface)
 // -----------------------------------------------------------------------------
 double surfaceArea(vtkPolyData* surface)
 {
-  vtkCellArray* facets = surface->GetPolys();
-  vtkTriangle* facet = vtkTriangle::New();
+  vtkCellArray * const facets = surface->GetPolys();
+  vtkNew<vtkTriangle> facet;
 
   double A = 0.0;
   double v0[3], v1[3], v2[3];
 
-  vtkIdType f, *vert=0;
+  vtkNew<vtkIdList> ptIds;
   facets->InitTraversal();
-  while (facets->GetNextCell(f,vert)){
-
-    surface->GetPoint(vert[0],v0);
-    surface->GetPoint(vert[1],v1);
-    surface->GetPoint(vert[2],v2);
-
-    A += double(facet->TriangleArea(v0,v1,v2));
+  while (facets->GetNextCell(ptIds.GetPointer())) {
+    surface->GetPoint(ptIds->GetId(0), v0);
+    surface->GetPoint(ptIds->GetId(1), v1);
+    surface->GetPoint(ptIds->GetId(2), v2);
+    A += double(facet->TriangleArea(v0, v1, v2));
   }
 
   return A;
@@ -191,14 +189,14 @@ void getCoG(vtkPolyData *input, double*cog)
 
   noOfPoints = input->GetNumberOfPoints();
 
-  for (i = 0; i < noOfPoints; i++){
-    input->GetPoint (i, point);
+  for (i = 0; i < noOfPoints; i++) {
+    input->GetPoint(i, point);
     cofgx += point[0];
     cofgy += point[1];
     cofgz += point[2];
   }
 
-  if (noOfPoints > 0){
+  if (noOfPoints > 0) {
     cofgx /= noOfPoints;
     cofgy /= noOfPoints;
     cofgz /= noOfPoints;
@@ -216,10 +214,10 @@ void shiftAndScalePolyData(vtkPolyData* input, double *shift, double factor)
   noOfPoints = input->GetNumberOfPoints();
   double vOld[3], vNew[3];
 
-  for (i = 0; i < noOfPoints; ++i){
+  for (i = 0; i < noOfPoints; ++i) {
     input->GetPoint(i, vOld);
 
-    for (j = 0; j < 3; ++j){
+    for (j = 0; j < 3; ++j) {
       vNew[j] = factor * (vOld[j] + shift[j]);
     }
 
@@ -236,8 +234,8 @@ double meanRadius(vtkPolyData* input, double*cog)
 
   noOfPoints = input->GetNumberOfPoints();
 
-  for (i = 0; i < noOfPoints; i++){
-    input->GetPoint (i, point);
+  for (i = 0; i < noOfPoints; i++) {
+    input->GetPoint(i, point);
     r = sqrt((point[0]-cog[0])*(point[0]-cog[0]) +
              (point[1]-cog[1])*(point[1]-cog[1]) +
              (point[2]-cog[2])*(point[2]-cog[2]));
@@ -258,12 +256,8 @@ void AreaWeightedLaplacianSmoothing(vtkPolyData *input, vtkDataArray *mask,
   double E_H2, area;
 
   double currPos[3];
-  vtkPolyDataGetPointCellsNumCellsType noOfCells = 0;
-  vtkIdType* cells = NULL;
-  vtkTriangle* triangle = NULL;
   double totalArea = 0;
   double update[3];
-  vtkIdList* ptIds = NULL;
   double v1[3], v2[3], v3[3], centre[3];
   double triangleArea = 0;
   double dx, dy, dz;
@@ -276,6 +270,8 @@ void AreaWeightedLaplacianSmoothing(vtkPolyData *input, vtkDataArray *mask,
   double radiusOld, radiusNew;
   double shift[3];
   double scaleFactor;
+
+  vtkNew<vtkIdList> cellIds;
 
   const int noOfPoints = static_cast<int>(input->GetNumberOfPoints());
   vtkDataArray * const normals = input->GetPointData()->GetNormals();
@@ -326,8 +322,8 @@ void AreaWeightedLaplacianSmoothing(vtkPolyData *input, vtkDataArray *mask,
       if (mask && mask->GetComponent(j, 0) == 0.) continue;
 
       // What cells does this node adjoin?
-      input->GetPointCells(j, noOfCells, cells);
-      if (noOfCells == 0) continue;
+      input->GetPointCells(j, cellIds.GetPointer());
+      if (cellIds->GetNumberOfIds() == 0) continue;
 
       // Store the current position of the node.
       input->GetPoint(j, currPos);
@@ -338,10 +334,10 @@ void AreaWeightedLaplacianSmoothing(vtkPolyData *input, vtkDataArray *mask,
       update[1] = 0;
       update[2] = 0;
 
-      for (k = 0; k < noOfCells; ++k) {
-        triangle = vtkTriangle::SafeDownCast(input->GetCell(cells[k]));
+      for (k = 0; k < cellIds->GetNumberOfIds(); ++k) {
+        vtkTriangle* const triangle = vtkTriangle::SafeDownCast(input->GetCell(cellIds->GetId(k)));
         if (triangle == nullptr) continue;
-        ptIds = triangle->GetPointIds();
+        vtkIdList* const ptIds = triangle->GetPointIds();
 
         input->GetPoint(ptIds->GetId(0), v1);
         input->GetPoint(ptIds->GetId(1), v2);

@@ -2117,12 +2117,7 @@ void GenericImage<VoxelType>::ImageToVTK(vtkStructuredPoints *vtk) const
   vtk->SetOrigin    (x, y, z);
   vtk->SetDimensions(_attr._x,  _attr._y,  _attr._z);
   vtk->SetSpacing   (_attr._dx, _attr._dy, _attr._dz);
-#if VTK_MAJOR_VERSION >= 6
   vtk->AllocateScalars(this->ImageToVTKScalarType(), 1);
-#else
-  vtk->SetScalarType(this->ImageToVTKScalarType());
-  vtk->AllocateScalars();
-#endif
   const int        nvox = _attr._x * _attr._y * _attr._z;
   const VoxelType *ptr1 = this->Data();
   VoxelType       *ptr2 = reinterpret_cast<VoxelType *>(vtk->GetScalarPointer());

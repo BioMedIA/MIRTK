@@ -27,6 +27,7 @@
 #include "vtkSmartPointer.h"
 #include "vtkDataArray.h"
 #include "vtkDataSetAttributes.h"
+#include "vtkIdList.h"
 #include "vtkVersionMacros.h"
 
 
@@ -50,35 +51,16 @@ namespace mirtk {
 #define VTK_DATA_FLOAT   "float"
 
 // =============================================================================
-// VTK 5/6 transition
+// Deprecated macros from VTK 5/6 transition - VTK <6 no longer supported
 // =============================================================================
 
 // Auxiliary macros to set/add VTK filter input (connection)
-#if VTK_MAJOR_VERSION >= 6
-#  define SetVTKInput(filter, dataset) (filter)->SetInputData(dataset);
-#  define AddVTKInput(filter, dataset) (filter)->AddInputData(dataset);
-#  define SetVTKConnection(filter2, filter1) (filter2)->SetInputConnection((filter1)->GetOutputPort());
-#  define SetNthVTKInput(filter, n, dataset) (filter)->SetInputData(n, dataset);
-#  define AddNthVTKInput(filter, n, dataset) (filter)->AddInputData(n, dataset);
-#  define SetNthVTKConnection(filter2, n2, filter1, n1) (filter2)->SetInputConnection(n2, (filter1)->GetOutputPort(n1));
-#else
-#  define SetVTKInput(filter, dataset) (filter)->SetInput(dataset);
-#  define AddVTKInput(filter, dataset) (filter)->AddInput(dataset);
-#  define SetVTKConnection(filter2, filter1) (filter2)->SetInput((filter1)->GetOutput());
-#  define SetNthVTKInput(filter, n, dataset) (filter)->SetInput(n, dataset);
-#  define AddNthVTKInput(filter, n, dataset) (filter)->AddInput(n, dataset);
-#  define SetNthVTKConnection(filter2, n2, filter1, n1) (filter2)->SetInput(n2, (filter1)->GetOutput(n1));
-#endif
-
-// =============================================================================
-// VTK 8/9 transition
-// =============================================================================
-
-#if VTK_MAJOR_VERSION > 8 || (VTK_MAJOR_VERSION == 8 && VTK_MINOR_VERSION == 90)
-  typedef vtkIdType vtkPolyDataGetPointCellsNumCellsType;
-#else
-  typedef unsigned short vtkPolyDataGetPointCellsNumCellsType;
-#endif
+#define SetVTKInput(filter, dataset) (filter)->SetInputData(dataset);
+#define AddVTKInput(filter, dataset) (filter)->AddInputData(dataset);
+#define SetVTKConnection(filter2, filter1) (filter2)->SetInputConnection((filter1)->GetOutputPort());
+#define SetNthVTKInput(filter, n, dataset) (filter)->SetInputData(n, dataset);
+#define AddNthVTKInput(filter, n, dataset) (filter)->AddInputData(n, dataset);
+#define SetNthVTKConnection(filter2, n2, filter1, n1) (filter2)->SetInputConnection(n2, (filter1)->GetOutputPort(n1));
 
 // =============================================================================
 // Data set attributes

@@ -177,13 +177,13 @@ inline void SurfaceRemeshing::GetNormal(vtkIdType ptId, double n[3]) const
 // -----------------------------------------------------------------------------
 inline double SurfaceRemeshing::ComputeArea(vtkIdType cellId) const
 {
-  vtkIdType npts, *pts;
-  _Output->GetCellPoints(cellId, npts, pts);
-  if (npts != 3) return numeric_limits<double>::infinity();
+  vtkNew<vtkIdList> ptIds;
+  _Output->GetCellPoints(cellId, ptIds.GetPointer());
+  if (ptIds->GetNumberOfIds() != 3) return numeric_limits<double>::infinity();
   double p1[3], p2[3], p3[3];
-  GetPoint(pts[0], p1);
-  GetPoint(pts[1], p2);
-  GetPoint(pts[2], p3);
+  GetPoint(ptIds->GetId(0), p1);
+  GetPoint(ptIds->GetId(1), p2);
+  GetPoint(ptIds->GetId(2), p3);
   return Triangle::Area(p1, p2, p3);
 }
 
@@ -208,10 +208,9 @@ inline Point SurfaceRemeshing::MiddlePoint(vtkIdType ptId1, vtkIdType ptId2) con
 // -----------------------------------------------------------------------------
 inline int SurfaceRemeshing::NodeConnectivity(vtkIdType ptId) const
 {
-  vtkIdType *cells;
-  vtkPolyDataGetPointCellsNumCellsType ncells;
-  _Output->GetPointCells(ptId, ncells, cells);
-  return static_cast<int>(ncells);
+  vtkNew<vtkIdList> cellIds;
+  _Output->GetPointCells(ptId, cellIds.GetPointer());
+  return static_cast<int>(cellIds->GetNumberOfIds());
 }
 
 // -----------------------------------------------------------------------------
@@ -258,19 +257,18 @@ inline vtkIdType SurfaceRemeshing::GetCellEdgeNeighbor(vtkIdType cellId, vtkIdTy
 // -----------------------------------------------------------------------------
 inline bool SurfaceRemeshing::IsBoundaryPoint(vtkIdType ptId) const
 {
-  vtkPolyDataGetPointCellsNumCellsType ncells;
-  vtkIdType *cells, *pts, npts;
-  _Output->GetPointCells(ptId, ncells, cells);
-  for (vtkPolyDataGetPointCellsNumCellsType i = 0; i < ncells; ++i) {
-    _Output->GetCellPoints(cells[i], npts, pts);
-    for (vtkIdType j = 0; j < npts; ++j) {
-      if (pts[j] == ptId) {
+  vtkNew<vtkIdList> cellIds, ptIds;
+  _Output->GetPointCells(ptId, cellIds.GetPointer());
+  for (vtkIdType i = 0; i < cellIds->GetNumberOfIds(); ++i) {
+    _Output->GetCellPoints(cellIds->GetId(i), ptIds.GetPointer());
+    for (vtkIdType j = 0; j < ptIds->GetNumberOfIds(); ++j) {
+      if (ptIds->GetId(j) == ptId) {
         if (j == 0) {
-          if (GetCellEdgeNeighbor(cells[i], pts[npts-1], ptId) == -1 ||
-              GetCellEdgeNeighbor(cells[i], ptId, pts[j+1])    == -1) return true;
+          if (GetCellEdgeNeighbor(cellIds->GetId(i), ptIds->GetId(ptIds->GetNumberOfIds() - 1), ptId) == -1 ||
+              GetCellEdgeNeighbor(cellIds->GetId(i), ptId, ptIds->GetId(j + 1)) == -1) return true;
         } else {
-          if (GetCellEdgeNeighbor(cells[i], pts[j-1], ptId)        == -1 ||
-              GetCellEdgeNeighbor(cells[i], ptId, pts[(j+1)%npts]) == -1) return true;
+          if (GetCellEdgeNeighbor(cellIds->GetId(i), ptIds->GetId(j - 1), ptId) == -1 ||
+              GetCellEdgeNeighbor(cellIds->GetId(i), ptId, ptIds->GetId((j + 1) % ptIds->GetNumberOfIds())) == -1) return true;
         }
         break;
       }
@@ -282,13 +280,13 @@ inline bool SurfaceRemeshing::IsBoundaryPoint(vtkIdType ptId) const
 // -----------------------------------------------------------------------------
 inline bool SurfaceRemeshing::IsBoundaryEdge(vtkIdType ptId1, vtkIdType ptId2) const
 {
-  vtkIdType *cells1, *cells2;
-  vtkPolyDataGetPointCellsNumCellsType ncells1, ncells2, n = 0;
-  _Output->GetPointCells(ptId1, ncells1, cells1);
-  _Output->GetPointCells(ptId2, ncells2, cells2);
-  for (vtkPolyDataGetPointCellsNumCellsType i = 0; i < ncells1; ++i)
-  for (vtkPolyDataGetPointCellsNumCellsType j = 0; j < ncells2; ++j) {
-    if (cells1[i] == cells2[j]) ++n;
+  vtkIdType n = 0;
+  vtkNew<vtkIdList> cellIds1, cellIds2;
+  _Output->GetPointCells(ptId1, cellIds1.GetPointer());
+  _Output->GetPointCells(ptId2, cellIds2.GetPointer());
+  for (vtkIdType i = 0; i < cellIds1->GetNumberOfIds(); ++i)
+  for (vtkIdType j = 0; j < cellIds2->GetNumberOfIds(); ++j) {
+    if (cellIds1->GetId(i) == cellIds2->GetId(j)) ++n;
   }
   return n != 2;
 }
@@ -296,10 +294,10 @@ inline bool SurfaceRemeshing::IsBoundaryEdge(vtkIdType ptId1, vtkIdType ptId2) c
 // -----------------------------------------------------------------------------
 inline bool SurfaceRemeshing::IsBoundaryCell(vtkIdType cellId) const
 {
-  vtkIdType npts, *pts;
-  _Output->GetCellPoints(cellId, npts, pts);
-  for (vtkIdType i = 0; i < npts; ++i) {
-    if (IsBoundaryEdge(pts[i], pts[(i+1)%npts])) return true;
+  vtkNew<vtkIdList> ptIds;
+  _Output->GetCellPoints(cellId, ptIds.GetPointer());
+  for (vtkIdType i = 0; i < ptIds->GetNumberOfIds(); ++i) {
+    if (IsBoundaryEdge(ptIds->GetId(i), ptIds->GetId((i + 1) % ptIds->GetNumberOfIds()))) return true;
   }
   return false;
 }
@@ -309,14 +307,13 @@ inline void SurfaceRemeshing
 ::GetCellPointNeighbors(vtkIdType cellId, vtkIdType ptId, vtkIdList *ptIds) const
 {
   ptIds->Reset();
-  vtkPolyDataGetPointCellsNumCellsType ncells;
-  vtkIdType *cells, *pts, npts;
-  _Output->GetPointCells(ptId, ncells, cells);
-  for (vtkPolyDataGetPointCellsNumCellsType i = 0; i < ncells; ++i) {
-    if (cells[i] != cellId) {
-      _Output->GetCellPoints(cells[i], npts, pts);
-      for (vtkIdType j = 0; j < npts; ++j) {
-        if (pts[j] != ptId) ptIds->InsertUniqueId(pts[j]);
+  vtkNew<vtkIdList> cellIds, cellPtIds;
+  _Output->GetPointCells(ptId, cellIds.GetPointer());
+  for (vtkIdType i = 0; i < cellIds->GetNumberOfIds(); ++i) {
+    if (cellIds->GetId(i) != cellId) {
+      _Output->GetCellPoints(cellIds->GetId(i), cellPtIds.GetPointer());
+      for (vtkIdType j = 0; j < cellPtIds->GetNumberOfIds(); ++j) {
+        if (cellPtIds->GetId(j) != ptId) ptIds->InsertUniqueId(cellPtIds->GetId(j));
       }
     }
   }
@@ -326,8 +323,8 @@ inline void SurfaceRemeshing
 inline vtkIdType SurfaceRemeshing
 ::GetCellEdgeNeighborPoint(vtkIdType cellId, vtkIdType ptId1, vtkIdType ptId2, bool mergeTriples)
 {
-  vtkPolyDataGetPointCellsNumCellsType ncells;
-  vtkIdType ptId3, npts, *pts, *cells;
+  vtkNew<vtkIdList> cellIds, ptIds;
+  vtkIdType ptId3;
 
   // Get other cell adjacent to this edge
   const vtkIdType neighborCellId = GetCellEdgeNeighbor(cellId, ptId1, ptId2);
@@ -364,32 +361,32 @@ inline vtkIdType SurfaceRemeshing
       int idx = -1; // index of cell that becomes union of node adjacent cells
       for (vtkIdType i = 0; i < ptIds1->GetNumberOfIds(); ++i) {
         ptId3 = ptIds1->GetId(i);
-        _Output->GetPointCells(ptId3, ncells, cells);
-        if (ncells != 3) continue; // node connectivity must be three
-        for (vtkPolyDataGetPointCellsNumCellsType j = 0; j < ncells; ++j) {
-          _Output->GetCellPoints(cells[j], npts, pts);
-          for (vtkIdType k = 0; k < npts; ++k) {
-            if (pts[k] != ptId1 && pts[k] != ptId2 && pts[k] != ptId3) {
-              for (vtkPolyDataGetPointCellsNumCellsType l = 0; l < ncells; ++l) {
-                if (cells[l] == cellId || cells[l] == neighborCellId) {
-                  ReplaceCellPoint(cells[l], ptId3, pts[k]);
+        _Output->GetPointCells(ptId3, cellIds.GetPointer());
+        if (cellIds->GetNumberOfIds() != 3) continue; // node connectivity must be three
+        for (vtkIdType j = 0; j < cellIds->GetNumberOfIds(); ++j) {
+          _Output->GetCellPoints(cellIds->GetId(j), ptIds.GetPointer());
+          for (vtkIdType k = 0; k < ptIds->GetNumberOfIds(); ++k) {
+            if (ptIds->GetId(k) != ptId1 && ptIds->GetId(k) != ptId2 && ptIds->GetId(k) != ptId3) {
+              for (vtkIdType l = 0; l < cellIds->GetNumberOfIds(); ++l) {
+                if (cellIds->GetId(l) == cellId || cellIds->GetId(l) == neighborCellId) {
+                  ReplaceCellPoint(cellIds->GetId(l), ptId3, ptIds->GetId(k));
                   idx = l;
                   break;
                 }
               }
               if (idx != -1) {
-                for (vtkPolyDataGetPointCellsNumCellsType l = 0; l < ncells; ++l) {
-                  if (l != idx) DeleteCell(cells[l]);
+                for (vtkIdType l = 0; l < cellIds->GetNumberOfIds(); ++l) {
+                  if (l != idx) DeleteCell(cellIds->GetId(l));
                 }
                 ptIds1->DeleteId(ptId3);
-                ptIds1->InsertUniqueId(pts[k]); // should be in list already
+                ptIds1->InsertUniqueId(ptIds->GetId(k)); // should be in list already
                 if (_MeltingQueue) {
-                  for (vtkPolyDataGetPointCellsNumCellsType l = 0; l < ncells; ++l) {
-                    _MeltingQueue->DeleteId(cells[l]);
-                    if (l == idx && cells[l] != cellId) {
-                      double priority = MeltingPriority(cells[idx]);
+                  for (vtkIdType l = 0; l < cellIds->GetNumberOfIds(); ++l) {
+                    _MeltingQueue->DeleteId(cellIds->GetId(l));
+                    if (l == idx && cellIds->GetId(l) != cellId) {
+                      double priority = MeltingPriority(cellIds->GetId(idx));
                       if (!IsInf(priority)) {
-                        _MeltingQueue->Insert(priority, cells[idx]);
+                        _MeltingQueue->Insert(priority, cellIds->GetId(idx));
                       }
                     }
                   }
@@ -412,11 +409,11 @@ inline vtkIdType SurfaceRemeshing
   if (ptIds1->GetNumberOfIds() != 2) return -1;
 
   // Get other cell edge neighbor point
-  _Output->GetCellPoints(neighborCellId, npts, pts);
-  if (npts == 3) {
-    for (vtkIdType i = 0; i < npts; ++i) {
-      if (pts[i] != ptId1 && pts[i] != ptId2) {
-        return pts[i];
+  _Output->GetCellPoints(neighborCellId, ptIds.GetPointer());
+  if (ptIds->GetNumberOfIds() == 3) {
+    for (vtkIdType i = 0; i < ptIds->GetNumberOfIds(); ++i) {
+      if (ptIds->GetId(i) != ptId1 && ptIds->GetId(i) != ptId2) {
+        return ptIds->GetId(i);
       }
     }
   }
@@ -435,13 +432,13 @@ inline double SurfaceRemeshing::MeltingPriority(vtkIdType cellId) const
       priority = ComputeArea(cellId);
     } break;
     case SHORTEST_EDGE: {
-      vtkIdType npts, *pts;
-      _Output->GetCellPoints(cellId, npts, pts);
-      if (npts == 3) {
+      vtkNew<vtkIdList> ptIds;
+      _Output->GetCellPoints(cellId, ptIds.GetPointer());
+      if (ptIds->GetNumberOfIds() == 3) {
         double p1[3], p2[3], p3[3];
-        GetPoint(pts[0], p1);
-        GetPoint(pts[1], p2);
-        GetPoint(pts[2], p3);
+        GetPoint(ptIds->GetId(0), p1);
+        GetPoint(ptIds->GetId(1), p2);
+        GetPoint(ptIds->GetId(2), p3);
         priority = min(min(vtkMath::Distance2BetweenPoints(p1, p2),
                            vtkMath::Distance2BetweenPoints(p1, p3)),
                            vtkMath::Distance2BetweenPoints(p2, p3));
@@ -462,24 +459,22 @@ inline void SurfaceRemeshing
     UnorderedMap<double, double> bins;
     UnorderedMap<double, double>::iterator bin;
     double v, max_val;
-    vtkPolyDataGetPointCellsNumCellsType ncells;
-    vtkIdType npts, *pts, *cells;
-    vtkSmartPointer<vtkIdList> ptIds = vtkSmartPointer<vtkIdList>::New();
+    vtkNew<vtkIdList> cellIds, cellPtIds, ptIds;
     for (auto i : _CategoricalPointDataIndices) {
       vtkDataArray * const arr = inputPD->GetArray(i);
       ptIds->Reset();
-      _Output->GetPointCells(ptId1, ncells, cells);
-      for (vtkPolyDataGetPointCellsNumCellsType j = 0; j < ncells; ++j) {
-        _Output->GetCellPoints(cells[j], npts, pts);
-        for (vtkIdType k = 0; k < npts; ++k) {
-          if (pts[k] != newId) ptIds->InsertUniqueId(pts[k]);
+      _Output->GetPointCells(ptId1, cellIds.GetPointer());
+      for (vtkIdType j = 0; j < cellIds->GetNumberOfIds(); ++j) {
+        _Output->GetCellPoints(cellIds->GetId(j), cellPtIds.GetPointer());
+        for (vtkIdType k = 0; k < cellPtIds->GetNumberOfIds(); ++k) {
+          if (cellPtIds->GetId(k) != newId) ptIds->InsertUniqueId(cellPtIds->GetId(k));
         }
       }
-      _Output->GetPointCells(ptId2, ncells, cells);
-      for (vtkPolyDataGetPointCellsNumCellsType j = 0; j < ncells; ++j) {
-        _Output->GetCellPoints(cells[j], npts, pts);
-        for (vtkIdType k = 0; k < npts; ++k) {
-          if (pts[k] != newId) ptIds->InsertUniqueId(pts[k]);
+      _Output->GetPointCells(ptId2, cellIds.GetPointer());
+      for (vtkIdType j = 0; j < cellIds->GetNumberOfIds(); ++j) {
+        _Output->GetCellPoints(cellIds->GetId(j), cellPtIds.GetPointer());
+        for (vtkIdType k = 0; k < cellPtIds->GetNumberOfIds(); ++k) {
+          if (cellPtIds->GetId(k) != newId) ptIds->InsertUniqueId(cellPtIds->GetId(k));
         }
       }
       bins.clear();
@@ -627,8 +622,8 @@ bool SurfaceRemeshing
 bool SurfaceRemeshing::MeltTriangle(vtkIdType cellId, vtkIdList *cellIds)
 {
   // Get triangle corners
-  vtkSmartPointer<vtkIdList> ptIds = vtkSmartPointer<vtkIdList>::New();
-  _Output->GetCellPoints(cellId, ptIds);
+  vtkNew<vtkIdList> ptIds;
+  _Output->GetCellPoints(cellId, ptIds.GetPointer());
 
   // Get points opposite to cell edges and resolve connectivity of 3 if possible
   vtkIdType ptId1 = GetCellEdgeNeighborPoint(cellId, ptIds->GetId(0), ptIds->GetId(1), _MeltNodes);
@@ -653,7 +648,7 @@ bool SurfaceRemeshing::MeltTriangle(vtkIdType cellId, vtkIdList *cellIds)
   cell->EvaluateLocation(subId, pcoords, c, weights);
 
   // Interpolate point data
-  InterpolatePointData(_Output->GetPointData(), ptIds->GetId(0), ptIds, weights);
+  InterpolatePointData(_Output->GetPointData(), ptIds->GetId(0), ptIds.GetPointer(), weights);
 
   // Move first point of this triangle to its center
   _Output->GetPoints()->SetPoint(ptIds->GetId(0), c);
@@ -699,10 +694,10 @@ void SurfaceRemeshing::MeltingOfCells()
 
   int       melt[3], i, j;
   double    p1[3], p2[3], p3[3], length2[3], min2[3], n1[3], n2[3], n3[3];
-  vtkIdType cellId, npts, *pts;
+  vtkIdType cellId;
+  vtkNew<vtkIdList> cellIds, ptIds;
 
   // Cell ID list shared by melting operation functions to save reallocation
-  vtkSmartPointer<vtkIdList> cellIds = vtkSmartPointer<vtkIdList>::New();
   cellIds->Allocate(20);
 
   // Initialize priority queue of cells to process
@@ -718,14 +713,14 @@ void SurfaceRemeshing::MeltingOfCells()
   while (_MeltingQueue->GetNumberOfItems() > 0) {
     cellId = _MeltingQueue->Pop();
 
-    _Output->GetCellPoints(cellId, npts, pts);
-    if (npts == 0) continue; // cell marked as deleted (i.e., VTK_EMPTY_CELL)
-    mirtkAssert(npts == 3, "surface is triangulated");
+    _Output->GetCellPoints(cellId, ptIds.GetPointer());
+    if (ptIds->GetNumberOfIds() == 0) continue; // cell marked as deleted (i.e., VTK_EMPTY_CELL)
+    mirtkAssert(ptIds->GetNumberOfIds() == 3, "surface is triangulated");
 
     // Get (transformed) point coordinates
-    GetPoint(pts[0], p1);
-    GetPoint(pts[1], p2);
-    GetPoint(pts[2], p3);
+    GetPoint(ptIds->GetId(0), p1);
+    GetPoint(ptIds->GetId(1), p2);
+    GetPoint(ptIds->GetId(2), p3);
 
     length2[0] = vtkMath::Distance2BetweenPoints(p1, p2);
     length2[1] = vtkMath::Distance2BetweenPoints(p2, p3);
@@ -734,9 +729,9 @@ void SurfaceRemeshing::MeltingOfCells()
     // If triangle-melting is allowed
     if (_MeltTriangles) {
 
-      min2[0] = SquaredMinEdgeLength(pts[0], pts[1]);
-      min2[1] = SquaredMinEdgeLength(pts[1], pts[2]);
-      min2[2] = SquaredMinEdgeLength(pts[2], pts[0]);
+      min2[0] = SquaredMinEdgeLength(ptIds->GetId(0), ptIds->GetId(1));
+      min2[1] = SquaredMinEdgeLength(ptIds->GetId(1), ptIds->GetId(2));
+      min2[2] = SquaredMinEdgeLength(ptIds->GetId(2), ptIds->GetId(0));
 
       // Determine which edges are too short
       melt[0] = int(length2[0] < min2[0]);
@@ -745,22 +740,22 @@ void SurfaceRemeshing::MeltingOfCells()
 
       // Do not melt edges with un-masked end points
       if (_Mask) {
-        if (melt[0] && _Mask->GetComponent(pts[0], 0) == 0. && _Mask->GetComponent(pts[1], 0) == 0.) {
+        if (melt[0] && _Mask->GetComponent(ptIds->GetId(0), 0) == 0. && _Mask->GetComponent(ptIds->GetId(1), 0) == 0.) {
           melt[0] = 0;
         }
-        if (melt[1] && _Mask->GetComponent(pts[1], 0) == 0. && _Mask->GetComponent(pts[2], 0) == 0.) {
+        if (melt[1] && _Mask->GetComponent(ptIds->GetId(1), 0) == 0. && _Mask->GetComponent(ptIds->GetId(2), 0) == 0.) {
           melt[1] = 0;
         }
-        if (melt[2] && _Mask->GetComponent(pts[2], 0) == 0. && _Mask->GetComponent(pts[0], 0) == 0.) {
+        if (melt[2] && _Mask->GetComponent(ptIds->GetId(2), 0) == 0. && _Mask->GetComponent(ptIds->GetId(0), 0) == 0.) {
           melt[2] = 0;
         }
       }
 
       // Do not melt feature edges (otherwise remeshing may smooth surface too much)
       if ((melt[0] || melt[1] || melt[2]) && _MinFeatureAngle < 180.0) {
-        GetNormal(pts[0], n1);
-        GetNormal(pts[1], n2);
-        GetNormal(pts[2], n3);
+        GetNormal(ptIds->GetId(0), n1);
+        GetNormal(ptIds->GetId(1), n2);
+        GetNormal(ptIds->GetId(2), n3);
         if (melt[0] && length2[0] > .1 * min2[0]) {
           melt[0] = int(1.0 - vtkMath::Dot(n1, n2) < _MinFeatureAngleCos);
         }
@@ -775,18 +770,18 @@ void SurfaceRemeshing::MeltingOfCells()
       // Perform either edge-melting, triangle-melting, or no operation
       switch (melt[0] + melt[1] + melt[2]) {
         case 1: {
-          if      (melt[0]) MeltEdge(cellId, pts[0], pts[1], cellIds);
-          else if (melt[1]) MeltEdge(cellId, pts[1], pts[2], cellIds);
-          else              MeltEdge(cellId, pts[2], pts[0], cellIds);
+          if      (melt[0]) MeltEdge(cellId, ptIds->GetId(0), ptIds->GetId(1), cellIds.GetPointer());
+          else if (melt[1]) MeltEdge(cellId, ptIds->GetId(1), ptIds->GetId(2), cellIds.GetPointer());
+          else              MeltEdge(cellId, ptIds->GetId(2), ptIds->GetId(0), cellIds.GetPointer());
         } break;
         case 3: {
           ++num_triangle_melting_attempts;
-          if (!MeltTriangle(cellId, cellIds)) {
+          if (!MeltTriangle(cellId, cellIds.GetPointer())) {
             i = 0;
             if (length2[1] < length2[0]) i = 1;
             if (length2[2] < length2[i]) i = 2;
             j = (i + 1) % 3;
-            MeltEdge(cellId, pts[i], pts[j], cellIds);
+            MeltEdge(cellId, ptIds->GetId(i), ptIds->GetId(j), cellIds.GetPointer());
           }
         } break;
       }
@@ -802,22 +797,22 @@ void SurfaceRemeshing::MeltingOfCells()
 
       // Do not melt edges with un-masked end points
       if (_Mask) {
-        if (_Mask->GetComponent(pts[i], 0) == 0. && _Mask->GetComponent(pts[j], 0) == 0.) {
+        if (_Mask->GetComponent(ptIds->GetId(i), 0) == 0. && _Mask->GetComponent(ptIds->GetId(j), 0) == 0.) {
           continue;
         }
       }
 
       // Melt edge if it is too short and not a feature edge
-      min2[i] = SquaredMinEdgeLength(pts[i], pts[j]);
+      min2[i] = SquaredMinEdgeLength(ptIds->GetId(i), ptIds->GetId(j));
       if (length2[i] < min2[i]) {
         if (_MinFeatureAngle < 180.0 && length2[i] > .1 * min2[i]) {
-          GetNormal(pts[i], n1);
-          GetNormal(pts[j], n2);
+          GetNormal(ptIds->GetId(i), n1);
+          GetNormal(ptIds->GetId(j), n2);
           if (1.0 - vtkMath::Dot(n1, n2) < _MinFeatureAngleCos) {
-            MeltEdge(cellId, pts[i], pts[j], cellIds);
+            MeltEdge(cellId, ptIds->GetId(i), ptIds->GetId(j), cellIds.GetPointer());
           }
         } else {
-          MeltEdge(cellId, pts[i], pts[j], cellIds);
+          MeltEdge(cellId, ptIds->GetId(i), ptIds->GetId(j), cellIds.GetPointer());
         }
       }
 
@@ -833,23 +828,20 @@ void SurfaceRemeshing::MeltingOfNodes()
 {
   MIRTK_START_TIMING();
 
-  vtkPolyDataGetPointCellsNumCellsType ncells;
-  vtkIdType ptIdx, npts, *pts, *cells, cellId1, cellId2, cellId3;
-  vtkSmartPointer<vtkIdList> ptIds1, ptIds2;
-  ptIds1 = vtkSmartPointer<vtkIdList>::New();
-  ptIds2 = vtkSmartPointer<vtkIdList>::New();
+  vtkIdType ptIdx, cellId1, cellId2, cellId3;
+  vtkNew<vtkIdList> cellIds, cellPtIds, ptIds1, ptIds2;
 
   bool changed = true;
   for (int iter = 0; iter < 10 && changed; ++iter) {
     changed = false;
     for (vtkIdType ptId = 0; ptId < _Output->GetNumberOfPoints(); ++ptId) {
       if (_Mask && _Mask->GetComponent(ptId, 0) == 0.) continue;
-      _Output->GetPointCells(ptId, ncells, cells);
-      switch (ncells) {
+      _Output->GetPointCells(ptId, cellIds.GetPointer());
+      switch (cellIds->GetNumberOfIds()) {
         case 1: case 2: {
           if (!IsBoundaryPoint(ptId)) {
-            for (vtkPolyDataGetPointCellsNumCellsType i = 0; i < ncells; ++i) {
-              DeleteCell(cells[i]);
+            for (vtkIdType i = 0; i < cellIds->GetNumberOfIds(); ++i) {
+              DeleteCell(cellIds->GetId(i));
             }
             ++_NumberOfMeltedNodes;
             changed = true;
@@ -858,16 +850,16 @@ void SurfaceRemeshing::MeltingOfNodes()
         case 3: {
           ptIds1->Reset();
           ptIds2->Reset();
-          for (vtkPolyDataGetPointCellsNumCellsType i = 0; i < ncells; ++i) {
-            _Output->GetCellPoints(cells[i], npts, pts);
+          for (vtkIdType i = 0; i < cellIds->GetNumberOfIds(); ++i) {
+            _Output->GetCellPoints(cellIds->GetId(i), cellPtIds.GetPointer());
             if (i == 0) {
-              ptIds1->Allocate(npts);
-              for (vtkIdType j = 0; j < npts; ++j) {
-                ptIds1->InsertNextId(pts[j]);
+              ptIds1->Allocate(cellPtIds->GetNumberOfIds());
+              for (vtkIdType j = 0; j < cellPtIds->GetNumberOfIds(); ++j) {
+                ptIds1->InsertNextId(cellPtIds->GetId(j));
               }
             }
-            for (vtkIdType j = 0; j < npts; ++j) {
-              ptIds2->InsertUniqueId(pts[j]);
+            for (vtkIdType j = 0; j < cellPtIds->GetNumberOfIds(); ++j) {
+              ptIds2->InsertUniqueId(cellPtIds->GetId(j));
             }
           }
           ptIds2->DeleteId(ptId);
@@ -877,7 +869,9 @@ void SurfaceRemeshing::MeltingOfNodes()
           }
           if (ptIdx == ptIds2->GetNumberOfIds()) continue;
           // Make copy of cell IDs as the following modifies the cell links
-          cellId1 = cells[0], cellId2 = cells[1], cellId3 = cells[2];
+          cellId1 = cellIds->GetId(0);
+          cellId2 = cellIds->GetId(1);
+          cellId3 = cellIds->GetId(2);
           // TODO: Interpolate cell data, average tuples of the three cells or
           //       pick majority label for categorical data
           ReplaceCellPoint(cellId1, ptId, ptIds2->GetId(ptIdx));
@@ -1149,11 +1143,12 @@ void SurfaceRemeshing::InitializeMask()
       _Mask->FillComponent(0, 1.);
     }
     if (_CellMask) {
-      for (vtkIdType cellId = 0, npts, *pts; cellId < _Surface->GetNumberOfCells(); ++cellId) {
+      vtkNew<vtkIdList> ptIds;
+      for (vtkIdType cellId = 0; cellId < _Surface->GetNumberOfCells(); ++cellId) {
         if (_CellMask->GetComponent(cellId, 0) == 0.) {
-          _Surface->GetCellPoints(cellId, npts, pts);
-          for (vtkIdType i = 0; i < npts; ++i) {
-            _Mask->SetComponent(pts[i], 0, 0.);
+          _Surface->GetCellPoints(cellId, ptIds.GetPointer());
+          for (vtkIdType i = 0; i < ptIds->GetNumberOfIds(); ++i) {
+            _Mask->SetComponent(ptIds->GetId(i), 0, 0.);
           }
         }
       }
@@ -1301,40 +1296,41 @@ void SurfaceRemeshing::InversionOfTrianglesSharingOneLongEdge()
 
   int       i, j, k;
   double    p[4][3], length2[3], min2[3], max2[3];
-  vtkIdType adjCellId, adjPtId, npts, *pts;
+  vtkIdType adjCellId, adjPtId;
+  vtkNew<vtkIdList> ptIds;
 
   for (vtkIdType cellId = 0; cellId < _Output->GetNumberOfCells(); ++cellId) {
 
-    _Output->GetCellPoints(cellId, npts, pts);
-    if (npts == 0) continue; // cell marked as deleted (i.e., VTK_EMPTY_CELL)
-    mirtkAssert(npts == 3, "surface is triangulated");
+    _Output->GetCellPoints(cellId, ptIds.GetPointer());
+    if (ptIds->GetNumberOfIds() == 0) continue; // cell marked as deleted (i.e., VTK_EMPTY_CELL)
+    mirtkAssert(ptIds->GetNumberOfIds() == 3, "surface is triangulated");
 
     // Skip triangles with un-masked node
     if (_Mask) {
-      if (_Mask->GetComponent(pts[0], 0) == 0. ||
-          _Mask->GetComponent(pts[1], 0) == 0. ||
-          _Mask->GetComponent(pts[2], 0) == 0.) {
+      if (_Mask->GetComponent(ptIds->GetId(0), 0) == 0. ||
+          _Mask->GetComponent(ptIds->GetId(1), 0) == 0. ||
+          _Mask->GetComponent(ptIds->GetId(2), 0) == 0.) {
         continue;
       }
     }
 
     // Get (transformed) point coordinates
-    GetPoint(pts[0], p[0]);
-    GetPoint(pts[1], p[1]);
-    GetPoint(pts[2], p[2]);
+    GetPoint(ptIds->GetId(0), p[0]);
+    GetPoint(ptIds->GetId(1), p[1]);
+    GetPoint(ptIds->GetId(2), p[2]);
 
     // Calculate lengths of triangle edges
     length2[0] = vtkMath::Distance2BetweenPoints(p[0], p[1]);
     length2[1] = vtkMath::Distance2BetweenPoints(p[1], p[2]);
     length2[2] = vtkMath::Distance2BetweenPoints(p[2], p[0]);
 
-    min2[0] = SquaredMinEdgeLength(pts[0], pts[1]);
-    min2[1] = SquaredMinEdgeLength(pts[1], pts[2]);
-    min2[2] = SquaredMinEdgeLength(pts[2], pts[0]);
+    min2[0] = SquaredMinEdgeLength(ptIds->GetId(0), ptIds->GetId(1));
+    min2[1] = SquaredMinEdgeLength(ptIds->GetId(1), ptIds->GetId(2));
+    min2[2] = SquaredMinEdgeLength(ptIds->GetId(2), ptIds->GetId(0));
 
-    max2[0] = SquaredMaxEdgeLength(pts[0], pts[1]);
-    max2[1] = SquaredMaxEdgeLength(pts[1], pts[2]);
-    max2[2] = SquaredMaxEdgeLength(pts[2], pts[0]);
+    max2[0] = SquaredMaxEdgeLength(ptIds->GetId(0), ptIds->GetId(1));
+    max2[1] = SquaredMaxEdgeLength(ptIds->GetId(1), ptIds->GetId(2));
+    max2[2] = SquaredMaxEdgeLength(ptIds->GetId(2), ptIds->GetId(0));
 
     // Determine if triangle is elongated
     for (i = 0; i < 3; ++i) {
@@ -1350,24 +1346,24 @@ void SurfaceRemeshing::InversionOfTrianglesSharingOneLongEdge()
       j = (i == 2 ? 0 : i + 1); // 2nd long edge point index
       k = (j == 2 ? 0 : j + 1); // 3rd point of this triangle
       // Check connectivity of long edge end points
-      if (NodeConnectivity(pts[i]) > 3 && NodeConnectivity(pts[j]) > 3) {
+      if (NodeConnectivity(ptIds->GetId(i)) > 3 && NodeConnectivity(ptIds->GetId(j)) > 3) {
         // Get other vertex of triangle sharing long edge
-        adjPtId = GetCellEdgeNeighborPoint(cellId, pts[i], pts[j]);
-        if (adjPtId == -1 || _Output->IsEdge(pts[k], adjPtId)) continue;
+        adjPtId = GetCellEdgeNeighborPoint(cellId, ptIds->GetId(i), ptIds->GetId(j));
+        if (adjPtId == -1 || _Output->IsEdge(ptIds->GetId(k), adjPtId)) continue;
         if (_Mask && _Mask->GetComponent(adjPtId, 0) == 0.) continue;
         // Check if length of other edges are in range
         GetPoint(adjPtId, p[3]);
         length2[0] = vtkMath::Distance2BetweenPoints(p[i], p[3]);
-        if (length2[0] < SquaredMinEdgeLength(pts[i], adjPtId) ||
-            length2[0] > SquaredMaxEdgeLength(pts[i], adjPtId)) continue;
+        if (length2[0] < SquaredMinEdgeLength(ptIds->GetId(i), adjPtId) ||
+            length2[0] > SquaredMaxEdgeLength(ptIds->GetId(i), adjPtId)) continue;
         length2[1] = vtkMath::Distance2BetweenPoints(p[j], p[3]);
-        if (length2[1] < SquaredMinEdgeLength(pts[j], adjPtId) ||
-            length2[1] > SquaredMaxEdgeLength(pts[j], adjPtId)) continue;
+        if (length2[1] < SquaredMinEdgeLength(ptIds->GetId(j), adjPtId) ||
+            length2[1] > SquaredMaxEdgeLength(ptIds->GetId(j), adjPtId)) continue;
         // Perform inversion operation
-        adjCellId = GetCellEdgeNeighbor(cellId, pts[i], pts[j]);
+        adjCellId = GetCellEdgeNeighbor(cellId, ptIds->GetId(i), ptIds->GetId(j));
         if (adjCellId == -1) continue;
-        ReplaceCellPoint(cellId,    pts[j], adjPtId);
-        ReplaceCellPoint(adjCellId, pts[i], pts[k]);
+        ReplaceCellPoint(cellId,    ptIds->GetId(j), adjPtId);
+        ReplaceCellPoint(adjCellId, ptIds->GetId(i), ptIds->GetId(k));
         ++_NumberOfInversions;
       }
     }
@@ -1383,27 +1379,28 @@ void SurfaceRemeshing::InversionOfTrianglesToIncreaseMinHeight()
 
   int       i, j, k;
   double    p[4][3], length2[3], l1, l2, a1, a2, a3, a4;
-  vtkIdType adjCellId, adjPtId, npts, *pts;
+  vtkIdType adjCellId, adjPtId;
+  vtkNew<vtkIdList> ptIds;
 
   for (vtkIdType cellId = 0; cellId < _Output->GetNumberOfCells(); ++cellId) {
 
-    _Output->GetCellPoints(cellId, npts, pts);
-    if (npts == 0) continue; // cell marked as deleted (i.e., VTK_EMPTY_CELL)
-    mirtkAssert(npts == 3, "surface is triangulated");
+    _Output->GetCellPoints(cellId, ptIds.GetPointer());
+    if (ptIds->GetNumberOfIds() == 0) continue; // cell marked as deleted (i.e., VTK_EMPTY_CELL)
+    mirtkAssert(ptIds->GetNumberOfIds() == 3, "surface is triangulated");
 
     // Skip triangles with un-masked node
     if (_Mask) {
-      if (_Mask->GetComponent(pts[0], 0) == 0. ||
-          _Mask->GetComponent(pts[1], 0) == 0. ||
-          _Mask->GetComponent(pts[2], 0) == 0.) {
+      if (_Mask->GetComponent(ptIds->GetId(0), 0) == 0. ||
+          _Mask->GetComponent(ptIds->GetId(1), 0) == 0. ||
+          _Mask->GetComponent(ptIds->GetId(2), 0) == 0.) {
         continue;
       }
     }
 
     // Get (transformed) point coordinates
-    GetPoint(pts[0], p[0]);
-    GetPoint(pts[1], p[1]);
-    GetPoint(pts[2], p[2]);
+    GetPoint(ptIds->GetId(0), p[0]);
+    GetPoint(ptIds->GetId(1), p[1]);
+    GetPoint(ptIds->GetId(2), p[2]);
 
     // Calculate lengths of triangle edges
     length2[0] = vtkMath::Distance2BetweenPoints(p[0], p[1]);
@@ -1421,14 +1418,14 @@ void SurfaceRemeshing::InversionOfTrianglesToIncreaseMinHeight()
     if (a1 > .25 * length2[i]) continue; // ratio of height over l1
 
     // Check connectivity of long edge end points
-    if (NodeConnectivity(pts[i]) > 3 && NodeConnectivity(pts[j]) > 3) {
+    if (NodeConnectivity(ptIds->GetId(i)) > 3 && NodeConnectivity(ptIds->GetId(j)) > 3) {
 
       // Get other vertex of triangle sharing long edge
-      adjCellId = GetCellEdgeNeighbor(cellId, pts[i], pts[j]);
+      adjCellId = GetCellEdgeNeighbor(cellId, ptIds->GetId(i), ptIds->GetId(j));
       if (adjCellId == -1) continue;
 
-      adjPtId = GetCellEdgeNeighborPoint(cellId, pts[i], pts[j]);
-      if (adjPtId == -1 || _Output->IsEdge(pts[k], adjPtId)) continue;
+      adjPtId = GetCellEdgeNeighborPoint(cellId, ptIds->GetId(i), ptIds->GetId(j));
+      if (adjPtId == -1 || _Output->IsEdge(ptIds->GetId(k), adjPtId)) continue;
       if (_Mask && _Mask->GetComponent(adjPtId, 0) == 0.) continue;
       GetPoint(adjPtId, p[3]);
 
@@ -1448,7 +1445,12 @@ void SurfaceRemeshing::InversionOfTrianglesToIncreaseMinHeight()
       // Perform inversion operation when minimum height over edge before
       // and after inversion is greater after the operation
       if ((a1 + a2) * l2 < (a3 + a4) * l1) {
-        const vtkIdType ptId[4] = {pts[i], pts[j], pts[k], adjPtId};
+        const vtkIdType ptId[4] = {
+          ptIds->GetId(i),
+          ptIds->GetId(j),
+          ptIds->GetId(k),
+          adjPtId
+        };
         ReplaceCellPoint(adjCellId, ptId[0], ptId[2]);
         ReplaceCellPoint(cellId,    ptId[1], ptId[3]);
         ++_NumberOfInversions;
@@ -1485,9 +1487,10 @@ void SurfaceRemeshing::Subdivision()
 
   MIRTK_START_TIMING();
 
-  int       bisect[3];
-  vtkIdType npts, *pts, newId;
-  double    p1[3], p2[3], p3[3], n1[3], n2[3], n3[3], length2[3], max2[3], min2;
+  int bisect[3];
+  vtkIdType newId;
+  vtkNew<vtkIdList> ptIds;
+  double p1[3], p2[3], p3[3], n1[3], n2[3], n3[3], length2[3], max2[3], min2;
 
   const vtkIdType npoints = _Output->GetNumberOfPoints();
   const vtkIdType ncells  = _Output->GetNumberOfCells();
@@ -1514,14 +1517,14 @@ void SurfaceRemeshing::Subdivision()
   // Get current number of cells (excl. newly added cells)
   for (vtkIdType cellId = 0; cellId < ncells; ++cellId) {
 
-    _Output->GetCellPoints(cellId, npts, pts);
-    if (npts == 0) continue; // cell marked as deleted (i.e., VTK_EMPTY_CELL)
-    mirtkAssert(npts == 3, "surface is triangulated");
+    _Output->GetCellPoints(cellId, ptIds.GetPointer());
+    if (ptIds->GetNumberOfIds() == 0) continue; // cell marked as deleted (i.e., VTK_EMPTY_CELL)
+    mirtkAssert(ptIds->GetNumberOfIds() == 3, "surface is triangulated");
 
     // Get (transformed) point coordinates
-    GetPoint(pts[0], p1);
-    GetPoint(pts[1], p2);
-    GetPoint(pts[2], p3);
+    GetPoint(ptIds->GetId(0), p1);
+    GetPoint(ptIds->GetId(1), p2);
+    GetPoint(ptIds->GetId(2), p3);
 
     // Compute squared edge lengths
     length2[0] = vtkMath::Distance2BetweenPoints(p1, p2);
@@ -1529,9 +1532,9 @@ void SurfaceRemeshing::Subdivision()
     length2[2] = vtkMath::Distance2BetweenPoints(p3, p1);
 
     // Get desired range of squared edge lengths
-    max2[0] = SquaredMaxEdgeLength(pts[0], pts[1]);
-    max2[1] = SquaredMaxEdgeLength(pts[1], pts[2]);
-    max2[2] = SquaredMaxEdgeLength(pts[2], pts[0]);
+    max2[0] = SquaredMaxEdgeLength(ptIds->GetId(0), ptIds->GetId(1));
+    max2[1] = SquaredMaxEdgeLength(ptIds->GetId(1), ptIds->GetId(2));
+    max2[2] = SquaredMaxEdgeLength(ptIds->GetId(2), ptIds->GetId(0));
 
     // Determine which edges to bisect
     bisect[0] = (length2[0] > max2[0] ? 1 : 0);
@@ -1539,45 +1542,45 @@ void SurfaceRemeshing::Subdivision()
     bisect[2] = (length2[2] > max2[2] ? 1 : 0);
 
     if (_Mask) {
-      if (bisect[0] && _Mask->GetComponent(pts[0], 0) == 0. && _Mask->GetComponent(pts[1], 0) == 0.) {
+      if (bisect[0] && _Mask->GetComponent(ptIds->GetId(0), 0) == 0. && _Mask->GetComponent(ptIds->GetId(1), 0) == 0.) {
         bisect[0] = 0;
       }
-      if (bisect[1] && _Mask->GetComponent(pts[1], 0) == 0. && _Mask->GetComponent(pts[2], 0) == 0.) {
+      if (bisect[1] && _Mask->GetComponent(ptIds->GetId(1), 0) == 0. && _Mask->GetComponent(ptIds->GetId(2), 0) == 0.) {
         bisect[1] = 0;
       }
-      if (bisect[2] && _Mask->GetComponent(pts[2], 0) == 0. && _Mask->GetComponent(pts[0], 0) == 0.) {
+      if (bisect[2] && _Mask->GetComponent(ptIds->GetId(2), 0) == 0. && _Mask->GetComponent(ptIds->GetId(0), 0) == 0.) {
         bisect[2] = 0;
       }
     }
     if (!_BisectBoundaryEdges) {
-      if (bisect[0] && IsBoundaryEdge(pts[0], pts[1])) {
+      if (bisect[0] && IsBoundaryEdge(ptIds->GetId(0), ptIds->GetId(1))) {
         bisect[0] = 0;
       }
-      if (bisect[1] && IsBoundaryEdge(pts[1], pts[2])) {
+      if (bisect[1] && IsBoundaryEdge(ptIds->GetId(1), ptIds->GetId(2))) {
         bisect[1] = 0;
       }
-      if (bisect[2] && IsBoundaryEdge(pts[2], pts[0])) {
+      if (bisect[2] && IsBoundaryEdge(ptIds->GetId(2), ptIds->GetId(0))) {
         bisect[2] = 0;
       }
     }
     if (_MaxFeatureAngle < 180.0 && (!bisect[0] || !bisect[1] || !bisect[2])) {
-      GetNormal(pts[0], n1);
-      GetNormal(pts[1], n2);
-      GetNormal(pts[2], n3);
+      GetNormal(ptIds->GetId(0), n1);
+      GetNormal(ptIds->GetId(1), n2);
+      GetNormal(ptIds->GetId(2), n3);
       if (!bisect[0]) {
-        min2 = SquaredMinEdgeLength(pts[0], pts[1]);
+        min2 = SquaredMinEdgeLength(ptIds->GetId(0), ptIds->GetId(1));
         if (length2[0] >= 2.0 * min2) {
           bisect[0] = (1.0 - vtkMath::Dot(n1, n2) > _MaxFeatureAngleCos ? 1 : 0);
         }
       }
       if (!bisect[1]) {
-        min2 = SquaredMinEdgeLength(pts[1], pts[2]);
+        min2 = SquaredMinEdgeLength(ptIds->GetId(1), ptIds->GetId(2));
         if (length2[1] >= 2.0 * min2) {
           bisect[1] = (1.0 - vtkMath::Dot(n2, n3) > _MaxFeatureAngleCos ? 1 : 0);
         }
       }
       if (!bisect[2]) {
-        min2 = SquaredMinEdgeLength(pts[2], pts[0]);
+        min2 = SquaredMinEdgeLength(ptIds->GetId(2), ptIds->GetId(0));
         if (length2[2] >= 2.0 * min2) {
           bisect[2] = (1.0 - vtkMath::Dot(n3, n1) > _MaxFeatureAngleCos ? 1 : 0);
         }
@@ -1587,20 +1590,20 @@ void SurfaceRemeshing::Subdivision()
     // Perform subdivision
     switch (bisect[0] + bisect[1] + bisect[2]) {
       case 1:
-        if      (bisect[0]) Bisect(cellId, pts[0], pts[1], pts[2], output);
-        else if (bisect[1]) Bisect(cellId, pts[1], pts[2], pts[0], output);
-        else                Bisect(cellId, pts[2], pts[0], pts[1], output);
+        if      (bisect[0]) Bisect(cellId, ptIds->GetId(0), ptIds->GetId(1), ptIds->GetId(2), output);
+        else if (bisect[1]) Bisect(cellId, ptIds->GetId(1), ptIds->GetId(2), ptIds->GetId(0), output);
+        else                Bisect(cellId, ptIds->GetId(2), ptIds->GetId(0), ptIds->GetId(1), output);
         break;
       case 2:
-        if      (bisect[0] && bisect[1]) Trisect(cellId, pts[0], pts[1], pts[2], output);
-        else if (bisect[1] && bisect[2]) Trisect(cellId, pts[1], pts[2], pts[0], output);
-        else                             Trisect(cellId, pts[2], pts[0], pts[1], output);
+        if      (bisect[0] && bisect[1]) Trisect(cellId, ptIds->GetId(0), ptIds->GetId(1), ptIds->GetId(2), output);
+        else if (bisect[1] && bisect[2]) Trisect(cellId, ptIds->GetId(1), ptIds->GetId(2), ptIds->GetId(0), output);
+        else                             Trisect(cellId, ptIds->GetId(2), ptIds->GetId(0), ptIds->GetId(1), output);
         break;
       case 3:
-        Quadsect(cellId, pts[0], pts[1], pts[2], output);
+        Quadsect(cellId, ptIds->GetId(0), ptIds->GetId(1), ptIds->GetId(2), output);
         break;
       default:
-        newId = polys->InsertNextCell(npts, pts);
+        newId = polys->InsertNextCell(ptIds.GetPointer());
         outputCD->CopyData(inputCD, cellId, newId);
     }
   }

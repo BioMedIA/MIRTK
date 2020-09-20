@@ -29,6 +29,7 @@
 #include "mirtk/SparseMatrix.h"
 #include "mirtk/VtkMath.h"
 
+#include "vtkNew.h"
 #include "vtkSmartPointer.h"
 #include "vtkIdList.h"
 #include "vtkPointSet.h"
@@ -173,12 +174,12 @@ public:
   void operator()(const blocked_range<int> &re) const
   {
     WeightMatrix::Entries::iterator weight;
-    vtkSmartPointer<vtkIdList> ids = vtkSmartPointer<vtkIdList>::New();
+    vtkNew<vtkIdList> ids;
     double *p1 = Allocate<double>(_NumberOfFeatures); // spatial + optional extra features
     double *p2 = Allocate<double>(_NumberOfFeatures);
     for (int i = re.begin(); i != re.end(); ++i) {
       PointCorrespondence::GetPoint(p1, _Target, _TargetSample, i, _TargetFeatures);
-      _Locator->FindPointsWithinRadius(_MaxDist, p1, ids);
+      _Locator->FindPointsWithinRadius(_MaxDist, p1, ids.GetPointer());
       if (ids->GetNumberOfIds() > 0) {
         _CorrWeights[i].resize(_CorrWeights[i].size() + ids->GetNumberOfIds());
         weight = _CorrWeights[i].end() - ids->GetNumberOfIds();
