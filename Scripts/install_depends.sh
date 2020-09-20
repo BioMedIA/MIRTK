@@ -254,7 +254,7 @@ if [ $WITH_VTK = ON ] && [ -n "$VTK_VERSION" ]; then
     # use previously cached VTK installation
     echo "Using cached VTK $VTK_VERSION installation in $vtk_prefix"
   else
-    rm -rf "$vtk_prefix"
+    run rm -rf "$vtk_prefix"
     # custom build instead of Homebrew to take advantage of caching of minimal build
     cd /tmp
     echo "Downloading VTK $VTK_VERSION..."
