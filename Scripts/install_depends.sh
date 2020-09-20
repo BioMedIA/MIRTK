@@ -225,17 +225,30 @@ if [ $WITH_VTK = ON ] && [ -n "$VTK_VERSION" ]; then
   # pre-requisites to use system installations
   if [ $os = osx ] || [ $os = Darwin ]; then
     brew_install hdf5 netcdf jpeg libpng libtiff lz4
-    cmake_args=("${cmake_args[@]}"
-      -DVTK_USE_SYSTEM_HDF5=ON
-      -DVTK_USE_SYSTEM_EXPAT=ON
-      -DVTK_USE_SYSTEM_LIBXML2=ON
-      -DVTK_USE_SYSTEM_ZLIB=ON
-      -DVTK_USE_SYSTEM_NETCDF=ON
-      -DVTK_USE_SYSTEM_JPEG=ON
-      -DVTK_USE_SYSTEM_PNG=ON
-      -DVTK_USE_SYSTEM_TIFF=ON
-      -DVTK_USE_SYSTEM_LIBRARIES=ON
-    )
+    if [ ${VTK_VERSION/.*/} -lt 9 ]; then
+      cmake_args+=(
+        -DVTK_USE_SYSTEM_HDF5=ON
+        -DVTK_USE_SYSTEM_EXPAT=ON
+        -DVTK_USE_SYSTEM_LIBXML2=ON
+        -DVTK_USE_SYSTEM_ZLIB=ON
+        -DVTK_USE_SYSTEM_NETCDF=ON
+        -DVTK_USE_SYSTEM_JPEG=ON
+        -DVTK_USE_SYSTEM_PNG=ON
+        -DVTK_USE_SYSTEM_TIFF=ON
+        -DVTK_USE_SYSTEM_LIBRARIES=ON
+      )
+    else
+      cmake_args+=(
+        -DVTK_MODULE_USE_EXTERNAL_VTK_hdf5=ON
+        -DVTK_MODULE_USE_EXTERNAL_VTK_expat=ON
+        -DVTK_MODULE_USE_EXTERNAL_VTK_libxml2=ON
+        -DVTK_MODULE_USE_EXTERNAL_VTK_zlib=ON
+        -DVTK_MODULE_USE_EXTERNAL_VTK_netcdf=ON
+        -DVTK_MODULE_USE_EXTERNAL_VTK_jpeg=ON
+        -DVTK_MODULE_USE_EXTERNAL_VTK_png=ON
+        -DVTK_MODULE_USE_EXTERNAL_VTK_tiff=ON
+      )
+    fi
   fi
   if [ $FORCE_REBUILD_DEPS = OFF ] && [ -d "$vtk_prefix/lib/cmake/vtk-${VTK_VERSION%.*}" ]; then
     # use previously cached VTK installation
@@ -257,27 +270,50 @@ if [ $WITH_VTK = ON ] && [ -n "$VTK_VERSION" ]; then
     [ $? -eq 0 ] || exit 1
     [ "$DEBUG_VTK_BUILD" != "ON" ] || set -x
     echo "Configuring VTK $VTK_VERSION..."
-    cmake_args=("${cmake_args[@]}"
-      -DCMAKE_CXX_STANDARD=$CXX_STANDARD
-      -DVTK_Group_StandAlone=OFF
-      -DVTK_Group_Rendering=OFF
-      -DModule_vtkCommonCore=ON
-      -DModule_vtkCommonDataModel=ON
-      -DModule_vtkCommonExecutionModel=ON
-      -DModule_vtkFiltersCore=ON
-      -DModule_vtkFiltersHybrid=ON
-      -DModule_vtkFiltersFlowPaths=ON
-      -DModule_vtkFiltersGeneral=ON
-      -DModule_vtkFiltersGeometry=ON
-      -DModule_vtkFiltersParallel=ON
-      -DModule_vtkFiltersModeling=ON
-      -DModule_vtkImagingStencil=ON
-      -DModule_vtkIOLegacy=ON
-      -DModule_vtkIOXML=ON
-      -DModule_vtkIOGeometry=ON
-      -DModule_vtkIOPLY=ON
-      -DModule_vtkIOXML=ON
-    )
+    cmake_args+=(-DCMAKE_CXX_STANDARD=$CXX_STANDARD)
+    if [ ${VTK_VERSION/.*/} -lt 9 ]; then
+      cmake_args+=(
+        -DVTK_Group_StandAlone=OFF
+        -DVTK_Group_Rendering=OFF
+        -DModule_vtkCommonCore=ON
+        -DModule_vtkCommonDataModel=ON
+        -DModule_vtkCommonExecutionModel=ON
+        -DModule_vtkFiltersCore=ON
+        -DModule_vtkFiltersHybrid=ON
+        -DModule_vtkFiltersFlowPaths=ON
+        -DModule_vtkFiltersGeneral=ON
+        -DModule_vtkFiltersGeometry=ON
+        -DModule_vtkFiltersParallel=ON
+        -DModule_vtkFiltersModeling=ON
+        -DModule_vtkImagingStencil=ON
+        -DModule_vtkIOLegacy=ON
+        -DModule_vtkIOXML=ON
+        -DModule_vtkIOGeometry=ON
+        -DModule_vtkIOPLY=ON
+        -DModule_vtkIOXML=ON
+      )
+    else
+      cmake_args+=(
+        -DVTK_GROUP_ENABLE_StandAlone=OFF
+        -DVTK_GROUP_ENABLE_Rendering=OFF
+        -DVTK_MODULE_ENABLE_VTK_CommonCore=ON
+        -DVTK_MODULE_ENABLE_VTK_CommonDataModel=ON
+        -DVTK_MODULE_ENABLE_VTK_CommonExecutionModel=ON
+        -DVTK_MODULE_ENABLE_VTK_FiltersCore=ON
+        -DVTK_MODULE_ENABLE_VTK_FiltersHybrid=ON
+        -DVTK_MODULE_ENABLE_VTK_FiltersFlowPaths=ON
+        -DVTK_MODULE_ENABLE_VTK_FiltersGeneral=ON
+        -DVTK_MODULE_ENABLE_VTK_FiltersGeometry=ON
+        -DVTK_MODULE_ENABLE_VTK_FiltersParallel=ON
+        -DVTK_MODULE_ENABLE_VTK_FiltersModeling=ON
+        -DVTK_MODULE_ENABLE_VTK_ImagingStencil=ON
+        -DVTK_MODULE_ENABLE_VTK_IOLegacy=ON
+        -DVTK_MODULE_ENABLE_VTK_IOXML=ON
+        -DVTK_MODULE_ENABLE_VTK_IOGeometry=ON
+        -DVTK_MODULE_ENABLE_VTK_IOPLY=ON
+        -DVTK_MODULE_ENABLE_VTK_IOXML=ON
+      )
+    fi
     if [ $WITH_CCACHE = ON ] && [ $BUILD_DEPS_WITH_CCACHE = ON ]; then
       cc_compiler=''
       cxx_compiler=''
@@ -286,15 +322,11 @@ if [ $WITH_VTK = ON ] && [ -n "$VTK_VERSION" ]; then
       [ -z "$CXX" ] || cc_compiler=`which $CXX`
       if [ "$cc_compiler" = "${cc_compiler/ccache/}" ]; then
         echo "Using $launcher as C compiler launcher"
-        cmake_args=("${cmake_args[@]}"
-          -DCMAKE_C_COMPILER_LAUNCHER="$launcher"
-        )
+        cmake_args+=(-DCMAKE_C_COMPILER_LAUNCHER="$launcher")
       fi
       if [ "$cxx_compiler" = "${cxx_compiler/ccache/}" ]; then
         echo "Using $launcher as C++ compiler launcher"
-        cmake_args=("${cmake_args[@]}"
-          -DCMAKE_CXX_COMPILER_LAUNCHER="$launcher"
-        )
+        cmake_args+=(-DCMAKE_CXX_COMPILER_LAUNCHER="$launcher")
       fi
     fi
     run "$cmake_cmd" "${cmake_args[@]}" ..
