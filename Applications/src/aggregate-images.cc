@@ -369,7 +369,7 @@ double GiniCoefficient(Array<T> &samples)
   if (shift <= static_cast<T>(0)) {
     if (numeric_limits<T>::is_integer) shift -= static_cast<T>(1);
     else                               shift -= static_cast<T>(1e-6);
-    Transform(samples, bind2nd(minus<T>(), shift));
+    Transform(samples, bind(minus<T>(), std::placeholders::_1, shift));
   }
   Sort(samples);
   for (int i = 0; i < n; ++i) {
@@ -408,7 +408,7 @@ double EntropyIndex(Array<T> &samples, int alpha = 1)
   if (shift <= static_cast<T>(0)) {
     if (numeric_limits<T>::is_integer) shift -= static_cast<T>(1);
     else                               shift -= static_cast<T>(1e-6);
-    Transform(samples, bind2nd(minus<T>(), shift));
+    Transform(samples, bind(minus<T>(), std::placeholders::_1, shift));
   }
   // Compute mean value
   double mean = 0.;
