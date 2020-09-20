@@ -23,6 +23,7 @@
 #include "mirtk/PointSetIO.h"
 #include "mirtk/PointSetUtils.h"
 
+#include "vtkNew.h"
 #include "vtkSmartPointer.h"
 #include "vtkPointSet.h"
 #include "vtkPointData.h"

@@ -27,6 +27,7 @@
 #include "mirtk/ObjectFactory.h"
 #include "mirtk/VtkMath.h"
 
+#include "vtkNew.h"
 #include "vtkSmartPointer.h"
 #include "vtkPoints.h"
 #include "vtkCellArray.h"

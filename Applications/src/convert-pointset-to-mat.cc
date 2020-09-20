@@ -25,6 +25,7 @@
 #include "mirtk/PointSetIO.h"
 #include "mirtk/PointSetUtils.h"
 
+#include "vtkNew.h"
 #include "vtkSmartPointer.h"
 #include "vtkPolyData.h"
 #include "vtkCellArray.h"

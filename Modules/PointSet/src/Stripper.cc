@@ -22,7 +22,6 @@
 #include "mirtk/List.h"
 #include "mirtk/Vtk.h"
 
-#include "vtkNew.h"
 #include "vtkStripper.h"
 #include "vtkCellArray.h"
 

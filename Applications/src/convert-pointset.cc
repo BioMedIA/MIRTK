@@ -27,6 +27,7 @@
 #include "mirtk/PointSetUtils.h"
 #include "mirtk/EuclideanDistanceTransform.h"
 
+#include "vtkNew.h"
 #include "vtkPolyData.h"
 #include "vtkUnstructuredGrid.h"
 #include "vtkImageData.h"

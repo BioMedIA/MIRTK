@@ -30,6 +30,7 @@
 #include "mirtk/PointSetUtils.h"
 #include "mirtk/VtkMath.h"
 
+#include "vtkNew.h"
 #include "vtkSmartPointer.h"
 #include "vtkPointData.h"
 #include "vtkCellData.h"
