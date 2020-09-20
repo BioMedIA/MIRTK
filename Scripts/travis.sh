@@ -60,8 +60,8 @@ if [ $WITH_VTK = ON ]; then
     modules=(${modules[@]} Viewer)
   fi
   if [ $os = osx ] || [ $os = Darwin ]; then
-    if [ -d "/usr/local/opt/vtk@$MACOS_VTK_VERSION" ] then
-      cmake_args+=(-D DEPENDS_VTK_DIR "/usr/local/opt/vtk@$MACOS_VTK_VERSION")
+    if [ -d "/usr/local/opt/vtk@$MACOS_VTK_VERSION" ]; then
+      cmake_args+=(-D DEPENDS_VTK_DIR="/usr/local/opt/vtk@$MACOS_VTK_VERSION")
     fi
   fi
 fi
