@@ -240,6 +240,7 @@ if [ $WITH_VTK = ON ] && [ -n "$VTK_VERSION" ]; then
     # use previously cached VTK installation
     echo "Using cached VTK $VTK_VERSION installation in $vtk_prefix"
   else
+    rm -rf "$vtk_prefix"
     # whether to remove downloaded sources and build directory after installation
     if [ $TRAVIS = ON ]; then
       cleanup_vtk_build=OFF
