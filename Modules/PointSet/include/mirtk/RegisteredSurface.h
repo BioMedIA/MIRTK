@@ -24,6 +24,7 @@
 
 #include "vtkPolyData.h"
 #include "vtkCellArray.h"
+#include "vtkVersionMacros.h"
 
 
 namespace mirtk {
