@@ -255,12 +255,6 @@ if [ $WITH_VTK = ON ] && [ -n "$VTK_VERSION" ]; then
     echo "Using cached VTK $VTK_VERSION installation in $vtk_prefix"
   else
     rm -rf "$vtk_prefix"
-    # whether to remove downloaded sources and build directory after installation
-    if [ $TRAVIS = ON ]; then
-      cleanup_vtk_build=OFF
-    else
-      cleanup_vtk_build=ON
-    fi
     # custom build instead of Homebrew to take advantage of caching of minimal build
     cd /tmp
     echo "Downloading VTK $VTK_VERSION..."
