@@ -1,4 +1,5 @@
 ## Install dependencies on Ubuntu or OS X (using Homebrew)
+set -x
 
 norm_option_value()
 {
