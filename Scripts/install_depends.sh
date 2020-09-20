@@ -184,14 +184,10 @@ if [ $os = osx ] || [ $os = Darwin ]; then
     VTK_VERSION="$MACOS_VTK_VERSION"
     if [ -z "$VTK_VERSION" ]; then
       echo "Installing VTK using Homebrew"
-      brew_install vtk --without-python
+      brew_install vtk
     elif [ "$VTK_VERSION" = "8.2" ] || [ "$VTK_VERSION" == "9.0" ]; then
       echo "Installing VTK $VTK_VERSION using Homebrew"
-      brew_vtk_flags=()
-      if [ "$VTK_VERSION" != "8.2" ]; then
-        brew_vtk_flags+=(--without-python)
-      fi
-      brew_install vtk@$VTK_VERSION "${brew_vtk_flags[@]}"
+      brew_install vtk@$VTK_VERSION
       VTK_VERSION=""  # skip installation from source code below
     fi
     if [ $WITH_FLTK = ON ]; then
