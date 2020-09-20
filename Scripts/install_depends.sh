@@ -273,8 +273,8 @@ if [ $WITH_VTK = ON ] && [ -n "$VTK_VERSION" ]; then
     cmake_args+=(-DCMAKE_CXX_STANDARD=$CXX_STANDARD)
     if [ ${VTK_VERSION/.*/} -lt 9 ]; then
       cmake_args+=(
-        -DVTK_Group_StandAlone=OFF
         -DVTK_Group_Rendering=OFF
+        -DVTK_Group_StandAlone=OFF
         -DModule_vtkCommonCore=ON
         -DModule_vtkCommonDataModel=ON
         -DModule_vtkCommonExecutionModel=ON
@@ -294,24 +294,29 @@ if [ $WITH_VTK = ON ] && [ -n "$VTK_VERSION" ]; then
       )
     else
       cmake_args+=(
-        -DVTK_GROUP_ENABLE_StandAlone=OFF
-        -DVTK_GROUP_ENABLE_Rendering=OFF
-        -DVTK_MODULE_ENABLE_VTK_CommonCore=ON
-        -DVTK_MODULE_ENABLE_VTK_CommonDataModel=ON
-        -DVTK_MODULE_ENABLE_VTK_CommonExecutionModel=ON
-        -DVTK_MODULE_ENABLE_VTK_FiltersCore=ON
-        -DVTK_MODULE_ENABLE_VTK_FiltersHybrid=ON
-        -DVTK_MODULE_ENABLE_VTK_FiltersFlowPaths=ON
-        -DVTK_MODULE_ENABLE_VTK_FiltersGeneral=ON
-        -DVTK_MODULE_ENABLE_VTK_FiltersGeometry=ON
-        -DVTK_MODULE_ENABLE_VTK_FiltersParallel=ON
-        -DVTK_MODULE_ENABLE_VTK_FiltersModeling=ON
-        -DVTK_MODULE_ENABLE_VTK_ImagingStencil=ON
-        -DVTK_MODULE_ENABLE_VTK_IOLegacy=ON
-        -DVTK_MODULE_ENABLE_VTK_IOXML=ON
-        -DVTK_MODULE_ENABLE_VTK_IOGeometry=ON
-        -DVTK_MODULE_ENABLE_VTK_IOPLY=ON
-        -DVTK_MODULE_ENABLE_VTK_IOXML=ON
+        -DVTK_GROUP_ENABLE_Imaging=YES
+        -DVTK_GROUP_ENABLE_MPI=DONT_WANT
+        -DVTK_GROUP_ENABLE_Qt=DONT_WANT
+        -DVTK_GROUP_ENABLE_Rendering=DONT_WANT
+        -DVTK_GROUP_ENABLE_StandAlone=DONT_WANT
+        -DVTK_GROUP_ENABLE_Views=DONT_WANT
+        -DVTK_GROUP_ENABLE_Web=DONT_WANT
+        -DVTK_MODULE_ENABLE_VTK_CommonCore=YES
+        -DVTK_MODULE_ENABLE_VTK_CommonDataModel=YES
+        -DVTK_MODULE_ENABLE_VTK_CommonExecutionModel=YES
+        -DVTK_MODULE_ENABLE_VTK_FiltersCore=YES
+        -DVTK_MODULE_ENABLE_VTK_FiltersHybrid=YES
+        -DVTK_MODULE_ENABLE_VTK_FiltersFlowPaths=YES
+        -DVTK_MODULE_ENABLE_VTK_FiltersGeneral=YES
+        -DVTK_MODULE_ENABLE_VTK_FiltersGeometry=YES
+        -DVTK_MODULE_ENABLE_VTK_FiltersParallel=YES
+        -DVTK_MODULE_ENABLE_VTK_FiltersModeling=YES
+        -DVTK_MODULE_ENABLE_VTK_ImagingStencil=YES
+        -DVTK_MODULE_ENABLE_VTK_IOLegacy=YES
+        -DVTK_MODULE_ENABLE_VTK_IOXML=YES
+        -DVTK_MODULE_ENABLE_VTK_IOGeometry=YES
+        -DVTK_MODULE_ENABLE_VTK_IOPLY=YES
+        -DVTK_MODULE_ENABLE_VTK_IOXML=YES
       )
     fi
     if [ $WITH_CCACHE = ON ] && [ $BUILD_DEPS_WITH_CCACHE = ON ]; then
