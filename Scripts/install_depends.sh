@@ -220,7 +220,7 @@ if [ $WITH_VTK = ON ] && [ -n "$VTK_VERSION" ]; then
   # build configuration
   cmake_args=(
     -DCMAKE_INSTALL_PREFIX="$vtk_prefix"
-    -DCMAKE_BUILD_TYPE=Release
+    -DCMAKE_BUILD_TYPE=${BUILD_TYPE:-Release}
   )
   # pre-requisites to use system installations
   if [ $os = osx ] || [ $os = Darwin ]; then

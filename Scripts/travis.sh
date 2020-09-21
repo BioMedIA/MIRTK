@@ -82,7 +82,7 @@ fi
 mkdir Build && cd Build
 run "$cmake_cmd" \
       -D CMAKE_INSTALL_PREFIX=/usr \
-      -D CMAKE_BUILD_TYPE=Release \
+      -D CMAKE_BUILD_TYPE=${BUILD_TYPE:-Release} \
       -D BUILD_SHARED_LIBS=ON \
       -D BUILD_APPLICATIONS=ON \
       -D BUILD_TESTING=$TESTING \
