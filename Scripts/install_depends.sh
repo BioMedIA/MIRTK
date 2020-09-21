@@ -105,8 +105,8 @@ if [ $os = linux ] || [ $os = Linux ]; then
   fi
 
   if [ $WITH_VTK = ON ]; then
-    if [ -n "$LINUX_VTK_VERSION" ]; then
-      VTK_VERSION="$LINUX_VTK_VERSION"
+    if [ -n "$VTK_VERSION_LINUX" ]; then
+      VTK_VERSION="$VTK_VERSION_LINUX"
     fi
     if [ "$DISTRIB_CODENAME" = "trusty" ]; then
       if [ -z "$VTK_VERSION" ] || [ $VTK_VERSION = '6.0.0' ]; then
@@ -182,7 +182,7 @@ if [ $os = osx ] || [ $os = Darwin ]; then
     brew_install suite-sparse
   fi
   if [ $WITH_VTK = ON ]; then
-    VTK_VERSION="$MACOS_VTK_VERSION"
+    VTK_VERSION="$VTK_VERSION_MACOS"
     if [ -z "$VTK_VERSION" ]; then
       echo "Installing VTK using Homebrew"
       brew_install vtk
