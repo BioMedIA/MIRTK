@@ -84,7 +84,7 @@ public:
     for (vtkIdType cellId = re.begin(); cellId != re.end(); ++cellId) {
       // Get triangle vertices
       _Surface->GetCellPoints(cellId, ptIds.GetPointer());
-      mirtkAssert(npts == 3, "surface is triangular mesh");
+      mirtkAssert(ptIds->GetNumberOfIds() == 3, "surface is triangular mesh");
 
       // Get triangle vertex positions
       _Surface->GetPoint(ptIds->GetId(0), a);
