@@ -31,11 +31,6 @@ char *cine_name = NULL;
 char *out_ED_name = NULL;
 char *out_ES_name = NULL;
 
-//void usage()
-//{
-//	cerr << "Usage: detect-cardiac-phases [cine] [ED output] [ES output]" << endl;
-//	exit(1);
-//}
 
 void PrintHelp(const char *name)
 {
