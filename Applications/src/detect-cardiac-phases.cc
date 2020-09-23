@@ -61,27 +61,25 @@ int main(int argc, char* argv[] )
   out_ES_name = POSARG(3);
 
   // Create images
-  GreyImage cine;
-  cine.Read(cine_name);
-  GreyImage blured;
-  blured.Initialize(cine.GetImageAttributes());
+  GreyImage cine(cine_name);
+  GreyImage blurred(cine.GetImageAttributes());
 
   GaussianBlurring<GreyPixel> gaussianBlurring(2);
   gaussianBlurring.Input (&cine);
-  gaussianBlurring.Output(&blured);
+  gaussianBlurring.Output(&blurred);
   gaussianBlurring.Run();
 
-  ImageAttributes atr = cine.GetImageAttributes();
-  similarity = new double[atr._t];
-  smoothsimilarity = new double[atr._t];
-  frames = atr._t;
-  atr._t = 1;
+  ImageAttributes attr = cine.GetImageAttributes();
+  Array<double> similarity(attr._t, 0.0);
+  Array<double> smoothsimilarity(attr._t, 0.0);
+  frames = attr._t;
+  attr._t = 1;
 
-  GreyImage out_ED(atr);
-  GreyImage out_ES(atr);
+  GreyImage out_ED(attr);
+  GreyImage out_ES(attr);
   out_ED = cine.GetFrame(0);
   // Create similarity
-  blured.GetMinMax(&cine_min,&cine_max);
+  blurred.GetMinMax(&cine_min,&cine_max);
   cinedis = cine_max - cine_min;
   for(int i = 0; i < frames; ++i){
       similarity[i] = 0;
@@ -89,28 +87,28 @@ int main(int argc, char* argv[] )
   }
   // Evaluate similarity
   for (int t = 0; t < frames; ++t) {
-      for (int k = 0; k < cine.GetZ(); ++k) {
-          for (int j = 0; j< cine.GetY(); ++j) {
-              for (int i = 0; i<cine.GetX(); ++i) {
-                 dif = (blured.GetAsDouble(i,j,k,t) - blured.GetAsDouble(i,j,k,0))/cinedis;
-                 similarity[t] += dif*dif;
-              }
-          }
-      }
+    for (int k = 0; k < cine.GetZ(); ++k)
+    for (int j = 0; j < cine.GetY(); ++j)
+    for (int i = 0; i < cine.GetX(); ++i) {
+      dif = (blurred.GetAsDouble(i,j,k,t) - blurred.GetAsDouble(i,j,k,0))/cinedis;
+      similarity[t] += dif*dif;
+    }
+    if (verbose) {
       cout << "similarity : " << similarity[t] << endl;
+    }
   }
   for(i = 0; i < frames; i++)
-      similarity[i] = sqrt(similarity[i]);
+    similarity[i] = sqrt(similarity[i]);
   // Smooth similarity
   for(i = 1; i < frames - 1; i++)
-      smoothsimilarity[i] = (similarity[i-1] + similarity[i] + similarity[i+1])/3;
+    smoothsimilarity[i] = (similarity[i-1] + similarity[i] + similarity[i+1]) / 3;
   // Find min similarity
   dif = 0;
   for(i = 0; i < frames; i++){
-      if(dif < smoothsimilarity[i]){
-          dif = smoothsimilarity[i];
-          esphase = i;
-      }
+    if(dif < smoothsimilarity[i]){
+        dif = smoothsimilarity[i];
+        esphase = i;
+    }
   }
 
   cout << "ES phase is: " << esphase << endl;
