@@ -68,6 +68,9 @@ int main(int argc, char* argv[] )
 
   // Create images
   GreyImage cine(cine_name);
+  if (cine.T() < 2) {
+    FatalError("Input image must be time sequence of cine MRIs");
+  }
   GreyImage blurred(cine.GetImageAttributes());
 
   GaussianBlurring<GreyPixel> gaussianBlurring(2);
@@ -95,8 +98,7 @@ int main(int argc, char* argv[] )
     for (int k = 0; k < cine.GetZ(); ++k)
     for (int j = 0; j < cine.GetY(); ++j)
     for (int i = 0; i < cine.GetX(); ++i) {
-      dif = (blurred.GetAsDouble(i,j,k,t) - blurred.GetAsDouble(i,j,k,0)) / cinedis;
-      similarity[t] += dif*dif;
+      similarity[t] += pow(double((blurred(i,j,k,t) - blurred(i,j,k,0))) / cinedis, 2);
     }
     if (verbose) {
       cout << "similarity : " << similarity[t] << endl;
