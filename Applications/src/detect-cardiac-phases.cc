@@ -29,15 +29,18 @@ using namespace mirtk;
 void PrintHelp(const char *name)
 {
   cout << endl;
-  cout << "Usage: " << name << " <cine> <ED output> <ES output>" << endl;
+  cout << "Usage: " << name << " <cine> --output-ed <ED output> --output-es <ES output>" << endl;
   cout << endl;
   cout << "Description:" << endl;
   cout << "  This program detects ED and ES phases from a cine image sets." << endl;
   cout << endl;
   cout << "Arguments:" << endl;
-  cout << "  cine        Input cine image sets." << endl;
-  cout << "  ED output   ED phase image." << endl;
-  cout << "  ES output   ES phase image." << endl;
+  cout << "  cine         Input cine image sets." << endl;
+  cout << "Optional arguments:" << endl;
+  cout << "  --output-ed  ED output   ED phase image." << endl;
+  cout << "  --output-es  ES output   ES phase image." << endl;
+  cout << "Notice that must provide at least one option. If only ED option is provided," << endl;
+  cout << "only ED phase image will output. Same for ES option. " << endl;
   cout << endl;
   PrintCommonOptions(cout);
   cout << endl;
