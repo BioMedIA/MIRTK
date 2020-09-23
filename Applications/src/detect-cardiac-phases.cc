@@ -55,8 +55,8 @@ int main(int argc, char* argv[] )
 
   // Parse source and target images
   for (ALL_OPTIONS) {
-    if (OPTION("--output-ed") ed_name = ARGUMENT;
-    else if (OPTION("--output-es") es_name = ARGUMENT;
+    if (OPTION("--output-ed")) ed_name = ARGUMENT;
+    else if (OPTION("--output-es")) es_name = ARGUMENT;
     else HANDLE_COMMON_OR_UNKNOWN_OPTION();
   }
 
@@ -78,7 +78,7 @@ int main(int argc, char* argv[] )
   gaussianBlurring.Output(&blurred);
   gaussianBlurring.Run();
 
-  const auto& attr = cine.Attributes();
+  ImageAttributes attr = cine.Attributes();
   Array<double> similarity(attr._t, 0.0);
   Array<double> smoothsimilarity(attr._t, 0.0);
   const int frames = attr.T();
@@ -104,24 +104,24 @@ int main(int argc, char* argv[] )
       cout << "similarity : " << similarity[t] << endl;
     }
   }
-  for (i = 0; i < frames; i++) {
+  for (int i = 0; i < frames; i++) {
     similarity[i] = sqrt(similarity[i]);
   }
   // Smooth similarity
-  for (i = 1; i < frames - 1; i++) {
+  for (int i = 1; i < frames - 1; i++) {
     smoothsimilarity[i] = (similarity[i-1] + similarity[i] + similarity[i+1]) / 3;
   }
   // Find min similarity
   dif = 0;
-  int esphase;
-  for (i = 0; i < frames; i++) {
+  int es_phase;
+  for (int i = 0; i < frames; i++) {
     if (dif < smoothsimilarity[i]) {
       dif = smoothsimilarity[i];
-      esphase = i;
+      es_phase = i;
     }
   }
   if (verbose) {
-    cout << "ES phase is: " << esphase << endl;
+    cout << "ES phase is: " << es_phase << endl;
   }
 
   // Output
@@ -131,6 +131,4 @@ int main(int argc, char* argv[] )
   if (es_name) {
     cine.GetFrame(es_phase).Write(es_name);
   }
-  delete []smoothsimilarity;
-  delete []similarity;
 }
