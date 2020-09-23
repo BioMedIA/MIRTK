@@ -45,20 +45,26 @@ void PrintHelp(const char *name)
 
 int main(int argc, char* argv[] )
 {
-  const char *cine_name = NULL;
-  const char *out_ED_name = NULL;
-  const char *out_ES_name = NULL;
+  EXPECTS_POSARGS(1);
+  const char *cine_name = POSARG(1);
+  const char *ed_name = nullptr;
+  const char *es_name = nullptr;
   int esphase, frames;
   short cine_max, cine_min, cinedis;
   double *similarity, *smoothsimilarity, dif;
   // Check command line
-  REQUIRES_POSARGS(3);
   InitializeIOLibrary();
 
   // Parse source and target images
-  cine_name = POSARG(1);
-  out_ED_name = POSARG(2);
-  out_ES_name = POSARG(3);
+  for (ALL_OPTIONS) {
+    if (OPTION("--output-ed") ed_name = ARGUMENT;
+    else if (OPTION("--output-es") es_name = ARGUMENT;
+    else HANDLE_COMMON_OR_UNKNOWN_OPTION();
+  }
+
+  if (!ed_name && !es_name) {
+    FatalError("At least one of --output-ed and --output-es required!");
+  }
 
   // Create images
   GreyImage cine(cine_name);
@@ -75,48 +81,51 @@ int main(int argc, char* argv[] )
   frames = attr._t;
   attr._t = 1;
 
-  GreyImage out_ED(attr);
-  GreyImage out_ES(attr);
-  out_ED = cine.GetFrame(0);
   // Create similarity
   blurred.GetMinMax(&cine_min,&cine_max);
   cinedis = cine_max - cine_min;
-  for(int i = 0; i < frames; ++i){
-      similarity[i] = 0;
-      smoothsimilarity[i] = 0;
+  for (int i = 0; i < frames; ++i) {
+    similarity[i] = 0;
+    smoothsimilarity[i] = 0;
   }
   // Evaluate similarity
   for (int t = 0; t < frames; ++t) {
     for (int k = 0; k < cine.GetZ(); ++k)
     for (int j = 0; j < cine.GetY(); ++j)
     for (int i = 0; i < cine.GetX(); ++i) {
-      dif = (blurred.GetAsDouble(i,j,k,t) - blurred.GetAsDouble(i,j,k,0))/cinedis;
+      dif = (blurred.GetAsDouble(i,j,k,t) - blurred.GetAsDouble(i,j,k,0)) / cinedis;
       similarity[t] += dif*dif;
     }
     if (verbose) {
       cout << "similarity : " << similarity[t] << endl;
     }
   }
-  for(i = 0; i < frames; i++)
+  for (i = 0; i < frames; i++) {
     similarity[i] = sqrt(similarity[i]);
+  }
   // Smooth similarity
-  for(i = 1; i < frames - 1; i++)
+  for (i = 1; i < frames - 1; i++) {
     smoothsimilarity[i] = (similarity[i-1] + similarity[i] + similarity[i+1]) / 3;
+  }
   // Find min similarity
   dif = 0;
-  for(i = 0; i < frames; i++){
-    if(dif < smoothsimilarity[i]){
-        dif = smoothsimilarity[i];
-        esphase = i;
+  for (i = 0; i < frames; i++) {
+    if (dif < smoothsimilarity[i]) {
+      dif = smoothsimilarity[i];
+      esphase = i;
     }
   }
+  if (verbose) {
+    cout << "ES phase is: " << esphase << endl;
+  }
 
-  cout << "ES phase is: " << esphase << endl;
-
-  out_ES = cine.GetFrame(esphase);
   // Output
-  out_ED.Write(out_ED_name);
-  out_ES.Write(out_ES_name);
+  if (ed_name) {
+    cine.GetFrame(0).Write(ed_name);
+  }
+  if (es_name) {
+    cine.GetFrame(es_phase).Write(es_name);
+  }
   delete []smoothsimilarity;
   delete []similarity;
 }
