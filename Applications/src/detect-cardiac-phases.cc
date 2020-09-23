@@ -48,9 +48,9 @@ int main(int argc, char* argv[] )
   const char *cine_name = NULL;
   const char *out_ED_name = NULL;
   const char *out_ES_name = NULL;
-  int ok,i,j,k,t,esphase,frames;
-  short cine_max,cine_min,cinedis;
-  double *similarity,*smoothsimilarity,dif;
+  int esphase, frames;
+  short cine_max, cine_min, cinedis;
+  double *similarity, *smoothsimilarity, dif;
   // Check command line
   REQUIRES_POSARGS(3);
   InitializeIOLibrary();
@@ -83,15 +83,15 @@ int main(int argc, char* argv[] )
   // Create similarity
   blured.GetMinMax(&cine_min,&cine_max);
   cinedis = cine_max - cine_min;
-  for(i = 0; i < frames; i++){
+  for(int i = 0; i < frames; ++i){
       similarity[i] = 0;
       smoothsimilarity[i] = 0;
   }
   // Evaluate similarity
-  for (t = 0; t < frames; t++){
-      for (k = 0; k < cine.GetZ(); k++){
-          for (j = 0; j< cine.GetY(); j++){
-              for (i = 0; i<cine.GetX(); i++){
+  for (int t = 0; t < frames; ++t) {
+      for (int k = 0; k < cine.GetZ(); ++k) {
+          for (int j = 0; j< cine.GetY(); ++j) {
+              for (int i = 0; i<cine.GetX(); ++i) {
                  dif = (blured.GetAsDouble(i,j,k,t) - blured.GetAsDouble(i,j,k,0))/cinedis;
                  similarity[t] += dif*dif;
               }
