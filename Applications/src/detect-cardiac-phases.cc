@@ -25,10 +25,6 @@
 
 using namespace mirtk;
 
-char *cine_name = NULL;
-char *out_ED_name = NULL;
-char *out_ES_name = NULL;
-
 
 void PrintHelp(const char *name)
 {
@@ -49,6 +45,9 @@ void PrintHelp(const char *name)
 
 int main(int argc, char* argv[] )
 {
+    const char *cine_name = NULL;
+    const char *out_ED_name = NULL;
+    const char *out_ES_name = NULL;
 	int ok,i,j,k,t,esphase,frames;
     short cine_max,cine_min,cinedis;
 	double *similarity,*smoothsimilarity,dif;
