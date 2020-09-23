@@ -49,11 +49,6 @@ int main(int argc, char* argv[] )
   const char *cine_name = POSARG(1);
   const char *ed_name = nullptr;
   const char *es_name = nullptr;
-  int esphase, frames;
-  short cine_max, cine_min, cinedis;
-  double *similarity, *smoothsimilarity, dif;
-  // Check command line
-  InitializeIOLibrary();
 
   // Parse source and target images
   for (ALL_OPTIONS) {
@@ -65,6 +60,8 @@ int main(int argc, char* argv[] )
   if (!ed_name && !es_name) {
     FatalError("At least one of --output-ed and --output-es required!");
   }
+  // Check command line
+  InitializeIOLibrary();
 
   // Create images
   GreyImage cine(cine_name);
@@ -75,14 +72,16 @@ int main(int argc, char* argv[] )
   gaussianBlurring.Output(&blurred);
   gaussianBlurring.Run();
 
-  ImageAttributes attr = cine.GetImageAttributes();
+  const auto& attr = cine.Attributes();
   Array<double> similarity(attr._t, 0.0);
   Array<double> smoothsimilarity(attr._t, 0.0);
-  frames = attr._t;
+  const int frames = attr.T();
   attr._t = 1;
 
   // Create similarity
-  blurred.GetMinMax(&cine_min,&cine_max);
+  short cine_max, cine_min, cinedis;
+  double dif;
+  blurred.GetMinMax(&cine_min, &cine_max);
   cinedis = cine_max - cine_min;
   for (int i = 0; i < frames; ++i) {
     similarity[i] = 0;
@@ -109,6 +108,7 @@ int main(int argc, char* argv[] )
   }
   // Find min similarity
   dif = 0;
+  int esphase;
   for (i = 0; i < frames; i++) {
     if (dif < smoothsimilarity[i]) {
       dif = smoothsimilarity[i];
