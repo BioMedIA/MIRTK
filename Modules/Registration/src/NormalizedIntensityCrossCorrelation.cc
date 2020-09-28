@@ -575,7 +575,7 @@ NormalizedIntensityCrossCorrelation
   _KernelType(BoxWindow),
   _KernelX(NULL), _KernelY(NULL), _KernelZ(NULL),
   _A(NULL), _B(NULL), _C(NULL), _S(NULL), _T(NULL),
-  _NeighborhoodSize(0.),
+  _NeighborhoodSize(-7.),
   _NeighborhoodRadius(0)
 {
 }
@@ -958,9 +958,9 @@ void NormalizedIntensityCrossCorrelation::Initialize()
       if (_NeighborhoodSize._z < .0) _NeighborhoodRadius._z = iround((-_NeighborhoodSize._z - 1) / 2.0);
 
       // Initialize local neighborhood radius given window size in mm
-      if (_NeighborhoodSize._x > .0) _NeighborhoodRadius._x = iround(_NeighborhoodSize._x / (2.0 * attr._dx));
-      if (_NeighborhoodSize._y > .0) _NeighborhoodRadius._y = iround(_NeighborhoodSize._y / (2.0 * attr._dy));
-      if (_NeighborhoodSize._z > .0) _NeighborhoodRadius._z = iround(_NeighborhoodSize._z / (2.0 * attr._dz));
+      if (_NeighborhoodSize._x >= .0) _NeighborhoodRadius._x = iround(_NeighborhoodSize._x / (2.0 * attr._dx));
+      if (_NeighborhoodSize._y >= .0) _NeighborhoodRadius._y = iround(_NeighborhoodSize._y / (2.0 * attr._dy));
+      if (_NeighborhoodSize._z >= .0) _NeighborhoodRadius._z = iround(_NeighborhoodSize._z / (2.0 * attr._dz));
 
     } else {
 
