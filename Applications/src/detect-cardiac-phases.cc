@@ -29,11 +29,11 @@ using namespace mirtk;
 void PrintHelp(const char *name)
 {
   cout << endl;
-  cout << "Usage: " << name << " <cine> --output-ed <path> --output-es <path>" << endl;
+  cout << "Usage: " << name << " <cine> -output-ed <path> -output-es <path>" << endl;
   cout << endl;
   cout << "Description:" << endl;
   cout << "  This program detects ED and ES phases from a cine image sets. " << endl;
-  cout << "  Use the output :option:`--output-ed` and/or :option:`--output-es`" << endl;
+  cout << "  Use the output :option:`-output-ed` and/or :option:`-output-es`" << endl;
   cout << "  to specify which output files should be written by this command." << endl;
   cout << endl;
   cout << "Arguments:" << endl;
