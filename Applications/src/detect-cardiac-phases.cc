@@ -29,18 +29,18 @@ using namespace mirtk;
 void PrintHelp(const char *name)
 {
   cout << endl;
-  cout << "Usage: " << name << " <cine> --output-ed <ED output> --output-es <ES output>" << endl;
+  cout << "Usage: " << name << " <cine> --output-ed <path> --output-es <path>" << endl;
   cout << endl;
   cout << "Description:" << endl;
-  cout << "  This program detects ED and ES phases from a cine image sets." << endl;
+  cout << "  This program detects ED and ES phases from a cine image sets. " << endl;
+  cout << "  Use the output :option:`--output-ed` and/or :option:`--output-es`" << endl;
+  cout << "  to specify which output files should be written by this command." << endl;
   cout << endl;
   cout << "Arguments:" << endl;
   cout << "  cine         Input cine image sets." << endl;
   cout << "Optional arguments:" << endl;
-  cout << "  --output-ed  ED output   ED phase image." << endl;
-  cout << "  --output-es  ES output   ES phase image." << endl;
-  cout << "Notice that must provide at least one option. If only ED option is provided," << endl;
-  cout << "only ED phase image will output. Same for ES option. " << endl;
+  cout << "  -output-ed  path   Output file path of ED phase image" << endl;
+  cout << "  -output-es  path   Output file path of ES phase image." << endl;
   cout << endl;
   PrintCommonOptions(cout);
   cout << endl;
@@ -55,13 +55,13 @@ int main(int argc, char* argv[] )
 
   // Parse source and target images
   for (ALL_OPTIONS) {
-    if (OPTION("--output-ed")) ed_name = ARGUMENT;
-    else if (OPTION("--output-es")) es_name = ARGUMENT;
+    if (OPTION("-output-ed")) ed_name = ARGUMENT;
+    else if (OPTION("-output-es")) es_name = ARGUMENT;
     else HANDLE_COMMON_OR_UNKNOWN_OPTION();
   }
 
   if (!ed_name && !es_name) {
-    FatalError("At least one of --output-ed and --output-es required!");
+    FatalError("At least one of -output-ed and -output-es required!");
   }
   // Check command line
   InitializeIOLibrary();
@@ -78,15 +78,13 @@ int main(int argc, char* argv[] )
   gaussianBlurring.Output(&blurred);
   gaussianBlurring.Run();
 
-  ImageAttributes attr = cine.Attributes();
+  const auto& attr = cine.Attributes();
   Array<double> similarity(attr._t, 0.0);
   Array<double> smoothsimilarity(attr._t, 0.0);
   const int frames = attr.T();
-  attr._t = 1;
 
   // Create similarity
   short cine_max, cine_min, cinedis;
-  double dif;
   blurred.GetMinMax(&cine_min, &cine_max);
   cinedis = cine_max - cine_min;
   for (int i = 0; i < frames; ++i) {
@@ -112,7 +110,7 @@ int main(int argc, char* argv[] )
     smoothsimilarity[i] = (similarity[i-1] + similarity[i] + similarity[i+1]) / 3;
   }
   // Find min similarity
-  dif = 0;
+  double dif = 0;
   int es_phase;
   for (int i = 0; i < frames; i++) {
     if (dif < smoothsimilarity[i]) {
