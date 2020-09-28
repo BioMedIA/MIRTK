@@ -10,3 +10,4 @@ CMakeLists.txt.user*
 .cproject
 .*.swp
 .vscode
+.idea
