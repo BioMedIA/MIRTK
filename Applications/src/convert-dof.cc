@@ -1315,19 +1315,19 @@ bool ToWorldDisplacement(GenericImage<double> &disp, const Transformation  *dof,
 /// Convert displacements in world space to voxel space
 void ConvertWorldToVoxelDisplacement(GenericImage<double> &disp)
 {
-  double x0, y0, z0, x1, y1, z1;
+  double x, y, z;
   for (int k = 0; k < disp.Z(); ++k)
   for (int j = 0; j < disp.Y(); ++j)
   for (int i = 0; i < disp.X(); ++i) {
-    x0 = i, y0 = j, z0 = k;
-    x1 = i + disp(i, j, k, 0);
-    y1 = j + disp(i, j, k, 1);
-    z1 = k + disp(i, j, k, 2);
-    disp.ImageToWorld(x0, y0, z0);
-    disp.ImageToWorld(x1, y1, z1);
-    disp(i, j, k, 0) = x1 - x0;
-    disp(i, j, k, 1) = y1 - y0;
-    disp(i, j, k, 2) = z1 - z0;
+    x = i, y = j, z = k;
+    disp.ImageToWorld(x, y, z);
+    x += disp(i, j, k, 0);
+    y += disp(i, j, k, 1);
+    z += disp(i, j, k, 2);
+    disp.WorldToImage(x, y, z);
+    disp(i, j, k, 0) = x - i;
+    disp(i, j, k, 1) = y - j;
+    disp(i, j, k, 2) = z - k;
   }
 }
 
