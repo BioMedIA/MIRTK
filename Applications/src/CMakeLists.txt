@@ -84,6 +84,7 @@ if (MIRTK_Image_FOUND)
   add_image_command(smooth-image)
   add_image_command(subdivide-brain-image)
   add_image_command(detect-cardiac-phases)
+  add_image_command(auto-contrast)
 
   if (MIRTK_Transformation_FOUND)
     mirtk_target_dependencies(average-images LibTransformation)
