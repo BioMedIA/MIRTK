@@ -2,7 +2,6 @@
  * Medical Image Registration ToolKit (MIRTK)
  *
  * Copyright 2017 Imperial College London
- * Copyright 2017 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,8 +25,6 @@
 
 using namespace mirtk;
 
-char *output_name = NULL;
-
 
 void PrintHelp(const char *name)
 {
@@ -35,15 +32,19 @@ void PrintHelp(const char *name)
   cout << "Usage: " << name << " <image> <output> [options]" << endl;
   cout << endl;
   cout << "Description:" << endl;
-  cout << "  This program auto contrast an image." << endl;
+  cout << "  This program contrasts an image based on its mean pixel values and standard deviation." << endl;
+  cout << "  output = clamp(input, min=max(mean - a * std, min_value), max=min(mean + a * std, max_value))." << endl;
+  cout << "  By default, a = 3, min_value = MIN_GREY, max_value = MAX_GREY " << endl;
+
   cout << endl;
   cout << "Arguments:" << endl;
   cout << "  input    Input image." << endl;
   cout << "  output   Contrasted output image." << endl;
   cout << endl;
   cout << "Options:" << endl;
-  cout << "  -Tp <value>        Target padding value all pixel < value = value" << endl;
-  cout << "  -Tp2 <maxvalue>    Target padding maximum value all pixel > maxvalue = maxvalue" << endl;
+  cout << "  -std-factor <value>    Double. Standard deviation multiplication factor" << endl;
+  cout << "  -min-value  <value>    Double. Min pixel value" << endl;
+  cout << "  -max-value  <value>    Double. Max pixel value" << endl;
   PrintCommonOptions(cout);
   cout << endl;
 }
@@ -51,58 +52,50 @@ void PrintHelp(const char *name)
 int main(int argc, char *argv[])
 {
   // Parse positional arguments
-  REQUIRES_POSARGS(2);
-  // Determine input image data type
-  InitializeIOLibrary();
+  EXPECTS_POSARGS(2);
 
-  int x, y, z, t, ok;
-  double average,padding1,padding2;
-  RealPixel std;
-  RealImage *image;
-  RealImage *output;
-
-  padding1 = MIN_GREY;
-  padding2 = MAX_GREY;
-
-  image = new RealImage(POSARG(1));
-  output = new RealImage(*image);
-  output_name = POSARG(2);
   // Parse and discard options
   DISCARD_PARSED_OPTIONS();
-
+  double min_value = MIN_GREY;
+  double max_value = MAX_GREY;
+  double std_factor = 3.0;
   for (ALL_OPTIONS) {
-    if (OPTION("-Tp")) {
-        PARSE_ARGUMENT(padding1);
-    } else if (OPTION("-Tp2")){
-        PARSE_ARGUMENT(padding2);
-    } else {
+    if (OPTION("-min-value")) {
+        PARSE_ARGUMENT(min_value);
+    } else if (OPTION("-max-value")){
+        PARSE_ARGUMENT(max_value);
+    } else if (OPTION("-std-factor")){
+        PARSE_ARGUMENT(std_factor);
+    }
+    else {
         HANDLE_COMMON_OR_UNKNOWN_OPTION();
     }
   }
 
-  average = image->GetAverage();
-  std = image->GetSD();
+  InitializeIOLibrary();
+  RealImage image(POSARG(1));
+  char *output_name = POSARG(2);
 
-  for(t = 0; t < output->GetT(); t++){
-      for(z = 0; z < output->GetZ(); z++){
-          for(y = 0; y < output->GetY(); y++){
-              for(x = 0; x < output->GetX(); x++){
-                  if(output->GetAsDouble(x,y,z,t) > average + 3.0*std){
-                      output->PutAsDouble(x,y,z,t,average + 3.0*std);
-                  }else if(output->GetAsDouble(x,y,z,t) < average - 3.0*std){
-                      output->PutAsDouble(x,y,z,t,average - 3.0*std);
-                  }
-                  if(output->GetAsDouble(x,y,z,t) < padding1)
-                      output->PutAsDouble(x,y,z,t,padding1);
-                  if(output->GetAsDouble(x,y,z,t) > padding2)
-                      output->PutAsDouble(x,y,z,t,padding2);
-              }
+  double average = image.Mean();
+  RealPixel std = image.GetSD();
+
+  for(int t = 0; t < image.GetT(); t++){
+    for(int z = 0; z < image.GetZ(); z++){
+      for(int y = 0; y < image.GetY(); y++){
+        for(int x = 0; x < image.GetX(); x++){
+          if(image.GetAsDouble(x, y, z, t) > average + std_factor * std){
+            image.PutAsDouble(x, y, z, t, average + std_factor * std);
+          }else if(image.GetAsDouble(x, y, z, t) < average - std_factor * std){
+            image.PutAsDouble(x, y, z, t, average - std_factor * std);
           }
+          if(image.GetAsDouble(x, y, z, t) < min_value)
+            image.PutAsDouble(x, y, z, t, min_value);
+          if(image.GetAsDouble(x, y, z, t) > max_value)
+            image.PutAsDouble(x, y, z, t, max_value);
+        }
       }
+    }
   }
 
-  output->Write(output_name);
-
-  delete image;
-  delete output;
+  image.Write(output_name);
 }
