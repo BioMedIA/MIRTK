@@ -229,6 +229,12 @@ ToTransformationType(TransformationModel    model,
   }
 }
 
+inline TransformationType
+ToTransformationType(TransformationModel model)
+{
+  return ToTransformationType(model, ImageAttributes(256, 256, 256, 1.0, 1.0, 1.0));
+}
+
 // -----------------------------------------------------------------------------
 /// Enumeration of available multi-level transformation modes
 enum MFFDMode
