@@ -235,6 +235,7 @@ if (MIRTK_PointSet_FOUND)
 
   if (MIRTK_Transformation_FOUND)
     add_pointset_command(match-points LibTransformation)
+    add_pointset_command(register-points LibTransformation)
   endif ()
 
   if (MATLAB_FOUND)
