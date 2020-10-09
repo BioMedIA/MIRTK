@@ -45,25 +45,25 @@ void PrintHelp(const char *name)
   cout << "\n";
   cout << "Description:\n";
   cout << "  Register point sets or surfaces by iteratively approximating the residual target registration error\n";
-  cout << "  given current point correspondences. By default, correspondences are defined by closest points. The\n";
-  cout << "  default settings thus implement the iterative closest points (ICP) algorithm. When the input point sets\n";
-  cout << "  are surface meshes, closest surface points can be used as correspondences instead of discrete points in\n";
-  cout << "  order to increase the accuracy of the surface registration at the expense of a slightly more costly closest\n";
-  cout << "  points search at each iteration.\n";
+  cout << "  given current point correspondences and transformation estimate. By default, correspondences are defined\n";
+  cout << "  by closest points. The default settings implement the iterative closest points (ICP) algorithm. When the\n";
+  cout << "  input point sets are surface meshes, :option:`-closest-surface-points` can be used as correspondences\n";
+  cout << "  instead of discrete points in order to increase the accuracy of the surface registration at the expense\n";
+  cout << "  of a slightly more costly point correspondence update at each iteration.\n";
   cout << "\n";
   cout << "Required options:\n";
   cout << "  -t, -target <path>...\n";
   cout << "    One or more target point sets or surfaces. If multiple targets are specified,\n";
-  cout << "    the number of target point sets must match the number of -source point sets.\n";
+  cout << "    the number of target point sets must match the number of :option:`-source` point sets.\n";
   cout << "    In this case, the respective pairs of target and source point sets are registered\n";
   cout << "    to one another using the same target to source transformation. This option can\n";
-  cout << "    be given multiple times.\n";
+  cout << "    be given multiple times to append target point sets.\n";
   cout << "  -s, -source <path>...\n";
-  cout << "    One or more source point sets or surfaces. If a single -target point set is given,\n";
+  cout << "    One or more source point sets or surfaces. If a single :option:`-target` point set is given,\n";
   cout << "    all source point sets are registered to this common target point set. Otherwise,\n";
   cout << "    the number of target and source point sets must be the same. This option can be\n";
-  cout << "    can be given multiple times.\n";
-  cout << "  -o, -dofout\n";
+  cout << "    can be given multiple times to append source point sets.\n";
+  cout << "  -o, -dofout <path>\n";
   cout << "    Output transformation file (.dof, .dof.gz).\n";
   cout << "\n";
   cout << "Optional arguments:\n";
@@ -75,9 +75,9 @@ void PrintHelp(const char *name)
   cout << "    Number of iterations. (default: 100)\n";
   cout << "  -c, -cor, -corr, -correspondence <name>\n";
   cout << "    Name of correspondence type, e.g., 'closest point', 'closest cell'. (default: closest point)\n";
-  cout << "  -cp\n";
+  cout << "  -cp, -closest-point\n";
   cout << "    Alias for :option:`-correspondence 'closest point'`.\n";
-  cout << "  -csp\n";
+  cout << "  -csp, -closest-surface-point, -closest-cell\n";
   cout << "    Alias for :option:`-correspondence 'closest surface point'`.\n";
   cout << "  -p, -par, -corpar, -corrpar <name> <value>\n";
   cout << "    Set parameter of chosen correspondence type.\n";
@@ -397,7 +397,7 @@ int main(int argc, char *argv[])
   }
   if (verbose) cout << " done" << endl;
 
-  // Initialize correspondence map
+  // Initialize correspondence maps
   if (verbose) cout << "Initialize correspondence maps...", cout.flush();
   Array<UniquePtr<PointCorrespondence>> cmaps(sources.size());
   for (int i = 0; i < m; ++i) {
