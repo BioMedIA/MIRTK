@@ -82,7 +82,8 @@ RUN ls /usr/src/mirtk \
     && make -j $NUM_CPUS install \
     && cd /usr/src \
     && rm -rf /usr/src/mirtk \
-    && echo "/usr/local/lib/mirtk" > /etc/ld.so.conf.d/mirtk.conf
+    && echo "/usr/local/lib/mirtk" > /etc/ld.so.conf.d/mirtk.conf \
+    && ldconfig
 
 # Make "mirtk" the default executable for application containers
 ENTRYPOINT ["/usr/bin/python3", "/usr/local/bin/mirtk"]
