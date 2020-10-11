@@ -60,8 +60,8 @@ if [ $WITH_VTK = ON ]; then
     modules=(${modules[@]} Viewer)
   fi
   if [ $os = osx ] || [ $os = Darwin ]; then
-    if [ -d "/usr/local/opt/vtk@$MACOS_VTK_VERSION" ]; then
-      cmake_args+=(-D DEPENDS_VTK_DIR="/usr/local/opt/vtk@$MACOS_VTK_VERSION")
+    if [ -d "/usr/local/opt/vtk@$VTK_VERSION_MACOS" ]; then
+      cmake_args+=(-D DEPENDS_VTK_DIR="/usr/local/opt/vtk@$VTK_VERSION_MACOS")
     fi
   fi
 fi
@@ -82,7 +82,7 @@ fi
 mkdir Build && cd Build
 run "$cmake_cmd" \
       -D CMAKE_INSTALL_PREFIX=/usr \
-      -D CMAKE_BUILD_TYPE=Release \
+      -D CMAKE_BUILD_TYPE=${BUILD_TYPE:-Release} \
       -D BUILD_SHARED_LIBS=ON \
       -D BUILD_APPLICATIONS=ON \
       -D BUILD_TESTING=$TESTING \

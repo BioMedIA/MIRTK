@@ -3,70 +3,63 @@ sudo: required
 
 language: cpp
 
-compiler:
-  - g++
-  - clang
-
 git:
   depth: 10
-
-os:
-  - linux
-  - osx
 
 env:
   global:
   # versions of VTK for each OS
   # - On Ubuntu, use default version installed by apt-get
   # - On macOS, build recent VTK version from sources and cache installation
-  - LINUX_VTK_VERSION=6.0.0
-  - MACOS_VTK_VERSION=9.0  # Homebrew versions: 8.2, 9.0; otherwise build from sources
-  - WITH_CCACHE=ON    # speed up MIRTK build itself using ccache
-  - WITH_ARPACK=OFF   # requires time consuming build of gcc on macOS
-  - WITH_UMFPACK=OFF  # ARPACK & UMFPACK dependencies come in pairs
-  - WITH_TBB=ON       # build with TBB is always recommended
-  - WITH_FLANN=ON     # build with FLANN is optional, but requires only little extra build time
-  - WITH_FLTK=ON      # build with FLTK-based Viewer when WITH_VTK is turned ON
-  - WITH_ITK=OFF      # required by ANTs N4 which is included in DrawEM package
-                      # exclude DrawEM from Travis CI build for now, see https://github.com/MIRTK/DrawEM/pull/27
+  - VTK_VERSION_LINUX=${VTK_VERSION_LINUX:-6.0.0}  # trusty: 6.0.0, xenial: 6.2.0, bionic: 6.3.0, 7.1.1
+  - VTK_VERSION_MACOS=${VTK_VERSION_MACOS:-9.0}    # Homebrew versions: 8.2, 9.0; otherwise build from sources
+  - WITH_CCACHE=${WITH_CCACHE:-ON}     # speed up MIRTK build itself using ccache
+  - WITH_ARPACK=${WITH_ARPACK:-OFF}    # requires time consuming build of gcc on macOS
+  - WITH_UMFPACK=${WITH_UMFPACK:-OFF}  # ARPACK & UMFPACK dependencies come in pairs
+  - WITH_TBB=${WITH_TBB:-ON}           # build with TBB is always recommended
+  - WITH_FLANN=${WITH_FLANN:-ON}       # build with FLANN is optional, but requires only little extra build time
+  - WITH_FLTK=${WITH_FLTK:-ON}         # build with FLTK-based Viewer when WITH_VTK is turned ON
+  - WITH_VTK=${WITH_VTK:-ON}           # by default, build with VTK
+  - WITH_ITK=${WITH_ITK:-OFF}          # required by ANTs N4 which is included in DrawEM package
+                                       # exclude DrawEM from Travis CI build for now, see https://github.com/MIRTK/DrawEM/pull/27
+  - BUILD_TYPE=Release                 # default build configuration
   # build and deployment of AppImage for Linux
   - AppImage_BUILD=${AppImage_BUILD:-ON}
   - AppImage_BRANCH=${AppImage_BRANCH:-master}
   - AppImage_DEVEL=${AppImage_DEVEL:-ON}
   - AppImage_LATEST=${AppImage_LATEST:-ON}
   - AppImage_RELEASE=${AppImage_RELEASE}
-  matrix:
-  - WITH_VTK=OFF      # make sure that MIRTK can be build fine without VTK
-  - WITH_VTK=ON       # test build with all moduldes, including those using VTK
 
-matrix:
-  allow_failures:
-    # the osx build often breaks with homebrew changes, so we allow it to fail 
+jobs:
+  include:
+    # build optimized code with all modules for AppImage generation
+    - os: linux
+      compiler: g++
+      env: BUILD_TYPE=Release WITH_VTK=ON
+    # ensure assertions and debug code compiles
+    - os: linux
+      compiler: g++
+      env: BUILD_TYPE=Debug WITH_VTK=ON
+    # make sure that MIRTK can be build fine without VTK
+    - os: linux
+      compiler: g++
+      env: BUILD_TYPE=Release WITH_VTK=OFF
+    # build on macOS using clang and recent VTK version
     - os: osx
-  exclude:
-  # in order to reduce number of jobs to wait for, test only main compilers 
-  # used on each OS
-  - os: linux
-    compiler: clang
-  - os: osx
-    compiler: g++
-  # travis-ci.org has low capacity for macOS jobs, thus reduce number of 
-  # macOS jobs to only the essential ones. With the following, we only need 
-  # to wait for one macOS job.  
-  # Because on macOS usually a very recent VTK version is installed with 
-  # Homebrew, it is more interesting to build with VTK on macOS than on 
-  # Ubuntu. When the GCC build without VTK on Ubuntu succeeds, chances 
-  # are very high it also builts fine on macOS.
-  - os: osx
-    compiler: clang
-    env: WITH_VTK=OFF
+      compiler: clang
+      env: BUILD_TYPE=Release WITH_VTK=ON
+  # the osx build often breaks with homebrew changes, so we allow it to fail on master
+  allow_failures:
+    - os: osx
+      if: branch = master
+  fast_finish: true
 
 cache:
   ccache: true
   timeout: 1000
   directories:
-  - "$HOME/VTK-$LINUX_VTK_VERSION"
-  - "$HOME/VTK-$MACOS_VTK_VERSION"
+  - "$HOME/VTK-$VTK_VERSION_LINUX"
+  - "$HOME/VTK-$VTK_VERSION_MACOS"
 
 before_install:
   - . Scripts/install_depends.sh  # sourcing will enable export of env variables
@@ -78,7 +71,7 @@ script:
   - Scripts/travis.sh
 
 after_success:
-  - if [ "$AppImage_BUILD" = ON ] && [ "$TRAVIS_REPO_SLUG" = "BioMedIA/MIRTK" ] && [ "$TRAVIS_BRANCH" = "$AppImage_BRANCH" ] && [ "$TRAVIS_PULL_REQUEST" = false ] && [ "$TRAVIS_OS_NAME" = linux ] && [ "$WITH_VTK" = ON ]; then
+  - if [ "$AppImage_BUILD" = ON ] && [ "$TRAVIS_REPO_SLUG" = "BioMedIA/MIRTK" ] && [ "$TRAVIS_BRANCH" = "$AppImage_BRANCH" ] && [ "$TRAVIS_PULL_REQUEST" = false ] && [ "$TRAVIS_OS_NAME" = linux ] && [ "$WITH_VTK" = ON ] && [ "$BUILD_TYPE" = Release ]; then
       export AppImage_BINTRAY=ON;
     else
       export AppImage_BINTRAY=OFF;
