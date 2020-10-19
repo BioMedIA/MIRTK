@@ -161,8 +161,8 @@ double EvaluateRMSError(const Array<RegisteredPointSet> &targets,
     }
     if (symmetric) {
       for (int s = 0; s < source.NumberOfPoints(); ++s) {
-        source.GetInputPoint(s, q);
-        if (cmap->GetInputTargetPoint(s, p)) {
+        source.GetPoint(s, q);
+        if (cmap->GetTargetPoint(s, p)) {
           error += pow(q._x - p._x, 2) + pow(q._y - p._y, 2) + pow(q._z - p._z, 2);
           ++count;
         }
@@ -422,7 +422,7 @@ int main(int argc, char *argv[])
     // Update correspondences
     Update(targets, sources, cmaps);
     // Check for convergence
-    error = EvaluateRMSError(targets, sources, cmaps);
+    error = EvaluateRMSError(targets, sources, cmaps, symmetric);
     if (verbose) PrintProgress(cout, iter, error);
     if (last_error - error < epsilon) {
       if (verbose) {
