@@ -2325,6 +2325,16 @@ AddClosedIntersectionDivider(vtkPolyData *surface, vtkPolyData *cut, double tol 
     WritePolyData(fname, divider);
   }
 
+  vtkNew<vtkCleanPolyData> surface_cleaner;
+  SetVTKInput(surface_cleaner, surface);
+  surface_cleaner->Update();
+  surface = surface_cleaner->GetOutput();
+
+  vtkNew<vtkCleanPolyData> split_cleaner;
+  SetVTKInput(split_cleaner, split);
+  split_cleaner->Update();
+  split = split_cleaner->GetOutput();
+
   // Merge surface with intersected cells and tesselated divider polygon
   vtkNew<vtkAppendPolyData> appender;
   AddVTKInput(appender, surface);
