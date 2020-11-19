@@ -53,6 +53,7 @@
 #include "vtkIntersectionPolyDataFilter.h"
 #include "vtkGenericCell.h"
 #include "vtkMergePoints.h"
+#include "vtkDistancePolyDataFilter.h"
 #include "vtkPolyDataConnectivityFilter.h"
 #include "vtkLine.h"
 #include "vtkDelaunay2D.h"
@@ -211,6 +212,54 @@ const char * const MAX_EDGE_LENGTH_ARRAY_NAME = "_MaxEdgeLength";
 // =============================================================================
 // Auxiliaries
 // =============================================================================
+
+// -----------------------------------------------------------------------------
+/// Add array storing current cell IDs
+int AddCellIdArray(vtkPolyData * const surface, const char *name)
+{
+  vtkSmartPointer<vtkDataArray> arr;
+  arr = NewVtkDataArray(VTK_ID_TYPE, surface->GetNumberOfCells(), 1, name);
+  for (vtkIdType cellId = 0; cellId < surface->GetNumberOfCells(); ++cellId) {
+    arr->SetComponent(cellId, 0, static_cast<double>(cellId));
+  }
+  surface->GetCellData()->RemoveArray(name);
+  return surface->GetCellData()->AddArray(arr);
+}
+
+// -----------------------------------------------------------------------------
+/// Add array storing current point IDs
+int AddPointIdArray(vtkPolyData * const surface, const char *name)
+{
+  vtkSmartPointer<vtkDataArray> arr;
+  arr = NewVtkDataArray(VTK_ID_TYPE, surface->GetNumberOfPoints(), 1, name);
+  for (vtkIdType ptId = 0; ptId < surface->GetNumberOfPoints(); ++ptId) {
+    arr->SetComponent(ptId, 0, static_cast<double>(ptId));
+  }
+  surface->GetPointData()->RemoveArray(name);
+  return surface->GetPointData()->AddArray(arr);
+}
+
+// -----------------------------------------------------------------------------
+/// Add array with given point source label
+int AddPointSourceArray(vtkPolyData * const surface, size_t idx)
+{
+  vtkSmartPointer<vtkDataArray> arr;
+  arr = NewVtkDataArray(VTK_SHORT, surface->GetNumberOfPoints(), 1, SOURCE_ARRAY_NAME);
+  arr->FillComponent(0, static_cast<double>(idx));
+  surface->GetPointData()->RemoveArray(SOURCE_ARRAY_NAME);
+  return surface->GetPointData()->AddArray(arr);
+}
+
+// -----------------------------------------------------------------------------
+/// Add array with given cell source label
+int AddCellSourceArray(vtkPolyData * const surface, size_t idx)
+{
+  vtkSmartPointer<vtkDataArray> arr;
+  arr = NewVtkDataArray(VTK_SHORT, surface->GetNumberOfCells(), 1, SOURCE_ARRAY_NAME);
+  arr->FillComponent(0, static_cast<double>(idx));
+  surface->GetCellData()->RemoveArray(SOURCE_ARRAY_NAME);
+  return surface->GetCellData()->AddArray(arr);
+}
 
 // -----------------------------------------------------------------------------
 /// Get binary mask of region enclosed by surface
@@ -720,68 +769,103 @@ void JoinBoundaries(SurfaceBoundary &boundary, vtkAbstractCellLocator *cut, doub
 }
 
 // -----------------------------------------------------------------------------
+/// Delete surface elements close to the label boundary
+///
+/// For each connected component in the label boundary, the closest connected
+/// surface patch whose points are within a given distance to this boundary
+/// component are removed. The input surface mesh remains unmodified. Hence,
+/// for each connected label boundary, a single hole at which to merge the
+/// input surfaces is introduced.
+vtkSmartPointer<vtkPolyData>
+DeleteCellsNearLabelBoundary(vtkPolyData *surface, vtkPolyData *label_boundary, double tol)
+{
+  vtkSmartPointer<vtkPolyData> output;
+  output = surface->NewInstance();
+  output->ShallowCopy(surface);
+  output->BuildCells();
+
+  vtkSmartPointer<vtkPolyData> surface_mesh;
+  surface_mesh = surface->NewInstance();
+  surface_mesh->DeepCopy(output);
+  AddCellIdArray(surface_mesh, "DeleteCellId");
+
+  vtkNew<vtkPolyDataConnectivityFilter> extract_boundary;
+  SetVTKInput(extract_boundary, label_boundary);
+  extract_boundary->ColorRegionsOff();
+  extract_boundary->ScalarConnectivityOff();
+  extract_boundary->SetExtractionModeToAllRegions();
+  extract_boundary->Update();
+
+  const int num_boundaries = extract_boundary->GetNumberOfExtractedRegions();
+  extract_boundary->SetExtractionModeToSpecifiedRegions();
+
+  vtkNew<vtkDistancePolyDataFilter> calc_distance_to_boundary;
+  SetNthVTKInput(calc_distance_to_boundary, 0, surface_mesh);
+  SetNthVTKConnection(calc_distance_to_boundary, 1, extract_boundary, 0);
+  calc_distance_to_boundary->SignedDistanceOff();
+
+  vtkNew<vtkPolyDataConnectivityFilter> extract_hole;
+  extract_hole->SetExtractionModeToLargestRegion();
+  extract_hole->ScalarConnectivityOn();
+  extract_hole->FullScalarConnectivityOff();
+  extract_hole->SetScalarRange(0, tol);
+
+  vtkSmartPointer<vtkIdList> ptIds = vtkSmartPointer<vtkIdList>::New();
+  for (int boundary_id = 0; boundary_id < num_boundaries; ++boundary_id) {
+    extract_boundary->InitializeSpecifiedRegionList();
+    extract_boundary->AddSpecifiedRegion(boundary_id);
+
+    calc_distance_to_boundary->Update();
+    auto surface_with_distances = calc_distance_to_boundary->GetOutput();
+    surface_with_distances->GetPointData()->SetActiveScalars("Distance");
+    SetVTKInput(extract_hole, surface_with_distances);
+    extract_hole->Update();
+
+    vtkSmartPointer<vtkPolyData> hole = extract_hole->GetOutput();
+
+    vtkDataArray *cellIds = hole->GetCellData()->GetArray("DeleteCellId");
+    for (vtkIdType i = 0; i < cellIds->GetNumberOfTuples(); ++i) {
+      output->DeleteCell(static_cast<vtkIdType>(cellIds->GetComponent(i, 0)));
+    }
+  }
+
+  output->RemoveDeletedCells();
+
+  if (debug) {
+    static int ncall = 0; ++ncall;
+    char fname[64];
+    snprintf(fname, 64, "debug_merge_surface_%d.vtp", ncall);
+    WritePolyData(fname, output);
+  }
+
+  return output;
+}
+
+// -----------------------------------------------------------------------------
 /// Merge two surface meshes at given segmentation boundary
 vtkSmartPointer<vtkPolyData>
 Merge(vtkPolyData *s1, vtkPolyData *s2, vtkPolyData *label_boundary, double tol, int smooth, bool join)
 {
-  const double tol2      = tol * tol;
-  const double max_dist2 =  4. * tol2;
+  const double max_dist2 =  4. * tol * tol;
   const double max_hdist = 10. * tol;
 
-  double     p[3], x[3], dist2;
-  vtkIdType  cellId;
-  int        subId;
-
-  vtkNew<vtkIdList> cellIds;
-
-  // Build links
-  s1->BuildLinks();
-  s2->BuildLinks();
-
-  // Locator to find distance to segmentation boundary
-  vtkSmartPointer<vtkAbstractCellLocator> cut;
-  cut = vtkSmartPointer<vtkCellLocator>::New();
+  // Label boundary point locator
+  vtkNew<vtkCellLocator> cut;
   cut->SetDataSet(label_boundary);
   cut->BuildLocator();
 
-  // Mark cells close to segmentation boundary as deleted
-  for (vtkIdType ptId = 0; ptId < s1->GetNumberOfPoints(); ++ptId) {
-    s1->GetPoint(ptId, p);
-    cut->FindClosestPoint(p, x, cellId, subId, dist2);
-    if (dist2 < tol2) {
-      s1->GetPointCells(ptId, cellIds.GetPointer());
-      for (vtkIdType i = 0; i < cellIds->GetNumberOfIds(); ++i) {
-        s1->DeleteCell(cellIds->GetId(i));
-      }
-      s1->DeletePoint(ptId);
-    }
-  }
-
-  for (vtkIdType ptId = 0; ptId < s2->GetNumberOfPoints(); ++ptId) {
-    s2->GetPoint(ptId, p);
-    cut->FindClosestPoint(p, x, cellId, subId, dist2);
-    if (dist2 < tol2) {
-      s2->GetPointCells(ptId, cellIds.GetPointer());
-      for (vtkIdType i = 0; i < cellIds->GetNumberOfIds(); ++i) {
-        s2->DeleteCell(cellIds->GetId(i));
-      }
-      s2->DeletePoint(ptId);
-    }
-  }
-
-  // Remove deleted cells
-  s1->RemoveDeletedCells();
-  s2->RemoveDeletedCells();
+  // Delete points and cells close to the label boundaries
+  vtkSmartPointer<vtkPolyData> surface1 = DeleteCellsNearLabelBoundary(s1, label_boundary, tol);
+  vtkSmartPointer<vtkPolyData> surface2 = DeleteCellsNearLabelBoundary(s2, label_boundary, tol);
 
   // Combine surfaces into one polygonal data set
   vtkNew<vtkAppendPolyData> appender;
-  AddVTKInput(appender, s1);
-  AddVTKInput(appender, s2);
+  AddVTKInput(appender, surface1);
+  AddVTKInput(appender, surface2);
   appender->Update();
 
   // Get combined output data set
-  vtkSmartPointer<vtkPolyData> output;
-  output = appender->GetOutput();
+  vtkSmartPointer<vtkPolyData> output = appender->GetOutput();
 
   // Clean intersection boundaries
   //
@@ -794,31 +878,11 @@ Merge(vtkPolyData *s1, vtkPolyData *s2, vtkPolyData *label_boundary, double tol,
   SmoothBoundaries(boundary, cut, max_dist2, smooth);
 
   // Join intersection boundaries
-  if (join) JoinBoundaries(boundary, cut, max_dist2, max_hdist);
+  if (join) {
+    JoinBoundaries(boundary, cut, max_dist2, max_hdist);
+  }
 
   return output;
-}
-
-// -----------------------------------------------------------------------------
-/// Add array with given point source label
-int AddPointSourceArray(vtkPolyData * const surface, size_t idx)
-{
-  vtkSmartPointer<vtkDataArray> arr;
-  arr = NewVtkDataArray(VTK_SHORT, surface->GetNumberOfPoints(), 1, SOURCE_ARRAY_NAME);
-  arr->FillComponent(0, static_cast<double>(idx));
-  surface->GetPointData()->RemoveArray(SOURCE_ARRAY_NAME);
-  return surface->GetPointData()->AddArray(arr);
-}
-
-// -----------------------------------------------------------------------------
-/// Add array with given cell source label
-int AddCellSourceArray(vtkPolyData * const surface, size_t idx)
-{
-  vtkSmartPointer<vtkDataArray> arr;
-  arr = NewVtkDataArray(VTK_SHORT, surface->GetNumberOfCells(), 1, SOURCE_ARRAY_NAME);
-  arr->FillComponent(0, static_cast<double>(idx));
-  surface->GetCellData()->RemoveArray(SOURCE_ARRAY_NAME);
-  return surface->GetCellData()->AddArray(arr);
 }
 
 // -----------------------------------------------------------------------------
@@ -1386,11 +1450,15 @@ vtkSmartPointer<vtkPolyData> TesselateDivider(vtkSmartPointer<vtkPolyData> divid
     otherId = locator->FindClosestPoint(p);
     if (otherId >= 0) {
       divider->GetPoint(otherId, x);
-      if ((p - x).SquaredLength() < min_dist2) {
-        p = x;
+      if ((p - x).SquaredLength() > min_dist2) {
+        // Simple inside boundary line check based on distance to centroid
+        const double dist_xc = (x - c).SquaredLength();
+        const double dist_pc = (p - c).SquaredLength();
+        if (dist_pc < dist_xc) {
+          points->InsertNextPoint(p);
+        }
       }
     }
-    points->InsertNextPoint(p);
   }
 
   // Compute constrained Delanauy triangulation of divider polygon
@@ -1403,6 +1471,23 @@ vtkSmartPointer<vtkPolyData> TesselateDivider(vtkSmartPointer<vtkPolyData> divid
   boundary->SetPoints(points);
   boundary->SetPolys(divider->GetPolys());
 
+  if (debug) {
+    static int call = 0; ++call;
+    char fname[64];
+    vtkSmartPointer<vtkCellArray> verts;
+    verts = vtkSmartPointer<vtkCellArray>::New();
+    verts->Allocate(verts->EstimateSize(pointset->GetNumberOfPoints(), 1));
+    for (vtkIdType ptId = 0; ptId < pointset->GetNumberOfPoints(); ++ptId) {
+      verts->InsertNextCell(1, &ptId);
+    }
+    pointset->SetVerts(verts);
+    snprintf(fname, 64, "debug_tesselate_divider_input_%d.vtp", call);
+    WritePolyData(fname, pointset);
+    pointset->SetVerts(nullptr);
+    snprintf(fname, 64, "debug_tesselate_divider_source_%d.vtp", call);
+    WritePolyData(fname, boundary);
+  }
+
   vtkNew<vtkDelaunay2D> delaunay;
   delaunay->SetInputData(pointset);
   delaunay->SetSourceData(boundary);
@@ -1410,6 +1495,7 @@ vtkSmartPointer<vtkPolyData> TesselateDivider(vtkSmartPointer<vtkPolyData> divid
   delaunay->SetOffset(1.);
   delaunay->SetTolerance(0.);
   delaunay->SetTransform(transform);
+  delaunay->SetProjectionPlaneMode(VTK_SET_TRANSFORM_PLANE);
   delaunay->Update();
 
   vtkSmartPointer<vtkPolyData> output;
@@ -1923,6 +2009,7 @@ inline void InsertEdgeIntersection(TriangleIntersectionsMap &intersections,
   }
   auto &intersection = it->second.edge[edge];
   if (intersection.i < 0) {
+    // FIXME: Interpolate point data
     newPtId = surface->GetPoints()->InsertNextPoint(const_cast<Vector3 &>(x));
     intersection.i = newPtId;
     intersection.t = t;
@@ -2107,6 +2194,9 @@ AddClosedIntersectionDivider(vtkPolyData *surface, vtkPolyData *cut, double tol 
   }
   cut->GetCellData()->RemoveArray("Input0CellID");
   cut->GetCellData()->RemoveArray("Input1CellID");
+  cut->GetCellData()->RemoveArray("NewCell0ID");
+  cut->GetCellData()->RemoveArray("NewCell1ID");
+  cut->GetPointData()->RemoveArray("SurfaceID");
 
   // Determine and insert new edge intersection points
   TriangleIntersectionsMap intersections;
@@ -2270,7 +2360,19 @@ AddClosedIntersectionDivider(vtkPolyData *surface, vtkPolyData *cut, double tol 
       } break;
     }
   }
+
   surface->RemoveDeletedCells();
+
+  vtkNew<vtkCleanPolyData> surface_cleaner;
+  SetVTKInput(surface_cleaner, surface);
+  surface_cleaner->ConvertStripsToPolysOff();
+  surface_cleaner->ConvertPolysToLinesOff();
+  surface_cleaner->ConvertLinesToPointsOff();
+  surface_cleaner->PointMergingOff();
+  surface_cleaner->ToleranceIsAbsoluteOn();
+  surface_cleaner->SetAbsoluteTolerance(1e-12);
+  surface_cleaner->Update();
+  surface = surface_cleaner->GetOutput();
 
   if (debug) {
     static int callId = 0; ++callId;
@@ -2324,16 +2426,6 @@ AddClosedIntersectionDivider(vtkPolyData *surface, vtkPolyData *cut, double tol 
     snprintf(fname, 64, "debug_split_surface_divider_%d.vtp", callId);
     WritePolyData(fname, divider);
   }
-
-  vtkNew<vtkCleanPolyData> surface_cleaner;
-  SetVTKInput(surface_cleaner, surface);
-  surface_cleaner->Update();
-  surface = surface_cleaner->GetOutput();
-
-  vtkNew<vtkCleanPolyData> split_cleaner;
-  SetVTKInput(split_cleaner, split);
-  split_cleaner->Update();
-  split = split_cleaner->GetOutput();
 
   // Merge surface with intersected cells and tesselated divider polygon
   vtkNew<vtkAppendPolyData> appender;
@@ -2920,7 +3012,7 @@ int main(int argc, char *argv[])
         cout << " done" << endl;
       }
     }
-
+    
     // Smooth surface in vicinity of joined intersection boundaries to remove
     // small self-intersections introduced by joining and/or remeshing steps
     if (smooth_radius > 0 && max_smooth_steps > 0) {
