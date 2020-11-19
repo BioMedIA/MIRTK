@@ -850,7 +850,8 @@ Merge(vtkPolyData *s1, vtkPolyData *s2, vtkPolyData *label_boundary, double tol,
   const double max_hdist = 10. * tol;
 
   // Label boundary point locator
-  vtkNew<vtkCellLocator> cut;
+  vtkSmartPointer<vtkAbstractCellLocator> cut;
+  cut = vtkSmartPointer<vtkCellLocator>::New();
   cut->SetDataSet(label_boundary);
   cut->BuildLocator();
 
