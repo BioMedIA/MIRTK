@@ -35,7 +35,7 @@
 #    define NOMINMAX
 #    define MIRTK_UNDEF_NOMINMAX
 #  endif
-#  include <tbb/task_scheduler_init.h>
+#  include <tbb/global_control.h>
 #  include <tbb/blocked_range.h>
 #  include <tbb/blocked_range2d.h>
 #  include <tbb/blocked_range3d.h>
@@ -46,7 +46,6 @@
 #    include <tbb/scalable_allocator.h>
 #    include <tbb/cache_aligned_allocator.h>
 #  endif
-#  include <tbb/mutex.h>
 #  ifdef MIRTK_UNDEF_NOMINMAX
 #    undef MIRTK_UNDEF_NOMINMAX
 #    undef NOMINMAX
@@ -101,14 +100,13 @@ void PrintParallelOptions(ostream &);
 
 
 // Import used TBB types into mirtk namespace
-using tbb::task_scheduler_init;
+using tbb::global_control;
 using tbb::blocked_range;
 using tbb::blocked_range2d;
 using tbb::blocked_range3d;
 using tbb::parallel_for;
 using tbb::parallel_reduce;
 using tbb::concurrent_queue;
-using tbb::mutex;
 using tbb::split;
 
 #if MIRTK_COMMON_WITH_TBB_MALLOC
@@ -123,7 +121,11 @@ using tbb::cache_aligned_allocator;
 // instance is created and the -threads argument passed on to its initialize
 // method by ParseParallelOption. There should be no task scheduler created/
 // terminated in any of the MIRTK library functions and classes.
-MIRTK_Common_EXPORT extern UniquePtr<task_scheduler_init> tbb_scheduler;
+//
+// Update Nov 2020, task_scheduler_init has been deprecated. Instead, use
+// a global_control object to set a soft limit on the thread pool size.
+// (cf. https://link.springer.com/chapter/10.1007/978-1-4842-4398-5_11).
+MIRTK_Common_EXPORT extern UniquePtr<global_control> tbb_global_control;
 
 
 // -----------------------------------------------------------------------------
@@ -141,14 +143,6 @@ using cache_aligned_allocator = std::allocator<T>;
 
 /// Dummy type used to distinguish split constructor from copy constructor
 struct split {};
-
-/// Helper for initialization of task scheduler
-class task_scheduler_init
-{
-public:
-  task_scheduler_init(int) {}
-  void terminate() {}
-};
 
 /// One-dimensional range
 template <typename T>
