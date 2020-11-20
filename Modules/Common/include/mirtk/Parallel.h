@@ -35,6 +35,9 @@
 #    define NOMINMAX
 #    define MIRTK_UNDEF_NOMINMAX
 #  endif
+#  ifndef TBB_PREVIEW_GLOBAL_CONTROL
+#    define TBB_PREVIEW_GLOBAL_CONTROL 1
+#  endif
 #  include <tbb/global_control.h>
 #  include <tbb/blocked_range.h>
 #  include <tbb/blocked_range2d.h>
