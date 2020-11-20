@@ -40,7 +40,7 @@ int debug_gpu = 0;
 int tbb_debug = 0;
 
 #ifdef HAVE_TBB
-UniquePtr<task_scheduler_init> tbb_scheduler;
+UniquePtr<global_control> tbb_global_control;
 #endif
 
 // =============================================================================
@@ -75,18 +75,13 @@ void ParseParallelOption(int &OPTIDX, int &argc, char *argv[])
       cerr << "Invalid -threads argument, must be an integer!" << endl;
       exit(1);
     }
+#ifdef HAVE_TBB
     if (no_threads < 0) {
-#ifdef HAVE_TBB
-      no_threads = task_scheduler_init::automatic;
-#else
-      no_threads = 1;
-#endif
-    } else if (no_threads == 0) {
-      no_threads = 1;
+      tbb_global_control.reset(nullptr);
+    } else {
+      // +1 for master thread, no_threads workers; -threads 0 --> serial execution
+      tbb_global_control.reset(new global_control(global_control::max_allowed_parallelism, no_threads + 1));
     }
-#ifdef HAVE_TBB
-    if (!tbb_scheduler.get()) tbb_scheduler.reset(new task_scheduler_init(no_threads));
-    else                      tbb_scheduler.get()->initialize(no_threads);
 #endif
   }
 }
