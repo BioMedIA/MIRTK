@@ -1,6 +1,4 @@
-dist: trusty
-sudo: required
-
+dist: xenial
 language: cpp
 
 compiler:
@@ -19,7 +17,7 @@ env:
   # versions of VTK for each OS
   # - On Ubuntu, use default version installed by apt-get
   # - On macOS, build recent VTK version from sources and cache installation
-  - LINUX_VTK_VERSION=6.0.0
+  - LINUX_VTK_VERSION=6.2.0
   - MACOS_VTK_VERSION=9.0  # Homebrew versions: 8.2, 9.0; otherwise build from sources
   - WITH_CCACHE=ON    # speed up MIRTK build itself using ccache
   - WITH_ARPACK=OFF   # requires time consuming build of gcc on macOS
@@ -35,11 +33,11 @@ env:
   - AppImage_DEVEL=${AppImage_DEVEL:-ON}
   - AppImage_LATEST=${AppImage_LATEST:-ON}
   - AppImage_RELEASE=${AppImage_RELEASE}
-  matrix:
+  jobs:
   - WITH_VTK=OFF      # make sure that MIRTK can be build fine without VTK
   - WITH_VTK=ON       # test build with all moduldes, including those using VTK
 
-matrix:
+jobs:
   allow_failures:
     # the osx build often breaks with homebrew changes, so we allow it to fail 
     - os: osx
@@ -99,7 +97,7 @@ deploy:
       condition: "$AppImage_BINTRAY = ON"
   - provider: releases
     skip_cleanup: true
-    api_key:
+    token:
       secure: "AQD/827hwRqb7Dihl+X3w2WBqGY+JpVcdfm28FEcxNF70WnjCis8V0OHACZ7VIGZHZbcyw33278wJoPwKPm7D1pu3+G++hP7PPLE7JhHJbj6oU7WTqJuvTjSc7F0DkUmXyttMPRpocCU0m3pbJXNhY4oqrYwEQJNtQbqbnYRPV958YR104bWji5VhmtB6Gsp3L7kfjvEAjinHAEDQXybO4/ZVSn+/5MycvE/qTk20NZedsa3rusdmrRAR79CwPBkg0zQhbV4qT0+K1COF1pw/35kyZ22x+mzG5wO+3n2NxrmKo4X3V1awipP+JEFFCsZti1joKxJ9IQo6OFfTPIDpqZQIuvlGr3/1K+iKuGq2OqiXFCdOoHnLBYvVxnr7uToaSMM9kqowevGc5fea2sV3YDvx7EIWJSJiCe5Ee8sWnSDLYJVoSY9ykmx6vRxPJ0iaUjLLajvPenapZOvQZRdZrIX1eFFZqXBB3HQzlbSG/PdjAVDY2KzOuOkXU5Rsaztj8FZgcvWk1U4mqYon+Hol30oGM6u+ZpiOEQclBQe0lUgFUbJv+na0cOoT2LLH0l6ZyifJtUIcfi4ZMAR8vRVAm63gQMX/PPaojXegWrVhS3KWSXyDqHNnFyTuwrnLKH7FWrpEkmaPann1i+LowukaMnizTaQjMM+JgVkBhhdwgo="
     file: "Deploy/*.AppImage"
     file_glob: true
