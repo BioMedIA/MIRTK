@@ -1368,6 +1368,7 @@ vtkSmartPointer<vtkPolyData> TesselateDivider(vtkSmartPointer<vtkPolyData> divid
   double    dist2, reverse_dist2;
   vtkIdType otherId;
   Vector3   c, p, q, x, dir[3];
+  vtkNew<vtkIdList> ptIds;
 
   // Compute principle directions of divider polygon plane
   const bool twod = true;
@@ -1462,7 +1463,7 @@ vtkSmartPointer<vtkPolyData> TesselateDivider(vtkSmartPointer<vtkPolyData> divid
     }
   }
 
-  // Compute constrained Delanauy triangulation of divider polygon
+  // Compute constrained Delaunay triangulation of divider polygon
   vtkSmartPointer<vtkPolyData> pointset;
   pointset = vtkSmartPointer<vtkPolyData>::New();
   pointset->SetPoints(points);
@@ -1509,7 +1510,7 @@ vtkSmartPointer<vtkPolyData> TesselateDivider(vtkSmartPointer<vtkPolyData> divid
   cell_locator->BuildLocator();
   cell_locator->FindClosestPoint(c, x, otherId, subId, dist2);
 
-  vtkNew<vtkIdList> ptIds, reverse_pts;
+  vtkNew<vtkIdList> reverse_pts;
   boundary->GetPolys()->GetCell(0, ptIds.GetPointer());
   reverse_pts->Allocate(ptIds->GetNumberOfIds());
   for (vtkIdType i = ptIds->GetNumberOfIds() - 1; i >= 0; --i) {
@@ -1545,6 +1546,26 @@ vtkSmartPointer<vtkPolyData> TesselateDivider(vtkSmartPointer<vtkPolyData> divid
   cleaner->PointMergingOff();
   cleaner->Update();
   output = cleaner->GetOutput();
+
+  // Remove triangles where all points are on the original divider boundary polyline
+  for (vtkIdType cellId = 0; cellId < output->GetNumberOfCells(); ++cellId) {
+    output->GetCellPoints(cellId, ptIds.GetPointer());
+    mirtkAssert(ptIds->GetNumberOfIds() == 3, "divider tesselation consists of triangles");
+    bool delete_boundary_triangle = true;
+    for (vtkIdType i = 0; i < ptIds->GetNumberOfIds(); ++i) {
+      output->GetPoint(ptIds->GetId(i), p);
+      otherId = locator->FindClosestPoint(p);
+      divider->GetPoint(otherId, q);
+      if ((p - q).SquaredLength() > 1e-12) {
+        delete_boundary_triangle = false;
+        break;
+      }
+    }
+    if (delete_boundary_triangle) {
+      output->DeleteCell(cellId);
+    }
+  }
+  output->RemoveDeletedCells();
 
   // Smooth divider
   // (needed when boundary points were snapped to surface mesh)
