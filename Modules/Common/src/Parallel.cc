@@ -17,6 +17,10 @@
  * limitations under the License.
  */
 
+#ifdef HAVE_TBB
+#  include <tbb/tbb_stddef.h>
+#endif
+
 #include "mirtk/Parallel.h"
 
 #include "mirtk/String.h"
@@ -79,6 +83,10 @@ void ParseParallelOption(int &OPTIDX, int &argc, char *argv[])
     if (no_threads < 0) {
       tbb_global_control.reset(nullptr);
     } else {
+      // Before TBB 4.4 Update 3, value of 0 and 1 not allowed for max_allowed_parallelism.
+      #if TBB_INTERFACE_VERSION < 9003
+        if (no_threads == 0) no_threads = 1;
+      #endif
       // +1 for master thread, no_threads workers; -threads 0 --> serial execution
       tbb_global_control.reset(new global_control(global_control::max_allowed_parallelism, no_threads + 1));
     }
