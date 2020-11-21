@@ -300,6 +300,37 @@ UnorderedSet<int> InsideLabels(const GreyImage &labels, double percentage, vtkPo
 }
 
 // -----------------------------------------------------------------------------
+/// Get IDs of all cell edge neighbors
+inline UnorderedSet<vtkIdType>
+GetCellEdgeNeighbors(vtkPolyData *surface, vtkIdType cellId, bool excl_boundary_edges = false)
+{
+  UnorderedSet<vtkIdType> ids;
+  vtkIdType ptId1, ptId2;
+  vtkNew<vtkGenericCell> cell;
+  vtkNew<vtkIdList> cellIds;
+  cellIds->Allocate(10);
+  surface->GetCell(cellId, cell.GetPointer());
+  for (int edgeId = 0; edgeId < cell->GetNumberOfEdges(); ++edgeId) {
+    vtkCell * const edge = cell->GetEdge(edgeId);
+    if (edge->GetNumberOfPoints() > 1) {
+      ptId1 = edge->PointIds->GetId(0);
+      for (vtkIdType i = 1; i < edge->GetNumberOfPoints(); ++i, ptId1 = ptId2) {
+        ptId2 = edge->PointIds->GetId(i);
+        surface->GetCellEdgeNeighbors(cellId, ptId1, ptId2, cellIds.GetPointer());
+        if (cellIds->GetNumberOfIds() == 1) {
+          ids.insert(cellIds->GetId(0));
+        } else if (!excl_boundary_edges) {
+          for (vtkIdType j = 0; j < cellIds->GetNumberOfIds(); ++j) {
+            ids.insert(cellIds->GetId(j));
+          }
+        }
+      }
+    }
+  }
+  return ids;
+}
+
+// -----------------------------------------------------------------------------
 /// Add set of segmentation boundary points
 vtkSmartPointer<vtkPolyData>
 LabelBoundary(const GreyImage &labels, const UnorderedSet<int> &label_set1, const UnorderedSet<int> &label_set2)
@@ -440,6 +471,21 @@ LabelBoundary(const GreyImage &labels, const UnorderedSet<int> &label_set1, cons
   cleaner->PointMergingOn();
   cleaner->ToleranceIsAbsoluteOn();
   cleaner->SetAbsoluteTolerance(1e-9);
+  cleaner->Update();
+  boundary->DeepCopy(cleaner->GetOutput());
+
+  for (int iter = 0; iter < 10; ++iter) {
+    boundary->BuildLinks();
+    for (vtkIdType cellId = 0; cellId < boundary->GetNumberOfCells(); ++cellId) {
+      const auto nbrCellIds = GetCellEdgeNeighbors(boundary, cellId);
+      if (nbrCellIds.size() < 2) {
+        boundary->DeleteCell(cellId);
+      }
+    }
+    boundary->RemoveDeletedCells();
+  }
+
+  SetVTKInput(cleaner, boundary);
   cleaner->Update();
   boundary = cleaner->GetOutput();
 
