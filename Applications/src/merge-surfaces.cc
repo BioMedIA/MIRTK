@@ -172,6 +172,8 @@ void PrintHelp(const char *name)
   cout << "      The default smoothing parameters avoid shrinking of the surface mesh\n";
   cout << "      and serve mainly to relax any small self-intersections that may have\n";
   cout << "      been introduced while joining the split input surfaces. (default: -.75)\n";
+  cout << "  -smoothing-remesh-iterations <n>\n";
+  cout << "      Number of remeshing iterations after smoothing the merged surfaces near the intersection. (default: 0)\n";
   cout << "  -neighborhood, -neighbourhood, -radius <int>\n";
   cout << "      Edge connectivity radius around intersection border cells/points used\n";
   cout << "      to define the local neighborhood for which to apply the remeshing and\n";
@@ -856,7 +858,7 @@ DeleteCellsNearLabelBoundary(vtkPolyData *surface, vtkPolyData *label_boundary, 
   extract_hole->FullScalarConnectivityOff();
   extract_hole->SetScalarRange(0, tol);
 
-  vtkSmartPointer<vtkIdList> ptIds = vtkSmartPointer<vtkIdList>::New();
+  vtkNew<vtkIdList> cellIds, ptIds;
   for (int boundary_id = 0; boundary_id < num_boundaries; ++boundary_id) {
     extract_boundary->InitializeSpecifiedRegionList();
     extract_boundary->AddSpecifiedRegion(boundary_id);
@@ -868,6 +870,21 @@ DeleteCellsNearLabelBoundary(vtkPolyData *surface, vtkPolyData *label_boundary, 
     extract_hole->Update();
 
     vtkSmartPointer<vtkPolyData> hole = extract_hole->GetOutput();
+    Array<int> numEdges(hole->GetNumberOfPoints(), 0);
+    for (const auto &edge : BoundaryEdges(hole)) {
+      numEdges[edge.first] += 1;
+      numEdges[edge.second] += 1;
+    }
+    hole->BuildCells();
+    for (vtkIdType ptId = 0; ptId < hole->GetNumberOfPoints(); ++ptId) {
+      if (numEdges[ptId] > 2) {
+        hole->GetPointCells(ptId, cellIds.GetPointer());
+        for (vtkIdType i = 0; i < cellIds->GetNumberOfIds(); ++i) {
+          hole->DeleteCell(cellIds->GetId(i));
+        }
+      }
+    }
+    hole->RemoveDeletedCells();
 
     vtkDataArray *cellIds = hole->GetCellData()->GetArray("DeleteCellId");
     for (vtkIdType i = 0; i < cellIds->GetNumberOfTuples(); ++i) {
@@ -1355,13 +1372,44 @@ vtkSmartPointer<vtkPolyData> LineStrips(vtkSmartPointer<vtkPolyData> cut)
 }
 
 // -----------------------------------------------------------------------------
-vtkSmartPointer<vtkDataArray> NonBoundaryPointsMask(vtkSmartPointer<vtkPolyData> input)
+vtkSmartPointer<vtkDataArray>
+ClosestBoundaryPoints(vtkSmartPointer<vtkPolyData> input, vtkAbstractPointLocator *locator)
+{
+  const double radius = 1e-9;
+  double p[3], dist2;
+  vtkIdType otherId;
+  vtkSmartPointer<vtkDataArray> closest_points;
+  closest_points = NewVtkDataArray(VTK_ID_TYPE, input->GetNumberOfPoints(), 1);
+  closest_points->FillComponent(0, -1);
+  for (vtkIdType ptId = 0; ptId < input->GetNumberOfPoints(); ++ptId) {
+    input->GetPoint(ptId, p);
+    otherId = locator->FindClosestPointWithinRadius(radius, p, dist2);
+    closest_points->SetComponent(ptId, 0, static_cast<double>(otherId));
+  }
+  return closest_points;
+}
+
+// -----------------------------------------------------------------------------
+vtkSmartPointer<vtkDataArray>
+NonBoundaryPointsMask(vtkSmartPointer<vtkPolyData> input, vtkAbstractPointLocator *locator = nullptr, double radius = 1e-9)
 {
   vtkSmartPointer<vtkDataArray> mask;
   mask = NewVtkDataArray(VTK_UNSIGNED_CHAR, input->GetNumberOfPoints(), 1);
   mask->FillComponent(0, 1.);
-  UnorderedSet<int> ptIds = BoundaryPoints(input);
-  for (auto ptId : ptIds) mask->SetComponent(ptId, 0, 0.);
+  if (locator) {
+    double p[3];
+    vtkNew<vtkIdList> boundaryPtIds;
+    for (vtkIdType ptId = 0; ptId < input->GetNumberOfPoints(); ++ptId) {
+      input->GetPoint(ptId, p);
+      locator->FindPointsWithinRadius(radius, p, boundaryPtIds.GetPointer());
+      if (boundaryPtIds->GetNumberOfIds() > 0) {
+        mask->SetComponent(ptId, 0, 0.);
+      }
+    }
+  } else {
+    UnorderedSet<int> ptIds = BoundaryPoints(input);
+    for (auto ptId : ptIds) mask->SetComponent(ptId, 0, 0.);
+  }
   return mask;
 }
 
@@ -1414,7 +1462,7 @@ vtkSmartPointer<vtkPolyData> TesselateDivider(vtkSmartPointer<vtkPolyData> divid
   double    dist2, reverse_dist2;
   vtkIdType otherId;
   Vector3   c, p, q, x, dir[3];
-  vtkNew<vtkIdList> ptIds;
+  vtkNew<vtkIdList> cellIds, ptIds;
 
   // Compute principle directions of divider polygon plane
   const bool twod = true;
@@ -1593,31 +1641,46 @@ vtkSmartPointer<vtkPolyData> TesselateDivider(vtkSmartPointer<vtkPolyData> divid
   cleaner->Update();
   output = cleaner->GetOutput();
 
-  // Remove triangles where all points are on the original divider boundary polyline
-  for (vtkIdType cellId = 0; cellId < output->GetNumberOfCells(); ++cellId) {
-    output->GetCellPoints(cellId, ptIds.GetPointer());
-    mirtkAssert(ptIds->GetNumberOfIds() == 3, "divider tesselation consists of triangles");
-    bool delete_boundary_triangle = true;
-    for (vtkIdType i = 0; i < ptIds->GetNumberOfIds(); ++i) {
-      output->GetPoint(ptIds->GetId(i), p);
-      otherId = locator->FindClosestPoint(p);
-      divider->GetPoint(otherId, q);
-      if ((p - q).SquaredLength() > 1e-12) {
-        delete_boundary_triangle = false;
-        break;
+  // Map from tesselated divider mesh point to boundary polyline point IDs
+  const auto dividerPtIds = ClosestBoundaryPoints(output, locator);
+
+  // Mask of non-boundary mesh points
+  vtkSmartPointer<vtkDataArray> nonBoundaryMask;
+  nonBoundaryMask = NewVtkDataArray(VTK_UNSIGNED_CHAR, output->GetNumberOfPoints(), 1);
+  for (vtkIdType ptId = 0; ptId < output->GetNumberOfPoints(); ++ptId) {
+    nonBoundaryMask->SetComponent(ptId, 0, dividerPtIds->GetComponent(ptId, 0) < 0 ? 1 : 0);
+  }
+
+  // Remove boundary triangles with a boundary edge that does not
+  // coincide with an input divider boundary polyline edge.
+  for (int iter = 0; iter < 100; ++iter) {
+    int num_cells_deleted = 0;
+    const EdgeTable dividerEdges(divider);
+    for (const auto &edge : BoundaryEdges(output)) {
+      const vtkIdType dividerPtId1 = static_cast<vtkIdType>(dividerPtIds->GetComponent(edge.first, 0));
+      const vtkIdType dividerPtId2 = static_cast<vtkIdType>(dividerPtIds->GetComponent(edge.second, 0));
+      if (!dividerEdges.IsEdge(dividerPtId1, dividerPtId2)) {
+        vtkNew<vtkIdList> otherCellIds;
+        output->GetPointCells(edge.first, cellIds.GetPointer());
+        output->GetPointCells(edge.second, otherCellIds.GetPointer());
+        cellIds->IntersectWith(otherCellIds);
+        for (vtkIdType i = 0; i < cellIds->GetNumberOfIds(); ++i) {
+          output->DeleteCell(cellIds->GetId(i));
+          num_cells_deleted += 1;
+        }
       }
     }
-    if (delete_boundary_triangle) {
-      output->DeleteCell(cellId);
+    if (num_cells_deleted == 0) {
+      break;
     }
+    output->RemoveDeletedCells();
   }
-  output->RemoveDeletedCells();
 
   // Smooth divider
   // (needed when boundary points were snapped to surface mesh)
   MeshSmoothing smoother;
   smoother.Input(output);
-  smoother.Mask(NonBoundaryPointsMask(output));
+  smoother.Mask(nonBoundaryMask);
   smoother.Weighting(MeshSmoothing::Combinatorial);
   smoother.AdjacentValuesOnlyOn();
   smoother.SmoothPointsOn();
@@ -1625,6 +1688,11 @@ vtkSmartPointer<vtkPolyData> TesselateDivider(vtkSmartPointer<vtkPolyData> divid
   smoother.Lambda(1.);
   smoother.Run();
   output = smoother.Output();
+
+  // Remove unused points
+  SetVTKInput(cleaner, output);
+  cleaner->Update();
+  output = cleaner->GetOutput();
 
   return output;
 }
@@ -2677,6 +2745,108 @@ void GrowSourceRegion(vtkPolyData *surface, bool ignore_border_edges)
   }
 }
 
+// -----------------------------------------------------------------------------
+// Remesh newly inserted cells which are joining the intersection boundaries
+vtkSmartPointer<vtkPolyData>
+RemeshNearIntersection(vtkPolyData *surface, double remesh_radius, int max_remesh_steps,
+                       double min_edge_length, double max_edge_length, double edge_length_sd)
+{
+  static int ncall = 0;
+  ++ncall;
+
+  if (verbose > 0) {
+    cout << "Remeshing surface near intersection boundaries...";
+    cout.flush();
+  }
+
+  vtkSmartPointer<vtkPolyData> output = surface->NewInstance();
+  output->DeepCopy(surface);
+  output->BuildLinks();
+
+  vtkSmartPointer<vtkDataArray> mask;
+  mask = IntersectionCellMask(output, remesh_radius);
+
+  double min_global_length, max_global_length;
+  GetMinMaxEdgeLength(output, min_global_length, max_global_length);
+  GetEdgeLengthRange(output, mask, min_edge_length, max_edge_length, edge_length_sd);
+
+  min_global_length -= 1e-12;
+  max_global_length += 1e-12;
+
+  const vtkIdType ncells = output->GetNumberOfCells();
+  vtkSmartPointer<vtkDataArray> min_edge_length_arr, max_edge_length_arr;
+  min_edge_length_arr = NewVtkDataArray(VTK_FLOAT, ncells, 1, MIN_EDGE_LENGTH_ARRAY_NAME);
+  max_edge_length_arr = NewVtkDataArray(VTK_FLOAT, ncells, 1, MAX_EDGE_LENGTH_ARRAY_NAME);
+
+  int n = 0;
+  for (vtkIdType cellId = 0; cellId < ncells; ++cellId) {
+    if (mask->GetComponent(cellId, 0) != 0.) {
+      min_edge_length_arr->SetComponent(cellId, 0, min_edge_length);
+      max_edge_length_arr->SetComponent(cellId, 0, max_edge_length);
+      ++n;
+    } else {
+      min_edge_length_arr->SetComponent(cellId, 0, min_global_length);
+      max_edge_length_arr->SetComponent(cellId, 0, max_global_length);
+    }
+  }
+  mask = nullptr;
+
+  if (n > 0) {
+    if (verbose > 1) {
+      cout << "\n";
+      cout << "  No. of boundary cells = " << n << "\n";
+      cout << "  Edge length range     = [" << min_edge_length << ", " << max_edge_length << "]\n";
+      if (debug_time > 0) cout << "\n";
+      cout.flush();
+    }
+    int nmelt = 0, ninvs = 0, nsubd = 0;
+    for (int iter = 0; iter < max_remesh_steps; ++iter) {
+      SurfaceRemeshing remesher;
+      remesher.MeltTrianglesOff();
+      remesher.MeltNodesOff();
+      remesher.InvertTrianglesToIncreaseMinHeightOff();
+      remesher.Input(output);
+      if (iter == 0) {
+        remesher.MinCellEdgeLengthArray(min_edge_length_arr);
+        remesher.MaxCellEdgeLengthArray(max_edge_length_arr);
+        min_edge_length_arr = nullptr;
+        max_edge_length_arr = nullptr;
+      }
+      remesher.Run();
+      if (remesher.NumberOfChanges() == 0) break;
+      output = remesher.Output();
+      if (debug > 0) {
+        char fname[64];
+        snprintf(fname, 64, "debug_remeshed_%d_%d.vtp", ncall, iter+1);
+        WritePolyData(fname, output);
+      }
+      nmelt += remesher.NumberOfMeltedEdges();
+      ninvs += remesher.NumberOfInversions();
+      nsubd += remesher.NumberOfBisections();
+      nsubd += 2 * remesher.NumberOfTrisections();
+      nsubd += 3 * remesher.NumberOfQuadsections();
+    }
+    if (verbose > 1) {
+      if (debug_time > 0) cout << "\n";
+      cout << "  No. of edge-meltings  = " << nmelt << "\n";
+      cout << "  No. of inversions     = " << ninvs << "\n";
+      cout << "  No. of subdivisions   = " << nsubd << "\n";
+      cout.flush();
+    }
+    output->GetPointData()->RemoveArray(SurfaceRemeshing::MIN_EDGE_LENGTH);
+    output->GetPointData()->RemoveArray(SurfaceRemeshing::MAX_EDGE_LENGTH);
+  }
+
+  if (verbose > 0) {
+    if (verbose > 1) {
+      cout << "Remeshing surface near intersection boundaries...";
+    }
+    cout << " done" << endl;
+  }
+
+  return output;
+}
+
 // =============================================================================
 // Main
 // =============================================================================
@@ -2702,6 +2872,7 @@ int main(int argc, char *argv[])
   int    max_smooth_steps     = 0;   // (max) no. of smoothing steps
   int    remesh_radius        = 3;   // intersection cell neighborhood connectivity radius
   int    smooth_radius        = 2;   // intersection cell neighborhood connectivity radius
+  int    smooth_remesh_steps  = 0;   // max no. of remeshing steps after smoothing: use max_remesh_steps if <0
   double smooth_lambda        = NaN;
   double smooth_mu            = NaN;
   bool   fill_source_label    = true;
@@ -2803,6 +2974,9 @@ int main(int argc, char *argv[])
     }
     else if (OPTION("-smoothing-mu") || OPTION("-smooth-mu")) {
       PARSE_ARGUMENT(smooth_mu);
+    }
+    else if (OPTION("-smoothing-remesh-iterations")) {
+      PARSE_ARGUMENT(smooth_remesh_steps);
     }
     else if (OPTION("-nosmoothing") || OPTION("-nosmooth")) {
       max_smooth_steps = 0;
@@ -2991,96 +3165,11 @@ int main(int argc, char *argv[])
 
     // Remesh newly inserted cells which are joining the intersection boundaries
     if (remesh_radius > 0 && max_remesh_steps > 0) {
-      if (verbose > 0) {
-        cout << "Remeshing surface near intersection boundaries...";
-        cout.flush();
-      }
-
       output = Triangulate(output);
-      output->BuildLinks();
-
-      vtkSmartPointer<vtkDataArray> mask;
-      mask = IntersectionCellMask(output, remesh_radius);
-
-      double min_global_length, max_global_length;
-      GetMinMaxEdgeLength(output, min_global_length, max_global_length);
-      GetEdgeLengthRange(output, mask, min_edge_length, max_edge_length, edge_length_sd);
-
-      min_global_length -= 1e-12;
-      max_global_length += 1e-12;
-
-      const vtkIdType ncells = output->GetNumberOfCells();
-      vtkSmartPointer<vtkDataArray> min_edge_length_arr, max_edge_length_arr;
-      min_edge_length_arr = NewVtkDataArray(VTK_FLOAT, ncells, 1, MIN_EDGE_LENGTH_ARRAY_NAME);
-      max_edge_length_arr = NewVtkDataArray(VTK_FLOAT, ncells, 1, MAX_EDGE_LENGTH_ARRAY_NAME);
-
-      int n = 0;
-      for (vtkIdType cellId = 0; cellId < ncells; ++cellId) {
-        if (mask->GetComponent(cellId, 0) != 0.) {
-          min_edge_length_arr->SetComponent(cellId, 0, min_edge_length);
-          max_edge_length_arr->SetComponent(cellId, 0, max_edge_length);
-          ++n;
-        } else {
-          min_edge_length_arr->SetComponent(cellId, 0, min_global_length);
-          max_edge_length_arr->SetComponent(cellId, 0, max_global_length);
-        }
-      }
-      mask = nullptr;
-
-      if (n > 0) {
-        if (verbose > 1) {
-          cout << "\n";
-          cout << "  No. of boundary cells = " << n << "\n";
-          cout << "  Edge length range     = [" << min_edge_length << ", " << max_edge_length << "]\n";
-          if (debug_time > 0) cout << "\n";
-          cout.flush();
-        }
-        int nmelt = 0, ninvs = 0, nsubd = 0;
-        for (int iter = 0; iter < max_remesh_steps; ++iter) {
-          SurfaceRemeshing remesher;
-          remesher.MeltTrianglesOff();
-          remesher.MeltNodesOff();
-          remesher.InvertTrianglesToIncreaseMinHeightOff();
-          remesher.Input(output);
-          if (iter == 0) {
-            remesher.MinCellEdgeLengthArray(min_edge_length_arr);
-            remesher.MaxCellEdgeLengthArray(max_edge_length_arr);
-            min_edge_length_arr = nullptr;
-            max_edge_length_arr = nullptr;
-          }
-          remesher.Run();
-          if (remesher.NumberOfChanges() == 0) break;
-          output = remesher.Output();
-          if (debug > 0) {
-            char fname[64];
-            snprintf(fname, 64, "debug_remeshed_%d.vtp", iter+1);
-            WritePolyData(fname, output);
-          }
-          nmelt += remesher.NumberOfMeltedEdges();
-          ninvs += remesher.NumberOfInversions();
-          nsubd += remesher.NumberOfBisections();
-          nsubd += 2 * remesher.NumberOfTrisections();
-          nsubd += 3 * remesher.NumberOfQuadsections();
-        }
-        if (verbose > 1) {
-          if (debug_time > 0) cout << "\n";
-          cout << "  No. of edge-meltings  = " << nmelt << "\n";
-          cout << "  No. of inversions     = " << ninvs << "\n";
-          cout << "  No. of subdivisions   = " << nsubd << "\n";
-          cout.flush();
-        }
-        output->GetPointData()->RemoveArray(SurfaceRemeshing::MIN_EDGE_LENGTH);
-        output->GetPointData()->RemoveArray(SurfaceRemeshing::MAX_EDGE_LENGTH);
-      }
-
-      if (verbose > 0) {
-        if (verbose > 1) {
-          cout << "Remeshing surface near intersection boundaries...";
-        }
-        cout << " done" << endl;
-      }
+      output = RemeshNearIntersection(output, remesh_radius, max_remesh_steps,
+                                      min_edge_length, max_edge_length, edge_length_sd);
     }
-    
+
     // Smooth surface in vicinity of joined intersection boundaries to remove
     // small self-intersections introduced by joining and/or remeshing steps
     if (smooth_radius > 0 && max_smooth_steps > 0) {
@@ -3105,7 +3194,14 @@ int main(int argc, char *argv[])
       smoother.SmoothPointsOn();
       smoother.Run();
       output->SetPoints(smoother.Output()->GetPoints());
-      if (verbose > 0) cout << " done" << endl;
+      if (verbose > 0) {
+        cout << " done" << endl;
+      }
+      if (smooth_remesh_steps < 0) smooth_remesh_steps = max_remesh_steps;
+      if (remesh_radius > 0 && max_remesh_steps > 0 && smooth_remesh_steps > 0) {
+        output = RemeshNearIntersection(output, remesh_radius, smooth_remesh_steps,
+                                        min_edge_length, max_edge_length, edge_length_sd);
+      }
       if (debug > 0) {
         const int i = output->GetPointData()->AddArray(smoother.Mask());
         WritePolyData("debug_smoothed_transition.vtp", output);
