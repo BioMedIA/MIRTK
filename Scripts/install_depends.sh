@@ -118,7 +118,7 @@ if [ $os = linux ] || [ $os = Linux ]; then
         deps=(${deps[@]} libvtk6-dev python-vtk6)
         VTK_VERSION=''
       fi
-    elif [ "$DISTRIB_CODENAME" = "bionic" ]; then
+    elif [ "$DISTRIB_CODENAME" = "bionic" ] || [ "$DISTRIB_CODENAME" = "focal" ] || [ "$DISTRIB_CODENAME" = "groovy" ]; then
       if [ $VTK_VERSION = '6.3.0' ]; then
         deps=(${deps[@]} libvtk6-dev)
         VTK_VERSION=''
