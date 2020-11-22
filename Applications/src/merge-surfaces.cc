@@ -478,11 +478,16 @@ LabelBoundary(const GreyImage &labels, const UnorderedSet<int> &label_set1, cons
 
   for (int iter = 0; iter < 10; ++iter) {
     boundary->BuildLinks();
+    int num_deleted = 0;
     for (vtkIdType cellId = 0; cellId < boundary->GetNumberOfCells(); ++cellId) {
       const auto nbrCellIds = GetCellEdgeNeighbors(boundary, cellId);
       if (nbrCellIds.size() < 2) {
         boundary->DeleteCell(cellId);
+        num_deleted += 1;
       }
+    }
+    if (num_deleted == 0) {
+      break;
     }
     boundary->RemoveDeletedCells();
   }
@@ -490,6 +495,24 @@ LabelBoundary(const GreyImage &labels, const UnorderedSet<int> &label_set1, cons
   SetVTKInput(cleaner, boundary);
   cleaner->Update();
   boundary = cleaner->GetOutput();
+
+  vtkNew<vtkPolyDataConnectivityFilter> boundary_cc;
+  SetVTKInput(boundary_cc, boundary);
+  boundary_cc->SetExtractionModeToAllRegions();
+  boundary_cc->Update();
+  boundary_cc->SetExtractionModeToSpecifiedRegions();
+  boundary_cc->InitializeSpecifiedRegionList();
+  if (boundary_cc->GetNumberOfExtractedRegions() > 0) {
+    vtkIdTypeArray * const sizes = boundary_cc->GetRegionSizes();
+    const double threshold = 0.1 * sizes->GetComponent(0, 0);
+    for (int i = 0; i < boundary_cc->GetNumberOfExtractedRegions(); ++i) {
+      if (sizes->GetComponent(i, 0) >= threshold) {
+        boundary_cc->AddSpecifiedRegion(i);
+      }
+    }
+    boundary_cc->Update();
+    boundary = boundary_cc->GetOutput();
+  }
 
   if (debug) {
     static int ncall = 0; ++ncall;
@@ -858,6 +881,11 @@ DeleteCellsNearLabelBoundary(vtkPolyData *surface, vtkPolyData *label_boundary, 
   extract_hole->FullScalarConnectivityOff();
   extract_hole->SetScalarRange(0, tol);
 
+  vtkNew<vtkPolyDataConnectivityFilter> extract_lcc;
+  extract_lcc->SetExtractionModeToLargestRegion();
+  extract_lcc->ScalarConnectivityOff();
+  extract_lcc->FullScalarConnectivityOff();
+
   vtkNew<vtkIdList> cellIds, ptIds;
   for (int boundary_id = 0; boundary_id < num_boundaries; ++boundary_id) {
     extract_boundary->InitializeSpecifiedRegionList();
@@ -866,10 +894,13 @@ DeleteCellsNearLabelBoundary(vtkPolyData *surface, vtkPolyData *label_boundary, 
     calc_distance_to_boundary->Update();
     auto surface_with_distances = calc_distance_to_boundary->GetOutput();
     surface_with_distances->GetPointData()->SetActiveScalars("Distance");
+
     SetVTKInput(extract_hole, surface_with_distances);
+    extract_hole->ScalarConnectivityOn();
     extract_hole->Update();
 
     vtkSmartPointer<vtkPolyData> hole = extract_hole->GetOutput();
+
     Array<int> numEdges(hole->GetNumberOfPoints(), 0);
     for (const auto &edge : BoundaryEdges(hole)) {
       numEdges[edge.first] += 1;
@@ -885,6 +916,10 @@ DeleteCellsNearLabelBoundary(vtkPolyData *surface, vtkPolyData *label_boundary, 
       }
     }
     hole->RemoveDeletedCells();
+
+    SetVTKInput(extract_lcc, hole);
+    extract_lcc->Update();
+    hole = extract_lcc->GetOutput();
 
     vtkDataArray *cellIds = hole->GetCellData()->GetArray("DeleteCellId");
     for (vtkIdType i = 0; i < cellIds->GetNumberOfTuples(); ++i) {
@@ -1642,7 +1677,7 @@ vtkSmartPointer<vtkPolyData> TesselateDivider(vtkSmartPointer<vtkPolyData> divid
   output = cleaner->GetOutput();
 
   // Map from tesselated divider mesh point to boundary polyline point IDs
-  const auto dividerPtIds = ClosestBoundaryPoints(output, locator);
+  const auto dividerPtIds = ClosestBoundaryPoints(output, locator.GetPointer());
 
   // Mask of non-boundary mesh points
   vtkSmartPointer<vtkDataArray> nonBoundaryMask;
@@ -1663,7 +1698,7 @@ vtkSmartPointer<vtkPolyData> TesselateDivider(vtkSmartPointer<vtkPolyData> divid
         vtkNew<vtkIdList> otherCellIds;
         output->GetPointCells(edge.first, cellIds.GetPointer());
         output->GetPointCells(edge.second, otherCellIds.GetPointer());
-        cellIds->IntersectWith(otherCellIds);
+        cellIds->IntersectWith(otherCellIds.GetPointer());
         for (vtkIdType i = 0; i < cellIds->GetNumberOfIds(); ++i) {
           output->DeleteCell(cellIds->GetId(i));
           num_cells_deleted += 1;
