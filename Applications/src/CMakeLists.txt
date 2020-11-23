@@ -191,6 +191,7 @@ if (MIRTK_PointSet_FOUND)
 
   add_pointset_command(calculate-surface-attributes)
   add_pointset_command(calculate-surface-spectrum)
+  add_pointset_command(clean-surface)
   add_pointset_command(close-scalars)
   add_pointset_command(copy-pointset-attributes)
   add_pointset_command(decimate-surface)
