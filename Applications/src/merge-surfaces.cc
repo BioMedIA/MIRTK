@@ -2598,11 +2598,10 @@ AddClosedIntersectionDivider(vtkPolyData *surface, vtkPolyData *cut, double tol 
     WritePolyData(fname, divider);
   }
 
-  // Merge surface with intersected cells and tesselated divider polygon
+  // Merge surface with intersected cells
   vtkNew<vtkAppendPolyData> appender;
   AddVTKInput(appender, surface);
   AddVTKInput(appender, split);
-  // divider added as input below
 
   vtkNew<vtkCleanPolyData> merger;
   SetVTKConnection(merger, appender);
@@ -2612,18 +2611,45 @@ AddClosedIntersectionDivider(vtkPolyData *surface, vtkPolyData *cut, double tol 
   merger->PointMergingOn();
   merger->ToleranceIsAbsoluteOn();
   merger->SetAbsoluteTolerance(1e-12);
+  merger->Update();
+
+  vtkSmartPointer<vtkPolyData> output = vtkSmartPointer<vtkPolyData>::New();
+  output->ShallowCopy(merger->GetOutput());
 
   if (debug) {
     static int callId = 0; ++callId;
     char fname[64];
     snprintf(fname, 64, "debug_split_surface_interim_%d.vtp", callId);
-    merger->Update();
-    WritePolyData(fname, merger->GetOutput());
+    WritePolyData(fname, output);
   }
 
-  AddVTKInput(appender, divider);
+  // Use intersection filter to resolve intersections with interior of divider
+  vtkNew<vtkIntersectionPolyDataFilter> intersect;
+  SetNthVTKInput(intersect, 0, output)
+  SetNthVTKInput(intersect, 1, divider);
+  intersect->SplitFirstOutputOn();
+  intersect->SplitSecondOutputOn();
+  intersect->CheckInputOff();
+  intersect->CheckMeshOff();
+  intersect->ComputeIntersectionPointArrayOff();
+  intersect->Update();
+
+  if (debug) {
+    static int callId = 0; ++callId;
+    char fname[64];
+    snprintf(fname, 64, "debug_split_surface_intersect_%d_0.vtp", callId);
+    WritePolyData(fname, intersect->GetOutput(0));
+    snprintf(fname, 64, "debug_split_surface_intersect_%d_1.vtp", callId);
+    WritePolyData(fname, intersect->GetOutput(1));
+    snprintf(fname, 64, "debug_split_surface_intersect_%d_2.vtp", callId);
+    WritePolyData(fname, intersect->GetOutput(2));
+  }
+
+  appender->RemoveAllInputs();
+  AddVTKInput(appender, intersect->GetOutput(1));
+  AddVTKInput(appender, intersect->GetOutput(2));
   merger->Update();
-  vtkSmartPointer<vtkPolyData> output = merger->GetOutput();
+  output->ShallowCopy(merger->GetOutput());
 
   // Remove those triangles from resulting mesh originating from the tesselated
   // divider whose three vertices are all on the divider boundary and that have
