@@ -2,7 +2,7 @@
  * Medical Image Registration ToolKit (MIRTK)
  *
  * Copyright 2013-2016 Imperial College London
- * Copyright 2013-2016 Andreas Schuh
+ * Copyright 2013-2020 Andreas Schuh
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -78,18 +78,19 @@ public:
   /// Compute bounding spheres of specified range of cells
   void operator ()(const blocked_range<vtkIdType> &re) const
   {
-    vtkNew<vtkIdList> ptIds;
+    vtkIdType npts;
+    const vtkIdType *pts;
     double a[3], b[3], c[3], origin[3], radius;
 
     for (vtkIdType cellId = re.begin(); cellId != re.end(); ++cellId) {
       // Get triangle vertices
-      _Surface->GetCellPoints(cellId, ptIds.GetPointer());
-      mirtkAssert(ptIds->GetNumberOfIds() == 3, "surface is triangular mesh");
+      _Surface->GetCellPoints(cellId, npts, pts);
+      mirtkAssert(npts == 3, "surface is triangular mesh");
 
       // Get triangle vertex positions
-      _Surface->GetPoint(ptIds->GetId(0), a);
-      _Surface->GetPoint(ptIds->GetId(1), b);
-      _Surface->GetPoint(ptIds->GetId(2), c);
+      _Surface->GetPoint(pts[0], a);
+      _Surface->GetPoint(pts[1], b);
+      _Surface->GetPoint(pts[2], c);
 
       // Get center of bounding sphere
       vtkTriangle::TriangleCenter(a, b, c, origin);
@@ -141,6 +142,184 @@ class FindCollisions
      return sgn((b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]));
   }
 
+  /// Compute axes for projection of triangle points to 2D with origin at x
+  inline int ProjectionAxes(const double x1[3], const double x2[3], const double n[3], double a[3], double b[3], double u1[2], double u2[2]) const
+  {
+    vtkMath::Subtract(x2, x1, a);
+    u2[0] = vtkMath::Normalize(a);
+    if (u2[0] <= .0) return 0;
+    u1[0] = u1[1] = u2[1] = .0;
+    vtkMath::Cross(n, a, b);
+    return 1;
+  }
+
+  /// Project triangle point to 2D
+  inline void ProjectTo2D(const double origin[3], const double a[3], const double b[3], const double x[3], double u[2]) const
+  {
+    double v[3];
+    vtkMath::Subtract(x, origin, v);
+    u[0] = vtkMath::Dot(v, a);
+    u[1] = vtkMath::Dot(v, b);
+  }
+
+  /// Check if two adjacent triangles with a common edge are folding onto one another
+  inline bool AdjacentTrianglesWithSharedEdgeCollide(vtkIdType cellId1, const double n1[3],
+                                                     vtkIdType cellId2, const double n2[3],
+                                                     CollisionInfo &collision) const
+  {
+    const double n_dot_n = vtkMath::Dot(n1, n2);
+    if (n_dot_n >= -_MinAngleCos) {
+      return false;
+    }
+    double v[3];
+    vtkMath::Subtract(collision._Point2, collision._Point1, v);
+    collision._Distance = vtkMath::Normalize(v);
+    const double n_dot_v = vtkMath::Dot(v, n1);
+    if (n_dot_v < .0) {
+      if (_Filter->BackfaceCollisionTest() && collision._Distance < _MinBackfaceDistance) {
+        collision._Type = CollisionType::BackfaceCollision;
+      } else {
+        collision._Type = CollisionType::NoCollision;
+      }
+    } else {
+      if (_Filter->FrontfaceCollisionTest() && collision._Distance < _MinFrontfaceDistance) {
+        collision._Type = CollisionType::FrontfaceCollision;
+      } else {
+        collision._Type = CollisionType::NoCollision;
+      }
+    }
+    if (collision._Type == CollisionType::NoCollision) {
+      return false;
+    }
+    collision._CellId = cellId2;
+    return true;
+  }
+
+  /// Check if two adjacent triangles with a single common vertex are folding onto one another
+  ///
+  /// FIXME: A proper check requires an algorithm as outlined in CheckCollision().
+  inline bool CheckCollisionOfAdjacentTriangles(vtkIdType cellId2, CollisionInfo &collision, double dp) const
+  {
+    if (dp < .0) {
+      if (_Filter->BackfaceCollisionTest() && collision._Distance < _MinBackfaceDistance) {
+        collision._Type = CollisionType::BackfaceCollision;
+      } else {
+        return false;
+      }
+    } else {
+      if (_Filter->FrontfaceCollisionTest() && collision._Distance < _MinFrontfaceDistance) {
+        collision._Type = CollisionType::FrontfaceCollision;
+      } else {
+        return false;
+      }
+    }
+    collision._CellId = cellId2;
+    return true;
+  }
+
+  /// Check whether the two faces nearly collide given the closest points recorded by CollisionInfo
+  ///
+  /// TODO: Use centroids of overlap of triangles after projection to 2D planes for collision test.
+  ///
+  /// Given a pair of tringles A and B, project A onto plane defined by B and clip it using the
+  /// edges of triangle B. Compute centroid of clipped convex polygon and project it back to
+  /// triangle A in 3D space (either using Barycentric coordinates or intersection with line
+  /// along the normal of triangle B). Repeat these steps for B projected onto plane defined
+  /// by triangle A. Use the distance between the overlap centroids and direction vector to
+  /// determine whether there is a collision and on which side of triangle A.
+  ///
+  /// This algorithm should work for both adjacent and non-adjacent triangles. It can also
+  /// implicitly determine if there is an overlap of the triangles after projection, i.e.,
+  /// whether the clipped polygon has at least three non-colinear points.
+  ///
+  /// Algorithms:
+  /// - Centroid of convex polygon: https://bell0bytes.eu/centroid-convex/
+  /// - Clip polygon by another convex polygon (e.g., triangle):
+  ///   https://en.wikipedia.org/wiki/Sutherland%E2%80%93Hodgman_algorithm
+  inline bool CheckCollision(vtkIdType cellId1, const double n1[3],
+                             vtkIdType cellId2, const double n2[3],
+                             CollisionInfo &collision) const
+  {
+    double dp = vtkMath::Dot(n1, n2);
+    if (dp >= -_MinAngleCos) {
+      return false;
+    }
+    if (collision._Distance > 1e-9) {
+      double v[3];
+      vtkMath::Subtract(collision._Point2, collision._Point1, v);
+      vtkMath::MultiplyScalar(v, 1 / collision._Distance);
+      dp = vtkMath::Dot(v, n1);
+    }
+    if (abs(dp) <= _MinAngleCos) {
+      return false;
+    }
+    if (dp < .0) {
+      if (_Filter->BackfaceCollisionTest() && collision._Distance < _MinBackfaceDistance) {
+        collision._Type = CollisionType::BackfaceCollision;
+      } else {
+        return false;
+      }
+    } else {
+      if (_Filter->FrontfaceCollisionTest() && collision._Distance < _MinFrontfaceDistance) {
+        collision._Type = CollisionType::FrontfaceCollision;
+      } else {
+        return false;
+      }
+    }
+    collision._CellId = cellId2;
+    return true;
+  }
+
+  /// Update cell collision type when a near-miss collision was detected
+  inline void UpdateCollisionType(CollisionType &type, const CollisionInfo &collision) const
+  {
+    if (_Filter->IsIntersection(type)) {
+      type = CollisionType::Ambiguous;
+    } else if (type != CollisionType::NoCollision) {
+      if (type != collision._Type) {
+        type = CollisionType::Collision;
+      }
+    } else {
+      type = collision._Type;
+    }
+  }
+
+  /// Update cell collision type when an intersection was detected
+  inline void UpdateCollisionType(CollisionType &type, const IntersectionInfo &intersection) const
+  {
+    if (_Filter->IsCollision(type)) {
+      type = CollisionType::Ambiguous;
+      return;
+    }
+    if (intersection._Adjacent) {
+      if (type == CollisionType::SelfIntersection) {
+        type = CollisionType::Intersection;
+      } else {
+        type = CollisionType::AdjacentIntersection;
+      }
+    } else {
+      if (type == CollisionType::AdjacentIntersection) {
+        type = CollisionType::Intersection;
+      } else {
+        type = CollisionType::SelfIntersection;
+      }
+    }
+  }
+
+  /// Store information about detected collision
+  inline void SaveCollisionInfo(vtkIdType cellId, const CollisionInfo &collision) const
+  {
+    if (_Collisions == nullptr) return;
+    (*_Collisions)[cellId].insert(collision);
+  }
+
+  /// Store information about detected collision
+  inline void SaveIntersectionInfo(vtkIdType cellId1, const IntersectionInfo &intersection) const
+  {
+    if (_Intersections == nullptr) return;
+    (*_Intersections)[cellId1].insert(intersection);
+  }
+
 public:
 
   void operator ()(const blocked_range<vtkIdType> &re) const
@@ -158,14 +337,19 @@ public:
     const double R            = _MaxRadius + 1.1 * min_distance;
 
     double tri1[3][3], tri2[3][3], tri1_2D[3][2], tri2_2D[3][2];
-    double n1[3], n2[3], p1[3], p2[3], r1, c1[3], d[3], search_radius, dot;
-    int    tri12[3], i1, i2, shared_vertex1, shared_vertex2, coplanar, s1, s2;
-  
-    vtkNew<vtkIdList> ptIds, cellIds, triPtIds1, triPtIds2, triCellIds;
+    double n1[3], n2[3], p1[3], p2[3], r1, c1[3], d[3], ax1[3], ax2[3], search_radius;
+    int    tri12[3], i1, j1, k1, i2, j2, k2, shared_vertex1, shared_vertex2, coplanar;
+    bool   intersect, same_side;
+
     vtkIdType cellId1, cellId2;
+    vtkIdType ntriPtIds1, ntriPtIds2;
+    const vtkIdType *triPtIds1, *triPtIds2;
+    UnorderedSet<vtkIdType> nearbyCellIds;
+    vtkNew<vtkIdList> cellIds, ptIds;
   
-    CollisionInfo  collision;
-    CollisionType  type;
+    IntersectionInfo intersection;
+    CollisionInfo collision;
+    CollisionType type;
 
     for (cellId1 = re.begin(); cellId1 != re.end(); ++cellId1) {
 
@@ -177,11 +361,11 @@ public:
       }
 
       // Get vertices and normal of this triangle
-      surface->GetCellPoints(cellId1, triPtIds1.GetPointer());
-      mirtkAssert(triPtIds1->GetNumberOfIds() == 3, "surface is triangular mesh");
-      surface->GetPoint(triPtIds1->GetId(0), tri1[0]);
-      surface->GetPoint(triPtIds1->GetId(1), tri1[1]);
-      surface->GetPoint(triPtIds1->GetId(2), tri1[2]);
+      surface->GetCellPoints(cellId1, ntriPtIds1, triPtIds1);
+      mirtkAssert(ntriPtIds1 == 3, "surface is triangular mesh");
+      surface->GetPoint(triPtIds1[0], tri1[0]);
+      surface->GetPoint(triPtIds1[1], tri1[1]);
+      surface->GetPoint(triPtIds1[2], tri1[2]);
       vtkTriangle::ComputeNormal(tri1[0], tri1[1], tri1[2], n1);
 
       // Get bounding sphere
@@ -189,31 +373,32 @@ public:
       r1 = radius->GetComponent(cellId1, 0);
 
       // Find other triangles within search radius
+      nearbyCellIds.clear();
       search_radius = min(max(_Filter->MinSearchRadius(), r1 + R), _Filter->MaxSearchRadius());
       _Locator->FindPointsWithinRadius(search_radius, c1, ptIds.GetPointer());
-      cellIds->Reset();
       for (vtkIdType i = 0; i < ptIds->GetNumberOfIds(); ++i) {
-        surface->GetPointCells(ptIds->GetId(i), triCellIds.GetPointer());
-        for (vtkIdType j = 0; j < triCellIds->GetNumberOfIds(); ++j) {
-          if (triCellIds->GetId(j) != cellId1) cellIds->InsertUniqueId(triCellIds->GetId(j));
+        surface->GetPointCells(ptIds->GetId(i), cellIds.GetPointer());
+        for (vtkIdType j = 0; j < cellIds->GetNumberOfIds(); ++j) {
+          nearbyCellIds.insert(cellIds->GetId(j));
         }
       }
+      nearbyCellIds.erase(cellId1);
 
       // Check for collisions between this triangle and the found nearby triangles
-      for (vtkIdType i = 0; i < cellIds->GetNumberOfIds(); ++i) {
-        cellId2 = cellIds->GetId(i);
+      for (const auto cellId2 : nearbyCellIds) {
 
         // Get vertex positions of nearby candidate triangle
-        surface->GetCellPoints(cellId2, triPtIds2.GetPointer());
-        surface->GetPoint(triPtIds2->GetId(0), tri2[0]);
-        surface->GetPoint(triPtIds2->GetId(1), tri2[1]);
-        surface->GetPoint(triPtIds2->GetId(2), tri2[2]);
+        surface->GetCellPoints(cellId2, ntriPtIds2, triPtIds2);
+        surface->GetPoint(triPtIds2[0], tri2[0]);
+        surface->GetPoint(triPtIds2[1], tri2[1]);
+        surface->GetPoint(triPtIds2[2], tri2[2]);
+        vtkTriangle::ComputeNormal(tri2[0], tri2[1], tri2[2], n2);
 
         // Get corresponding indices of shared vertices
         for (i1 = 0; i1 < 3; ++i1) {
           tri12[i1] = -1;
           for (i2 = 0; i2 < 3; ++i2) {
-            if (triPtIds1->GetId(i1) == triPtIds2->GetId(i2)) {
+            if (triPtIds1[i1] == triPtIds2[i2]) {
               tri12[i1] = i2;
               break;
             }
@@ -235,41 +420,43 @@ public:
           }
         }
 
-        // Triangles with a shared edge can only overlap, but not intersect
+        // Triangles with a shared edge can only overlap, but not intersect.
+        // This includes near miss collision if a minimum face distance is set.
         if (shared_vertex2 != -1) {
-          if (_Filter->AdjacentIntersectionTest()) {
-            coplanar = 0;
-            for (i2 = 0; i2 < 3; ++i2) {
-              if (i2 != tri12[shared_vertex1] && i2 != tri12[shared_vertex2]) {
-                coplanar = int(vtkPlane::DistanceToPlane(tri2[i2], tri1[0], n1) < TOL);
-                break;
-              }
+          if (_Filter->AdjacentIntersectionTest() || coll_test) {
+            // Determine indices of non-shared vertices
+            for (i1 = 0; i1 < 3; ++i1) {
+              if (i1 != shared_vertex1 && i1 != shared_vertex2) break;
             }
-            if (coplanar) {
-              // Project triangles into their common plane
-              vtkTriangle::ProjectTo2D(tri1   [0], tri1   [1], tri1   [2],
-                                       tri1_2D[0], tri1_2D[1], tri1_2D[2]);
-              vtkTriangle::ProjectTo2D(tri2   [0], tri2   [1], tri2   [2],
-                                       tri2_2D[0], tri2_2D[1], tri2_2D[2]);
-              // Check on which side of the shared edge the non-shared vertices are
-              s1 = 0;
-              for (i1 = 0; i1 < 3; ++i1) {
-                if (i1 != shared_vertex1 && i1 != shared_vertex2) {
-                  s1 = IsLeft(tri1_2D[shared_vertex1], tri1_2D[shared_vertex2], tri1_2D[i1]);
-                  break;
-                }
+            for (i2 = 0; i2 < 3; ++i2) {
+              if (i2 != tri12[shared_vertex1] && i2 != tri12[shared_vertex2]) break;
+            }
+            double m[3], v1[3], v2[3];
+            vtkMath::Add(tri1[shared_vertex1], tri1[shared_vertex2], m);
+            vtkMath::MultiplyScalar(m, 0.5);
+            vtkMath::Subtract(tri1[i1], m, v1);
+            vtkMath::Normalize(v1);
+            vtkMath::Subtract(tri2[i2], m, v2);
+            vtkMath::Normalize(v2);
+            double v_dot_v = vtkMath::Dot(v1, v2);
+            // When angle is close to zero degrees, the triangles intersect
+            if (1 - v_dot_v < TOL) {
+              if (_Filter->AdjacentIntersectionTest()) {
+                intersection._CellId = cellId2;
+                intersection._Adjacent = true;
+                UpdateCollisionType(type, intersection);
+                SaveIntersectionInfo(cellId1, intersection);
               }
-              // Note: re-uses i2 index found outside of this if-block
-              s2 = IsLeft(tri1_2D[shared_vertex1], tri1_2D[shared_vertex2], tri2_2D[i2]);
-              // If they are on the same side of the edge, the triangles must overlap
-              if (s1 == s2) {
-                //intersections.insert(IntersectionInfo(cellId2, true));
-                if (_Filter->IsCollision(type)) {
-                  type = CollisionType::Ambiguous;
-                } else if (type == CollisionType::SelfIntersection) {
-                  type = CollisionType::Intersection;
-                } else {
-                  type = CollisionType::AdjacentIntersection;
+            // Otherwise, they may be folding onto one another
+            } else if (coll_test && v_dot_v > 0.75 * _MinAngleCos) {
+              center->GetTuple(cellId2, collision._Point2);
+              vtkPlane::ProjectPoint(collision._Point2, tri1[0], n1, collision._Point1);
+              collision._Distance = sqrt(vtkMath::Distance2BetweenPoints(collision._Point1, collision._Point2));
+              if (collision._Distance < min_distance) {
+                double n_dot_v = vtkMath::Dot(n1, v2);
+                if (CheckCollisionOfAdjacentTriangles(cellId2, collision, n_dot_v)) {
+                  UpdateCollisionType(type, collision);
+                  SaveCollisionInfo(cellId1, collision);
                 }
               }
             }
@@ -277,41 +464,83 @@ public:
         }
         // If triangles share a single vertex, use different triangle/triangle
         // intersection check which gives us the points forming the line/point
-        // of intersection, but does not handle the coplanar case itself
+        // of intersection, but does not handle the coplanar case itselfg
         else if (shared_vertex1 != -1) {
+          intersection._CellId = -1;
           if (_Filter->AdjacentIntersectionTest()) {
-            // Perform coplanarity test with our TOL instead of the smaller
-            // tolerance value used by vtkIntersectionPolyDataFilter
+            // Perform coplanarity test with our TOL instead of smaller tolerance used by vtkIntersectionPolyDataFilter
             coplanar = 0;
-            Triangle::Normal(tri2[0], tri2[1], tri2[2], n2);
-            if (fequal(n1[0], n2[0], TOL) &&
-                fequal(n1[1], n2[1], TOL) &&
-                fequal(n1[2], n2[2], TOL)) {
+            if (fequal(n1[0], n2[0], TOL) && fequal(n1[1], n2[1], TOL) && fequal(n1[2], n2[2], TOL)) {
               const double b1 = -vtkMath::Dot(n1, tri1[0]);
               const double b2 = -vtkMath::Dot(n2, tri2[0]);
               if (fequal(b1, b2, TOL)) coplanar = 1;
             }
             if (coplanar) {
-              // TODO: Either one triangle fully contained within the other
-              //       or one edge of the first triangle intersects an edge of
-              //       the second triangle.
-            }
-            else if (Triangle::TriangleTriangleIntersection(tri1[0], tri1[1], tri1[2],
-                                                            tri2[0], tri2[1], tri2[2],
-                                                            coplanar, p1, p2)) {
+              // TODO: Either one triangle fully contained within the other or one edge of the first
+              //       triangle intersects an edge of the second triangle.
+            } else if (Triangle::TriangleTriangleIntersection(tri1[0], tri1[1], tri1[2],
+                                                              tri2[0], tri2[1], tri2[2],
+                                                              coplanar, p1, p2)) {
               // Ignore valid intersection of single shared vertex
-              if (!fequal(p1[0], p2[0], TOL) ||
-                  !fequal(p1[1], p2[1], TOL) ||
-                  !fequal(p1[2], p2[2], TOL)) {
-                if (_Intersections) {
-                  (*_Intersections)[cellId1].insert(IntersectionInfo(cellId2, true));
-                }
-                if (_Filter->IsCollision(type)) {
-                  type = CollisionType::Ambiguous;
-                } else if (type == CollisionType::SelfIntersection) {
-                  type = CollisionType::Intersection;
-                } else {
-                  type = CollisionType::AdjacentIntersection;
+              if (!fequal(p1[0], p2[0], TOL) || !fequal(p1[1], p2[1], TOL) || !fequal(p1[2], p2[2], TOL)) {
+                intersection._CellId = cellId2;
+              }
+            }
+          }
+          if (intersection._CellId >= 0) {
+            intersection._Adjacent = true;
+            UpdateCollisionType(type, intersection);
+            SaveIntersectionInfo(cellId1, intersection);
+          } else if (coll_test) {
+            center->GetTuple(cellId1, collision._Point1);
+            center->GetTuple(cellId2, collision._Point2);
+            collision._Distance = min(vtkPlane::DistanceToPlane(collision._Point2, n1, tri1[0]),
+                                      vtkPlane::DistanceToPlane(collision._Point1, n2, tri2[0]));
+            if (collision._Distance < min_distance) {
+              // Reorder vertex indices such that shared vertex is at first position
+              i1 = shared_vertex1;
+              j1 = i1 == 0 ? 1 : 0;
+              k1 = i1 == 1 ? 2 : j1 + 1;
+              i2 = tri12[shared_vertex1];
+              j2 = i2 == 0 ? 1 : 0;
+              k2 = i2 == 1 ? 2 : j2 + 1;
+              // Vector from shared vertex to mid-point of opposite edge of first triangle
+              double v1[3], p1[3];
+              vtkMath::Add(tri1[j1], tri1[k1], p1);
+              vtkMath::MultiplyScalar(p1, 0.5);
+              vtkMath::Subtract(p1, tri1[i1], v1);
+              vtkMath::Normalize(v1);
+              // Vector from shared vertex to mid-point of opposite edge of second triangle
+              double v2[3], p2[3];
+              vtkMath::Add(tri2[j2], tri2[k2], p2);
+              vtkMath::MultiplyScalar(p2, 0.5);
+              vtkMath::Subtract(p2, tri2[i2], v2);
+              vtkMath::Normalize(v2);
+              // Check weak condition for triangles to fold onto one another
+              double v_dot_v = vtkMath::Dot(v1, v2);
+              double n_dot_n = vtkMath::Dot(n1, n2);
+              if (n_dot_n < -0.4 && v_dot_v > 0.2) {
+                double p3[3], v3[3];
+                vtkPlane::ProjectPoint(p1, tri2[i2], n2, p3);
+                vtkMath::Subtract(p3, tri2[i2], v3);
+                vtkMath::Normalize(v3);
+                v_dot_v = vtkMath::Dot(v1, v3);
+                if (v_dot_v > _MinAngleCos) {
+                  // Check if projection of triangles to common 2D plane intersects
+                  if (ProjectionAxes(tri1[i1], tri1[j1], n1, ax1, ax2, tri1_2D[0], tri1_2D[1])) {
+                    ProjectTo2D(tri1[i1], ax1, ax2, tri1[k1], tri1_2D[2]);
+                    ProjectTo2D(tri1[i1], ax1, ax2, tri2[i2], tri2_2D[0]);
+                    ProjectTo2D(tri1[i1], ax1, ax2, tri2[j2], tri2_2D[1]);
+                    ProjectTo2D(tri1[i1], ax1, ax2, tri2[k2], tri2_2D[2]);
+                    if (Triangle::TriangleTriangleOverlap(tri1_2D[0], tri1_2D[1], tri1_2D[2],
+                                                          tri2_2D[0], tri2_2D[1], tri2_2D[2])) {
+                      double n_dot_v = vtkMath::Dot(n1, v2);
+                      if (CheckCollisionOfAdjacentTriangles(cellId2, collision, n_dot_v)) {
+                        UpdateCollisionType(type, collision);
+                        SaveCollisionInfo(cellId1, collision);
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -322,66 +551,27 @@ public:
         else if (_Filter->NonAdjacentIntersectionTest() &&
                  Triangle::TriangleTriangleIntersection(tri1[0], tri1[1], tri1[2],
                                                         tri2[0], tri2[1], tri2[2])) {
-          if (_Intersections) {
-            (*_Intersections)[cellId1].insert(IntersectionInfo(cellId2, false));
-          }
-          if (_Filter->IsCollision(type)) {
-            type = CollisionType::Ambiguous;
-          } else if (type == CollisionType::AdjacentIntersection) {
-            type = CollisionType::Intersection;
-          } else {
-            type = CollisionType::SelfIntersection;
-          }
+          intersection._CellId = cellId2;
+          intersection._Adjacent = false;
+          UpdateCollisionType(type, intersection);
+          SaveIntersectionInfo(cellId1, intersection);
         }
         // If self-intersection check of non-adjacent triangles disabled or negative,
         // check for near miss collision if minimum distance set
         else if (coll_test) {
           if (_Filter->FastCollisionTest()) {
-            collision._Distance = Triangle::DistanceBetweenCenters(
-                                      tri1[0], tri1[1], tri1[2],
-                                      tri2[0], tri2[1], tri2[2],
-                                      collision._Point1, collision._Point2);
+            center->GetTuple(cellId1, collision._Point1);
+            center->GetTuple(cellId2, collision._Point2);
+            collision._Distance = sqrt(vtkMath::Distance2BetweenPoints(collision._Point1, collision._Point2));
           } else {
-            Triangle::Normal(tri2[0], tri2[1], tri2[2], n2);
-            collision._Distance = Triangle::DistanceBetweenTriangles(
-                                      tri1[0], tri1[1], tri1[2], n1,
-                                      tri2[0], tri2[1], tri2[2], n2,
-                                      collision._Point1, collision._Point2);
+            collision._Distance = Triangle::DistanceBetweenTriangles(tri1[0], tri1[1], tri1[2], n1,
+                                                                     tri2[0], tri2[1], tri2[2], n2,
+                                                                     collision._Point1, collision._Point2);
           }
           if (collision._Distance < min_distance) {
-            if (collision._Distance > 0.) {
-              vtkMath::Subtract(collision._Point2, collision._Point1, d);
-              dot = vtkMath::Dot(d, n1) / vtkMath::Norm(d);
-            } else {
-              dot = 0.;
-            }
-            if (abs(dot) >= _MinAngleCos) {
-              if (dot < .0) {
-                if (_Filter->BackfaceCollisionTest() && collision._Distance < _MinBackfaceDistance) {
-                  collision._Type = CollisionType::BackfaceCollision;
-                } else {
-                  collision._Type = CollisionType::NoCollision;
-                }
-              } else {
-                if (_Filter->FrontfaceCollisionTest() && collision._Distance < _MinFrontfaceDistance) {
-                  collision._Type = CollisionType::FrontfaceCollision;
-                } else {
-                  collision._Type = CollisionType::NoCollision;
-                }
-              }
-              if (collision._Type != CollisionType::NoCollision) {
-                collision._CellId = cellId2;
-                if (_Collisions) {
-                  (*_Collisions)[cellId1].insert(collision);
-                }
-                if (_Filter->IsIntersection(type)) {
-                  type = CollisionType::Ambiguous;
-                } else if (type != CollisionType::NoCollision) {
-                  if (type != collision._Type) type = CollisionType::Collision;
-                } else {
-                  type = collision._Type;
-                }
-              }
+            if (CheckCollision(cellId1, n1, cellId2, n2, collision)) {
+              UpdateCollisionType(type, collision);
+              SaveCollisionInfo(cellId1, collision);
             }
           }
         }
