@@ -214,6 +214,10 @@ public:
   /// \return Maximum angle in radians.
   static double MaxAngle(const double a[3], const double b[3], const double c[3]);
 
+  /// Tests whether two triangles overlap each other in 2D
+  static bool TriangleTriangleOverlap(const double a1[2], const double b1[2], const double c1[2],
+                                      const double a2[2], const double b2[2], const double c2[2]);
+
   /// Tests whether two triangles intersect each other
   static bool TriangleTriangleIntersection(const double a1[3], const double b1[3], const double c1[3],
                                            const double a2[3], const double b2[3], const double c2[3]);
