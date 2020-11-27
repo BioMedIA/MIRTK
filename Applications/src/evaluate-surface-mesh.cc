@@ -226,6 +226,7 @@ int main(int argc, char *argv[])
   double min_frontface_dist  = 1e-2;
   double min_backface_dist   = 1e-2;
   double max_collision_angle = 20.0;
+  bool adjacent_collision_test = true;
   bool fast_collision_test = false;
 
   double value;
@@ -310,6 +311,7 @@ int main(int argc, char *argv[])
         min_frontface_dist = min_backface_dist = 1e-2;
       }
     }
+    else HANDLE_BOOLEAN_OPTION("adjacent-collision-test", adjacent_collision_test);
     else HANDLE_BOOLEAN_OPTION("fast-collision-test", fast_collision_test);
     else HANDLE_COMMON_OR_UNKNOWN_OPTION();
   }
@@ -598,6 +600,7 @@ int main(int argc, char *argv[])
 
         SurfaceCollisions collisions;
         collisions.Input(surface);
+        collisions.AdjacentCollisionTest(adjacent_collision_test);
         collisions.FastCollisionTest(fast_collision_test);
         collisions.MinFrontfaceDistance(min_frontface_dist);
         collisions.MinBackfaceDistance(min_backface_dist);
