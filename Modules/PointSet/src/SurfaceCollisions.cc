@@ -162,39 +162,6 @@ class FindCollisions
     u[1] = vtkMath::Dot(v, b);
   }
 
-  /// Check if two adjacent triangles with a common edge are folding onto one another
-  inline bool AdjacentTrianglesWithSharedEdgeCollide(vtkIdType cellId1, const double n1[3],
-                                                     vtkIdType cellId2, const double n2[3],
-                                                     CollisionInfo &collision) const
-  {
-    const double n_dot_n = vtkMath::Dot(n1, n2);
-    if (n_dot_n >= -_MinAngleCos) {
-      return false;
-    }
-    double v[3];
-    vtkMath::Subtract(collision._Point2, collision._Point1, v);
-    collision._Distance = vtkMath::Normalize(v);
-    const double n_dot_v = vtkMath::Dot(v, n1);
-    if (n_dot_v < .0) {
-      if (_Filter->BackfaceCollisionTest() && collision._Distance < _MinBackfaceDistance) {
-        collision._Type = CollisionType::BackfaceCollision;
-      } else {
-        collision._Type = CollisionType::NoCollision;
-      }
-    } else {
-      if (_Filter->FrontfaceCollisionTest() && collision._Distance < _MinFrontfaceDistance) {
-        collision._Type = CollisionType::FrontfaceCollision;
-      } else {
-        collision._Type = CollisionType::NoCollision;
-      }
-    }
-    if (collision._Type == CollisionType::NoCollision) {
-      return false;
-    }
-    collision._CellId = cellId2;
-    return true;
-  }
-
   /// Check if two adjacent triangles with a single common vertex are folding onto one another
   ///
   /// FIXME: A proper check requires an algorithm as outlined in CheckCollision().
@@ -253,21 +220,7 @@ class FindCollisions
     if (abs(dp) <= _MinAngleCos) {
       return false;
     }
-    if (dp < .0) {
-      if (_Filter->BackfaceCollisionTest() && collision._Distance < _MinBackfaceDistance) {
-        collision._Type = CollisionType::BackfaceCollision;
-      } else {
-        return false;
-      }
-    } else {
-      if (_Filter->FrontfaceCollisionTest() && collision._Distance < _MinFrontfaceDistance) {
-        collision._Type = CollisionType::FrontfaceCollision;
-      } else {
-        return false;
-      }
-    }
-    collision._CellId = cellId2;
-    return true;
+    return CheckCollisionOfAdjacentTriangles(cellId2, collision, dp);
   }
 
   /// Update cell collision type when a near-miss collision was detected
@@ -332,9 +285,10 @@ public:
     vtkDataArray *radius    = _Filter->GetRadiusArray();
     vtkDataArray *coll_type = _Filter->GetCollisionTypeArray();
 
-    const bool   coll_test    = (_MinFrontfaceDistance > .0 || _MinBackfaceDistance > .0);
-    const double min_distance = max(_MinFrontfaceDistance, _MinBackfaceDistance);
-    const double R            = _MaxRadius + 1.1 * min_distance;
+    const bool   coll_test     = (_MinFrontfaceDistance > .0 || _MinBackfaceDistance > .0);
+    const bool   adj_coll_test = _Filter->AdjacentCollisionTest() && coll_test;
+    const double min_distance  = max(_MinFrontfaceDistance, _MinBackfaceDistance);
+    const double R             = _MaxRadius + 1.1 * min_distance;
 
     double tri1[3][3], tri2[3][3], tri1_2D[3][2], tri2_2D[3][2];
     double n1[3], n2[3], p1[3], p2[3], r1, c1[3], d[3], ax1[3], ax2[3], search_radius;
@@ -423,7 +377,7 @@ public:
         // Triangles with a shared edge can only overlap, but not intersect.
         // This includes near miss collision if a minimum face distance is set.
         if (shared_vertex2 != -1) {
-          if (_Filter->AdjacentIntersectionTest() || coll_test) {
+          if (_Filter->AdjacentIntersectionTest() || adj_coll_test) {
             // Determine indices of non-shared vertices
             for (i1 = 0; i1 < 3; ++i1) {
               if (i1 != shared_vertex1 && i1 != shared_vertex2) break;
@@ -448,7 +402,7 @@ public:
                 SaveIntersectionInfo(cellId1, intersection);
               }
             // Otherwise, they may be folding onto one another
-            } else if (coll_test && v_dot_v > 0.75 * _MinAngleCos) {
+            } else if (adj_coll_test && v_dot_v > 0.75 * _MinAngleCos) {
               center->GetTuple(cellId2, collision._Point2);
               vtkPlane::ProjectPoint(collision._Point2, tri1[0], n1, collision._Point1);
               collision._Distance = sqrt(vtkMath::Distance2BetweenPoints(collision._Point1, collision._Point2));
@@ -491,7 +445,7 @@ public:
             intersection._Adjacent = true;
             UpdateCollisionType(type, intersection);
             SaveIntersectionInfo(cellId1, intersection);
-          } else if (coll_test) {
+          } else if (adj_coll_test) {
             center->GetTuple(cellId1, collision._Point1);
             center->GetTuple(cellId2, collision._Point2);
             collision._Distance = min(vtkPlane::DistanceToPlane(collision._Point2, n1, tri1[0]),
@@ -626,6 +580,7 @@ void SurfaceCollisions::CopyAttributes(const SurfaceCollisions &other)
   _MinFrontfaceDistance        = other._MinFrontfaceDistance;
   _MinBackfaceDistance         = other._MinBackfaceDistance;
   _MaxAngle                    = other._MaxAngle;
+  _AdjacentCollisionTest       = other._AdjacentCollisionTest;
   _AdjacentIntersectionTest    = other._AdjacentIntersectionTest;
   _NonAdjacentIntersectionTest = other._NonAdjacentIntersectionTest;
   _FrontfaceCollisionTest      = other._FrontfaceCollisionTest;
@@ -647,6 +602,7 @@ SurfaceCollisions::SurfaceCollisions()
   _MinFrontfaceDistance(.0),
   _MinBackfaceDistance(.0),
   _MaxAngle(90.0),
+  _AdjacentCollisionTest(false),
   _AdjacentIntersectionTest(false),
   _NonAdjacentIntersectionTest(false),
   _FrontfaceCollisionTest(false),

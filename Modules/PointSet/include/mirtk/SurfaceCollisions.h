@@ -220,6 +220,9 @@ private:
   mirtkPublicAttributeMacro(double, MaxAngle);
 
   /// Whether to perform intersection tests between adjacent triangles
+  mirtkPublicAttributeMacro(bool, AdjacentCollisionTest);
+
+  /// Whether to perform intersection tests between adjacent triangles
   mirtkPublicAttributeMacro(bool, AdjacentIntersectionTest);
 
   /// Whether to perform intersection tests between non-adjacent triangles
