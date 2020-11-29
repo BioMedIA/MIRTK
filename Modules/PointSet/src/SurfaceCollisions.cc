@@ -78,19 +78,18 @@ public:
   /// Compute bounding spheres of specified range of cells
   void operator ()(const blocked_range<vtkIdType> &re) const
   {
-    vtkIdType npts;
-    const vtkIdType *pts;
+    vtkNew<vtkIdList> pts;
     double a[3], b[3], c[3], origin[3], radius;
 
     for (vtkIdType cellId = re.begin(); cellId != re.end(); ++cellId) {
       // Get triangle vertices
-      _Surface->GetCellPoints(cellId, npts, pts);
-      mirtkAssert(npts == 3, "surface is triangular mesh");
+      _Surface->GetCellPoints(cellId, pts.GetPointer());
+      mirtkAssert(pts->GetNumberOfIds() == 3, "surface is triangular mesh");
 
       // Get triangle vertex positions
-      _Surface->GetPoint(pts[0], a);
-      _Surface->GetPoint(pts[1], b);
-      _Surface->GetPoint(pts[2], c);
+      _Surface->GetPoint(pts->GetId(0), a);
+      _Surface->GetPoint(pts->GetId(1), b);
+      _Surface->GetPoint(pts->GetId(2), c);
 
       // Get center of bounding sphere
       vtkTriangle::TriangleCenter(a, b, c, origin);
