@@ -296,10 +296,8 @@ public:
     bool   intersect, same_side;
 
     vtkIdType cellId1, cellId2;
-    vtkIdType ntriPtIds1, ntriPtIds2;
-    const vtkIdType *triPtIds1, *triPtIds2;
     UnorderedSet<vtkIdType> nearbyCellIds;
-    vtkNew<vtkIdList> cellIds, ptIds;
+    vtkNew<vtkIdList> cellIds, ptIds, triPtIds1, triPtIds2;
   
     IntersectionInfo intersection;
     CollisionInfo collision;
@@ -315,11 +313,11 @@ public:
       }
 
       // Get vertices and normal of this triangle
-      surface->GetCellPoints(cellId1, ntriPtIds1, triPtIds1);
-      mirtkAssert(ntriPtIds1 == 3, "surface is triangular mesh");
-      surface->GetPoint(triPtIds1[0], tri1[0]);
-      surface->GetPoint(triPtIds1[1], tri1[1]);
-      surface->GetPoint(triPtIds1[2], tri1[2]);
+      surface->GetCellPoints(cellId1, triPtIds1.GetPointer());
+      mirtkAssert(triPtIds1->GetNumberOfIds() == 3, "surface is triangular mesh");
+      surface->GetPoint(triPtIds1->GetId(0), tri1[0]);
+      surface->GetPoint(triPtIds1->GetId(1), tri1[1]);
+      surface->GetPoint(triPtIds1->GetId(2), tri1[2]);
       vtkTriangle::ComputeNormal(tri1[0], tri1[1], tri1[2], n1);
 
       // Get bounding sphere
@@ -342,17 +340,18 @@ public:
       for (const auto cellId2 : nearbyCellIds) {
 
         // Get vertex positions of nearby candidate triangle
-        surface->GetCellPoints(cellId2, ntriPtIds2, triPtIds2);
-        surface->GetPoint(triPtIds2[0], tri2[0]);
-        surface->GetPoint(triPtIds2[1], tri2[1]);
-        surface->GetPoint(triPtIds2[2], tri2[2]);
+        surface->GetCellPoints(cellId2, triPtIds2.GetPointer());
+        mirtkAssert(triPtIds2->GetNumberOfIds() == 3, "surface is triangular mesh");
+        surface->GetPoint(triPtIds2->GetId(0), tri2[0]);
+        surface->GetPoint(triPtIds2->GetId(1), tri2[1]);
+        surface->GetPoint(triPtIds2->GetId(2), tri2[2]);
         vtkTriangle::ComputeNormal(tri2[0], tri2[1], tri2[2], n2);
 
         // Get corresponding indices of shared vertices
         for (i1 = 0; i1 < 3; ++i1) {
           tri12[i1] = -1;
           for (i2 = 0; i2 < 3; ++i2) {
-            if (triPtIds1[i1] == triPtIds2[i2]) {
+            if (triPtIds1->GetId(i1) == triPtIds2->GetId(i2)) {
               tri12[i1] = i2;
               break;
             }
