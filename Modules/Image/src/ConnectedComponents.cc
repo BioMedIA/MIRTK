@@ -204,7 +204,6 @@ void ConnectedComponents<VoxelType>::Finalize()
 template <class VoxelType>
 void ConnectedComponents<VoxelType>::DeleteComponent(VoxelType c)
 {
-  ++c; // 1-indexed component labels
   const VoxelType zero(0);
   GenericImage<VoxelType> &output = *this->Output();
   for (int idx = 0; idx < output.NumberOfVoxels(); ++idx) {
