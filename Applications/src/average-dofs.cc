@@ -356,6 +356,7 @@ int main(int argc, char **argv)
     else HANDLE_BOOLEAN_OPTION("local", deformation);
     else HANDLE_BOOLEAN_OPTION("invert", invert);
     else HANDLE_BOOLEAN_OPTION("inverse", invavg);
+    else HANDLE_BOOL_OPTION(approxglobal);
     else HANDLE_COMMON_OR_UNKNOWN_OPTION();
   }
 
