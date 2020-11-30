@@ -1,0 +1,58 @@
+{
+    "files.exclude": {
+        "**/__pycache__": true,
+        "**/.git": true,
+        "**/.DS_Store": true,
+        "**/.pytest_cache": true,
+        "**/*.egg-info": true,
+        ".venv": true
+    },
+    "editor.formatOnSave": false,
+    "cmake.cmakePath": "cmake",
+    "cmake.buildDirectory": "${workspaceFolder}/Build",
+    "cmake.configureArgs": [
+        "-DCMAKE_INSTALL_PREFIX=/vol/biomedic/users/as12312",
+        "-DCMAKE_BUILD_TYPE=Release",
+        "-DBUILD_SHARED_LIBS=ON",
+        "-DBUILD_APPLICATIONS=ON",
+        "-DBUILD_TESTING=OFF",
+        "-DBUILD_DOCUMENTATION=OFF",
+        "-DBUILD_CHANGELOG=OFF",
+        "-DWITH_CCACHE=ON",
+        "-DWITH_ARPACK=OFF",
+        "-DWITH_FLANN=ON",
+        "-DWITH_MATLAB=OFF",
+        "-DWITH_NiftiCLib=ON",
+        "-DWITH_PNG=ON",
+        "-DWITH_PROFILING=ON",
+        "-DWITH_TBB=ON",
+        "-DWITH_UMFPACK=OFF",
+        "-DWITH_ITK=OFF",
+        "-DWITH_VTK=ON",
+        "-DWITH_ZLIB=ON",
+        // Default modules
+        "-DMODULE_Common=ON",
+        "-DMODULE_Image=ON",
+        "-DMODULE_Numerics=ON",
+        "-DMODULE_PointSet=ON",
+        "-DMODULE_IO=ON",
+        "-DMODULE_Registration=ON",
+        "-DMODULE_Transformation=ON",
+        // External packages
+        "-DMODULE_Deformable=ON",
+        "-DMODULE_DrawEM=OFF",
+        "-DMODULE_Mapping=ON",
+        "-DMODULE_Scripting=ON",
+        "-DMODULE_Viewer=ON",
+        // Third-party libraries - If not found, set environment variables:
+        // - CMAKE_PREFIX_PATH
+        // - CMAKE_INCLUDE_PATH
+        // See also https://cmake.org/cmake/help/latest/variable/CMAKE_PREFIX_PATH.html
+    ],
+    // Add the following to your local user or remote machine settings JSON file at
+    // $HOME/.vscode-server/data/Machine/settings.json. This deprecates the automatic addition of
+    // "python.pythonPath" to this settings file such that it can be checked into version control.
+    "python.experiments.optInto": [
+        "DeprecatePythonPath - experiment",
+    ]
+}

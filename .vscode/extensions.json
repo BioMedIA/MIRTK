@@ -1,0 +1,14 @@
+{
+    "recommendations": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "ms-vscode-remote.remote-ssh",
+        "ms-vscode-remote.remote-ssh-edit",
+        "visualstudioexptteam.vscodeintellicode",
+        "ms-azuretools.vscode-docker",
+        "eamodio.gitlens",
+        "yzhang.markdown-all-in-one",
+        "shd101wyy.markdown-preview-enhanced",
+        "github.vscode-pull-request-github",
+    ]
+}
