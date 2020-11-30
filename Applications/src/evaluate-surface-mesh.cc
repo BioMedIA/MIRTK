@@ -223,8 +223,11 @@ int main(int argc, char *argv[])
   int         select_comp = 0;
 
   Array<MeshProperty> measures;
-  double              min_frontface_dist = 1e-2;
-  double              min_backface_dist  = 1e-2;
+  double min_frontface_dist  = 1e-2;
+  double min_backface_dist   = 1e-2;
+  double max_collision_angle = 20.0;
+  bool adjacent_collision_test = true;
+  bool fast_collision_test = false;
 
   double value;
   for (ALL_OPTIONS) {
@@ -295,14 +298,21 @@ int main(int argc, char *argv[])
     }
     else if (OPTION("-collisions") || OPTION("-self-intersections") || OPTION("-coll")) {
       measures.push_back(MESH_Collisions);
+      max_collision_angle = 20.0;
       if (HAS_ARGUMENT) {
         PARSE_ARGUMENT(min_frontface_dist);
-        if (HAS_ARGUMENT) PARSE_ARGUMENT(min_backface_dist);
-        else min_backface_dist = min_frontface_dist;
+        if (HAS_ARGUMENT) {
+          PARSE_ARGUMENT(min_backface_dist);
+          if (HAS_ARGUMENT) PARSE_ARGUMENT(max_collision_angle);
+        } else {
+          min_backface_dist = min_frontface_dist;
+        }
       } else {
         min_frontface_dist = min_backface_dist = 1e-2;
       }
     }
+    else HANDLE_BOOLEAN_OPTION("adjacent-collision-test", adjacent_collision_test);
+    else HANDLE_BOOLEAN_OPTION("fast-collision-test", fast_collision_test);
     else HANDLE_COMMON_OR_UNKNOWN_OPTION();
   }
   if (measures.empty()) {
@@ -590,9 +600,11 @@ int main(int argc, char *argv[])
 
         SurfaceCollisions collisions;
         collisions.Input(surface);
+        collisions.AdjacentCollisionTest(adjacent_collision_test);
+        collisions.FastCollisionTest(fast_collision_test);
         collisions.MinFrontfaceDistance(min_frontface_dist);
         collisions.MinBackfaceDistance(min_backface_dist);
-        collisions.MaxAngle(20.0);
+        collisions.MaxAngle(max_collision_angle);
         collisions.AdjacentIntersectionTestOn();
         collisions.NonAdjacentIntersectionTestOn();
         collisions.FrontfaceCollisionTestOn();
