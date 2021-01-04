@@ -1,4 +1,4 @@
-dist: bionic
+dist: xenial  # Ubuntu version determines minimum GLIBC version required by AppImage
 language: cpp
 
 compiler:
