@@ -13,7 +13,7 @@ norm_option_value()
   fi
 }
 
-CXX_STANDARD=c++14
+CXX_STANDARD=11
 TRAVIS=`norm_option_value "$TRAVIS" OFF`
 TESTING=`norm_option_value "$TESTING" OFF`
 WITH_ARPACK=`norm_option_value "$WITH_ARPACK" OFF`
