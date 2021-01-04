@@ -267,8 +267,11 @@ if [ $WITH_VTK = ON ] && [ -n "$VTK_VERSION" ]; then
     cmake_args+=(-DCMAKE_CXX_STANDARD=$CXX_STANDARD)
     if [ ${VTK_VERSION/.*/} -lt 9 ]; then
       cmake_args+=(
+        -DBUILD_TESTING=OFF
+        -DVTK_BUILD_DOCUMENTATION=OFF
         -DVTK_Group_Rendering=OFF
         -DVTK_Group_StandAlone=OFF
+        -DVTK_WRAP_PYTHON=OFF
         -DModule_vtkCommonCore=ON
         -DModule_vtkCommonDataModel=ON
         -DModule_vtkCommonExecutionModel=ON
@@ -288,6 +291,7 @@ if [ $WITH_VTK = ON ] && [ -n "$VTK_VERSION" ]; then
       )
     else
       cmake_args+=(
+        -DBUILD_TESTING=OFF
         -DVTK_GROUP_ENABLE_Imaging=YES
         -DVTK_GROUP_ENABLE_MPI=DONT_WANT
         -DVTK_GROUP_ENABLE_Qt=DONT_WANT
