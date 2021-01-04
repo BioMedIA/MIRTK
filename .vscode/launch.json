@@ -188,5 +188,28 @@
                 }
             ]
         },
+        {
+            "name": "average-dofs",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/Build/lib/tools/average-dofs",
+            "args": [
+                "week28_dedrift.dof", "-v", "2", "-all", "-invert", "-norigid", "-approxglobal",
+                "-dofdir", "/vol/dhcp-derived-data/surface-atlas-jcupitt/work/adaptive_subjectsToDataConteALL/dofdir/28",
+                "-dofnames", "/vol/dhcp-derived-data/surface-atlas-jcupitt/work/tmp/temp-weights.tsv",
+                "-suffix", "-Conte69.L.dedrift.very_inflated.iter7_affine_affinewarp.dof",
+            ],
+            "stopAtEntry": false,
+            "cwd": "/vol/dhcp-derived-data/surface-atlas-jcupitt/work/adaptive_subjectsToDataConteALL",
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        },
     ]
 }
