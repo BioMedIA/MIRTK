@@ -24,7 +24,7 @@
 #include "mirtk/Memory.h"
 
 
-class MetaIamge;
+class MetaImage;
 
 
 namespace mirtk {
