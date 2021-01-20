@@ -120,7 +120,7 @@ void CellDataFilter::GetNodeNeighbors(int cellId, UnorderedSet<int> &cellIds) co
 {
   vtkNew<vtkIdList> ptIds, ptCellIds;
   cellIds.clear();
-  _Output->GetCellPoints(cellId, ptIds.GetPointer());
+  GetCellPoints(_Output, cellId, ptIds.GetPointer());
   for (vtkIdType i = 0; i < ptIds->GetNumberOfIds(); ++i) {
     _Output->GetPointCells(ptIds->GetId(i), ptCellIds.GetPointer());
     for (vtkIdType j = 0; j < ptCellIds->GetNumberOfIds(); ++j) {

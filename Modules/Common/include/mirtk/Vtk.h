@@ -63,6 +63,25 @@ namespace mirtk {
 #define SetNthVTKConnection(filter2, n2, filter1, n1) (filter2)->SetInputConnection(n2, (filter1)->GetOutputPort(n1));
 
 // =============================================================================
+// Transition to VTK 9
+// =============================================================================
+
+// Fix for https://github.com/Kitware/VTK/commit/eb0113741ce5bcbd493cfa3eda34feba827d0533
+inline void GetCellPoints(vtkPointSet *pset, vtkIdType cellId, vtkIdList *ptIds)
+{
+  #if VTK_MAJOR_VERSION < 9
+    vtkIdType *pts, npts;
+    GetCellPoints(pset, cellId, npts, pts);
+    ptIds->SetNumberOfIds(npts);
+    for (vtkIdType i = 0; i < npts; ++i) {
+      ptIds->SetId(i, pts[i]);
+    }
+  #else
+    GetCellPoints(pset, cellId, ptIds);
+  #endif
+}
+
+// =============================================================================
 // Data set attributes
 // =============================================================================
 

@@ -128,7 +128,7 @@ void SurfacePatches::Execute()
         if (labels->GetComponent(curId, 0) == 0.) {
           ++ncells;
           labels->SetComponent(curId, 0, _NumberOfPatches);
-          _Output->GetCellPoints(curId, ptIds.GetPointer());
+          GetCellPoints(_Output, curId, ptIds.GetPointer());
           for (vtkIdType i = 0; i < ptIds->GetNumberOfIds(); ++i) {
             _Output->GetCellEdgeNeighbors(curId, ptIds->GetId(i), ptIds->GetId((i + 1) % ptIds->GetNumberOfIds()), cellIds.GetPointer());
             if (cellIds->GetNumberOfIds() == 1) {

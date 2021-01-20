@@ -431,7 +431,7 @@ public:
     // Loop over transformed triangles
     for (vtkIdType i = re.begin(); i != re.end(); ++i) {
       // Get vertex indices
-      _SurfaceA->GetCellPoints(i, ids.GetPointer());
+      GetCellPoints(_SurfaceA, i, ids.GetPointer());
       i1 = ids->GetId(0);
       i2 = ids->GetId(1);
       i3 = ids->GetId(2);

@@ -1055,7 +1055,7 @@ vtkSmartPointer<vtkDataArray> IntersectionCellMask(vtkPolyData * const surface, 
     next->DeepCopy(mask);
     for (vtkIdType cellId = 0; cellId < n; ++cellId) {
       if (mask->GetComponent(cellId, 0) != 0.) {
-        surface->GetCellPoints(cellId, ptIds.GetPointer());
+        GetCellPoints(surface, cellId, ptIds.GetPointer());
         for (vtkIdType i = 0; i < ptIds->GetNumberOfIds(); ++i) {
           surface->GetPointCells(ptIds->GetId(i), cellIds.GetPointer());
           for (vtkIdType j = 0; j < cellIds->GetNumberOfIds(); ++j) {
@@ -1100,7 +1100,7 @@ vtkSmartPointer<vtkDataArray> IntersectionPointMask(vtkPolyData * const surface,
       if (mask->GetComponent(ptId, 0) != 0.) {
         surface->GetPointCells(ptId, cellIds.GetPointer());
         for (vtkIdType i = 0; i < cellIds->GetNumberOfIds(); ++i) {
-          surface->GetCellPoints(cellIds->GetId(i), ptIds.GetPointer());
+          GetCellPoints(surface, cellIds->GetId(i), ptIds.GetPointer());
           for (vtkIdType j = 0; j < ptIds->GetNumberOfIds(); ++j) {
             next->SetComponent(ptIds->GetId(j), 0, 1.);
           }
@@ -1130,7 +1130,7 @@ void GetEdgeLengthRange(vtkPolyData * const surface, vtkDataArray * const mask,
 
   for (vtkIdType cellId = 0; cellId < surface->GetNumberOfCells(); ++cellId) {
     if (mask->GetComponent(cellId, 0) != 0. && source->GetComponent(cellId, 0) != 0.) {
-      surface->GetCellPoints(cellId, ptIds.GetPointer());
+      GetCellPoints(surface, cellId, ptIds.GetPointer());
       for (vtkIdType i = 0, j; i < ptIds->GetNumberOfIds(); ++i) {
         j = (i + 1) % ptIds->GetNumberOfIds();
         surface->GetPoint(ptIds->GetId(i), a);
@@ -1342,7 +1342,7 @@ vtkSmartPointer<vtkPolyData> LargestClosedIntersection(vtkPolyData *s1, vtkPolyD
       cut->GetPointCells(ptId, cellIds.GetPointer());
       if (cellIds->GetNumberOfIds() == 1) {
         cellId = cellIds->GetId(0);
-        cut->GetCellPoints(cellId, ptIds.GetPointer());
+        GetCellPoints(cut, cellId, ptIds.GetPointer());
         cut->RemoveCellReference(cellId);
         cut->DeleteCell(cellId);
         for (vtkIdType i = 0; i < ptIds->GetNumberOfIds(); ++i) {
@@ -1789,8 +1789,8 @@ void SmoothLineStrip(vtkSmartPointer<vtkPolyData> cut, int niter = 1)
       if (cellIds->GetNumberOfIds() == 2 &&
           cut->GetCellType(cellIds->GetId(0)) == VTK_LINE &&
           cut->GetCellType(cellIds->GetId(1)) == VTK_LINE) {
-        cut->GetCellPoints(cellIds->GetId(0), ptIds1.GetPointer());
-        cut->GetCellPoints(cellIds->GetId(1), ptIds2.GetPointer());
+        GetCellPoints(cut, cellIds->GetId(0), ptIds1.GetPointer());
+        GetCellPoints(cut, cellIds->GetId(1), ptIds2.GetPointer());
         i1 = (ptIds1->GetId(0) == ptId ? 1 : 0);
         i2 = (ptIds2->GetId(0) == ptId ? 1 : 0);
         cut->GetPoint(ptIds1->GetId(i1), p1);
@@ -1844,7 +1844,7 @@ double LineStripLength(vtkSmartPointer<vtkPolyData> cut)
   cut->BuildLinks();
 
   for (vtkIdType cellId = 0; cellId < cut->GetNumberOfCells(); ++cellId) {
-    cut->GetCellPoints(cellId, ptIds.GetPointer());
+    GetCellPoints(cut, cellId, ptIds.GetPointer());
     if (cut->GetCellType(cellId) == VTK_LINE && ptIds->GetNumberOfIds() == 2) {
       cut->GetPoint(ptIds->GetId(0), p1);
       cut->GetPoint(ptIds->GetId(1), p2);
@@ -1878,8 +1878,8 @@ double LineStripCurvature(vtkSmartPointer<vtkPolyData> cut)
     if (cellIds->GetNumberOfIds() == 2 &&
         cut->GetCellType(cellIds->GetId(0)) == VTK_LINE &&
         cut->GetCellType(cellIds->GetId(1)) == VTK_LINE) {
-      cut->GetCellPoints(cellIds->GetId(0), ptIds1.GetPointer());
-      cut->GetCellPoints(cellIds->GetId(1), ptIds2.GetPointer());
+      GetCellPoints(cut, cellIds->GetId(0), ptIds1.GetPointer());
+      GetCellPoints(cut, cellIds->GetId(1), ptIds2.GetPointer());
       i1 = (ptIds1->GetId(0) == ptId ? 1 : 0);
       i2 = (ptIds2->GetId(0) == ptId ? 1 : 0);
       cut->GetPoint(ptIds1->GetId(i1), p1);
@@ -1916,8 +1916,8 @@ double MaxLineStripAngle(vtkSmartPointer<vtkPolyData> cut)
     if (cellIds->GetNumberOfIds() == 2 &&
         cut->GetCellType(cellIds->GetId(0)) == VTK_LINE &&
         cut->GetCellType(cellIds->GetId(1)) == VTK_LINE) {
-      cut->GetCellPoints(cellIds->GetId(0), ptIds1.GetPointer());
-      cut->GetCellPoints(cellIds->GetId(1), ptIds2.GetPointer());
+      GetCellPoints(cut, cellIds->GetId(0), ptIds1.GetPointer());
+      GetCellPoints(cut, cellIds->GetId(1), ptIds2.GetPointer());
       i1 = (ptIds1->GetId(0) == ptId ? 1 : 0);
       i2 = (ptIds2->GetId(0) == ptId ? 1 : 0);
       cut->GetPoint(ptIds1->GetId(i1), p1);
@@ -2189,7 +2189,7 @@ inline void InsertEdgeIntersection(TriangleIntersectionsMap &intersections,
     surface->GetPoint(newPtId, x);
   }
 
-  surface->GetCellPoints(cellId, cellPtIds.GetPointer());
+  GetCellPoints(surface, cellId, cellPtIds.GetPointer());
   const vtkIdType ptId1 = cellPtIds->GetId(edge);
   const vtkIdType ptId2 = cellPtIds->GetId((edge + 1) % cellPtIds->GetNumberOfIds());
   surface->GetCellEdgeNeighbors(cellId, ptId1, ptId2, cellIds.GetPointer());
@@ -2197,7 +2197,7 @@ inline void InsertEdgeIntersection(TriangleIntersectionsMap &intersections,
   for (vtkIdType j = 0; j < cellIds->GetNumberOfIds(); ++j) {
     nbrId   = cellIds->GetId(j);
     nbrEdge = -1;
-    surface->GetCellPoints(nbrId, nbrPtIds.GetPointer());
+    GetCellPoints(surface, nbrId, nbrPtIds.GetPointer());
     for (vtkIdType k = 0; k < nbrPtIds->GetNumberOfIds(); ++k) {
       if (nbrPtIds->GetId(k) == ptId1 && nbrPtIds->GetId((k + 1) % nbrPtIds->GetNumberOfIds()) == ptId2) {
         nbrEdge  = k;
@@ -2383,7 +2383,7 @@ AddClosedIntersectionDivider(vtkPolyData *surface, vtkPolyData *cut, double tol 
     if (entry.second.size() > 1) {
       ptIds->Reset();
       for (const auto &lineId : entry.second) {
-        cut->GetCellPoints(lineId, linePtIds.GetPointer());
+        GetCellPoints(cut, lineId, linePtIds.GetPointer());
         for (int i = 0; i < linePtIds->GetNumberOfIds(); ++i) {
           ptIds->InsertUniqueId(linePtIds->GetId(i));
         }
@@ -2413,13 +2413,13 @@ AddClosedIntersectionDivider(vtkPolyData *surface, vtkPolyData *cut, double tol 
     }
 
     // Determine which edges are being intersected
-    surface->GetCellPoints(cellId, cellPtIds.GetPointer());
+    GetCellPoints(surface, cellId, cellPtIds.GetPointer());
     surface->GetPoint(cellPtIds->GetId(0), pt[0]);
     surface->GetPoint(cellPtIds->GetId(1), pt[1]);
     surface->GetPoint(cellPtIds->GetId(2), pt[2]);
 
     lineId = entry.second.front();
-    cut->GetCellPoints(lineId, linePtIds.GetPointer());
+    GetCellPoints(cut, lineId, linePtIds.GetPointer());
     cut->GetPoint(linePtIds->GetId(0), p);
     cut->GetPoint(linePtIds->GetId(1), q);
 
@@ -2511,7 +2511,7 @@ AddClosedIntersectionDivider(vtkPolyData *surface, vtkPolyData *cut, double tol 
     bisect[0] = (edge[0].i >= 0 ? 1 : 0);
     bisect[1] = (edge[1].i >= 0 ? 1 : 0);
     bisect[2] = (edge[2].i >= 0 ? 1 : 0);
-    surface->GetCellPoints(cellId, cellPtIds.GetPointer());
+    GetCellPoints(surface, cellId, cellPtIds.GetPointer());
     switch (bisect[0] + bisect[1] + bisect[2]) {
       case 0: {
         Throw(ERR_LogicError, __FUNCTION__, "Exptected at least one edge intersection");
@@ -2632,12 +2632,12 @@ AddClosedIntersectionDivider(vtkPolyData *surface, vtkPolyData *cut, double tol 
   vtkNew<vtkIdList> ptIds1, ptIds2;
   for (vtkIdType cellId = 0; cellId < output->GetNumberOfCells(); ++cellId) {
     if (output->GetCellType(cellId) != VTK_EMPTY_CELL) {
-      output->GetCellPoints(cellId, ptIds1.GetPointer());
+      GetCellPoints(output, cellId, ptIds1.GetPointer());
       for (vtkIdType i = 0; i < ptIds1->GetNumberOfIds(); ++i) {
         output->GetPointCells(ptIds1->GetId(i), cellIds.GetPointer());
         for (vtkIdType j = 0; j < cellIds->GetNumberOfIds(); ++j) {
           if (cellIds->GetId(j) > cellId && output->GetCellType(cellIds->GetId(j)) != VTK_EMPTY_CELL) {
-            output->GetCellPoints(cellIds->GetId(j), ptIds2.GetPointer());
+            GetCellPoints(output, cellIds->GetId(j), ptIds2.GetPointer());
             if (ptIds1->GetNumberOfIds() == ptIds2->GetNumberOfIds()) {
               ptIds2->IntersectWith(ptIds1.GetPointer());
               if (ptIds1->GetNumberOfIds() == ptIds2->GetNumberOfIds()) {
@@ -2728,7 +2728,7 @@ void GrowSourceRegion(vtkPolyData *surface, bool ignore_border_edges)
 
   for (cellId = 0; cellId < surface->GetNumberOfCells(); ++cellId) {
     if (source->GetComponent(cellId, 0) == 0.) {
-      surface->GetCellPoints(cellId, ptIds.GetPointer());
+      GetCellPoints(surface, cellId, ptIds.GetPointer());
       for (vtkIdType i = 0; i < ptIds->GetNumberOfIds(); ++i) {
         surface->GetCellEdgeNeighbors(cellId, ptIds->GetId(i), ptIds->GetId((i + 1) % ptIds->GetNumberOfIds()), cellIds.GetPointer());
         if (ignore_border_edges || cellIds->GetNumberOfIds() == 1) {
@@ -2750,7 +2750,7 @@ void GrowSourceRegion(vtkPolyData *surface, bool ignore_border_edges)
     active.pop();
     if (source->GetComponent(cellId, 0) == 0.) {
       bins.clear();
-      surface->GetCellPoints(cellId, ptIds.GetPointer());
+      GetCellPoints(surface, cellId, ptIds.GetPointer());
       for (vtkIdType i = 0; i < ptIds->GetNumberOfIds(); ++i) {
         surface->GetCellEdgeNeighbors(cellId, ptIds->GetId(i), ptIds->GetId((i + 1) % ptIds->GetNumberOfIds()), cellIds.GetPointer());
         if (ignore_border_edges || cellIds->GetNumberOfIds() == 1) {
@@ -3336,7 +3336,7 @@ int main(int argc, char *argv[])
       bool modified = false;
       for (vtkIdType cellId = 0; cellId < output->GetNumberOfCells(); ++cellId) {
         bins.clear();
-        output->GetCellPoints(cellId, ptIds.GetPointer());
+        GetCellPoints(output, cellId, ptIds.GetPointer());
         for (vtkIdType i = 0; i < ptIds->GetNumberOfIds(); ++i) {
           output->GetPointCells(ptIds->GetId(i), cellIds.GetPointer());
           for (vtkIdType j = 0; j < cellIds->GetNumberOfIds(); ++j) {

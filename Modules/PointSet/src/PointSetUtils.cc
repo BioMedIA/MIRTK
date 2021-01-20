@@ -653,7 +653,7 @@ struct ComputeSurfaceArea
     double p1[3], p2[3], p3[3], area;
     for (vtkIdType cellId = cellIds.begin(); cellId != cellIds.end(); ++cellId)
     {
-      _Surface->GetCellPoints(cellId, ptIds.GetPointer());
+      GetCellPoints(_Surface, cellId, ptIds.GetPointer());
       if (ptIds->GetNumberOfIds() == 3) {
         _Surface->GetPoint(ptIds->GetId(0), p1);
         _Surface->GetPoint(ptIds->GetId(1), p2);
