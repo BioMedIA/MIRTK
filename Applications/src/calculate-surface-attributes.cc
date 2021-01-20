@@ -312,7 +312,7 @@ BorderCellMask(vtkPolyData *surface, vtkDataArray *cell_labels, bool edge_nbrs =
       label = cell_labels->GetComponent(cellId, 0);
       GetCellPoints(surface, cellId, ptIds.GetPointer());
       for (vtkIdType i = 0; i < ptIds->GetNumberOfIds(); ++i) {
-        GetPointCells(surface, ptIds->GetId(i), cellIds.GetPointer());
+        surface->GetPointCells(ptIds->GetId(i), cellIds.GetPointer());
         for (vtkIdType j = 0; j < cellIds->GetNumberOfIds(); ++j) {
           if (cell_labels->GetComponent(cellIds->GetId(j), 0) != label) {
             mask->SetComponent(cellId, 0, 1.);

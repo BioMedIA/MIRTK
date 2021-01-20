@@ -29,6 +29,8 @@
 #include "vtkDataSetAttributes.h"
 #include "vtkIdList.h"
 #include "vtkVersionMacros.h"
+#include "vtkDataSet.h"
+#include "vtkPolyData.h"
 
 
 namespace mirtk {
@@ -67,17 +69,22 @@ namespace mirtk {
 // =============================================================================
 
 // Fix for https://github.com/Kitware/VTK/commit/eb0113741ce5bcbd493cfa3eda34feba827d0533
-inline void GetCellPoints(vtkPointSet *pset, vtkIdType cellId, vtkIdList *ptIds)
+inline void GetCellPoints(vtkDataSet *obj, vtkIdType cellId, vtkIdList *ptIds)
 {
   #if VTK_MAJOR_VERSION < 9
-    vtkIdType *pts, npts;
-    GetCellPoints(pset, cellId, npts, pts);
-    ptIds->SetNumberOfIds(npts);
-    for (vtkIdType i = 0; i < npts; ++i) {
-      ptIds->SetId(i, pts[i]);
+    vtkPolyData *pd = vtkPolyData::SafeDownCast(obj);
+    if (pd == nullptr) {
+      obj->GetCellPoints(cellId, ptIds);
+    } else {
+      vtkIdType *pts, npts;
+      pd->GetCellPoints(cellId, npts, pts);
+      ptIds->SetNumberOfIds(npts);
+      for (vtkIdType i = 0; i < npts; ++i) {
+        ptIds->SetId(i, pts[i]);
+      }
     }
   #else
-    GetCellPoints(pset, cellId, ptIds);
+    obj->GetCellPoints(cellId, ptIds);
   #endif
 }
 

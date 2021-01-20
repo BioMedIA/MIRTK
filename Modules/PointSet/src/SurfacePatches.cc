@@ -21,6 +21,7 @@
 
 #include "mirtk/Queue.h"
 #include "mirtk/Algorithm.h"
+#include "mirtk/Vtk.h"
 
 #include "vtkNew.h"
 #include "vtkSmartPointer.h"

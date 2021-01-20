@@ -25,6 +25,7 @@
 #include "mirtk/Parallel.h"
 #include "mirtk/Profiling.h"
 #include "mirtk/ObjectFactory.h"
+#include "mirtk/Vtk.h"
 #include "mirtk/VtkMath.h"
 
 #include "vtkNew.h"

@@ -87,9 +87,9 @@ public:
       mirtkAssert(ptIds->GetNumberOfIds() == 3, "surface is triangular mesh");
 
       // Get triangle vertex positions
-      _Surface->GetPoint(pts->GetId(0), a);
-      _Surface->GetPoint(pts->GetId(1), b);
-      _Surface->GetPoint(pts->GetId(2), c);
+      _Surface->GetPoint(ptIds->GetId(0), a);
+      _Surface->GetPoint(ptIds->GetId(1), b);
+      _Surface->GetPoint(ptIds->GetId(2), c);
 
       // Get center of bounding sphere
       vtkTriangle::TriangleCenter(a, b, c, origin);

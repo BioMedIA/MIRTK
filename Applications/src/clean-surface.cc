@@ -153,7 +153,7 @@ int RemoveSpike(vtkPolyData *mesh, vtkIdType ptId, const Vector3 &direction, dou
     if (IsSpikeCell(mesh, cellId, direction, tol)) {
       GetCellPoints(mesh, cellId, ptIds.GetPointer());
       for (vtkIdType i = 0; i < ptIds->GetNumberOfIds(); ++i) {
-        GetPointCells(mesh, ptIds->GetId(i), cellIds.GetPointer());
+        mesh->GetPointCells(ptIds->GetId(i), cellIds.GetPointer());
         for (vtkIdType i = 0; i < cellIds->GetNumberOfIds(); ++i) {
           if (cellIds->GetId(i) != cellId) {
             active.push(cellIds->GetId(i));
@@ -274,7 +274,7 @@ void DeleteRedundantCells(vtkPolyData *mesh)
     if (mesh->GetCellType(cellId) != VTK_EMPTY_CELL) {
       GetCellPoints(mesh, cellId, ptIds1.GetPointer());
       for (vtkIdType i = 0; i < ptIds1->GetNumberOfIds(); ++i) {
-        GetPointCells(mesh, ptIds1->GetId(i), cellIds.GetPointer());
+        mesh->GetPointCells(ptIds1->GetId(i), cellIds.GetPointer());
         for (vtkIdType j = 0; j < cellIds->GetNumberOfIds(); ++j) {
           if (cellIds->GetId(j) > cellId && mesh->GetCellType(cellIds->GetId(j)) != VTK_EMPTY_CELL) {
             GetCellPoints(mesh, cellIds->GetId(j), ptIds2.GetPointer());
