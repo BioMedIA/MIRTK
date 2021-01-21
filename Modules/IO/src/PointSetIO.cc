@@ -750,7 +750,7 @@ bool WriteDFS(const char *fname, vtkPolyData *polydata)
   vtkNew<vtkIdList> ptIds;
   surface.triangles.resize(polydata->GetNumberOfCells());
   for (vtkIdType i = 0; i < polydata->GetNumberOfCells(); ++i) {
-    polydata->GetCellPoints(i, ptIds.GetPointer());
+    GetCellPoints(polydata, i, ptIds.GetPointer());
     if (ptIds->GetNumberOfIds() != 3) return false;
     surface.triangles[i].a = static_cast<int>(ptIds->GetId(0));
     surface.triangles[i].b = static_cast<int>(ptIds->GetId(1));
@@ -900,7 +900,7 @@ bool WriteOFF(const char *fname, vtkPolyData *polydata)
   vtkNew<vtkIdList> ptIds;
   polydata->BuildCells();
   for (vtkIdType cellId = 0; cellId < polydata->GetNumberOfCells(); ++cellId) {
-    polydata->GetCellPoints(cellId, ptIds.GetPointer());
+    GetCellPoints(polydata, cellId, ptIds.GetPointer());
     ofs << ptIds->GetNumberOfIds();
     for (vtkIdType i = 0; i < ptIds->GetNumberOfIds(); ++i) {
       ofs << " " << ptIds->GetId(i);

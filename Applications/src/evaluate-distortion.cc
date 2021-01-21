@@ -99,7 +99,7 @@ double Angle(vtkPolyData *mesh, vtkIdType cellId, vtkIdType ptId)
 {
   vtkIdType i[3] = {0, 1, 2};
   vtkNew<vtkIdList> ptIds;
-  mesh->GetCellPoints(cellId, ptIds.GetPointer());
+  GetCellPoints(mesh, cellId, ptIds.GetPointer());
   for (vtkIdType j = 0; j < ptIds->GetNumberOfIds(); ++j) {
     if (ptIds->GetId(j) == ptId) {
       i[0] = i[j];

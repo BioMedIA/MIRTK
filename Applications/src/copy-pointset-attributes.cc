@@ -252,7 +252,7 @@ ConvertPointToCellLabels(vtkPointSet *pset, vtkDataArray *labels,
       OrderedMap<double, int>::iterator bin;
       vtkNew<vtkIdList> ptIds;
       for (vtkIdType cellId = 0; cellId < pset->GetNumberOfCells(); ++cellId) {
-        pset->GetCellPoints(cellId, ptIds.GetPointer());
+        GetCellPoints(pset, cellId, ptIds.GetPointer());
         for (int j = 0; j < labels->GetNumberOfComponents(); ++j) {
           hist.clear();
           for (vtkIdType i = 0; i < ptIds->GetNumberOfIds(); ++i) {
@@ -277,7 +277,7 @@ ConvertPointToCellLabels(vtkPointSet *pset, vtkDataArray *labels,
       double       label;
       vtkNew<vtkIdList> ptIds;
       for (vtkIdType cellId = 0; cellId < pset->GetNumberOfCells(); ++cellId) {
-        pset->GetCellPoints(cellId, ptIds.GetPointer());
+        GetCellPoints(pset, cellId, ptIds.GetPointer());
         for (int j = 0; j < labels->GetNumberOfComponents(); ++j) {
           if (ptIds->GetNumberOfIds() == 0) {
             label = invalid;

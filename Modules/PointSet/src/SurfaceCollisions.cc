@@ -78,18 +78,18 @@ public:
   /// Compute bounding spheres of specified range of cells
   void operator ()(const blocked_range<vtkIdType> &re) const
   {
-    vtkNew<vtkIdList> pts;
+    vtkNew<vtkIdList> ptIds;
     double a[3], b[3], c[3], origin[3], radius;
 
     for (vtkIdType cellId = re.begin(); cellId != re.end(); ++cellId) {
       // Get triangle vertices
-      _Surface->GetCellPoints(cellId, pts.GetPointer());
-      mirtkAssert(pts->GetNumberOfIds() == 3, "surface is triangular mesh");
+      GetCellPoints(_Surface, cellId, ptIds.GetPointer());
+      mirtkAssert(ptIds->GetNumberOfIds() == 3, "surface is triangular mesh");
 
       // Get triangle vertex positions
-      _Surface->GetPoint(pts->GetId(0), a);
-      _Surface->GetPoint(pts->GetId(1), b);
-      _Surface->GetPoint(pts->GetId(2), c);
+      _Surface->GetPoint(ptIds->GetId(0), a);
+      _Surface->GetPoint(ptIds->GetId(1), b);
+      _Surface->GetPoint(ptIds->GetId(2), c);
 
       // Get center of bounding sphere
       vtkTriangle::TriangleCenter(a, b, c, origin);
@@ -312,7 +312,7 @@ public:
       }
 
       // Get vertices and normal of this triangle
-      surface->GetCellPoints(cellId1, triPtIds1.GetPointer());
+      GetCellPoints(surface, cellId1, triPtIds1.GetPointer());
       mirtkAssert(triPtIds1->GetNumberOfIds() == 3, "surface is triangular mesh");
       surface->GetPoint(triPtIds1->GetId(0), tri1[0]);
       surface->GetPoint(triPtIds1->GetId(1), tri1[1]);
@@ -339,7 +339,7 @@ public:
       for (const auto cellId2 : nearbyCellIds) {
 
         // Get vertex positions of nearby candidate triangle
-        surface->GetCellPoints(cellId2, triPtIds2.GetPointer());
+        GetCellPoints(surface, cellId2, triPtIds2.GetPointer());
         mirtkAssert(triPtIds2->GetNumberOfIds() == 3, "surface is triangular mesh");
         surface->GetPoint(triPtIds2->GetId(0), tri2[0]);
         surface->GetPoint(triPtIds2->GetId(1), tri2[1]);

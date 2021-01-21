@@ -293,12 +293,12 @@ int main(int argc, char *argv[])
     vtkNew<vtkIdList> ptIds1, ptIds2, cellIds;
     for (vtkIdType cellId = 0; cellId < output->GetNumberOfCells(); ++cellId) {
       if (surface->GetCellType(cellId) != VTK_EMPTY_CELL) {
-        surface->GetCellPoints(cellId, ptIds1.GetPointer());
+        GetCellPoints(surface, cellId, ptIds1.GetPointer());
         for (vtkIdType i = 0; i < ptIds1->GetNumberOfIds(); ++i) {
           surface->GetPointCells(ptIds1->GetId(i), cellIds.GetPointer());
           for (vtkIdType j = 0; j < cellIds->GetNumberOfIds(); ++j) {
             if (cellIds->GetId(j) > cellId && surface->GetCellType(cellIds->GetId(j)) != VTK_EMPTY_CELL) {
-              surface->GetCellPoints(cellIds->GetId(j), ptIds2.GetPointer());
+              GetCellPoints(surface, cellIds->GetId(j), ptIds2.GetPointer());
               if (ptIds1->GetNumberOfIds() == ptIds2->GetNumberOfIds()) {
                 ptIds2->IntersectWith(ptIds1.GetPointer());
                 if (ptIds1->GetNumberOfIds() == ptIds2->GetNumberOfIds()) {

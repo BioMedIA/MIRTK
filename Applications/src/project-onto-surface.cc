@@ -882,7 +882,7 @@ vtkIdType GrowRegion(vtkPolyData *surface, vtkDataArray *regions, LabelType regi
       ++region_size;
       regions->SetComponent(id, 0, regionId);
       if (using_cells) {
-        surface->GetCellPoints(id, cellPointIds.GetPointer());
+        GetCellPoints(surface, id, cellPointIds.GetPointer());
         for (vtkIdType i = 0; i < cellPointIds->GetNumberOfIds(); ++i) {
           idList->SetId(0, cellPointIds->GetId(i));
           if (i == cellPointIds->GetNumberOfIds() - 1) {
@@ -1007,7 +1007,7 @@ void FillHoles(vtkPolyData *surface, const char *scalars_name = "Labels", bool u
       label = static_cast<LabelType>(round(labels->GetComponent(id, 0)));
       if (label != -1) continue;
       // Iterate over cell edges
-      surface->GetCellPoints(id, cellPointIds.GetPointer());
+      GetCellPoints(surface, id, cellPointIds.GetPointer());
       bool is_boundary_cell = false;
       for (vtkIdType i = 0; i < cellPointIds->GetNumberOfIds(); ++i) {
         // Get cells sharing these edge points
@@ -1063,7 +1063,7 @@ void FillHoles(vtkPolyData *surface, const char *scalars_name = "Labels", bool u
     hist.clear();
     if (using_cells) {
       // Iterate over cell edges
-      surface->GetCellPoints(id, cellPointIds.GetPointer());
+      GetCellPoints(surface, id, cellPointIds.GetPointer());
       for (vtkIdType i = 0; i < cellPointIds->GetNumberOfIds(); ++i) {
         // Get cells sharing these edge points
         idList->SetId(0, cellPointIds->GetId(i));
@@ -1345,7 +1345,7 @@ vtkSmartPointer<vtkPolyData> ExtractLabelBoundaries(vtkPolyData *surface, const 
     // Get cell label and point IDs
     label = static_cast<LabelType>(round(cell_labels->GetComponent(cellId, 0)));
     cellPointIds->Reset();
-    mesh->GetCellPoints(cellId, cellPointIds.GetPointer());
+    GetCellPoints(mesh, cellId, cellPointIds.GetPointer());
     // Iterate over cell edges
     for (vtkIdType i = 0; i < cellPointIds->GetNumberOfIds(); ++i) {
       is_boundary_edge = false;

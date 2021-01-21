@@ -29,6 +29,8 @@
 #include "vtkDataSetAttributes.h"
 #include "vtkIdList.h"
 #include "vtkVersionMacros.h"
+#include "vtkDataSet.h"
+#include "vtkPolyData.h"
 
 
 namespace mirtk {
@@ -61,6 +63,30 @@ namespace mirtk {
 #define SetNthVTKInput(filter, n, dataset) (filter)->SetInputData(n, dataset);
 #define AddNthVTKInput(filter, n, dataset) (filter)->AddInputData(n, dataset);
 #define SetNthVTKConnection(filter2, n2, filter1, n1) (filter2)->SetInputConnection(n2, (filter1)->GetOutputPort(n1));
+
+// =============================================================================
+// Transition to VTK 9
+// =============================================================================
+
+// Fix for https://github.com/Kitware/VTK/commit/eb0113741ce5bcbd493cfa3eda34feba827d0533
+inline void GetCellPoints(vtkDataSet *obj, vtkIdType cellId, vtkIdList *ptIds)
+{
+  #if VTK_MAJOR_VERSION < 9
+    vtkPolyData *pd = vtkPolyData::SafeDownCast(obj);
+    if (pd == nullptr) {
+      obj->GetCellPoints(cellId, ptIds);
+    } else {
+      vtkIdType *pts, npts;
+      pd->GetCellPoints(cellId, npts, pts);
+      ptIds->SetNumberOfIds(npts);
+      for (vtkIdType i = 0; i < npts; ++i) {
+        ptIds->SetId(i, pts[i]);
+      }
+    }
+  #else
+    obj->GetCellPoints(cellId, ptIds);
+  #endif
+}
 
 // =============================================================================
 // Data set attributes

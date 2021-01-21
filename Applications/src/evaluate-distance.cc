@@ -475,7 +475,7 @@ int main(int argc, char *argv[])
         locator->FindClosestPoint(a, b, cellId, subId, dist);
         dist = sqrt(dist);
         if (mask) {
-          target->GetCellPoints(cellId, ptIds.GetPointer());
+          GetCellPoints(target, cellId, ptIds.GetPointer());
           for (vtkIdType i = 0; i < ptIds->GetNumberOfIds(); ++i) {
             if (mask->GetComponent(ptIds->GetId(i), 0) != 0.) {
               if (dist > hausdorff_dist) hausdorff_dist = dist;

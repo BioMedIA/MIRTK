@@ -55,7 +55,7 @@ void GrowLine(vtkPolyData *output, List<vtkIdType> &line)
       }
     }
     if (cellId == -1) break;
-    output->GetCellPoints(cellId, ptIds.GetPointer());
+    GetCellPoints(output, cellId, ptIds.GetPointer());
     output->RemoveCellReference(cellId);
     output->DeleteCell(cellId);
     if (ptIds->GetNumberOfIds() == 0) break;
@@ -136,7 +136,7 @@ void Stripper::Execute()
       if (_Output->GetCellType(seedId) != VTK_LINE) continue;
       // Start new line in reverse order
       List<vtkIdType> line;
-      _Output->GetCellPoints(seedId, ptIds.GetPointer());
+      GetCellPoints(_Output, seedId, ptIds.GetPointer());
       for (vtkIdType i = 0; i < ptIds->GetNumberOfIds(); ++i) {
         line.push_front(ptIds->GetId(i));
       }

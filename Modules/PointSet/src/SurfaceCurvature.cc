@@ -91,7 +91,7 @@ public:
 
     // Iterate over faces
     for (cellId1 = re.begin(); cellId1 != re.end(); ++cellId1) {
-      _Surface->GetCellPoints(cellId1, ptIds.GetPointer());
+      GetCellPoints(_Surface, cellId1, ptIds.GetPointer());
       for (vtkIdType i = 0; i < ptIds->GetNumberOfIds(); ++i) {
         // Get edge points
         ptId1 = ptIds->GetId(i);

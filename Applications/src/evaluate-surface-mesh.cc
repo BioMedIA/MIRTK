@@ -159,12 +159,12 @@ int NumberOfRedundantCells(vtkPolyData *dataset, const char *mask_name = nullptr
   vtkNew<vtkIdList> ptIds1, ptIds2, cellIds;
   for (vtkIdType cellId = 0; cellId < surface->GetNumberOfCells(); ++cellId) {
     if (surface->GetCellType(cellId) != VTK_EMPTY_CELL) {
-      surface->GetCellPoints(cellId, ptIds1.GetPointer());
+      GetCellPoints(surface, cellId, ptIds1.GetPointer());
       for (vtkIdType i = 0; i < ptIds1->GetNumberOfIds(); ++i) {
         surface->GetPointCells(ptIds1->GetId(i), cellIds.GetPointer());
         for (vtkIdType j = 0; j < cellIds->GetNumberOfIds(); ++j) {
           if (cellIds->GetId(j) > cellId && surface->GetCellType(cellIds->GetId(j)) != VTK_EMPTY_CELL) {
-            surface->GetCellPoints(cellIds->GetId(j), ptIds2.GetPointer());
+            GetCellPoints(surface, cellIds->GetId(j), ptIds2.GetPointer());
             if (ptIds1->GetNumberOfIds() == ptIds2->GetNumberOfIds()) {
               ptIds2->IntersectWith(ptIds1.GetPointer());
               if (ptIds1->GetNumberOfIds() == ptIds2->GetNumberOfIds()) {
@@ -375,7 +375,7 @@ int main(int argc, char *argv[])
     origCellIds->SetNumberOfTuples(selection.size());
     surface->GetCellData()->AddArray(origCellIds);
     for (auto origCellId : selection) {
-      input->GetCellPoints(origCellId, ptIds.GetPointer());
+      GetCellPoints(input, origCellId, ptIds.GetPointer());
       cellId = surface->InsertNextCell(input->GetCellType(origCellId), ptIds.GetPointer());
       origCellIds->SetValue(cellId, origCellId);
     }
@@ -459,7 +459,7 @@ int main(int argc, char *argv[])
                                         (ncomp < 65535 ? VTK_UNSIGNED_SHORT : VTK_INT),
                                       surface->GetNumberOfCells(), 1, COMPONENT_ID);
             for (vtkIdType cellId = 0; cellId < output->GetNumberOfCells(); ++cellId) {
-              output->GetCellPoints(cellId, ptIds.GetPointer());
+              GetCellPoints(output, cellId, ptIds.GetPointer());
               cellIds->SetComponent(cellId, 0, (ptIds->GetNumberOfIds() == 0 ? 0. : compIds->GetComponent(ptIds->GetId(0), 0)));
             }
             AddCellData(input, surface, cellIds);
