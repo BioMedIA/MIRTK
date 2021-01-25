@@ -93,16 +93,18 @@ function(mirtk_add_executable target_name)
     # used by basis_set_target_install_rpath to work. This function is very
     # costly. Hence, as we know what RPATH we want without inspecting the list
     # of all link dependencies, we rather set the INSTALL_RPATH ourselves.
-    if (CMAKE_HOST_APPLE)
-      set(ORIGIN "@loader_path")
-    else ()
-      set(ORIGIN "\$ORIGIN")
+    if (BUILD_SHARED_LIBS)
+      if (CMAKE_HOST_APPLE)
+        set(ORIGIN "@loader_path")
+      else ()
+        set(ORIGIN "\$ORIGIN")
+      endif ()
+      basis_get_relative_path(rpath
+        "${CMAKE_INSTALL_PREFIX}/${INSTALL_LIBEXEC_DIR}"
+        "${CMAKE_INSTALL_PREFIX}/${INSTALL_LIBRARY_DIR}"
+      )
+      string(REGEX REPLACE "/+$" "" rpath "${rpath}")
+      set_target_properties(${target_uid} PROPERTIES INSTALL_RPATH "${ORIGIN}/${rpath}")
     endif ()
-    basis_get_relative_path(rpath
-      "${CMAKE_INSTALL_PREFIX}/${INSTALL_LIBEXEC_DIR}"
-      "${CMAKE_INSTALL_PREFIX}/${INSTALL_LIBRARY_DIR}"
-    )
-    string(REGEX REPLACE "/+$" "" rpath "${rpath}")
-    set_target_properties(${target_uid} PROPERTIES INSTALL_RPATH "${ORIGIN}/${rpath}")
   endif ()
 endfunction()
