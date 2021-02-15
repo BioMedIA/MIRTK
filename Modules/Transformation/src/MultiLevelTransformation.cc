@@ -89,6 +89,7 @@ MultiLevelTransformation::MultiLevelTransformation(const AffineTransformation &t
 MultiLevelTransformation::MultiLevelTransformation(const MultiLevelTransformation &t)
 :
   Transformation(t),
+  _GlobalTransformation(t._GlobalTransformation),
   _NumberOfLevels(t._NumberOfLevels)
 {
   for (int l = 0; l < _NumberOfLevels; ++l) {
