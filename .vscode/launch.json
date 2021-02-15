@@ -61,6 +61,24 @@
             ]
         },
         {
+            "name": "compose-dofs",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/Build/lib/tools/compose-dofs",
+            "args": ["1000,1001.dof.gz", "1001,1002.dof.gz", "1000,1002.dof.gz", "-v", "-v"],
+            "stopAtEntry": false,
+            "cwd": "/vol/medic01/users/as12312/Experiments/MIRTK/compose-dofs",
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+        {
             "name": "evaluate-surface-mesh",
             "type": "cppdbg",
             "request": "launch",
