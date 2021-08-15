@@ -85,25 +85,29 @@ after_success:
       Scripts/make_appimage.sh;
     fi
 
+before_deploy:
+  - git tag -f travis-${TAG}-build
+  - git remote add gh https://${OWNER}:${GITHUB_API_KEY}@github.com/${TRAVIS_REPO_SLUG}.git
+  - git push gh :travis-${TAG}-build || true
+  - git push -f gh travis-${TAG}-build
+  - git remote remove gh
+
 deploy:
-  - provider: bintray
-    skip_cleanup: true
-    user: "schuhschuh"
-    key:
-      secure: "ZppKEFWcfVwcO93ciA/zU5ThGLkveY/9fnEH4VyTZyYlnVuL+6R6G3BAalhgZLIdNLpmtMd057laqhupPYqt2c4KClRWuhg7pKisCzpZptUWHLgMq3hl2AKGpxMgWrwktVPR2lIpTG6UaQEZ6MUG+NscPUp2OlMwk4Kog2s/Vjr2qkkK51/reZBKz4K0mHmFuIhW7cUkebWCn81CgRLoIX1fiHo22hDvbIvZA/WH8UcyucR3znBjVaWSniXk70TMUyH6uDhx0sX+nml/JDd8UcIZsZm3wBxam39TzviTcyuY/YyK3TkPOOhWe9jutyVnOHwMbQSiI+Av+XjnlKI7DsBNvuMFA+ULcaHqozXgEFC87BrjeyBPq3Y95czsK11OWAB6xo/LIMONmhCSrybBG6ZuRi8c/FDuVlGhdaoixK3KjxD+JkB0twFSXA4ITKTAHPRrZHkgWiM0qFwL4KM1an86s4n8k8pdsN3HA61WoNR3k6WCZkOSrZ3mwi9IHaNN/Mh1jIYBDroBwNdAK0bCVXHgI0iFIdt7VU9K3ZeVoB//vdaG6qcVSkEXlcdTuzuhaD8fAuCnO1muv4FFz3+K6GX1Kc0rRWGqUlWRnOqCV1bG/g7fJnY+CeuZgkFzBlPyVtXa6gA1McHS21YzR7GprP9PLT6zxN0dvf457er8hyM="
-    file: ".bintray.yml"
-    on:
-      all_branches: true
-      condition: "$AppImage_BINTRAY = ON"
   - provider: releases
-    skip_cleanup: true
-    token:
-      secure: "AQD/827hwRqb7Dihl+X3w2WBqGY+JpVcdfm28FEcxNF70WnjCis8V0OHACZ7VIGZHZbcyw33278wJoPwKPm7D1pu3+G++hP7PPLE7JhHJbj6oU7WTqJuvTjSc7F0DkUmXyttMPRpocCU0m3pbJXNhY4oqrYwEQJNtQbqbnYRPV958YR104bWji5VhmtB6Gsp3L7kfjvEAjinHAEDQXybO4/ZVSn+/5MycvE/qTk20NZedsa3rusdmrRAR79CwPBkg0zQhbV4qT0+K1COF1pw/35kyZ22x+mzG5wO+3n2NxrmKo4X3V1awipP+JEFFCsZti1joKxJ9IQo6OFfTPIDpqZQIuvlGr3/1K+iKuGq2OqiXFCdOoHnLBYvVxnr7uToaSMM9kqowevGc5fea2sV3YDvx7EIWJSJiCe5Ee8sWnSDLYJVoSY9ykmx6vRxPJ0iaUjLLajvPenapZOvQZRdZrIX1eFFZqXBB3HQzlbSG/PdjAVDY2KzOuOkXU5Rsaztj8FZgcvWk1U4mqYon+Hol30oGM6u+ZpiOEQclBQe0lUgFUbJv+na0cOoT2LLH0l6ZyifJtUIcfi4ZMAR8vRVAm63gQMX/PPaojXegWrVhS3KWSXyDqHNnFyTuwrnLKH7FWrpEkmaPann1i+LowukaMnizTaQjMM+JgVkBhhdwgo="
-    file: "Deploy/*.AppImage"
+    api-key: $GITHUB_API_KEY
+    file: Deploy/*.AppImage
     file_glob: true
+    skip_cleanup: true
+    name: AppImage of MIRTK master HEAD deployed by Travis CI build
+    body: Automatic MIRTK development build of $TRAVIS_BRANCH branch
+      (commit $TRAVIS_COMMIT) built by Travis CI on $(date +'%F %T %Z').
+    prerelease: true
+    overwrite: true
+    target_commitish: $TRAVIS_COMMIT
     on:
-      tags: true
+      condition: "$AppImage_BINTRAY = ON"
       all_branches: true
+      tags: false
 
 notifications:
   email: false
