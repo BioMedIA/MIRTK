@@ -20,7 +20,7 @@
 #ifndef MIRTK_VtkMath_H
 #define MIRTK_VtkMath_H
 
-#include "vtkConfigure.h" // VTK version macros 
+#include "vtkVersionMacros.h"
 
 
 // See http://www.paraview.org/Bug/view.php?id=14164

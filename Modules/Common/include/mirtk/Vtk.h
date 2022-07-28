@@ -22,13 +22,13 @@
 
 #include "mirtk/String.h"
 
-#include "vtkConfigure.h"
+#include "vtkVersionMacros.h"
+
 #include "vtkNew.h"
 #include "vtkSmartPointer.h"
 #include "vtkDataArray.h"
 #include "vtkDataSetAttributes.h"
 #include "vtkIdList.h"
-#include "vtkVersionMacros.h"
 #include "vtkDataSet.h"
 #include "vtkPolyData.h"
 
