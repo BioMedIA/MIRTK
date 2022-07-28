@@ -10,7 +10,7 @@
             "cStandard": "c11",
             "cppStandard": "c++17",
             "intelliSenseMode": "clang-x64",
-            "compileCommands": "/vol/medic01/users/as12312/Projects/MIRTK/Build/compile_commands.json"
+            "compileCommands": "${workspaceFolder}/Build/compile_commands.json"
         }
     ],
     "version": 4
