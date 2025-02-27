@@ -25,7 +25,6 @@ LABEL Maintainer="Andreas Schuh <andreas.schuh.84@gmail.com>" \
       Vendor="BioMedIA"
 
 # Git repository and commit SHA from which this Docker image was built
-# (see https://microbadger.com/#/labels)
 ARG VCS_REF
 LABEL org.label-schema.vcs-ref=$VCS_REF \
       org.label-schema.vcs-url="https://github.com/BioMedIA/MIRTK"
