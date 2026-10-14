@@ -347,7 +347,9 @@ function (basis_mexext)
         set (MEXEXT "mexw32")
       endif ()
     elseif (CMAKE_SYSTEM_NAME MATCHES "Darwin")
-      if (CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64" OR
+      if (CMAKE_SYSTEM_PROCESSOR MATCHES "^(arm64|aarch64|ARM64)$")
+        set (MEXEXT "mexmaca64")
+      elseif (CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64" OR
           CMAKE_SIZEOF_VOID_P    MATCHES 8)
         set (MEXEXT "mexmaci64")
       else ()
